@@ -133,7 +133,7 @@ protected:
     int InitTimeHelper(ISyncInterface *syncInterface);
 
     // Init the Sync engine
-    int InitSyncEngine(ISyncInterface *syncInterface);
+    virtual int InitSyncEngine(ISyncInterface *syncInterface);
 
     int CheckSyncActive(ISyncInterface *syncInterface, bool isNeedActive);
 

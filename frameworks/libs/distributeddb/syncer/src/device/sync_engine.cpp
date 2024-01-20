@@ -814,6 +814,10 @@ void SyncEngine::SetEqualIdentifierMap(const std::string &identifier, const std:
 
 void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterface *storage)
 {
+    if (!isActive_) {
+        LOGD("[SyncEngine][OfflineHandleByDevice] ignore offline because not init");
+        return;
+    }
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (executor != nullptr) {
         executor->NotifyDeviceOffline(deviceId);
@@ -830,7 +834,10 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
             static_cast<SingleVerKvDBSyncInterface *>(storage)->RemoveSubscribe(queryId);
         }
     }
-    // get context and Inc context if context is not nullprt
+    DBInfo dbInfo;
+    static_cast<SyncGenericInterface *>(storage)->GetDBInfo(dbInfo);
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, deviceId);
+    // get context and Inc context if context is not nullptr
     ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
     if (context != nullptr) {
         context->SetIsNeedResetAbilitySync(true);
@@ -1207,5 +1214,34 @@ int SyncEngine::HandleRemoteExecutorMsg(const std::string &targetDev, Message *i
     DecExecTaskCount();
     RefObject::DecObjRef(executor);
     return errCode;
+}
+
+void SyncEngine::AddSubscribe(SyncGenericInterface *storage,
+    const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery)
+{
+    for (const auto &[device, queryList]: subscribeQuery) {
+        for (const auto &query: queryList) {
+            AddQuerySubscribe(storage, device, query);
+        }
+    }
+}
+
+void SyncEngine::AddQuerySubscribe(SyncGenericInterface *storage, const std::string &device,
+    const QuerySyncObject &query)
+{
+    int errCode = storage->AddSubscribe(query.GetIdentify(), query, true);
+    if (errCode != E_OK) {
+        LOGW("[SyncEngine][AddSubscribe] Add trigger failed dev = %s queryId = %s",
+            STR_MASK(device), STR_MASK(query.GetIdentify()));
+        return;
+    }
+    errCode = subManager_->ReserveRemoteSubscribeQuery(device, query);
+    if (errCode != E_OK) {
+        if (!subManager_->IsQueryExistSubscribe(query.GetIdentify())) {
+            (void)storage->RemoveSubscribe(query.GetIdentify());
+        }
+        return;
+    }
+    subManager_->ActiveRemoteSubscribeQuery(device, query);
 }
 } // namespace DistributedDB

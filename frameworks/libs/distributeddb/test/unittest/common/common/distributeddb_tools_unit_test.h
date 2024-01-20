@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "cloud/virtual_cloud_db.h"
+#include "db_info_handle.h"
 #include "db_types.h"
 #include "kv_store_changed_data.h"
 #include "kv_store_delegate_impl.h"
@@ -350,6 +351,25 @@ public:
     static int GetRecordLog(sqlite3 *db, const std::string &tableName, std::vector<DistributedDB::VBucket> &records);
     static int DeleteRecord(sqlite3 *db, const std::string &tableName,
         const std::vector<std::map<std::string, std::string>> &conditions);
+};
+
+class DBInfoHandleTest : public DistributedDB::DBInfoHandle {
+public:
+    ~DBInfoHandleTest() override = default;
+
+    bool IsSupport() override;
+
+    bool IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+        const DistributedDB::DeviceInfos &devInfo) override;
+
+    void SetLocalIsSupport(bool isSupport);
+
+    void SetNeedAutoSync(bool needAutoSync);
+private:
+    std::mutex supportMutex_;
+    bool localIsSupport_ = true;
+    std::mutex autoSyncMutex_;
+    bool isNeedAutoSync_ = true;
 };
 } // namespace DistributedDBUnitTest
 

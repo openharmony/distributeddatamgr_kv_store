@@ -184,6 +184,15 @@ struct RemoteCondition {
     std::string sql;  // The sql statement;
     std::vector<std::string> bindArgs;  // The bind args.
 };
+
+struct DBInfo {
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    bool syncDualTupleMode = false;
+    bool isNeedSync = false;
+};
+
 using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
 
 struct TrackerSchema {

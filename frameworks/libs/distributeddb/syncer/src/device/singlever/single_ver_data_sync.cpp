@@ -2019,6 +2019,9 @@ int SingleVerDataSync::SubscribeRequestRecv(SingleVerSyncTaskContext *context, c
         return errCode;
     }
     subscribeManager->ActiveRemoteSubscribeQuery(context->GetDeviceId(), packet->GetQuery());
+    DBInfo dbInfo;
+    storage_->GetDBInfo(dbInfo);
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(dbInfo, context->GetDeviceId(), packet->GetQuery());
     return errCode;
 }
 
@@ -2053,6 +2056,9 @@ int SingleVerDataSync::UnsubscribeRequestRecv(SingleVerSyncTaskContext *context,
         return errCode;
     }
     subscribeManager->RemoveRemoteSubscribeQuery(context->GetDeviceId(), packet->GetQuery());
+    DBInfo dbInfo;
+    storage_->GetDBInfo(dbInfo);
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, context->GetDeviceId(), packet->GetQuery());
     metadata_->RemoveQueryFromRecordSet(context->GetDeviceId(), packet->GetQuery().GetIdentify());
     return errCode;
 }

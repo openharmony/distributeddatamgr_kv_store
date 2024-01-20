@@ -36,7 +36,9 @@ RuntimeContextImpl::RuntimeContextImpl()
       timeTickMonitor_(nullptr),
       systemApiAdapter_(nullptr),
       lockStatusObserver_(nullptr),
-      currentSessionId_(1)
+      currentSessionId_(1),
+      dbStatusAdapter_(nullptr),
+      subscribeRecorder_(nullptr)
 {
 }
 
@@ -63,6 +65,8 @@ RuntimeContextImpl::~RuntimeContextImpl()
     delete lockStatusObserver_;
     lockStatusObserver_ = nullptr;
     userChangeMonitor_ = nullptr;
+    dbStatusAdapter_ = nullptr;
+    subscribeRecorder_ = nullptr;
     SetThreadPool(nullptr);
 }
 
@@ -100,6 +104,7 @@ int RuntimeContextImpl::SetCommunicatorAdapter(IAdapter *adapter)
 int RuntimeContextImpl::GetCommunicatorAggregator(ICommunicatorAggregator *&outAggregator)
 {
     outAggregator = nullptr;
+    const std::shared_ptr<DBStatusAdapter> statusAdapter = GetDBStatusAdapter();
     std::lock_guard<std::mutex> lock(communicatorLock_);
     if (communicatorAggregator_ != nullptr) {
         outAggregator = communicatorAggregator_;
@@ -117,7 +122,7 @@ int RuntimeContextImpl::GetCommunicatorAggregator(ICommunicatorAggregator *&outA
         return -E_OUT_OF_MEMORY;
     }
 
-    int errCode = communicatorAggregator_->Initialize(adapter_);
+    int errCode = communicatorAggregator_->Initialize(adapter_, statusAdapter);
     if (errCode != E_OK) {
         LOGE("CommunicatorAggregator init failed, err = %d!", errCode);
         RefObject::KillAndDecObjRef(communicatorAggregator_);
@@ -779,6 +784,144 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
         timeTickMonitor_ = nullptr;
     }
     LOGD("[RuntimeContext] TimeTickMonitor can not stop because listener is not empty");
+}
+
+void RuntimeContextImpl::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr) {
+        dbStatusAdapter->SetDBInfoHandle(handle);
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RemoveAllSubscribe();
+    }
+}
+
+void RuntimeContextImpl::NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr) {
+        dbStatusAdapter->NotifyDBInfos(devInfos, dbInfos);
+    }
+}
+
+std::shared_ptr<DBStatusAdapter> RuntimeContextImpl::GetDBStatusAdapter()
+{
+    std::lock_guard<std::mutex> autoLock(statusAdapterMutex_);
+    if (dbStatusAdapter_ == nullptr) {
+        dbStatusAdapter_ = std::make_unique<DBStatusAdapter>();
+    }
+    if (dbStatusAdapter_ == nullptr) {
+        LOGE("[RuntimeContextImpl] DbStatusAdapter create failed!");
+    }
+    return dbStatusAdapter_;
+}
+
+void RuntimeContextImpl::RecordRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
+    const QuerySyncObject &query)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RecordSubscribe(dbInfo, deviceId, query);
+    }
+}
+
+void RuntimeContextImpl::RemoveRemoteSubscribe(const DeviceID &deviceId)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RemoveRemoteSubscribe(deviceId);
+    }
+}
+
+void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RemoveRemoteSubscribe(dbInfo);
+    }
+}
+
+void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RemoveRemoteSubscribe(dbInfo, deviceId);
+    }
+}
+
+void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
+    const QuerySyncObject &query)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->RemoveRemoteSubscribe(dbInfo, deviceId, query);
+    }
+}
+
+void RuntimeContextImpl::GetSubscribeQuery(const DBInfo &dbInfo,
+    std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
+        return;
+    }
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder = GetSubscribeRecorder();
+    if (subscribeRecorder != nullptr) {
+        subscribeRecorder->GetSubscribeQuery(dbInfo, subscribeQuery);
+    }
+}
+
+std::shared_ptr<SubscribeRecorder> RuntimeContextImpl::GetSubscribeRecorder()
+{
+    std::lock_guard<std::mutex> autoLock(subscribeRecorderMutex_);
+    if (subscribeRecorder_ == nullptr) {
+        subscribeRecorder_ = std::make_unique<SubscribeRecorder>();
+    }
+    if (subscribeRecorder_ == nullptr) {
+        LOGE("[RuntimeContextImpl] SubscribeRecorder create failed!");
+    }
+    return subscribeRecorder_;
+}
+
+bool RuntimeContextImpl::IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+    const std::string &devInfo)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter == nullptr) {
+        return true;
+    }
+    return dbStatusAdapter->IsNeedAutoSync(userId, appId, storeId, devInfo);
+}
+
+void RuntimeContextImpl::SetRemoteOptimizeCommunication(const std::string &dev, bool optimize)
+{
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
+    if (dbStatusAdapter == nullptr) {
+        return;
+    }
+    dbStatusAdapter->SetRemoteOptimizeCommunication(dev, optimize);
 }
 
 void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback)

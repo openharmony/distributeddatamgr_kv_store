@@ -20,6 +20,7 @@
 #include <mutex>
 
 #include "auto_launch_export.h"
+#include "db_info_handle.h"
 #include "cloud/icloud_data_translate.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
@@ -57,6 +58,10 @@ public:
     DB_API static DBStatus SetPermissionConditionCallback(const PermissionConditionCallback &callback);
 
     DB_API static bool IsProcessSystemApiAdapterValid();
+
+    DB_API static void SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle);
+
+    DB_API static void NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos);
 
     DB_API static void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback);
 

@@ -23,7 +23,7 @@
 using namespace std;
 using namespace DistributedDB;
 
-bool SetUpEnv(EnvHandle &inEnv, const string &inName)
+bool SetUpEnv(EnvHandle &inEnv, const string &inName, const std::shared_ptr<DBStatusAdapter> &adapter)
 {
     if (inEnv.adapterHandle != nullptr || inEnv.commAggrHandle != nullptr) {
         LOGI("[UT][Common][SetUp] Already Setup for %s", inName.c_str());
@@ -42,13 +42,18 @@ bool SetUpEnv(EnvHandle &inEnv, const string &inName)
         return false;
     }
 
-    int errCode = inEnv.commAggrHandle->Initialize(inEnv.adapterHandle);
+    int errCode = inEnv.commAggrHandle->Initialize(inEnv.adapterHandle, adapter);
     if (errCode != E_OK) {
         LOGI("[UT][Common][SetUp] Init CommunicatorAggregator fail for %s", inName.c_str());
         return false;
     }
 
     return true;
+}
+
+bool SetUpEnv(EnvHandle &inEnv, const string &inName)
+{
+    return SetUpEnv(inEnv, inName, nullptr);
 }
 
 void TearDownEnv(EnvHandle &inEnv)

@@ -126,6 +126,16 @@ DBStatus RuntimeConfig::SetPermissionConditionCallback(const PermissionCondition
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback));
 }
 
+void RuntimeConfig::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle)
+{
+    RuntimeContext::GetInstance()->SetDBInfoHandle(handle);
+}
+
+void RuntimeConfig::NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos)
+{
+    RuntimeContext::GetInstance()->NotifyDBInfos(devInfos, dbInfos);
+}
+
 void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::TranslateToDeviceIdCallback &callback)
 {
     RuntimeContext::GetInstance()->SetTranslateToDeviceIdCallback(callback);

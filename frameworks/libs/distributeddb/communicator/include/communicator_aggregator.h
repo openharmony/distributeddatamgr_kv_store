@@ -54,7 +54,7 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(CommunicatorAggregator);
 
     // See ICommunicatorAggregator for detail
-    int Initialize(IAdapter *inAdapter) override;
+    int Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter) override;
 
     // Must not call any other functions if Finalize had been called. In fact, Finalize has no chance to be called.
     void Finalize() override;
@@ -135,6 +135,12 @@ private:
     // Record the protocol version of remote target.
     void SetRemoteCommunicatorVersion(const std::string &target, uint16_t version);
 
+    void OnRemoteDBStatusChange(const std::string &devInfo, const std::vector<DBInfo> &dbInfos);
+
+    void NotifyConnectChange(const std::string &srcTarget, const std::map<LabelType, bool> &changedLabels);
+
+    void RegDBChangeCallback();
+
     void InitSendThread();
 
     void SendOnceData();
@@ -195,6 +201,8 @@ private:
     OnConnectCallback onConnectHandle_;
     Finalizer onConnectFinalizer_;
     mutable std::mutex onConnectMutex_;
+
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter_;
 
     std::atomic<bool> useExclusiveThread_ = false;
     bool sendTaskStart_ = false;

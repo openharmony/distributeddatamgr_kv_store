@@ -15,21 +15,26 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include "db_common.h"
 #include "db_errno.h"
 #include "distributeddb_communicator_common.h"
+#include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "endian_convert.h"
 #include "log_print.h"
 #include "thread_pool_test_stub.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace std;
 using namespace testing::ext;
 using namespace DistributedDB;
+using namespace DistributedDBUnitTest;
 
 namespace {
     EnvHandle g_envDeviceA;
     EnvHandle g_envDeviceB;
     EnvHandle g_envDeviceC;
+}
 
 static void HandleConnectChange(OnOfflineDevice &onlines, const std::string &target, bool isConnect)
 {
@@ -852,4 +857,503 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage003, TestSize.Level2)
     g_envDeviceB.commAggrHandle->RegCommunicatorLackCallback(nullptr, nullptr);
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
+
+namespace {
+    void SetUpEnv(const std::string &localDev, const std::string &supportDev,
+        const std::shared_ptr<DBStatusAdapter> &adapter, bool isSupport, EnvHandle &envDevice)
+    {
+        std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+        adapter->SetDBInfoHandle(handle);
+        adapter->SetRemoteOptimizeCommunication(supportDev, isSupport);
+        SetUpEnv(envDevice, localDev, adapter);
+    }
+
+    void InitCommunicator(DBInfo &dbInfo, EnvHandle &envDevice, OnOfflineDevice &onlineCallback, ICommunicator *&comm)
+    {
+        dbInfo.userId = USER_ID;
+        dbInfo.appId = APP_ID;
+        dbInfo.storeId = STORE_ID_1;
+        dbInfo.isNeedSync = true;
+        dbInfo.syncDualTupleMode = false;
+        std::string label = DBCommon::GenerateHashLabel(dbInfo);
+        std::vector<uint8_t> commLabel(label.begin(), label.end());
+        int errorNo = E_OK;
+        comm = envDevice.commAggrHandle->AllocCommunicator(commLabel, errorNo);
+        ASSERT_NOT_NULL_AND_ACTIVATE(comm);
+        REG_CONNECT_CALLBACK(comm, onlineCallback);
+    }
+}
+
+/**
+  * @tc.name: CommunicationOptimization001
+  * @tc.desc: Test notify with isSupport true.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization001, TestSize.Level3)
+{
+    auto *pAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(pAggregator, nullptr);
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(pAggregator);
+    /**
+     * @tc.steps: step1. set up env
+     */
+    EnvHandle envDeviceA;
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceA, deviceB, adapterA, true, envDeviceA);
+
+    EnvHandle envDeviceB;
+    std::shared_ptr<DBStatusAdapter> adapterB = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceB, deviceA, adapterB, true, envDeviceB);
+
+    /**
+     * @tc.steps: step2. device alloc communicator using label and register callback
+     */
+    DBInfo dbInfo;
+    ICommunicator *commAA = nullptr;
+    OnOfflineDevice onlineForAA;
+    InitCommunicator(dbInfo, envDeviceA, onlineForAA, commAA);
+
+    ICommunicator *commBB = nullptr;
+    OnOfflineDevice onlineForBB;
+    InitCommunicator(dbInfo, envDeviceB, onlineForBB, commBB);
+
+    /**
+     * @tc.steps: step3. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step4. wait for label exchange
+     * @tc.expected: step4. both communicator has no callback;
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
+    EXPECT_EQ(onlineForBB.onlineDevices.size(), static_cast<size_t>(0));
+
+    /**
+     * @tc.steps: step5. both notify
+     * @tc.expected: step5. both has callback;
+     */
+    adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
+    adapterB->NotifyDBInfos({ deviceA }, { dbInfo });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(1));
+
+    dbInfo.isNeedSync = false;
+    adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
+    adapterB->NotifyDBInfos({ deviceA }, { dbInfo });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
+
+    // Clean up and disconnect
+    envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    envDeviceB.commAggrHandle->ReleaseCommunicator(commBB);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    AdapterStub::DisconnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+
+    TearDownEnv(envDeviceA);
+    TearDownEnv(envDeviceB);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
+  * @tc.name: CommunicationOptimization002
+  * @tc.desc: Test notify with isSupport true and can offline by device change.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization002, TestSize.Level3)
+{
+    auto *pAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(pAggregator, nullptr);
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(pAggregator);
+    /**
+     * @tc.steps: step1. set up env
+     */
+    EnvHandle envDeviceA;
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceA, deviceB, adapterA, true, envDeviceA);
+
+    EnvHandle envDeviceB;
+    std::shared_ptr<DBStatusAdapter> adapterB = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceB, deviceA, adapterB, true, envDeviceB);
+
+    /**
+     * @tc.steps: step2. device alloc communicator using label and register callback
+     */
+    DBInfo dbInfo;
+    ICommunicator *commAA = nullptr;
+    OnOfflineDevice onlineForAA;
+    InitCommunicator(dbInfo, envDeviceA, onlineForAA, commAA);
+    /**
+     * @tc.steps: step3. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    /**
+     * @tc.steps: step5. A notify remote
+     * @tc.expected: step5. A has callback;
+     */
+    adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(1));
+
+    AdapterStub::DisconnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
+
+    // Clean up and disconnect
+    envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    TearDownEnv(envDeviceA);
+    TearDownEnv(envDeviceB);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
+  * @tc.name: CommunicationOptimization003
+  * @tc.desc: Test notify with isSupport false.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization003, TestSize.Level3)
+{
+    auto *pAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(pAggregator, nullptr);
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(pAggregator);
+    /**
+     * @tc.steps: step1. set up env
+     */
+    EnvHandle envDeviceA;
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceA, deviceB, adapterA, false, envDeviceA);
+    EnvHandle envDeviceB;
+    std::shared_ptr<DBStatusAdapter> adapterB = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceB, deviceA, adapterB, false, envDeviceB);
+    /**
+     * @tc.steps: step2. device alloc communicator using label and register callback
+     */
+    DBInfo dbInfo;
+    ICommunicator *commAA = nullptr;
+    OnOfflineDevice onlineForAA;
+    InitCommunicator(dbInfo, envDeviceA, onlineForAA, commAA);
+    ICommunicator *commBB = nullptr;
+    OnOfflineDevice onlineForBB;
+    InitCommunicator(dbInfo, envDeviceB, onlineForBB, commBB);
+    /**
+     * @tc.steps: step3. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    /**
+     * @tc.steps: step4. wait for label exchange
+     * @tc.expected: step4. both communicator has no callback;
+     */
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
+    EXPECT_EQ(onlineForBB.onlineDevices.size(), static_cast<size_t>(0));
+    /**
+     * @tc.steps: step5. A notify remote
+     * @tc.expected: step5. B has no callback;
+     */
+    adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForBB.onlineDevices.size(), static_cast<size_t>(0));
+    /**
+     * @tc.steps: step6. A notify local
+     * @tc.expected: step6. B has no callback;
+     */
+    dbInfo.isNeedSync = false;
+    onlineForAA.onlineDevices.clear();
+    adapterA->NotifyDBInfos({ deviceA }, { dbInfo });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
+    // Clean up and disconnect
+    envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    envDeviceB.commAggrHandle->ReleaseCommunicator(commBB);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    AdapterStub::DisconnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    TearDownEnv(envDeviceA);
+    TearDownEnv(envDeviceB);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
+  * @tc.name: CommunicationOptimization004
+  * @tc.desc: Test notify with isSupport false and it be will changed by communication.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization004, TestSize.Level3)
+{
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    /**
+     * @tc.steps: step1. set up env
+     */
+    EnvHandle envDeviceA;
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceA, deviceB, adapterA, false, envDeviceA);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(envDeviceA.commAggrHandle);
+    EnvHandle envDeviceB;
+    std::shared_ptr<DBStatusAdapter> adapterB = std::make_shared<DBStatusAdapter>();
+    SetUpEnv(deviceB, deviceA, adapterB, false, envDeviceB);
+    /**
+     * @tc.steps: step2. device alloc communicator using label and register callback
+     */
+    DBInfo dbInfo;
+    ICommunicator *commAA = nullptr;
+    OnOfflineDevice onlineForAA;
+    InitCommunicator(dbInfo, envDeviceA, onlineForAA, commAA);
+    ICommunicator *commBB = nullptr;
+    OnOfflineDevice onlineForBB;
+    InitCommunicator(dbInfo, envDeviceB, onlineForBB, commBB);
+    /**
+     * @tc.steps: step3. connect device A with device B
+     */
+    EXPECT_EQ(adapterA->IsSupport(deviceB), false);
+    AdapterStub::ConnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(adapterA->IsSupport(deviceB), true);
+    // Clean up and disconnect
+    envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    envDeviceB.commAggrHandle->ReleaseCommunicator(commBB);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    AdapterStub::DisconnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    envDeviceA.commAggrHandle = nullptr;
+    TearDownEnv(envDeviceA);
+    TearDownEnv(envDeviceB);
+}
+
+/**
+  * @tc.name: CommunicationOptimization005
+  * @tc.desc: Test notify with isSupport false and send label exchange.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization005, TestSize.Level3)
+{
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    /**
+     * @tc.steps: step1. set up env
+     */
+    EnvHandle envDeviceA;
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    handle->SetLocalIsSupport(false);
+    adapterA->SetDBInfoHandle(handle);
+    SetUpEnv(envDeviceA, deviceA, adapterA);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(envDeviceA.commAggrHandle);
+    EnvHandle envDeviceB;
+    SetUpEnv(envDeviceB, deviceB, nullptr);
+    /**
+     * @tc.steps: step2. connect device A with device B
+     */
+    EXPECT_EQ(adapterA->IsSupport(deviceB), false);
+    AdapterStub::ConnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    /**
+     * @tc.steps: step3. device alloc communicator using label and register callback
+     */
+    DBInfo dbInfo;
+    ICommunicator *commAA = nullptr;
+    OnOfflineDevice onlineForAA;
+    InitCommunicator(dbInfo, envDeviceA, onlineForAA, commAA);
+    ICommunicator *commBB = nullptr;
+    OnOfflineDevice onlineForBB;
+    InitCommunicator(dbInfo, envDeviceB, onlineForBB, commBB);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForBB.onlineDevices.size(), static_cast<size_t>(1));
+
+    // Clean up and disconnect
+    envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    envDeviceB.commAggrHandle->ReleaseCommunicator(commBB);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    AdapterStub::DisconnectAdapterStub(envDeviceA.adapterHandle, envDeviceB.adapterHandle);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    envDeviceA.commAggrHandle = nullptr;
+    TearDownEnv(envDeviceA);
+    TearDownEnv(envDeviceB);
+}
+
+/**
+  * @tc.name: DbStatusAdapter001
+  * @tc.desc: Test notify with isSupport false.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter001, TestSize.Level1)
+{
+    auto *pAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(pAggregator, nullptr);
+    const std::string deviceA = "DEVICES_A";
+    const std::string deviceB = "DEVICES_B";
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(pAggregator);
+
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    adapterA->SetDBInfoHandle(handle);
+    adapterA->SetRemoteOptimizeCommunication(deviceB, true);
+    std::string actualRemoteDevInfo;
+    size_t remoteInfoCount = 0u;
+    size_t localCount = 0u;
+    DBInfo dbInfo;
+    adapterA->NotifyDBInfos({ deviceA }, { dbInfo });
+
+    dbInfo = {
+        USER_ID,
+        APP_ID,
+        STORE_ID_1,
+        true,
+        false
+    };
+    adapterA->NotifyDBInfos({ deviceA }, { dbInfo });
+    dbInfo.isNeedSync = false;
+    adapterA->NotifyDBInfos({ deviceA }, { dbInfo });
+    adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
+
+    size_t remoteChangeCount = 0u;
+    adapterA->SetDBStatusChangeCallback(
+        [&actualRemoteDevInfo, &remoteInfoCount](const std::string &devInfo, const std::vector<DBInfo> &dbInfos) {
+            actualRemoteDevInfo = devInfo;
+            remoteInfoCount = dbInfos.size();
+        },
+        [&localCount]() {
+            localCount++;
+        },
+        [&remoteChangeCount, deviceB](const std::string &dev) {
+            remoteChangeCount++;
+            EXPECT_EQ(dev, deviceB);
+        });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(actualRemoteDevInfo, deviceB);
+    EXPECT_EQ(remoteInfoCount, 1u);
+    adapterA->SetRemoteOptimizeCommunication(deviceB, false);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(remoteChangeCount, 1u);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
+  * @tc.name: DbStatusAdapter002
+  * @tc.desc: Test adapter clear cache.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter002, TestSize.Level1) {
+    const std::string deviceB = "DEVICES_B";
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    adapterA->SetDBInfoHandle(handle);
+    adapterA->SetRemoteOptimizeCommunication(deviceB, true);
+    EXPECT_TRUE(adapterA->IsSupport(deviceB));
+    adapterA->SetDBInfoHandle(handle);
+    adapterA->SetRemoteOptimizeCommunication(deviceB, false);
+    EXPECT_FALSE(adapterA->IsSupport(deviceB));
+}
+
+/**
+  * @tc.name: DbStatusAdapter003
+  * @tc.desc: Test adapter get local dbInfo.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter003, TestSize.Level1) {
+    const std::string deviceB = "DEVICES_B";
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    adapterA->SetDBInfoHandle(handle);
+    handle->SetLocalIsSupport(true);
+    std::vector<DBInfo> dbInfos;
+    EXPECT_EQ(adapterA->GetLocalDBInfos(dbInfos), E_OK);
+    handle->SetLocalIsSupport(false);
+    EXPECT_EQ(adapterA->GetLocalDBInfos(dbInfos), E_OK);
+    adapterA->SetDBInfoHandle(handle);
+    EXPECT_EQ(adapterA->GetLocalDBInfos(dbInfos), -E_NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: DbStatusAdapter004
+  * @tc.desc: Test adapter clear cache will get callback.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter004, TestSize.Level1)
+{
+    const std::string deviceB = "DEVICES_B";
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    adapterA->SetDBInfoHandle(handle);
+    handle->SetLocalIsSupport(true);
+    std::vector<DBInfo> dbInfos;
+    DBInfo dbInfo = {
+        USER_ID,
+        APP_ID,
+        STORE_ID_1,
+        true,
+        true
+    };
+    dbInfos.push_back(dbInfo);
+    dbInfo.storeId = STORE_ID_2;
+    dbInfos.push_back(dbInfo);
+    dbInfo.storeId = STORE_ID_3;
+    dbInfo.isNeedSync = false;
+    dbInfos.push_back(dbInfo);
+    adapterA->NotifyDBInfos({"dev"}, dbInfos);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    size_t notifyCount = 0u;
+    adapterA->SetDBStatusChangeCallback([&notifyCount](const std::string &devInfo,
+        const std::vector<DBInfo> &dbInfos) {
+        LOGD("on callback");
+        for (const auto &dbInfo: dbInfos) {
+            EXPECT_FALSE(dbInfo.isNeedSync);
+        }
+        notifyCount = dbInfos.size();
+    }, nullptr, nullptr);
+    adapterA->SetDBInfoHandle(nullptr);
+    EXPECT_EQ(notifyCount, 2u); // 2 dbInfo is need sync now it should be offline
+}
+
+/**
+  * @tc.name: DbStatusAdapter005
+  * @tc.desc: Test adapter is need auto sync.
+  * @tc.type: FUNC
+  * @tc.require: AR000HGD0B
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter005, TestSize.Level1)
+{
+    const std::string deviceB = "DEVICES_B";
+    std::shared_ptr<DBStatusAdapter> adapterA = std::make_shared<DBStatusAdapter>();
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    adapterA->SetDBInfoHandle(handle);
+    handle->SetLocalIsSupport(true);
+    EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
+    handle->SetNeedAutoSync(false);
+    EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), false);
+    handle->SetLocalIsSupport(false);
+    EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), false);
+    adapterA->SetDBInfoHandle(handle);
+    EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
+    adapterA->SetDBInfoHandle(nullptr);
+    EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
 }

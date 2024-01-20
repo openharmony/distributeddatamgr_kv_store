@@ -14,7 +14,10 @@
  */
 
 #include "communicator_linker.h"
+
+#include <utility>
 #include "communicator_aggregator.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "hash.h"
 #include "log_print.h"
@@ -29,10 +32,12 @@ constexpr uint32_t RETRANSMIT_LIMIT = 20; // Currently we do at most 20 retransm
 constexpr uint32_t RETRANSMIT_LIMIT_EQUAL_INTERVAL = 5; // First 5 retransmission will be equal interval
 }
 
-CommunicatorLinker::CommunicatorLinker(CommunicatorAggregator *inAggregator)
+CommunicatorLinker::CommunicatorLinker(CommunicatorAggregator *inAggregator,
+    std::shared_ptr<DBStatusAdapter> statusAdapter)
     : incSequenceId_(0), incAckTriggerId_(0)
 {
     aggregator_ = inAggregator;
+    statusAdapter_ = std::move(statusAdapter);
     RefObject::IncObjRef(aggregator_); // The linker rely on CommunicatorAggregator
 }
 
@@ -40,6 +45,7 @@ CommunicatorLinker::~CommunicatorLinker()
 {
     RefObject::DecObjRef(aggregator_); // The linker no longer rely on CommunicatorAggregator
     aggregator_ = nullptr;
+    statusAdapter_ = nullptr;
 }
 
 void CommunicatorLinker::Initialize()
@@ -75,6 +81,9 @@ int CommunicatorLinker::TargetOnline(const std::string &inTarget, std::set<Label
 // The caller should notify all related communicator about this target offline.
 void CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<LabelType> &outRelatedLabels)
 {
+    if (statusAdapter_ != nullptr) {
+        statusAdapter_->TargetOffline(inTarget);
+    }
     std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
     outRelatedLabels = targetMapOnlineLabels_[inTarget];
     // Do not erase the Labels of inTarget from targetMapOnlineLabels_, remember it for using when TargetOnline
@@ -83,6 +92,9 @@ void CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<Lab
     // the distinctValue of this remote target may be changed, and the sequenceId may start from zero
     targetDistinctValue_.erase(inTarget);
     topRecvLabelSeq_.erase(inTarget);
+    if (statusAdapter_ != nullptr && statusAdapter_->IsSupport(inTarget)) {
+        targetMapOnlineLabels_.erase(inTarget);
+    }
 }
 
 // Add local label. Create async task to send out label_exchange and waiting for label_exchange_ack.
@@ -91,11 +103,9 @@ void CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<Lab
 // The caller should notify communicator of this label about already online target.
 int CommunicatorLinker::IncreaseLocalLabel(const LabelType &inLabel, std::set<std::string> &outOnlineTarget)
 {
-    std::set<std::string> totalOnlineTargets;
     {
         std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
         localOnlineLabels_.insert(inLabel);
-        totalOnlineTargets = remoteOnlineTarget_;
         for (auto &entry : targetMapOnlineLabels_) {
             if (remoteOnlineTarget_.count(entry.first) == 0) { // Ignore offline target
                 continue;
@@ -105,34 +115,18 @@ int CommunicatorLinker::IncreaseLocalLabel(const LabelType &inLabel, std::set<st
             }
         }
     }
-    bool everFail = false;
-    for (const auto &entry : totalOnlineTargets) {
-        int errCode = TriggerLabelExchangeEvent(entry);
-        if (errCode != E_OK) {
-            everFail = true;
-        }
-    }
-    return everFail ? -E_INTERNAL_ERROR : E_OK;
+    return TriggerLabelExchangeEvent() ? -E_INTERNAL_ERROR : E_OK;
 }
 
 // Del local label. Create async task to send out label_exchange and waiting for label_exchange_ack.
 // If waiting timeout, pass the send&wait task to overrall timing retry task.
 int CommunicatorLinker::DecreaseLocalLabel(const LabelType &inLabel)
 {
-    std::set<std::string> totalOnlineTargets;
     {
         std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
         localOnlineLabels_.erase(inLabel);
-        totalOnlineTargets = remoteOnlineTarget_;
     }
-    bool everFail = false;
-    for (const auto &entry : totalOnlineTargets) {
-        int errCode = TriggerLabelExchangeEvent(entry);
-        if (errCode != E_OK) {
-            everFail = true;
-        }
-    }
-    return everFail ? -E_INTERNAL_ERROR : E_OK;
+    return TriggerLabelExchangeEvent() ? -E_INTERNAL_ERROR : E_OK;
 }
 
 // Compare the latest labels with previous Label, find out label changes.
@@ -284,11 +278,21 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
 
 int CommunicatorLinker::TriggerLabelExchangeEvent(const std::string &toTarget)
 {
+    if (statusAdapter_ != nullptr && statusAdapter_->IsSupport(toTarget)) {
+        return E_OK;
+    }
     // Apply for a latest sequenceId
     uint64_t sequenceId = incSequenceId_.fetch_add(1, std::memory_order_seq_cst);
     // Get a snapshot of current online labels
     std::set<LabelType> onlineLabels;
-    {
+    std::vector<DBInfo> dbInfos;
+    if (statusAdapter_ != nullptr && statusAdapter_->GetLocalDBInfos(dbInfos) == E_OK) {
+        for (const auto &dbInfo: dbInfos) {
+            std::string label = DBCommon::GenerateHashLabel(dbInfo);
+            LabelType labelType(label.begin(), label.end());
+            onlineLabels.insert(labelType);
+        }
+    } else {
         std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
         onlineLabels = localOnlineLabels_;
     }
@@ -462,5 +466,35 @@ void CommunicatorLinker::SendLabelExchangeAck(const std::string &toTarget, Seria
     }
 }
 
+void CommunicatorLinker::UpdateOnlineLabels(const std::string &device, const std::map<LabelType, bool> &labels)
+{
+    std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
+    for (const auto &[label, isOnline]: labels) {
+        if (isOnline) {
+            targetMapOnlineLabels_[device].insert(label);
+        } else {
+            targetMapOnlineLabels_[device].erase(label);
+        }
+    }
+}
+
+bool CommunicatorLinker::TriggerLabelExchangeEvent(bool checkAdapter)
+{
+    bool everFail = false;
+    std::set<std::string> totalOnlineTargets;
+    {
+        std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
+        totalOnlineTargets = remoteOnlineTarget_;
+    }
+    for (auto &entry : totalOnlineTargets) {
+        if (checkAdapter && statusAdapter_ != nullptr && !statusAdapter_->IsSendLabelExchange()) {
+            continue;
+        }
+        if (TriggerLabelExchangeEvent(entry) != E_OK) {
+            everFail = true;
+        }
+    }
+    return everFail;
+}
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorLinker)
 } // namespace DistributedDB

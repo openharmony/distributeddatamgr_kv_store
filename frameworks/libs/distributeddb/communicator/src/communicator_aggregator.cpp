@@ -52,7 +52,7 @@ CommunicatorAggregator::~CommunicatorAggregator()
     commLinker_ = nullptr;
 }
 
-int CommunicatorAggregator::Initialize(IAdapter *inAdapter)
+int CommunicatorAggregator::Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter)
 {
     if (inAdapter == nullptr) {
         return -E_INVALID_ARGS;
@@ -64,7 +64,7 @@ int CommunicatorAggregator::Initialize(IAdapter *inAdapter)
     scheduler_.Initialize();
 
     int errCode;
-    commLinker_ = new (std::nothrow) CommunicatorLinker(this);
+    commLinker_ = new (std::nothrow) CommunicatorLinker(this, statusAdapter);
     if (commLinker_ == nullptr) {
         errCode = -E_OUT_OF_MEMORY;
         goto ROLL_BACK;
@@ -85,6 +85,8 @@ int CommunicatorAggregator::Initialize(IAdapter *inAdapter)
 
     shutdown_ = false;
     InitSendThread();
+    dbStatusAdapter_ = statusAdapter;
+    RegDBChangeCallback();
     return E_OK;
 ROLL_BACK:
     UnRegCallbackFromAdapter();
@@ -129,6 +131,7 @@ void CommunicatorAggregator::Finalize()
     commLinker_ = nullptr;
     retainer_.Finalize();
     combiner_.Finalize();
+    dbStatusAdapter_ = nullptr;
 }
 
 ICommunicator *CommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int &outErrorNo)
@@ -303,7 +306,12 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         LOGE("[CommAggr][Create] Exit ok but discard since localSourceId zero, thread=%s.", GetThreadId().c_str());
         return E_OK; // Returns E_OK here to indicate this buffer was accepted though discard immediately
     }
-    PhyHeaderInfo info{localSourceId_, incFrameId_.fetch_add(1, std::memory_order_seq_cst), inType};
+    bool sendLabelExchange = true;
+    if (dbStatusAdapter_ != nullptr) {
+        sendLabelExchange = dbStatusAdapter_->IsSendLabelExchange();
+    }
+    PhyHeaderInfo info{localSourceId_, incFrameId_.fetch_add(1, std::memory_order_seq_cst), inType,
+        sendLabelExchange};
     int errCode = ProtocolProto::SetPhyHeader(inBuff, info);
     if (errCode != E_OK) {
         LOGE("[CommAggr][Create] Set phyHeader fail, thread=%s, errCode=%d", GetThreadId().c_str(), errCode);
@@ -484,6 +492,9 @@ void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const 
 
     // Update version of remote target
     SetRemoteCommunicatorVersion(srcTarget, packetResult.GetDbVersion());
+    if (dbStatusAdapter_ != nullptr) {
+        dbStatusAdapter_->SetRemoteOptimizeCommunication(srcTarget, !packetResult.IsSendLabelExchange());
+    }
     if (packetResult.GetFrameTypeInfo() == FrameType::EMPTY) { // Empty frame will never be fragmented
         LOGI("[CommAggr][Receive] Empty frame, just ignore in this version of distributeddb.");
         return;
@@ -608,24 +619,7 @@ int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget
             LOGE("[CommAggr][CommReceive] Receive LabelExchange Fail.");
             return errCode;
         }
-        if (!commLinker_->IsRemoteTargetOnline(srcTarget)) {
-            LOGW("[CommAggr][CommReceive] Receive LabelExchange from offline target=%s{private}.", srcTarget.c_str());
-            for (const auto &entry : changedLabels) {
-                LOGW("[CommAggr][CommReceive] REMEMBER: label=%.3s, inOnline=%d.", VEC_TO_STR(entry.first),
-                    entry.second);
-            }
-            return E_OK;
-        }
-        // Do target change notify
-        std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        for (auto &entry : changedLabels) {
-            // Ignore nonactivated communicator
-            if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
-                LOGI("[CommAggr][CommReceive] label=%.3s, srcTarget=%s{private}, isOnline=%d.",
-                    VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
-                commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
-            }
-        }
+        NotifyConnectChange(srcTarget, changedLabels);
     }
     return E_OK;
 }
@@ -763,6 +757,9 @@ void CommunicatorAggregator::UnRegCallbackFromAdapter()
     adapterHandle_->RegBytesReceiveCallback(nullptr, nullptr);
     adapterHandle_->RegTargetChangeCallback(nullptr, nullptr);
     adapterHandle_->RegSendableCallback(nullptr, nullptr);
+    if (dbStatusAdapter_ != nullptr) {
+        dbStatusAdapter_->SetDBStatusChangeCallback(nullptr, nullptr, nullptr);
+    }
 }
 
 void CommunicatorAggregator::GenerateLocalSourceId()
@@ -874,6 +871,62 @@ std::shared_ptr<ExtendHeaderHandle> CommunicatorAggregator::GetExtendHeaderHandl
     return adapterHandle_->GetExtendHeaderHandle(paramInfo);
 }
 
+void CommunicatorAggregator::OnRemoteDBStatusChange(const std::string &devInfo, const std::vector<DBInfo> &dbInfos)
+{
+    std::map<LabelType, bool> changedLabels;
+    for (const auto &dbInfo: dbInfos) {
+        std::string label = DBCommon::GenerateHashLabel(dbInfo);
+        LabelType labelType(label.begin(), label.end());
+        changedLabels[labelType] = dbInfo.isNeedSync;
+    }
+    if (commLinker_ != nullptr) {
+        commLinker_->UpdateOnlineLabels(devInfo, changedLabels);
+    }
+    NotifyConnectChange(devInfo, changedLabels);
+}
+
+void CommunicatorAggregator::NotifyConnectChange(const std::string &srcTarget,
+    const std::map<LabelType, bool> &changedLabels)
+{
+    if (commLinker_ != nullptr && !commLinker_->IsRemoteTargetOnline(srcTarget)) {
+        LOGW("[CommAggr][NotifyConnectChange] from offline target=%s{private}.", srcTarget.c_str());
+        for (const auto &entry : changedLabels) {
+            LOGW("[CommAggr] REMEMBER: label=%s, inOnline=%d.", VEC_TO_STR(entry.first), entry.second);
+        }
+        return;
+    }
+    // Do target change notify
+    std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
+    for (auto &entry : changedLabels) {
+        // Ignore nonactivated communicator
+        if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
+            LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
+                 VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
+            commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
+        }
+    }
+}
+
+void CommunicatorAggregator::RegDBChangeCallback()
+{
+    if (dbStatusAdapter_ != nullptr) {
+        dbStatusAdapter_->SetDBStatusChangeCallback(
+            [this](const std::string &devInfo, const std::vector<DBInfo> &dbInfos) {
+                OnRemoteDBStatusChange(devInfo, dbInfos);
+            },
+            [this]() {
+                if (commLinker_ != nullptr) {
+                    (void)commLinker_->TriggerLabelExchangeEvent(false);
+                }
+            },
+            [this](const std::string &dev) {
+                if (commLinker_ != nullptr) {
+                    std::set<LabelType> relatedLabels;
+                    (void)commLinker_->TargetOnline(dev, relatedLabels);
+                }
+            });
+    }
+}
 void CommunicatorAggregator::InitSendThread()
 {
     if (RuntimeContext::GetInstance()->GetThreadPool() != nullptr) {

@@ -212,6 +212,7 @@ public:
     void Dump(int fd) override;
 
     void AbortMachineIfNeed(uint32_t syncId) override;
+
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 

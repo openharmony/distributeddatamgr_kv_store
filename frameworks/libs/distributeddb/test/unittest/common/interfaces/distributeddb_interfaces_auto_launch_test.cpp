@@ -65,7 +65,7 @@ namespace {
     class StoreCommunicatorAggregator : public ICommunicatorAggregator {
     public:
         // Return 0 as success. Return negative as error
-        int Initialize(IAdapter *inAdapter) override
+        int Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter) override
         {
             return E_OK;
         }

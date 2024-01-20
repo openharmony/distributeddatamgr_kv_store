@@ -120,6 +120,8 @@ public:
 
     void AbortMachineIfNeed(uint32_t syncId) override;
 
+    void AddSubscribe(SyncGenericInterface *storage,
+        const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext() = 0;
@@ -206,6 +208,8 @@ private:
     void WaitingExecTaskExist();
 
     int HandleRemoteExecutorMsg(const std::string &targetDev, Message *inMsg);
+
+    void AddQuerySubscribe(SyncGenericInterface *storage, const std::string &device, const QuerySyncObject &query);
 
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
