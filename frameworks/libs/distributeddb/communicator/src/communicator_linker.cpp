@@ -480,6 +480,9 @@ void CommunicatorLinker::UpdateOnlineLabels(const std::string &device, const std
 
 bool CommunicatorLinker::TriggerLabelExchangeEvent(bool checkAdapter)
 {
+    if (checkAdapter && statusAdapter_ != nullptr && !statusAdapter_->IsSendLabelExchange()) {
+        return false;
+    }
     bool everFail = false;
     std::set<std::string> totalOnlineTargets;
     {
@@ -487,9 +490,6 @@ bool CommunicatorLinker::TriggerLabelExchangeEvent(bool checkAdapter)
         totalOnlineTargets = remoteOnlineTarget_;
     }
     for (auto &entry : totalOnlineTargets) {
-        if (checkAdapter && statusAdapter_ != nullptr && !statusAdapter_->IsSendLabelExchange()) {
-            continue;
-        }
         if (TriggerLabelExchangeEvent(entry) != E_OK) {
             everFail = true;
         }
