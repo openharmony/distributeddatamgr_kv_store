@@ -58,7 +58,7 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
     std::string sql = " case when (";
     size_t index = 0;
     for (const auto &colName: trackerColNames_) {
-        sql += "NEW." + colName + " <> OLD." + colName;
+        sql += "(NEW." + colName + " IS NOT OLD." + colName + ")";
         if (index < trackerColNames_.size() - 1) {
             sql += " or ";
         }

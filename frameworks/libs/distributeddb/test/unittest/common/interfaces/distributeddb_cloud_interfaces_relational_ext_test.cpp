@@ -72,6 +72,15 @@ public:
         g_alreadyNotify = true;
     }
 
+    void CheckTriggerTableData(size_t dataSize, const std::string &tableName, ChangeProperties &properties,
+        int triggerCount)
+    {
+        ASSERT_EQ(triggerTableData_.size(), dataSize);
+        EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+        EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, properties.isTrackedDataChange);
+        EXPECT_EQ(triggeredCount_, triggerCount);
+    }
+
     std::set<std::string> triggerTableNames_;
     std::map<std::string, ChangeProperties> triggerTableData_;
     int triggeredCount_ = 0;
@@ -918,10 +927,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
     std::string sql = "insert into " + tableName + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
     std::unique_lock<std::mutex> lock(g_mutex);
     ExecSqlAndWaitForObserver(db, sql, lock);
-    ASSERT_EQ(triggerTableData_.size(), 1u);
-    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
-    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
-    EXPECT_EQ(triggeredCount_, 1); // 1 is observer triggered counts
+    ChangeProperties properties;
+    properties.isTrackedDataChange = true;
+    int triggerCount = 1;
+    CheckTriggerTableData(1u, tableName, properties, triggerCount);
 
     /**
      * @tc.steps:step4. update data, check observer.
@@ -929,10 +938,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
      */
     sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
     ExecSqlAndWaitForObserver(db, sql, lock);
-    ASSERT_EQ(triggerTableData_.size(), 1u);
-    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
-    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
-    EXPECT_EQ(triggeredCount_, 2); // 2 is observer triggered counts
+    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
 
     /**
      * @tc.steps:step5. update to the same data again, check observer.
@@ -940,21 +946,33 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
      */
     sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
     ExecSqlAndWaitForObserver(db, sql, lock);
-    ASSERT_EQ(triggerTableData_.size(), 1u);
-    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
-    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, false);
-    EXPECT_EQ(triggeredCount_, 3); // 3 is observer triggered counts
+    properties.isTrackedDataChange = false;
+    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
 
     /**
-     * @tc.steps:step6. delete data, check observer.
+     * @tc.steps:step6. update to the same data again, set name is NULL, check observer.
      * @tc.expected: step6. check observer ok.
+     */
+    sql = "update " + tableName + " set name = NULL where id = 2;";
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    properties.isTrackedDataChange = true;
+    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
+
+    /**
+     * @tc.steps:step7. update to the same data again, set name is empty, check observer.
+     * @tc.expected: step7. check observer ok.
+     */
+    sql = "update " + tableName + " set name = '' where id = 2;";
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
+
+    /**
+     * @tc.steps:step8. delete data, check observer.
+     * @tc.expected: step8. check observer ok.
      */
     sql = "delete from " + tableName + " where id = 2;";
     ExecSqlAndWaitForObserver(db, sql, lock);
-    ASSERT_EQ(triggerTableData_.size(), 1u);
-    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
-    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
-    EXPECT_EQ(triggeredCount_, 4); // 4 is observer triggered counts
+    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
