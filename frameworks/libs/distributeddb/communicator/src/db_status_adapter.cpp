@@ -315,7 +315,7 @@ void DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::v
         if (res == dstDbInfos.end()) {
             dstDbInfos.push_back(srcInfo);
             changeDbInfos.push_back(srcInfo);
-        } else if (res->isNeedSync != srcInfo.isNeedSync){
+        } else if (res->isNeedSync != srcInfo.isNeedSync) {
             res->isNeedSync = srcInfo.isNeedSync;
             changeDbInfos.push_back(srcInfo);
         }
