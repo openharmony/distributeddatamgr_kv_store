@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -43,15 +43,13 @@ public:
     bool IsSendLabelExchange();
 private:
     std::shared_ptr<DBInfoHandle> GetDBInfoHandle() const;
-    void LoadIntoCache(bool isLocal, const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos,
-        std::vector<DBInfo> &changeDbInfos);
+    bool LoadIntoCache(bool isLocal, const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos);
     void ClearAllCache();
     void NotifyRemoteOffline();
 
     static int GetLocalDeviceId(std::string &deviceId);
     static bool IsLocalDeviceId(const std::string &deviceId);
-    static void MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::vector<DBInfo> &dstDbInfos,
-        std::vector<DBInfo> &changeDbInfos);
+    static bool MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::vector<DBInfo> &dstDbInfos);
     mutable std::mutex handleMutex_;
     std::shared_ptr<DBInfoHandle> dbInfoHandle_ = nullptr;
 

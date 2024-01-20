@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -134,12 +134,11 @@ void DBStatusAdapter::NotifyDBInfos(const DeviceInfos &devInfos, const std::vect
             LOGW("[DBStatusAdapter][NotifyDBInfos] no support dev %s", STR_MASK(devInfos.identifier));
             return;
         }
-        std::vector<DBInfo> changeDbInfos;
-        LoadIntoCache(isLocal, devInfos, dbInfos, changeDbInfos);
+        bool change = LoadIntoCache(isLocal, devInfos, dbInfos);
         std::lock_guard<std::mutex> autoLock(callbackMutex_);
         if (!isLocal && remoteCallback_ != nullptr) {
             remoteCallback_(devInfos.identifier, dbInfos);
-        } else if (isLocal && localCallback_ != nullptr && !changeDbInfos.empty()) {
+        } else if (isLocal && localCallback_ != nullptr && change) {
             localCallback_();
         }
     });
@@ -197,7 +196,7 @@ void DBStatusAdapter::SetRemoteOptimizeCommunication(const std::string &dev, boo
     if (!triggerLocalCallback) {
         return;
     }
-    LOGI("[DBStatusAdapter][SetRemoteOptimizeCommunication] remote dev optimize change!");
+    LOGI("[DBStatusAdapter][SetRemoteOptimizeCommunication] remote dev %.3s optimize change!", dev.c_str());
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, dev]() {
         RemoteSupportChangeCallback callback;
         {
@@ -239,19 +238,17 @@ std::shared_ptr<DBInfoHandle> DBStatusAdapter::GetDBInfoHandle() const
     return dbInfoHandle_;
 }
 
-void DBStatusAdapter::LoadIntoCache(bool isLocal, const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos,
-    std::vector<DBInfo> &changeDbInfos)
+bool DBStatusAdapter::LoadIntoCache(bool isLocal, const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos)
 {
     if (isLocal) {
         std::lock_guard<std::mutex> autoLock(localInfoMutex_);
-        MergeDBInfos(dbInfos, localDBInfos_, changeDbInfos);
-        return;
+        return MergeDBInfos(dbInfos, localDBInfos_);
     }
     std::lock_guard<std::mutex> autoLock(remoteInfoMutex_);
     if (remoteDBInfos_.find(devInfos.identifier) == remoteDBInfos_.end()) {
         remoteDBInfos_.insert({devInfos.identifier, {}});
     }
-    MergeDBInfos(dbInfos, remoteDBInfos_[devInfos.identifier], changeDbInfos);
+    return MergeDBInfos(dbInfos, remoteDBInfos_[devInfos.identifier]);
 }
 
 void DBStatusAdapter::ClearAllCache()
@@ -301,9 +298,9 @@ void DBStatusAdapter::NotifyRemoteOffline()
     LOGD("[DBStatusAdapter] Notify offline ok");
 }
 
-void DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::vector<DBInfo> &dstDbInfos,
-    std::vector<DBInfo> &changeDbInfos)
+bool DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::vector<DBInfo> &dstDbInfos)
 {
+    bool dbInfoChange = false;
     for (const auto &srcInfo: srcDbInfos) {
         if (!ParamCheckUtils::CheckStoreParameter(srcInfo.storeId, srcInfo.appId, srcInfo.userId)) {
             continue;
@@ -314,12 +311,13 @@ void DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::v
         });
         if (res == dstDbInfos.end()) {
             dstDbInfos.push_back(srcInfo);
-            changeDbInfos.push_back(srcInfo);
+            dbInfoChange = true;
         } else if (res->isNeedSync != srcInfo.isNeedSync) {
             res->isNeedSync = srcInfo.isNeedSync;
-            changeDbInfos.push_back(srcInfo);
+            dbInfoChange = true;
         }
     }
+    return dbInfoChange;
 }
 
 int DBStatusAdapter::GetLocalDeviceId(std::string &deviceId)
