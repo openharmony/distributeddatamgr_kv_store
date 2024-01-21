@@ -806,7 +806,7 @@ std::string CloudStorageUtils::GetTableRefUpdateSql(const TableInfo &table, OpTy
             if (index++ != 0) {
                 sql += " OR ";
             }
-            sql += " OLD." + itCol.second + " <> " + " NEW." + itCol.second;
+            sql += " (OLD." + itCol.second + " IS NOT " + " NEW." + itCol.second + ")";
         }
         if (opType == OpType::UPDATE) {
             sql += " AND ";
