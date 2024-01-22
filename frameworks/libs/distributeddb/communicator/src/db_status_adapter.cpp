@@ -134,11 +134,11 @@ void DBStatusAdapter::NotifyDBInfos(const DeviceInfos &devInfos, const std::vect
             LOGW("[DBStatusAdapter][NotifyDBInfos] no support dev %s", STR_MASK(devInfos.identifier));
             return;
         }
-        bool change = LoadIntoCache(isLocal, devInfos, dbInfos);
+        bool isChange = LoadIntoCache(isLocal, devInfos, dbInfos);
         std::lock_guard<std::mutex> autoLock(callbackMutex_);
         if (!isLocal && remoteCallback_ != nullptr) {
             remoteCallback_(devInfos.identifier, dbInfos);
-        } else if (isLocal && localCallback_ != nullptr && change) {
+        } else if (isLocal && localCallback_ != nullptr && isChange) {
             localCallback_();
         }
     });
@@ -300,7 +300,7 @@ void DBStatusAdapter::NotifyRemoteOffline()
 
 bool DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::vector<DBInfo> &dstDbInfos)
 {
-    bool dbInfoChange = false;
+    bool isDbInfoChange = false;
     for (const auto &srcInfo: srcDbInfos) {
         if (!ParamCheckUtils::CheckStoreParameter(srcInfo.storeId, srcInfo.appId, srcInfo.userId)) {
             continue;
@@ -311,13 +311,13 @@ bool DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::v
         });
         if (res == dstDbInfos.end()) {
             dstDbInfos.push_back(srcInfo);
-            dbInfoChange = true;
+            isDbInfoChange = true;
         } else if (res->isNeedSync != srcInfo.isNeedSync) {
             res->isNeedSync = srcInfo.isNeedSync;
-            dbInfoChange = true;
+            isDbInfoChange = true;
         }
     }
-    return dbInfoChange;
+    return isDbInfoChange;
 }
 
 int DBStatusAdapter::GetLocalDeviceId(std::string &deviceId)
