@@ -75,6 +75,7 @@ void CloudSyncUtils::RemoveDataExceptExtendInfo(VBucket &datum, const std::vecto
             key != CloudDbConstant::DELETE_FIELD &&
             key != CloudDbConstant::CURSOR_FIELD &&
             key != CloudDbConstant::VERSION_FIELD &&
+            key != CloudDbConstant::SHARING_RESOURCE_FIELD &&
             (std::find(pkColNames.begin(), pkColNames.end(), key) == pkColNames.end())) {
                 item = datum.erase(item);
             } else {
@@ -183,6 +184,8 @@ LogInfo CloudSyncUtils::GetCloudLogInfo(DistributedDB::VBucket &datum)
     cloudLogInfo.wTimestamp = (Timestamp)std::get<int64_t>(datum[CloudDbConstant::CREATE_FIELD]);
     cloudLogInfo.flag = (std::get<bool>(datum[CloudDbConstant::DELETE_FIELD])) ? 1u : 0u;
     cloudLogInfo.cloudGid = std::get<std::string>(datum[CloudDbConstant::GID_FIELD]);
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
+        datum, cloudLogInfo.sharingResource);
     return cloudLogInfo;
 }
 

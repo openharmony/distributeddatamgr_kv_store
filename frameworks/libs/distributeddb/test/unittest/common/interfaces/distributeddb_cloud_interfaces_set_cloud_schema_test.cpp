@@ -29,6 +29,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "cloud_db_sync_utils_test.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -121,11 +122,13 @@ namespace {
         void CheckDistributedSharedTable(const std::vector<std::string> &expectedTableName);
         void InsertLocalSharedTableRecords(int64_t begin, int64_t count, const std::string &tableName,
             bool isUpdate = false);
-        void InsertCloudTableRecord(int64_t begin, int64_t count, bool useShareUri = false);
+        void InsertCloudTableRecord(int64_t begin, int64_t count, bool isShare = true, int64_t beginGid = -1);
         void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK);
         void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
         void CloseDb();
+        void InitCloudEnv();
         sqlite3 *db_ = nullptr;
+        std::function<void(int64_t, VBucket &)> forkInsertFunc_;
     };
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::SetUpTestCase(void)
@@ -242,8 +245,19 @@ namespace {
         }
     }
 
+    void InsertSharingUri(int64_t index, VBucket &log)
+    {
+        log.insert_or_assign(CloudDbConstant::SHARING_RESOURCE_FIELD, "uri:" + std::to_string(index));
+    }
+
+    std::string QueryResourceCountSql(const std::string &tableName)
+    {
+        return "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(tableName)
+            + " where sharing_resource like 'uri%'";
+    }
+
     void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertCloudTableRecord(int64_t begin, int64_t count,
-        bool useShareUri)
+        bool isShare, int64_t beginGid)
     {
         std::vector<uint8_t> photo(1, 'v');
         std::vector<VBucket> record;
@@ -251,8 +265,10 @@ namespace {
         Timestamp now = TimeHelper::GetSysCurrentTime();
         for (int64_t i = begin; i < begin + count; ++i) {
             VBucket data;
-            data.insert_or_assign("cloud_owner", "ownerA");
-            data.insert_or_assign("cloud_privilege", "true");
+            if (isShare) {
+                data.insert_or_assign("cloud_owner", "ownerA");
+                data.insert_or_assign("cloud_privilege", "true");
+            }
             data.insert_or_assign("id", i);
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
             data.insert_or_assign("height", 166.0); // 166.0 is random double value
@@ -263,12 +279,22 @@ namespace {
             log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-            if (useShareUri) {
-                log.insert_or_assign(CloudDbConstant::SHARING_RESOURCE_FIELD, "uri:" + std::to_string(i));
+            if (beginGid >= 0) {
+                log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(beginGid + i));
+            }
+            if (forkInsertFunc_) {
+                forkInsertFunc_(i, log);
             }
             extend.push_back(log);
         }
-        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_sharedTableName1, std::move(record), extend), DBStatus::OK);
+        if (beginGid >= 0) {
+            ASSERT_EQ(g_virtualCloudDb->BatchUpdate(isShare ? g_sharedTableName1 : g_tableName2,
+                std::move(record), extend), DBStatus::OK);
+        } else {
+            ASSERT_EQ(g_virtualCloudDb->BatchInsert(isShare ? g_sharedTableName1 : g_tableName2,
+                std::move(record), extend), DBStatus::OK);
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
@@ -322,6 +348,19 @@ namespace {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;
         }
+    }
+
+    void DistributedDBCloudInterfacesSetCloudSchemaTest::InitCloudEnv()
+    {
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName2,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField2
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
     }
 
     /**
@@ -1461,7 +1500,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync007
-     * @tc.desc:
+     * @tc.desc: After sync insert, sharing_resource written locally
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty
@@ -1469,25 +1508,141 @@ namespace {
     HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync007, TestSize.Level0)
     {
         /**
-         * @tc.steps:step1. use set shared table
+         * @tc.steps:step1. init cloud share data contains sharing_resource
          * @tc.expected: step1. return OK
          */
-        DataBaseSchema dataBaseSchema;
-        TableSchema tableSchema = {
-            .name = g_tableName1,
-            .sharedTableName = g_sharedTableName1,
-            .fields = g_cloudField1
-        };
-        dataBaseSchema.tables.push_back(tableSchema);
-        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        InitCloudEnv();
+        int cloudCount = 10;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
 
         /**
-         * @tc.steps:step2. insert cloud shared table records and version is empty
+         * @tc.steps:step2. sync
          * @tc.expected: step2. return OK
          */
-        int cloudCount = 10;
-        InsertCloudTableRecord(0, cloudCount, true);
-        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. check sync insert
+         * @tc.expected: step3. return OK
+         */
+        std::string sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync008
+     * @tc.desc: After sync update, sharing_resource written locally
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync008, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. init cloud data and sync
+         * @tc.expected: step1. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. update cloud sharing_resource and sync
+         * @tc.expected: step2. return OK
+         */
+        int beginGid = 0;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false, beginGid);
+        InsertCloudTableRecord(0, cloudCount, true, cloudCount);
+        BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. check sync update
+         * @tc.expected: step3. return OK
+         */
+        std::string sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+
+        /**
+         * @tc.steps:step4. remove cloud sharing_resource and sync
+         * @tc.expected: step4. return OK
+         */
+        InsertCloudTableRecord(0, cloudCount, false, beginGid);
+        InsertCloudTableRecord(0, cloudCount, true, cloudCount);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step5. check sync update
+         * @tc.expected: step5. return OK
+         */
+        sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync009
+     * @tc.desc: Local is newer than cloud, sharing_resource written locally
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync009, TestSize.Level0)
+    {
+        InitCloudEnv();
+        const std::vector<std::string> tables = { g_tableName2, g_sharedTableName1 };
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable(tables);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        int beginGid = 0;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false, beginGid);
+        InsertCloudTableRecord(0, cloudCount, true, cloudCount);
+        forkInsertFunc_ = nullptr;
+
+        for (const auto &tableName: tables) {
+            std::string sql = "update " + tableName + " SET height='199';";
+            sqlite3_stmt *stmt = nullptr;
+            ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+            EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+            int errCode;
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+        }
+        BlockSync(query, g_delegate, DBStatus::OK);
+        std::string sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+
+        sql = "SELECT COUNT(*) FROM " + g_tableName2 + " where height='199'";
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = "SELECT COUNT(*) FROM " + g_sharedTableName1 + " where height='199'";
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
     }
 } // namespace

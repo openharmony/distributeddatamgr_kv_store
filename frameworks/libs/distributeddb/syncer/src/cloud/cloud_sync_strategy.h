@@ -50,6 +50,11 @@ public:
         return (info.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
             static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
     }
+
+    static bool IsSharingResourceChanged(const LogInfo &cloudInfo, const LogInfo &localInfo)
+    {
+        return (cloudInfo.sharingResource != localInfo.sharingResource);
+    }
 };
 }
 #endif // CLOUD_SYNC_STRATEGY_H

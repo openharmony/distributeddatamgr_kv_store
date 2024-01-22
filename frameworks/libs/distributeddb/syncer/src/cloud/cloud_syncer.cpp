@@ -1314,22 +1314,26 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
 
 int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)
 {
-    // type index of field in fields
-    std::vector<std::pair<std::string, int32_t>> fieldAndIndex = {
-        std::pair<std::string, int32_t>(CloudDbConstant::GID_FIELD, TYPE_INDEX<std::string>),
-        std::pair<std::string, int32_t>(CloudDbConstant::CREATE_FIELD, TYPE_INDEX<int64_t>),
-        std::pair<std::string, int32_t>(CloudDbConstant::MODIFY_FIELD, TYPE_INDEX<int64_t>),
-        std::pair<std::string, int32_t>(CloudDbConstant::DELETE_FIELD, TYPE_INDEX<bool>),
-        std::pair<std::string, int32_t>(CloudDbConstant::CURSOR_FIELD, TYPE_INDEX<std::string>)
+    // type index of field in fields, true means mandatory filed
+    static std::vector<std::tuple<std::string, int32_t, bool>> fieldAndIndex = {
+        std::make_tuple(CloudDbConstant::GID_FIELD, TYPE_INDEX<std::string>, true),
+        std::make_tuple(CloudDbConstant::CREATE_FIELD, TYPE_INDEX<int64_t>, true),
+        std::make_tuple(CloudDbConstant::MODIFY_FIELD, TYPE_INDEX<int64_t>, true),
+        std::make_tuple(CloudDbConstant::DELETE_FIELD, TYPE_INDEX<bool>, true),
+        std::make_tuple(CloudDbConstant::CURSOR_FIELD, TYPE_INDEX<std::string>, true),
+        std::make_tuple(CloudDbConstant::SHARING_RESOURCE_FIELD, TYPE_INDEX<std::string>, false)
     };
 
     for (const auto &fieldIndex : fieldAndIndex) {
-        if (datum.find(fieldIndex.first) == datum.end()) {
-            LOGE("[CloudSyncer] Cloud data do not contain expected field: %s.", fieldIndex.first.c_str());
+        if (datum.find(std::get<0>(fieldIndex)) == datum.end()) {
+            if (!std::get<2>(fieldIndex)) { // 2 is index of mandatory flag
+                continue;
+            }
+            LOGE("[CloudSyncer] Cloud data do not contain expected field: %s.", std::get<0>(fieldIndex).c_str());
             return -E_CLOUD_ERROR;
         }
-        if (datum[fieldIndex.first].index() != static_cast<size_t>(fieldIndex.second)) {
-            LOGE("[CloudSyncer] Cloud data's field: %s, doesn't has expected type.", fieldIndex.first.c_str());
+        if (datum[std::get<0>(fieldIndex)].index() != static_cast<size_t>(std::get<1>(fieldIndex))) {
+            LOGE("[CloudSyncer] Cloud data's field: %s, doesn't has expected type.", std::get<0>(fieldIndex).c_str());
             return -E_CLOUD_ERROR;
         }
     }

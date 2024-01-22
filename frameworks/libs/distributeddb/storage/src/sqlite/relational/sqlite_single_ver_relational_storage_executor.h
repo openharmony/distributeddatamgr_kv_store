@@ -265,7 +265,7 @@ private:
     int InitFillUploadAssetStatement(OpType opType, const TableSchema &tableSchema, const CloudSyncBatch &data,
         const int &index, sqlite3_stmt *&statement);
 
-    void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
+    int GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);

@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return -E_CLOUD_ERROR;
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
-        " a.cloud_gid";
+        " a.cloud_gid, a.sharing_resource";
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
@@ -977,7 +977,10 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
     } else {
         sql += "data_key = -1,  flag = 1";
     }
-    sql += ", cloud_gid = '', version = '', sharing_resource = '', ";
+    sql += ", cloud_gid = '', version = '', ";
+    if (!isLogicDelete_) {
+        sql += "sharing_resource = '', ";
+    }
     return sql;
 }
 
