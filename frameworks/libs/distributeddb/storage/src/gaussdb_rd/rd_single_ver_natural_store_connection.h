@@ -113,7 +113,7 @@ private:
     mutable std::set<IKvDBResultSet *> kvDbResultSets_;
 
     // ResultSet Related Info
-    static constexpr std::size_t maxResultSetSize = 8; // Max 8 ResultSet At The Same Time
+    static constexpr std::size_t MAX_RESULTSET_SIZE = 8; // Max 8 ResultSet At The Same Time
 
     int CheckSyncEntriesValid(const std::vector<Entry> &entries) const override;
 

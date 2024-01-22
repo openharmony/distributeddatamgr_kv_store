@@ -101,7 +101,7 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, const
 {
     // maximum of result set size is 4
     std::lock_guard<std::mutex> lock(kvDbResultSetsMutex_);
-    if (kvDbResultSets_.size() >= maxResultSetSize) {
+    if (kvDbResultSets_.size() >= MAX_RESULTSET_SIZE) {
         LOGE("Over max result set size");
         return -E_MAX_LIMITS;
     }
@@ -134,7 +134,7 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option,
 {
     // maximum of result set size is 4
     std::lock_guard<std::mutex> lock(kvDbResultSetsMutex_);
-    if (kvDbResultSets_.size() >= maxResultSetSize) {
+    if (kvDbResultSets_.size() >= MAX_RESULTSET_SIZE) {
         LOGE("Over max result set size");
         return -E_MAX_LIMITS;
     }
