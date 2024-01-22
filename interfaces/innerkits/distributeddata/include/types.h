@@ -457,6 +457,10 @@ struct Options {
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
+   /**
+     * Whether the sync need compress.
+    */
+    bool isNeedCompress = true;
 };
 
 /**

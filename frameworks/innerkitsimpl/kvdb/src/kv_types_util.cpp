@@ -121,6 +121,7 @@ bool Marshalling(const Options &input, MessageParcel &data)
     target->securityLevel = input.securityLevel;
     target->area = input.area;
     target->kvStoreType = input.kvStoreType;
+    target->isNeedCompress = input.isNeedCompress;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
 
@@ -145,6 +146,7 @@ bool Unmarshalling(Options &output, MessageParcel &data)
     output.area = source->area;
     output.kvStoreType = source->kvStoreType;
     output.syncable = source->syncable;
+    output.isNeedCompress = source->isNeedCompress;
     return true;
 }
 
