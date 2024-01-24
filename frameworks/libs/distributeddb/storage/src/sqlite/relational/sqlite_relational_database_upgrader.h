@@ -33,11 +33,12 @@ private:
     int EndUpgrade(bool isSuccess);
 
     bool IsNewestVersion(const std::string &logTableVersion);
-    int UpgradeTrigger(const std::string &logTableVersion);
-    int UpgradeLogTable(const std::string &logTableVersion);
+    int UpgradeTrigger(const std::string &logTableVersion, const RelationalSchemaObject &schemaObj,
+        const RelationalSchemaObject &trackerSchemaObj);
+    int UpgradeLogTable(const std::string &logTableVersion, const RelationalSchemaObject &schemaObj,
+        const RelationalSchemaObject &trackerSchemaObj);
     int UpgradeLogBaseOnVersion(const std::string &oldVersion, const std::string &logName);
-    int UpgradeTriggerBaseOnSchema(const RelationalSchemaObject &relationalSchema,
-        const RelationalSchemaObject &trackerSchema);
+    int GetParseSchema(RelationalSchemaObject &schemaObj, RelationalSchemaObject &trackerSchemaObj);
     sqlite3 *db_;
 };
 } // namespace DistributedDB

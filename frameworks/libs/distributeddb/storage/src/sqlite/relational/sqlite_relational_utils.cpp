@@ -412,4 +412,19 @@ void SQLiteRelationalUtils::AddUpgradeSqlToList(const TableInfo &tableInfo,
             " " + colType + ";");
     }
 }
+
+int SQLiteRelationalUtils::AnalysisTrackerTable(sqlite3 *db, const TrackerTable &trackerTable, TableInfo &tableInfo)
+{
+    int errCode = SQLiteUtils::AnalysisSchema(db, trackerTable.GetTableName(), tableInfo, true);
+    if (errCode != E_OK) {
+        LOGE("analysis table schema failed %d.", errCode);
+        return errCode;
+    }
+    tableInfo.SetTrackerTable(trackerTable);
+    errCode = tableInfo.CheckTrackerTable();
+    if (errCode != E_OK) {
+        LOGE("check tracker table schema failed %d.", errCode);
+    }
+    return errCode;
+}
 } // namespace DistributedDB

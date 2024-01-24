@@ -20,6 +20,7 @@
 #include "db_errno.h"
 #include "log_table_manager_factory.h"
 #include "relational_schema_object.h"
+#include "simple_tracker_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
@@ -65,13 +66,25 @@ int SqliteRelationalDatabaseUpgrader::ExecuteUpgrade()
         return (errCode == -E_NOT_FOUND) ? E_OK : errCode;
     }
 
-    errCode = UpgradeLogTable(logTableVersion);
+    if (IsNewestVersion(logTableVersion)) {
+        LOGD("[Relational][UpgradeTrigger] No need upgrade.");
+        return E_OK;
+    }
+
+    RelationalSchemaObject schemaObj;
+    RelationalSchemaObject trackerSchemaObj;
+    errCode = GetParseSchema(schemaObj, trackerSchemaObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = UpgradeLogTable(logTableVersion, schemaObj, trackerSchemaObj);
     if (errCode != E_OK) {
         LOGE("[Relational][Upgrade] Upgrade log table failed, err = %d.", errCode);
         return errCode;
     }
 
-    return UpgradeTrigger(logTableVersion);
+    return UpgradeTrigger(logTableVersion, schemaObj, trackerSchemaObj);
 }
 
 int SqliteRelationalDatabaseUpgrader::EndUpgrade(bool isSuccess)
@@ -88,50 +101,50 @@ bool SqliteRelationalDatabaseUpgrader::IsNewestVersion(const std::string &logTab
     return logTableVersion == DBConstant::LOG_TABLE_VERSION_CURRENT;
 }
 
-int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTableVersion)
+int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTableVersion,
+    const RelationalSchemaObject &schemaObj, const RelationalSchemaObject &trackerSchemaObj)
 {
-    if (IsNewestVersion(logTableVersion)) {
-        LOGD("[Relational][UpgradeTrigger] No need upgrade trigger.");
-        return E_OK;
-    }
-
-    // get schema from meta
-    std::string schemaDefine;
-    int errCode = SQLiteUtils::GetRelationalSchema(db_, schemaDefine);
-    if (errCode == -E_NOT_FOUND || (errCode == E_OK && schemaDefine.empty())) {
-        LOGI("[Relational][UpgradeTrigger] relational schema not found from meta return.");
-        return E_OK;
-    }
-    if (errCode != E_OK) {
-        LOGE("[Relational][UpgradeTrigger] Get relational schema from meta return %d.", errCode);
-        return errCode;
-    }
-
-    RelationalSchemaObject schemaObject;
-    errCode = schemaObject.ParseFromSchemaString(schemaDefine);
-    if (errCode != E_OK) {
-        LOGE("[Relational][UpgradeTrigger] Parse to relational schema failed. err:%d", errCode);
-        return errCode;
-    }
-
-    std::string trackerSchemaDefine;
-    RelationalSchemaObject trackerSchemaObject;
-    errCode = SQLiteUtils::GetRelationalSchema(db_, trackerSchemaDefine, DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        LOGE("[Relational][UpgradeTrigger] Get tracker schema from meta return. err:%d", errCode);
-        return errCode;
-    }
-    if (errCode == -E_NOT_FOUND || trackerSchemaDefine.empty()) {
-        LOGI("[Relational][UpgradeTrigger] tracker schema is empty.");
-    } else {
-        errCode = trackerSchemaObject.ParseFromTrackerSchemaString(trackerSchemaDefine);
+    DistributedTableMode mode = schemaObj.GetTableMode();
+    TableInfoMap trackerTables = trackerSchemaObj.GetTrackerTables();
+    for (const auto &table : schemaObj.GetTables()) {
+        bool isExists = false;
+        int errCode = SQLiteUtils::CheckTableExists(db_, table.first, isExists);
+        if (errCode == E_OK && !isExists) {
+            LOGI("[Relational][UpgradeLogTable] table may has been deleted, skip upgrade distributed trigger.");
+            continue;
+        }
+        TableInfo tableInfo = table.second;
+        tableInfo.SetTrackerTable(trackerSchemaObj.GetTrackerTable(table.first));
+        auto manager = LogTableManagerFactory::GetTableManager(mode, tableInfo.GetTableSyncType());
+        errCode = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
         if (errCode != E_OK) {
-            LOGE("[Relational][UpgradeTrigger] Parse to tracker schema failed. err:%d", errCode);
+            LOGE("[Relational][Upgrade] recreate distributed trigger failed. err:%d", errCode);
             return errCode;
         }
+        trackerTables.erase(table.first);
     }
-
-    return UpgradeTriggerBaseOnSchema(schemaObject, trackerSchemaObject);
+    // Need to upgrade non-distributed trigger
+    auto manager = std::make_unique<SimpleTrackerLogTableManager>();
+    for (const auto &table: trackerTables) {
+        TableInfo tableInfo;
+        int ret = SQLiteRelationalUtils::AnalysisTrackerTable(db_, table.second.GetTrackerTable(), tableInfo);
+        if (ret == -E_NOT_FOUND) {
+            LOGI("[Relational][Upgrade] table may has been deleted, skip upgrade tracker trigger.");
+            continue;
+        }
+        if (ret != E_OK) {
+            LOGE("[Relational][Upgrade] analysis tracker table schema failed %d.", ret);
+            return ret;
+        }
+        ret = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
+        if (ret != E_OK) {
+            LOGE("[Relational][Upgrade] recreate trigger failed. err:%d", ret);
+            return ret;
+        }
+    }
+    LOGI("[Relational][UpgradeLogTable] recreate trigger success, ver:%s to ver:%s", logTableVersion.c_str(),
+        DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+    return E_OK;
 }
 
 static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
@@ -139,36 +152,25 @@ static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
     return logTableVersion < DBConstant::LOG_TABLE_VERSION_CURRENT;
 }
 
-int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTableVersion)
+int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTableVersion,
+    const RelationalSchemaObject &schemaObj, const RelationalSchemaObject &trackerSchemaObj)
 {
-    if (!NeedUpdateLogTable(logTableVersion)) {
-        LOGD("[Relational][Upgrade] No need upgrade log table.");
-        return E_OK;
-    }
-
-    // get schema from meta
-    std::string schemaDefine;
-    int errCode = SQLiteUtils::GetRelationalSchema(db_, schemaDefine);
-    if (errCode == -E_NOT_FOUND || (errCode == E_OK && schemaDefine.empty())) {
-        LOGI("[Relational][UpgradeLogTable] relational schema not found from meta return.");
-        return E_OK;
-    }
-    if (errCode != E_OK) {
-        LOGW("[Relational][UpgradeLogTable] Get relational schema from meta return %d.", errCode);
-        return errCode;
-    }
-
-    RelationalSchemaObject schemaObject;
-    errCode = schemaObject.ParseFromSchemaString(schemaDefine);
-    if (errCode != E_OK) {
-        LOGE("[Relational][UpgradeLogTable] Parse to relational schema failed. %d", errCode);
-        return errCode;
-    }
-
-    for (const auto &item : schemaObject.GetTables()) {
-        std::string logName = DBCommon::GetLogTableName(item.first);
-        errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
+    TableInfoMap trackerTables = trackerSchemaObj.GetTrackerTables();
+    for (const auto &table : schemaObj.GetTables()) {
+        std::string logName = DBCommon::GetLogTableName(table.first);
+        int errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
         if (errCode != E_OK) {
+            LOGE("[Relational][UpgradeLogTable] upgrade distributed log table failed. err:%d", errCode);
+            return errCode;
+        }
+        trackerTables.erase(table.first);
+    }
+    // Need to upgrade non-distributed log table
+    for (const auto &table: trackerTables) {
+        std::string logName = DBCommon::GetLogTableName(table.first);
+        int errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
+        if (errCode != E_OK) {
+            LOGE("[Relational][UpgradeLogTable] upgrade tracker log table failed. err:%d", errCode);
             return errCode;
         }
     }
@@ -181,11 +183,15 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string 
     const std::string &logName)
 {
     TableInfo tableInfo;
+    tableInfo.SetTableName(logName);
     int errCode = SQLiteUtils::AnalysisSchemaFieldDefine(db_, logName, tableInfo);
+    if (errCode == E_OK && tableInfo.Empty()) {
+        LOGI("[Relational][UpgradeLogTable] table may has been deleted, skip upgrade log table.");
+        return E_OK;
+    }
     if (errCode != E_OK) {
         return errCode;
     }
-    tableInfo.SetTableName(logName);
     std::vector<std::string> addColSqlVec;
     if (oldVersion < DBConstant::LOG_TABLE_VERSION_3) {
         SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "cloud_gid", "text" } }, addColSqlVec);
@@ -205,34 +211,41 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string 
     return errCode;
 }
 
-int SqliteRelationalDatabaseUpgrader::UpgradeTriggerBaseOnSchema(const RelationalSchemaObject &relationalSchema,
-    const RelationalSchemaObject &trackerSchema)
+int SqliteRelationalDatabaseUpgrader::GetParseSchema(RelationalSchemaObject &schemaObj,
+    RelationalSchemaObject &trackerSchemaObj)
 {
-    DistributedTableMode mode = relationalSchema.GetTableMode();
-    int errCode = E_OK;
-    for (const auto &table : relationalSchema.GetTables()) {
-        std::vector<std::string> dropSqlVec;
-        std::string prefixName = DBConstant::SYSTEM_TABLE_PREFIX + table.first;
-        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_UPDATE;");
-        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_INSERT;");
-        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_DELETE;");
-        for (size_t i = 0; i < dropSqlVec.size(); ++i) {
-            errCode = SQLiteUtils::ExecuteRawSQL(db_, dropSqlVec[i]);
-            if (errCode != E_OK) {
-                LOGE("[Relational][Upgrade] drop trigger failed. err:%d, index:%zu", errCode, i);
-                return errCode;
-            }
-        }
-        TableInfo tableInfo = table.second;
-        tableInfo.SetTrackerTable(trackerSchema.GetTrackerTable(table.first));
-        auto manager = LogTableManagerFactory::GetTableManager(mode, tableInfo.GetTableSyncType());
-        errCode = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
+    // get schema from meta
+    std::string schemaDefine;
+    int errCode = SQLiteUtils::GetRelationalSchema(db_, schemaDefine);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[Relational][UpgradeTrigger] Get relational schema from meta return. err:%d", errCode);
+        return errCode;
+    }
+    if (errCode == -E_NOT_FOUND || schemaDefine.empty()) {
+        LOGI("[Relational][UpgradeTrigger] relational schema is empty:%d.", errCode);
+    } else {
+        errCode = schemaObj.ParseFromSchemaString(schemaDefine);
         if (errCode != E_OK) {
-            LOGE("[Relational][Upgrade] recreate trigger failed. err:%d", errCode);
+            LOGE("[Relational][UpgradeTrigger] Parse to relational schema failed. err:%d", errCode);
             return errCode;
         }
     }
-    LOGI("[Relational][Upgrade] recreate trigger finish.");
+
+    std::string trackerSchemaDefine;
+    errCode = SQLiteUtils::GetRelationalSchema(db_, trackerSchemaDefine, DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[Relational][UpgradeTrigger] Get tracker schema from meta return. err:%d", errCode);
+        return errCode;
+    }
+    if (errCode == -E_NOT_FOUND || trackerSchemaDefine.empty()) {
+        LOGI("[Relational][UpgradeTrigger] tracker schema is empty:%d", errCode);
+    } else {
+        errCode = trackerSchemaObj.ParseFromTrackerSchemaString(trackerSchemaDefine);
+        if (errCode != E_OK) {
+            LOGE("[Relational][UpgradeTrigger] Parse to tracker schema failed. err:%d", errCode);
+            return errCode;
+        }
+    }
     return E_OK;
 }
 } // namespace DistributedDB
