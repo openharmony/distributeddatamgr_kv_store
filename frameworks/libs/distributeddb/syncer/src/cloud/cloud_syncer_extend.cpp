@@ -454,6 +454,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         logInfo.logInfo.timestamp = localLogInfoCache[hashKey].timestamp;
         logInfo.logInfo.cloudGid = localLogInfoCache[hashKey].cloudGid;
         logInfo.logInfo.device = localLogInfoCache[hashKey].device;
+        logInfo.logInfo.sharingResource = localLogInfoCache[hashKey].sharingResource;
         // delete record should remove local asset info
         if ((localLogInfoCache[hashKey].flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
             localAssetInfo.clear();

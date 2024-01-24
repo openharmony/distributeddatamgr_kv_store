@@ -1095,7 +1095,7 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
                 std::get<std::string>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::SHARING_RESOURCE_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
-                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, "");
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
             } else {
                 errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
                     std::get<std::string>(vBucket.at(colName)));

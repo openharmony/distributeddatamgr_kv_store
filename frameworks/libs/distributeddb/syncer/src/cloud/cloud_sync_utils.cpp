@@ -149,6 +149,7 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
     bool isSame = localLogInfo.timestamp == cloudLogInfo.timestamp &&
         EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
         localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
+        localLogInfo.sharingResource == cloudLogInfo.sharingResource &&
         (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
     return !isSame;
 }
@@ -350,6 +351,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
             updateLogInfo.wTimestamp = cloudInfo.wTimestamp;
             updateLogInfo.device = CloudDbConstant::DEFAULT_CLOUD_DEV;
             updateLogInfo.hashKey = Key(hashKey.begin(), hashKey.end());
+            updateLogInfo.sharingResource = cloudInfo.sharingResource;
             if (opType == OpType::DELETE) {
                 updateLogInfo.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
             } else if (opType == OpType::INSERT) {
@@ -361,6 +363,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
         case OpType::UPDATE_TIMESTAMP: {
             updateLogInfo = localInfo;
             updateLogInfo.cloudGid.clear();
+            updateLogInfo.sharingResource.clear();
             break;
         }
         default:
