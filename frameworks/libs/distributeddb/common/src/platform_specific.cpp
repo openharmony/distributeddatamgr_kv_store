@@ -506,11 +506,10 @@ int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
 {
     struct timespec rawTime;
     clockid_t clockId = CLOCK_REALTIME;
-#ifdef OS_TYPE_WINDOWS
-    clockId = CLOCK_BOOTTIME;
-#endif
 #ifdef OS_TYPE_MAC
     clockId = CLOCK_UPTIME_RAW;
+#else
+    clockId = CLOCK_BOOTTIME;
 #endif
     int errCode = clock_gettime(clockId, &rawTime);
     if (errCode < 0) {
