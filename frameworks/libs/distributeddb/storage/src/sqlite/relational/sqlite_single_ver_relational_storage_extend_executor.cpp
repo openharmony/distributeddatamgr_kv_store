@@ -323,17 +323,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t c
 int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const TrackerTable &trackerTable,
     TableInfo &tableInfo)
 {
-    int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, trackerTable.GetTableName(), tableInfo, true);
-    if (errCode != E_OK) {
-        LOGW("analysis table schema failed. %d", errCode);
-        return errCode;
-    }
-    tableInfo.SetTrackerTable(trackerTable);
-    errCode = tableInfo.CheckTrackerTable();
-    if (errCode != E_OK) {
-        LOGE("check tracker table schema failed. %d", errCode);
-    }
-    return errCode;
+    return SQLiteRelationalUtils::AnalysisTrackerTable(dbHandle_, trackerTable, tableInfo);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade)
