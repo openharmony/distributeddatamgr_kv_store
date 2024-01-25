@@ -31,6 +31,7 @@ public:
     napi_env GetEnv();
     void AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs = NapiArgsGenerator());
 private:
+    static void Work(uv_work_t* work, int uvStatus);
     struct UvEntry {
         napi_env env;
         NapiCallbackGetter callback;
