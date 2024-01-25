@@ -271,8 +271,8 @@ namespace {
         for (int64_t i = begin; i < begin + count; ++i) {
             VBucket data;
             if (isShare) {
-                data.insert_or_assign("cloud_owner", "ownerA");
-                data.insert_or_assign("cloud_privilege", "true");
+                data.insert_or_assign("cloud_owner", std::string("ownerA"));
+                data.insert_or_assign("cloud_privilege", std::string("true"));
             }
             data.insert_or_assign("id", i);
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
@@ -1519,7 +1519,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync007
-     * @tc.desc: After sync insert, sharing_resource written locally
+     * @tc.desc: Test the sharing_resource for ins data into the cloud
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty
@@ -1558,7 +1558,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync008
-     * @tc.desc: After sync update, sharing_resource written locally
+     * @tc.desc: Test the sharing_resource for upd data into the cloud
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty
@@ -1620,7 +1620,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync009
-     * @tc.desc: Local is newer than cloud, sharing_resource written locally
+     * @tc.desc: Test the sharing_resource when the local data is newer than the cloud
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty
@@ -1683,7 +1683,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync010
-     * @tc.desc: After sync delete, sharing_resource written locally
+     * @tc.desc: Test the sharing_resource for del data into the cloud
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty
