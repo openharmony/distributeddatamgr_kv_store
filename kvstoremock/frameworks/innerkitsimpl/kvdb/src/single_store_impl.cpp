@@ -214,6 +214,14 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     return status;
 }
 
+void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
+    const std::function<void(Status, Value &&)> &onResult)
+{
+    Value value;
+    auto status = Get(key, value);
+    onResult(status, std::move(value));
+}
+
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
     DBKey dbPrefix = convertor_.GetPrefix(prefix);
