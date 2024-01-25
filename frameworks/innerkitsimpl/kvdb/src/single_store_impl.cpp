@@ -336,7 +336,7 @@ void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     Value value;
     auto status = Get(key, value);
-    onResult(status, value);
+    onResult(status, std::move(value));
 }
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
