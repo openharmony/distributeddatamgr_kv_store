@@ -846,6 +846,19 @@ namespace {
     }
 
     /**
+     * @tc.name: AssetCmpTest030
+     * @tc.desc: Check operator == in the asset structure
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest030, TestSize.Level0)
+    {
+        Asset asset = GenAsset("mansion", "mansion1");
+        EXPECT_TRUE(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]) == asset);
+    }
+
+    /**
      * @tc.name: AssetOperation001
      * @tc.desc: Different opType with end download action and assets
      * @tc.type: FUNC
