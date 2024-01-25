@@ -58,7 +58,7 @@ public:
      * @param onResult Value and Status will be returned in this parameter.
     */
     virtual void Get(const Key &key, const std::string &networkId,
-        const std::function<void(Status, Value&&)>& onResult) = 0;
+        const std::function<void(Status, Value&&)> &onResult) = 0;
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.
