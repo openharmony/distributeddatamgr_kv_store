@@ -147,11 +147,6 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     return E_OK;
 }
 
-static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
-{
-    return logTableVersion < DBConstant::LOG_TABLE_VERSION_CURRENT;
-}
-
 int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTableVersion,
     const RelationalSchemaObject &schemaObj, const RelationalSchemaObject &trackerSchemaObj)
 {
