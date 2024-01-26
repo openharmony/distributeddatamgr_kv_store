@@ -51,7 +51,7 @@ public:
     /**
      * @brief Get value from KvStore by its key.
      * If key is not found, a compensation synchronization will be automatically
-     * triggered to the specified device.
+     * triggered to the specified device only when the networkId is valid.
      *
      * @param key   Key of this entry.
      * @param networkId The networkId of online device.
