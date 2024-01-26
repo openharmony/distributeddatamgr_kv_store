@@ -57,8 +57,7 @@ public:
     Status SubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer) override;
     Status UnSubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer) override;
     Status Get(const Key &key, Value &value) override;
-    void Get(const Key &key, const std::string &networkId,
-        const std::function<void(Status, Value &&)> &onResult) override;
+    Status Get(const Key &key, const std::string &networkId, Value &value) override;
     Status GetEntries(const Key &prefix, std::vector<Entry> &entries) const override;
     Status GetEntries(const DataQuery &query, std::vector<Entry> &entries) const override;
     Status GetResultSet(const Key &prefix, std::shared_ptr<ResultSet> &resultSet) const override;

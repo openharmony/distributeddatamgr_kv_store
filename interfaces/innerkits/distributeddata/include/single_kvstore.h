@@ -55,10 +55,10 @@ public:
      *
      * @param key   Key of this entry.
      * @param networkId The networkId of online device.
-     * @param onResult Value and Status will be returned in this parameter.
+     * @param value Value will be returned in this parameter.
+     * @return Return SUCCESS for success, others for failure.
     */
-    virtual void Get(const Key &key, const std::string &networkId,
-        const std::function<void(Status, Value &&)> &onResult) = 0;
+    virtual Status Get(const Key &key, const std::string &networkId, Value &value) = 0;
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.
