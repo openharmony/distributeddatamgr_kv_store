@@ -43,13 +43,11 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
     uv_work_t* work = new (std::nothrow) uv_work_t;
     if (work == nullptr) {
         ZLOGE("no memory for uv_work_t");
-        delete work;
         return;
     }
     work->data = new UvEntry{ env_, getter, std::move(genArgs) };
     if (work->data == nullptr) {
         ZLOGE("no memory for UvEntry");
-        delete (reinterpret_cast<UvEntry*>(work->data));
         delete work;
         work = nullptr;
         return;
