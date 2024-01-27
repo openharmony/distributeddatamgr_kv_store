@@ -21,6 +21,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "relational_store_client.h"
+#include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
 
 using namespace testing::ext;
@@ -1226,5 +1227,66 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Le
 #else
     EXPECT_EQ(count, num * num);
 #endif
+}
+
+/**
+ * @tc.name: AbnormalDelegateTest001
+ * @tc.desc: Test delegate interface after delegate is closed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. create db and open store
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    /**
+     * @tc.steps:step2. close delegate
+     * @tc.expected: step2. return ok.
+     */
+    auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
+    status = delegateImpl->Close();
+    EXPECT_EQ(status, OK);
+
+    /**
+     * @tc.steps:step3. test interface after delegate is closed
+     * @tc.expected: step3. return ok.
+     */
+    const std::string tableName = "sync_data";
+    EXPECT_EQ(delegateImpl->RemoveDeviceData("", tableName), DB_ERROR);
+    EXPECT_EQ(delegate->RemoveDeviceData("", FLAG_AND_DATA), DB_ERROR);
+    EXPECT_EQ(delegate->GetCloudSyncTaskCount(), -1); // -1 is error count
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DB_ERROR);
+    EXPECT_EQ(delegate->UnRegisterObserver(), DB_ERROR);
+    DataBaseSchema dataBaseSchema;
+    EXPECT_EQ(delegate->SetCloudDbSchema(dataBaseSchema), DB_ERROR);
+    EXPECT_EQ(delegate->SetReference({}), DB_ERROR);
+    TrackerSchema trackerSchema;
+    EXPECT_EQ(delegate->SetTrackerTable(trackerSchema), DB_ERROR);
+    EXPECT_EQ(delegate->CleanTrackerData(tableName, 0), DB_ERROR);
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    EXPECT_EQ(delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data), DB_ERROR);
+    std::vector<VBucket> records;
+    RecordStatus recordStatus = RecordStatus::WAIT_COMPENSATED_SYNC;
+    EXPECT_EQ(delegate->UpsertData(tableName, records, recordStatus), DB_ERROR);
+
+    /**
+     * @tc.steps:step4. close store
+     * @tc.expected: step4. return ok.
+     */
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
 }
 }

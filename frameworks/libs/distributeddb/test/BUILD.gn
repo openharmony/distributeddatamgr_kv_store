@@ -756,6 +756,16 @@ distributeddb_unittest("DistributedDBInterfacesDatabaseRdKernelTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_database_rd_kernel_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBStorageSingleVerDatabaseOperTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_single_ver_database_oper_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBSqliteRelationalUtilsTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_sqlite_relational_utils_test.cpp",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -844,6 +854,7 @@ group("unittest") {
     ":DistributedDBSingleVerP2PSyncCheckTest",
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
+    ":DistributedDBSqliteRelationalUtilsTest",
     ":DistributedDBSqliteUtilsTest",
     ":DistributedDBStorageCommitStorageTest",
     ":DistributedDBStorageDataConnectionTest",
@@ -857,6 +868,7 @@ group("unittest") {
     ":DistributedDBStorageSQLiteSingleVerNaturalExecutorTest",
     ":DistributedDBStorageSQLiteSingleVerNaturalStoreTest",
     ":DistributedDBStorageSQLiteSingleVerStorageEngineTest",
+    ":DistributedDBStorageSingleVerDatabaseOperTest",
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageTransactionDataTest",
     ":DistributedDBStorageTransactionRecordTest",
