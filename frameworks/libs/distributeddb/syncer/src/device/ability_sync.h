@@ -241,8 +241,7 @@ private:
 
     int AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context, const AbilitySyncAckPacket *packet);
 
-    static int32_t TransformSecLabelIfNeed(int32_t originLabel, int targetLabel, int checkOriginLabel,
-        int checkTargetLabel);
+    static int32_t TransformSecLabelIfNeed(int32_t originLabel, int targetLabel);
 
     ICommunicator *communicator_;
     ISyncInterface *storageInterface_;

@@ -491,7 +491,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
 {
     SecurityOption option;
     int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
-    int32_t remoteSecLabel = TransformSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel, S0, S1);
+    int32_t remoteSecLabel = TransformSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel);
     LOGI("[AbilitySync][RequestRecv] remote label:%d local l:%d, f:%d, errCode:%d", remoteSecLabel,
         option.securityLabel, option.securityFlag, errCode);
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
@@ -573,7 +573,7 @@ void AbilitySync::GetPacketSecOption(const ISyncTaskContext *context, SecurityOp
         return;
     }
     auto remoteSecOption = (static_cast<const SingleVerSyncTaskContext *>(context))->GetRemoteSeccurityOption();
-    option.securityLabel = TransformSecLabelIfNeed(option.securityLabel, remoteSecOption.securityLabel, S1, S0);
+    option.securityLabel = TransformSecLabelIfNeed(option.securityLabel, remoteSecOption.securityLabel);
 }
 
 int AbilitySync::RegisterTransformFunc()
@@ -1240,10 +1240,9 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     return E_OK;
 }
 
-int32_t AbilitySync::TransformSecLabelIfNeed(int32_t originLabel, int targetLabel, int checkOriginLabel,
-    int checkTargetLabel)
+int32_t AbilitySync::TransformSecLabelIfNeed(int32_t originLabel, int targetLabel)
 {
-    if (originLabel == checkOriginLabel && targetLabel == checkTargetLabel) {
+    if ((originLabel == S0 && targetLabel == S1) || (originLabel == S1 && targetLabel == S0)) {
         LOGI("[AbilitySync] Accept SecLabel From %d To %d", originLabel, targetLabel);
         return targetLabel;
     }
