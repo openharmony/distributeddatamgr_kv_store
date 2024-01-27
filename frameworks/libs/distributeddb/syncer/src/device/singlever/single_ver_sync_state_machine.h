@@ -213,6 +213,8 @@ private:
 
     int AbilitySyncResponseRecv(const Message *inMsg);
 
+    int AbilitySyncNotifyRecv(const Message *inMsg);
+
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncStateMachine);
 
     static std::mutex stateSwitchTableLock_;

@@ -364,4 +364,10 @@ int GenericKvDBConnection::UpdateKey(const UpdateKeyCallback &callback)
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::GetWatermarkInfo([[gnu::unused]] const std::string &device,
+    [[gnu::unused]] WatermarkInfo &info)
+{
+    return -E_NOT_SUPPORT;
+}
 }

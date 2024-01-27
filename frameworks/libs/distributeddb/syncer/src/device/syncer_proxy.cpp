@@ -239,4 +239,12 @@ int SyncerProxy::GetHashDeviceId(const std::string &clientId, std::string &hashD
     }
     return syncer_->GetHashDeviceId(clientId, hashDevId);
 }
+
+int SyncerProxy::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->GetWatermarkInfo(device, info);
+}
 } // namespace DistributedDB

@@ -992,7 +992,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
     ASSERT_TRUE(message != nullptr);
     AbilitySyncAckPacket packet;
     packet.SetAckCode(E_OK);
-    packet.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
+    // should set version less than 108 avoid ability sync with 2 packet
+    packet.SetSoftwareVersion(SOFTWARE_VERSION_RELEASE_7_0);
     message->SetCopiedObject(packet);
     /**
      * @tc.steps: step2. set syncDBInterface busy for save data return -E_BUSY
