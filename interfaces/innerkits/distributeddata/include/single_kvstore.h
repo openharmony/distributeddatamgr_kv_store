@@ -58,7 +58,10 @@ public:
      * @param value Value will be returned in this parameter.
      * @return Return SUCCESS for success, others for failure.
     */
-    virtual Status Get(const Key &key, const std::string &networkId, Value &value);
+    virtual Status Get(const Key &key, const std::string &networkId, Value &value)
+    {
+        return Status::SUCCESS;
+    }
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.
