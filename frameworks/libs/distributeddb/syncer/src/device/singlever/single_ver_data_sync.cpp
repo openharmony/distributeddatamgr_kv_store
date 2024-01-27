@@ -713,6 +713,7 @@ int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
 {
     int errCode = QuerySyncCheck(context);
     if (errCode != E_OK) {
+        LOGE("[DataSync][PushStart] check query failed, errCode=%d", errCode);
         return errCode;
     }
     errCode = RemoveDeviceDataIfNeed(context);

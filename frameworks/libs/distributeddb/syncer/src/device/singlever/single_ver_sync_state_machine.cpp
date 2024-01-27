@@ -599,7 +599,12 @@ int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
         std::lock_guard<std::mutex> lock(stateMachineLock_);
         int errCode = abilitySync_->AckRecv(inMsg, context_);
         (void)ResetWatchDog();
-        if (errCode != E_OK) {
+        if (errCode == -E_ABILITY_SYNC_FINISHED) {
+            LOGI("[StateMachine][AbilitySyncRecv] ability sync finished with both kv,label=%s,dev=%s",
+                dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
+            abilitySync_->SetAbilitySyncFinishedStatus(true);
+            JumpStatusAfterAbilitySync(context_->GetMode());
+        } else if (errCode != E_OK) {
             LOGE("[StateMachine][AbilitySyncRecv] handle ackRecv failed,errCode=%d", errCode);
             SwitchStateAndStep(TransformErrCodeToEvent(errCode));
         } else if (context_->GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_RELEASE_2_0) {
@@ -612,32 +617,7 @@ int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
         return E_OK;
     }
     if (inMsg->GetMessageType() == TYPE_NOTIFY) {
-        const AbilitySyncAckPacket *packet = inMsg->GetObject<AbilitySyncAckPacket>();
-        if (packet == nullptr) {
-            return -E_INVALID_ARGS;
-        }
-        int ackCode = packet->GetAckCode();
-        if (ackCode != AbilitySync::CHECK_SUCCESS && ackCode != AbilitySync::LAST_NOTIFY) {
-            LOGE("[StateMachine][AbilitySyncRecv] ackCode check failed,ackCode=%d", ackCode);
-            context_->SetTaskErrCode(ackCode);
-            std::lock_guard<std::mutex> lock(stateMachineLock_);
-            SwitchStateAndStep(Event::INNER_ERR_EVENT);
-            return E_OK;
-        }
-        if (ackCode == AbilitySync::LAST_NOTIFY && AbilityMsgSessionIdCheck(inMsg)) {
-            abilitySync_->SetAbilitySyncFinishedStatus(true);
-            // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
-            LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
-                dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
-            context_->SetRemoteSoftwareVersion(packet->GetSoftwareVersion());
-            currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
-            std::lock_guard<std::mutex> lock(stateMachineLock_);
-            (void)ResetWatchDog();
-            JumpStatusAfterAbilitySync(context_->GetMode());
-        } else if (ackCode != AbilitySync::LAST_NOTIFY) {
-            abilitySync_->AckNotifyRecv(inMsg, context_);
-        }
-        return E_OK;
+        return AbilitySyncNotifyRecv(inMsg);
     }
     LOGE("[StateMachine][AbilitySyncRecv] msg type invalid");
     return -E_NOT_SUPPORT;
@@ -1286,5 +1266,35 @@ void SingleVerSyncStateMachine::NotifyClosing()
     if (timeSync_ != nullptr) {
         timeSync_->Close();
     }
+}
+
+int SingleVerSyncStateMachine::AbilitySyncNotifyRecv(const Message *inMsg)
+{
+    const AbilitySyncAckPacket *packet = inMsg->GetObject<AbilitySyncAckPacket>();
+    if (packet == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int ackCode = packet->GetAckCode();
+    if (ackCode != AbilitySync::CHECK_SUCCESS && ackCode != AbilitySync::LAST_NOTIFY) {
+        LOGE("[StateMachine][AbilitySyncRecv] ackCode check failed,ackCode=%d", ackCode);
+        context_->SetTaskErrCode(ackCode);
+        std::lock_guard<std::mutex> lock(stateMachineLock_);
+        SwitchStateAndStep(Event::INNER_ERR_EVENT);
+        return E_OK;
+    }
+    if (ackCode == AbilitySync::LAST_NOTIFY && AbilityMsgSessionIdCheck(inMsg)) {
+        abilitySync_->SetAbilitySyncFinishedStatus(true);
+        // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
+        LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
+            dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
+        context_->SetRemoteSoftwareVersion(packet->GetSoftwareVersion());
+        currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
+        std::lock_guard<std::mutex> lock(stateMachineLock_);
+        (void)ResetWatchDog();
+        JumpStatusAfterAbilitySync(context_->GetMode());
+    } else if (ackCode != AbilitySync::LAST_NOTIFY) {
+        abilitySync_->AckNotifyRecv(inMsg, context_);
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

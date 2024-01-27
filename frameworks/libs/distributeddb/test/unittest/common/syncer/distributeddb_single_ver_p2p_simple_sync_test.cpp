@@ -172,6 +172,23 @@ void DistributedDBSingleVerP2PSimpleSyncTest::TearDown(void)
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(nullCallback), OK);
 }
 
+void CheckWatermark(const std::string &dev, KvStoreNbDelegate *kvDelegatePtr, WatermarkInfo expectInfo,
+    bool sendEqual = true, bool receiveEqual = true)
+{
+    auto [status, watermarkInfo] = kvDelegatePtr->GetWatermarkInfo(g_deviceB->GetDeviceId());
+    EXPECT_EQ(status, OK);
+    if (sendEqual) {
+        EXPECT_EQ(watermarkInfo.sendMark, expectInfo.sendMark);
+    } else {
+        EXPECT_NE(watermarkInfo.sendMark, expectInfo.sendMark);
+    }
+    if (receiveEqual) {
+        EXPECT_EQ(watermarkInfo.receiveMark, expectInfo.receiveMark);
+    } else {
+        EXPECT_NE(watermarkInfo.receiveMark, expectInfo.receiveMark);
+    }
+}
+
 /**
  * @tc.name: Normal Sync 001
  * @tc.desc: Test normal push sync for add data.
@@ -191,6 +208,10 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync001, TestSize.Level1
      */
     Key key = {'1'};
     Value value = {'1'};
+
+    WatermarkInfo info;
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info);
     status = g_kvDelegatePtr->Put(key, value);
     ASSERT_TRUE(status == OK);
 
@@ -201,6 +222,8 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync001, TestSize.Level1
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
     ASSERT_TRUE(status == OK);
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, false);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, false);
 
     /**
      * @tc.expected: step2. onComplete should be called, DeviceB,C have {k1,v1}
@@ -335,6 +358,9 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1
     devices.push_back(g_deviceB->GetDeviceId());
     devices.push_back(g_deviceC->GetDeviceId());
 
+    WatermarkInfo info;
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info);
     /**
      * @tc.steps: step1. deviceB put {k1, v1}
      */
@@ -357,6 +383,8 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true, false);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, true, false);
 
     /**
      * @tc.expected: step3. onComplete should be called, DeviceA have {k1, VALUE_1}, {K2. VALUE_2}
@@ -1570,4 +1598,26 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, CalculateSyncData005, TestSize
     });
     thread1.join();
     thread2.join();
+}
+
+/**
+ * @tc.name: GetWaterMarkInfo001
+ * @tc.desc: Test invalid dev for get water mark info.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, GetWaterMarkInfo001, TestSize.Level0)
+{
+    std::string dev;
+    auto res = g_kvDelegatePtr->GetWatermarkInfo(dev);
+    EXPECT_EQ(res.first, INVALID_ARGS);
+    EXPECT_EQ(res.second.sendMark, 0u);
+    EXPECT_EQ(res.second.receiveMark, 0u);
+
+    dev = std::string(DBConstant::MAX_DEV_LENGTH + 1, 'a');
+    res = g_kvDelegatePtr->GetWatermarkInfo(dev);
+    EXPECT_EQ(res.first, INVALID_ARGS);
+    EXPECT_EQ(res.second.sendMark, 0u);
+    EXPECT_EQ(res.second.receiveMark, 0u);
 }

@@ -1115,4 +1115,20 @@ int GenericSyncer::InitStorageResource(ISyncInterface *syncInterface)
     }
     return errCode;
 }
+
+int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(syncerLock_);
+        metadata = metadata_;
+    }
+    if (metadata == nullptr) {
+        LOGE("[Syncer] Metadata is not init");
+        return -E_NOT_INIT;
+    }
+    metadata->GetLocalWaterMark(device, info.sendMark);
+    metadata->GetPeerWaterMark(device, info.receiveMark);
+    return E_OK;
+}
 } // namespace DistributedDB

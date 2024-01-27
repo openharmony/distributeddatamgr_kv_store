@@ -332,4 +332,13 @@ int SyncAbleKvDBConnection::GetSyncDataSize(const std::string &device, size_t &s
     }
     return kvDB->GetSyncDataSize(device, size);
 }
+
+int SyncAbleKvDBConnection::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    return kvDB->GetWatermarkInfo(device, info);
+}
 }

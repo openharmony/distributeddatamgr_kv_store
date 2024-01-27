@@ -159,6 +159,8 @@ public:
 
     // update all key in sync_data which is not deleted data
     DBStatus UpdateKey(const UpdateKeyCallback &callback) override;
+
+    std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

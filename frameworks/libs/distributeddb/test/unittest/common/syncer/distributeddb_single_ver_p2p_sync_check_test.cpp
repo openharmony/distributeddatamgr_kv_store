@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "ability_sync.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_virtual_device.h"
@@ -297,7 +298,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck003, TestSize.Lev
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
     EXPECT_EQ(status, OK);
-    EXPECT_EQ(messageCount, 6); // 6 = 2 time sync + 4 ability sync
+    EXPECT_EQ(messageCount, 4); // 4 = 2 time sync + 2 ability sync
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
         EXPECT_TRUE(pair.second == SECURITY_OPTION_CHECK_ERROR);
@@ -710,7 +711,7 @@ void SyncWithQuery(vector<std::string> &devices, const Query &query, const SyncM
     DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, mode, result, query);
     EXPECT_TRUE(status == OK);
     for (const auto &deviceId : devices) {
-        ASSERT_TRUE(result[deviceId] == targetStatus);
+        ASSERT_EQ(result[deviceId], targetStatus);
     }
 }
 
@@ -847,7 +848,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
         std::unique_lock<std::mutex> lck(offlineMtx);
         conditionOffline.wait(lck, [&offlineFlag]{ return offlineFlag; });
         g_deviceB->Offline();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         g_deviceB->Online();
         onlineFlag = true;
         conditionOnline.notify_all();
@@ -1552,4 +1553,40 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
     asyncThread.join();
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
 }
+}
+
+/**
+ * @tc.name: KVAbilitySyncOpt001
+ * @tc.desc: check ability sync 2 packet
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet
+     * @tc.expected: step1. sync should failed in source.
+     */
+    std::atomic<int> messageCount = 0;
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &dev, Message *msg) {
+        if (msg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+            return;
+        }
+        messageCount++;
+    });
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return SECURITY_OPTION_CHECK_ERROR.
+     */
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(messageCount, 2); // 2 ability sync
+    for (const auto &pair : result) {
+        EXPECT_EQ(pair.second, OK);
+    }
 }

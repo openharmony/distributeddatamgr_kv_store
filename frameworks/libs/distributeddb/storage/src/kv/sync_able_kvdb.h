@@ -89,6 +89,7 @@ public:
 
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
 
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

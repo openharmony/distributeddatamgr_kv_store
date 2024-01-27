@@ -140,6 +140,7 @@ constexpr int E_TASK_PAUSED = (E_BASE + 119); // the task was paused, don't fini
 constexpr int E_CLOUD_VERSION_CONFLICT = (E_BASE + 120); // cloud failed to update version
 constexpr int E_CLOUD_RECORD_EXIST_CONFLICT = (E_BASE + 121); // record conflict when upload/download
 constexpr int E_REMOVE_ASSETS_FAILED = (E_BASE + 122); // remove local assets failed
+constexpr int E_ABILITY_SYNC_FINISHED = (E_BASE + 123); // add at 108 version, use for machine check ability sync finish
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

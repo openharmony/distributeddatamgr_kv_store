@@ -198,7 +198,7 @@ private:
         AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
         std::pair<bool, bool> &schemaSyncStatus) const;
 
-    void HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
+    int HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus) const;
 
     int HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
@@ -234,7 +234,8 @@ private:
 
     int HandleRequestRecv(const Message *message, ISyncTaskContext *context, bool isCompatible);
 
-    SyncOpinion MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema) const;
+    SyncOpinion MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema,
+        ISyncTaskContext *context) const;
 
     RelationalSyncOpinion MakeRelationSyncOpinion(const AbilitySyncRequestPacket *packet,
         const std::string &remoteSchema) const;
@@ -242,6 +243,8 @@ private:
     int AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context, const AbilitySyncAckPacket *packet);
 
     static int32_t TransformRemoteSecLabelIfNeed(int32_t remoteSecLabel, int localSecLabel);
+
+    static bool IsBothKvAndOptAbilitySync(uint32_t remoteVersion, SchemaType localType, uint8_t remoteType);
 
     ICommunicator *communicator_;
     ISyncInterface *storageInterface_;
