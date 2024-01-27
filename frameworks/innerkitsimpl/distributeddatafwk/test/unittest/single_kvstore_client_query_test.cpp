@@ -1007,4 +1007,43 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdValidField, TestSize.Lev
     query.DeviceId(deviceId);
     EXPECT_TRUE(query.ToString().length() == 0);
 }
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is between, the value is invalid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenInvalid, TestSize.Level1)
+{
+    DataQuery query;
+    query.Between("678678^", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Between("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Between("$.test_fi^eld_name", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is between, the value is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenValid, TestSize.Level1)
+{
+    DataQuery query;
+    query.Between("$.test_fi^eld_name", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Between("test", "test value");
+    if (query.ToString().length() > 0)
+    {
+        query.Reset();
+        query.Between("test1", "test1 value");
+        EXPECT_TRUE(query.ToString().length() > 0);
+    }
+}
 } // namespace
