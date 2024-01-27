@@ -491,7 +491,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
 {
     SecurityOption option;
     int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
-    int32_t remoteSecLabel = TransformRemoteSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel);
+    int32_t remoteSecLabel = TransformSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel);
     LOGI("[AbilitySync][RequestRecv] remote label:%d local l:%d, f:%d, errCode:%d", remoteSecLabel,
         option.securityLabel, option.securityFlag, errCode);
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
@@ -573,10 +573,7 @@ void AbilitySync::GetPacketSecOption(const ISyncTaskContext *context, SecurityOp
         return;
     }
     auto remoteSecOption = (static_cast<const SingleVerSyncTaskContext *>(context))->GetRemoteSeccurityOption();
-    if (remoteSecOption.securityLabel == SecurityLabel::S0 && option.securityLabel == SecurityLabel::S1) {
-        option.securityLabel = SecurityLabel::S0;
-        LOGI("[AbilitySync] Transform SecLabel From S1 To S0");
-    }
+    option.securityLabel = TransformSecLabelIfNeed(option.securityLabel, remoteSecOption.securityLabel);
 }
 
 int AbilitySync::RegisterTransformFunc()
@@ -1243,12 +1240,12 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     return E_OK;
 }
 
-int32_t AbilitySync::TransformRemoteSecLabelIfNeed(int32_t remoteSecLabel, int localSecLabel)
+int32_t AbilitySync::TransformSecLabelIfNeed(int32_t originLabel, int targetLabel)
 {
-    if (remoteSecLabel == SecurityLabel::S0 && localSecLabel == SecurityLabel::S1) {
-        LOGI("[AbilitySync] Accept SecLabel From S0 To S1");
-        return SecurityLabel::S1;
+    if ((originLabel == S0 && targetLabel == S1) || (originLabel == S1 && targetLabel == S0)) {
+        LOGI("[AbilitySync] Accept SecLabel From %d To %d", originLabel, targetLabel);
+        return targetLabel;
     }
-    return remoteSecLabel;
+    return originLabel;
 }
 } // namespace DistributedDB

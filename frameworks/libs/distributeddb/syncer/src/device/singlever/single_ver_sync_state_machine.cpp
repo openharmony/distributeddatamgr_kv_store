@@ -516,7 +516,7 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
     LOGI("[StateMachine][AbilitySync] start abilitySync,label=%s,dev=%s", dataSync_->GetLabel().c_str(),
         STR_MASK(context_->GetDeviceId()));
     errCode = abilitySync_->SyncStart(context_->GetRequestSessionId(), context_->GetSequenceId(),
-        remoteCommunicatorVersion, handler);
+        remoteCommunicatorVersion, handler, context_);
     if (errCode != E_OK) {
         LOGE("[StateMachine][DoAbilitySync] ability sync start failed,errCode=%d", errCode);
         return TransformErrCodeToEvent(errCode);
