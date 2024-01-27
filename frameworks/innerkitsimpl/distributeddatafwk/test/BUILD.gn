@@ -82,6 +82,8 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../kvdb/src/system_api.cpp",
     "../../kvdb/src/task_executor.cpp",
     "../../kvdb/src/task_executor_adapter.cpp",
+    "../../kvdb/src/process_communication_impl.cpp",
+    "../../kvdb/src/process_system_api_adapter_impl.cpp",
   ]
 
   sources = old_sources + kvdb_sources

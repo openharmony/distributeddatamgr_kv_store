@@ -1195,39 +1195,3 @@ HWTEST_F(SingleKvStoreClientTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = singleKvStore->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
-
-/**
- * @tc.name: SetIdentifier001
- * desc: test the Status set identifier function.
- * type: FUNC
- * require:
- * author:SQL
- */
-HWTEST_F(SingleKvStoreClientTest, SetIdentifier001, TestSize.Level1)
-{
-    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
-    std::vector<std::string> deviceIds = {"device_id1", "device_id2"};
-    std::string accountId = { "accountId0" };
-    AppId appId = { "odmf" };
-    StoreId storeId = { "schema_store_id001" };
-    auto setIdentifierStatus = singleKvStore->SetIdentifier(accountId, appId, storeId, deviceIds);
-    EXPECT_NE(setIdentifierStatus, Status::SUCCESS);
-}
-
-/**
- * @tc.name: SetIdentifier002
- * desc: test the Status set identifier function.
- * type: FUNC
- * require:
- * author:SQL
- */
-HWTEST_F(SingleKvStoreClientTest, SetIdentifier002, TestSize.Level1)
-{
-    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
-    std::vector<std::string> deviceIds = {"device_id1", "device_id2"};
-    std::string accountId = { "accountId0" };
-    AppId appId = { "" };
-    StoreId storeId = { "" };
-    auto setIdentifierStatus = singleKvStore->SetIdentifier(accountId, appId, storeId, deviceIds);
-    EXPECT_NE(setIdentifierStatus, Status::SUCCESS);
-}

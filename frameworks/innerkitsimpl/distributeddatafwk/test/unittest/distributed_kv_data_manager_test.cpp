@@ -51,52 +51,6 @@ public:
     DistributedKvDataManagerTest();
 };
 
-class EndpointMock : public Endpoint {
-public:
-    EndpointMock() {}
-    virtual ~EndpointMock() {}
-
-    Status Start() override
-    {
-        return Status::SUCCESS;
-    }
-
-    Status Stop() override
-    {
-        return Status::SUCCESS;
-    }
-
-    Status RegOnDataReceive(const RecvHandler &callback) override
-    {
-        return Status::SUCCESS;
-    }
-
-    Status SendData(const std::string &dtsIdentifier, const uint8_t *data, uint32_t length) override
-    {
-        return Status::SUCCESS;
-    }
-
-    uint32_t GetMtuSize(const std::string &identifier) override
-    {
-        return 1 * 1024  * 1024; // 1 * 1024 * 1024 Byte.
-    }
-
-    std::string GetLocalDeviceInfos() override
-    {
-        return "Mock Device";
-    }
-
-    bool IsSaferThanDevice(int securityLevel, const std::string &devId) override
-    {
-        return true;
-    }
-
-    bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) override
-    {
-        return true;
-    }
-};
-
 class MyDeathRecipient : public KvStoreDeathRecipient {
 public:
     MyDeathRecipient() {}
@@ -780,38 +734,5 @@ HWTEST_F(DistributedKvDataManagerTest, SetExecutors001, TestSize.Level1)
 
     Status stat = manager.CloseKvStore(appId, storeId64);
     EXPECT_EQ(stat, Status::SUCCESS);
-}
-
-/**
-* @tc.name: SetEndpoint001
-* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(DistributedKvDataManagerTest, SetEndpoint001, TestSize.Level1)
-{
-    ZLOGI("SetEndpoint001 begin.");
-    std::shared_ptr<EndpointMock> endpoint = nullptr;
-    Status status = manager.SetEndpoint(endpoint);
-    ASSERT_EQ(status, Status::INVALID_ARGUMENT);
-}
-
-/**
-* @tc.name: SetEndpoint002
-* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(DistributedKvDataManagerTest, SetEndpoint002, TestSize.Level1)
-{
-    ZLOGI("SetEndpoint002 begin.");
-    std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
-    Status status = manager.SetEndpoint(endpoint);
-    EXPECT_EQ(status, Status::SUCCESS);
-    ZLOGI("Endpoint already set.");
-    status = manager.SetEndpoint(endpoint);
-    EXPECT_EQ(status, Status::SUCCESS);
 }
 } // namespace OHOS::Test
