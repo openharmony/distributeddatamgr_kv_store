@@ -49,6 +49,18 @@ public:
     virtual Status Get(const Key &key, Value &value) = 0;
 
     /**
+     * @brief Get value from KvStore by its key.
+     * If key is not found, a compensation synchronization will be automatically
+     * triggered to the specified device only when the networkId is valid.
+     *
+     * @param key   Key of this entry.
+     * @param networkId The networkId of online device.
+     * @param value Value will be returned in this parameter.
+     * @return Return SUCCESS for success, others for failure.
+    */
+    virtual Status Get(const Key &key, const std::string &networkId, Value &value);
+
+    /**
      * @brief Get all entries in this store which key start with prefixKey.
      * @param prefix  The prefix to be searched.
      * @param entries Entries will be returned in this parameter.
