@@ -387,6 +387,52 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck005, TestSize.Lev
     g_syncInterfaceB->ForkGetSecurityOption(nullptr);
 }
 
+/**
+ * @tc.name: sec option check Sync 006
+ * @tc.desc: memory db not check device security
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Level0)
+{
+    ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+    ASSERT_EQ(g_mgr.DeleteKvStore(STORE_ID), OK);
+    g_kvDelegatePtr = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = SecurityLabel::S1;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    adapter->ForkCheckDeviceSecurityAbility([](const std::string &, const SecurityOption &) {
+        return true;
+    });
+    adapter->ForkGetSecurityOption([](const std::string &, SecurityOption &securityOption) {
+        securityOption.securityLabel = S1;
+        return OK;
+    });
+    g_syncInterfaceB->ForkGetSecurityOption([](SecurityOption &option) {
+        option.securityLabel = SecurityLabel::S0;
+        return E_OK;
+    });
+
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result);
+    EXPECT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+    g_syncInterfaceB->ForkGetSecurityOption(nullptr);
+}
+
 #ifndef LOW_LEVEL_MEM_DEV
 /**
  * @tc.name: BigDataSync001
