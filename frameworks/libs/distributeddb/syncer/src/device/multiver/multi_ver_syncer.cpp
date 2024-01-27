@@ -105,11 +105,11 @@ ISyncEngine *MultiVerSyncer::CreateSyncEngine()
     return new (std::nothrow) MultiVerSyncEngine();
 }
 
-void MultiVerSyncer::AddSyncOperation(SyncOperation *operation)
+void MultiVerSyncer::AddSyncOperation(ISyncEngine *engine, SyncOperation *operation)
 {
     MultiVerKvDBSyncInterface *syncInterface = static_cast<MultiVerKvDBSyncInterface *>(syncInterface_);
     syncInterface->NotifyStartSyncOperation();
-    GenericSyncer::AddSyncOperation(operation);
+    GenericSyncer::AddSyncOperation(syncEngine_, operation);
 }
 
 void MultiVerSyncer::SyncOperationKillCallbackInner(int syncId)
