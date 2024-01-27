@@ -1275,3 +1275,125 @@ HWTEST_F(DeviceKvStoreTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = kvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+
+class EndpointMock : public Endpoint {
+public:
+    EndpointMock() {}
+    virtual ~EndpointMock() {}
+
+    Status Start() override
+    {
+        return Status::SUCCESS;
+    }
+
+    Status Stop() override
+    {
+        return Status::SUCCESS;
+    }
+
+    Status RegOnDataReceive(const RecvHandler &callback) override
+    {
+        return Status::SUCCESS;
+    }
+
+    Status SendData(const std::string &dtsIdentifier, const uint8_t *data, uint32_t length) override
+    {
+        return Status::SUCCESS;
+    }
+
+    uint32_t GetMtuSize(const std::string &identifier) override
+    {
+        return 1 * 1024  * 1024; // 1 * 1024 * 1024 Byte.
+    }
+
+    std::string GetLocalDeviceInfos() override
+    {
+        return "Mock Device";
+    }
+
+    bool IsSaferThanDevice(int securityLevel, const std::string &devId) override
+    {
+        return true;
+    }
+
+    bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) override
+    {
+        return true;
+    }
+};
+
+/**
+ * @tc.name: SetIdentifier001
+ * desc: test the Status set identifier function.
+ * type: FUNC
+ * require:
+ * author:SQL
+ */
+HWTEST_F(DeviceKvStoreTest, SetIdentifier001, TestSize.Level1)
+{
+    DistributedKvDataManager manager;
+    EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
+    AppId appId = { "odmf" };
+    StoreId storeId = { "test_storeid" };
+    std::vector<std::string> targetDev = {"devicid1", "devicid2"};
+    std::string accountId = "testAccount";
+    std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
+    Status status = manager.SetEndpoint(endpoint);
+    EXPECT_EQ(status, Status::SUCCESS);
+    auto testStatus = kvStore_->SetIdentifier(accountId, appId, storeId, targetDev);
+    EXPECT_EQ(testStatus, Status::SUCCESS);
+}
+
+/**
+ * @tc.name: SetIdentifier002
+ * desc: test the Status set identifier function.
+ * type: FUNC
+ * require:
+ * author:SQL
+ */
+HWTEST_F(DeviceKvStoreTest, SetIdentifier002, TestSize.Level1)
+{
+    DistributedKvDataManager manager;
+    EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
+    AppId appId = { "" };
+    StoreId storeId = { "" };
+    std::vector<std::string> targetDev = {"devicid1", "devicid2"};
+    std::string accountId = "testAccount";
+    std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
+    Status status = manager.SetEndpoint(endpoint);
+    EXPECT_EQ(status, Status::SUCCESS);
+    auto testStatus = kvStore_->SetIdentifier(accountId, appId, storeId, targetDev);
+    EXPECT_NE(testStatus, Status::SUCCESS);
+}
+
+/**
+* @tc.name: SetEndpoint001
+* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DeviceKvStoreTest, SetEndpoint001, TestSize.Level1)
+{
+    DistributedKvDataManager manager;
+    std::shared_ptr<EndpointMock> endpoint = nullptr;
+    Status status = manager.SetEndpoint(endpoint);
+    ASSERT_EQ(status, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: SetEndpoint002
+* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DeviceKvStoreTest, SetEndpoint002, TestSize.Level1)
+{
+    DistributedKvDataManager manager;
+    std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
+    Status status = manager.SetEndpoint(endpoint);
+    EXPECT_EQ(status, Status::SUCCESS);
+    status = manager.SetEndpoint(endpoint);
+    EXPECT_EQ(status, Status::SUCCESS);
+}

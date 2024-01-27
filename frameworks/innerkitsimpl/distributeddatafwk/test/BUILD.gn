@@ -45,6 +45,9 @@ ohos_source_set("distributeddatafwk_src_file") {
   testonly = true
 
   old_sources = [
+    "../../distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "../../distributeddatasvc/src/distributed_data_mgr.cpp",
+    "../../distributeddatasvc/src/kvstore_data_service_mgr.cpp",
     "../src/blob.cpp",
     "../src/change_notification.cpp",
     "../src/data_query.cpp",
@@ -79,6 +82,8 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../kvdb/src/system_api.cpp",
     "../../kvdb/src/task_executor.cpp",
     "../../kvdb/src/task_executor_adapter.cpp",
+    "../../kvdb/src/process_communication_impl.cpp",
+    "../../kvdb/src/process_system_api_adapter_impl.cpp",
   ]
 
   sources = old_sources + kvdb_sources
@@ -325,6 +330,28 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
   ]
 }
 
+ohos_unittest("DistributedDataMgrTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/distributed_data_mgr_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+    "access_token:libaccesstoken_sdk",
+    "access_token:libnativetoken",
+    "access_token:libtoken_setproc",
+  ]
+
+  deps = [
+    ":distributeddatafwk_src_file",
+    "//third_party/googletest:gtest_main",
+  ]
+}
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -343,5 +370,6 @@ group("unittest") {
     ":SingleKvStoreClientQueryTest",
     ":SingleKvStoreClientTest",
     ":TypesUtilTest",
+    ":DistributedDataMgrTest",
   ]
 }
