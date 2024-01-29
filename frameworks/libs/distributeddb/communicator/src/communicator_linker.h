@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include "communicator_type_define.h"
+#include "db_status_adapter.h"
 #include "ref_object.h"
 #include "serial_buffer.h"
 
@@ -33,7 +34,8 @@ class CommunicatorAggregator; // Forward Declaration
 
 class CommunicatorLinker : public virtual RefObject {
 public:
-    explicit CommunicatorLinker(CommunicatorAggregator *inAggregator);
+    explicit CommunicatorLinker(CommunicatorAggregator *inAggregator,
+        std::shared_ptr<DBStatusAdapter> statusAdapter);
     ~CommunicatorLinker();
 
     DISABLE_COPY_ASSIGN_MOVE(CommunicatorLinker);
@@ -71,6 +73,10 @@ public:
     std::set<std::string> GetOnlineRemoteTarget() const;
 
     bool IsRemoteTargetOnline(const std::string &inTarget) const;
+
+    void UpdateOnlineLabels(const std::string &device, const std::map<LabelType, bool> &labels);
+
+    bool TriggerLabelExchangeEvent(bool checkAdapter = true);
 private:
     DECLARE_OBJECT_TAG(CommunicatorLinker);
 
@@ -116,6 +122,8 @@ private:
 
     // remember the opened labels no matter target now online or offline
     std::map<std::string, std::set<LabelType>> targetMapOnlineLabels_;
+
+    std::shared_ptr<DBStatusAdapter> statusAdapter_;
 };
 }
 

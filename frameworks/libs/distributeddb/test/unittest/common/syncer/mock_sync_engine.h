@@ -23,6 +23,11 @@ namespace DistributedDB {
 class MockSyncEngine : public SyncEngine {
 public:
     MOCK_METHOD0(CreateSyncTaskContext, ISyncTaskContext *(void));
+
+    void InitSubscribeManager()
+    {
+        subManager_ = std::make_shared<SubscribeManager>();
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SYNC_ENGINE_H

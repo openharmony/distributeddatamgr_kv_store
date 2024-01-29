@@ -23,6 +23,7 @@
 #include "auto_launch.h"
 #include "auto_launch_export.h"
 #include "cloud/icloud_data_translate.h"
+#include "db_info_handle.h"
 #include "icommunicator_aggregator.h"
 #include "iprocess_system_api_adapter.h"
 #include "ithread_pool.h"
@@ -30,6 +31,7 @@
 #include "kvdb_properties.h"
 #include "macro_utils.h"
 #include "notification_chain.h"
+#include "query_sync_object.h"
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -145,6 +147,30 @@ public:
     virtual void StopTaskPool() = 0;
 
     virtual void StopTimeTickMonitorIfNeed() = 0;
+
+    virtual void SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle) = 0;
+
+    virtual void NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos) = 0;
+
+    virtual void RecordRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
+        const QuerySyncObject &query) = 0;
+
+    virtual void RemoveRemoteSubscribe(const DeviceID &deviceId) = 0;
+
+    virtual void RemoveRemoteSubscribe(const DBInfo &dbInfo) = 0;
+
+    virtual void RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId) = 0;
+
+    virtual void RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
+        const QuerySyncObject &query) = 0;
+
+    virtual void GetSubscribeQuery(const DBInfo &dbInfo,
+        std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) = 0;
+
+    virtual bool IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+        const std::string &devInfo) = 0;
+
+    virtual void SetRemoteOptimizeCommunication(const std::string &dev, bool optimize) = 0;
 
     virtual void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) = 0;
 

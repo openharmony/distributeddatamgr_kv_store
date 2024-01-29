@@ -1448,4 +1448,29 @@ int RelationalTestUtils::DeleteRecord(sqlite3 *db, const std::string &tableName,
     }
     return errCode;
 }
+
+bool DBInfoHandleTest::IsSupport()
+{
+    std::lock_guard<std::mutex> autoLock(supportMutex_);
+    return localIsSupport_;
+}
+
+bool DBInfoHandleTest::IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+    const DeviceInfos &devInfo)
+{
+    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
+    return isNeedAutoSync_;
+}
+
+void DBInfoHandleTest::SetLocalIsSupport(bool isSupport)
+{
+    std::lock_guard<std::mutex> autoLock(supportMutex_);
+    localIsSupport_ = isSupport;
+}
+
+void DBInfoHandleTest::SetNeedAutoSync(bool needAutoSync)
+{
+    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
+    isNeedAutoSync_ = needAutoSync;
+}
 } // namespace DistributedDBUnitTest
