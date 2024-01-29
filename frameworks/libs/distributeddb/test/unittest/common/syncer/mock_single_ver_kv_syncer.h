@@ -26,6 +26,16 @@ public:
         RecordTimeChangeOffset(changedOffset);
     }
 
+    void CallTriggerAddSubscribeAsync(ISyncInterface *syncInterface)
+    {
+        SingleVerKVSyncer::TriggerAddSubscribeAsync(syncInterface);
+    }
+
+    void SetSyncEngine(ISyncEngine *engine)
+    {
+        syncEngine_ = engine;
+    }
+
     void CallQueryAutoSync(const InternalSyncParma &param)
     {
         SingleVerKVSyncer::QueryAutoSync(param);

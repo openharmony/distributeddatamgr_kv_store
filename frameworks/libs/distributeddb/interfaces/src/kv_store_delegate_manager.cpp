@@ -406,6 +406,11 @@ DBStatus KvStoreDelegateManager::DeleteKvStore(const std::string &storeId)
     int errCode = KvDBManager::RemoveDatabase(properties);
     if (errCode == E_OK) {
         LOGI("Database deleted successfully!");
+        DBInfo dbInfo;
+        dbInfo.userId = userId_;
+        dbInfo.appId = appId_;
+        dbInfo.storeId = storeId;
+        RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo);
         return OK;
     }
     LOGE("Delete the kv store error:%d", errCode);

@@ -132,10 +132,13 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     if (autoSyncEnable_) {
         RefObject::IncObjRef(syncEngine_);
         syncInterface_->IncRefCount();
-        int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, device] {
+        int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, userId, appId, storeId, device] {
             std::vector<std::string> devices;
             devices.push_back(device);
-            int errCode = Sync(devices, SyncModeType::AUTO_PUSH, nullptr, nullptr, false);
+            int errCode = E_OK;
+            if (RuntimeContext::GetInstance()->IsNeedAutoSync(userId, appId, storeId, device)) {
+                errCode = Sync(devices, SyncModeType::AUTO_PUSH, nullptr, nullptr, false);
+            }
             if (errCode != E_OK) {
                 LOGE("[SingleVerKVSyncer] sync start by RemoteDataChanged failed err %d", errCode);
             }
@@ -290,5 +293,49 @@ SyncerBasicInfo SingleVerKVSyncer::DumpSyncerBasicInfo()
     SyncerBasicInfo basicInfo = GenericSyncer::DumpSyncerBasicInfo();
     basicInfo.isAutoSync = autoSyncEnable_;
     return basicInfo;
+}
+
+int SingleVerKVSyncer::InitSyncEngine(DistributedDB::ISyncInterface *syncInterface)
+{
+    int errCode = GenericSyncer::InitSyncEngine(syncInterface);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    TriggerAddSubscribeAsync(syncInterface);
+    return E_OK;
+}
+
+void SingleVerKVSyncer::TriggerAddSubscribeAsync(ISyncInterface *syncInterface)
+{
+    if (syncInterface == nullptr || syncEngine_ == nullptr) {
+        return;
+    }
+    if (syncInterface->GetInterfaceType() != ISyncInterface::SYNC_SVD) {
+        return;
+    }
+    DBInfo dbInfo;
+    auto storage = static_cast<SyncGenericInterface *>(syncInterface);
+    storage->GetDBInfo(dbInfo);
+    std::map<std::string, std::vector<QuerySyncObject>> subscribeQuery;
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    if (subscribeQuery.empty()) {
+        LOGD("[SingleVerKVSyncer][TriggerAddSubscribeAsync] Subscribe cache is empty");
+        return;
+    }
+    storage->IncRefCount();
+    ISyncEngine *engine = syncEngine_;
+    RefObject::IncObjRef(engine);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, engine, storage, subscribeQuery]() {
+        engine->AddSubscribe(storage, subscribeQuery);
+        // try to trigger query sync after add trigger
+        LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+        RefObject::DecObjRef(engine);
+        storage->DecRefCount();
+    });
+    if (errCode != E_OK) {
+        LOGW("[SingleVerKVSyncer] TriggerAddSubscribeAsync failed errCode = %d", errCode);
+        syncInterface->DecRefCount();
+        RefObject::DecObjRef(engine);
+    }
 }
 } // namespace DistributedDB

@@ -19,12 +19,12 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "endian_convert.h"
-#include "message.h"
 #include "adapter_stub.h"
+#include "communicator_aggregator.h"
+#include "endian_convert.h"
 #include "frame_header.h"
 #include "iprocess_communicator.h"
-#include "communicator_aggregator.h"
+#include "message.h"
 #include "store_types.h"
 
 struct EnvHandle {
@@ -38,6 +38,8 @@ struct OnOfflineDevice {
     std::string latestOfflineDevice;
 };
 
+bool SetUpEnv(EnvHandle &inEnv, const std::string &inName,
+    const std::shared_ptr<DistributedDB::DBStatusAdapter> &adapter);
 bool SetUpEnv(EnvHandle &inEnv, const std::string &inName);
 void TearDownEnv(EnvHandle &inEnv);
 

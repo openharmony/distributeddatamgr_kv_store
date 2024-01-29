@@ -47,6 +47,10 @@ public:
     {
         frameType_ = inFrameType;
     }
+    void SetSendLabelExchange(bool sendLabelExchange)
+    {
+        sendLabelExchange_ = sendLabelExchange;
+    }
     void SetFrameLen(uint32_t inFrameLen)
     {
         frameLen_ = inFrameLen;
@@ -104,6 +108,10 @@ public:
     {
         return frameType_;
     }
+    bool IsSendLabelExchange() const
+    {
+        return sendLabelExchange_;
+    }
     uint32_t GetFrameLen() const
     {
         return frameLen_;
@@ -154,6 +162,7 @@ private:
     uint8_t paddingLen_ = 0;
     bool isFragment_ = false;
     FrameType frameType_ = FrameType::INVALID_MAX_FRAME_TYPE;
+    bool sendLabelExchange_ = true;
 
     // For CommPhyOptHeader
     uint32_t frameLen_ = 0;

@@ -22,7 +22,8 @@
 namespace DistributedDB {
 /*
  * packetType: Bit0:   FragmentFlag: 1: Fragmented 0: Not Fragmented
- *             Bit1~3: Reserved
+ *             Bit1~2: Reserved
+ *             Bit3: Communication negotiation mark 0:support 1:not support
  *             Bit4~7: FrameType
  */
 struct CommPhyHeader {

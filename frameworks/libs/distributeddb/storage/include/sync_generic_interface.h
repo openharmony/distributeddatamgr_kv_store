@@ -16,8 +16,9 @@
 #define SYNC_GENERIC_INTERFACE_H
 
 #include "isync_interface.h"
-#include "query_object.h"
 #include "single_ver_kv_entry.h"
+#include "store_types.h"
+#include "query_object.h"
 
 namespace DistributedDB {
 class SyncGenericInterface : public ISyncInterface {
@@ -143,6 +144,13 @@ public:
     std::vector<uint8_t> GetDualTupleIdentifier() const override
     {
         return {};
+    }
+
+    virtual void GetDBInfo(DBInfo &dbInfo) const
+    {
+        dbInfo.appId = GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
+        dbInfo.userId = GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
+        dbInfo.storeId = GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
     }
 
     int IsSupportSubscribe() const override

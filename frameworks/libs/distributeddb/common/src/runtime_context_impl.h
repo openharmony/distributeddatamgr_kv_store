@@ -21,10 +21,12 @@
 #include <shared_mutex>
 
 #include "auto_launch.h"
+#include "db_status_adapter.h"
 #include "evloop/src/ievent.h"
 #include "evloop/src/ievent_loop.h"
 #include "icommunicator_aggregator.h"
 #include "lock_status_observer.h"
+#include "subscribe_recorder.h"
 #include "task_pool.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
@@ -131,6 +133,28 @@ public:
 
     void StopTimeTickMonitorIfNeed() override;
 
+    void SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle) override;
+
+    void NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos) override;
+
+    void RecordRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId, const QuerySyncObject &query) override;
+
+    void RemoveRemoteSubscribe(const DeviceID &deviceId) override;
+
+    void RemoveRemoteSubscribe(const DBInfo &dbInfo) override;
+
+    void RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId) override;
+
+    void RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId, const QuerySyncObject &query) override;
+
+    void GetSubscribeQuery(const DBInfo &dbInfo,
+        std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) override;
+
+    bool IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+        const std::string &devInfo) override;
+
+    void SetRemoteOptimizeCommunication(const std::string &dev, bool optimize) override;
+
     void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) override;
 
     int TranslateDeviceId(const std::string &deviceId,
@@ -155,6 +179,8 @@ private:
     int PrepareLoop(IEventLoop *&loop);
     int PrepareTaskPool();
     int AllocTimerId(IEvent *evTimer, TimerId &timerId);
+    std::shared_ptr<DBStatusAdapter> GetDBStatusAdapter();
+    std::shared_ptr<SubscribeRecorder> GetSubscribeRecorder();
 
     int ScheduleTaskByThreadPool(const TaskAction &task) const __attribute__((no_sanitize("cfi")));
 
@@ -220,6 +246,12 @@ private:
     // Get map from this callback, use for run permission check in remote device
     mutable std::shared_mutex permissionConditionLock_;
     PermissionConditionCallback permissionConditionCallback_;
+
+    mutable std::mutex statusAdapterMutex_;
+    std::shared_ptr<DBStatusAdapter> dbStatusAdapter_;
+
+    mutable std::mutex subscribeRecorderMutex_;
+    std::shared_ptr<SubscribeRecorder> subscribeRecorder_;
 
     mutable std::mutex translateToDeviceIdLock_;
     TranslateToDeviceIdCallback translateToDeviceIdCallback_;

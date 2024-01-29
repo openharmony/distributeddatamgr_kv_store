@@ -24,9 +24,11 @@
 #include "platform_specific.h"
 #include "query.h"
 #include "query_sync_object.h"
+#include "runtime_config.h"
 #include "single_ver_data_sync.h"
 #include "single_ver_serialize_manager.h"
 #include "subscribe_manager.h"
+#include "subscribe_recorder.h"
 #include "sync_types.h"
 
 using namespace testing::ext;
@@ -1036,6 +1038,58 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync007, TestSize.
     EXPECT_TRUE(g_schemaKvDelegatePtr->UnSubscribeRemoteQuery(devices, nullptr, query, true) == NOT_SUPPORT);
 }
 
+/**
+ * @tc.name: SubscribeSync008
+ * @tc.desc: test subscribe with reopen db
+ * @tc.type: FUNC
+ * @tc.require: AR000HGD0B
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. InitSchemaDb
+     */
+    std::shared_ptr<DBInfoHandleTest> handleTest = std::make_shared<DBInfoHandleTest>();
+    RuntimeConfig::SetDBInfoHandle(handleTest);
+
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step2. deviceB subscribe query to deviceA
+     */
+    LOGI("============step 2============");
+    Key key6 { 'k', '6' };
+    Query query = Query::Select();
+    g_deviceB->Subscribe(QuerySyncObject(query), true, 3);
+
+    /**
+     * @tc.steps: step3. deviceA put k1,key6 and wait
+     */
+    LOGI("============step 3============");
+    EXPECT_EQ(OK, g_schemaKvDelegatePtr->PutBatch({
+        {key6, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
+    }));
+    EXPECT_EQ(g_schemaMgr.CloseKvStore(g_schemaKvDelegatePtr), OK);
+    g_schemaKvDelegatePtr = nullptr;
+    InitSubSchemaDb();
+    g_deviceB->Online();
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for auto sync
+
+    /**
+     * @tc.steps: step4. deviceB has key6
+     */
+    LOGI("============step 4============");
+    VirtualDataItem item;
+    if (g_deviceB->GetData(key6, item) == E_OK) {
+        EXPECT_EQ(item.value, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end()));
+    }
+    RuntimeConfig::SetDBInfoHandle(nullptr);
+}
+
 namespace {
 KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
 {
@@ -1106,7 +1160,114 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.
     };
     for (const auto &dev: devices) {
         dev->UnSubscribe(QuerySyncObject(query), true, 1, callback); // sync id is 1
+        delete dev;
     }
+}
+
+/*
+ * @tc.name: SubscribeSync010
+ * @tc.desc: test subscribe query cache
+ * @tc.type: FUNC
+ * @tc.require: AR000H5VLO
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync010, TestSize.Level1)
+{
+    SubscribeRecorder recorder;
+    DBInfo dbInfo = {
+        USER_ID,
+        APP_ID,
+        STORE_ID_1,
+        false,
+        true
+    };
+    Query query = Query::Select();
+    QuerySyncObject querySyncObject(query);
+    /**
+     * @tc.steps: step1. Insert one record twice and remove
+     */
+    recorder.RecordSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    recorder.RecordSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    recorder.RemoveRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    std::map<std::string, std::vector<QuerySyncObject>> subscribeQuery;
+    recorder.GetSubscribeQuery(dbInfo, subscribeQuery);
+    for (const auto &entry: subscribeQuery) {
+        EXPECT_EQ(entry.second.size(), 0u);
+    }
+    /**
+     * @tc.steps: step2. Remove no exist data
+     */
+    recorder.RemoveRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    recorder.GetSubscribeQuery(dbInfo, subscribeQuery);
+    for (const auto &entry: subscribeQuery) {
+        EXPECT_EQ(entry.second.size(), 0u);
+    }
+    /**
+     * @tc.steps: step3. insert two data and remove one data
+     */
+    recorder.RecordSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    Query query2 = Query::Select().EqualTo("test", "test");
+    recorder.RecordSubscribe(dbInfo, DEVICE_A, QuerySyncObject(query2));
+    recorder.RemoveRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    recorder.GetSubscribeQuery(dbInfo, subscribeQuery);
+    for (const auto &entry: subscribeQuery) {
+        EXPECT_EQ(entry.second.size(), 1u);
+    }
+    /**
+     * @tc.steps: step4. remove no exist data
+     */
+    dbInfo.storeId = STORE_ID_2;
+    recorder.RemoveRemoteSubscribe(dbInfo, DEVICE_A);
+    dbInfo.storeId = STORE_ID_1;
+    recorder.GetSubscribeQuery(dbInfo, subscribeQuery);
+    for (const auto &entry: subscribeQuery) {
+        EXPECT_EQ(entry.second.size(), 1u);
+    }
+}
+
+/*
+ * @tc.name: SubscribeSync011
+ * @tc.desc: test subscribe query cache
+ * @tc.type: FUNC
+ * @tc.require: AR000H5VLO
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync011, TestSize.Level1)
+{
+    SubscribeRecorder recorder;
+    DBInfo dbInfo = {
+            USER_ID,
+            APP_ID,
+            STORE_ID_1,
+            false,
+            true
+    };
+    /**
+     * @tc.steps: step1. Insert 2 record in db1 and 1 record in db2
+     */
+    Query query = Query::Select();
+    QuerySyncObject querySyncObject(query);
+    recorder.RecordSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    recorder.RecordSubscribe(dbInfo, DEVICE_B, querySyncObject);
+    DBInfo dbInfo2 = dbInfo;
+    dbInfo2.storeId = STORE_ID_2;
+    recorder.RecordSubscribe(dbInfo2, DEVICE_B, querySyncObject);
+    /**
+     * @tc.steps: step2. Insert 2 record in db1
+     */
+    recorder.RemoveRemoteSubscribe(dbInfo);
+    std::map<std::string, std::vector<QuerySyncObject>> subscribeQuery;
+    recorder.GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 0u);
+    recorder.GetSubscribeQuery(dbInfo2, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 1u);
+    /**
+     * @tc.steps: step3. Insert 1 record in db2
+     */
+    recorder.RemoveRemoteSubscribe(dbInfo2);
+    subscribeQuery.clear();
+    recorder.GetSubscribeQuery(dbInfo2, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 0u);
 }
 
 /**
@@ -1167,6 +1328,64 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.
     }
 }
 
+/*
+ * @tc.name: SubscribeSync013
+ * @tc.desc: test subscribe query cache with remote support false
+ * @tc.type: FUNC
+ * @tc.require: AR000H5VLO
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync013, TestSize.Level1)
+{
+    std::shared_ptr<DBInfoHandleTest> handle = std::make_shared<DBInfoHandleTest>();
+    RuntimeConfig::SetDBInfoHandle(handle);
+    handle->SetLocalIsSupport(true);
+    DBInfo dbInfo = {
+        USER_ID,
+        APP_ID,
+        STORE_ID_1,
+        false,
+        true
+    };
+    RuntimeContext::GetInstance()->SetRemoteOptimizeCommunication(DEVICE_A, false);
+    Query query = Query::Select();
+    QuerySyncObject querySyncObject(query);
+    /**
+     * @tc.steps: step1. Insert one record
+     */
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    std::map<std::string, std::vector<QuerySyncObject>> subscribeQuery;
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 1u);
+    /**
+     * @tc.steps: step2. Remove one record
+     */
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery[DEVICE_A].size(), 0u);
+    /**
+     * @tc.steps: step3. Record again and remove by dbInfo and device
+     */
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, DEVICE_A);
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 0u);
+    /**
+     * @tc.steps: step4. Record again and remove by device
+     */
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(DEVICE_A);
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 0u);
+    /**
+     * @tc.steps: step5. Record again and remove by dbInfo
+     */
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(dbInfo, DEVICE_A, querySyncObject);
+    RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo);
+    RuntimeContext::GetInstance()->GetSubscribeQuery(dbInfo, subscribeQuery);
+    EXPECT_EQ(subscribeQuery.size(), 0u);
+    RuntimeConfig::SetDBInfoHandle(nullptr);
+}
 /**
  * @tc.name: SubscribeSync014
  * @tc.desc: test device subscribe with put a lot of times

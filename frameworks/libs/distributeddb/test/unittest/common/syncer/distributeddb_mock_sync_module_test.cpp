@@ -1131,19 +1131,27 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest005, TestSize.Level3)
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     auto syncDBInterface = new MockKvSyncInterface();
     int incRefCount = 0;
+    int dbInfoCount = 0;
     EXPECT_CALL(*syncDBInterface, IncRefCount()).WillRepeatedly([&incRefCount]() {
         incRefCount++;
     });
     EXPECT_CALL(*syncDBInterface, DecRefCount()).WillRepeatedly(Return());
+    EXPECT_CALL(*syncDBInterface, GetDBInfo(_)).WillRepeatedly([&dbInfoCount](DBInfo &) {
+        dbInfoCount++;
+    });
     std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
     syncDBInterface->SetIdentifier(identifier);
     syncer->Initialize(syncDBInterface, true);
+    syncer->Close(true);
+    incRefCount = 0;
+    dbInfoCount = 0;
     syncer->RemoteDeviceOffline("dev");
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(incRefCount, 1); // refCount is 1 when remote dev offline
+    EXPECT_EQ(dbInfoCount, 0); // dbInfoCount is 0 when remote dev offline
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
-    EXPECT_EQ(incRefCount, 2); // refCount is 2
 }
 
 /**
@@ -2032,6 +2040,51 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
     size_t size = 0u;
     EXPECT_EQ(syncer.GetSyncDataSize("device", size), E_OK);
     syncer.SetMetadata(nullptr);
+    delete syncDBInterface;
+}
+
+/**
+ * @tc.name: SyncerCheck008
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck008, TestSize.Level1)
+{
+    MockSingleVerKVSyncer syncer;
+    auto syncDBInterface = new(std::nothrow) MockKvSyncInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
+    auto engine = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(engine, nullptr);
+    engine->InitSubscribeManager();
+    syncer.SetSyncEngine(engine);
+    int incRefCount = 0;
+    int decRefCount = 0;
+    EXPECT_CALL(*syncDBInterface, GetDBInfo(_)).WillRepeatedly([](DBInfo &) {
+    });
+    EXPECT_CALL(*syncDBInterface, IncRefCount()).WillRepeatedly([&incRefCount]() {
+        incRefCount++;
+    });
+    EXPECT_CALL(*syncDBInterface, DecRefCount()).WillRepeatedly([&decRefCount]() {
+        decRefCount++;
+    });
+    DBInfo info;
+    QuerySyncObject querySyncObject;
+    std::shared_ptr<DBInfoHandleTest> handleTest = std::make_shared<DBInfoHandleTest>();
+    RuntimeContext::GetInstance()->SetDBInfoHandle(handleTest);
+    RuntimeContext::GetInstance()->RecordRemoteSubscribe(info, "DEVICE", querySyncObject);
+
+    syncer.CallTriggerAddSubscribeAsync(syncDBInterface);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    RuntimeContext::GetInstance()->StopTaskPool();
+    RuntimeContext::GetInstance()->SetDBInfoHandle(nullptr);
+    syncer.SetSyncEngine(nullptr);
+
+    EXPECT_EQ(incRefCount, 1);
+    EXPECT_EQ(decRefCount, 1);
+    RefObject::KillAndDecObjRef(engine);
     delete syncDBInterface;
 }
 

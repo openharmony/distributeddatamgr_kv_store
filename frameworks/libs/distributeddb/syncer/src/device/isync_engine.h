@@ -96,6 +96,8 @@ public:
 
     virtual void AbortMachineIfNeed(uint32_t syncId) = 0;
 
+    virtual void AddSubscribe(SyncGenericInterface *storage,
+        const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) = 0;
 protected:
     ~ISyncEngine() override {};
 };

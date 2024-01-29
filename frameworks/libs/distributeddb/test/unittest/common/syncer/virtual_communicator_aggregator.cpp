@@ -24,7 +24,8 @@
 #include "runtime_context.h"
 
 namespace DistributedDB {
-int VirtualCommunicatorAggregator::Initialize(IAdapter *inAdapter)
+int VirtualCommunicatorAggregator::Initialize(IAdapter *inAdapter,
+    const std::shared_ptr<DBStatusAdapter> &statusAdapter)
 {
     return E_OK;
 }
