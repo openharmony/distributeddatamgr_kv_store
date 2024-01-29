@@ -2031,7 +2031,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
     MockSingleVerKVSyncer syncer;
     auto mockMeta = std::make_shared<MockMetadata>();
     auto metadata = std::static_pointer_cast<Metadata>(mockMeta);
-    EXPECT_CALL(*mockMeta, GetLocalWaterMark).WillRepeatedly([&syncer](const DeviceID &, uint64_t &) {
+    EXPECT_CALL(*mockMeta, GetLocalWaterMark).WillRepeatedly([&syncer](const DeviceID &, uint64_t &, bool) {
         syncer.TestSyncerLock();
     });
     syncer.SetMetadata(metadata);

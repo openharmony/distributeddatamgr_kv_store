@@ -1131,8 +1131,19 @@ int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &in
         LOGE("[Syncer] Metadata is not init");
         return -E_NOT_INIT;
     }
-    metadata->GetLocalWaterMark(device, info.sendMark);
-    metadata->GetPeerWaterMark(device, info.receiveMark);
+    std::string dev;
+    bool devNeedHash = true;
+    int errCode = metadata->GetHashDeviceId(device, dev);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        LOGE("[Syncer] Get watermark info failed %d", errCode);
+        return errCode;
+    } else if (errCode == E_OK) {
+        devNeedHash = false;
+    } else {
+        dev = device;
+    }
+    metadata->GetLocalWaterMark(dev, info.sendMark, devNeedHash);
+    metadata->GetPeerWaterMark(dev, info.receiveMark, devNeedHash);
     return E_OK;
 }
 } // namespace DistributedDB
