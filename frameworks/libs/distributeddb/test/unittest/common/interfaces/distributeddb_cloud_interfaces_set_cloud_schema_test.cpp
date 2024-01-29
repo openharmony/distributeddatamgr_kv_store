@@ -124,7 +124,8 @@ namespace {
             bool isUpdate = false);
         void InsertCloudTableRecord(int64_t begin, int64_t count, bool isShare = true, int64_t beginGid = -1);
         void DeleteCloudTableRecord(int64_t beginGid, int64_t count, bool isShare = true);
-        void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK);
+        void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK,
+            SyncMode mode = SYNC_MODE_CLOUD_MERGE);
         void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
         void CloseDb();
         void InitCloudEnv();
@@ -302,7 +303,7 @@ namespace {
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::BlockSync(const Query &query,
-        RelationalStoreDelegate *delegate, DBStatus errCode)
+        RelationalStoreDelegate *delegate, DBStatus errCode, SyncMode mode)
     {
         std::mutex dataMutex;
         std::condition_variable cv;
@@ -319,7 +320,7 @@ namespace {
                 }
             }
         };
-        ASSERT_EQ(delegate->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), OK);
+        ASSERT_EQ(delegate->Sync({ "CLOUD" }, mode, query, callback, g_syncWaitTime), OK);
         std::unique_lock<std::mutex> uniqueLock(dataMutex);
         cv.wait(uniqueLock, [&finish]() {
             return finish;
@@ -1723,5 +1724,62 @@ namespace {
         sql = QueryResourceCountSql(g_sharedTableName1);
         EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync011
+     * @tc.desc: Test the sharing_resource when the local data is newer than the cloud
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync011, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. init cloud data and sync
+         * @tc.expected: step1. return OK
+         */
+        InitCloudEnv();
+        const std::vector<std::string> tables = { g_tableName2, g_sharedTableName1 };
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable(tables);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. update cloud data, generate share uri
+         * @tc.expected: step2. return OK
+         */
+        int beginGid = 0;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false, beginGid);
+        InsertCloudTableRecord(0, cloudCount, true, cloudCount);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. update local data
+         * @tc.expected: step3. return OK
+         */
+        for (const auto &tableName: tables) {
+            std::string sql = "update " + tableName + " SET height='199';";
+            sqlite3_stmt *stmt = nullptr;
+            ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+            EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+            int errCode;
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+        }
+
+        /**
+         * @tc.steps:step4. push sync and check count
+         * @tc.expected: step4. return OK
+         */
+        BlockSync(query, g_delegate, DBStatus::OK, SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH);
+        std::string sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
     }
 } // namespace

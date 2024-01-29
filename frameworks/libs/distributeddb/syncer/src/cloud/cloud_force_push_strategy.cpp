@@ -31,11 +31,15 @@ OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, const LogInf
     if (isCloudDelete) {
         return OpType::CLEAR_GID;
     }
-    if (localInfo.device == cloud_device_name && localInfo.timestamp == cloudInfo.timestamp) {
-        return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE;
+    if (localInfo.device == cloud_device_name) {
+        if (localInfo.timestamp == cloudInfo.timestamp) {
+            return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE;
+        } else {
+            return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO;
+        }
     }
-    if (localInfo.device == cloud_device_name && localInfo.timestamp != cloudInfo.timestamp) {
-        return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO;
+    if (IsSharingResourceChanged(cloudInfo, localInfo)) {
+        return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;
 }
