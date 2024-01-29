@@ -332,7 +332,43 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
 
 Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value &value)
 {
-    return Get(key, value);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto status = Get(key, value);
+    if (status != NOT_FOUND) {
+        return status;
+    }
+    auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
+    if (clientUuid.empty()) {
+        ZLOGE("invalid networkId:%{public}s", StoreUtil::Anonymous(networkId).c_str());
+        return status;
+    }
+    {
+        std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+        auto watermark = dbStore_->GetWatermarkInfo(clientUuid);
+        if (StoreUtil::ConvertStatus(watermark.first) != SUCCESS
+            || (watermark.second.sendMark != 0 && watermark.second.receiveMark != 0)) {
+            ZLOGD("watermark is not zero, do not need sync, dbStatus:%{public}d", watermark.first);
+            return status;
+        }
+    }
+    timePoints_.Compute(clientUuid, [this, &networkId](const auto &key, auto &value) {
+        auto now = std::chrono::steady_clock::now();
+        if (value.first != 0 && now < value.second) {
+            return true;
+        }
+        KVDBService::SyncInfo syncInfo;
+        syncInfo.seqId = StoreUtil::GenSequenceId();
+        syncInfo.devices = { networkId };
+        auto result = DoSyncExt(syncInfo, nullptr);
+        if (result != SUCCESS) {
+            ZLOGE("sync failed, networkId:%{public}s result:%{public}d", StoreUtil::Anonymous(networkId).c_str(), result);
+            return false;
+        }
+        value.first = syncInfo.seqId;
+        value.second = now + SYNC_DURATION;
+        return true;
+    });
+    return status;
 }
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
@@ -619,6 +655,7 @@ int32_t SingleStoreImpl::Close(bool isForce)
         return ref_;
     }
 
+    timePoints_.Clear();
     observers_.Clear();
     syncObserver_->Clean();
     std::unique_lock<decltype(rwMutex_)> lock(rwMutex_);
@@ -778,6 +815,9 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
     auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
+        if (observer == nullptr) {
+            return;
+        }
         std::map<std::string, Status> result;
         for (auto &[key, dbStatus] : devicesMap) {
             result[key] = StoreUtil::ConvertStatus(dbStatus);
@@ -827,6 +867,26 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
         ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
         return ERROR;
     }
+}
+
+Status SingleStoreImpl::DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+{
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto syncAgent = service->GetSyncAgent({ appId_ });
+    if (syncAgent == nullptr) {
+        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!",
+            appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
+        return ILLEGAL_STATE;
+    }
+    syncAgent->AddSyncCallback(observer, syncInfo.seqId);
+    auto status = service->SyncExt({ appId_ }, { storeId_ }, syncInfo);
+    if (status != Status::SUCCESS) {
+        syncAgent->DeleteSyncCallback(syncInfo.seqId);
+    }
+    return status;
 }
 
 void SingleStoreImpl::DoAutoSync()
