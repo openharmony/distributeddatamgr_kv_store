@@ -1724,6 +1724,19 @@ namespace {
         sql = QueryResourceCountSql(g_sharedTableName1);
         EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+
+        /**
+         * @tc.steps:step4. remove device data and check count
+         * @tc.expected: step4. return OK
+         */
+        g_delegate->RemoveDeviceData("", FLAG_ONLY);
+        sql = QueryResourceCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
+        g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
     }
 
     /**

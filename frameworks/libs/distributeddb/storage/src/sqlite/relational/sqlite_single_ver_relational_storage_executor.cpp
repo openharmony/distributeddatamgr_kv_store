@@ -39,6 +39,7 @@ static constexpr const char *DATAKEY = "DATA_KEY";
 static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *HASH_KEY = "HASH_KEY";
+static constexpr const char *SHARING_RESOURCE = "SHARING_RESOURCE";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 // set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
 static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(FLAG | 0x02) & (~0x10)";
@@ -1793,7 +1794,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " +
         SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
-        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
+        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '' " +
+        "WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
