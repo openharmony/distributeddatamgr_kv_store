@@ -1042,13 +1042,6 @@ bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, con
     return true;
 }
 
-void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)
-{
-    for (auto &field : tableSchema.fields) {
-        std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
-    }
-}
-
 bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
 {
     if (tableSchema.name != oldSchema.name) {

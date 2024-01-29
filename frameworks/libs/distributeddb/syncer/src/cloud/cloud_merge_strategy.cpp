@@ -27,14 +27,17 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
         }
         return OpType::INSERT;
     }
-    OpType type = OpType::NOT_HANDLE;
     if (localInfo.timestamp > cloudInfo.timestamp) {
         if (localInfo.cloudGid.empty()) {
             return isCloudDelete ? OpType::NOT_HANDLE : (isLocalDelete ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
         }
-        type = isCloudDelete ? OpType::CLEAR_GID : (IsSharingResourceChanged(cloudInfo, localInfo) ?
-            OpType::ONLY_UPDATE_GID : type);
-        return type;
+        if (isCloudDelete) {
+            return OpType::CLEAR_GID;
+        }
+        if (IsSharingResourceChanged(cloudInfo, localInfo)) {
+            return OpType::ONLY_UPDATE_GID;
+        }
+        return OpType::NOT_HANDLE;
     }
     if (isCloudDelete) {
         return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
@@ -44,8 +47,8 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
     }
     // avoid local data insert to cloud success but return failed
     // we just fill back gid here
-    if ((localInfo.timestamp == cloudInfo.timestamp) &&
-        (localInfo.wTimestamp == cloudInfo.wTimestamp) && localInfo.cloudGid.empty()) {
+    bool isTimeSame = (localInfo.timestamp == cloudInfo.timestamp) && (localInfo.wTimestamp == cloudInfo.wTimestamp);
+    if (isTimeSame && (localInfo.cloudGid.empty() || IsSharingResourceChanged(cloudInfo, localInfo))) {
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::UPDATE;

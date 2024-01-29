@@ -1795,4 +1795,44 @@ namespace {
         EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
     }
+
+    /**
+     * @tc.name: SharedTableSync012
+     * @tc.desc: Test the flag for uploaded data
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync012, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. init local share data and sync
+         * @tc.expected: step1. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1);
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. update local share uri
+         * @tc.expected: step2. return OK
+         */
+        std::string sql = "update " + DBCommon::GetLogTableName(g_sharedTableName1) + " SET sharing_resource='199';";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+        EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+        /**
+         * @tc.steps:step3. sync and check flag
+         * @tc.expected: step3. return OK
+         */
+        BlockSync(query, g_delegate, DBStatus::OK);
+        sql = "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(g_sharedTableName1) + " where flag&0x02=0x02";
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+    }
 } // namespace
