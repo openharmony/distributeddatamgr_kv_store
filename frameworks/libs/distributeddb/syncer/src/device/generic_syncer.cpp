@@ -1142,8 +1142,6 @@ int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &in
     } else {
         dev = device;
     }
-    metadata->GetLocalWaterMark(dev, info.sendMark, devNeedHash);
-    metadata->GetPeerWaterMark(dev, info.receiveMark, devNeedHash);
-    return E_OK;
+    return metadata->GetWaterMarkInfoFromDB(dev, devNeedHash, info);
 }
 } // namespace DistributedDB

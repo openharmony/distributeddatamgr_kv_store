@@ -55,7 +55,7 @@ public:
 
     void GetTimeOffset(const DeviceID &deviceId, TimeOffset &outValue);
 
-    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash = true);
+    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
 
     int SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue);
 
@@ -128,6 +128,8 @@ public:
     void LockWaterMark() const;
 
     void UnlockWaterMark() const;
+
+    int GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, WatermarkInfo &info);
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
