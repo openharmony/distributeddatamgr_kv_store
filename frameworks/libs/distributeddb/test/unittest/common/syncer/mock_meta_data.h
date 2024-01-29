@@ -25,7 +25,7 @@ public:
 
     MOCK_METHOD3(GetLastQueryTime, int(const std::string &, const std::string &, Timestamp &));
 
-    MOCK_METHOD2(GetLocalWaterMark, void(const DeviceID &, uint64_t &));
+    MOCK_METHOD3(GetLocalWaterMark, void(const DeviceID &, uint64_t &, bool));
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_META_DATA_H

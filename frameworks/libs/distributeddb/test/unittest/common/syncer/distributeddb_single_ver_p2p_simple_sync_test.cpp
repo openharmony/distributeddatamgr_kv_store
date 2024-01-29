@@ -24,6 +24,7 @@
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
+#include "runtime_config.h"
 #include "single_ver_data_sync.h"
 #include "single_ver_kv_sync_task_context.h"
 
@@ -175,7 +176,7 @@ void DistributedDBSingleVerP2PSimpleSyncTest::TearDown(void)
 void CheckWatermark(const std::string &dev, KvStoreNbDelegate *kvDelegatePtr, WatermarkInfo expectInfo,
     bool sendEqual = true, bool receiveEqual = true)
 {
-    auto [status, watermarkInfo] = kvDelegatePtr->GetWatermarkInfo(g_deviceB->GetDeviceId());
+    auto [status, watermarkInfo] = kvDelegatePtr->GetWatermarkInfo(dev);
     EXPECT_EQ(status, OK);
     if (sendEqual) {
         EXPECT_EQ(watermarkInfo.sendMark, expectInfo.sendMark);
@@ -786,6 +787,56 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync010, TestSize.Level1
     EXPECT_EQ(result[DEVICE_A], INVALID_ARGS);
     EXPECT_EQ(result[invalidDev], INVALID_ARGS);
     EXPECT_EQ(result[DEVICE_B], OK);
+}
+
+/**
+ * @tc.name: Normal Sync 011
+ * @tc.desc: Test sync with translated id.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level0)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    status = g_kvDelegatePtr->Put(key, value);
+    ASSERT_TRUE(status == OK);
+
+    /**
+     * @tc.steps: step2. ori dev will be append test
+     * @tc.expected: step2. sync should return OK.
+     */
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &) {
+        std::string dev = oriDevId + "test";
+        LOGI("translate %s to %s", oriDevId.c_str(), dev.c_str());
+        return dev;
+    });
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result);
+    ASSERT_TRUE(status == OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+
+    /**
+     * @tc.expected: step2. onComplete should be called, Send watermark should not be zero
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    WatermarkInfo info;
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, false);
+    info = {};
+    std::string checkDev = g_deviceB->GetDeviceId() + "test";
+    CheckWatermark(checkDev, g_kvDelegatePtr, info, false);
 }
 
 /**

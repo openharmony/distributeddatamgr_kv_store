@@ -55,11 +55,11 @@ public:
 
     void GetTimeOffset(const DeviceID &deviceId, TimeOffset &outValue);
 
-    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash = true);
 
     int SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue);
 
-    void GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    void GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash = true);
 
     int SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool isNeedHash);
 
