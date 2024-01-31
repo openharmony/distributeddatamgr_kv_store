@@ -118,7 +118,7 @@ protected:
     virtual int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId);
 
     // Add a Sync Operation, after call this function, the operation will be start
-    virtual void AddSyncOperation(SyncOperation *operation);
+    virtual void AddSyncOperation(ISyncEngine *engine, SyncOperation *operation);
 
     // Used to set to the SyncOperation Onkill
     virtual void SyncOperationKillCallbackInner(int syncId);
