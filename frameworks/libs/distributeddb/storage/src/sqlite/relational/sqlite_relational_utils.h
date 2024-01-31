@@ -45,6 +45,8 @@ public:
 
     static void AddUpgradeSqlToList(const TableInfo &tableInfo,
         const std::vector<std::pair<std::string, std::string>> &fieldList, std::vector<std::string> &sqlList);
+
+    static int AnalysisTrackerTable(sqlite3 *db, const TrackerTable &trackerTable, TableInfo &tableInfo);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
