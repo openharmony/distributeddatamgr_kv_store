@@ -40,8 +40,7 @@ CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
       closed_(false),
       timerId_(0u),
       heartBeatCount_(0),
-      failedHeartBeatCount_(0),
-      syncCallbackCount_(0)
+      failedHeartBeatCount_(0)
 {
     if (storageProxy_ != nullptr) {
         id_ = storageProxy_->GetIdentify();
@@ -146,7 +145,6 @@ void CloudSyncer::Close()
         LOGI("[CloudSyncer] finished taskId %" PRIu64 " errCode %d", info.taskId, info.errCode);
     }
     storageProxy_->Close();
-    WaitAllSyncCallbackTaskFinish();
 }
 
 int CloudSyncer::TriggerSync()
@@ -393,31 +391,6 @@ bool CloudSyncer::IsDataContainAssets()
         return false;
     }
     return true;
-}
-
-void CloudSyncer::IncSyncCallbackTaskCount()
-{
-    std::lock_guard<std::mutex> autoLock(syncCallbackMutex_);
-    syncCallbackCount_++;
-}
-
-void CloudSyncer::DecSyncCallbackTaskCount()
-{
-    {
-        std::lock_guard<std::mutex> autoLock(syncCallbackMutex_);
-        syncCallbackCount_--;
-    }
-    syncCallbackCv_.notify_all();
-}
-
-void CloudSyncer::WaitAllSyncCallbackTaskFinish()
-{
-    std::unique_lock<std::mutex> uniqueLock(syncCallbackMutex_);
-    LOGD("[CloudSyncer] Begin wait all callback task finish");
-    syncCallbackCv_.wait(uniqueLock, [this]() {
-        return syncCallbackCount_ <= 0;
-    });
-    LOGD("[CloudSyncer] End wait all callback task finish");
 }
 
 std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
