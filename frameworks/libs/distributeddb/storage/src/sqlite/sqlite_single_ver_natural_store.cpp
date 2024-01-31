@@ -891,7 +891,7 @@ void SQLiteSingleVerNaturalStore::GetMaxTimestamp(Timestamp &stamp) const
         return;
     }
     int errCode = E_OK;
-    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(false, errCode);
     if (handle == nullptr) {
         return;
     }

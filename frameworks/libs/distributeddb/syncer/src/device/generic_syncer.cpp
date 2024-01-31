@@ -202,15 +202,19 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         SubQueuedSyncSize();
         return -E_OUT_OF_MEMORY;
     }
+    ISyncEngine *engine = nullptr;
     {
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
         InitSyncOperation(operation, param);
         LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %s, devices = %s", syncId, param.mode,
             param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str());
-        AddSyncOperation(operation);
-        PerformanceAnalysis::GetInstance()->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+        engine = syncEngine_;
+        RefObject::IncObjRef(engine);
     }
+    AddSyncOperation(engine, operation);
+    RefObject::DecObjRef(engine);
+    PerformanceAnalysis::GetInstance()->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
     if (connectionId != DBConstant::IGNORE_CONNECTION_ID) {
         std::lock_guard<std::mutex> lockGuard(syncIdLock_);
         connectionIdMap_[connectionId].push_back(static_cast<int>(syncId));
@@ -338,14 +342,14 @@ void GenericSyncer::QueryAutoSync(const InternalSyncParma &param)
     }
 }
 
-void GenericSyncer::AddSyncOperation(SyncOperation *operation)
+void GenericSyncer::AddSyncOperation(ISyncEngine *engine, SyncOperation *operation)
 {
     if (operation == nullptr) {
         return;
     }
 
     LOGD("[Syncer] AddSyncOperation.");
-    syncEngine_->AddSyncOperation(operation);
+    engine->AddSyncOperation(operation);
 
     if (operation->CheckIsAllFinished()) {
         return;

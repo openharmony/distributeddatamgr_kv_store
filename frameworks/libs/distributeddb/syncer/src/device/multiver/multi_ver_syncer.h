@@ -52,7 +52,7 @@ protected:
     ISyncEngine *CreateSyncEngine() override;
 
     // Add a Sync Operation, after call this function, the operation will be start
-    void AddSyncOperation(SyncOperation *operation) override;
+    void AddSyncOperation([[gnu::unused]] ISyncEngine *engine, SyncOperation *operation) override;
 
     // Used to set to the SyncOperation Onkill
     void SyncOperationKillCallbackInner(int syncId) override;
