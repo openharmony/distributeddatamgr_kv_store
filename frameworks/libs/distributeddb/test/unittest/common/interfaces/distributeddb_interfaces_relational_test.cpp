@@ -658,7 +658,7 @@ void CreateDistributedTableWithHistoryDataTest(TableSyncType tableSyncType)
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
