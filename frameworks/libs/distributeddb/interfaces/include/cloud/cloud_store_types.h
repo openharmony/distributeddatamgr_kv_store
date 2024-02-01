@@ -144,6 +144,7 @@ struct QueryNode {
 struct SqlCondition {
     std::string sql;  // The sql statement;
     std::vector<Type> bindArgs;  // The bind args.
+    bool readOnly = false;
 };
 
 enum class RecordStatus {
