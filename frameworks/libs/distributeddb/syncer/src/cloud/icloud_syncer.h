@@ -74,10 +74,6 @@ public:
         LogInfo cloudLogInfo;
     };
 
-    virtual void IncSyncCallbackTaskCount() = 0;
-
-    virtual void DecSyncCallbackTaskCount() = 0;
-
     virtual std::string GetIdentify() const = 0;
 };
 }

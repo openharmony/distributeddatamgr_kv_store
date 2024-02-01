@@ -60,10 +60,6 @@ public:
 
     void Close();
 
-    void IncSyncCallbackTaskCount() override;
-
-    void DecSyncCallbackTaskCount() override;
-
     std::string GetIdentify() const override;
 protected:
     struct TaskContext {
@@ -253,8 +249,6 @@ protected:
 
     int UpdateChangedData(SyncParam &param, DownloadList &assetsDownloadList);
 
-    void WaitAllSyncCallbackTaskFinish();
-
     void UpdateCloudWaterMark(TaskId taskId, const SyncParam &param);
 
     int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
@@ -360,10 +354,6 @@ protected:
     std::condition_variable heartbeatCv_;
     int32_t heartBeatCount_;
     std::atomic<int32_t> failedHeartBeatCount_;
-
-    std::mutex syncCallbackMutex_;
-    std::condition_variable syncCallbackCv_;
-    int32_t syncCallbackCount_;
 
     std::string id_;
 
