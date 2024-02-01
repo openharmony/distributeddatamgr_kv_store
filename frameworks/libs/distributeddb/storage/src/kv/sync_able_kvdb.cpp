@@ -454,4 +454,12 @@ int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hash
     }
     return syncer_.GetHashDeviceId(clientId, hashDevId);
 }
+
+int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetWatermarkInfo(device, info);
+}
 }

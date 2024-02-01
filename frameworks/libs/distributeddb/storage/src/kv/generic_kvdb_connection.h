@@ -80,6 +80,8 @@ public:
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
     int UpdateKey(const UpdateKeyCallback &callback) override;
+
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -232,6 +232,10 @@ public:
 
     // update all key in sync_data which is not deleted data
     DB_API virtual DBStatus UpdateKey(const UpdateKeyCallback &callback) = 0;
+
+    // get full watermark by device which is not contain query watermark
+    // this api get watermark from cache which reload in get kv store
+    DB_API virtual std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) = 0;
 };
 } // namespace DistributedDB
 

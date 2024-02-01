@@ -133,6 +133,8 @@ public:
     virtual int GetSyncDataSize(const std::string &device, size_t &size) const = 0;
 
     virtual int UpdateKey(const UpdateKeyCallback &callback) = 0;
+
+    virtual int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) = 0;
 };
 } // namespace DistributedDB
 

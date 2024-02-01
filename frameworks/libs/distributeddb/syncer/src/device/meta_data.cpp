@@ -111,11 +111,11 @@ int Metadata::SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue)
     return SaveMetaDataValue(deviceId, metadata);
 }
 
-void Metadata::GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue)
+void Metadata::GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash)
 {
     MetaDataValue metadata;
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
-    GetMetaDataValue(deviceId, metadata, true);
+    GetMetaDataValue(deviceId, metadata, isNeedHash);
     outValue = metadata.peerWaterMark;
 }
 
@@ -608,7 +608,7 @@ int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevI
     Value value;
     int errCode = GetMetadataFromDb(key, value);
     if (errCode == -E_NOT_FOUND) {
-        LOGD("[Metadata] not found clientId");
+        LOGD("[Metadata] not found clientId by %.3s", clientId.c_str());
         return -E_NOT_SUPPORT;
     }
     if (errCode != E_OK) {
@@ -627,6 +627,35 @@ void Metadata::LockWaterMark() const
 void Metadata::UnlockWaterMark() const
 {
     waterMarkMutex_.unlock();
+}
+
+int Metadata::GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, WatermarkInfo &info)
+{
+    Key devKey;
+    DeviceID hashDeviceId;
+    {
+        std::lock_guard<std::mutex> lockGuard(metadataLock_);
+        GetHashDeviceId(dev, hashDeviceId, isNeedHash);
+        DBCommon::StringToVector(hashDeviceId, devKey);
+    }
+    // read from db avoid watermark update in diff process
+    int errCode = LoadDeviceIdDataToMap(devKey);
+    if (errCode == -E_NOT_FOUND) {
+        LOGD("[Metadata] not found meta value");
+        return E_OK;
+    }
+    if (errCode != E_OK) {
+        LOGE("[Metadata] reload meta value failed %d", errCode);
+        return errCode;
+    }
+    {
+        std::lock_guard<std::mutex> lockGuard(metadataLock_);
+        MetaDataValue metadata;
+        GetMetadataFromMap(hashDeviceId, metadata);
+        info.sendMark = metadata.localWaterMark;
+        info.receiveMark = metadata.peerWaterMark;
+    }
+    return E_OK;
 }
 
 Metadata::MetaWaterMarkAutoLock::MetaWaterMarkAutoLock(std::shared_ptr<Metadata> metadata)
