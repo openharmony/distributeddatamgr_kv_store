@@ -59,7 +59,7 @@ public:
 
     int SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue);
 
-    void GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    void GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash = true);
 
     int SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool isNeedHash);
 
@@ -128,6 +128,8 @@ public:
     void LockWaterMark() const;
 
     void UnlockWaterMark() const;
+
+    int GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, WatermarkInfo &info);
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);

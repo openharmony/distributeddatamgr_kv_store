@@ -1003,4 +1003,27 @@ DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
     LOGW("[KvStoreNbDelegate] update keys failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
+
+std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const std::string &device)
+{
+    std::pair<DBStatus, WatermarkInfo> res;
+    if (device.empty() || device.size() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[KvStoreNbDelegate] device invalid length %zu", device.size());
+        res.first = INVALID_ARGS;
+        return res;
+    }
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        res.first = DB_ERROR;
+        return res;
+    }
+    int errCode = conn_->GetWatermarkInfo(device, res.second);
+    if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate] get watermark info success");
+    } else {
+        LOGE("[KvStoreNbDelegate] get watermark info failed:%d", errCode);
+    }
+    res.first = TransferDBErrno(errCode);
+    return res;
+}
 } // namespace DistributedDB

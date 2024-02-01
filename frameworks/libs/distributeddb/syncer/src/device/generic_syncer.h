@@ -105,6 +105,8 @@ public:
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const override;
+
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 protected:
 
     // trigger query auto sync or auto subscribe

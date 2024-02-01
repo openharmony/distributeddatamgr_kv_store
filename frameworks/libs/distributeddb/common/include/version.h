@@ -39,9 +39,11 @@ constexpr uint32_t SOFTWARE_VERSION_RELEASE_4_0 = SOFTWARE_VERSION_BASE + 4; // 
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_5_0 = SOFTWARE_VERSION_BASE + 5; // 5 for fifth released version
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_6_0 = SOFTWARE_VERSION_BASE + 6; // 6 for sixth released version
 // check both device has security label at 107
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for sixth released version
+constexpr uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for seventh released version
+// kv ability sync with 2 packet at 108
+constexpr uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 8; // 8 for eighth released version
 constexpr uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_7_0;
+constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_8_0;
 constexpr int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version
