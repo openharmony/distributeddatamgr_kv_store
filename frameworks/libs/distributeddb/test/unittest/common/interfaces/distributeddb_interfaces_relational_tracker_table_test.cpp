@@ -1697,7 +1697,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
     condition.sql = "create temp table AA as select * from " + TABLE_NAME2;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
-    condition.sql = "select * from AA";
+    condition.sql = "select * from " + TABLE_NAME2;
+    condition.readOnly = true;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
     CloseStore();
