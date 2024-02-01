@@ -859,15 +859,11 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
     }
 
-    if (!isClientSync_) {
-        return status;
-    }
-    if (cStatus == SUCCESS || status == SUCCESS) {
+    if (cStatus == SUCCESS && status == SUCCESS) {
         return SUCCESS;
-    } else {
-        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
-        return ERROR;
     }
+    ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
+    return status;
 }
 
 Status SingleStoreImpl::DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)

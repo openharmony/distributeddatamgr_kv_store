@@ -95,8 +95,13 @@ protected:
     std::shared_ptr<ObserverBridge> TakeOut(uint32_t &realType, std::shared_ptr<Observer> observer);
 
 private:
+    using Time = ExecutorPool::Time;
+    using Duration = ExecutorPool::Duration;
+
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
+    static constexpr Duration SYNC_DURATION = std::chrono::seconds(60);
+    static constexpr int32_t INTERVAL = 500; // ms
     Status GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const;
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
@@ -107,22 +112,18 @@ private:
     void DoAutoSync();
     void Register();
 
-    using Time = ExecutorPool::Time;
-    using Duration = ExecutorPool::Duration;
-    static constexpr Duration SYNC_DURATION = std::chrono::seconds(60);
     bool autoSync_ = false;
     bool isClientSync_ = false;
-    int32_t ref_ = 1;
     mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;
     std::string appId_;
     std::string storeId_;
+    int32_t ref_ = 1;
     uint32_t roleType_ = 0;
+    uint64_t taskId_ = 0;
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;
-    static constexpr int32_t INTERVAL = 500; // ms
-    uint64_t taskId_ = 0;
     ConcurrentMap<std::string, std::pair<uint64_t, Time>> timePoints_;
 };
 } // namespace OHOS::DistributedKv
