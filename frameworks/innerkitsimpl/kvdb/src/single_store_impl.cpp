@@ -361,7 +361,8 @@ Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value 
         syncInfo.devices = { networkId };
         auto result = DoSyncExt(syncInfo, nullptr);
         if (result != SUCCESS) {
-            ZLOGE("sync failed, networkId:%{public}s result:%{public}d", StoreUtil::Anonymous(networkId).c_str(), result);
+            ZLOGE("sync failed, networkId:%{public}s result:%{public}d",
+                StoreUtil::Anonymous(networkId).c_str(), result);
             return false;
         }
         value.first = syncInfo.seqId;
