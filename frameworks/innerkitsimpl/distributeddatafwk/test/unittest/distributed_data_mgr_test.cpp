@@ -94,10 +94,24 @@ void DistributedDataMgrTest::TearDown(void)
 * @tc.require:
 * @tc.author: SQL
 */
-HWTEST_F(DistributedDataMgrTest, ClearAppStorage, TestSize.Level1)
+HWTEST_F(DistributedDataMgrTest, ClearAppStorage001, TestSize.Level1)
 {
     auto tokenId = AccessTokenKit::GetHapTokenID(TEST_USERID, "ohos.test.demo", 0);
     auto ret = manager.ClearAppStorage("ohos.test.demo", TEST_USERID, APP_INDEX, tokenId);
     EXPECT_EQ(ret, Status::SUCCESS);
+}
+
+/**
+* @tc.name: ClearAppStorage
+* @tc.desc:
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DistributedDataMgrTest, ClearAppStorage002, TestSize.Level1)
+{
+    auto tokenId = AccessTokenKit::GetHapTokenID(TEST_USERID, "ohos.test.fail", 0);
+    auto ret = manager.ClearAppStorage("ohos.test.demo", TEST_USERID, APP_INDEX, tokenId);
+    EXPECT_EQ(ret, Status::ERROR);
 }
 } // namespace OHOS::Test
