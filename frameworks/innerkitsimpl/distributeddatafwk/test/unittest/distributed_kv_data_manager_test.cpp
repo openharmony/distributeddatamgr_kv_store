@@ -120,7 +120,10 @@ void DistributedKvDataManagerTest::TearDownTestCase(void)
 }
 
 void DistributedKvDataManagerTest::SetUp(void)
-{}
+{
+    auto executors = std::make_shared<ExecutorPool>(1, 0);
+    manager.SetExecutors(executors);
+}
 
 DistributedKvDataManagerTest::DistributedKvDataManagerTest(void)
 {}
@@ -712,27 +715,6 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore004, TestSize.Level1)
     stat = manager.DeleteKvStore(appId, storeIdTest, create.baseDir);
     EXPECT_EQ(stat, Status::SUCCESS);
     stat = manager.DeleteAllKvStore(appId, create.baseDir);
-    EXPECT_EQ(stat, Status::SUCCESS);
-}
-
-/**
-* @tc.name: SetExecutors001
-* @tc.desc: test the SetExecutors(std::shared_ptr<ExecutorPool> executors)
-* @tc.type: FUNC
-* @tc.require: #I8L7XR
-* @tc.author: SQL
-*/
-HWTEST_F(DistributedKvDataManagerTest, SetExecutors001, TestSize.Level1)
-{
-    ZLOGI("SetExecutors001 begin.");
-    auto executors = std::make_shared<ExecutorPool>(1, 0);
-    manager.SetExecutors(executors);
-    std::shared_ptr<SingleKvStore> kvStore;
-    Status status = manager.GetSingleKvStore(create, appId, storeId64, kvStore);
-    ASSERT_EQ(status, Status::SUCCESS);
-    ASSERT_NE(kvStore, nullptr);
-
-    Status stat = manager.CloseKvStore(appId, storeId64);
     EXPECT_EQ(stat, Status::SUCCESS);
 }
 } // namespace OHOS::Test
