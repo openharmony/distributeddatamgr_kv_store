@@ -1017,33 +1017,33 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdValidField, TestSize.Lev
 */
 HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenInvalid, TestSize.Level1)
 {
-    DataQuery query;
-    query.Between("678678^", "test value");
-    EXPECT_TRUE(query.ToString().length() == 0);
-    query.Between("", "test value");
-    EXPECT_TRUE(query.ToString().length() == 0);
-    query.Between("$.test_fi^eld_name", "test value");
-    EXPECT_TRUE(query.ToString().length() == 0);
-}
+    DistributedKvDataManager manager;
+    Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.securityLevel = S1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
+    AppId appId = { "SingleKvStoreClientQueryTest" };
+    StoreId storeId = { "SingleKvStoreClientQueryTestStoreId3" };
+    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_2", "{\"name\":2}");
+    singleKvStore->Put("test_key_3", "{\"name\":3}");
 
-/**
-* @tc.name: DataQuery
-* @tc.desc: the predicate is between, the value is valid.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenValid, TestSize.Level1)
-{
     DataQuery query;
-    query.Between("$.test_fi^eld_name", "test value");
-    EXPECT_TRUE(query.ToString().length() == 0);
-    query.Between("test", "test value");
-    if (query.ToString().length() > 0)
-    {
-        query.Reset();
-        query.Between("test1", "test1 value");
-        EXPECT_TRUE(query.ToString().length() > 0);
-    }
+    query.Between({}, {});
+    KvStoreResultSet *resultSet = nullptr;
+    std::vector<Entry> results1;
+    Status status1 = singleKvStore->GetEntries(query, results1);
+    EXPECT_EQ(status1, NOT_SUPPORT);
+
+    singleKvStore->Delete("test_key_1");
+    singleKvStore->Delete("test_key_2");
+    singleKvStore->Delete("test_key_3");
+    Status status = manager.CloseAllKvStore(appId);
+    EXPECT_EQ(status, Status::SUCCESS);
+    status = manager.DeleteAllKvStore(appId, options.baseDir);
+    EXPECT_EQ(status, Status::SUCCESS);
 }
 } // namespace
