@@ -749,7 +749,7 @@ distributeddb_unittest("DistributedDBStorageRdSingleVerStorageEngineTest") {
 }
 
 distributeddb_unittest("DistributedDBInterfacesNBDelegateRdTest") {
-  sources = [ "unittest/common/interfaces/distributeddb_interfaces_nb_delegate_test_rd_kernal.cpp" ]
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_nb_delegate_rd_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBInterfacesDatabaseRdKernelTest") {
