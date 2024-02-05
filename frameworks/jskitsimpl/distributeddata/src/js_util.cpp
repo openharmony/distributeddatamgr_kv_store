@@ -937,6 +937,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     CHECK_RETURN(status == napi_ok, "get encrypt param failed", napi_invalid_arg);
     status = GetNamedProperty(env, in, "backup", options.backup, true);
     CHECK_RETURN(status == napi_ok, "get backup param failed", napi_invalid_arg);
+    options.autoSync = false;
     status = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
     CHECK_RETURN(status == napi_ok, "get autoSync param failed", napi_invalid_arg);
 
