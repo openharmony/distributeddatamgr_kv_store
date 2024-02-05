@@ -1033,15 +1033,14 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenInvalid, TestSize.Level1)
 
     DataQuery query;
     query.Between({}, {});
-    KvStoreResultSet *resultSet = nullptr;
     std::vector<Entry> results1;
-    Status status1 = singleKvStore->GetEntries(query, results1);
-    EXPECT_EQ(status1, NOT_SUPPORT);
+    Status status = singleKvStore->GetEntries(query, results1);
+    EXPECT_EQ(status, NOT_SUPPORT);
 
     singleKvStore->Delete("test_key_1");
     singleKvStore->Delete("test_key_2");
     singleKvStore->Delete("test_key_3");
-    Status status = manager.CloseAllKvStore(appId);
+    status = manager.CloseAllKvStore(appId);
     EXPECT_EQ(status, Status::SUCCESS);
     status = manager.DeleteAllKvStore(appId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
