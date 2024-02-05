@@ -1513,6 +1513,24 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest004, TestSize.Level
 }
 
 /**
+ * @tc.name: LogicDeleteSyncTest005
+ * @tc.desc: test pragma when set cmd is not logic delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set cmd is auto sync
+     * @tc.expected: step1. ok.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    EXPECT_EQ(delegate_->Pragma(AUTO_SYNC, data), DBStatus::NOT_SUPPORT);
+}
+
+/**
  * @tc.name: LogicCreateRepeatedTableNameTest001
  * @tc.desc: test create repeated table name with different cases
  * @tc.type: FUNC
