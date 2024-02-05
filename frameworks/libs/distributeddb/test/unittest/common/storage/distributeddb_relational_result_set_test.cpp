@@ -360,4 +360,80 @@ HWTEST_F(DistributedDBRelationalResultSetTest, Test001, TestSize.Level1)
 
     delete resultSet;
 }
+
+/**
+ * @tc.name: ResultSetTest001
+ * @tc.desc: Test get rowData and close
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest001, TestSize.Level0)
+{
+    auto *resultSet = new (std::nothrow) RelationalResultSetImpl;
+    ASSERT_NE(resultSet, nullptr);
+
+    /**
+     * @tc.steps: step1. Create a result set which contains five row data;
+     * @tc.expected: OK.
+     */
+    RelationalRowDataSet rowDataSet1;
+    RowData rowData = {g_blobValue, g_doubleValue, g_int64Value, g_nullValue, g_strValue};
+    rowDataSet1.SetColNames({"column 1", "column 2", "column 3", "column 4", "column 5"});
+    EXPECT_EQ(rowDataSet1.Insert(new (std::nothrow) RelationalRowDataImpl(std::move(rowData))), E_OK);
+    EXPECT_EQ(resultSet->Put("", 1, std::move(rowDataSet1)), E_OK);  // the first one
+    EXPECT_EQ(resultSet->MoveToFirst(), true);
+
+    /**
+     * @tc.steps: step2. Check data
+     * @tc.expected: OK.
+     */
+    std::map<std::string, VariantData> data;
+    EXPECT_EQ(resultSet->GetRow(data), DBStatus::OK);
+    EXPECT_EQ(std::get<std::vector<uint8_t>>(data["column 1"]), BLOB_VALUE);
+    EXPECT_EQ(std::get<double>(data["column 2"]), DOUBLE_VALUE);
+    EXPECT_EQ(std::get<int64_t>(data["column 3"]), INT64_VALUE);
+    EXPECT_EQ(std::get<std::string>(data["column 5"]), STR_VALUE);
+
+    /**
+     * @tc.steps: step3. Check close twice
+     * @tc.expected: OK.
+     */
+    resultSet->Close();
+    EXPECT_EQ(resultSet->GetCount(), 0);
+    resultSet->Close();
+    EXPECT_EQ(resultSet->GetCount(), 0);
+
+    delete resultSet;
+}
+
+/**
+ * @tc.name: ResultSetTest002
+ * @tc.desc: Test get data in null resultSet
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest002, TestSize.Level0)
+{
+    auto *resultSet = new (std::nothrow) RelationalResultSetImpl;
+    ASSERT_NE(resultSet, nullptr);
+
+    /**
+     * @tc.steps: step1. check whether status is not found when get null resultSet
+     * @tc.expected: OK.
+     */
+    std::vector<uint8_t> blob;
+    EXPECT_EQ(resultSet->Get(0, blob), DBStatus::NOT_FOUND);
+    std::string strValue = "";
+    EXPECT_EQ(resultSet->Get(0, strValue), DBStatus::NOT_FOUND);
+    int64_t intValue = 0;
+    EXPECT_EQ(resultSet->Get(0, intValue), DBStatus::NOT_FOUND);
+    double doubleValue = 0.0;
+    EXPECT_EQ(resultSet->Get(0, doubleValue), DBStatus::NOT_FOUND);
+    bool isNull = true;
+    EXPECT_EQ(resultSet->IsColumnNull(0, isNull), DBStatus::NOT_FOUND);
+
+    delete resultSet;
+}
 #endif

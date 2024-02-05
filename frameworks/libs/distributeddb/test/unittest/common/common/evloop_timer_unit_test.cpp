@@ -19,6 +19,8 @@
 
 #include "db_errno.h"
 #include "distributeddb_tools_unit_test.h"
+#include "evloop/src/event_impl.h"
+#include "evloop/src/event_loop_epoll.h"
 #include "evloop/src/ievent.h"
 #include "evloop/src/ievent_loop.h"
 #include "log_print.h"
@@ -31,6 +33,10 @@ namespace {
     IEventLoop *g_loop = nullptr;
     constexpr int MAX_RETRY_TIMES = 1000;
     constexpr int RETRY_TIMES_5 = 5;
+    constexpr int EPOLL_INIT_REVENTS = 32;
+    constexpr int ET_READ = 0x01;
+    constexpr int ET_WRITE = 0x02;
+    constexpr int ET_TIMEOUT = 0x08;
     constexpr EventTime TIME_INACCURACY = 100LL;
     constexpr EventTime TIME_PIECE_1 = 1LL;
     constexpr EventTime TIME_PIECE_10 = 10LL;
@@ -38,7 +44,6 @@ namespace {
     constexpr EventTime TIME_PIECE_100 = 100LL;
     constexpr EventTime TIME_PIECE_1000 = 1000LL;
     constexpr EventTime TIME_PIECE_10000 = 10000LL;
-}
 
 class TimerTester {
 public:
@@ -422,4 +427,336 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
     g_loop->KillObj();
     loopThread.join();
     timer->DecObjRef(timer);
+}
+
+/**
+ * @tc.name: EventLoopTest001
+ * @tc.desc: Test Initialize twice
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest001, TestSize.Level0)
+{
+    EventLoopEpoll *loop = new (std::nothrow) EventLoopEpoll;
+
+    EXPECT_EQ(loop->Initialize(), E_OK);
+    EXPECT_EQ(loop->Initialize(), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventLoopTest002
+ * @tc.desc: Test interface if args is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest002, TestSize.Level0)
+{
+    // ready data
+    ASSERT_NE(g_loop, nullptr);
+
+    /**
+     * @tc.steps: step1. test the loop interface.
+     * @tc.expected: step1. return INVALID_AGRS.
+     */
+    EXPECT_EQ(g_loop->Add(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_loop->Remove(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_loop->Stop(), E_OK);
+
+    EventLoopImpl *loopImpl= static_cast<EventLoopImpl *>(g_loop);
+    EventsMask events = 1u;
+    EXPECT_EQ(loopImpl->Modify(nullptr, true, events), -E_INVALID_ARGS);
+    EXPECT_EQ(loopImpl->Modify(nullptr, 0), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventTest001
+ * @tc.desc: Test CreateEvent if args is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set EventTime = -1 and CreateEvent
+     * @tc.expected: step1. return INVALID_ARGS
+     */
+    EventTime eventTime = -1; // -1 is invalid arg
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step2. set EventsMask = 0 and CreateEvent
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EventFd eventFd = EventFd();
+    EventsMask events = 0u;
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. set EventsMask = 4 and EventFd is invalid then CreateEvent
+     * @tc.expected: step3. return INVALID_ARGS
+     */
+    EventsMask eventsMask = 1u; // 1 is ET_READ
+    event = IEvent::CreateEvent(eventFd, eventsMask, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step4. set EventsMask = 8 and CreateEvent
+     * @tc.expected: step4. return INVALID_ARGS
+     */
+    events |= ET_TIMEOUT;
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step5. set EventTime = 1 and CreateEvent
+     * @tc.expected: step5. return OK
+     */
+    eventTime = TIME_PIECE_1;
+    eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+}
+
+/**
+ * @tc.name: EventTest002
+ * @tc.desc: Test SetAction if action is nullptr
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. SetAction with nullptr
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EXPECT_EQ(event->SetAction(nullptr), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventTest003
+ * @tc.desc: Test AddEvents and RemoveEvents with fd is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. AddEvents and RemoveEvents with events is 0
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EventsMask events = 0u;
+    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
+    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. AddEvents and RemoveEvents with fd is invalid
+     * @tc.expected: step3. return OK
+     */
+    events |= ET_READ;
+    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
+    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventTest004
+ * @tc.desc: Test AddEvents and RemoveEvents with fd is valid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    EventsMask events = 1u; // 1 means ET_READ
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. AddEvents and RemoveEvents with fd is valid
+     * @tc.expected: step2. return OK
+     */
+    events |= ET_WRITE;
+    EXPECT_EQ(event->AddEvents(events), E_OK);
+    EXPECT_EQ(event->RemoveEvents(events), E_OK);
+
+    /**
+     * @tc.steps:step3. AddEvents and RemoveEvents after set action
+     * @tc.expected: step3. return OK
+     */
+    ASSERT_EQ(g_loop->Add(event), -E_INVALID_ARGS);
+    ASSERT_EQ(event->SetAction([](EventsMask revents) -> int {
+        return E_OK;
+        }), E_OK);
+    ASSERT_EQ(g_loop->Add(event), E_OK);
+    EXPECT_EQ(event->AddEvents(events), E_OK);
+    EXPECT_EQ(event->RemoveEvents(events), E_OK);
+}
+
+/**
+ * @tc.name: EventTest005
+ * @tc.desc: Test constructor method with timeout < 0
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. instantiation event with eventTime
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = -1; // -1 is invalid arg
+    IEvent *event = new (std::nothrow) EventImpl(eventTime);
+    ASSERT_NE(event, nullptr);
+
+    /**
+     * @tc.steps:step2. instantiation event with eventFd, events, eventTime
+     * @tc.expected: step2. return OK
+     */
+    EventFd eventFd = EventFd();
+    EventsMask events = 1u; // 1 means ET_READ
+    EventImpl *eventImpl = new (std::nothrow) EventImpl(eventFd, events, eventTime);
+    ASSERT_NE(eventImpl, nullptr);
+}
+
+/**
+ * @tc.name: EventTest006
+ * @tc.desc: Test SetTimeout
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. SetTimeout
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    event->IgnoreFinalizer();
+    EXPECT_EQ(event->SetTimeout(eventTime), E_OK);
+    eventTime = -1; // -1 is invalid args
+    EXPECT_EQ(event->SetTimeout(eventTime), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventTest007
+ * @tc.desc: Test SetEvents and GetEvents
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    EventsMask events = 1u; // 1 means ET_READ
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. Test GetEventFd and GetEvents
+     * @tc.expected: step2. return OK
+     */
+    EventImpl *eventImpl = static_cast<EventImpl *>(event);
+    eventImpl->SetRevents(events);
+    EXPECT_EQ(eventImpl->GetEventFd(), eventFd);
+    EXPECT_EQ(eventImpl->GetEvents(), events);
+    events = 2u; // 2 means ET_WRITE
+    eventImpl->SetEvents(true, events);
+    EXPECT_EQ(eventImpl->GetEvents(), 3u); // 3 means ET_WRITE | ET_READ
+    eventImpl->SetEvents(false, events);
+    EXPECT_EQ(eventImpl->GetEvents(), 1u); // 1 means ET_READ
+    EXPECT_FALSE(eventImpl->GetTimeoutPoint(eventTime));
+}
+
+/**
+ * @tc.name: EventTest008
+ * @tc.desc: Test SetTimeoutPeriod and GetTimeoutPoint
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. SetTimeoutPeriod and GetTimeoutPoint
+     * @tc.expected: step2. return OK
+     */
+    EventImpl *eventImpl = static_cast<EventImpl *>(event);
+    eventTime = -1; // -1 is invalid args
+    eventImpl->SetTimeoutPeriod(eventTime);
+    EXPECT_TRUE(eventImpl->GetTimeoutPoint(eventTime));
+
+    /**
+     * @tc.steps:step3. Dispatch
+     * @tc.expected: step3. return INVALID_ARGS
+     */
+    EXPECT_EQ(eventImpl->Dispatch(), -E_INVALID_ARGS);
+}
 }
