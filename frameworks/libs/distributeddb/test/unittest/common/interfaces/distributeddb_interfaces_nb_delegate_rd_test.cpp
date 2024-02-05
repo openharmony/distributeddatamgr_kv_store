@@ -1888,7 +1888,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     int ret = g_kvNbDelegatePtr->GetEntries(query1, entries);
     EXPECT_EQ(entries.size(), 3u);
     int targetKey = 2; // 2 is the initial key that is expected to be found
-    for(auto item : entries) {
+    for (auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(targetKey), keyStr);
         targetKey++;
@@ -1902,7 +1902,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     ret = g_kvNbDelegatePtr->GetEntries(query2, entries);
     EXPECT_EQ(entries.size(), 5u);
     targetKey = 0; // 0 is the initial key that is expected to be found
-    for(auto item : entries) {
+    for (auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(targetKey), keyStr);
         targetKey++;
@@ -1916,7 +1916,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     ret = g_kvNbDelegatePtr->GetEntries(query3, entries);
     EXPECT_EQ(entries.size(), 4u);
     targetKey = 2; // 2 is the initial key that is expected to be found
-    for(auto item : entries) {
+    for (auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(targetKey), keyStr);
         targetKey++;
