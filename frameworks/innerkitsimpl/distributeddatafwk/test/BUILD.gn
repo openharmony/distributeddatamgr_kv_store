@@ -353,7 +353,7 @@ ohos_unittest("DistributedDataMgrTest") {
   ]
 }
 
-ohos_unittest("EndpointTest") {
+ohos_unittest("EndPointTest") {
   module_out_path = module_output_path
 
   sources = [ "unittest/end_point_test.cpp" ]
@@ -385,7 +385,7 @@ group("unittest") {
     ":DistributedDataMgrTest",
     ":DistributedKvDataManagerEncryptTest",
     ":DistributedKvDataManagerTest",
-    ":EndpointTest",
+    ":EndPointTest",
     ":KvUtilTest",
     ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",

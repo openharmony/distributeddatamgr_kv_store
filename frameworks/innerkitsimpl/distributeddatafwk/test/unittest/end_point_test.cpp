@@ -26,7 +26,7 @@
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 
-class EndpointTest : public testing::Test {
+class EndPointTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -47,12 +47,12 @@ const std::string VALID_SCHEMA = "{\"SCHEMA_VERSION\":\"1.0\","
                                  "},"
                                  "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
-std::shared_ptr<SingleKvStore> EndpointTest::kvStore_ = nullptr;
-Status EndpointTest::status_ = Status::ERROR;
-std::string EndpointTest::deviceId_;
-Options EndpointTest::options_;
+std::shared_ptr<SingleKvStore> EndPointTest::kvStore_ = nullptr;
+Status EndPointTest::status_ = Status::ERROR;
+std::string EndPointTest::deviceId_;
+Options EndPointTest::options_;
 
-void EndpointTest::SetUpTestCase(void)
+void EndPointTest::SetUpTestCase(void)
 {
     DistributedKvDataManager manager;
     options_.area = EL1;
@@ -67,7 +67,7 @@ void EndpointTest::SetUpTestCase(void)
     deviceId_ = deviceInfo.networkId;
 }
 
-void EndpointTest::TearDownTestCase(void)
+void EndPointTest::TearDownTestCase(void)
 {
     DistributedKvDataManager manager;
     AppId appId = { "odmf" };
@@ -77,13 +77,13 @@ void EndpointTest::TearDownTestCase(void)
     (void)remove("/data/service/el1/public/database/odmf");
 }
 
-void EndpointTest::SetUp(void)
+void EndPointTest::SetUp(void)
 {}
 
-void EndpointTest::TearDown(void)
+void EndPointTest::TearDown(void)
 {}
 
-std::string EndpointTest::GetKey(const std::string& key)
+std::string EndPointTest::GetKey(const std::string& key)
 {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(sizeof(uint32_t)) << deviceId_.length();
@@ -144,7 +144,7 @@ public:
 * @tc.require:
 * @tc.author: SQL
 */
-HWTEST_F(EndpointTest, SetEndpoint001, TestSize.Level1)
+HWTEST_F(EndPointTest, SetEndpoint001, TestSize.Level1)
 {
     DistributedKvDataManager manager;
     std::shared_ptr<EndpointMock> endpoint = nullptr;
@@ -159,7 +159,7 @@ HWTEST_F(EndpointTest, SetEndpoint001, TestSize.Level1)
 * @tc.require:
 * @tc.author: SQL
 */
-HWTEST_F(EndpointTest, SetEndpoint002, TestSize.Level1)
+HWTEST_F(EndPointTest, SetEndpoint002, TestSize.Level1)
 {
     DistributedKvDataManager manager;
     std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
@@ -176,7 +176,7 @@ HWTEST_F(EndpointTest, SetEndpoint002, TestSize.Level1)
  * require:
  * author:SQL
  */
-HWTEST_F(EndpointTest, SetIdentifier001, TestSize.Level1)
+HWTEST_F(EndPointTest, SetIdentifier001, TestSize.Level1)
 {
     DistributedKvDataManager manager;
     EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
@@ -198,7 +198,7 @@ HWTEST_F(EndpointTest, SetIdentifier001, TestSize.Level1)
  * require:
  * author:SQL
  */
-HWTEST_F(EndpointTest, SetIdentifier002, TestSize.Level1)
+HWTEST_F(EndPointTest, SetIdentifier002, TestSize.Level1)
 {
     DistributedKvDataManager manager;
     EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
