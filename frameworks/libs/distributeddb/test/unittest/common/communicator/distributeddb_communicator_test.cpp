@@ -34,7 +34,6 @@ namespace {
     EnvHandle g_envDeviceA;
     EnvHandle g_envDeviceB;
     EnvHandle g_envDeviceC;
-}
 
 static void HandleConnectChange(OnOfflineDevice &onlines, const std::string &target, bool isConnect)
 {
@@ -1356,4 +1355,5 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter005, TestSize.Level1)
     EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
     adapterA->SetDBInfoHandle(nullptr);
     EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
+}
 }
