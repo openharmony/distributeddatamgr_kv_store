@@ -146,6 +146,8 @@ protected:
     void CloseDb();
     void InsertUserTableRecord(const std::string &tableName, int64_t recordCounts, int64_t begin = 0);
     void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull);
+    void InsertCloudTableRecord(const std::string &tableName, int64_t begin, int64_t count, int64_t photoSize,
+        bool assetIsNull);
     void DeleteUserTableRecord(int64_t id);
     void DeleteCloudTableRecord(int64_t gid);
     void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
@@ -271,6 +273,12 @@ void DistributedDBCloudCheckSyncTest::InsertUserTableRecord(const std::string &t
 void DistributedDBCloudCheckSyncTest::InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize,
     bool assetIsNull)
 {
+    InsertCloudTableRecord(tableName_, begin, count, photoSize, assetIsNull);
+}
+
+void DistributedDBCloudCheckSyncTest::InsertCloudTableRecord(const std::string &tableName, int64_t begin, int64_t count,
+    int64_t photoSize, bool assetIsNull)
+{
     std::vector<uint8_t> photo(photoSize, 'v');
     std::vector<VBucket> record1;
     std::vector<VBucket> extend1;
@@ -309,7 +317,7 @@ void DistributedDBCloudCheckSyncTest::InsertCloudTableRecord(int64_t begin, int6
         record2.push_back(data);
         extend2.push_back(log);
     }
-    ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName_, std::move(record1), extend1), DBStatus::OK);
+    ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName, std::move(record1), extend1), DBStatus::OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(count));
 }
 
@@ -1627,6 +1635,43 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
     });
     BlockSync(query, delegate_);
     CheckCloudTableCount(tableName_, actualCount);
+}
+
+/*
+ * @tc.name: CreateDistributedTable001
+ * @tc.desc: Test create distributed table when table not empty.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CreateDistributedTable001, TestSize.Level0)
+{
+    const std::string table = "CreateDistributedTable001";
+    const std::string createSQL =
+        "CREATE TABLE IF NOT EXISTS " + table + "(" \
+        "id TEXT PRIMARY KEY," \
+        "name TEXT," \
+        "height REAL ," \
+        "photo BLOB," \
+        "age INT);";
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db_, createSQL), SQLITE_OK);
+    int actualCount = 10;
+    InsertUserTableRecord(table, actualCount);
+    InsertCloudTableRecord(table, 0, actualCount, 0, true);
+    ASSERT_EQ(delegate_->CreateDistributedTable(table, CLOUD_COOPERATION), DBStatus::OK);
+    DataBaseSchema dataBaseSchema = GetSchema();
+    TableSchema schema = dataBaseSchema.tables.at(0);
+    schema.name = table;
+    schema.sharedTableName = "";
+    dataBaseSchema.tables.push_back(schema);
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    /**
+     * @tc.steps:step2. call sync, local has one batch id:0-4
+     * @tc.expected: step2. OK
+     */
+    Query query = Query::Select().FromTable({ table });
+    BlockSync(query, delegate_);
+    CheckCloudTableCount(table, actualCount);
 }
 }
 #endif

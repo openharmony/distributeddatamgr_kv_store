@@ -780,8 +780,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest013,
      * @tc.steps:step2. CreateDistributedTable on table2
      * @tc.expected: step2. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
 
     /**
      * @tc.steps:step3. delete all data but keep the log , then CreateDistributedTable
@@ -963,7 +962,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017,
      * @tc.steps:step5. There is still data in the table
      * @tc.expected: step5. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), OK);
 
     /**
      * @tc.steps:step6. clear all data and create DEVICE_COOPERATION table

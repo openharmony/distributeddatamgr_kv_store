@@ -194,9 +194,14 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     if (mode == DistributedTableMode::SPLIT_BY_DEVICE && !isUpgraded) {
         bool isEmpty = false;
         errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, tableName, isEmpty);
-        if (errCode != E_OK || !isEmpty) {
-            LOGE("[CreateDistributedTable] check table empty failed. error=%d, isEmpty=%d", errCode, isEmpty);
+        if (errCode != E_OK) {
+            LOGE("[CreateDistributedTable] check table empty failed. error=%d", errCode);
             return -E_NOT_SUPPORT;
+        }
+        if (!isEmpty) {
+            LOGW("[CreateDistributedTable] generate %.3s log for existed data, table type %d",
+                DBCommon::TransferStringToHex(DBCommon::TransferHashString(tableName)).c_str(),
+                static_cast<int>(syncType));
         }
     }
 
