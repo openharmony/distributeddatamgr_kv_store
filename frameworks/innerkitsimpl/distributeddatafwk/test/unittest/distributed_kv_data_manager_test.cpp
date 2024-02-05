@@ -26,6 +26,8 @@ using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
 class DistributedKvDataManagerTest : public testing::Test {
 public:
+    static constexpr size_t NUM_MIN = 5;
+    static constexpr size_t NUM_MAX = 12;
     static DistributedKvDataManager manager;
     static Options create;
     static Options noCreate;
@@ -80,6 +82,9 @@ void DistributedKvDataManagerTest::RemoveAllStore(DistributedKvDataManager &mana
 }
 void DistributedKvDataManagerTest::SetUpTestCase(void)
 {
+    auto executors = std::make_shared<ExecutorPool>(NUM_MAX, NUM_MIN);
+    manager.SetExecutors(executors);
+
     userId.userId = "account0";
     appId.appId = "ohos.kvdatamanager.test";
     create.createIfMissing = true;
@@ -120,10 +125,7 @@ void DistributedKvDataManagerTest::TearDownTestCase(void)
 }
 
 void DistributedKvDataManagerTest::SetUp(void)
-{
-    auto executors = std::make_shared<ExecutorPool>(1, 0);
-    manager.SetExecutors(executors);
-}
+{}
 
 DistributedKvDataManagerTest::DistributedKvDataManagerTest(void)
 {}
