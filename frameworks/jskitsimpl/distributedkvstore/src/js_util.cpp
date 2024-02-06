@@ -1008,6 +1008,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
     ASSERT(statusMsg.status == napi_ok, "get encrypt param failed", statusMsg);
     statusMsg = GetNamedProperty(env, in, "backup", options.backup, true);
     ASSERT(statusMsg.status == napi_ok, "get backup param failed", statusMsg);
+    options.autoSync = false;
     statusMsg = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
     ASSERT(statusMsg.status == napi_ok, "get autoSync param failed", statusMsg);
 
