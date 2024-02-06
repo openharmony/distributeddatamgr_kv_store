@@ -1007,4 +1007,42 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdValidField, TestSize.Lev
     query.DeviceId(deviceId);
     EXPECT_TRUE(query.ToString().length() == 0);
 }
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is between, the value is invalid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryBetweenInvalid, TestSize.Level1)
+{
+    DistributedKvDataManager manager;
+    Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.securityLevel = S1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
+    AppId appId = { "SingleKvStoreClientQueryTest" };
+    StoreId storeId = { "SingleKvStoreClientQueryTestStoreId3" };
+    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_2", "{\"name\":2}");
+    singleKvStore->Put("test_key_3", "{\"name\":3}");
+
+    DataQuery query;
+    query.Between({}, {});
+    std::vector<Entry> results1;
+    Status status = singleKvStore->GetEntries(query, results1);
+    EXPECT_EQ(status, NOT_SUPPORT);
+
+    singleKvStore->Delete("test_key_1");
+    singleKvStore->Delete("test_key_2");
+    singleKvStore->Delete("test_key_3");
+    status = manager.CloseAllKvStore(appId);
+    EXPECT_EQ(status, Status::SUCCESS);
+    status = manager.DeleteAllKvStore(appId, options.baseDir);
+    EXPECT_EQ(status, Status::SUCCESS);
+}
 } // namespace

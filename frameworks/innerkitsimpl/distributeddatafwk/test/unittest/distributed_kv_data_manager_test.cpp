@@ -20,11 +20,14 @@
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
 #include "types.h"
+
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
 class DistributedKvDataManagerTest : public testing::Test {
 public:
+    static constexpr size_t NUM_MIN = 5;
+    static constexpr size_t NUM_MAX = 12;
     static DistributedKvDataManager manager;
     static Options create;
     static Options noCreate;
@@ -79,6 +82,9 @@ void DistributedKvDataManagerTest::RemoveAllStore(DistributedKvDataManager &mana
 }
 void DistributedKvDataManagerTest::SetUpTestCase(void)
 {
+    auto executors = std::make_shared<ExecutorPool>(NUM_MAX, NUM_MIN);
+    manager.SetExecutors(executors);
+
     userId.userId = "account0";
     appId.appId = "ohos.kvdatamanager.test";
     create.createIfMissing = true;
