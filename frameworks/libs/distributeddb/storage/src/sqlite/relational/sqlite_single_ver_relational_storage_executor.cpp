@@ -1812,7 +1812,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
 {
     sqlite3_stmt *selectStmt = nullptr;
     std::string sql = "SELECT DATA_KEY FROM '" + logTableName + "' WHERE " + CLOUD_GID_FIELD +
-        " IS NOT NULL AND " + CLOUD_GID_FIELD + " != ''";
+        " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '' AND data_key != '-1'";
     if (distinguishCloudFlag) {
         sql += " AND ";
         sql += FLAG_IS_CLOUD;

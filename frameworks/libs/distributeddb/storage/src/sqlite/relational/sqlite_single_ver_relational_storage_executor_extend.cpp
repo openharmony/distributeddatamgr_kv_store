@@ -413,6 +413,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
             assets.push_back(asset);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
+            Asset asset;
+            assets.push_back(asset);
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
