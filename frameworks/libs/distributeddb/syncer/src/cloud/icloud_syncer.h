@@ -79,6 +79,8 @@ public:
     };
 
     virtual std::string GetIdentify() const = 0;
+
+    virtual bool IsClosed() const = 0;
 };
 }
 #endif // I_CLOUD_SYNCER_H

@@ -65,6 +65,8 @@ public:
 
     std::string GetIdentify() const override;
 
+    bool IsClosed() const override;
+
     void GenerateCompensatedSync(CloudTaskInfo &taskInfo);
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);

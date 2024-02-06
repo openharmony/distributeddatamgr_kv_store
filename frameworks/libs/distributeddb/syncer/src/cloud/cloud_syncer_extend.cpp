@@ -478,6 +478,11 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
     return errCode;
 }
 
+bool CloudSyncer::IsClosed() const
+{
+    return closed_ || IsKilled();
+}
+
 int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
 {
     DownloadList downloadList;
