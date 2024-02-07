@@ -153,9 +153,8 @@ void CloudSyncer::Close()
         resumeTaskInfos_.clear();
         currentContext_.notifier = nullptr;
     }
-    // db closed no longer notify DB_CLOSED
     for (auto &info: infoList) {
-        LOGI("[CloudSyncer] finished taskId %" PRIu64 " errCode %d", info.taskId, info.errCode);
+        LOGI("[CloudSyncer] finished taskId %" PRIu64 " with db closed.", info.taskId);
     }
     storageProxy_->Close();
 }
