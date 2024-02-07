@@ -574,8 +574,8 @@ int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema()
 int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
 {
     int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
-        errCode));
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(!condition.readOnly,
+        OperatePerm::NORMAL_PERM, errCode));
     if (handle == nullptr) {
         return errCode;
     }
