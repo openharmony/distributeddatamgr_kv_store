@@ -536,4 +536,72 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncerTest001, TestSize.Level2)
     cloudSyncer->Close();
     RefObject::KillAndDecObjRef(cloudSyncer);
 }
+
+/**
+ * @tc.name: SameBatchTest001
+ * @tc.desc: Verify update cache in same batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest001, TestSize.Level0)
+{
+    std::map<std::string, LogInfo> localLogInfoCache;
+    LogInfo cloudInfo;
+    LogInfo localInfo;
+    localInfo.hashKey = {'k'};
+    cloudInfo.cloudGid = "gid";
+    /**
+     * @tc.steps: step1. insert cloud into local
+     * @tc.expected: step1. local cache has gid
+     */
+    CloudSyncUtils::UpdateLocalCache(OpType::INSERT, cloudInfo, localInfo, localLogInfoCache);
+    std::string hashKey(localInfo.hashKey.begin(), localInfo.hashKey.end());
+    EXPECT_EQ(localLogInfoCache[hashKey].cloudGid, cloudInfo.cloudGid);
+    /**
+     * @tc.steps: step2. delete local
+     * @tc.expected: step2. local flag is delete
+     */
+    CloudSyncUtils::UpdateLocalCache(OpType::DELETE, cloudInfo, localInfo, localLogInfoCache);
+    EXPECT_EQ(localLogInfoCache[hashKey].flag, static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE));
+}
+
+/**
+ * @tc.name: SameBatchTest002
+ * @tc.desc: Verify cal opType in same batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare two data with same pk
+     */
+    ICloudSyncer::SyncParam param;
+    param.downloadData.opType.push_back(OpType::INSERT);
+    param.downloadData.opType.push_back(OpType::UPDATE);
+    const std::string pkField = "pk";
+    param.changedData.field.push_back(pkField);
+    VBucket oneRow;
+    oneRow[pkField] = static_cast<int64_t>(1); // 1 is pk
+    param.downloadData.data.push_back(oneRow);
+    param.downloadData.data.push_back(oneRow);
+    /**
+     * @tc.steps: step2. cal opType by utils
+     * @tc.expected: step2. all type should be INSERT
+     */
+    for (size_t i = 0; i < param.downloadData.data.size(); ++i) {
+        EXPECT_EQ(CloudSyncUtils::CalOpType(param, i), OpType::INSERT);
+    }
+    /**
+     * @tc.steps: step3. cal opType by utils
+     * @tc.expected: step3. should be UPDATE because diff pk
+     */
+    oneRow[pkField] = static_cast<int64_t>(2); // 2 is pk
+    param.downloadData.data.push_back(oneRow);
+    param.downloadData.opType.push_back(OpType::UPDATE);
+    // index start with zero
+    EXPECT_EQ(CloudSyncUtils::CalOpType(param, param.downloadData.data.size() - 1), OpType::UPDATE);
+}
 }

@@ -965,6 +965,7 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData.type = ChangedDataType::DATA;
     }
     ret = SaveData(param);
+    param.insertPk.clear();
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
         int rollBackErrorCode = storageProxy_->Rollback();

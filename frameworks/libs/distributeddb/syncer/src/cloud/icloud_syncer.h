@@ -70,6 +70,7 @@ public:
         bool isSinglePrimaryKey = false;
         bool isLastBatch = false;
         WithoutRowIdData withoutRowIdData;
+        std::vector<std::vector<Type>> insertPk;
     };
 
     struct DataInfo {
