@@ -111,7 +111,7 @@ void DistributedDBSqliteRelationalUtilsTest::PrepareStatement(const std::string 
         EXPECT_EQ(SQLiteRelationalUtils::BindStatementByType(statement, 6, data["asset"]), E_OK); // 6 is asset cid
         EXPECT_EQ(SQLiteRelationalUtils::BindStatementByType(statement, 7, data["assets"]), E_OK); // 7 is assets cid
     } else {
-        RuntimeConfig::SetCloudTranslate(nullptr);
+        RuntimeConfig::SetCloudTranslate(virtualCloudDataTranslate_);
         EXPECT_EQ(SQLiteRelationalUtils::BindStatementByType(statement, 6, data["asset"]), -E_NOT_INIT); // 6 is asset
         EXPECT_EQ(SQLiteRelationalUtils::BindStatementByType(statement, 7, data["assets"]), -E_NOT_INIT); // 7 is assets
     }
