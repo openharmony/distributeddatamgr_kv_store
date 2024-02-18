@@ -333,13 +333,12 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
 Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value &value)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    auto status = Get(key, value);
-    if (status != NOT_FOUND) {
-        return status;
-    }
     auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
     if (clientUuid.empty()) {
-        ZLOGE("invalid networkId:%{public}s", StoreUtil::Anonymous(networkId).c_str());
+        return INVALID_ARGUMENT;
+    }
+    auto status = Get(key, value);
+    if (status != NOT_FOUND) {
         return status;
     }
     {
@@ -347,13 +346,14 @@ Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value 
         auto watermark = dbStore_->GetWatermarkInfo(clientUuid);
         if (StoreUtil::ConvertStatus(watermark.first) != SUCCESS
             || (watermark.second.sendMark != 0 && watermark.second.receiveMark != 0)) {
-            ZLOGD("watermark is not zero, do not need sync, dbStatus:%{public}d", watermark.first);
+            ZLOGD("Do not need sync, dbStatus:%{public}d", watermark.first);
             return status;
         }
     }
-    timePoints_.Compute(clientUuid, [this, &networkId](const auto &key, auto &value) {
+    timePoints_.Compute(clientUuid, [this, &networkId, &status](const auto &key, auto &value) {
         auto now = std::chrono::steady_clock::now();
         if (value.first != 0 && now < value.second) {
+            status = SYNC_ACTIVATED;
             return true;
         }
         KVDBService::SyncInfo syncInfo;
@@ -361,8 +361,9 @@ Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value 
         syncInfo.devices = { networkId };
         auto result = DoSyncExt(syncInfo, nullptr);
         if (result != SUCCESS) {
-            ZLOGE("sync failed, networkId:%{public}s result:%{public}d",
-                StoreUtil::Anonymous(networkId).c_str(), result);
+            ZLOGE("sync ext failed, result:%{public}d networkId:%{public}s app:%{public}s store:%{public}s", result,
+                StoreUtil::Anonymous(networkId).c_str(), appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
+            status = ERROR;
             return false;
         }
         value.first = syncInfo.seqId;
