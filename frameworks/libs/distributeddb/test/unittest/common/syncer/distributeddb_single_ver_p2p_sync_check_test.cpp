@@ -1599,7 +1599,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
     asyncThread.join();
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
 }
-}
 
 /**
  * @tc.name: KVAbilitySyncOpt001
@@ -1635,4 +1634,5 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.L
     for (const auto &pair : result) {
         EXPECT_EQ(pair.second, OK);
     }
+}
 }
