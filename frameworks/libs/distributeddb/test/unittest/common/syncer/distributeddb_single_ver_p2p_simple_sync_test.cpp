@@ -77,7 +77,6 @@ namespace {
         ASSERT_GE(static_cast<uint32_t>(dataSize), itemCount * expectedDataSize);
         ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + itemCount * (expectedDataSize + externalSize));
     }
-}
 
 class DistributedDBSingleVerP2PSimpleSyncTest : public testing::Test {
 public:
@@ -1672,3 +1671,4 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, GetWaterMarkInfo001, TestSize.
     EXPECT_EQ(res.second.sendMark, 0u);
     EXPECT_EQ(res.second.receiveMark, 0u);
 }
+} // namespace
