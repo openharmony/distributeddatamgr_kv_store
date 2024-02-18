@@ -1635,4 +1635,4 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.L
         EXPECT_EQ(pair.second, OK);
     }
 }
-}
+} // namespace
