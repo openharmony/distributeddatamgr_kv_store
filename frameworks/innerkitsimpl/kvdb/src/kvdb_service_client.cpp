@@ -164,6 +164,18 @@ Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, const
     return static_cast<Status>(status);
 }
 
+Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SYNC_EXT), reply, appId,
+        storeId, syncInfo.seqId, syncInfo.mode, syncInfo.devices, syncInfo.delay, syncInfo.query);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, sequenceId:%{public}" PRIu64,
+            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), syncInfo.seqId);
+    }
+    return static_cast<Status>(status);
+}
+
 Status KVDBServiceClient::RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback)
 {
     MessageParcel reply;

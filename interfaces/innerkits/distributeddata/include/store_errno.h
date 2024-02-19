@@ -189,6 +189,11 @@ enum Status : int32_t {
      * Session is opening.
     */
     RATE_LIMIT = DISTRIBUTEDDATAMGR_ERR_OFFSET + 38,
+
+    /**
+     * Data is being synchronized.
+    */
+    SYNC_ACTIVATED = DISTRIBUTEDDATAMGR_ERR_OFFSET + 39,
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_INTERFACES_DISTRIBUTEDDATA_STORE_ERRNO_H
