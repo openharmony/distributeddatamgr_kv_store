@@ -381,7 +381,7 @@ struct Options {
      * It is not automatically synchronized by default.
      * 'ohos.permission.DISTRIBUTED_DATASYNC' permission is necessary.
     */
-    bool autoSync = true;
+    bool autoSync = false;
     /**
      * True if is distributed store, false if is local store
     */
