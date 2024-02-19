@@ -25,7 +25,7 @@
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class EndPointTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -212,3 +212,4 @@ HWTEST_F(EndPointTest, SetIdentifier002, TestSize.Level1)
     auto testStatus = kvStore_->SetIdentifier(accountId, appId, storeId, targetDev);
     EXPECT_NE(testStatus, Status::SUCCESS);
 }
+} // namespace OHOS::Test
