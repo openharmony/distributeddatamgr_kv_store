@@ -110,6 +110,8 @@ public:
     static bool IsRecordIgnored(const VBucket &record);
 
     static std::string GenerateHashLabel(const DBInfo &dbInfo);
+
+    static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

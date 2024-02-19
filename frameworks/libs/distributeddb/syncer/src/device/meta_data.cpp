@@ -25,6 +25,7 @@
 #include "securec.h"
 #include "sync_types.h"
 #include "time_helper.h"
+#include "version.h"
 
 namespace DistributedDB {
 namespace {
@@ -32,6 +33,7 @@ namespace {
     // store local timeoffset;this is a special key;
     const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
     const char *CLIENT_ID_PREFIX_KEY = "clientId";
+    const char *LOCAL_META_DATA_KEY = "localMetaData";
 }
 
 Metadata::Metadata()
@@ -656,6 +658,246 @@ int Metadata::GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, Wa
         info.receiveMark = metadata.peerWaterMark;
     }
     return E_OK;
+}
+
+int Metadata::ClearAllAbilitySyncFinishMark()
+{
+    return ClearAllMetaDataValue(static_cast<uint32_t>(InnerClearAction::CLEAR_ABILITY_SYNC_MARK) |
+        static_cast<uint32_t>(InnerClearAction::CLEAR_REMOTE_SCHEMA_VERSION));
+}
+
+int Metadata::ClearAllTimeSyncFinishMark()
+{
+    return ClearAllMetaDataValue(static_cast<uint32_t>(InnerClearAction::CLEAR_TIME_SYNC_MARK) |
+        static_cast<uint32_t>(InnerClearAction::CLEAR_SYSTEM_TIME_OFFSET));
+}
+
+int Metadata::ClearAllMetaDataValue(uint32_t innerClearAction)
+{
+    int errCode = E_OK;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    for (auto &[hashDev, metaDataValue] : metadataMap_) {
+        ClearMetaDataValue(innerClearAction, metaDataValue);
+        std::vector<uint8_t> value;
+        int innerErrCode = SerializeMetaData(metaDataValue, value);
+        // clear sync mark without transaction here
+        // just ignore error metadata value
+        if (innerErrCode != E_OK) {
+            LOGW("[Metadata][ClearAllMetaDataValue] action %" PRIu32 " serialize meta data failed %d", innerClearAction,
+                innerErrCode);
+            errCode = errCode == E_OK ? innerErrCode : errCode;
+            continue;
+        }
+
+        std::vector<uint8_t> key;
+        DBCommon::StringToVector(hashDev, key);
+        innerErrCode = SetMetadataToDb(key, value);
+        if (innerErrCode != E_OK) {
+            LOGW("[Metadata][ClearAllMetaDataValue] action %" PRIu32 " save meta data failed %d", innerClearAction,
+                innerErrCode);
+            errCode = errCode == E_OK ? innerErrCode : errCode;
+        }
+    }
+    if (errCode == E_OK) {
+        LOGI("[Metadata][ClearAllMetaDataValue] success clear action %" PRIu32, innerClearAction);
+    }
+    return errCode;
+}
+
+void Metadata::ClearMetaDataValue(uint32_t innerClearAction, MetaDataValue &metaDataValue)
+{
+    auto mark = static_cast<uint32_t>(InnerClearAction::CLEAR_ABILITY_SYNC_MARK);
+    if ((innerClearAction & mark) == mark) {
+        metaDataValue.syncMark =
+            DBCommon::EraseBit(metaDataValue.syncMark, static_cast<uint64_t>(SyncMark::SYNC_MARK_ABILITY_SYNC));
+    }
+    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_TIME_SYNC_MARK);
+    if ((innerClearAction & mark) == mark) {
+        metaDataValue.syncMark =
+            DBCommon::EraseBit(metaDataValue.syncMark, static_cast<uint64_t>(SyncMark::SYNC_MARK_TIME_SYNC));
+    }
+    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_REMOTE_SCHEMA_VERSION);
+    if ((innerClearAction & mark) == mark) {
+        metaDataValue.remoteSchemaVersion = 0;
+    }
+    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_SYSTEM_TIME_OFFSET);
+    if ((innerClearAction & mark) == mark) {
+        metaDataValue.systemTimeOffset = 0;
+    }
+}
+
+int Metadata::SetAbilitySyncFinishMark(const std::string &deviceId, bool finish)
+{
+    return SetSyncMark(deviceId, SyncMark::SYNC_MARK_ABILITY_SYNC, finish);
+}
+
+bool Metadata::IsAbilitySyncFinish(const std::string &deviceId)
+{
+    return IsContainSyncMark(deviceId, SyncMark::SYNC_MARK_ABILITY_SYNC);
+}
+
+int Metadata::SetTimeSyncFinishMark(const std::string &deviceId, bool finish)
+{
+    return SetSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_SYNC, finish);
+}
+
+bool Metadata::IsTimeSyncFinish(const std::string &deviceId)
+{
+    return IsContainSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_SYNC);
+}
+
+int Metadata::SetSyncMark(const std::string &deviceId, SyncMark syncMark, bool finish)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    auto mark = static_cast<uint64_t>(syncMark);
+    if (finish) {
+        metadata.syncMark |= mark;
+    } else {
+        metadata.syncMark = DBCommon::EraseBit(metadata.syncMark, mark);
+    }
+    LOGD("[Metadata] Mark:%" PRIu64 " sync finish:%d sync mark:%" PRIu64, mark, static_cast<int>(finish),
+        metadata.syncMark);
+    return SaveMetaDataValue(deviceId, metadata);
+}
+
+bool Metadata::IsContainSyncMark(const std::string &deviceId, SyncMark syncMark)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    auto mark = static_cast<uint64_t>(syncMark);
+    return (metadata.syncMark & mark) == mark;
+}
+
+int Metadata::SetRemoteSchemaVersion(const std::string &deviceId, uint64_t schemaVersion)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    metadata.remoteSchemaVersion = schemaVersion;
+    LOGI("[Metadata] Set %.3s schema version %" PRIu64, deviceId.c_str(), schemaVersion);
+    return SaveMetaDataValue(deviceId, metadata);
+}
+
+uint64_t Metadata::GetRemoteSchemaVersion(const std::string &deviceId)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    LOGI("[Metadata] Get %.3s schema version %" PRIu64, deviceId.c_str(), metadata.remoteSchemaVersion);
+    return metadata.remoteSchemaVersion;
+}
+
+int Metadata::SetSystemTimeOffset(const std::string &deviceId, int64_t systemTimeOffset)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    metadata.systemTimeOffset = systemTimeOffset;
+    LOGI("[Metadata] Set %.3s systemTimeOffset %" PRIu64, deviceId.c_str(), systemTimeOffset);
+    return SaveMetaDataValue(deviceId, metadata);
+}
+
+int64_t Metadata::GetSystemTimeOffset(const std::string &deviceId)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    LOGI("[Metadata] Get %.3s systemTimeOffset %" PRIu64, deviceId.c_str(), metadata.systemTimeOffset);
+    return metadata.systemTimeOffset;
+}
+
+std::pair<int, uint64_t> Metadata::GetLocalSchemaVersion()
+{
+    std::lock_guard<std::mutex> autoLock(localMetaDataMutex_);
+    auto [errCode, localMetaData] = GetLocalMetaData();
+    if (errCode != E_OK) {
+        return {errCode, 0};
+    }
+    LOGI("[Metadata] Get local schema version %" PRIu64, localMetaData.localSchemaVersion);
+    return {errCode, localMetaData.localSchemaVersion};
+}
+
+int Metadata::SetLocalSchemaVersion(uint64_t schemaVersion)
+{
+    std::lock_guard<std::mutex> autoLock(localMetaDataMutex_);
+    auto [errCode, localMetaData] = GetLocalMetaData();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    localMetaData.localSchemaVersion = schemaVersion;
+    LOGI("[Metadata] Set local schema version %" PRIu64, schemaVersion);
+    return SaveLocalMetaData(localMetaData);
+}
+
+int Metadata::SaveLocalMetaData(const LocalMetaData &localMetaData)
+{
+    auto [errCode, value] = SerializeLocalMetaData(localMetaData);
+    if (errCode != E_OK) {
+        LOGE("[Metadata] Serialize local meta data failed %d", errCode);
+        return errCode;
+    }
+    std::string k(LOCAL_META_DATA_KEY);
+    Key key(k.begin(), k.end());
+    return SetMetadataToDb(key, value);
+}
+
+std::pair<int, LocalMetaData> Metadata::GetLocalMetaData()
+{
+    std::string k(LOCAL_META_DATA_KEY);
+    Key key(k.begin(), k.end());
+    Value value;
+    int errCode = GetMetadataFromDb(key, value);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        return {errCode, {}};
+    }
+    return DeSerializeLocalMetaData(value);
+}
+
+std::pair<int, Value> Metadata::SerializeLocalMetaData(const LocalMetaData &localMetaData)
+{
+    std::pair<int, Value> res = {E_OK, {}};
+    auto &[errCode, value] = res;
+    value.resize(CalculateLocalMetaDataLength());
+    Parcel parcel(value.data(), value.size());
+    (void)parcel.WriteUInt32(localMetaData.version);
+    (void)parcel.WriteUInt64(localMetaData.localSchemaVersion);
+    if (parcel.IsError()) {
+        LOGE("[Metadata] Serialize localMetaData failed");
+        errCode = -E_SERIALIZE_ERROR;
+        value.clear();
+        return res;
+    }
+    return res;
+}
+
+std::pair<int, LocalMetaData> Metadata::DeSerializeLocalMetaData(const Value &value)
+{
+    std::pair<int, LocalMetaData> res;
+    auto &[errCode, meta] = res;
+    if (value.empty()) {
+        errCode = E_OK;
+        meta.version = SOFTWARE_VERSION_RELEASE_8_0;
+        return res;
+    }
+    Parcel parcel(const_cast<uint8_t *>(value.data()), value.size());
+    parcel.ReadUInt32(meta.version);
+    parcel.ReadUInt64(meta.localSchemaVersion);
+    if (parcel.IsError()) {
+        LOGE("[Metadata] DeSerialize localMetaData failed");
+        errCode = -E_SERIALIZE_ERROR;
+        return res;
+    }
+    return res;
+}
+
+uint64_t Metadata::CalculateLocalMetaDataLength()
+{
+    uint64_t length = Parcel::GetUInt32Len(); // version
+    length += Parcel::GetUInt64Len(); // local schema version
+    return length;
 }
 
 Metadata::MetaWaterMarkAutoLock::MetaWaterMarkAutoLock(std::shared_ptr<Metadata> metadata)
