@@ -157,8 +157,9 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
     ASSERT_EQ(value.ToString(), "Put2 Value");
     Value value1;
     status = kvStore_->Get({ "Put Test" }, "networkId", value1);
-    ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(value1.ToString(), "Put2 Value");
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore_->Get({ "Put Test" }, "", value1);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
 /**
