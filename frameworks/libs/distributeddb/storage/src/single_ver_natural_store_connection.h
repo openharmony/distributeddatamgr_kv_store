@@ -48,6 +48,10 @@ protected:
     virtual int CheckSyncKeysValid(const std::vector<Key> &keys) const = 0;
 
     virtual int DeleteBatchInner(const IOption &option, const std::vector<Key> &keys) = 0;
+
+    bool CheckAndGetEntryLen(const std::vector<Entry> &entries, uint32_t limit, uint32_t &keyLen) const;
+
+    bool CheckAndGetKeyLen(const std::vector<Key> &keys, const uint32_t limit, uint32_t &keyLen) const;
 };
 } // namespace DistributedDB
 

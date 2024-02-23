@@ -920,6 +920,51 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, LimitDataSync001, TestSize.Lev
 }
 
 /**
+ * @tc.name: Limit Data Sync 002
+ * @tc.desc: Test PutBatch with invalid entries and then call sync.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024012914038
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, LimitDataSync002, TestSize.Level1)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(g_deviceC->GetDeviceId());
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, DBConstant::MAX_VALUE_SIZE); // 4M
+    Value emptyValue; // 0k
+    vector<Entry> illegalEntrys; // size is 512M + 1KB
+    for (int i = 0; i < 127; i++) { // 127 * (legalValue + legalKey) is equal to 508M + 127KB < 512M.
+        illegalEntrys.push_back({legalKey, legalValue});
+    }
+    for (int i = 0; i < 3970; i++) { // 3970 * legalKey is equal to 3970KB.
+        illegalEntrys.push_back({legalKey, emptyValue});
+    }
+    /**
+     * @tc.steps: step1. PutBatch with invalid entries inside which total length of the key and valud is more than 512M
+     * @tc.expected: step1. PutBatch should return INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvDelegatePtr->PutBatch(illegalEntrys), INVALID_ARGS);
+    /**
+     * @tc.steps: step2. deviceA call push_pull sync
+     * @tc.expected: step2. sync return OK and all statuses is OK.
+     */
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result);
+    ASSERT_TRUE(status == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        printf("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+}
+
+/**
  * @tc.name: Auto Sync 001
  * @tc.desc: Verify auto sync enable function.
  * @tc.type: FUNC

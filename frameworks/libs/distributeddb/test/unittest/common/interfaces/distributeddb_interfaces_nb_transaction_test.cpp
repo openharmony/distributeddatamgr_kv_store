@@ -440,56 +440,54 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit003, TestSize.Level1)
      */
     EXPECT_EQ(g_kvNbDelegatePtr->StartTransaction(), OK);
     /**
-     * @tc.steps:step2. Put (key1,value1)
+     * @tc.steps:step2. Put (key1,value1) and Delete key1, sum size is 2KB
      * @tc.expected: step2. return OK.
      */
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, DBConstant::MAX_KEY_SIZE); // 1K
+    Value emptyValue;
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(legalKey, emptyValue), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(legalKey), OK);
     /**
-     * @tc.steps:step3. Delete key1
+     * @tc.steps:step3. PutBatch 262143 records, each recode's key size is 1K, value size is 1k,
+     * the sum size is 512M - 4KB.
      * @tc.expected: step3. return OK.
      */
-    EXPECT_EQ(g_kvNbDelegatePtr->Delete(KEY_1), OK);
-    /**
-     * @tc.steps:step4. PutBatch 64 records (from key2 to key65)
-     * @tc.expected: step4. return OK.
-     */
-    vector<Entry> entrysBase;
-    vector<Key> keysBase;
-    DistributedDBUnitTest::GenerateRecords(BATCH_BASE_SIZE + 5, entrysBase, keysBase);
 
-    vector<Entry> entrys1(entrysBase.begin() + 1, entrysBase.end());
-    EXPECT_EQ(entrys1.size(), 64UL);
-    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrys1), OK);
+    vector<Entry> entrysBase; // size is 512M - 4KB
+    for (int i = 0; i < 262142; i++) { // 262143 * (legalValue + legalKey) is equal to 512M - 4KB.
+        entrysBase.push_back({legalKey, legalValue});
+    }
+
+    vector<Key> keysBase; // size is 3KB
+    for (int i = 0; i < 3; i++) { // 3 * legalKey is equal to 3KB.
+        keysBase.push_back(legalKey);
+    }
+
+    ASSERT_EQ(g_kvNbDelegatePtr->PutBatch(entrysBase), OK); // put 512M - 2KB size data into db.
     /**
-     * @tc.steps:step5. DeleteBatch 63 records (from key2 to key64)
-     * @tc.expected: step5. return OK.
+     * @tc.steps:step4. PutBatch which entries size is 4KB and DeleteBatch record which keys size 3KB,
+     * and the sum size is 512M + 1KB
+     * @tc.expected: step4. return OVER_MAX_LIMITS.
      */
-    vector<Key> keys1(keysBase.begin() + 1, keysBase.end() - 1);
-    EXPECT_EQ(keys1.size(), 63UL);
-    EXPECT_EQ(g_kvNbDelegatePtr->DeleteBatch(keys1), OVER_MAX_LIMITS);
+    vector<Entry> entrys1(entrysBase.begin(), entrysBase.begin() + 2); // 4KB
+    ASSERT_EQ(g_kvNbDelegatePtr->PutBatch(entrys1), OVER_MAX_LIMITS);
+
+    vector<Key> keys1(keysBase.begin(), keysBase.end());
+    ASSERT_EQ(g_kvNbDelegatePtr->DeleteBatch(keys1), OVER_MAX_LIMITS);
     /**
-     * @tc.steps:step6. DeleteBatch 60 records (from key1 to key60)
-     * @tc.expected: step6. return OK.
+     * @tc.steps:step5. DeleteBatch record which keys size is 2KB, and the sum size is 512M
+     * @tc.expected:step5. return OK.
      */
-    vector<Key> keys2(keysBase.begin(), keysBase.begin() + 60);
-    EXPECT_EQ(keys2.size(), 60UL);
-    EXPECT_EQ(g_kvNbDelegatePtr->DeleteBatch(keys2), OK);
+    vector<Key> keys2(keysBase.begin(), keysBase.end() - 1);
+    ASSERT_EQ(g_kvNbDelegatePtr->DeleteBatch(keys2), OK);
     /**
      * @tc.steps:step6. Commit.
-     * @tc.expected: step6. return OK.
+     * @tc.expected:step6. return OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->Commit(), OK);
-    /**
-     * @tc.steps:step7. GetEntries.
-     * @tc.expected: step7. return OK.
-     */
-    vector<Entry> entriesExpect(entrysBase.begin() + 60, entrysBase.end());
-    EXPECT_EQ(entriesExpect.size(), 5UL);
-    const Key prefix;
-    vector<Entry> entriesRet;
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(prefix, entriesRet), OK);
-    EXPECT_TRUE(DistributedDBToolsUnitTest::IsEntriesEqual(entriesExpect, entriesRet));
-
     // finilize
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_transaction_commit003"), OK);
