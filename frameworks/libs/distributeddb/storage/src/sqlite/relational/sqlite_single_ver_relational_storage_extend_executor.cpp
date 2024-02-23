@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return -E_CLOUD_ERROR;
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
-        " a.cloud_gid";
+        " a.cloud_gid, a.sharing_resource";
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
@@ -978,6 +978,9 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
         sql += "data_key = -1,  flag = 1";
     }
     sql += ", cloud_gid = '', version = '', ";
+    if (!isLogicDelete_) {
+        sql += "sharing_resource = '', ";
+    }
     return sql;
 }
 
@@ -1842,6 +1845,42 @@ int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *st
             break;
         }
         startIndex++;
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement(const VBucket &vBucket,
+    const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt)
+{
+    int errCode = E_OK;
+    std::string version;
+    if (putDataMode_ == PutDataMode::SYNC && CloudStorageUtils::IsSharedTable(tableSchema)) {
+        errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
+        if (errCode != E_OK || version.empty()) {
+            LOGE("get version for insert log statement failed, %d", errCode);
+            return -E_CLOUD_ERROR;
+        }
+    }
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 10, version); // 10 is version
+    if (errCode != E_OK) {
+        LOGE("Bind version to insert log statement failed, %d", errCode);
+        return errCode;
+    }
+
+    std::string shareUri;
+    if (putDataMode_ == PutDataMode::SYNC) {
+        errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
+            vBucket, shareUri);
+        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+            LOGE("get shareUri for insert log statement failed, %d", errCode);
+            return -E_CLOUD_ERROR;
+        }
+    }
+
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 11, shareUri); // 11 is sharing_resource
+    if (errCode != E_OK) {
+        LOGE("Bind shareUri to insert log statement failed, %d", errCode);
+        return errCode;
     }
     return errCode;
 }

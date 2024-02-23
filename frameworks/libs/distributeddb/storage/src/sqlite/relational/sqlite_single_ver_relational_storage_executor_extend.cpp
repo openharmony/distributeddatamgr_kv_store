@@ -86,20 +86,23 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
     return errCode != E_OK ? errCode : ret;
 }
 
-void SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo)
+int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo)
 {
-    logInfo.dataKey = sqlite3_column_int64(statement, 0);
+    int index = 0;
+    logInfo.dataKey = sqlite3_column_int64(statement, index++);
     std::vector<uint8_t> device;
-    (void)SQLiteUtils::GetColumnBlobValue(statement, 1, device);    // 1 is device
+    (void)SQLiteUtils::GetColumnBlobValue(statement, index++, device);    // 1 is device
     DBCommon::VectorToString(device, logInfo.device);
     std::vector<uint8_t> originDev;
-    (void)SQLiteUtils::GetColumnBlobValue(statement, 2, originDev); // 2 is originDev
+    (void)SQLiteUtils::GetColumnBlobValue(statement, index++, originDev); // 2 is originDev
     DBCommon::VectorToString(originDev, logInfo.originDev);
-    logInfo.timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 3)); // 3 is timestamp
-    logInfo.wTimestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 4)); // 4 is wtimestamp
-    logInfo.flag = static_cast<uint64_t>(sqlite3_column_int(statement, 5)); // 5 is flag
-    (void)SQLiteUtils::GetColumnBlobValue(statement, 6, logInfo.hashKey); // 6 is hash_key
-    (void)SQLiteUtils::GetColumnTextValue(statement, 7, logInfo.cloudGid); // 7 is cloud_gid
+    logInfo.timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, index++)); // 3 is timestamp
+    logInfo.wTimestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, index++)); // 4 is wtimestamp
+    logInfo.flag = static_cast<uint64_t>(sqlite3_column_int(statement, index++)); // 5 is flag
+    (void)SQLiteUtils::GetColumnBlobValue(statement, index++, logInfo.hashKey); // 6 is hash_key
+    (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.cloudGid); // 7 is cloud_gid
+    (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.sharingResource); // 8 is sharing_resource
+    return index;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *statement,
@@ -107,7 +110,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
     VBucket &assetInfo)
 {
     GetLogInfoByStatement(statement, dataInfoWithLog.logInfo);
-    int index = 8; // 8 is start index of assetInfo or primary key
+    int index = GetLogInfoByStatement(statement, dataInfoWithLog.logInfo); // start index of assetInfo or primary key
     int errCode = E_OK;
     for (const auto &field: assetFields) {
         Type cloudValue;
@@ -232,8 +235,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         LOGE("query log table failed because of both primary key and gid are empty.");
         return -E_CLOUD_ERROR;
     }
-    std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid FROM "
-        + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
+    std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
+        " sharing_resource FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
     if (!cloudGid.empty()) {
         sql += "cloud_gid = ? OR ";
     }
@@ -570,7 +573,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
     }
 
     std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)";
+        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)";
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {
@@ -669,11 +672,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
             return -E_CLOUD_ERROR;
         }
     }
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 10, version); // 10 is version
-    if (errCode != E_OK) {
-        LOGE("Bind version to insert log statement failed, %d", errCode);
-    }
-    return errCode;
+    return BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBucket &vBucket,
@@ -892,38 +891,9 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpdateLogStatement(cons
     const TableSchema &tableSchema, const std::vector<std::string> &colNames, bool allowPrimaryKeyEmpty,
     sqlite3_stmt *updateLogStmt)
 {
-    int index = 0;
-    int errCode = E_OK;
-    for (const auto &colName : colNames) {
-        index++;
-        if (colName == CloudDbConstant::GID_FIELD) {
-            if (vBucket.find(colName) == vBucket.end()) {
-                LOGE("cloud data doesn't contain gid field when bind update log stmt.");
-                return -E_CLOUD_ERROR;
-            }
-            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
-                std::get<std::string>(vBucket.at(colName)));
-        } else if (colName == CloudDbConstant::MODIFY_FIELD) {
-            if (vBucket.find(colName) == vBucket.end()) {
-                LOGE("cloud data doesn't contain modify field when bind update log stmt.");
-                return -E_CLOUD_ERROR;
-            }
-            errCode = SQLiteUtils::BindInt64ToStatement(updateLogStmt, index, std::get<int64_t>(vBucket.at(colName)));
-        } else if (colName == CloudDbConstant::VERSION_FIELD) {
-            if (vBucket.find(colName) == vBucket.end()) {
-                LOGE("cloud data doesn't contain version field when bind update log stmt.");
-                return -E_CLOUD_ERROR;
-            }
-            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
-                std::get<std::string>(vBucket.at(colName)));
-        } else {
-            LOGE("invalid col name when bind value to update log statement.");
-            return -E_INTERNAL_ERROR;
-        }
-        if (errCode != E_OK) {
-            LOGE("fail to bind value to update log statement.");
-            return errCode;
-        }
+    int errCode = CloudStorageUtils::BindUpdateLogStmtFromVBucket(vBucket, tableSchema, colNames, updateLogStmt);
+    if (errCode != E_OK) {
+        return errCode;
     }
     std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
     if (pkMap.empty()) {
@@ -935,7 +905,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpdateLogStatement(cons
     if (errCode != E_OK) {
         return errCode;
     }
-    return SQLiteUtils::BindBlobToStatement(updateLogStmt, index + 1, hashKey);
+    return SQLiteUtils::BindBlobToStatement(updateLogStmt, colNames.size() + 1, hashKey);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(const TableSchema &tableSchema,

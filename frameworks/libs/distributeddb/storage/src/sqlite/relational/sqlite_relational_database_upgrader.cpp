@@ -195,6 +195,9 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string 
         SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "extend_field", "blob" },
             { "cursor", "int" }, { "version", "text" } }, addColSqlVec);
     }
+    if (oldVersion < DBConstant::LOG_TABLE_VERSION_5_3) {
+        SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "sharing_resource", "text" } }, addColSqlVec);
+    }
     for (size_t i = 0; i < addColSqlVec.size(); ++i) {
         errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);
         if (errCode != E_OK) {

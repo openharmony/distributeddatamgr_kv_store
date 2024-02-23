@@ -75,6 +75,7 @@ void CloudSyncUtils::RemoveDataExceptExtendInfo(VBucket &datum, const std::vecto
             key != CloudDbConstant::DELETE_FIELD &&
             key != CloudDbConstant::CURSOR_FIELD &&
             key != CloudDbConstant::VERSION_FIELD &&
+            key != CloudDbConstant::SHARING_RESOURCE_FIELD &&
             (std::find(pkColNames.begin(), pkColNames.end(), key) == pkColNames.end())) {
                 item = datum.erase(item);
             } else {
@@ -148,6 +149,7 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
     bool isSame = localLogInfo.timestamp == cloudLogInfo.timestamp &&
         EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
         localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
+        localLogInfo.sharingResource == cloudLogInfo.sharingResource &&
         (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
     return !isSame;
 }
@@ -183,6 +185,8 @@ LogInfo CloudSyncUtils::GetCloudLogInfo(DistributedDB::VBucket &datum)
     cloudLogInfo.wTimestamp = (Timestamp)std::get<int64_t>(datum[CloudDbConstant::CREATE_FIELD]);
     cloudLogInfo.flag = (std::get<bool>(datum[CloudDbConstant::DELETE_FIELD])) ? 1u : 0u;
     cloudLogInfo.cloudGid = std::get<std::string>(datum[CloudDbConstant::GID_FIELD]);
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
+        datum, cloudLogInfo.sharingResource);
     return cloudLogInfo;
 }
 
@@ -347,6 +351,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
             updateLogInfo.wTimestamp = cloudInfo.wTimestamp;
             updateLogInfo.device = CloudDbConstant::DEFAULT_CLOUD_DEV;
             updateLogInfo.hashKey = Key(hashKey.begin(), hashKey.end());
+            updateLogInfo.sharingResource = cloudInfo.sharingResource;
             if (opType == OpType::DELETE) {
                 updateLogInfo.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
             } else if (opType == OpType::INSERT) {
@@ -358,6 +363,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
         case OpType::UPDATE_TIMESTAMP: {
             updateLogInfo = localInfo;
             updateLogInfo.cloudGid.clear();
+            updateLogInfo.sharingResource.clear();
             break;
         }
         default:

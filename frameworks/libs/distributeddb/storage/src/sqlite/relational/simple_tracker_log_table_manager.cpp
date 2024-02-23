@@ -65,7 +65,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid";
-    insertTrigger += ", extend_field, cursor, version)";
+    insertTrigger += ", extend_field, cursor, version, sharing_resource)";
     insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
@@ -73,7 +73,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += ", case when (SELECT count(1)<>0 FROM " + logTblName + ") then ";
     insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
     insertTrigger += " FROM " +  logTblName + ")";
-    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '');\n";
+    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '');\n";
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, ";
     insertTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
     insertTrigger += ");\n";

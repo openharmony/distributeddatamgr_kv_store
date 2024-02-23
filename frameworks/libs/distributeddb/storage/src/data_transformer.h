@@ -35,6 +35,7 @@ struct LogInfo {
     uint64_t flag = 0;
     Key hashKey; // primary key hash value
     std::string cloudGid; // use for sync with cloud
+    std::string sharingResource; // use for cloud share data
 };
 
 enum class LogInfoFlag : uint32_t {

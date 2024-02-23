@@ -39,6 +39,7 @@ static constexpr const char *DATAKEY = "DATA_KEY";
 static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *HASH_KEY = "HASH_KEY";
+static constexpr const char *SHARING_RESOURCE = "SHARING_RESOURCE";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 // set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
 static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(FLAG | 0x02) & (~0x10)";
@@ -172,7 +173,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
             std::string(DBConstant::SQLITE_INNER_ROWID) +
             ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
     }
-    sql += ", ''";
+    sql += ", '', ''";
     sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
@@ -1793,7 +1794,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " +
         SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
-        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
+        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '' " +
+        "WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
@@ -1875,10 +1877,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
     }  else if (opType == OpType::UPDATE_TIMESTAMP) {
         updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) +
-            ", timestamp = ?, cloud_gid = '', version = ''";
+            ", timestamp = ?, cloud_gid = '', version = '', sharing_resource = ''";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     } else if (opType == OpType::CLEAR_GID) {
-        updateLogSql += "cloud_gid = '', version = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
+        updateLogSql += "cloud_gid = '', version = '', sharing_resource = '', flag = flag & " +
+            std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
@@ -1889,11 +1892,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "device = 'cloud', timestamp = ?";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     }
-    // only share table need to set version
-    if (CloudStorageUtils::IsSharedTable(tableSchema) && opType != OpType::DELETE &&
-        opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
-        updateLogSql += ", version = ?";
-        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
+    if (opType != OpType::DELETE && opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
+        // only share table need to set version
+        if (CloudStorageUtils::IsSharedTable(tableSchema)) {
+            updateLogSql += ", version = ?";
+            updateColName.push_back(CloudDbConstant::VERSION_FIELD);
+        }
+        updateLogSql += ", sharing_resource = ?";
+        updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
     }
 
     int errCode = AppendUpdateLogRecordWhereSqlCondition(tableSchema, vBucket, updateLogSql);
