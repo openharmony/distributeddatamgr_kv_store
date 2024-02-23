@@ -211,7 +211,7 @@ private:
     std::atomic<int> cacheMaxSizeForNewResultSet_{0}; // Will be init to default value in constructor
 
     int conflictType_;
-    uint32_t transactionEntrySize_; // used for transaction
+    uint32_t transactionEntryLen_; // used for transaction
     Timestamp currentMaxTimestamp_; // used for transaction
     SingleVerNaturalStoreCommitNotifyData *committedData_; // used for transaction
     SingleVerNaturalStoreCommitNotifyData *localCommittedData_;

@@ -55,28 +55,36 @@ bool SingleVerNaturalStoreConnection::IsExtendedCacheDBMode() const
     return false;
 }
 
-int SingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
+bool SingleVerNaturalStoreConnection::CheckAndGetEntryLen(const std::vector<Entry> &entries, uint32_t limit,
+    uint32_t &entryLen) const
 {
-    if (entries.size() > DBConstant::MAX_BATCH_SIZE) {
-        return -E_INVALID_ARGS;
-    }
-
-    SingleVerNaturalStore *naturalStore = GetDB<SingleVerNaturalStore>();
-    if (naturalStore == nullptr) {
-        return -E_INVALID_DB;
-    }
-
-    int errCode = CheckWritePermission();
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
+    uint32_t len = 0;
     for (const auto &entry : entries) {
-        errCode = naturalStore->CheckDataStatus(entry.key, entry.value, false);
-        if (errCode != E_OK) {
-            return errCode;
+        len += (entry.key.size() + entry.value.size());
+        if (len > limit) {
+            return false; // stop calculate key len when it excced limit.
         }
     }
+    entryLen = len;
+    return true;
+}
+
+bool SingleVerNaturalStoreConnection::CheckAndGetKeyLen(const std::vector<Key> &keys, const uint32_t limit,
+    uint32_t &keyLen) const
+{
+    uint32_t len = 0;
+    for (const auto &key : keys) {
+        len += key.size();
+        if (len > limit) {
+            return false; // stop calculate key len when it excced limit.
+        }
+    }
+    keyLen = len;
+    return true;
+}
+
+int SingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
+{
     return E_OK;
 }
 

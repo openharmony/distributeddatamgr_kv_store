@@ -43,7 +43,7 @@ SQLiteSingleVerNaturalStoreConnection::SQLiteSingleVerNaturalStoreConnection(SQL
     : SingleVerNaturalStoreConnection(kvDB),
       cacheMaxSizeForNewResultSet_(DEFAULT_RESULT_SET_CACHE_MAX_SIZE),
       conflictType_(0),
-      transactionEntrySize_(0),
+      transactionEntryLen_(0),
       currentMaxTimestamp_(0),
       committedData_(nullptr),
       localCommittedData_(nullptr),
@@ -810,8 +810,8 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
             return errCode;
         }
     }
-
-    if ((transactionEntrySize_ + entries.size()) > DBConstant::MAX_TRANSACTION_ENTRY_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetEntryLen(entries, (DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS - transactionEntryLen_), len)) {
         DBDfxAdapter::FinishTracing();
         return -E_MAX_LIMITS;
     }
@@ -822,7 +822,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
         errCode = SaveLocalEntries(entries);
     }
     if (errCode == E_OK) {
-        transactionEntrySize_ += entries.size();
+        transactionEntryLen_ += len;
     }
 
     if (isAuto) {
@@ -852,8 +852,8 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
             return errCode;
         }
     }
-
-    if ((transactionEntrySize_ + keys.size()) > DBConstant::MAX_TRANSACTION_ENTRY_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetKeyLen(keys, (DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS - transactionEntryLen_), len)) {
         DBDfxAdapter::FinishTracing();
         return -E_MAX_LIMITS;
     }
@@ -864,7 +864,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
         errCode = DeleteLocalEntries(keys);
     }
     if (errCode == E_OK) {
-        transactionEntrySize_ += keys.size();
+        transactionEntryLen_ += len;
     }
 
     if (isAuto) {
@@ -1095,7 +1095,8 @@ int SQLiteSingleVerNaturalStoreConnection::CheckWritePermission() const
 
 int SQLiteSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
 {
-    if (entries.size() > DBConstant::MAX_BATCH_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetEntryLen(entries, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
         return -E_INVALID_ARGS;
     }
 
@@ -1119,10 +1120,10 @@ int SQLiteSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vect
 
 int SQLiteSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<Key> &keys) const
 {
-    if (keys.size() > DBConstant::MAX_BATCH_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetKeyLen(keys, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
         return -E_INVALID_ARGS;
     }
-
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
         return -E_INVALID_DB;
@@ -1143,7 +1144,8 @@ int SQLiteSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<
 
 int SQLiteSingleVerNaturalStoreConnection::CheckLocalEntriesValid(const std::vector<Entry> &entries) const
 {
-    if (entries.size() > DBConstant::MAX_BATCH_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetEntryLen(entries, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
         return -E_INVALID_ARGS;
     }
 
@@ -1167,10 +1169,10 @@ int SQLiteSingleVerNaturalStoreConnection::CheckLocalEntriesValid(const std::vec
 
 int SQLiteSingleVerNaturalStoreConnection::CheckLocalKeysValid(const std::vector<Key> &keys) const
 {
-    if (keys.size() > DBConstant::MAX_BATCH_SIZE) {
+    uint32_t len = 0;
+    if (!CheckAndGetKeyLen(keys, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
         return -E_INVALID_ARGS;
     }
-
     GenericKvDB *naturalStore = GetDB<GenericKvDB>();
     if (naturalStore == nullptr) {
         return -E_INVALID_DB;
@@ -1236,7 +1238,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionInCacheMode(TransactT
     }
 
     writeHandle_ = handle;
-    transactionEntrySize_ = 0;
+    transactionEntryLen_ = 0;
     return E_OK;
 }
 
@@ -1286,7 +1288,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType
     }
 
     writeHandle_ = handle;
-    transactionEntrySize_ = 0;
+    transactionEntryLen_ = 0;
     return E_OK;
 }
 
@@ -1312,7 +1314,7 @@ int SQLiteSingleVerNaturalStoreConnection::CommitInner()
 
     int errCode = writeHandle_->Commit();
     ReleaseExecutor(writeHandle_);
-    transactionEntrySize_ = 0;
+    transactionEntryLen_ = 0;
 
     if (!isCacheOrMigrating) {
         CommitAndReleaseNotifyData(committedData_, true,
@@ -1334,7 +1336,7 @@ int SQLiteSingleVerNaturalStoreConnection::CommitInner()
 int SQLiteSingleVerNaturalStoreConnection::RollbackInner()
 {
     int errCode = writeHandle_->Rollback();
-    transactionEntrySize_ = 0;
+    transactionEntryLen_ = 0;
     currentMaxTimestamp_ = 0;
     if (!IsExtendedCacheDBMode()) {
         ReleaseCommitData(committedData_);

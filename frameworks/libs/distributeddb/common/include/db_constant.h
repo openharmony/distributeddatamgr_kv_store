@@ -26,6 +26,7 @@ public:
     static constexpr size_t MAX_BATCH_SIZE = 128;
     static constexpr size_t MAX_DEV_LENGTH = 128;
     static constexpr size_t MAX_TRANSACTION_ENTRY_SIZE = 128;
+    static constexpr size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
 
     static constexpr size_t MAX_DATA_DIR_LENGTH = 512;
 

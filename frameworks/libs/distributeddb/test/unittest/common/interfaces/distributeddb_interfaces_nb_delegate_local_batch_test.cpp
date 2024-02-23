@@ -248,11 +248,11 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
     entrysOverSize.push_back(entryTemp);
     /**
      * @tc.steps: step2. PutBatch operates on four sets of data. and use get check the result of Vect3.
-     * @tc.expected: step2. Returns INVALID_ARGS for 129 records, and returns OK for the rest. all get return NOT_FOUND.
+     * @tc.expected: step2. Returns OK for 129 records.
      */
-    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysOverSize), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysOverSize), OK);
     for (size_t i = 0; i < entrysOverSize.size(); i++) {
-        EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysOverSize[i].key, valueTemp), NOT_FOUND);
+        EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysOverSize[i].key, valueTemp), OK);
     }
     /**
      * @tc.steps: step3. Use get check the result of Vect2.
@@ -441,6 +441,187 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
 }
 
 /**
+  * @tc.name: SingleVerPutLocalBatch005
+  * @tc.desc: Check for legal parameters that the sum size of all entries is smaller than 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct two sets of vector <Entry>, each set of two data contains records:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, DBConstant::MAX_VALUE_SIZE); // 4M
+    Value emptyValue; // 0k
+    vector<Entry> entrysKeyLegal; // size is 512M - 1kB
+    for (int i = 0; i < 524287; i++) { // 524287 * legalKey is equal to 512M - 1KB.
+        entrysKeyLegal.push_back({legalKey, emptyValue});
+    }
+
+    vector<Entry> entrysMixLegal; // size is 511M + 511KB < 512M
+    for (int i = 0; i < 127; i++) { // 127 * (legalValue + legalKey) is equal to 508M + 127KB < 512M.
+        entrysMixLegal.push_back({legalKey, legalValue});
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerPutLocalBatch005", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. PutBatch operates on two sets of data.
+     * @tc.expected: step2. two operations return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysKeyLegal), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysMixLegal), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutLocalBatch005"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerPutLocalBatch006
+  * @tc.desc: Check for legal parameters that the sum size of all entries is equal to 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct two sets of vector <Entry>, each set of two data contains records:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, DBConstant::MAX_VALUE_SIZE); // 4M
+    Value emptyValue; // 0k
+
+    vector<Entry> entrysKeyLegal; // size is 512M
+    for (int i = 0; i < 524288; i++) { // 524288 * legalKey is equal to 512M.
+        entrysKeyLegal.push_back({legalKey, emptyValue});
+    }
+
+    vector<Entry> entrysMixLegal; // size is 512M
+    for (int i = 0; i < 127; i++) { // 127 * (legalValue + legalKey) is equal to 508M + 127KB < 512M.
+        entrysMixLegal.push_back({legalKey, legalValue});
+    }
+    for (int i = 0; i < 3969; i++) { // 3969 * legalKey is equal to 3969KB.
+        entrysMixLegal.push_back({legalKey, emptyValue});
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerPutLocalBatch006", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. PutBatch operates on two sets of data.
+     * @tc.expected: step2. two operations return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysKeyLegal), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysMixLegal), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutLocalBatch006"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerPutLocalBatch007
+  * @tc.desc: Check for illegal parameters that the sum size of all entries is larger to 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct two sets of vector <Entry>, each set of two data contains records:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, DBConstant::MAX_VALUE_SIZE); // 4M
+    Value emptyValue; // 0k
+
+    vector<Entry> entrysKeyIllegal; // size is 512M + 1KB
+    for (int i = 0; i < 524289; i++) { // 524289 * legalKey is equal to 512M + 1KB.
+        entrysKeyIllegal.push_back({legalKey, emptyValue});
+    }
+
+    vector<Entry> entrysMixIllegal; // size is 512M + 1KB
+    for (int i = 0; i < 127; i++) { // 127 * (legalValue + legalKey) is equal to 508M + 127KB < 512M.
+        entrysMixIllegal.push_back({legalKey, legalValue});
+    }
+    for (int i = 0; i < 3970; i++) { // 3970 * legalKey is equal to 3970KB.
+        entrysMixIllegal.push_back({legalKey, emptyValue});
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerPutLocalBatch007", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. PutBatch operates on two sets of data.
+     * @tc.expected: step2. two operations return INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysKeyIllegal), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysMixIllegal), INVALID_ARGS);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutLocalBatch007"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerPutLocalBatch008
+  * @tc.desc: Check for illegal parameters that the sum size of all entries excced uint32_t limit.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct two sets of vector <Entry>, each set of two data contains records:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value emptyValue; // 0k
+
+    vector<Entry> entrysIllegal; // size excced to the limit of uint32_t
+    for (int i = 0; i < 4194305; i++) { // 4194305 * legalKey is excced to the limit of uint32_t.
+        entrysIllegal.push_back({legalKey, emptyValue});
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerPutLocalBatch008", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. PutBatch operates on two sets of data.
+     * @tc.expected: step2. two operations return INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysIllegal), INVALID_ARGS);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutLocalBatch008"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
   * @tc.name: SingleVerDeleteLocalBatch001
   * @tc.desc: Check for illegal parameters.
   * @tc.type: FUNC
@@ -475,29 +656,23 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), OK);
     }
     /**
-     * @tc.steps: step3. Use DeleteBatch interface to transfer 10 + 119 extra keys (total 129).
-     * @tc.expected: step3. Return INVALID_ARGS.
-     */
-    CreatEntrys(DBConstant::MAX_BATCH_SIZE + 1, keys, values, entries);
-    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keys), INVALID_ARGS);
-    /**
-     * @tc.steps: step4. Use Get to check data in database.
-     * @tc.expected: step4. Key1~10 still in database.
+     * @tc.steps: step3. Use Get to check data in database.
+     * @tc.expected: step3. Key1~10 still in database.
      */
     for (size_t i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), OK);
     }
     /**
-     * @tc.steps: step5. Use the DeleteBatch interface to pass in 10 included
+     * @tc.steps: step4. Use the DeleteBatch interface to pass in 10 included
      *  keys6 ~ 10 + 123 additional key values ​​(128 in total).
-     * @tc.expected: step5. DeleteBatch OK.
+     * @tc.expected: step4. DeleteBatch OK.
      */
     CreatEntrys(DBConstant::MAX_BATCH_SIZE + DIVIDE_BATCH_PRESET_SIZE, keys, values, entries);
     keys.erase(keys.begin(), keys.begin() + DIVIDE_BATCH_PRESET_SIZE);
     EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keys), OK);
     /**
-     * @tc.steps: step6. Use Get to check key1~10 in database.
-     * @tc.expected: step6. Key1~5 in database, key6~10 have been deleted.
+     * @tc.steps: step5. Use Get to check key1~10 in database.
+     * @tc.expected: step5. Key1~5 in database, key6~10 have been deleted.
      */
     for (size_t i = 0; i < DIVIDE_BATCH_PRESET_SIZE; i++) {
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), OK);
@@ -506,8 +681,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), NOT_FOUND);
     }
     /**
-     * @tc.steps: step7. Repeat Putbatch key1~10, value1~10.
-     * @tc.expected: step7. Return OK.
+     * @tc.steps: step6. Repeat Putbatch key1~10, value1~10.
+     * @tc.expected: step6. Return OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysBase), OK);
 
@@ -515,26 +690,26 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
     DistributedDBToolsUnitTest::GetRandomKeyValue(illegalKey, DBConstant::MAX_KEY_SIZE + 1); // 1K + 1
     keysBase.push_back(illegalKey);
     /**
-     * @tc.steps: step8. Use DeleteBatch interface to pass in 10 + 1(larger than 1K) keys.
-     * @tc.expected: step8. Return INVALID_ARGS.
+     * @tc.steps: step7. Use DeleteBatch interface to pass in 10 + 1(larger than 1K) keys.
+     * @tc.expected: step7. Return INVALID_ARGS.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keysBase), INVALID_ARGS);
     /**
-     * @tc.steps: step9. Use Get to check key1~10 in database.
-     * @tc.expected: step9. Delete those data failed.
+     * @tc.steps: step8. Use Get to check key1~10 in database.
+     * @tc.expected: step8. Delete those data failed.
      */
     for (size_t i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), OK);
     }
     /**
-     * @tc.steps: step10. Use DeleteBatch interface to pass in 10(in database) + 1 valid keys.
-     * @tc.expected: step10. Delete those data successfully.
+     * @tc.steps: step9. Use DeleteBatch interface to pass in 10(in database) + 1 valid keys.
+     * @tc.expected: step9. Delete those data successfully.
      */
     keysBase.back().erase(keysBase.back().begin(), keysBase.back().begin() + 1);
     EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keysBase), OK);
     /**
-     * @tc.steps: step11. Check data.
-     * @tc.expected: step11. DeleteBatch successfully.
+     * @tc.steps: step10. Check data.
+     * @tc.expected: step10. DeleteBatch successfully.
      */
     for (size_t i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
         EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(entrysBase[i].key, valueRead), NOT_FOUND);
@@ -614,6 +789,150 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerDeleteLocalBatch_002"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerDeleteLocalBatch003
+  * @tc.desc: Check for legal parameters that the sum size of all Keys is smaller than 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct one sets of vector <Key>:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    vector<Key> keysLegal; // size is 512M - 1kB
+    for (int i = 0; i < 524287; i++) { // 524287 * legalKey is equal to 512M - 1KB.
+        keysLegal.push_back(legalKey);
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerDeleteLocalBatch003", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. DeleteBatch operates on sets of data.
+     * @tc.expected: step2. return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keysLegal), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerDeleteLocalBatch003"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerDeleteLocalBatch004
+  * @tc.desc: Check for legal parameters that the sum size of all entries is equal to 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct one sets of vector <Key>:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    vector<Key> keysLegal; // size is 512M
+    for (int i = 0; i < 524288; i++) { // 524288 * legalKey is equal to 512M.
+        keysLegal.push_back(legalKey);
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerDeleteLocalBatch004", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. DeleteBatch operates on sets of data.
+     * @tc.expected: step2. return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteBatch(keysLegal), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerDeleteLocalBatch004"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerDeleteLocalBatch005
+  * @tc.desc: Check for illegal parameters that the sum size of all entries is larger to 512M.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct one sets of vector <Key>:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    vector<Key> keysIllLegal; // size is 512M + 1kB
+    for (int i = 0; i < 524289; i++) { // 524289 * legalKey is equal to 512M + 1KB.
+        keysIllLegal.push_back(legalKey);
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerDeleteLocalBatch005", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. DeleteLocalBatch operates on sets of data.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keysIllLegal), INVALID_ARGS);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerDeleteLocalBatch005"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerDeleteLocalBatch006
+  * @tc.desc: Check for illegal parameters that the sum size of all entries excced uint32_t limit.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct one sets of vector <Key>:
+     */
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    vector<Key> keysIllLegal; // size excced to the limit of uint32_t
+    for (int i = 0; i < 4194305; i++) { // 4194305 * legalKey is excced to the limit of uint32_t.
+        keysIllLegal.push_back(legalKey);
+    }
+
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerDeleteLocalBatch006", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. DeleteLocalBatch operates on sets of data.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keysIllLegal), INVALID_ARGS);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerDeleteLocalBatch006"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 
@@ -711,20 +1030,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
     Key key;
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_LOCAL_ONLY, observer), OK);
     /**
-     * @tc.steps:step3. Put 129 batch data.
+     * @tc.steps:step3. Put invalid batch data.
      * @tc.expected: step3. Returns INVALID_ARGS.
-     */
-    vector<Entry> entrys1;
-    vector<Key> keys1;
-    DistributedDBUnitTest::GenerateRecords(DBConstant::MAX_BATCH_SIZE + 1, entrys1, keys1);
-
-    EXPECT_EQ(entrys1.size(), 129UL);
-    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrys1), INVALID_ARGS);
-    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
-    EXPECT_TRUE(observer->GetEntriesInserted().empty());
-    /**
-     * @tc.steps:step4. Put invalid batch data.
-     * @tc.expected: step4. Returns INVALID_ARGS.
      */
     vector<Entry> entrys2;
     vector<Key> keys2;
@@ -742,8 +1049,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
     EXPECT_TRUE(observer->GetEntriesInserted().empty());
     /**
-     * @tc.steps:step5. Put MAX valid value batch data.
-     * @tc.expected: step5. Returns OK.
+     * @tc.steps:step4. Put MAX valid value batch data.
+     * @tc.expected: step4. Returns OK.
      */
     vector<Entry> entrys3;
     vector<Key> keys3;
@@ -756,16 +1063,16 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
     LOGD("sleep end");
     EXPECT_TRUE(DistributedDBToolsUnitTest::CheckObserverResult(entrys3, observer->GetEntriesInserted()));
     /**
-     * @tc.steps:step6. UnRegister the observer.
-     * @tc.expected: step6. Returns OK.
+     * @tc.steps:step5. UnRegister the observer.
+     * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
     delete observer;
     observer = nullptr;
 
     /**
-     * @tc.steps:step7. Close the kv store.
-     * @tc.expected: step7. Results OK and delete successfully.
+     * @tc.steps:step6. Close the kv store.
+     * @tc.expected: step6. Results OK and delete successfully.
      */
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutLocalBatchObserver_002"), OK);
