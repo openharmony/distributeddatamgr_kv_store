@@ -88,6 +88,7 @@ ohos_source_set("kvdb_src_file") {
   configs = [ ":module_private_config" ]
 
   deps = [
+    "../../../../databaseutils:database_utils",
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
