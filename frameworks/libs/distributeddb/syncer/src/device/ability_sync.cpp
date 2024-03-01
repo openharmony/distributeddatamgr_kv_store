@@ -1305,11 +1305,20 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     HandleVersionV3AckSecOptionParam(packet, context);
     AbilitySyncAckPacket ackPacket;
     std::pair<bool, bool> schemaSyncStatus;
-    int errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true, schemaSyncStatus);
+    int errCode = E_OK;
+    if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
+        errCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
+        if (errCode != E_OK) {
+            LOGE("[AbilitySync][AckRecv] set db create time failed,errCode=%d", errCode);
+            context->SetTaskErrCode(errCode);
+            return errCode;
+        }
+    }
+    errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true, schemaSyncStatus);
+    DbAbility remoteDbAbility = packet->GetDbAbility();
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
+    singleVerContext->SetDbAbility(remoteDbAbility);
     if (errCode == -E_ABILITY_SYNC_FINISHED) {
-        DbAbility remoteDbAbility = packet->GetDbAbility();
-        singleVerContext->SetDbAbility(remoteDbAbility);
         return errCode;
     }
     if (errCode != E_OK) {
@@ -1321,16 +1330,6 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
         LOGE("[AbilitySync][AckRecv] scheme check failed");
         return -E_SCHEMA_MISMATCH;
     }
-    if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
-        errCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
-        if (errCode != E_OK) {
-            LOGE("[AbilitySync][AckRecv] set db create time failed,errCode=%d", errCode);
-            context->SetTaskErrCode(errCode);
-            return errCode;
-        }
-    }
-    DbAbility remoteDbAbility = packet->GetDbAbility();
-    singleVerContext->SetDbAbility(remoteDbAbility);
     (void)SendAck(context, message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
     return E_OK;
 }
