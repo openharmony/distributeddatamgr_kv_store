@@ -96,6 +96,7 @@ deps_config = [
   "../../../frameworks/libs/distributeddb:distributeddb",
   "../distributeddatamgr:distributeddata_mgr",
   "../distributeddata:distributeddata_client_sync",
+  "../../../databaseutils:database_utils",
 ]
 
 external_deps_config = [

@@ -86,7 +86,8 @@
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
-        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync"
+        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
+        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils"
       ],
       "inner_kits": [
         {
@@ -194,6 +195,15 @@
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include/distributeddb"
           }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
+          "header": {
+            "header_files": [
+              "acl.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/databaseutils/include"
+          }
         }
       ],
       "test": [
@@ -204,7 +214,8 @@
         "//foundation/distributeddatamgr/kv_store/test/unittest/distributeddata:unittest",
         "//foundation/distributeddatamgr/kv_store/test/unittest/distributedKVStore:unittest",
         "//foundation/distributeddatamgr/kv_store/frameworks/common/test:unittest",
-        "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/test:unittest"
+        "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/test:unittest",
+        "//foundation/distributeddatamgr/kv_store/databaseutils/test:unittest"
       ]
     }
   }
