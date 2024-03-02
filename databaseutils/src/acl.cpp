@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #define LOG_TAG "DataBaseUtilsAcl"
 #include "acl.h"
 
@@ -33,8 +34,8 @@ namespace DATABASE_UTILS {
 using namespace DistributedKv;
 Acl::Acl(const std::string &path) : path_(path)
 {
-    /* init acl from file's mode */
-    AclFromMode();
+    /* init acl from file's defaule or mode*/
+    AclFromDefault();
 }
 
 Acl::Acl()
@@ -71,6 +72,9 @@ void Acl::CompareInsertEntry(const AclXattrEntry &entry)
 
 int Acl::InsertEntry(const AclXattrEntry &entry)
 {
+    if (entries_.size() >= ENTRIES_MAX_NUM) {
+        return E_ERROR;
+    }
     CompareInsertEntry(entry); // must before ReCalcMaskPerm()
 
     maskDemand_++;
@@ -90,6 +94,10 @@ int Acl::InsertEntry(const AclXattrEntry &entry)
 std::unique_ptr<char[]> Acl::Serialize(int32_t &bufSize)
 {
     bufSize = sizeof(AclXattrHeader) + sizeof(AclXattrEntry) * entries_.size();
+    if (bufSize > static_cast<int32_t>(BUF_MAX_SIZE)) {
+        bufSize = 0;
+        return nullptr;
+    }
     auto buf = std::make_unique<char[]>(bufSize);
     auto err = memcpy_s(buf.get(), bufSize, &header_, sizeof(AclXattrHeader));
     if (err != EOK) {
@@ -135,18 +143,16 @@ int Acl::DeSerialize(const char *p, int32_t bufSize)
     return 0;
 }
 
-Acl Acl::GetDefauleAcl(const std::string &file)
+void Acl::AclFromDefault()
 {
-    Acl acl;
-    acl.path_ = file;
     char buf[BUF_SIZE] = { 0 };
-    ssize_t len = getxattr(file.c_str(), ACL_XATTR_DEFAULT, buf, BUF_SIZE);
+    ssize_t len = getxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf, BUF_SIZE);
     if (len != -1) {
-        acl.DeSerialize(buf, BUF_SIZE);
-        return acl;
+        DeSerialize(buf, BUF_SIZE);
+    } else {
+        ZLOGW("getxattr system.posix_acl_default failed. %{public}s", std::strerror(errno));
+        AclFromMode();
     }
-    acl.AclFromMode();
-    return acl;
 }
 
 void Acl::AclFromMode()
