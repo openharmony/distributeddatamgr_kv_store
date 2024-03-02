@@ -95,7 +95,7 @@ HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
     int rc = Acl(PATH_ABC).SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew = Acl::GetDefauleAcl(PATH_ABC);
+    Acl aclNew(PATH_ABC);
     AclXattrEntry entry(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
     ASSERT_TRUE(aclNew.HasEntry(entry));
 }
@@ -115,7 +115,7 @@ HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
     int rc = Acl(PATH_ABC).SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew = Acl::GetDefauleAcl(PATH_ABC);
+    Acl aclNew(PATH_ABC);
     AclXattrEntry entry(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
     ASSERT_TRUE(aclNew.HasEntry(entry));
 }

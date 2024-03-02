@@ -127,7 +127,6 @@ public:
     API_EXPORT int32_t SetDefaultUser(const uint32_t uid, const uint16_t mode);
     // just for Acl Test
     bool HasEntry(const AclXattrEntry &entry);
-    static Acl GetDefauleAcl(const std::string &file);
 
 private:
     /*
@@ -139,9 +138,12 @@ private:
     static constexpr int32_t USER_OFFSET = 6;
     static constexpr int32_t GROUP_OFFSET = 3;
     static constexpr int32_t BUF_SIZE = 400;
+    static constexpr size_t ENTRIES_MAX_NUM = 100; // just heuristic
+    static constexpr size_t BUF_MAX_SIZE = sizeof(AclXattrHeader) + sizeof(AclXattrEntry) * ENTRIES_MAX_NUM;
     bool IsEmpty();
     int32_t SetDefault();
     void AclFromMode();
+    void AclFromDefault();
     void CompareInsertEntry(const AclXattrEntry &entry);
     ACL_PERM ReCalcMaskPerm();
     std::unique_ptr<char[]> Serialize(int32_t &bufSize);
