@@ -117,8 +117,6 @@ public:
 
     void ClearDataMsg();
 
-    static std::pair<TimeOffset, TimeOffset> GetTimeOffsetFromRequestMsg(const Message *message);
-
 protected:
     static const int SEND_FINISHED = 0xff;
     static const int LOCAL_WATER_MARK_NOT_INIT = 0xaa;

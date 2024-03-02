@@ -2144,16 +2144,6 @@ void SingleVerDataSync::SetDataRequestCommonInfo(DataRequestPacket &packet)
     packet.SetSchemaVersion(localSchemaVer);
 }
 
-std::pair<TimeOffset, TimeOffset> SingleVerDataSync::GetTimeOffsetFromRequestMsg(const Message *message)
-{
-    std::pair<TimeOffset, TimeOffset> res;
-    auto &[systemOffset, senderLocalOffset] = res;
-    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
-    systemOffset = packet->GetSystemTimeOffset();
-    senderLocalOffset = packet->GetSenderTimeOffset();
-    return res;
-}
-
 int SingleVerDataSync::SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
 {
     if (context->GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
