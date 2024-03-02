@@ -247,4 +247,12 @@ int SyncerProxy::GetWatermarkInfo(const std::string &device, WatermarkInfo &info
     }
     return syncer_->GetWatermarkInfo(device, info);
 }
+
+int SyncerProxy::UpgradeSchemaVerInMeta()
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->UpgradeSchemaVerInMeta();
+}
 } // namespace DistributedDB

@@ -124,7 +124,7 @@ int VirtualTimeSyncCommunicator::SendMessage(const std::string &dstTarget, const
 
 int VirtualTimeSyncCommunicator::GetRemoteCommunicatorVersion(const std::string &deviceId, uint16_t &version) const
 {
-    version = 0;
+    version = version_;
     return E_OK;
 }
 
@@ -145,5 +145,10 @@ void VirtualTimeSyncCommunicator::GetTimeOffset(TimeOffset &timeOffset) const
 void VirtualTimeSyncCommunicator::Disable()
 {
     isEnable_ = false;
+}
+
+void VirtualTimeSyncCommunicator::SetRemoteVersion(uint16_t remoteVersion)
+{
+    version_ = remoteVersion;
 }
 } // namespace DistributedDB

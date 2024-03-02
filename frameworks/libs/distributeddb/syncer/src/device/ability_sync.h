@@ -65,6 +65,10 @@ public:
 
     void SetDbAbility(const DbAbility &dbAbility);
 
+    void SetSchemaVersion(uint64_t schemaVersion);
+
+    uint64_t GetSchemaVersion() const;
+
 private:
     uint32_t protocolVersion_;
     int32_t sendCode_;
@@ -75,6 +79,7 @@ private:
     uint32_t schemaType_;
     uint64_t dbCreateTime_;
     DbAbility dbAbility_;
+    uint64_t schemaVersion_;
 };
 
 class AbilitySyncAckPacket {
@@ -118,6 +123,10 @@ public:
 
     void SetDbAbility(const DbAbility &dbAbility);
 
+    void SetSchemaVersion(uint64_t schemaVersion);
+
+    uint64_t GetSchemaVersion() const;
+
     void SetRelationalSyncOpinion(const RelationalSyncOpinion &relationalSyncOpinion);
 
     RelationalSyncOpinion GetRelationalSyncOpinion() const;
@@ -133,6 +142,7 @@ private:
     uint32_t permitSync_;
     uint32_t requirePeerConvert_;
     uint64_t dbCreateTime_;
+    uint64_t schemaVersion_;
     DbAbility dbAbility_;
     RelationalSyncOpinion relationalSyncOpinion_;
 };
@@ -159,7 +169,9 @@ public:
 
     bool GetAbilitySyncFinishedStatus() const;
 
-    void SetAbilitySyncFinishedStatus(bool syncFinished);
+    void SetAbilitySyncFinishedStatus(bool syncFinished, ISyncTaskContext &context);
+
+    void InitAbilitySyncFinishStatus(ISyncTaskContext &context);
 
     static int RegisterTransformFunc();
 
@@ -196,14 +208,14 @@ private:
 
     int HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
-        std::pair<bool, bool> &schemaSyncStatus) const;
+        std::pair<bool, bool> &schemaSyncStatus);
 
     int HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-        ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus) const;
+        ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus);
 
     int HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         AbilitySyncAckPacket &sendPacket, ISyncTaskContext *context, bool sendOpinion,
-        std::pair<bool, bool> &schemaSyncStatus) const;
+        std::pair<bool, bool> &schemaSyncStatus);
 
     void GetPacketSecOption(const ISyncTaskContext *context, SecurityOption &option) const;
 
@@ -235,12 +247,16 @@ private:
     int HandleRequestRecv(const Message *message, ISyncTaskContext *context, bool isCompatible);
 
     SyncOpinion MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema,
-        ISyncTaskContext *context) const;
+        ISyncTaskContext *context);
 
     RelationalSyncOpinion MakeRelationSyncOpinion(const AbilitySyncRequestPacket *packet,
         const std::string &remoteSchema) const;
 
     int AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context, const AbilitySyncAckPacket *packet);
+
+    void InitRemoteDBAbility(ISyncTaskContext &context);
+
+    void RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTaskContext &context);
 
     static int32_t TransformSecLabelIfNeed(int32_t originLabel, int targetLabel);
 

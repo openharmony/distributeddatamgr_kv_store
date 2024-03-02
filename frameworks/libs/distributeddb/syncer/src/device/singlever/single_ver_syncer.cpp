@@ -21,8 +21,6 @@ namespace DistributedDB {
 void SingleVerSyncer::RemoteDataChanged(const std::string &device)
 {
     LOGI("[SingleVerSyncer] device online dev %s", STR_MASK(device));
-    // while remote db is online again, need to do abilitySync
-    static_cast<SingleVerSyncEngine *>(syncEngine_)->SetIsNeedResetAbilitySync(device, true);
 }
 
 void SingleVerSyncer::RemoteDeviceOffline(const std::string &device)

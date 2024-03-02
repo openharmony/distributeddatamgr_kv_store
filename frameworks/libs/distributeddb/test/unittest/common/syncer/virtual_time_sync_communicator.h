@@ -70,6 +70,8 @@ public:
 
     void Disable();
 
+    void SetRemoteVersion(uint16_t remoteVersion);
+
 private:
     TimeSync *srcTimeSync_;
     TimeSync *dstTimeSync_;
@@ -77,6 +79,7 @@ private:
     std::string deviceID_;
     SyncTaskContext *syncTaskcontext_;
     bool isEnable_ = true;
+    uint16_t version_ = 0;
 };
 } // namespace DistributedDB
 

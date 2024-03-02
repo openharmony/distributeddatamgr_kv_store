@@ -60,6 +60,8 @@ public:
 
     void CacheSubscribe(const std::string &subscribeId, const QueryObject &query);
 
+    int UpgradeLocalMetaData();
+
 protected:
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
 

@@ -29,6 +29,8 @@ namespace {
     constexpr uint64_t TIME_SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24h
     constexpr int TRIP_DIV_HALF = 2;
     constexpr int64_t MAX_TIME_OFFSET_NOISE = 1 * 1000 * 10000; // 1s for 100ns
+    constexpr int64_t MAX_TIME_RTT_NOISE = 1 * 1000 * 10000; // 1s for 100ns
+    constexpr uint64_t RTT_NOISE_CHECK_INTERVAL = 30 * 60 * 1000 * 10000u; // 30min for 100ns
 }
 
 // Class TimeSyncPacket
@@ -37,7 +39,9 @@ TimeSyncPacket::TimeSyncPacket()
       sourceTimeEnd_(0),
       targetTimeBegin_(0),
       targetTimeEnd_(0),
-      version_(TIME_SYNC_VERSION_V1)
+      version_(TIME_SYNC_VERSION_V1),
+      requestLocalOffset_(0),
+      responseLocalOffset_(0)
 {
 }
 
@@ -95,14 +99,36 @@ uint32_t TimeSyncPacket::GetVersion() const
     return version_;
 }
 
+TimeOffset TimeSyncPacket::GetRequestLocalOffset() const
+{
+    return requestLocalOffset_;
+}
+
+void TimeSyncPacket::SetRequestLocalOffset(TimeOffset offset)
+{
+    requestLocalOffset_ = offset;
+}
+
+TimeOffset TimeSyncPacket::GetResponseLocalOffset() const
+{
+    return responseLocalOffset_;
+}
+
+void TimeSyncPacket::SetResponseLocalOffset(TimeOffset offset)
+{
+    responseLocalOffset_ = offset;
+}
+
 uint32_t TimeSyncPacket::CalculateLen()
 {
-    uint32_t len = Parcel::GetUInt32Len();
-    len += Parcel::GetUInt64Len();
-    len += Parcel::GetUInt64Len();
-    len += Parcel::GetUInt64Len();
-    len += Parcel::GetUInt64Len();
+    uint32_t len = Parcel::GetUInt32Len(); // version_
+    len += Parcel::GetUInt64Len(); // sourceTimeBegin_
+    len += Parcel::GetUInt64Len(); // sourceTimeEnd_
+    len += Parcel::GetUInt64Len(); // targetTimeBegin_
+    len += Parcel::GetUInt64Len(); // targetTimeEnd_
     len = Parcel::GetEightByteAlign(len);
+    len += Parcel::GetInt64Len(); // requestLocalOffset_
+    len += Parcel::GetInt64Len(); // responseLocalOffset_
     return len;
 }
 
@@ -113,7 +139,6 @@ TimeSync::TimeSync()
       timeHelper_(nullptr),
       retryTime_(0),
       driverTimerId_(0),
-      isSynced_(false),
       isAckReceived_(false),
       timeChangedListener_(nullptr),
       timeDriverLockCount_(0),
@@ -171,7 +196,7 @@ int TimeSync::Initialize(ICommunicator *communicator, const std::shared_ptr<Meta
         LOGE("[TimeSync] timeHelper Init failed, err %d.", errCode);
         return errCode;
     }
-
+    dbId_ = storage->GetIdentifier();
     driverCallback_ = std::bind(&TimeSync::TimeSyncDriver, this, std::placeholders::_1);
     errCode = RuntimeContext::GetInstance()->SetTimer(TIME_SYNC_INTERVAL, driverCallback_, nullptr, driverTimerId_);
     if (errCode != E_OK) {
@@ -202,8 +227,11 @@ int TimeSync::SyncStart(const CommErrHandler &handler,  uint32_t sessionId)
     TimeSyncPacket packet;
     Timestamp startTime = timeHelper_->GetTime();
     packet.SetSourceTimeBegin(startTime);
+    TimeOffset timeOffset = metadata_->GetLocalTimeOffset();
+    packet.SetRequestLocalOffset(timeOffset);
     // send timeSync request
-    LOGD("[TimeSync] startTime = %" PRIu64 ", dev = %s{private}", startTime, deviceId_.c_str());
+    LOGD("[TimeSync] startTime = %" PRIu64 ", offset = % " PRId64 " , dev = %s{private}", startTime, timeOffset,
+        deviceId_.c_str());
 
     Message *message = new (std::nothrow) Message(TIME_SYNC_MESSAGE);
     if (message == nullptr) {
@@ -277,6 +305,8 @@ int TimeSync::Serialization(uint8_t *buffer, uint32_t length, const Message *inM
         return -E_SECUREC_ERROR;
     }
     parcel.EightByteAlign();
+    parcel.WriteInt64(packet->GetRequestLocalOffset());
+    parcel.WriteInt64(packet->GetResponseLocalOffset());
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
@@ -315,6 +345,19 @@ int TimeSync::DeSerialization(const uint8_t *buffer, uint32_t length, Message *i
     packet.SetSourceTimeEnd(srcEnd);
     packet.SetTargetTimeBegin(targetBegin);
     packet.SetTargetTimeEnd(targetEnd);
+    parcel.EightByteAlign();
+    if (parcel.IsContinueRead()) {
+        TimeOffset requestLocalOffset;
+        TimeOffset responseLocalOffset;
+        parcel.ReadInt64(requestLocalOffset);
+        parcel.ReadInt64(responseLocalOffset);
+        if (parcel.IsError()) {
+            LOGE("[TimeSync] Parse packet failed, message type %u", inMsg->GetMessageType());
+            return -E_PARSE_FAIL;
+        }
+        packet.SetRequestLocalOffset(requestLocalOffset);
+        packet.SetResponseLocalOffset(responseLocalOffset);
+    }
 
     return inMsg->SetCopiedObject<>(packet);
 }
@@ -347,20 +390,7 @@ int TimeSync::AckRecv(const Message *message, uint32_t targetSessionId)
         LOGD("[TimeSync][AckRecv] Time valid check failed.");
         return -E_INVALID_TIME;
     }
-    // calculate timeoffset of two devices
-    TimeOffset offset = CalculateTimeOffset(packetData);
-    LOGD("TimeSync::AckRecv, dev = %s{private}, sEnd = %" PRIu64 ", tEnd = %" PRIu64 ", sBegin = %" PRIu64
-        ", tBegin = %" PRIu64 ", offset = %" PRId64,
-        deviceId_.c_str(),
-        packetData.GetSourceTimeEnd(),
-        packetData.GetTargetTimeEnd(),
-        packetData.GetSourceTimeBegin(),
-        packetData.GetTargetTimeBegin(),
-        offset);
-
-    // save timeoffset into metadata, maybe a block action
-    int errCode = SaveTimeOffset(deviceId_, offset);
-    isSynced_ = true;
+    int errCode = SaveOffsetWithAck(packetData);
     {
         std::lock_guard<std::mutex> lock(cvLock_);
         isAckReceived_ = true;
@@ -375,7 +405,6 @@ int TimeSync::RequestRecv(const Message *message)
     if (!IsPacketValid(message, TYPE_REQUEST)) {
         return -E_INVALID_ARGS;
     }
-    Timestamp targetTimeBegin = timeHelper_->GetTime();
 
     const TimeSyncPacket *packet = message->GetObject<TimeSyncPacket>();
     if (packet == nullptr) {
@@ -383,28 +412,12 @@ int TimeSync::RequestRecv(const Message *message)
     }
 
     // build timeSync ack packet
-    TimeSyncPacket ackPacket = TimeSyncPacket(*packet);
-    ackPacket.SetTargetTimeBegin(targetTimeBegin);
-    Timestamp targetTimeEnd = timeHelper_->GetTime();
-    ackPacket.SetTargetTimeEnd(targetTimeEnd);
-    LOGD("TimeSync::RequestRecv, dev = %s{private}, sTimeEnd = %" PRIu64 ", tTimeEnd = %" PRIu64 ", sbegin = %" PRIu64
-        ", tbegin = %" PRIu64, deviceId_.c_str(), ackPacket.GetSourceTimeEnd(), ackPacket.GetTargetTimeEnd(),
-        ackPacket.GetSourceTimeBegin(), ackPacket.GetTargetTimeBegin());
+    TimeSyncPacket ackPacket = BuildAckPacket(*packet);
     if (ackPacket.GetSourceTimeBegin() > TimeHelper::MAX_VALID_TIME) {
         LOGD("[TimeSync][RequestRecv] Time valid check failed.");
         return -E_INVALID_TIME;
     }
-
-    TimeOffset timeoffsetIgnoreRtt = static_cast<TimeOffset>(ackPacket.GetSourceTimeBegin() - targetTimeBegin);
-    TimeOffset metadataTimeoffset;
-    metadata_->GetTimeOffset(deviceId_, metadataTimeoffset);
-
-    // 2 is half of INT64_MAX
-    if ((std::abs(metadataTimeoffset) >= INT64_MAX / 2) || (std::abs(timeoffsetIgnoreRtt) >= INT64_MAX / 2) ||
-        (std::abs(metadataTimeoffset - timeoffsetIgnoreRtt) > MAX_TIME_OFFSET_NOISE)) {
-        LOGI("[TimeSync][RequestRecv] timeoffSet invalid, should do time sync");
-        isSynced_ = false;
-    }
+    ReTimeSyncIfNeed(ackPacket);
 
     Message *ackMessage = new (std::nothrow) Message(TIME_SYNC_MESSAGE);
     if (ackMessage == nullptr) {
@@ -434,7 +447,7 @@ int TimeSync::SaveTimeOffset(const DeviceID &deviceID, TimeOffset timeOffset)
     return metadata_->SaveTimeOffset(deviceID, timeOffset);
 }
 
-TimeOffset TimeSync::CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo)
+std::pair<TimeOffset, TimeOffset> TimeSync::CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo)
 {
     TimeOffset roundTrip = static_cast<TimeOffset>((timeSyncInfo.GetSourceTimeEnd() -
         timeSyncInfo.GetSourceTimeBegin()) - (timeSyncInfo.GetTargetTimeEnd() - timeSyncInfo.GetTargetTimeBegin()));
@@ -445,7 +458,7 @@ TimeOffset TimeSync::CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo)
     TimeOffset offset = (offset1 / TRIP_DIV_HALF) + (offset2 / TRIP_DIV_HALF);
     LOGD("TimeSync::CalculateTimeOffset roundTrip= %" PRId64 ", offset1 = %" PRId64 ", offset2 = %" PRId64
         ", offset = %" PRId64, roundTrip, offset1, offset2, offset);
-    return offset;
+    return {offset, roundTrip};
 }
 
 bool TimeSync::IsPacketValid(const Message *inMsg, uint16_t messageType)
@@ -501,7 +514,7 @@ int TimeSync::TimeSyncDriver(TimerId timerId)
 
 int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t sessionId)
 {
-    if (!isSynced_) {
+    if (!metadata_->IsTimeSyncFinish(deviceId_)) {
         {
             std::lock_guard<std::mutex> lock(cvLock_);
             isAckReceived_ = false;
@@ -535,7 +548,7 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
 
 bool TimeSync::IsNeedSync() const
 {
-    return !isSynced_;
+    return !metadata_->IsTimeSyncFinish(deviceId_);
 }
 
 void TimeSync::SetOnline(bool isOnline)
@@ -630,5 +643,218 @@ Timestamp TimeSync::GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessi
     auto sendTime = sessionBeginTime_[sessionId];
     LOGD("[TimeSync] Use packet send time %" PRIu64 " rather than %" PRIu64, sendTime, packetBeginTime);
     return sendTime;
+}
+
+TimeSyncPacket TimeSync::BuildAckPacket(const TimeSyncPacket &request)
+{
+    TimeSyncPacket ackPacket = TimeSyncPacket(request);
+    Timestamp targetTimeBegin = timeHelper_->GetTime();
+    ackPacket.SetTargetTimeBegin(targetTimeBegin);
+    Timestamp targetTimeEnd = timeHelper_->GetTime();
+    ackPacket.SetTargetTimeEnd(targetTimeEnd);
+    TimeOffset requestOffset = request.GetRequestLocalOffset();
+    TimeOffset responseOffset = metadata_->GetLocalTimeOffset();
+    ackPacket.SetRequestLocalOffset(requestOffset);
+    ackPacket.SetResponseLocalOffset(responseOffset);
+    LOGD("TimeSync::RequestRecv, dev = %s{private}, sTimeEnd = %" PRIu64 ", tTimeEnd = %" PRIu64 ", sbegin = %" PRIu64
+        ", tbegin = %" PRIu64 ", request offset = %" PRId64 ", response offset = %" PRId64, deviceId_.c_str(),
+        ackPacket.GetSourceTimeEnd(), ackPacket.GetTargetTimeEnd(), ackPacket.GetSourceTimeBegin(),
+        ackPacket.GetTargetTimeBegin(), requestOffset, responseOffset);
+    return ackPacket;
+}
+
+bool TimeSync::IsRemoteLowVersion(uint32_t checkVersion)
+{
+    uint16_t version = 0;
+    int errCode = communicateHandle_->GetRemoteCommunicatorVersion(deviceId_, version);
+    return errCode == -E_NOT_FOUND || (version < checkVersion - SOFTWARE_VERSION_EARLIEST);
+}
+
+void TimeSync::ReTimeSyncIfNeed(const TimeSyncPacket &ackPacket)
+{
+    TimeOffset timeOffsetIgnoreRtt =
+        static_cast<TimeOffset>(ackPacket.GetSourceTimeBegin() - ackPacket.GetTargetTimeBegin());
+    bool reTimeSync = false;
+    if (IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0)) {
+        reTimeSync = CheckReTimeSyncIfNeedWithLowVersion(timeOffsetIgnoreRtt);
+    } else {
+        reTimeSync = CheckReTimeSyncIfNeedWithHighVersion(timeOffsetIgnoreRtt, ackPacket);
+    }
+
+    if ((std::abs(timeOffsetIgnoreRtt) >= INT64_MAX / 2) || reTimeSync) { // 2 is half of INT64_MAX
+        LOGI("[TimeSync][RequestRecv] timeOffSet invalid, should do time sync");
+        metadata_->SetTimeSyncFinishMark(deviceId_, false);
+        RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
+    }
+
+    // reset time change by time sync
+    int errCode = metadata_->SetTimeChangeMark(deviceId_, false);
+    if (errCode != E_OK) {
+        LOGW("[TimeSync] Mark dev %.3s no time change failed %d", deviceId_.c_str(), errCode);
+    }
+}
+
+bool TimeSync::CheckReTimeSyncIfNeedWithLowVersion(TimeOffset timeOffsetIgnoreRtt)
+{
+    TimeOffset metadataTimeOffset;
+    metadata_->GetTimeOffset(deviceId_, metadataTimeOffset);
+    return (std::abs(metadataTimeOffset) >= INT64_MAX / 2) || // 2 is half of INT64_MAX
+        (std::abs(metadataTimeOffset - timeOffsetIgnoreRtt) > MAX_TIME_OFFSET_NOISE);
+}
+
+bool TimeSync::CheckReTimeSyncIfNeedWithHighVersion(TimeOffset timeOffsetIgnoreRtt, const TimeSyncPacket &ackPacket)
+{
+    TimeOffset rawTimeOffset = timeOffsetIgnoreRtt - ackPacket.GetRequestLocalOffset() +
+        ackPacket.GetResponseLocalOffset();
+    auto [errCode, info] = RuntimeContext::GetInstance()->GetDeviceTimeInfo(deviceId_);
+    return errCode == -E_NOT_FOUND || (std::abs(info.systemTimeOffset - rawTimeOffset) > MAX_TIME_OFFSET_NOISE);
+}
+
+int TimeSync::SaveOffsetWithAck(const TimeSyncPacket &ackPacket)
+{
+    // calculate timeoffset of two devices
+    auto [offset, rtt] = CalculateTimeOffset(ackPacket);
+    TimeOffset rawOffset = CalculateRawTimeOffset(ackPacket, offset);
+    LOGD("TimeSync::AckRecv, dev = %s{private}, sEnd = %" PRIu64 ", tEnd = %" PRIu64 ", sBegin = %" PRIu64
+        ", tBegin = %" PRIu64 ", offset = %" PRId64 ", rawOffset = %" PRId64 ", requestLocalOffset = %" PRId64
+        ", responseLocalOffset = %" PRId64,
+        deviceId_.c_str(),
+        ackPacket.GetSourceTimeEnd(),
+        ackPacket.GetTargetTimeEnd(),
+        ackPacket.GetSourceTimeBegin(),
+        ackPacket.GetTargetTimeBegin(),
+        offset,
+        rawOffset,
+        ackPacket.GetRequestLocalOffset(),
+        ackPacket.GetResponseLocalOffset());
+
+    // save timeoffset into metadata, maybe a block action
+    int errCode = SaveTimeOffset(deviceId_, offset);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = metadata_->SetSystemTimeOffset(deviceId_, rawOffset);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    DeviceTimeInfo info;
+    info.systemTimeOffset = rawOffset;
+    info.recordTime = timeHelper_->GetSysCurrentTime();
+    info.rtt = rtt;
+    RuntimeContext::GetInstance()->SetDeviceTimeInfo(deviceId_, info);
+    return metadata_->SetTimeSyncFinishMark(deviceId_, true);
+}
+
+TimeOffset TimeSync::CalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime)
+{
+    // deltaTime = (t1 + requestLocalOffset + rtt/2) - (t1' + responseLocalOffset)
+    // rawTimeOffset =  (t1 + rtt/2) - t1'
+    // rawTimeOffset = deltaTime - requestLocalOffset + responseLocalOffset
+    return deltaTime - timeSyncInfo.GetRequestLocalOffset() + timeSyncInfo.GetResponseLocalOffset();
+}
+
+bool TimeSync::CheckSkipTimeSync(const DeviceTimeInfo &info)
+{
+    uint64_t currentRawTime = timeHelper_->GetSysCurrentTime();
+    if (currentRawTime < info.recordTime) {
+        LOGW("[TimeSync] current time %" PRIu64 " less than record time %" PRIu64, currentRawTime, info.recordTime);
+        return false;
+    }
+    uint64_t interval = timeHelper_->GetSysCurrentTime() - info.recordTime;
+    if (info.rtt < MAX_TIME_RTT_NOISE) {
+        return true;
+    }
+    if (interval > RTT_NOISE_CHECK_INTERVAL) {
+        LOGI("[TimeSync] rtt %" PRId64 " is greater than noise should re time sync, interval is %" PRIu64, info.rtt,
+            interval);
+        return false;
+    }
+#ifdef DE_DEBUG_ENV
+#ifdef TEST_RTT_NOISE_CHECK_INTERVAL
+    if (interval > TEST_RTT_NOISE_CHECK_INTERVAL) {
+        LOGI("[TimeSync][TEST] rtt %" PRId64 " is greater than noise should re time sync, interval is %" PRIu64,
+            info.rtt, interval);
+        return false;
+    }
+#endif
+#endif
+    return true;
+}
+
+void TimeSync::SetTimeSyncFinishIfNeed()
+{
+    auto [errCode, info] = RuntimeContext::GetInstance()->GetDeviceTimeInfo(deviceId_);
+    if (errCode != E_OK) {
+        return;
+    }
+    int64_t systemTimeOffset = metadata_->GetSystemTimeOffset(deviceId_);
+    LOGD("[TimeSync] Check db offset %" PRId64 " cache offset %" PRId64, systemTimeOffset, info.systemTimeOffset);
+    if (!CheckSkipTimeSync(info) || (metadata_->IsTimeSyncFinish(deviceId_) &&
+         std::abs(systemTimeOffset - info.systemTimeOffset) >= MAX_TIME_OFFSET_NOISE)) {
+        (void)metadata_->SetTimeSyncFinishMark(deviceId_, false);
+        return;
+    }
+    errCode = metadata_->SetTimeSyncFinishMark(deviceId_, true);
+    if (errCode != E_OK) {
+        return;
+    }
+    errCode = metadata_->SetSystemTimeOffset(deviceId_, info.systemTimeOffset);
+    if (errCode != E_OK) {
+        return;
+    }
+    LOGI("[TimeSync] Mark time sync finish success");
+}
+
+void TimeSync::ClearTimeSyncFinish()
+{
+    RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
+    int errCode = metadata_->SetTimeSyncFinishMark(deviceId_, false);
+    if (errCode != E_OK) {
+        LOGW("[TimeSync] Clear %.3s time sync finish mark failed %d", deviceId_.c_str(), errCode);
+    }
+}
+
+int TimeSync::GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset senderLocalOffset)
+{
+    if (IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0)) {
+        return E_OK;
+    }
+    auto [errCode, info] = RuntimeContext::GetInstance()->GetDeviceTimeInfo(deviceId_);
+    bool syncFinish = metadata_->IsTimeSyncFinish(deviceId_);
+    bool timeChange = metadata_->IsTimeChange(deviceId_);
+    // avoid local time change but remote record time sync finish
+    // should return re time sync, after receive time sync request, reset time change mark
+    // we think offset is ok when local time sync to remote
+    if ((timeChange && !syncFinish) ||
+        (errCode == E_OK && (std::abs(info.systemTimeOffset + systemOffset) > MAX_TIME_OFFSET_NOISE))) {
+        LOGI("[TimeSync] time offset is invalid should do time sync again! packet %" PRId64 " cache %" PRId64
+            " time change %d sync finish %d", -systemOffset, info.systemTimeOffset, static_cast<int>(timeChange),
+            static_cast<int>(syncFinish));
+        ClearTimeSyncFinish();
+        RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
+        return -E_NEED_TIME_SYNC;
+    }
+    // Sender's deltaTime = (t1 + requestLocalOffset + rtt/2) - (t1' + responseLocalOffset)
+    // Sender's systemOffset =  (t1 + rtt/2) - t1'
+    // Sender's systemOffset = Sender's deltaTime - requestLocalOffset + responseLocalOffset
+    // Sender's deltaTime = Sender's systemOffset + requestLocalOffset - responseLocalOffset
+    // Receiver's deltaTime = -Sender's deltaTime = -Sender's systemOffset - requestLocalOffset + responseLocalOffset
+    TimeOffset offset = -systemOffset - senderLocalOffset + metadata_->GetLocalTimeOffset();
+    errCode = metadata_->SetSystemTimeOffset(deviceId_, -systemOffset);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = metadata_->SaveTimeOffset(deviceId_, offset);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = metadata_->SetTimeSyncFinishMark(deviceId_, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    info.systemTimeOffset = -systemOffset;
+    info.recordTime = timeHelper_->GetSysCurrentTime();
+    RuntimeContext::GetInstance()->SetDeviceTimeInfo(deviceId_, info);
+    return E_OK;
 }
 } // namespace DistributedDB

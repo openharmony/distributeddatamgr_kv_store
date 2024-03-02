@@ -119,7 +119,7 @@ public:
     bool IsQuerySync() const;
     std::set<CompressAlgorithm> GetRemoteCompressAlgo() const;
     std::string GetRemoteCompressAlgoStr() const;
-    void SetDbAbility(DbAbility &remoteDbAbility);
+    void SetDbAbility(DbAbility &remoteDbAbility) override;
     CompressAlgorithm ChooseCompressAlgo() const;
     bool IsNotSupportAbility(const AbilityItem &abilityItem) const;
 

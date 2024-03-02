@@ -34,8 +34,6 @@ public:
 
     int SubscribeTimeOut(TimerId id);
 
-    void SetIsNeedResetAbilitySync(const std::string &deviceId, bool isNeedReset);
-
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncEngine);
 protected:
     ~SingleVerSyncEngine() override {};

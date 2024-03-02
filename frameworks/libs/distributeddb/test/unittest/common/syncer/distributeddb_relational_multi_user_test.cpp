@@ -131,6 +131,13 @@ namespace {
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
 
+    void PrepareVirtualDeviceBEnv(const std::string &tableName)
+    {
+        std::vector<RelationalVirtualDevice *> remoteDev;
+        remoteDev.push_back(g_deviceB);
+        PrepareVirtualDeviceEnv(tableName, g_storePath1, remoteDev);
+    }
+
     void PrepareData(const std::string &tableName, const std::string &dbPath)
     {
         sqlite3 *db = nullptr;
@@ -182,7 +189,9 @@ namespace {
         EXPECT_EQ(GetDB(db, dbPath), SQLITE_OK);
         EXPECT_EQ(DropTable(db, tableName), SQLITE_OK);
         EXPECT_EQ(CreateTable(db, tableName), SQLITE_OK);
-        EXPECT_EQ(rdbDelegate->CreateDistributedTable(tableName), OK);
+        if (rdbDelegate != nullptr) {
+            EXPECT_EQ(rdbDelegate->CreateDistributedTable(tableName), OK);
+        }
         sqlite3_close(db);
     }
 
@@ -400,6 +409,20 @@ namespace {
         sqlite3_finalize(statement);
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
+
+    void RegOnDispatchWithoutDataPacket(std::atomic<int> &messageCount, bool checkVirtual = true)
+    {
+        g_communicatorAggregator->RegOnDispatch([&messageCount, checkVirtual](const std::string &dev, Message *msg) {
+            if (msg->GetMessageId() != TIME_SYNC_MESSAGE && msg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+                return;
+            }
+            if (((checkVirtual && dev != DEVICE_B) || (!checkVirtual && dev != "real_device")) ||
+                msg->GetMessageType() != TYPE_REQUEST) {
+                return;
+            }
+            messageCount++;
+        });
+    }
 }
 
 class DistributedDBRelationalMultiUserTest : public testing::Test {
@@ -475,6 +498,7 @@ void DistributedDBRelationalMultiUserTest::TearDown(void)
     }
     SyncActivationCheckCallback callback = nullptr;
     RuntimeConfig::SetSyncActivationCheckCallback(callback);
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
 }
 
 /**
@@ -1007,4 +1031,217 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser014, TestSize.Level0)
     g_communicatorAggregator->EnableCommunicator();
     SyncActivationCheckCallbackV2 callbackV2 = nullptr;
     RuntimeConfig::SetSyncActivationCheckCallback(callbackV2);
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+}
+
+/**
+ * @tc.name: RDBSyncOpt001
+ * @tc.desc: check time sync and ability sync once
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK
+     */
+    Query query = Query::Select(g_tableName);
+    SyncStatusCallback callback = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callback, true), OK);
+    CloseStore();
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step4. re open store and sync again
+     * @tc.expected: step4. reopen OK and sync success, no negotiation packet
+     */
+    OpenStore1(true);
+    messageCount = 0;
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callback, true), OK);
+    EXPECT_EQ(messageCount, 0);
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: RDBSyncOpt002
+ * @tc.desc: check re ability sync after create distributed table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK
+     */
+    Query query = Query::Select(g_tableName);
+    SyncStatusCallback callback = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callback, true), OK);
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step4. create distributed table and sync again
+     * @tc.expected: step4. reopen OK and sync success, only ability packet
+     */
+    PrepareEnvironment("table2", g_storePath1, g_rdbDelegatePtr1);
+    messageCount = 0;
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callback, true), OK);
+    EXPECT_EQ(messageCount, 1);
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: RDBSyncOpt003
+ * @tc.desc: check re ability sync after create distributed table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, false);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK
+     */
+    Query query = Query::Select(g_tableName);
+    SyncStatusCallback callback = nullptr;
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step4. create distributed table and sync again
+     * @tc.expected: step4. reopen OK and sync success, only ability packet
+     */
+    PrepareEnvironment("table2", g_storePath1, g_rdbDelegatePtr1);
+    messageCount = 0;
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(messageCount, 1);
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: RDBSyncOpt004
+ * @tc.desc: check ability sync once after reopen
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, false);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK
+     */
+    Query query = Query::Select(g_tableName);
+    g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, query, true);
+    CloseStore();
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step4. re open store and sync again
+     * @tc.expected: step4. reopen OK and sync success, no negotiation packet
+     */
+    OpenStore1(true);
+    messageCount = 0;
+    g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, query, true);
+    EXPECT_EQ(messageCount, 0);
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: RDBSyncOpt005
+ * @tc.desc: check re time sync after time change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, false);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK
+     */
+    Query query = Query::Select(g_tableName);
+    SyncStatusCallback callback = nullptr;
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step4. notify time change and sync again
+     * @tc.expected: step4. sync success, only time sync packet
+     */
+    RuntimeContext::GetInstance()->NotifyTimestampChanged(100);
+    messageCount = 0;
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(messageCount, 1);
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
 }

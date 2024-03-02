@@ -153,6 +153,7 @@ void DistributedDBSingleVerMultiUserTest::TearDown(void)
     }
     SyncActivationCheckCallback callback = nullptr;
     g_mgr1.SetSyncActivationCheckCallback(callback);
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
 }
 
 namespace {
@@ -556,6 +557,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level0)
      * @tc.expected: step6. success.
      */
     EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(observer->GetCallCount() == 1); // only A
     /**
      * @tc.steps: step7. deviceA have {k1,v1}

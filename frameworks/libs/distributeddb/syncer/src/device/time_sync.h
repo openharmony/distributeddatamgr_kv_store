@@ -47,6 +47,14 @@ public:
 
     uint32_t GetVersion() const;
 
+    void SetRequestLocalOffset(TimeOffset offset);
+
+    TimeOffset GetRequestLocalOffset() const;
+
+    void SetResponseLocalOffset(TimeOffset offset);
+
+    TimeOffset GetResponseLocalOffset() const;
+
     static uint32_t CalculateLen();
 private:
     Timestamp sourceTimeBegin_;  // start point time on peer
@@ -54,6 +62,8 @@ private:
     Timestamp targetTimeBegin_;  // start point time on peer
     Timestamp targetTimeEnd_;    // end point time on peer
     uint32_t version_;
+    TimeOffset requestLocalOffset_; // local system time offset in request device
+    TimeOffset responseLocalOffset_; // local system time offset in response device
 };
 
 class TimeSync : public std::enable_shared_from_this<TimeSync> {
@@ -89,13 +99,23 @@ public:
 
     void Close();
 
+    TimeSyncPacket BuildAckPacket(const TimeSyncPacket &request);
+
+    void SetTimeSyncFinishIfNeed();
+
+    void ClearTimeSyncFinish();
+
+    int GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset senderLocalOffset);
+
+    bool IsRemoteLowVersion(uint32_t checkVersion);
+
     // Used in send msg, as execution is asynchronous, should use this function to handle result.
     static void CommErrHandlerFunc(int errCode, TimeSync *timeSync);
 
 protected:
     static const int MAX_RETRY_TIME = 1;
 
-    static TimeOffset CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo);
+    static std::pair<TimeOffset, TimeOffset> CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo);
 
     static bool IsPacketValid(const Message *inMsg, uint16_t messageType);
 
@@ -115,6 +135,18 @@ protected:
 
     Timestamp GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId);
 
+    void ReTimeSyncIfNeed(const TimeSyncPacket &ackPacket);
+
+    bool CheckReTimeSyncIfNeedWithLowVersion(TimeOffset timeOffsetIgnoreRtt);
+
+    bool CheckReTimeSyncIfNeedWithHighVersion(TimeOffset timeOffsetIgnoreRtt, const TimeSyncPacket &ackPacket);
+
+    int SaveOffsetWithAck(const TimeSyncPacket &ackPacket);
+
+    bool CheckSkipTimeSync(const DeviceTimeInfo &info);
+
+    static TimeOffset CalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime);
+
     ICommunicator *communicateHandle_;
     std::shared_ptr<Metadata> metadata_;
     std::unique_ptr<TimeHelper> timeHelper_;
@@ -122,7 +154,6 @@ protected:
     int retryTime_;
     TimerId driverTimerId_;
     TimerAction driverCallback_;
-    bool isSynced_;
     bool isAckReceived_;
     std::condition_variable conditionVar_;
     mutable std::mutex cvLock_;
@@ -134,6 +165,7 @@ protected:
     bool closed_;
     std::mutex beginTimeMutex_;
     std::map<uint32_t, Timestamp> sessionBeginTime_;
+    std::vector<uint8_t> dbId_;
     static std::mutex timeSyncSetLock_;
     static std::set<TimeSync *> timeSyncSet_;
 };

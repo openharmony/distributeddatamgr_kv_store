@@ -1028,7 +1028,6 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
     /**
      * @tc.steps: step2. set table is need reset ability sync but it still permit sync
      */
-    context->SetIsNeedResetAbilitySync(true);
     EXPECT_EQ(context->GetSchemaSyncStatus(query).first, true);
     /**
      * @tc.steps: step3. set table is schema change now it don't permit sync

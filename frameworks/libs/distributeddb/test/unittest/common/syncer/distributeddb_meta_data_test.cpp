@@ -102,8 +102,15 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest001, TestSize.Level0)
     EXPECT_FALSE(metadata_->IsAbilitySyncFinish(DEVICE_A));
     EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_B));
     /**
-     * @tc.steps: step5. Clear all ability sync finish.
-     * @tc.expected: step5. A and B is not finish.
+     * @tc.steps: step5. Clear all time sync finish.
+     * @tc.expected: step5. A and B is finish.
+     */
+    EXPECT_EQ(metadata_->ClearAllTimeSyncFinishMark(), E_OK);
+    EXPECT_FALSE(metadata_->IsAbilitySyncFinish(DEVICE_A));
+    EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_B));
+    /**
+     * @tc.steps: step6. Clear all ability sync finish.
+     * @tc.expected: step6. A and B is not finish.
      */
     EXPECT_EQ(metadata_->ClearAllAbilitySyncFinishMark(), E_OK);
     EXPECT_FALSE(metadata_->IsAbilitySyncFinish(DEVICE_A));
@@ -233,7 +240,7 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest005, TestSize.Level0)
      */
     auto res = metadata_->GetLocalSchemaVersion();
     EXPECT_EQ(res.first, E_OK);
-    EXPECT_EQ(res.second, 0u);
+    EXPECT_EQ(res.second, 1u);
     /**
      * @tc.steps: step2. Set local schema version.
      * @tc.expected: step2. set success.

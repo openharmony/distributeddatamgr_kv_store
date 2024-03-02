@@ -23,6 +23,7 @@ class SingleVerDatabaseUpgrader : virtual public DatabaseUpgrader {
 public:
     ~SingleVerDatabaseUpgrader() override {};
     int Upgrade() override;
+    virtual bool IsValueNeedUpgrade() const = 0;
 protected:
     virtual int BeginUpgrade() = 0;
     virtual int ExecuteUpgrade();
@@ -35,6 +36,7 @@ protected:
 
     // Database version only increased when the structure of database changed
     int dbVersion_ = 0;
+    bool valueNeedUpgrade_ = false;
 };
 } // namespace DistributedDB
 #endif // SINGLE_VER_DATABASE_UPGRADER_H

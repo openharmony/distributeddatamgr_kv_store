@@ -107,6 +107,8 @@ public:
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const override;
 
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
+    int UpgradeSchemaVerInMeta() override;
 protected:
 
     // trigger query auto sync or auto subscribe
@@ -191,6 +193,8 @@ protected:
     int CloseInner(bool isClosedOperation);
 
     int InitStorageResource(ISyncInterface *syncInterface);
+
+    void ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &metadata, ISyncInterface &storage);
 
     static int SyncModuleInit();
 

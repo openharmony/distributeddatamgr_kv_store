@@ -35,6 +35,8 @@ public:
     static int SetPathSecOptWithCheck(const std::string &path, const SecurityOption &secOption,
         const std::string &dbStore, bool isWithChecked = false);
     static int SetSecOption(const std::string &path, const SecurityOption &secOption, bool isWithChecked);
+    bool IsValueNeedUpgrade() const override;
+
 protected:
     int BeginUpgrade() override;
     int EndUpgrade(bool isSuccess) override;

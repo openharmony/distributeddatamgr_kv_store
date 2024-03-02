@@ -484,4 +484,14 @@ int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskConte
     }
     return errCode;
 }
+
+std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(const Message *message)
+{
+    std::pair<TimeOffset, TimeOffset> res;
+    auto &[systemOffset, senderLocalOffset] = res;
+    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
+    systemOffset = packet->GetSystemTimeOffset();
+    senderLocalOffset = packet->GetSenderTimeOffset();
+    return res;
+}
 }

@@ -37,7 +37,8 @@ AbilitySyncRequestPacket::AbilitySyncRequestPacket()
       secLabel_(0),
       secFlag_(0),
       schemaType_(0),
-      dbCreateTime_(0)
+      dbCreateTime_(0),
+      schemaVersion_(0)
 {
 }
 
@@ -142,6 +143,7 @@ uint32_t AbilitySyncRequestPacket::CalculateLen() const
     len += Parcel::GetUInt32Len(); // schemaType_
     len += Parcel::GetUInt64Len(); // dbCreateTime_
     len += DbAbility::CalculateLen(dbAbility_); // dbAbility_
+    len += Parcel::GetUInt64Len(); // schema version add in 109
     // the reason why not 8-byte align is that old version is not 8-byte align
     // so it is not possible to set 8-byte align for high version.
     if (len > INT32_MAX) {
@@ -161,6 +163,16 @@ void AbilitySyncRequestPacket::SetDbAbility(const DbAbility &dbAbility)
     dbAbility_ = dbAbility;
 }
 
+void AbilitySyncRequestPacket::SetSchemaVersion(uint64_t schemaVersion)
+{
+    schemaVersion_ = schemaVersion;
+}
+
+uint64_t AbilitySyncRequestPacket::GetSchemaVersion() const
+{
+    return schemaVersion_;
+}
+
 AbilitySyncAckPacket::AbilitySyncAckPacket()
     : protocolVersion_(ABILITY_SYNC_VERSION_V1),
       softwareVersion_(SOFTWARE_VERSION_CURRENT),
@@ -170,7 +182,8 @@ AbilitySyncAckPacket::AbilitySyncAckPacket()
       schemaType_(0),
       permitSync_(0),
       requirePeerConvert_(0),
-      dbCreateTime_(0)
+      dbCreateTime_(0),
+      schemaVersion_(0)
 {
 }
 
@@ -278,6 +291,16 @@ uint64_t AbilitySyncAckPacket::GetDbCreateTime() const
     return dbCreateTime_;
 }
 
+uint64_t AbilitySyncAckPacket::GetSchemaVersion() const
+{
+    return schemaVersion_;
+}
+
+void AbilitySyncAckPacket::SetSchemaVersion(uint64_t schemaVersion)
+{
+    schemaVersion_ = schemaVersion;
+}
+
 uint32_t AbilitySyncAckPacket::CalculateLen() const
 {
     uint64_t len = 0;
@@ -298,6 +321,7 @@ uint32_t AbilitySyncAckPacket::CalculateLen() const
     len += Parcel::GetUInt64Len(); // dbCreateTime_
     len += DbAbility::CalculateLen(dbAbility_); // dbAbility_
     len += SchemaNegotiate::CalculateParcelLen(relationalSyncOpinion_);
+    len += Parcel::GetUInt64Len(); // schemaVersion_
     if (len > INT32_MAX) {
         LOGE("[AbilitySyncAckPacket][CalculateLen] err len:%" PRIu64, len);
         return 0;
@@ -483,9 +507,20 @@ bool AbilitySync::GetAbilitySyncFinishedStatus() const
     return syncFinished_;
 }
 
-void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished)
+void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished, ISyncTaskContext &context)
 {
     syncFinished_ = syncFinished;
+    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
+        return;
+    }
+    // record finished with all schema compatible
+    if (syncFinished && !context.IsSchemaCompatible()) {
+        return;
+    }
+    int errCode = metadata_->SetAbilitySyncFinishMark(deviceId_, syncFinished);
+    if (errCode != E_OK) {
+        LOGW("[AbilitySync] Set ability sync finish mark failed %d", errCode);
+    }
 }
 
 bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
@@ -550,7 +585,7 @@ void AbilitySync::HandleVersionV3AckSecOptionParam(const AbilitySyncAckPacket *p
 
 int AbilitySync::HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvPacket,
     AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
-    std::pair<bool, bool> &schemaSyncStatus) const
+    std::pair<bool, bool> &schemaSyncStatus)
 {
     if (IsSingleRelationalVer()) {
         return HandleRelationAckSchemaParam(recvPacket, sendPacket, context, sendOpinion, schemaSyncStatus);
@@ -693,6 +728,7 @@ int AbilitySync::RequestPacketSerialization(uint8_t *buffer, uint32_t length, co
     parcel.WriteUInt32(packet->GetSchemaType());
     parcel.WriteUInt64(packet->GetDbCreateTime());
     int errCode = DbAbility::Serialize(parcel, packet->GetDbAbility());
+    parcel.WriteUInt64(packet->GetSchemaVersion());
     if (parcel.IsError() || errCode != E_OK) {
         return -E_PARSE_FAIL;
     }
@@ -723,6 +759,11 @@ int AbilitySync::AckPacketSerialization(uint8_t *buffer, uint32_t length, const 
     }
     errCode = SchemaNegotiate::SerializeData(packet->GetRelationalSyncOpinion(), parcel);
     if (parcel.IsError() || errCode != E_OK) {
+        return -E_PARSE_FAIL;
+    }
+    parcel.WriteUInt64(packet->GetSchemaVersion());
+    if (parcel.IsError()) {
+        LOGE("[AbilitySync] Serialize schema version failed");
         return -E_PARSE_FAIL;
     }
     return E_OK;
@@ -802,6 +843,15 @@ int AbilitySync::RequestPacketDeSerializationTailPart(Parcel &parcel, AbilitySyn
         return errCode;
     }
     packet->SetDbAbility(remoteDbAbility);
+    if (version >= SOFTWARE_VERSION_RELEASE_9_0) {
+        uint64_t schemaVersion = 0;
+        parcel.ReadUInt64(schemaVersion);
+        packet->SetSchemaVersion(schemaVersion);
+        if (parcel.IsError()) {
+            LOGW("[AbilitySync] request packet read schema version failed");
+            return -E_PARSE_FAIL;
+        }
+    }
     return E_OK;
 }
 
@@ -843,6 +893,15 @@ int AbilitySync::AckPacketDeSerializationTailPart(Parcel &parcel, AbilitySyncAck
         return errCode;
     }
     packet->SetRelationalSyncOpinion(relationalSyncOpinion);
+    if (version >= SOFTWARE_VERSION_RELEASE_9_0) {
+        uint64_t schemaVersion = 0;
+        parcel.ReadUInt64(schemaVersion);
+        packet->SetSchemaVersion(schemaVersion);
+        if (parcel.IsError()) {
+            LOGW("[AbilitySync] ack packet read schema version failed.");
+            return -E_PARSE_FAIL;
+        }
+    }
     return E_OK;
 }
 
@@ -925,6 +984,11 @@ int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, c
         LOGE("[AbilitySync][FillAbilityRequest] GetDbAbility failed, err %d", errCode);
         return errCode;
     }
+    auto [err, localSchemaVer] = metadata_->GetLocalSchemaVersion();
+    if (err != E_OK) {
+        LOGE("[AbilitySync][FillAbilityRequest] GetLocalSchemaVersion failed, err %d", err);
+        return err;
+    }
     // 102 version is forbidden to sync with 103 json-schema or flatbuffer-schema
     // so schema should put null string while remote is 102 version to avoid this bug.
     if (remoteCommunicatorVersion == 1) {
@@ -940,8 +1004,9 @@ int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, c
     packet.SetSecFlag(option.securityFlag);
     packet.SetDbCreateTime(dbCreateTime);
     packet.SetDbAbility(dbAbility);
-    LOGI("[AbilitySync][FillRequest] ver=%u,Lab=%d,Flag=%d,dbCreateTime=%" PRId64, SOFTWARE_VERSION_CURRENT,
-        option.securityLabel, option.securityFlag, dbCreateTime);
+    packet.SetSchemaVersion(localSchemaVer);
+    LOGI("[AbilitySync][FillRequest] ver=%u,Lab=%d,Flag=%d,dbCreateTime=%" PRId64 ",schemaVer=%" PRId64,
+        SOFTWARE_VERSION_CURRENT, option.securityLabel, option.securityFlag, dbCreateTime, localSchemaVer);
     return E_OK;
 }
 
@@ -971,7 +1036,12 @@ int AbilitySync::SetAbilityAckBodyInfo(const ISyncTaskContext *context, int ackC
         ackPacket.SetDbCreateTime(dbCreateTime);
         ackPacket.SetDbAbility(dbAbility);
     }
+    auto [ret, schemaVersion] = metadata_->GetLocalSchemaVersion();
+    if (ret != E_OK) {
+        return ret;
+    }
     ackPacket.SetAckCode(ackCode);
+    ackPacket.SetSchemaVersion(schemaVersion);
     return E_OK;
 }
 
@@ -1064,6 +1134,9 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     if (ackCode == E_OK && remoteSoftwareVersion > SOFTWARE_VERSION_RELEASE_3_0) {
         ackCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
     }
+    if (ackCode == E_OK && remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_9_0) {
+        ackCode = metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), packet->GetSchemaVersion());
+    }
     AbilitySyncAckPacket ackPacket;
     if (IsSingleRelationalVer()) {
         ackPacket.SetRelationalSyncOpinion(MakeRelationSyncOpinion(packet, schema));
@@ -1135,7 +1208,7 @@ int AbilitySync::SendAck(const Message *inMsg, const AbilitySyncAckPacket &ackPa
 }
 
 SyncOpinion AbilitySync::MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet,
-    const std::string &remoteSchema, ISyncTaskContext *context) const
+    const std::string &remoteSchema, ISyncTaskContext *context)
 {
     uint8_t remoteSchemaType = packet->GetSchemaType();
     SchemaObject localSchema = (static_cast<SingleVerKvDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
@@ -1145,6 +1218,7 @@ SyncOpinion AbilitySync::MakeKvSyncOpinion(const AbilitySyncRequestPacket *packe
         SyncStrategy localStrategy;
         localStrategy.permitSync = true;
         (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy, true);
+        SetAbilitySyncFinishedStatus(true, *context);
     }
     return localSyncOpinion;
 }
@@ -1158,7 +1232,7 @@ RelationalSyncOpinion AbilitySync::MakeRelationSyncOpinion(const AbilitySyncRequ
 }
 
 int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-    ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus) const
+    ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus)
 {
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
@@ -1174,6 +1248,9 @@ int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         localStrategy.permitSync,
         true
     };
+    if (localStrategy.permitSync) {
+        RecordAbilitySyncFinish(recvPacket->GetSchemaVersion(), *context);
+    }
     if (IsBothKvAndOptAbilitySync(context->GetRemoteSoftwareVersion(), localSchema.GetSchemaType(), remoteSchemaType)) {
         return -E_ABILITY_SYNC_FINISHED;
     }
@@ -1181,7 +1258,7 @@ int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
 }
 
 int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket, AbilitySyncAckPacket &sendPacket,
-    ISyncTaskContext *context, bool sendOpinion, std::pair<bool, bool> &schemaSyncStatus) const
+    ISyncTaskContext *context, bool sendOpinion, std::pair<bool, bool> &schemaSyncStatus)
 {
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
@@ -1216,6 +1293,9 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
         !(strategy == localStrategy.end()) && strategy->second.permitSync,
         true
     };
+    if (permitSync) {
+        RecordAbilitySyncFinish(recvPacket->GetSchemaVersion(), *context);
+    }
     return errCode;
 }
 
@@ -1225,11 +1305,20 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     HandleVersionV3AckSecOptionParam(packet, context);
     AbilitySyncAckPacket ackPacket;
     std::pair<bool, bool> schemaSyncStatus;
-    int errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true, schemaSyncStatus);
+    int errCode = E_OK;
+    if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
+        errCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
+        if (errCode != E_OK) {
+            LOGE("[AbilitySync][AckRecv] set db create time failed,errCode=%d", errCode);
+            context->SetTaskErrCode(errCode);
+            return errCode;
+        }
+    }
+    errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true, schemaSyncStatus);
+    DbAbility remoteDbAbility = packet->GetDbAbility();
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
+    singleVerContext->SetDbAbility(remoteDbAbility);
     if (errCode == -E_ABILITY_SYNC_FINISHED) {
-        DbAbility remoteDbAbility = packet->GetDbAbility();
-        singleVerContext->SetDbAbility(remoteDbAbility);
         return errCode;
     }
     if (errCode != E_OK) {
@@ -1241,16 +1330,6 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
         LOGE("[AbilitySync][AckRecv] scheme check failed");
         return -E_SCHEMA_MISMATCH;
     }
-    if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
-        errCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
-        if (errCode != E_OK) {
-            LOGE("[AbilitySync][AckRecv] set db create time failed,errCode=%d", errCode);
-            context->SetTaskErrCode(errCode);
-            return errCode;
-        }
-    }
-    DbAbility remoteDbAbility = packet->GetDbAbility();
-    singleVerContext->SetDbAbility(remoteDbAbility);
     (void)SendAck(context, message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
     return E_OK;
 }
@@ -1268,5 +1347,37 @@ bool AbilitySync::IsBothKvAndOptAbilitySync(uint32_t remoteVersion, SchemaType l
 {
     return remoteVersion >= SOFTWARE_VERSION_RELEASE_8_0 && localType == SchemaType::NONE &&
         static_cast<SchemaType>(remoteType) == SchemaType::NONE;
+}
+
+void AbilitySync::InitAbilitySyncFinishStatus(ISyncTaskContext &context)
+{
+    if (!metadata_->IsAbilitySyncFinish(context.GetDeviceId())) {
+        return;
+    }
+    LOGI("[AbilitySync] Mark ability sync finish from db status");
+    syncFinished_ = true;
+    if (context.GetRemoteSoftwareVersion() == 0u) {
+        LOGD("[AbilitySync] Init remote version with default");
+        context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_9_0); // remote version >= 109
+    }
+    InitRemoteDBAbility(context);
+}
+
+void AbilitySync::InitRemoteDBAbility(ISyncTaskContext &context)
+{
+    DbAbility ability;
+    int errCode = GetDbAbilityInfo(ability);
+    if (errCode != E_OK) {
+        return;
+    }
+    context.SetDbAbility(ability);
+}
+
+void AbilitySync::RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTaskContext &context)
+{
+    SetAbilitySyncFinishedStatus(true, context);
+    if (context.GetRemoteSoftwareVersion() >= SOFTWARE_VERSION_RELEASE_9_0) {
+        (void)metadata_->SetRemoteSchemaVersion(deviceId_, remoteSchemaVersion);
+    }
 }
 } // namespace DistributedDB

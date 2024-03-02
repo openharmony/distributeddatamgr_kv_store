@@ -330,7 +330,11 @@ int Metadata::LoadAllMetadata()
             }
         }
     }
-    return querySyncWaterMarkHelper_.RemoveLeastUsedQuerySyncItems(querySyncIds);
+    errCode = querySyncWaterMarkHelper_.RemoveLeastUsedQuerySyncItems(querySyncIds);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return InitLocalMetaData();
 }
 
 int Metadata::LoadDeviceIdDataToMap(const Key &key)
@@ -662,14 +666,15 @@ int Metadata::GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, Wa
 
 int Metadata::ClearAllAbilitySyncFinishMark()
 {
-    return ClearAllMetaDataValue(static_cast<uint32_t>(InnerClearAction::CLEAR_ABILITY_SYNC_MARK) |
-        static_cast<uint32_t>(InnerClearAction::CLEAR_REMOTE_SCHEMA_VERSION));
+    return ClearAllMetaDataValue(static_cast<uint32_t>(MetaValueAction::CLEAR_ABILITY_SYNC_MARK) |
+        static_cast<uint32_t>(MetaValueAction::CLEAR_REMOTE_SCHEMA_VERSION));
 }
 
 int Metadata::ClearAllTimeSyncFinishMark()
 {
-    return ClearAllMetaDataValue(static_cast<uint32_t>(InnerClearAction::CLEAR_TIME_SYNC_MARK) |
-        static_cast<uint32_t>(InnerClearAction::CLEAR_SYSTEM_TIME_OFFSET));
+    return ClearAllMetaDataValue(static_cast<uint32_t>(MetaValueAction::CLEAR_TIME_SYNC_MARK) |
+        static_cast<uint32_t>(MetaValueAction::CLEAR_SYSTEM_TIME_OFFSET) |
+        static_cast<uint32_t>(MetaValueAction::SET_TIME_CHANGE_MARK));
 }
 
 int Metadata::ClearAllMetaDataValue(uint32_t innerClearAction)
@@ -706,23 +711,27 @@ int Metadata::ClearAllMetaDataValue(uint32_t innerClearAction)
 
 void Metadata::ClearMetaDataValue(uint32_t innerClearAction, MetaDataValue &metaDataValue)
 {
-    auto mark = static_cast<uint32_t>(InnerClearAction::CLEAR_ABILITY_SYNC_MARK);
+    auto mark = static_cast<uint32_t>(MetaValueAction::CLEAR_ABILITY_SYNC_MARK);
     if ((innerClearAction & mark) == mark) {
         metaDataValue.syncMark =
             DBCommon::EraseBit(metaDataValue.syncMark, static_cast<uint64_t>(SyncMark::SYNC_MARK_ABILITY_SYNC));
     }
-    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_TIME_SYNC_MARK);
+    mark = static_cast<uint32_t>(MetaValueAction::CLEAR_TIME_SYNC_MARK);
     if ((innerClearAction & mark) == mark) {
         metaDataValue.syncMark =
             DBCommon::EraseBit(metaDataValue.syncMark, static_cast<uint64_t>(SyncMark::SYNC_MARK_TIME_SYNC));
     }
-    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_REMOTE_SCHEMA_VERSION);
+    mark = static_cast<uint32_t>(MetaValueAction::CLEAR_REMOTE_SCHEMA_VERSION);
     if ((innerClearAction & mark) == mark) {
         metaDataValue.remoteSchemaVersion = 0;
     }
-    mark = static_cast<uint32_t>(InnerClearAction::CLEAR_SYSTEM_TIME_OFFSET);
+    mark = static_cast<uint32_t>(MetaValueAction::CLEAR_SYSTEM_TIME_OFFSET);
     if ((innerClearAction & mark) == mark) {
         metaDataValue.systemTimeOffset = 0;
+    }
+    mark = static_cast<uint32_t>(MetaValueAction::SET_TIME_CHANGE_MARK);
+    if ((innerClearAction & mark) == mark) {
+        metaDataValue.syncMark |= static_cast<uint64_t>(SyncMark::SYNC_MARK_TIME_CHANGE);
     }
 }
 
@@ -741,9 +750,19 @@ int Metadata::SetTimeSyncFinishMark(const std::string &deviceId, bool finish)
     return SetSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_SYNC, finish);
 }
 
+int Metadata::SetTimeChangeMark(const std::string &deviceId, bool change)
+{
+    return SetSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_CHANGE, change);
+}
+
 bool Metadata::IsTimeSyncFinish(const std::string &deviceId)
 {
     return IsContainSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_SYNC);
+}
+
+bool Metadata::IsTimeChange(const std::string &deviceId)
+{
+    return IsContainSyncMark(deviceId, SyncMark::SYNC_MARK_TIME_CHANGE);
 }
 
 int Metadata::SetSyncMark(const std::string &deviceId, SyncMark syncMark, bool finish)
@@ -778,7 +797,11 @@ int Metadata::SetRemoteSchemaVersion(const std::string &deviceId, uint64_t schem
     GetMetaDataValue(deviceId, metadata, true);
     metadata.remoteSchemaVersion = schemaVersion;
     LOGI("[Metadata] Set %.3s schema version %" PRIu64, deviceId.c_str(), schemaVersion);
-    return SaveMetaDataValue(deviceId, metadata);
+    int errCode = SaveMetaDataValue(deviceId, metadata);
+    if (errCode != E_OK) {
+        LOGW("[Metadata] Set remote schema version failed");
+    }
+    return errCode;
 }
 
 uint64_t Metadata::GetRemoteSchemaVersion(const std::string &deviceId)
@@ -796,7 +819,7 @@ int Metadata::SetSystemTimeOffset(const std::string &deviceId, int64_t systemTim
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     GetMetaDataValue(deviceId, metadata, true);
     metadata.systemTimeOffset = systemTimeOffset;
-    LOGI("[Metadata] Set %.3s systemTimeOffset %" PRIu64, deviceId.c_str(), systemTimeOffset);
+    LOGI("[Metadata] Set %.3s systemTimeOffset %" PRId64, deviceId.c_str(), systemTimeOffset);
     return SaveMetaDataValue(deviceId, metadata);
 }
 
@@ -805,7 +828,7 @@ int64_t Metadata::GetSystemTimeOffset(const std::string &deviceId)
     MetaDataValue metadata;
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     GetMetaDataValue(deviceId, metadata, true);
-    LOGI("[Metadata] Get %.3s systemTimeOffset %" PRIu64, deviceId.c_str(), metadata.systemTimeOffset);
+    LOGI("[Metadata] Get %.3s systemTimeOffset %" PRId64, deviceId.c_str(), metadata.systemTimeOffset);
     return metadata.systemTimeOffset;
 }
 
@@ -913,5 +936,23 @@ Metadata::MetaWaterMarkAutoLock::~MetaWaterMarkAutoLock()
     if (metadataPtr_ != nullptr) {
         metadataPtr_->UnlockWaterMark();
     }
+}
+
+int Metadata::InitLocalMetaData()
+{
+    std::lock_guard<std::mutex> autoLock(localMetaDataMutex_);
+    auto [errCode, localMetaData] = GetLocalMetaData();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (localMetaData.localSchemaVersion != 0) {
+        return E_OK;
+    }
+    localMetaData.localSchemaVersion += 1;
+    errCode = SaveLocalMetaData(localMetaData);
+    if (errCode != E_OK) {
+        LOGE("[Metadata] init local schema version failed:%d", errCode);
+    }
+    return errCode;
 }
 }  // namespace DistributedDB

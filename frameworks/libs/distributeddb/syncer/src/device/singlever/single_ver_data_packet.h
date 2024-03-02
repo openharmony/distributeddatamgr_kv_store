@@ -112,6 +112,14 @@ public:
     std::map<std::string, std::string> GetExtraConditions() const;
     bool IsExtraConditionData() const;
 
+    void SetSchemaVersion(uint64_t schemaVersion);
+    uint64_t GetSchemaVersion() const;
+
+    void SetSystemTimeOffset(int64_t systemTimeOffset);
+    int64_t GetSystemTimeOffset() const;
+
+    void SetSenderTimeOffset(int64_t senderTimeOffset);
+    int64_t GetSenderTimeOffset() const;
 protected:
     std::vector<SendDataItem> data_;
     WaterMark endWaterMark_ = 0;
@@ -130,6 +138,9 @@ protected:
     std::vector<uint8_t> compressData_; // if compressData size is above 0, means use compressData and ignore data_
     CompressAlgorithm algo_ = CompressAlgorithm::NONE; // used for param while serialize compress data
     std::map<std::string, std::string> extraConditions_; // use for checkpermission in annother device
+    uint64_t schemaVersion_ = 0; // sender schema version, add in 109
+    int64_t systemTimeOffset_ = 0; // sender device time offset with receiver, add in 109
+    int64_t senderTimeOffset_ = 0; // sender local time offset, add in 109
     static const uint32_t IS_LAST_SEQUENCE = 0x1; // bit 0 used for isLastSequence, 1: is last, 0: not last
     static const uint32_t IS_UPDATE_WATER = 0x2; // bit 1 used for update watermark, 0: update, 1: not update
     static const uint32_t IS_COMPRESS_DATA = 0x4; // bit 3 used for compress data, 0: raw data, 1: compress data

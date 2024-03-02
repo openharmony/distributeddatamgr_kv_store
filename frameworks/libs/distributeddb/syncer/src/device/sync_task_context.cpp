@@ -26,6 +26,7 @@
 #include "isync_state_machine.h"
 #include "log_print.h"
 #include "time_helper.h"
+#include "version.h"
 
 namespace DistributedDB {
 std::mutex SyncTaskContext::synTaskContextSetLock_;
@@ -56,8 +57,7 @@ SyncTaskContext::SyncTaskContext()
       syncTaskRetryStatus_(false),
       isSyncRetry_(false),
       negotiationCount_(0),
-      isAutoSubscribe_(false),
-      isNeedResetAbilitySync_(false)
+      isAutoSubscribe_(false)
 {
 }
 
@@ -431,6 +431,11 @@ int SyncTaskContext::StartStateMachine()
 
 int SyncTaskContext::ReceiveMessageCallback(Message *inMsg)
 {
+    if (GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_BASE && inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+        uint16_t remoteVersion = 0;
+        (void)communicator_->GetRemoteCommunicatorVersion(deviceId_, remoteVersion);
+        SetRemoteSoftwareVersion(SOFTWARE_VERSION_EARLIEST + remoteVersion);
+    }
     int errCode = E_OK;
     if (IncUsedCount() == E_OK) {
         errCode = stateMachine_->ReceiveMessageCallback(inMsg);
@@ -702,16 +707,6 @@ bool SyncTaskContext::IsAutoSubscribe() const
     return isAutoSubscribe_;
 }
 
-bool SyncTaskContext::GetIsNeedResetAbilitySync() const
-{
-    return isNeedResetAbilitySync_;
-}
-
-void SyncTaskContext::SetIsNeedResetAbilitySync(bool isNeedReset)
-{
-    isNeedResetAbilitySync_ = isNeedReset;
-}
-
 bool SyncTaskContext::IsCurrentSyncTaskCanBeSkipped() const
 {
     return false;
@@ -723,7 +718,9 @@ void SyncTaskContext::ResetLastPushTaskStatus()
 
 void SyncTaskContext::SchemaChange()
 {
-    SetIsNeedResetAbilitySync(true);
+    if (stateMachine_ != nullptr) {
+        stateMachine_->SchemaChange();
+    }
 }
 
 void SyncTaskContext::Dump(int fd)
@@ -815,5 +812,14 @@ uint32_t SyncTaskContext::GenerateRequestSessionId()
     }
     lastRequestSessionId_ = sessionId;
     return sessionId;
+}
+
+bool SyncTaskContext::IsSchemaCompatible() const
+{
+    return true;
+}
+
+void SyncTaskContext::SetDbAbility([[gnu::unused]] DbAbility &remoteDbAbility)
+{
 }
 } // namespace DistributedDB

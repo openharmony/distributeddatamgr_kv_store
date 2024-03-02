@@ -30,6 +30,8 @@ StorageEngine::StorageEngine()
     : isUpdated_(false),
       isMigrating_(false),
       commitNotifyFunc_(nullptr),
+      schemaChangedFunc_(nullptr),
+      isSchemaChanged_(false),
       isInitialized_(false),
       perm_(OperatePerm::NORMAL_PERM),
       operateAbort_(false),
@@ -484,5 +486,11 @@ uint64_t StorageEngine::GetCacheRecordVersion() const
 uint64_t StorageEngine::GetAndIncreaseCacheRecordVersion()
 {
     return 0;
+}
+
+void StorageEngine::SetSchemaChangedCallback(const std::function<int(void)> &callback)
+{
+    std::unique_lock<std::shared_mutex> lock(schemaChangedMutex_);
+    schemaChangedFunc_ = callback;
 }
 }

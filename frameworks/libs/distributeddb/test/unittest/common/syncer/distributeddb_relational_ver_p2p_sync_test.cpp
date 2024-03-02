@@ -735,6 +735,7 @@ namespace {
         }
         RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
         LOGD("CloseStore Start");
+        EXPECT_EQ(g_rdbDelegatePtr->RemoveDeviceData(), E_OK);
         ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
         g_rdbDelegatePtr = nullptr;
         OpenStore();
@@ -1452,13 +1453,18 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync003, TestSize.Level1)
      * @tc.steps: step3. change local table to (BOOL, INTEGER, REAL, TEXT, BLOB)
      * @tc.expected: sync fail
      */
-    g_communicatorAggregator->RegOnDispatch([](const std::string &target, Message *inMsg) {
+    bool alter = false;
+    g_communicatorAggregator->RegOnDispatch([&alter](const std::string &target, Message *inMsg) {
         if (target != "real_device") {
             return;
         }
         if (inMsg->GetMessageType() != TYPE_NOTIFY || inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
             return;
         }
+        if (alter) {
+            return;
+        }
+        alter = true;
         sqlite3 *db = nullptr;
         EXPECT_EQ(GetDB(db), SQLITE_OK);
         ASSERT_NE(db, nullptr);

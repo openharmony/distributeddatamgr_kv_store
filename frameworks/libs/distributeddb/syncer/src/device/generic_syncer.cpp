@@ -94,8 +94,7 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
             return -E_BUSY;
         }
         std::vector<uint8_t> label = syncInterface->GetIdentifier();
-        label.resize(3); // only show 3 Bytes enough
-        label_ = DBCommon::VectorToHexString(label);
+        label_ = DBCommon::StringMasking(DBCommon::VectorToHexString(label));
 
         int errCode = InitStorageResource(syncInterface);
         if (errCode != E_OK) {
@@ -928,6 +927,8 @@ int GenericSyncer::InitTimeChangedListener()
     }
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
+            RuntimeContext::GetInstance()->RecordAllTimeChange();
+            RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
             RecordTimeChangeOffset(changedOffset);
         },
         [this]() {
@@ -944,6 +945,9 @@ int GenericSyncer::InitTimeChangedListener()
     {
         std::lock_guard<std::mutex> autoLock(timeChangeListenerMutex_);
         timeChangeListenerFinalize_ = false;
+    }
+    if (RuntimeContext::GetInstance()->CheckDBTimeChange(syncInterface_->GetIdentifier())) {
+        ResetTimeSyncMarkByTimeChange(metadata_, *syncInterface_);
     }
     return E_OK;
 }
@@ -1000,6 +1004,7 @@ void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
             static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS); // 1ms
     }
     metadata->SaveLocalTimeOffset(orgOffset);
+    ResetTimeSyncMarkByTimeChange(metadata, *storage);
     storage->DecRefCount();
 }
 
@@ -1143,5 +1148,44 @@ int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &in
         dev = device;
     }
     return metadata->GetWaterMarkInfoFromDB(dev, devNeedHash, info);
+}
+
+int GenericSyncer::UpgradeSchemaVerInMeta()
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(syncerLock_);
+        metadata = metadata_;
+    }
+    if (metadata == nullptr) {
+        LOGE("[Syncer] metadata is not init");
+        return -E_NOT_INIT;
+    }
+    int errCode = metadata->ClearAllAbilitySyncFinishMark();
+    if (errCode != E_OK) {
+        LOGE("[Syncer] clear ability mark failed:%d", errCode);
+        return errCode;
+    }
+    auto [err, localSchemaVer] = metadata->GetLocalSchemaVersion();
+    if (err != E_OK) {
+        LOGE("[Syncer] get local schema version failed:%d", err);
+        return err;
+    }
+    errCode = metadata->SetLocalSchemaVersion(localSchemaVer + 1);
+    if (errCode != E_OK) {
+        LOGE("[Syncer] increase local schema version failed:%d", errCode);
+    }
+    return errCode;
+}
+
+void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &metadata, ISyncInterface &storage)
+{
+    int errCode = metadata->ClearAllTimeSyncFinishMark();
+    if (errCode != E_OK) {
+        LOGW("[GenericSyncer] %s clear time sync finish mark failed %d", label_.c_str(), errCode);
+    } else {
+        LOGD("[GenericSyncer] ClearAllTimeSyncFinishMark finish");
+        RuntimeContext::GetInstance()->ResetDBTimeChangeStatus(storage.GetIdentifier());
+    }
 }
 } // namespace DistributedDB

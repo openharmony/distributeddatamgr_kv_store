@@ -119,14 +119,5 @@ int SingleVerSyncEngine::SubscribeTimeOut(TimerId id)
     }
     return E_OK;
 }
-
-void SingleVerSyncEngine::SetIsNeedResetAbilitySync(const std::string &deviceId, bool isNeedReset)
-{
-    ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
-    if (context != nullptr) {
-        context->SetIsNeedResetAbilitySync(isNeedReset);
-        RefObject::DecObjRef(context);
-    }
-}
 DEFINE_OBJECT_TAG_FACILITIES(SingleVerSyncEngine);
 } // namespace DistributedDB

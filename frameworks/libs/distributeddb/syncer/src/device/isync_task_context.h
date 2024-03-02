@@ -16,7 +16,7 @@
 #ifndef I_SYNC_TASK_CONTEXT_H
 #define I_SYNC_TASK_CONTEXT_H
 
-
+#include "db_ability.h"
 #include "icommunicator.h"
 #include "ikvdb_sync_interface.h"
 #include "meta_data.h"
@@ -175,13 +175,15 @@ public:
     // some sync task can be skipped if there is no change in data base since last sync
     virtual bool IsCurrentSyncTaskCanBeSkipped() const = 0;
 
-    virtual void SetIsNeedResetAbilitySync(bool isNeedReset) = 0;
-
     virtual void SchemaChange() = 0;
 
     virtual void Dump(int fd) = 0;
 
     virtual void AbortMachineIfNeed(uint32_t syncId) = 0;
+
+    virtual bool IsSchemaCompatible() const = 0;
+
+    virtual void SetDbAbility(DbAbility &remoteDbAbility) = 0;
 protected:
     virtual ~ISyncTaskContext() {};
 };

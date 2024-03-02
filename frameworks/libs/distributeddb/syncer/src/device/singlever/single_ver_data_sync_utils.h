@@ -91,6 +91,8 @@ public:
 
     static SyncTimeRange GetSyncDataTimeRange(SyncType syncType, WaterMark localMark, WaterMark deleteMark,
         const std::vector<SendDataItem> &inData, UpdateWaterMark &isUpdate);
+
+    static std::pair<TimeOffset, TimeOffset> GetTimeOffsetFromRequestMsg(const Message *message);
 private:
     static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet, int mode);

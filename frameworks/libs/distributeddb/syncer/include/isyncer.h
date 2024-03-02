@@ -127,6 +127,8 @@ public:
     virtual int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const = 0;
 
     virtual int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) = 0;
+
+    virtual int UpgradeSchemaVerInMeta() = 0;
 };
 } // namespace DistributedDB
 

@@ -462,4 +462,9 @@ int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &inf
     }
     return syncer_.GetWatermarkInfo(device, info);
 }
+
+int SyncAbleKvDB::UpgradeSchemaVerInMeta()
+{
+    return syncer_.UpgradeSchemaVerInMeta();
+}
 }

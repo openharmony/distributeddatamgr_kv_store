@@ -63,6 +63,7 @@ namespace {
         {State::START_INITIACTIVE_DATA_SYNC, Event::INNER_ERR_EVENT, State::INNER_ERR},
         {State::START_INITIACTIVE_DATA_SYNC, Event::SEND_FINISHED_EVENT, State::START_PASSIVE_DATA_SYNC},
         {State::START_INITIACTIVE_DATA_SYNC, Event::RE_SEND_DATA_EVENT, State::START_INITIACTIVE_DATA_SYNC},
+        {State::START_INITIACTIVE_DATA_SYNC, Event::NEED_TIME_SYNC_EVENT, State::TIME_SYNC},
 
         // In START_PASSIVE_DATA_SYNC state, do response pull request, and send first packt of data sync
         {State::START_PASSIVE_DATA_SYNC, Event::SEND_FINISHED_EVENT, State::START_PASSIVE_DATA_SYNC},
@@ -71,6 +72,7 @@ namespace {
         {State::START_PASSIVE_DATA_SYNC, Event::INNER_ERR_EVENT, State::INNER_ERR},
         {State::START_PASSIVE_DATA_SYNC, Event::NEED_ABILITY_SYNC_EVENT, State::ABILITY_SYNC},
         {State::START_PASSIVE_DATA_SYNC, Event::RE_SEND_DATA_EVENT, State::START_PASSIVE_DATA_SYNC},
+        {State::START_PASSIVE_DATA_SYNC, Event::NEED_TIME_SYNC_EVENT, State::TIME_SYNC},
 
         // In WAIT_FOR_RECEIVE_DATA_FINISH,
         {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::RECV_FINISHED_EVENT, State::SYNC_TASK_FINISHED},
@@ -148,6 +150,7 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
     if (errCode != E_OK) {
         goto ERROR_OUT;
     }
+    abilitySync_->InitAbilitySyncFinishStatus(*context);
 
     currentState_ = IDLE;
     context_ = static_cast<SingleVerSyncTaskContext *>(context);
@@ -472,6 +475,7 @@ Event SingleVerSyncStateMachine::DoWaitForDataRecv() const
 
 Event SingleVerSyncStateMachine::DoTimeSync() const
 {
+    timeSync_->SetTimeSyncFinishIfNeed();
     if (timeSync_->IsNeedSync()) {
         CommErrHandler handler = nullptr;
         // Auto sync need do retry don't use errHandler to return.
@@ -494,18 +498,14 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
 {
     uint16_t remoteCommunicatorVersion = 0;
     int errCode = communicator_->GetRemoteCommunicatorVersion(context_->GetDeviceId(), remoteCommunicatorVersion);
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[StateMachine][DoAbilitySync] Get RemoteCommunicatorVersion errCode=%d", errCode);
         return Event::INNER_ERR_EVENT;
     }
     // Fistr version, not support AbilitySync
-    if (remoteCommunicatorVersion == 0) {
+    if (remoteCommunicatorVersion == 0 && errCode != -E_NOT_FOUND) {
         context_->SetRemoteSoftwareVersion(SOFTWARE_VERSION_EARLIEST);
         return GetEventAfterTimeSync(context_->GetMode());
-    }
-    if (context_->GetIsNeedResetAbilitySync()) {
-        abilitySync_->SetAbilitySyncFinishedStatus(false);
-        context_->SetIsNeedResetAbilitySync(false);
     }
     if (abilitySync_->GetAbilitySyncFinishedStatus()) {
         return GetEventAfterTimeSync(context_->GetMode());
@@ -602,13 +602,13 @@ int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
         if (errCode == -E_ABILITY_SYNC_FINISHED) {
             LOGI("[StateMachine][AbilitySyncRecv] ability sync finished with both kv,label=%s,dev=%s",
                 dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
-            abilitySync_->SetAbilitySyncFinishedStatus(true);
+            abilitySync_->SetAbilitySyncFinishedStatus(true, *context_);
             JumpStatusAfterAbilitySync(context_->GetMode());
         } else if (errCode != E_OK) {
             LOGE("[StateMachine][AbilitySyncRecv] handle ackRecv failed,errCode=%d", errCode);
             SwitchStateAndStep(TransformErrCodeToEvent(errCode));
         } else if (context_->GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_RELEASE_2_0) {
-            abilitySync_->SetAbilitySyncFinishedStatus(true);
+            abilitySync_->SetAbilitySyncFinishedStatus(true, *context_);
             LOGI("[StateMachine][AbilitySyncRecv] ability Sync Finished,label=%s,dev=%s",
                 dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
             currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
@@ -626,9 +626,15 @@ int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
 int SingleVerSyncStateMachine::HandleDataRequestRecv(const Message *inMsg)
 {
     TimeOffset offset = 0;
+    auto [systemOffset, senderLocalOffset] = SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(inMsg);
+    int errCode = timeSync_->GenerateTimeOffsetIfNeed(systemOffset, senderLocalOffset);
+    if (errCode != E_OK) {
+        (void)dataSync_->SendDataAck(context_, inMsg, errCode, 0);
+        return errCode;
+    }
     uint32_t timeout = communicator_->GetTimeout(context_->GetDeviceId());
     // If message is data sync request, we should check timeoffset.
-    int errCode = timeSync_->GetTimeOffset(offset, timeout);
+    errCode = timeSync_->GetTimeOffset(offset, timeout);
     if (errCode != E_OK) {
         LOGE("[StateMachine][HandleDataRequestRecv] GetTimeOffset err! errCode=%d", errCode);
         return errCode;
@@ -706,7 +712,7 @@ void SingleVerSyncStateMachine::NeedAbilitySyncHandle()
     } else {
         currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
     }
-    abilitySync_->SetAbilitySyncFinishedStatus(false);
+    abilitySync_->SetAbilitySyncFinishedStatus(false, *context_);
     dataSync_->ClearSyncStatus();
 }
 
@@ -739,7 +745,7 @@ int SingleVerSyncStateMachine::HandleDataAckRecv(const Message *inMsg)
     if (isNeedStop) {
         StopSaveDataNotify();
     }
-    if (errCode == -E_NEED_ABILITY_SYNC || errCode == -E_RE_SEND_DATA) {
+    if (errCode == -E_NEED_ABILITY_SYNC || errCode == -E_RE_SEND_DATA || errCode == -E_NEED_TIME_SYNC) {
         StopFeedDogForSync(SyncDirectionFlag::SEND);
     } else if (errCode == -E_SAVE_DATA_NOTIFY) {
         return errCode;
@@ -796,7 +802,7 @@ void SingleVerSyncStateMachine::ScheduleMsgAndHandle(Message *inMsg)
         bool isNeedClearMap = false;
         if (isNeedHandle) {
             int errCode = HandleDataRequestRecv(msg);
-            if (context_->IsReceiveWaterMarkErr() || errCode == -E_NEED_ABILITY_SYNC) {
+            if (context_->IsReceiveWaterMarkErr() || errCode == -E_NEED_ABILITY_SYNC || errCode == -E_NEED_TIME_SYNC) {
                 isNeedClearMap = true;
             }
             if (errCode == -E_TIMEOUT) {
@@ -1041,6 +1047,8 @@ Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode) const
             return Event::START_PULL_RESPONSE_EVENT;
         case -E_RE_SEND_DATA:
             return Event::RE_SEND_DATA_EVENT;
+        case -E_NEED_TIME_SYNC:
+            return Event::NEED_TIME_SYNC_EVENT;
         default:
             return Event::INNER_ERR_EVENT;
     }
@@ -1163,6 +1171,9 @@ void SingleVerSyncStateMachine::DataAckRecvErrCodeHandle(int errCode, bool handl
         case -E_NEED_ABILITY_SYNC:
             NeedAbilitySyncHandle();
             break;
+        case -E_NEED_TIME_SYNC:
+            timeSync_->ClearTimeSyncFinish();
+            break;
         case -E_NOT_PERMIT:
             if (handleError) {
                 context_->SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
@@ -1283,7 +1294,7 @@ int SingleVerSyncStateMachine::AbilitySyncNotifyRecv(const Message *inMsg)
         return E_OK;
     }
     if (ackCode == AbilitySync::LAST_NOTIFY && AbilityMsgSessionIdCheck(inMsg)) {
-        abilitySync_->SetAbilitySyncFinishedStatus(true);
+        abilitySync_->SetAbilitySyncFinishedStatus(true, *context_);
         // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
         LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
             dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
@@ -1296,5 +1307,10 @@ int SingleVerSyncStateMachine::AbilitySyncNotifyRecv(const Message *inMsg)
         abilitySync_->AckNotifyRecv(inMsg, context_);
     }
     return E_OK;
+}
+
+void SingleVerSyncStateMachine::SchemaChange()
+{
+    abilitySync_->SetAbilitySyncFinishedStatus(false, *context_);
 }
 } // namespace DistributedDB
