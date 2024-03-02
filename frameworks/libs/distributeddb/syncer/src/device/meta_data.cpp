@@ -29,11 +29,11 @@
 
 namespace DistributedDB {
 namespace {
-    const int STR_TO_LL_BY_DEVALUE = 10;
+    constexpr const int STR_TO_LL_BY_DEVALUE = 10;
     // store local timeoffset;this is a special key;
-    const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
-    const char *CLIENT_ID_PREFIX_KEY = "clientId";
-    const char *LOCAL_META_DATA_KEY = "localMetaData";
+    constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
+    constexpr const char *CLIENT_ID_PREFIX_KEY = "clientId";
+    constexpr const char *LOCAL_META_DATA_KEY = "localMetaData";
 }
 
 Metadata::Metadata()
@@ -53,7 +53,7 @@ int Metadata::Initialize(ISyncInterface* storage)
     naturalStoragePtr_ = storage;
     std::vector<uint8_t> key;
     std::vector<uint8_t> timeOffset;
-    DBCommon::StringToVector(LOCALTIME_OFFSET_KEY, key);
+    DBCommon::StringToVector(std::string(LOCALTIME_OFFSET_KEY), key);
 
     int errCode = GetMetadataFromDb(key, timeOffset);
     if (errCode == -E_NOT_FOUND) {
@@ -135,8 +135,8 @@ int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset)
 {
     std::string timeOffsetString = std::to_string(timeOffset);
     std::vector<uint8_t> timeOffsetValue(timeOffsetString.begin(), timeOffsetString.end());
-    std::vector<uint8_t> localTimeOffsetValue(
-        LOCALTIME_OFFSET_KEY.begin(), LOCALTIME_OFFSET_KEY.end());
+    std::string keyStr(LOCALTIME_OFFSET_KEY);
+    std::vector<uint8_t> localTimeOffsetValue(keyStr.begin(), keyStr.end());
 
     std::lock_guard<std::mutex> lockGuard(localTimeOffsetLock_);
     localTimeOffset_ = timeOffset;
@@ -757,7 +757,7 @@ int Metadata::SetSyncMark(const std::string &deviceId, SyncMark syncMark, bool f
     } else {
         metadata.syncMark = DBCommon::EraseBit(metadata.syncMark, mark);
     }
-    LOGD("[Metadata] Mark:%" PRIu64 " sync finish:%d sync mark:%" PRIu64, mark, static_cast<int>(finish),
+    LOGD("[Metadata] Mark:%" PRIx64 " sync finish:%d sync mark:%" PRIu64, mark, static_cast<int>(finish),
         metadata.syncMark);
     return SaveMetaDataValue(deviceId, metadata);
 }
