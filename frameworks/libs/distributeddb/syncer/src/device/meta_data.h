@@ -33,6 +33,19 @@ struct MetaDataValue {
     uint64_t peerWaterMark = 0;
     Timestamp dbCreateTime = 0;
     uint64_t clearDeviceDataMark = 0; // Default 0 for not remove device data.
+    uint64_t syncMark = 0; // 0x1 ability sync finish 0x2 time sync finish
+    uint64_t remoteSchemaVersion = 0; // reset zero when local schema change
+    int64_t systemTimeOffset = 0; // record dev time offset
+};
+
+struct LocalMetaData {
+    uint32_t version = 0;
+    uint64_t localSchemaVersion = 0;
+};
+
+enum class SyncMark : uint32_t {
+    SYNC_MARK_ABILITY_SYNC = 0x01,
+    SYNC_MARK_TIME_SYNC = 0x02,
 };
 
 class Metadata {
@@ -130,6 +143,30 @@ public:
     void UnlockWaterMark() const;
 
     int GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, WatermarkInfo &info);
+
+    int ClearAllAbilitySyncFinishMark();
+
+    int SetAbilitySyncFinishMark(const std::string &deviceId, bool finish);
+
+    bool IsAbilitySyncFinish(const std::string &deviceId);
+
+    int ClearAllTimeSyncFinishMark();
+
+    int SetTimeSyncFinishMark(const std::string &deviceId, bool finish);
+
+    bool IsTimeSyncFinish(const std::string &deviceId);
+
+    int SetRemoteSchemaVersion(const std::string &deviceId, uint64_t schemaVersion);
+
+    uint64_t GetRemoteSchemaVersion(const std::string &deviceId);
+
+    int SetSystemTimeOffset(const std::string &deviceId, int64_t systemTimeOffset);
+
+    int64_t GetSystemTimeOffset(const std::string &deviceId);
+
+    std::pair<int, uint64_t> GetLocalSchemaVersion();
+
+    int SetLocalSchemaVersion(uint64_t schemaVersion);
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
@@ -164,6 +201,31 @@ private:
     // reset the waterMark to zero
     int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
 
+    int SetSyncMark(const std::string &deviceId, SyncMark syncMark, bool finish);
+
+    bool IsContainSyncMark(const std::string &deviceId, SyncMark syncMark);
+
+    int SaveLocalMetaData(const LocalMetaData &localMetaData);
+
+    std::pair<int, LocalMetaData> GetLocalMetaData();
+
+    enum class InnerClearAction : uint32_t {
+        CLEAR_ABILITY_SYNC_MARK = 0x01,
+        CLEAR_TIME_SYNC_MARK = 0x02,
+        CLEAR_REMOTE_SCHEMA_VERSION = 0x04,
+        CLEAR_SYSTEM_TIME_OFFSET = 0x08,
+    };
+
+    int ClearAllMetaDataValue(uint32_t innerClearAction);
+
+    static void ClearMetaDataValue(uint32_t innerClearAction, MetaDataValue &metaDataValue);
+
+    static std::pair<int, Value> SerializeLocalMetaData(const LocalMetaData &localMetaData);
+
+    static std::pair<int, LocalMetaData> DeSerializeLocalMetaData(const Value &value);
+
+    static uint64_t CalculateLocalMetaDataLength();
+
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
     std::atomic<TimeOffset> localTimeOffset_;
@@ -191,6 +253,7 @@ private:
     std::map<DeviceID, std::string> clientIdCache_;
 
     mutable std::recursive_mutex waterMarkMutex_;
+    mutable std::mutex localMetaDataMutex_;
 };
 }  // namespace DistributedDB
 #endif

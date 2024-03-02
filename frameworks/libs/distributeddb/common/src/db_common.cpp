@@ -628,4 +628,9 @@ std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
     }
     return DBCommon::TransferHashString(dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId);
 }
+
+uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
+{
+    return origin & (~eraseBit);
+}
 } // namespace DistributedDB

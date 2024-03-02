@@ -766,6 +766,10 @@ distributeddb_unittest("DistributedDBSqliteRelationalUtilsTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBMetaDataTest") {
+  sources = [ "unittest/common/syncer/distributeddb_meta_data_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -828,6 +832,7 @@ group("unittest") {
     ":DistributedDBInterfacesTransactionSyncDBTest",
     ":DistributedDBInterfacesTransactionTest",
     ":DistributedDBJsonPrecheckUnitTest",
+    ":DistributedDBMetaDataTest",
     ":DistributedDBMockSyncModuleTest",
     ":DistributedDBMultiVerP2PSyncTest",
     ":DistributedDBMultiVerVacuumTest",
