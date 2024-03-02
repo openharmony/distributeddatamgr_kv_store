@@ -81,6 +81,8 @@ public:
 
     void SetDropMessageTypeByDevice(MessageId msgid, uint32_t dropTimes = 1);
 
+    void SetRemoteVersion(uint16_t remoteVersion);
+
 private:
     int TimeSync();
     int DataSync();
@@ -108,6 +110,8 @@ private:
     MessageId dropMsgId_ = MessageId::UNKNOW_MESSAGE;
     uint32_t dropMsgTimes_ = 0;
     uint32_t mtuSize_ = 5 * 1024 * 1024; // 5 * 1024 * 1024B
+
+    uint16_t remoteVersion_ = UINT16_MAX;
 };
 } // namespace DistributedDB
 

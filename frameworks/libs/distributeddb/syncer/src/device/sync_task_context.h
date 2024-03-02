@@ -203,16 +203,15 @@ public:
 
     virtual void ResetLastPushTaskStatus();
 
-    bool GetIsNeedResetAbilitySync() const;
-
-    void SetIsNeedResetAbilitySync(bool isNeedReset) override;
-
     void SchemaChange() override;
 
     void Dump(int fd) override;
 
     void AbortMachineIfNeed(uint32_t syncId) override;
 
+    bool IsSchemaCompatible() const override;
+
+    void SetDbAbility(DbAbility &remoteDbAbility) override;
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 
@@ -286,8 +285,6 @@ protected:
     volatile bool isSyncRetry_;
     volatile uint32_t negotiationCount_;
     volatile bool isAutoSubscribe_;
-    // syncFinished_ need to set false if isNeedResetSyncFinished_ is true when start do abilitySync interface
-    std::atomic<bool> isNeedResetAbilitySync_;
 
     // For global ISyncTaskContext Set, used by CommErrCallback.
     static std::mutex synTaskContextSetLock_;

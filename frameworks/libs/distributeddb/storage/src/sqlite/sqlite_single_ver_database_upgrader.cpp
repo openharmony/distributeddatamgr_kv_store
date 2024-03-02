@@ -359,4 +359,9 @@ int SQLiteSingleVerDatabaseUpgrader::MoveDatabaseToNewDir(const std::string &par
     }
     return errCode;
 }
+
+bool SQLiteSingleVerDatabaseUpgrader::IsValueNeedUpgrade() const
+{
+    return valueNeedUpgrade_;
+}
 } // namespace DistributedDB

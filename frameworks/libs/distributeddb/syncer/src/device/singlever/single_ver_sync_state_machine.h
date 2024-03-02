@@ -66,6 +66,7 @@ public:
         WAIT_TIME_OUT_EVENT,
         RE_SEND_DATA_EVENT,
         CONTROL_CMD_EVENT,
+        NEED_TIME_SYNC_EVENT,
         ANY_EVENT
     };
     SingleVerSyncStateMachine();
@@ -99,6 +100,8 @@ public:
     void InnerErrorAbort(uint32_t sessionId) override;
 
     void NotifyClosing() override;
+
+    void SchemaChange() override;
 protected:
     // Step the SingleVerSyncStateMachine
     void SyncStep() override;

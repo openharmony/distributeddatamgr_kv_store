@@ -903,6 +903,7 @@ int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 
     LOGD("Finish upgrade single ver database!");
     isUpdated_ = true; // Identification to avoid repeated upgrades
+    isSchemaChanged_ = upgrader->IsValueNeedUpgrade();
     return errCode;
 }
 
@@ -1091,5 +1092,16 @@ bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &e
         return false;
     }
     return true;
+}
+
+int SQLiteSingleVerStorageEngine::UpgradeLocalMetaData()
+{
+    std::shared_lock<std::shared_mutex> lock(schemaChangedMutex_);
+    if (isSchemaChanged_) {
+        int errCode = schemaChangedFunc_();
+        isSchemaChanged_ = false;
+        return errCode;
+    }
+    return E_OK;
 }
 }

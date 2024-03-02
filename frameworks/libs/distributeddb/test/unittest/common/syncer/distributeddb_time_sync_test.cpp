@@ -21,6 +21,7 @@
 #include "single_ver_sync_state_machine.h"
 #include "single_ver_kv_sync_task_context.h"
 #include "sync_types.h"
+#include "version.h"
 #include "virtual_single_ver_sync_db_Interface.h"
 #include "virtual_time_sync_communicator.h"
 
@@ -467,4 +468,32 @@ HWTEST_F(DistributedDBTimeSyncTest, SyncTimeout001, TestSize.Level2)
     TimeOffset offset;
     errCode = g_timeSyncA->GetTimeOffset(offset, TIME_SYNC_WAIT_TIME);
     EXPECT_TRUE(errCode == -E_TIMEOUT);
+}
+
+/**
+ * @tc.name: CheckRemoteVersion001
+ * @tc.desc: Verify the timeout scenario for time sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBTimeSyncTest, CheckRemoteVersion001, TestSize.Level0)
+{
+    // initialize timeSyncA
+    g_metadataA->Initialize(g_syncInterfaceA);
+    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step1. Initialize the syncTaskContext
+     * @tc.expected: step1. Initialize syncTaskContext successfully
+     */
+    errCode = g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    EXPECT_EQ(errCode, E_OK);
+    /**
+     * @tc.steps: step2. Check remote version
+     */
+    EXPECT_TRUE(g_timeSyncA->IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0));
+    g_virtualCommunicator->SetRemoteVersion(SOFTWARE_VERSION_RELEASE_9_0);
+    EXPECT_FALSE(g_timeSyncA->IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0));
 }

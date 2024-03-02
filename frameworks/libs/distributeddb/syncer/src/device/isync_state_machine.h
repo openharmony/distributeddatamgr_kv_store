@@ -71,6 +71,9 @@ public:
 
     // start a timer to ResetWatchDog when get data
     virtual void StopFeedDogForGetData() = 0;
+
+    // schema change and reset ability finish status
+    virtual void SchemaChange() = 0;
 };
 } // namespace DistributedDB
 

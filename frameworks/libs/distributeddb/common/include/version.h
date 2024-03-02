@@ -42,8 +42,12 @@ constexpr uint32_t SOFTWARE_VERSION_RELEASE_6_0 = SOFTWARE_VERSION_BASE + 6; // 
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for seventh released version
 // kv ability sync with 2 packet at 108
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 8; // 8 for eighth released version
+// 109 version add field in request packet
+// add schema version in ability request
+// add schema version, system time offset, sender local time offset in data request
+constexpr uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 9; // 9 for ninth released version
 constexpr uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_8_0;
+constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_9_0;
 constexpr int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version

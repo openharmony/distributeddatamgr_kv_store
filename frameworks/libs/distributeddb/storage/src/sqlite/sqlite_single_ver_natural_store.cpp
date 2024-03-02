@@ -456,6 +456,7 @@ int SQLiteSingleVerNaturalStore::Open(const KvDBProperties &kvDBProp)
     }
 
     InitialLocalDataTimestamp();
+    storageEngine_->UpgradeLocalMetaData();
     isInitialized_ = true;
     isReadOnly_ = isReadOnly;
     return E_OK;
@@ -1305,6 +1306,11 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
             }
             auto commitData = static_cast<SingleVerNaturalStoreCommitNotifyData *>(committedData);
             this->CommitAndReleaseNotifyData(commitData, true, eventType);
+        }
+    );
+    storageEngine_->SetSchemaChangedCallback(
+        [&]() {
+            return this->UpgradeSchemaVerInMeta();
         }
     );
 

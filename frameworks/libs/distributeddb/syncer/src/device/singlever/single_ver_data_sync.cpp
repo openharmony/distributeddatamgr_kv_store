@@ -654,6 +654,7 @@ void SingleVerDataSync::UpdateSendInfo(SyncTimeRange dataTimeRange, SingleVerSyn
 void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     SyncEntry &syncData, int sendCode, int mode)
 {
+    SetDataRequestCommonInfo(*packet);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark localMark = 0;
@@ -802,7 +803,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark endMark = context->GetEndMark();
     SyncTimeRange dataTime = {localMark, deleteMark, localMark, deleteMark};
-
+    SetDataRequestCommonInfo(*packet);
     packet->SetBasicInfo(E_OK, version, context->GetMode());
     packet->SetExtraConditions(RuntimeContext::GetInstance()->GetPermissionCheckParam(storage_->GetDbProperties()));
     packet->SetWaterMark(localMark, peerMark, deleteMark);
@@ -813,10 +814,9 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     packet->SetLastSequence();
     SingleVerDataSyncUtils::SetPacketId(packet, context, version);
     context->SetRetryStatus(SyncTaskContext::NO_NEED_RETRY);
-
     LOGD("[DataSync][Pull] curType=%d,local=%" PRIu64 ",del=%" PRIu64 ",end=%" PRIu64 ",peer=%" PRIu64 ",label=%s,"
-        "dev=%s", static_cast<int>(syncType), localMark, deleteMark, endMark, peerMark, label_.c_str(),
-        STR_MASK(GetDeviceId()));
+        "dev=%s", static_cast<int>(syncType), localMark, deleteMark, endMark, peerMark,
+        label_.c_str(), STR_MASK(GetDeviceId()));
     UpdateSendInfo(dataTime, context);
     return SendDataPacket(syncType, packet, context);
 }
@@ -965,6 +965,11 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
     if (errCode == E_OK) {
         errCode = SingleVerDataSyncUtils::RequestQueryCheck(packet, storage_);
     }
+    if (errCode != E_OK) {
+        (void)SendDataAck(context, message, errCode, 0);
+        return errCode;
+    }
+    errCode = SchemaVersionMatchCheck(context, packet);
     if (errCode != E_OK) {
         (void)SendDataAck(context, message, errCode, 0);
     }
@@ -1182,7 +1187,7 @@ int SingleVerDataSync::AckRecv(SingleVerSyncTaskContext *context, const Message 
         return -E_VERSION_NOT_SUPPORT;
     }
 
-    if (recvCode == -E_NEED_ABILITY_SYNC || recvCode == -E_NOT_PERMIT) {
+    if (recvCode == -E_NEED_ABILITY_SYNC || recvCode == -E_NOT_PERMIT || recvCode == -E_NEED_TIME_SYNC) {
         // we should ReleaseContinueToken, avoid crash
         LOGI("[DataSync][AckRecv] Data sync abort,recvCode =%d,label =%s,dev=%s", recvCode, label_.c_str(),
             STR_MASK(GetDeviceId()));
@@ -1524,6 +1529,9 @@ int SingleVerDataSync::CheckSchemaStrategy(SingleVerSyncTaskContext *context, co
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }
+    if (metadata_->IsAbilitySyncFinish(deviceId_)) {
+        return E_OK;
+    }
     auto query = packet->GetQuery();
     std::pair<bool, bool> schemaSyncStatus = context->GetSchemaSyncStatus(query);
     if (!schemaSyncStatus.second) {
@@ -1676,6 +1684,7 @@ void SingleVerDataSync::UpdateMtuSize()
 void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
     DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode)
 {
+    SetDataRequestCommonInfo(*packet);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     WaterMark peerMark = 0;
     GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(),
@@ -1698,7 +1707,7 @@ void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *
     packet->SetBasicInfo(sendCode, version, reSendMode);
     packet->SetExtraConditions(RuntimeContext::GetInstance()->GetPermissionCheckParam(storage_->GetDbProperties()));
     packet->SetWaterMark(reSendInfo.start, peerMark, reSendInfo.deleteDataStart);
-    if (SyncOperation::TransferSyncMode(reSendMode) != SyncModeType::PUSH) {
+    if (SyncOperation::TransferSyncMode(reSendMode) != SyncModeType::PUSH || context->IsQuerySync()) {
         packet->SetEndWaterMark(context->GetEndMark());
         packet->SetQuery(context->GetQuery());
     }
@@ -2121,5 +2130,41 @@ void SingleVerDataSync::RecordClientId(const SingleVerSyncTaskContext *context)
             LOGW("[DataSync] record clientId failed %d", errCode);
         }
     }
+}
+
+void SingleVerDataSync::SetDataRequestCommonInfo(DataRequestPacket &packet)
+{
+    packet.SetSenderTimeOffset(metadata_->GetLocalTimeOffset());
+    packet.SetSystemTimeOffset(metadata_->GetSystemTimeOffset(deviceId_));
+    auto [err, localSchemaVer] = metadata_->GetLocalSchemaVersion();
+    if (err != E_OK) {
+        LOGW("[DataSync] get local schema version failed:%d", err);
+        return;
+    }
+    packet.SetSchemaVersion(localSchemaVer);
+}
+
+std::pair<TimeOffset, TimeOffset> SingleVerDataSync::GetTimeOffsetFromRequestMsg(const Message *message)
+{
+    std::pair<TimeOffset, TimeOffset> res;
+    auto &[systemOffset, senderLocalOffset] = res;
+    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
+    systemOffset = packet->GetSystemTimeOffset();
+    senderLocalOffset = packet->GetSenderTimeOffset();
+    return res;
+}
+
+int SingleVerDataSync::SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
+{
+    if (context->GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
+        return E_OK;
+    }
+    auto remoteSchemaVersion = metadata_->GetRemoteSchemaVersion(deviceId_);
+    if (remoteSchemaVersion != packet->GetSchemaVersion()) {
+        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
+            packet->GetSchemaVersion(), remoteSchemaVersion);
+        return -E_NEED_ABILITY_SYNC;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

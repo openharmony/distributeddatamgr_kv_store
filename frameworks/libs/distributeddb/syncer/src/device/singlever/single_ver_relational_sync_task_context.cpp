@@ -91,9 +91,20 @@ std::pair<bool, bool> SingleVerRelationalSyncTaskContext::GetSchemaSyncStatus(Qu
 
 void SingleVerRelationalSyncTaskContext::SchemaChange()
 {
-    SetIsNeedResetAbilitySync(true);
     RelationalSyncStrategy strategy;
     SetRelationalSyncStrategy(strategy, false);
+    SyncTaskContext::SchemaChange();
+}
+
+bool SingleVerRelationalSyncTaskContext::IsSchemaCompatible() const
+{
+    std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
+    for (const auto &strategy : relationalSyncStrategy_) {
+        if (!strategy.second.permitSync) {
+            return false;
+        }
+    }
+    return true;
 }
 }
 #endif

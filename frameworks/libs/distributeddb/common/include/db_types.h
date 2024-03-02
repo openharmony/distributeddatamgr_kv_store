@@ -173,5 +173,11 @@ enum class SortType {
     TIMESTAMP_ASC,
     TIMESTAMP_DESC
 };
+
+struct DeviceTimeInfo {
+    Timestamp recordTime = 0; // info generate time
+    TimeOffset systemTimeOffset = 0; // raw system time offset
+    int64_t rtt = 0;
+};
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

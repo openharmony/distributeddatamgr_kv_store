@@ -278,7 +278,7 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync003, TestSize.Level3)
      * @tc.steps: step1. set block in function DispatchMessage as true.
      */
     g_communicatorAggregator->SetBlockValue(true);
-
+    g_communicator->SetRemoteVersion(0u);
     /**
      * @tc.steps: step2. control MessageReceiveCallback to send messages that are more than maximum size of queue.
      */
@@ -314,6 +314,7 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync003, TestSize.Level3)
     /**
      * @tc.expected: step2. after part of messages are enqueued, the rest of the messages are discarded.
      */
+    g_communicator->SetRemoteVersion(UINT16_MAX);
     EXPECT_TRUE(g_syncEngine->GetDiscardMsgNum() > 0);
     EXPECT_TRUE(g_syncEngine->GetQueueCacheSize() > 0);
     g_communicatorAggregator->SetBlockValue(false);

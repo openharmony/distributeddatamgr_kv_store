@@ -48,7 +48,7 @@ int SingleVerSchemaDatabaseUpgrader::ExecuteUpgradeSchema()
         return errCode;
     }
     // Judge and gather upgrade information
-    bool valueNeedUpgrade = false;
+    valueNeedUpgrade_ = false;
     IndexDifference indexDiffer;
     if (oriSchemaObject.IsSchemaValid()) {
         errCode = oriSchemaObject.CompareAgainstSchemaObject(newSchema_, indexDiffer);
@@ -58,16 +58,16 @@ int SingleVerSchemaDatabaseUpgrader::ExecuteUpgradeSchema()
         } else if (errCode == -E_SCHEMA_UNEQUAL_INCOMPATIBLE) {
             return -E_SCHEMA_MISMATCH;
         } else if (errCode == -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE) {
-            valueNeedUpgrade = true;
+            valueNeedUpgrade_ = true;
         }
         // ValueNeedUpgrade false for case E_SCHEMA_UNEQUAL_COMPATIBLE
     } else {
         // Upgrade normalDb to schemaDb
-        valueNeedUpgrade = true;
+        valueNeedUpgrade_ = true;
         indexDiffer.increase = newSchema_.GetIndexInfo();
     }
     // Remember to upgrade value first, upgrade index later, for both Json-Schema and FlatBuffer-Schema
-    if (valueNeedUpgrade) {
+    if (valueNeedUpgrade_) {
         errCode = UpgradeValues();
         if (errCode != E_OK) {
             return errCode;

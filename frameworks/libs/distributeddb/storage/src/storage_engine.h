@@ -87,6 +87,8 @@ public:
     virtual uint64_t GetCacheRecordVersion() const;
     virtual uint64_t GetAndIncreaseCacheRecordVersion();
 
+    virtual void SetSchemaChangedCallback(const std::function<int(void)> &callback);
+
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
 
@@ -110,6 +112,14 @@ protected:
 
     // Callback function for commit notify.
     std::function<void(int, KvDBCommitNotifyFilterAbleData *)> commitNotifyFunc_;
+
+    // Mutex for schemaChangedFunc_.
+    mutable std::shared_mutex schemaChangedMutex_;
+
+    // Callback function for schema changed.
+    std::function<int(void)> schemaChangedFunc_;
+
+    bool isSchemaChanged_;
 
 private:
     StorageExecutor *FetchStorageExecutor(bool isWrite, std::list<StorageExecutor *> &idleList,

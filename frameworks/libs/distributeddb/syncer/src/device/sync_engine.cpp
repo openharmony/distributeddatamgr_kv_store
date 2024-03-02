@@ -839,9 +839,6 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
     RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, deviceId);
     // get context and Inc context if context is not nullptr
     ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
-    if (context != nullptr) {
-        context->SetIsNeedResetAbilitySync(true);
-    }
     {
         std::lock_guard<std::mutex> lock(communicatorProxyLock_);
         if (communicatorProxy_ == nullptr) {

@@ -263,11 +263,7 @@ int SingleVerSerializeManager::DataPacketSerialization(uint8_t *buffer, uint32_t
             return errCode;
         }
     }
-    // flag mask add in 103
-    if (packet->GetVersion() < SOFTWARE_VERSION_RELEASE_3_0 || !packet->IsExtraConditionData()) {
-        return E_OK;
-    }
-    return DataPacketExtraConditionsSerialization(parcel, packet);
+    return DataPacketInnerSerialization(packet, parcel);
 }
 
 int SingleVerSerializeManager::DataPacketQuerySyncSerialization(Parcel &parcel, const DataRequestPacket *packet)
@@ -393,13 +389,7 @@ int SingleVerSerializeManager::DataPacketDeSerialization(const uint8_t *buffer, 
             goto ERROR;
         }
     }
-    if (packet->IsCompressData()) {
-        errCode = DataPacketCompressDataDeSerialization(parcel, packet);
-        if (errCode != E_OK) {
-            goto ERROR;
-        }
-    }
-    errCode = DataPacketExtraConditionsDeserialization(parcel, packet);
+    errCode = DataPacketInnerDeSerialization(packet, parcel);
     if (errCode != E_OK) {
         goto ERROR;
     }
@@ -906,6 +896,62 @@ int SingleVerSerializeManager::DataPacketExtraConditionsDeserialization(Parcel &
         return -E_PARSE_FAIL;
     }
     packet->SetExtraConditions(extraConditions);
+    return E_OK;
+}
+
+int SingleVerSerializeManager::DataPacketInnerDeSerialization(DataRequestPacket *packet, Parcel &parcel)
+{
+    int errCode = E_OK;
+    if (packet->IsCompressData()) {
+        errCode = DataPacketCompressDataDeSerialization(parcel, packet);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    errCode = DataPacketExtraConditionsDeserialization(parcel, packet);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (packet->GetVersion() >= SOFTWARE_VERSION_RELEASE_9_0) {
+        uint64_t schemaVersion = 0u;
+        parcel.ReadUInt64(schemaVersion);
+        int64_t systemTimeOffset = 0u;
+        parcel.ReadInt64(systemTimeOffset);
+        int64_t senderTimeOffset = 0u;
+        parcel.ReadInt64(senderTimeOffset);
+        if (parcel.IsError()) {
+            LOGE("[SingleVerSerializeManager] parse schema version or time offset failed");
+            return -E_PARSE_FAIL;
+        }
+        packet->SetSchemaVersion(schemaVersion);
+        packet->SetSystemTimeOffset(systemTimeOffset);
+        packet->SetSenderTimeOffset(senderTimeOffset);
+    }
+    return errCode;
+}
+
+int SingleVerSerializeManager::DataPacketInnerSerialization(const DataRequestPacket *packet, Parcel &parcel)
+{
+    // flag mask add in 103
+    if (packet->GetVersion() < SOFTWARE_VERSION_RELEASE_3_0) {
+        return E_OK;
+    }
+    if (packet->IsExtraConditionData()) {
+        int errCode = DataPacketExtraConditionsSerialization(parcel, packet);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerSerializeManager] Serialize extra condition failed %d", errCode);
+            return errCode;
+        }
+    }
+    if (packet->GetVersion() >= SOFTWARE_VERSION_RELEASE_9_0) {
+        parcel.WriteUInt64(packet->GetSchemaVersion());
+        parcel.WriteInt64(packet->GetSystemTimeOffset());
+        parcel.WriteInt64(packet->GetSenderTimeOffset());
+        if (parcel.IsError()) {
+            LOGE("[SingleVerSerializeManager] Serialize schema version or time offset failed");
+            return -E_PARSE_FAIL;
+        }
+    }
     return E_OK;
 }
 }  // namespace DistributedDB

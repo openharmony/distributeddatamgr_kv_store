@@ -1142,4 +1142,56 @@ int RuntimeContextImpl::BlobToAssets(const std::vector<uint8_t> &blob, Assets &a
     assets = dataTranslate_->BlobToAssets(blob);
     return E_OK;
 }
+
+std::pair<int, DeviceTimeInfo> RuntimeContextImpl::GetDeviceTimeInfo(const std::string &device) const
+{
+    std::pair<int, DeviceTimeInfo> res;
+    auto &[errCode, info] = res;
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    if (deviceTimeInfos_.find(device) == deviceTimeInfos_.end()) {
+        errCode = -E_NOT_FOUND;
+    } else {
+        info = deviceTimeInfos_.at(device);
+        errCode = E_OK;
+    }
+    return res;
+}
+
+void RuntimeContextImpl::SetDeviceTimeInfo(const std::string &device, const DeviceTimeInfo &deviceTimeInfo)
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    deviceTimeInfos_[device] = deviceTimeInfo;
+}
+
+void RuntimeContextImpl::ClearDeviceTimeInfo(const std::string &device)
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    deviceTimeInfos_.erase(device);
+}
+
+void RuntimeContextImpl::ClearAllDeviceTimeInfo()
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    deviceTimeInfos_.clear();
+}
+
+void RuntimeContextImpl::RecordAllTimeChange()
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    for (auto &item : dbTimeChange_) {
+        item.second = true;
+    }
+}
+
+void RuntimeContextImpl::ResetDBTimeChangeStatus(const std::vector<uint8_t> &dbId)
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    dbTimeChange_[dbId] = false;
+}
+
+bool RuntimeContextImpl::CheckDBTimeChange(const std::vector<uint8_t> &dbId)
+{
+    std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
+    return dbTimeChange_[dbId];
+}
 } // namespace DistributedDB

@@ -35,6 +35,8 @@ public:
     std::pair<bool, bool> GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const override;
 
     void SchemaChange() override;
+
+    bool IsSchemaCompatible() const override;
 protected:
     ~SingleVerRelationalSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;

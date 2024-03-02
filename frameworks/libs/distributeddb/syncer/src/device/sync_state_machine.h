@@ -80,6 +80,8 @@ public:
 
     // Notify machine is closing, should release some lock
     void NotifyClosing() override;
+
+    void SchemaChange() override;
 protected:
 
     // SyncOperation is timeout, step to timeout state

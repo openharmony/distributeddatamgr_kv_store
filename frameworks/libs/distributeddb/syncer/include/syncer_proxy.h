@@ -110,6 +110,8 @@ public:
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const override;
 
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
+    int UpgradeSchemaVerInMeta() override;
 private:
     std::mutex syncerLock_;
     std::shared_ptr<ISyncer> syncer_;

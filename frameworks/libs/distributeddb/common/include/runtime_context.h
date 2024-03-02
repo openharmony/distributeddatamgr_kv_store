@@ -188,6 +188,14 @@ public:
     virtual int AssetsToBlob(const Assets &assets, std::vector<uint8_t> &blob) = 0;
     virtual int BlobToAsset(const std::vector<uint8_t> &blob, Asset &asset) = 0;
     virtual int BlobToAssets(const std::vector<uint8_t> &blob, Assets &assets) = 0;
+
+    virtual std::pair<int, DeviceTimeInfo> GetDeviceTimeInfo(const std::string &device) const = 0;
+    virtual void SetDeviceTimeInfo(const std::string &device, const DeviceTimeInfo &deviceTimeInfo) = 0;
+    virtual void ClearDeviceTimeInfo(const std::string &device) = 0;
+    virtual void ClearAllDeviceTimeInfo() = 0;
+    virtual void RecordAllTimeChange() = 0;
+    virtual void ResetDBTimeChangeStatus(const std::vector<uint8_t> &dbId) = 0;
+    virtual bool CheckDBTimeChange(const std::vector<uint8_t> &dbId) = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

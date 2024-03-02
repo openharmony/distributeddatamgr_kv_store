@@ -190,6 +190,11 @@ uint32_t DataRequestPacket::CalculateLen(uint32_t messageId) const
         }
         totalLen = Parcel::GetEightByteAlign(totalLen); // 8-byte align
     }
+    if (version_ >= SOFTWARE_VERSION_RELEASE_9_0) {
+        totalLen += Parcel::GetUInt64Len(); // schemaVersion
+        totalLen += Parcel::GetInt64Len(); // systemTimeOffset
+        totalLen += Parcel::GetInt64Len(); // senderTimeOffset
+    }
     if (totalLen > INT32_MAX) {
         return 0;
     }
@@ -304,6 +309,36 @@ std::map<std::string, std::string> DataRequestPacket::GetExtraConditions() const
 bool DataRequestPacket::IsExtraConditionData() const
 {
     return ((flag_ & IS_CONDITION_DATA) == IS_CONDITION_DATA);
+}
+
+void DataRequestPacket::SetSchemaVersion(uint64_t schemaVersion)
+{
+    schemaVersion_ = schemaVersion;
+}
+
+uint64_t DataRequestPacket::GetSchemaVersion() const
+{
+    return schemaVersion_;
+}
+
+void DataRequestPacket::SetSystemTimeOffset(int64_t systemTimeOffset)
+{
+    systemTimeOffset_ = systemTimeOffset;
+}
+
+int64_t DataRequestPacket::GetSystemTimeOffset() const
+{
+    return systemTimeOffset_;
+}
+
+void DataRequestPacket::SetSenderTimeOffset(int64_t senderTimeOffset)
+{
+    senderTimeOffset_ = senderTimeOffset;
+}
+
+int64_t DataRequestPacket::GetSenderTimeOffset() const
+{
+    return senderTimeOffset_;
 }
 
 void DataAckPacket::SetData(uint64_t data)

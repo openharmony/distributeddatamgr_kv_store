@@ -165,6 +165,10 @@ void SingleVerRelationalSyncer::SchemaChangeCallback()
         return;
     }
     syncEngine_->SchemaChange();
+    int errCode = UpgradeSchemaVerInMeta();
+    if (errCode != E_OK) {
+        LOGE("[SingleVerRelationalSyncer] upgrade schema version in meta failed:%d", errCode);
+    }
 }
 
 int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
