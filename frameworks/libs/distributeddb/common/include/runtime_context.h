@@ -196,6 +196,7 @@ public:
     virtual void RecordAllTimeChange() = 0;
     virtual void ResetDBTimeChangeStatus(const std::vector<uint8_t> &dbId) = 0;
     virtual bool CheckDBTimeChange(const std::vector<uint8_t> &dbId) = 0;
+    virtual bool IsTimeTickMonitorValid() const = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

@@ -930,8 +930,6 @@ int GenericSyncer::InitTimeChangedListener()
     }
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
-            RuntimeContext::GetInstance()->RecordAllTimeChange();
-            RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
             RecordTimeChangeOffset(changedOffset);
         },
         [this]() {

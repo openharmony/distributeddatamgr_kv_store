@@ -1730,6 +1730,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt002, TestSize.Level0)
     ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     g_kvDelegatePtr = nullptr;
     ASSERT_EQ(g_mgr.DeleteKvStore(STORE_ID), OK);
+    EXPECT_TRUE(RuntimeContext::GetInstance()->IsTimeTickMonitorValid());
     /**
      * @tc.steps: step3. open new kv store
      * @tc.expected: step3. open OK.
