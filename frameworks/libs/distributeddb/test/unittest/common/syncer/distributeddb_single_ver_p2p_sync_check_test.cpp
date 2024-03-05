@@ -1941,6 +1941,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
      * @tc.expected: step4. sync success, only time sync packet.
      */
     RuntimeContext::GetInstance()->NotifyTimestampChanged(100);
+    RuntimeContext::GetInstance()->RecordAllTimeChange();
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
     messageCount = 0;
     Sync(devices, OK);
     EXPECT_EQ(messageCount, 1); // 1 contain time sync request packet

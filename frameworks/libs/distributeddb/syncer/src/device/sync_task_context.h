@@ -212,6 +212,8 @@ public:
     bool IsSchemaCompatible() const override;
 
     void SetDbAbility(DbAbility &remoteDbAbility) override;
+
+    void TimeChange() override;
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 

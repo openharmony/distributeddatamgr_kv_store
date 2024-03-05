@@ -74,6 +74,8 @@ public:
 
     // schema change and reset ability finish status
     virtual void SchemaChange() = 0;
+
+    virtual void TimeChange() = 0;
 };
 } // namespace DistributedDB
 

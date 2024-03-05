@@ -102,6 +102,8 @@ public:
     void NotifyClosing() override;
 
     void SchemaChange() override;
+
+    void TimeChange() override;
 protected:
     // Step the SingleVerSyncStateMachine
     void SyncStep() override;

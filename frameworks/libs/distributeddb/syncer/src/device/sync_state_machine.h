@@ -82,6 +82,8 @@ public:
     void NotifyClosing() override;
 
     void SchemaChange() override;
+
+    void TimeChange() override;
 protected:
 
     // SyncOperation is timeout, step to timeout state

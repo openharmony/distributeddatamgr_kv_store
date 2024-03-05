@@ -1237,6 +1237,8 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
      * @tc.expected: step4. sync success, only time sync packet
      */
     RuntimeContext::GetInstance()->NotifyTimestampChanged(100);
+    RuntimeContext::GetInstance()->RecordAllTimeChange();
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
     messageCount = 0;
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
     EXPECT_EQ(messageCount, 1);

@@ -98,6 +98,8 @@ public:
 
     virtual void AddSubscribe(SyncGenericInterface *storage,
         const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) = 0;
+
+    virtual void TimeChange() = 0;
 protected:
     ~ISyncEngine() override {};
 };

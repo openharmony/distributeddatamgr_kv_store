@@ -139,6 +139,7 @@ TimeSync::TimeSync()
       timeHelper_(nullptr),
       retryTime_(0),
       driverTimerId_(0),
+      isSynced_(false),
       isAckReceived_(false),
       timeChangedListener_(nullptr),
       timeDriverLockCount_(0),
@@ -202,6 +203,7 @@ int TimeSync::Initialize(ICommunicator *communicator, const std::shared_ptr<Meta
     if (errCode != E_OK) {
         return errCode;
     }
+    isSynced_ = metadata_->IsTimeSyncFinish(deviceId_);
     return errCode;
 }
 
@@ -514,7 +516,7 @@ int TimeSync::TimeSyncDriver(TimerId timerId)
 
 int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t sessionId)
 {
-    if (!metadata_->IsTimeSyncFinish(deviceId_)) {
+    if (!isSynced_) {
         {
             std::lock_guard<std::mutex> lock(cvLock_);
             isAckReceived_ = false;
@@ -548,7 +550,7 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
 
 bool TimeSync::IsNeedSync() const
 {
-    return !metadata_->IsTimeSyncFinish(deviceId_);
+    return !isSynced_;
 }
 
 void TimeSync::SetOnline(bool isOnline)
@@ -683,7 +685,7 @@ void TimeSync::ReTimeSyncIfNeed(const TimeSyncPacket &ackPacket)
 
     if ((std::abs(timeOffsetIgnoreRtt) >= INT64_MAX / 2) || reTimeSync) { // 2 is half of INT64_MAX
         LOGI("[TimeSync][RequestRecv] timeOffSet invalid, should do time sync");
-        metadata_->SetTimeSyncFinishMark(deviceId_, false);
+        SetTimeSyncFinishInner(false);
         RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
     }
 
@@ -742,7 +744,9 @@ int TimeSync::SaveOffsetWithAck(const TimeSyncPacket &ackPacket)
     info.recordTime = timeHelper_->GetSysCurrentTime();
     info.rtt = rtt;
     RuntimeContext::GetInstance()->SetDeviceTimeInfo(deviceId_, info);
-    return metadata_->SetTimeSyncFinishMark(deviceId_, true);
+    SetTimeSyncFinishInner(true);
+    // save finish next time after save failed
+    return E_OK;
 }
 
 TimeOffset TimeSync::CalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime)
@@ -789,15 +793,12 @@ void TimeSync::SetTimeSyncFinishIfNeed()
     }
     int64_t systemTimeOffset = metadata_->GetSystemTimeOffset(deviceId_);
     LOGD("[TimeSync] Check db offset %" PRId64 " cache offset %" PRId64, systemTimeOffset, info.systemTimeOffset);
-    if (!CheckSkipTimeSync(info) || (metadata_->IsTimeSyncFinish(deviceId_) &&
-         std::abs(systemTimeOffset - info.systemTimeOffset) >= MAX_TIME_OFFSET_NOISE)) {
-        (void)metadata_->SetTimeSyncFinishMark(deviceId_, false);
+    if (!CheckSkipTimeSync(info) || (IsNeedSync() &&
+        std::abs(systemTimeOffset - info.systemTimeOffset) >= MAX_TIME_OFFSET_NOISE)) {
+        SetTimeSyncFinishInner(false);
         return;
     }
-    errCode = metadata_->SetTimeSyncFinishMark(deviceId_, true);
-    if (errCode != E_OK) {
-        return;
-    }
+    SetTimeSyncFinishInner(true);
     errCode = metadata_->SetSystemTimeOffset(deviceId_, info.systemTimeOffset);
     if (errCode != E_OK) {
         return;
@@ -808,10 +809,7 @@ void TimeSync::SetTimeSyncFinishIfNeed()
 void TimeSync::ClearTimeSyncFinish()
 {
     RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
-    int errCode = metadata_->SetTimeSyncFinishMark(deviceId_, false);
-    if (errCode != E_OK) {
-        LOGW("[TimeSync] Clear %.3s time sync finish mark failed %d", deviceId_.c_str(), errCode);
-    }
+    SetTimeSyncFinishInner(false);
 }
 
 int TimeSync::GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset senderLocalOffset)
@@ -820,7 +818,7 @@ int TimeSync::GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset sende
         return E_OK;
     }
     auto [errCode, info] = RuntimeContext::GetInstance()->GetDeviceTimeInfo(deviceId_);
-    bool syncFinish = metadata_->IsTimeSyncFinish(deviceId_);
+    bool syncFinish = !IsNeedSync();
     bool timeChange = metadata_->IsTimeChange(deviceId_);
     // avoid local time change but remote record time sync finish
     // should return re time sync, after receive time sync request, reset time change mark
@@ -848,13 +846,23 @@ int TimeSync::GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset sende
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = metadata_->SetTimeSyncFinishMark(deviceId_, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
+    SetTimeSyncFinishInner(true);
     info.systemTimeOffset = -systemOffset;
     info.recordTime = timeHelper_->GetSysCurrentTime();
     RuntimeContext::GetInstance()->SetDeviceTimeInfo(deviceId_, info);
     return E_OK;
+}
+
+void TimeSync::SetTimeSyncFinishInner(bool finish)
+{
+    isSynced_ = finish;
+    if (IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0)) {
+        return;
+    }
+    int errCode = metadata_->SetTimeSyncFinishMark(deviceId_, finish);
+    if (errCode != E_OK) {
+        LOGW("[TimeSync] Set %.3s time sync finish %d mark failed %d", deviceId_.c_str(), static_cast<int>(finish),
+            errCode);
+    }
 }
 } // namespace DistributedDB

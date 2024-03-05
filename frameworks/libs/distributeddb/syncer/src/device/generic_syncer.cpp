@@ -132,6 +132,9 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
 
     // StartCommunicator may start an auto sync, this function can not in syncerLock_
     syncEngine_->StartCommunicator();
+    if (RuntimeContext::GetInstance()->CheckDBTimeChange(syncInterface_->GetIdentifier())) {
+        ResetTimeSyncMarkByTimeChange(metadata_, *syncInterface_);
+    }
     return E_OK;
 }
 
@@ -946,9 +949,6 @@ int GenericSyncer::InitTimeChangedListener()
         std::lock_guard<std::mutex> autoLock(timeChangeListenerMutex_);
         timeChangeListenerFinalize_ = false;
     }
-    if (RuntimeContext::GetInstance()->CheckDBTimeChange(syncInterface_->GetIdentifier())) {
-        ResetTimeSyncMarkByTimeChange(metadata_, *syncInterface_);
-    }
     return E_OK;
 }
 
@@ -1180,6 +1180,9 @@ int GenericSyncer::UpgradeSchemaVerInMeta()
 
 void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &metadata, ISyncInterface &storage)
 {
+    if (syncEngine_ != nullptr) {
+        syncEngine_->TimeChange();
+    }
     int errCode = metadata->ClearAllTimeSyncFinishMark();
     if (errCode != E_OK) {
         LOGW("[GenericSyncer] %s clear time sync finish mark failed %d", label_.c_str(), errCode);
