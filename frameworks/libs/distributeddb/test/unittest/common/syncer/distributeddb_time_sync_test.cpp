@@ -497,3 +497,32 @@ HWTEST_F(DistributedDBTimeSyncTest, CheckRemoteVersion001, TestSize.Level0)
     g_virtualCommunicator->SetRemoteVersion(SOFTWARE_VERSION_RELEASE_9_0);
     EXPECT_FALSE(g_timeSyncA->IsRemoteLowVersion(SOFTWARE_VERSION_RELEASE_9_0));
 }
+
+/**
+ * @tc.name: SetTimeSyncFinish001
+ * @tc.desc: Verify set time sync finish won't write into db when cache is finish.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBTimeSyncTest, SetTimeSyncFinish001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Initialize the metadata and time sync
+     * @tc.expected: step1. Initialize successfully
+     */
+    EXPECT_EQ(g_metadataA->Initialize(g_syncInterfaceA), E_OK);
+    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, true), E_OK);
+    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    EXPECT_EQ(errCode, E_OK);
+    /**
+     * @tc.steps: step2. Set time sync finish
+     * @tc.expected: step2. meta is not finish because time sync cache is finish
+     */
+    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, false), E_OK);
+    DeviceTimeInfo info;
+    RuntimeContext::GetInstance()->SetDeviceTimeInfo(DEVICE_B, info);
+    g_timeSyncA->SetTimeSyncFinishIfNeed();
+    EXPECT_FALSE(g_metadataA->IsTimeSyncFinish(DEVICE_B));
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
+}

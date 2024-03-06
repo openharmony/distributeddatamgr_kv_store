@@ -798,10 +798,14 @@ void TimeSync::SetTimeSyncFinishIfNeed()
         SetTimeSyncFinishInner(false);
         return;
     }
-    SetTimeSyncFinishInner(true);
-    errCode = metadata_->SetSystemTimeOffset(deviceId_, info.systemTimeOffset);
-    if (errCode != E_OK) {
-        return;
+    if (IsNeedSync()) {
+        SetTimeSyncFinishInner(true);
+    }
+    if (systemTimeOffset != info.systemTimeOffset) {
+        errCode = metadata_->SetSystemTimeOffset(deviceId_, info.systemTimeOffset);
+        if (errCode != E_OK) {
+            return;
+        }
     }
     LOGI("[TimeSync] Mark time sync finish success");
 }
