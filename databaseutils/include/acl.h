@@ -164,6 +164,7 @@ private:
     std::set<AclXattrEntry, std::less<>> entries_;
     unsigned maskDemand_ = 0;
     std::string path_;
+    bool hasError_ = false;
 };
 } // DATABASE_UTILS
 } // namespace OHOS

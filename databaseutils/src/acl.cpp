@@ -32,7 +32,7 @@
 namespace OHOS {
 namespace DATABASE_UTILS {
 using namespace DistributedKv;
-Acl::Acl(const std::string &path) : path_(path)
+Acl::Acl(const std::string &path) : path_(path), hasError_(false)
 {
     /* init acl from file's defaule or mode*/
     AclFromDefault();
@@ -149,9 +149,11 @@ void Acl::AclFromDefault()
     ssize_t len = getxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf, BUF_SIZE);
     if (len != -1) {
         DeSerialize(buf, BUF_SIZE);
-    } else {
-        ZLOGW("getxattr system.posix_acl_default failed. %{public}s", std::strerror(errno));
+    } else if (errno == ENODATA) {
         AclFromMode();
+    } else {
+        hasError_ = true;
+        ZLOGW("getxattr failed. error %{public}s path %{public}s", std::strerror(errno), path_.c_str());
     }
 }
 
@@ -203,7 +205,9 @@ int32_t Acl::SetDefaultUser(const uint32_t uid, const uint16_t mode)
 
 Acl::~Acl()
 {
-    SetDefault();
+    if (!hasError_) {
+        SetDefault();
+    }
 }
 
 bool Acl::HasEntry(const AclXattrEntry &Acl)
