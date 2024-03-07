@@ -530,7 +530,7 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     }
 
     int errCode = E_OK;
-    auto handle = GetHandle(true, errCode);
+    auto handle = GetHandle(false, errCode);
     if (handle == nullptr) {
         return errCode;
     }

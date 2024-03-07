@@ -189,7 +189,7 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
-    auto handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+    auto handle = GetHandle(false, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
