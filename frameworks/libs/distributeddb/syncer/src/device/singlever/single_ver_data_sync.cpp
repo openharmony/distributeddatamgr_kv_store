@@ -969,7 +969,7 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
         (void)SendDataAck(context, message, errCode, 0);
         return errCode;
     }
-    errCode = SchemaVersionMatchCheck(context, packet);
+    errCode = SingleVerDataSyncUtils::SchemaVersionMatchCheck(deviceId_, *packet, *context, metadata_);
     if (errCode != E_OK) {
         (void)SendDataAck(context, message, errCode, 0);
     }
@@ -2145,19 +2145,5 @@ void SingleVerDataSync::SetDataRequestCommonInfo(const SingleVerSyncTaskContext 
         return;
     }
     packet.SetSchemaVersion(localSchemaVer);
-}
-
-int SingleVerDataSync::SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
-{
-    if (context->GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
-        return E_OK;
-    }
-    auto remoteSchemaVersion = metadata_->GetRemoteSchemaVersion(deviceId_);
-    if (remoteSchemaVersion != packet->GetSchemaVersion()) {
-        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
-            packet->GetSchemaVersion(), remoteSchemaVersion);
-        return -E_NEED_ABILITY_SYNC;
-    }
-    return E_OK;
 }
 } // namespace DistributedDB

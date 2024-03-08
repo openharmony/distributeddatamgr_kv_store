@@ -255,8 +255,6 @@ protected:
 
     void SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet);
 
-    int SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);
-
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;
     ICommunicator* communicateHandle_;

@@ -494,4 +494,19 @@ std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromReque
     senderLocalOffset = packet->GetSenderTimeOffset();
     return res;
 }
+
+int SingleVerDataSyncUtils::SchemaVersionMatchCheck(const std::string &deviceId, const DataRequestPacket &packet,
+    SingleVerSyncTaskContext &context, std::shared_ptr<Metadata> &metadata)
+{
+    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
+        return E_OK;
+    }
+    auto remoteSchemaVersion = metadata->GetRemoteSchemaVersion(deviceId);
+    if (remoteSchemaVersion != packet.GetSchemaVersion()) {
+        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
+                packet.GetSchemaVersion(), remoteSchemaVersion);
+        return -E_NEED_ABILITY_SYNC;
+    }
+    return E_OK;
+}
 }
