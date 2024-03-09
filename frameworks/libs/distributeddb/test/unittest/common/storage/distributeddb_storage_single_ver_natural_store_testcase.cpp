@@ -1651,6 +1651,15 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
     EXPECT_EQ(store->DeleteMetaData(std::vector<Key> {key1, key2}), E_OK);
     EXPECT_EQ(store->GetMetaData(key1, valueRead), -E_NOT_FOUND);
     EXPECT_EQ(store->GetMetaData(key2, valueRead), -E_NOT_FOUND);
+
+    /**
+     * @tc.steps:step12. Get metadata use read handle
+     * @tc.expected: step12. Cannot find key1 and key2 in DB anymore.
+     */
+    int errCode = E_OK;
+    auto handle = store->GetHandle(true, errCode);
+    EXPECT_EQ(store->GetMetaData(key2, valueRead), -E_NOT_FOUND);
+    store->ReleaseHandle(handle);
 }
 
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DataBaseCommonPutOperate(SQLiteSingleVerNaturalStore *&store,
