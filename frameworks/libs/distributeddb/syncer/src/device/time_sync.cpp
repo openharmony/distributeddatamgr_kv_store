@@ -751,10 +751,10 @@ int TimeSync::SaveOffsetWithAck(const TimeSyncPacket &ackPacket)
 
 TimeOffset TimeSync::CalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime)
 {
-    // deltaTime = (t1 + requestLocalOffset + rtt/2) - (t1' + responseLocalOffset)
-    // rawTimeOffset =  (t1 + rtt/2) - t1'
-    // rawTimeOffset = deltaTime - requestLocalOffset + responseLocalOffset
-    return deltaTime - timeSyncInfo.GetRequestLocalOffset() + timeSyncInfo.GetResponseLocalOffset();
+    // deltaTime = (t1' + response - t1 - request + t2' + response - t2 - request)/2
+    // rawTimeOffset =  request - response + (t1' - t1 + t2' - t2)/2
+    // rawTimeOffset = deltaTime + requestLocalOffset - responseLocalOffset
+    return deltaTime + timeSyncInfo.GetRequestLocalOffset() - timeSyncInfo.GetResponseLocalOffset();
 }
 
 bool TimeSync::CheckSkipTimeSync(const DeviceTimeInfo &info)
@@ -836,12 +836,10 @@ int TimeSync::GenerateTimeOffsetIfNeed(TimeOffset systemOffset, TimeOffset sende
         RuntimeContext::GetInstance()->ClearDeviceTimeInfo(deviceId_);
         return -E_NEED_TIME_SYNC;
     }
-    // Sender's deltaTime = (t1 + requestLocalOffset + rtt/2) - (t1' + responseLocalOffset)
-    // Sender's systemOffset =  (t1 + rtt/2) - t1'
-    // Sender's systemOffset = Sender's deltaTime - requestLocalOffset + responseLocalOffset
-    // Sender's deltaTime = Sender's systemOffset + requestLocalOffset - responseLocalOffset
-    // Receiver's deltaTime = -Sender's deltaTime = -Sender's systemOffset - requestLocalOffset + responseLocalOffset
-    TimeOffset offset = -systemOffset - senderLocalOffset + metadata_->GetLocalTimeOffset();
+    // Sender's systemOffset = Sender's deltaTime + requestLocalOffset - responseLocalOffset
+    // Sender's deltaTime = Sender's systemOffset - requestLocalOffset + responseLocalOffset
+    // Receiver's deltaTime = -Sender's deltaTime = -Sender's systemOffset + requestLocalOffset - responseLocalOffset
+    TimeOffset offset = -systemOffset + senderLocalOffset - metadata_->GetLocalTimeOffset();
     errCode = metadata_->SetSystemTimeOffset(deviceId_, -systemOffset);
     if (errCode != E_OK) {
         return errCode;
