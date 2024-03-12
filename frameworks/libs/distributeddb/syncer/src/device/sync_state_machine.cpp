@@ -513,4 +513,8 @@ void SyncStateMachine::StopFeedDogForGetDataInner(TimerId timerId)
 void SyncStateMachine::SchemaChange()
 {
 }
+
+void SyncStateMachine::TimeChange()
+{
+}
 } // namespace DistributedDB

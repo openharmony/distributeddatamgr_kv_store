@@ -775,6 +775,10 @@ void RuntimeContextImpl::StopTaskPool()
 
 void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
 {
+    if (IsCommunicatorAggregatorValid()) {
+        return;
+    }
+    // release monitor in client
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     if (timeTickMonitor_ == nullptr) {
         return;
@@ -1193,5 +1197,11 @@ bool RuntimeContextImpl::CheckDBTimeChange(const std::vector<uint8_t> &dbId)
 {
     std::lock_guard<std::mutex> autoLock(deviceTimeInfoLock_);
     return dbTimeChange_[dbId];
+}
+
+bool RuntimeContextImpl::IsTimeTickMonitorValid() const
+{
+    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+    return timeTickMonitor_ != nullptr;
 }
 } // namespace DistributedDB

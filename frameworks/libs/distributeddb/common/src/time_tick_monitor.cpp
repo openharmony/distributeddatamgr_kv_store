@@ -132,6 +132,8 @@ int TimeTickMonitor::TimeTick(TimerId timerId)
     int64_t changedOffset = systemOffset - monotonicOffset;
     if (std::abs(changedOffset) > MAX_NOISE) {
         LOGI("Local system time may be changed! changedOffset %ld", changedOffset);
+        RuntimeContext::GetInstance()->RecordAllTimeChange();
+        RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
         NotificationChain *notifier = nullptr;
         {
             std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);

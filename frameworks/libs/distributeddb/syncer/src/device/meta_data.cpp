@@ -22,6 +22,7 @@
 #include "db_errno.h"
 #include "hash.h"
 #include "log_print.h"
+#include "platform_specific.h"
 #include "securec.h"
 #include "sync_types.h"
 #include "time_helper.h"
@@ -948,7 +949,14 @@ int Metadata::InitLocalMetaData()
     if (localMetaData.localSchemaVersion != 0) {
         return E_OK;
     }
-    localMetaData.localSchemaVersion += 1;
+    uint64_t curTime = 0;
+    errCode = OS::GetCurrentSysTimeInMicrosecond(curTime);
+    if (errCode != E_OK) {
+        LOGW("[Metadata] get system time failed when init schema version!");
+        localMetaData.localSchemaVersion += 1;
+    } else {
+        localMetaData.localSchemaVersion = curTime;
+    }
     errCode = SaveLocalMetaData(localMetaData);
     if (errCode != E_OK) {
         LOGE("[Metadata] init local schema version failed:%d", errCode);

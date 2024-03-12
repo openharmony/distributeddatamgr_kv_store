@@ -145,6 +145,8 @@ protected:
 
     bool CheckSkipTimeSync(const DeviceTimeInfo &info);
 
+    void SetTimeSyncFinishInner(bool finish);
+
     static TimeOffset CalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime);
 
     ICommunicator *communicateHandle_;
@@ -154,6 +156,7 @@ protected:
     int retryTime_;
     TimerId driverTimerId_;
     TimerAction driverCallback_;
+    bool isSynced_;
     bool isAckReceived_;
     std::condition_variable conditionVar_;
     mutable std::mutex cvLock_;

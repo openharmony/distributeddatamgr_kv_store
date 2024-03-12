@@ -122,6 +122,8 @@ public:
 
     void AddSubscribe(SyncGenericInterface *storage,
         const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) override;
+
+    void TimeChange() override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext() = 0;

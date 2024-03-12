@@ -93,6 +93,9 @@ public:
         const std::vector<SendDataItem> &inData, UpdateWaterMark &isUpdate);
 
     static std::pair<TimeOffset, TimeOffset> GetTimeOffsetFromRequestMsg(const Message *message);
+
+    static int SchemaVersionMatchCheck(const std::string &deviceId, const DataRequestPacket &packet,
+        SingleVerSyncTaskContext &context, std::shared_ptr<Metadata> &metadata);
 private:
     static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet, int mode);

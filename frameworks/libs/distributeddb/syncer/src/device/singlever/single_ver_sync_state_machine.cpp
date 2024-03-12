@@ -1313,4 +1313,13 @@ void SingleVerSyncStateMachine::SchemaChange()
 {
     abilitySync_->SetAbilitySyncFinishedStatus(false, *context_);
 }
+
+void SingleVerSyncStateMachine::TimeChange()
+{
+    if (timeSync_ == nullptr) {
+        LOGW("[SingleVerSyncStateMachine] time sync is null when time change");
+        return;
+    }
+    timeSync_->ClearTimeSyncFinish();
+}
 } // namespace DistributedDB

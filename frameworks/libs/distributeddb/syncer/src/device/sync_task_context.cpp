@@ -822,4 +822,13 @@ bool SyncTaskContext::IsSchemaCompatible() const
 void SyncTaskContext::SetDbAbility([[gnu::unused]] DbAbility &remoteDbAbility)
 {
 }
+
+void SyncTaskContext::TimeChange()
+{
+    if (stateMachine_ == nullptr) {
+        LOGW("[SyncTaskContext] machine is null when time change");
+        return;
+    }
+    stateMachine_->TimeChange();
+}
 } // namespace DistributedDB

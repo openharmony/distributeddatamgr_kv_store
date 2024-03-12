@@ -1241,4 +1241,21 @@ void SyncEngine::AddQuerySubscribe(SyncGenericInterface *storage, const std::str
     }
     subManager_->ActiveRemoteSubscribeQuery(device, query);
 }
+
+void SyncEngine::TimeChange()
+{
+    std::vector<ISyncTaskContext *> decContext;
+    {
+        // copy context
+        std::lock_guard<std::mutex> lock(contextMapLock_);
+        for (const auto &iter : syncTaskContextMap_) {
+            RefObject::IncObjRef(iter.second);
+            decContext.push_back(iter.second);
+        }
+    }
+    for (auto &iter : decContext) {
+        iter->TimeChange();
+        RefObject::DecObjRef(iter);
+    }
+}
 } // namespace DistributedDB

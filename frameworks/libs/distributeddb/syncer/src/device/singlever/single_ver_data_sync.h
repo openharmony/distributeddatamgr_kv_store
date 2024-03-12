@@ -253,9 +253,7 @@ protected:
 
     void RecordClientId(const SingleVerSyncTaskContext *context);
 
-    void SetDataRequestCommonInfo(DataRequestPacket &packet);
-
-    int SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);
+    void SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet);
 
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;

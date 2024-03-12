@@ -240,7 +240,7 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest005, TestSize.Level0)
      */
     auto res = metadata_->GetLocalSchemaVersion();
     EXPECT_EQ(res.first, E_OK);
-    EXPECT_EQ(res.second, 1u);
+    EXPECT_NE(res.second, 0u);
     /**
      * @tc.steps: step2. Set local schema version.
      * @tc.expected: step2. set success.
