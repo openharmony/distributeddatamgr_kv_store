@@ -228,7 +228,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     }
     if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
-        errCode = UpgradeTrackerTableLog(tableName, schema);
+        errCode = GenLogInfoForUpgrade(tableName, schema, schemaChanged);
     }
     return errCode;
 }
@@ -985,10 +985,9 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::UpgradeTrackerTableLog(const std::string &tableName,
-    RelationalSchemaObject &schema)
+int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName,
+    RelationalSchemaObject &schema, bool schemaChanged)
 {
-    LOGD("Upgrade tracker table log.");
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
         OperatePerm::NORMAL_PERM, errCode));
@@ -1002,8 +1001,8 @@ int SQLiteSingleRelationalStorageEngine::UpgradeTrackerTableLog(const std::strin
         return errCode;
     }
 
-    TableInfo table = schema_.GetTable(tableName);
-    errCode = handle->UpgradedLogForExistedData(table);
+    TableInfo table = GetSchema().GetTable(tableName);
+    errCode = handle->UpgradedLogForExistedData(table, schemaChanged);
     if (errCode != E_OK) {
         LOGE("Upgrade tracker table log failed. %d", errCode);
         (void)handle->Rollback();

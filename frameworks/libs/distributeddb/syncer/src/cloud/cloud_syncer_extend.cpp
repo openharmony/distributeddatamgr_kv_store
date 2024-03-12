@@ -302,8 +302,8 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
     return errCode;
 }
 
-int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
-    uint32_t &successCount)
+int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
+    DownloadCommitList &commitList, uint32_t &successCount)
 {
     int errCode = storageProxy_->SetLogTriggerStatus(false);
     if (errCode != E_OK) {
@@ -326,7 +326,18 @@ int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &ta
         if (errCode != E_OK) {
             break;
         }
-        errCode = storageProxy_->UpdateRecordFlag(tableName, gid, recordConflict);
+        LogInfo logInfo;
+        logInfo.cloudGid = gid;
+        // download must contain gid, just set the default value here.
+        logInfo.dataKey = DBConstant::DEFAULT_ROW_ID;
+        logInfo.hashKey = downloadItem.hashKey;
+        logInfo.timestamp = downloadItem.timestamp;
+        // there are failed assets, reset the timestamp to prevent the flag from being marked as consistent.
+        if (failedAssets.size() > 1) {
+            logInfo.timestamp = 0u;
+        }
+
+        errCode = storageProxy_->UpdateRecordFlag(tableName, downloadItem.recordConflict, logInfo);
         if (errCode != E_OK) {
             break;
         }
@@ -460,6 +471,36 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
             localAssetInfo.clear();
         }
         errCode = E_OK;
+    }
+    return errCode;
+}
+
+int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
+{
+    DownloadList downloadList;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        downloadList = currentContext_.assetDownloadList;
+    }
+    std::set<std::string> gidFilters;
+    for (const auto &tuple: downloadList) {
+        gidFilters.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
+    }
+    return storageProxy_->MarkFlagAsConsistent(param.tableName, param.downloadData, gidFilters);
+}
+
+int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
+{
+    int errCode = cloudDB_.BatchDelete(uploadData.tableName, uploadData.delData.record,
+        uploadData.delData.extend, deleteInfo);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
+        return errCode;
+    }
+    innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
+    errCode = storageProxy_->FillCloudLogAndAsset(OpType::DELETE, uploadData);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill back when doing upload delData, %d.", errCode);
     }
     return errCode;
 }

@@ -204,9 +204,12 @@ public:
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 
-    int UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict) override;
+    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo) override;
 
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
+
+    int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

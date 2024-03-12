@@ -105,6 +105,10 @@ public:
     static std::pair<int, std::vector<uint8_t>> GetHashValueWithPrimaryKeyMap(const VBucket &vBucket,
         const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
         bool allowEmpty);
+    static std::string GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
+        const LogInfo &logInfo);
+    static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
+        const std::set<std::string> &gidFilters);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

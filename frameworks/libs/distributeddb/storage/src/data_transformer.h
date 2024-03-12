@@ -44,6 +44,7 @@ enum class LogInfoFlag : uint32_t {
     FLAG_LOCAL = 0x2,
     FLAG_LOGIC_DELETE = 0x8,
     FLAG_WAIT_COMPENSATED_SYNC = 0x10,
+    FLAG_DEVICE_CLOUD_CONSISTENCY = 0x20,
 };
 
 struct RowDataWithLog {

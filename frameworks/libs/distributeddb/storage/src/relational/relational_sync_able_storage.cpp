@@ -1286,9 +1286,6 @@ int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const C
     bool ignoreEmptyGid)
 {
     CHECK_STORAGE_ENGINE;
-    if (opType == OpType::UPDATE && data.updData.assets.empty()) {
-        return E_OK;
-    }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
@@ -1745,18 +1742,14 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
     return PutCloudSyncDataInner(handle, tableName, downloadData);
 }
 
-int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, const std::string &gid,
-    bool recordConflict)
+int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, bool recordConflict,
+    const LogInfo &logInfo)
 {
     if (transactionHandle_ == nullptr) {
         LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
         return -E_INVALID_DB;
     }
-    if (gid.empty()) {
-        LOGE("[RelationalSyncAbleStorage] gid is empty.");
-        return -E_INVALID_ARGS;
-    }
-    return transactionHandle_->UpdateRecordFlag(tableName, recordConflict, gid);
+    return transactionHandle_->UpdateRecordFlag(tableName, recordConflict, logInfo);
 }
 
 int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -1776,6 +1769,8 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.insData);
     } else if (opType == OpType::UPDATE) {
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData);
+    } else if (opType == OpType::DELETE) {
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData);
     }
     return errCode;
 }
@@ -1783,13 +1778,25 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const CloudSyncBatch &updateData)
 {
+    if (updateData.timestamp.size() != updateData.extend.size()) {
+        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
+            updateData.extend.size(), updateData.timestamp.size());
+        return -E_INVALID_ARGS;
+    }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
         if (DBCommon::IsRecordError(record)) {
             continue;
         }
         const auto &rowId = updateData.rowid[i];
-        int errCode = handle->UpdateRecordFlag(tableName, DBCommon::IsRecordIgnored(record), "", rowId);
+        std::string cloudGid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, record, cloudGid);
+        LogInfo logInfo;
+        logInfo.cloudGid = cloudGid;
+        logInfo.timestamp = updateData.timestamp[i];
+        logInfo.dataKey = rowId;
+        logInfo.hashKey = {};
+        int errCode = handle->UpdateRecordFlag(tableName, DBCommon::IsRecordIgnored(record), logInfo);
         if (errCode != E_OK) {
             LOGE("[RDBStorage] Update record flag failed in index %zu", i);
             return errCode;
@@ -1978,6 +1985,20 @@ int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelatio
         trackerTable.SetTableName(tableName);
     }
     return handle->CreateTempSyncTrigger(trackerTable);
+}
+
+int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+    const std::set<std::string> &gidFilters)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = transactionHandle_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] mark flag as consistent failed.%d", errCode);
+    }
+    return errCode;
 }
 }
 #endif

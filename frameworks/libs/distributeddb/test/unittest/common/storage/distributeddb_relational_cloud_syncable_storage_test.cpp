@@ -25,6 +25,7 @@
 #include "relational_sync_able_storage.h"
 #include "runtime_config.h"
 #include "sqlite_relational_store.h"
+#include "time_helper.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 
@@ -764,8 +765,11 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      * @tc.expected: return -E_INVALID_ARGS.
      */
     syncData.insData.extend.clear();
+    Timestamp now = TimeHelper::GetSysCurrentTime();
     bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::string("1"));
     bucket2.insert_or_assign(CloudDbConstant::CREATE_FIELD, std::string("2"));
+    syncData.insData.timestamp.push_back((int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    syncData.insData.timestamp.push_back((int64_t)now / CloudDbConstant::TEN_THOUSAND);
     syncData.insData.extend.push_back(bucket1);
     syncData.insData.extend.push_back(bucket2);
     EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_ARGS);

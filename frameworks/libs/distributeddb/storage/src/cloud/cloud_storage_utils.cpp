@@ -1104,4 +1104,77 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
     }
     return E_OK;
 }
+
+std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
+    const LogInfo &logInfo)
+{
+    std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
+    std::string consistentBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY));
+    bool gidEmpty = logInfo.cloudGid.empty();
+    bool isDeleted = logInfo.dataKey == DBConstant::DEFAULT_ROW_ID;
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (case when timestamp = ? then ";
+
+    if (recordConflict && !(isDeleted && gidEmpty)) {
+        sql += "flag | " + compensatedBit + " ELSE flag | " + compensatedBit;
+    } else {
+        sql += "flag & ~" + compensatedBit + " & ~" + consistentBit + " ELSE flag & ~" + compensatedBit;
+    }
+    sql += " end) WHERE ";
+    if (!gidEmpty) {
+        sql += " cloud_gid = '" + logInfo.cloudGid + "'";
+    }
+    if (!isDeleted) {
+        if (!gidEmpty) {
+            sql += " OR ";
+        }
+        sql += " data_key = '" + std::to_string(logInfo.dataKey) + "'";
+    }
+    if (gidEmpty && isDeleted) {
+        sql += " hash_key = ?";
+    }
+    sql += ";";
+    return sql;
+}
+
+int CloudStorageUtils::BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
+    const std::set<std::string> &gidFilters)
+{
+    std::string gidStr;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gidStr);
+    if (errCode != E_OK || gidStr.empty()) {
+        LOGE("Get gid from bucket fail when mark flag as consistent, errCode = %d", errCode);
+        return errCode;
+    }
+    if (gidStr.empty()) {
+        LOGE("Get empty gid from bucket when mark flag as consistent.");
+        return -E_CLOUD_ERROR;
+    }
+    // this data has not yet downloaded asset, skipping
+    if (gidFilters.find(gidStr) != gidFilters.end()) {
+        return E_OK;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gidStr); // 1 is cloud_gid
+    if (errCode != E_OK) {
+        LOGE("Bind cloud_gid to mark flag as consistent stmt failed, %d", errCode);
+        return errCode;
+    }
+    int64_t modifyTime;
+    errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::MODIFY_FIELD, data, modifyTime);
+    if (errCode != E_OK) {
+        LOGE("Get modify time from bucket fail when mark flag as consistent, errCode = %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, 2, modifyTime); // 2 is timestamp
+    if (errCode != E_OK) {
+        LOGE("Bind modify time to mark flag as consistent stmt failed, %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[Storage Executor]Step mark flag as consistent stmt failed, %d", errCode);
+    }
+    return errCode;
+}
 }

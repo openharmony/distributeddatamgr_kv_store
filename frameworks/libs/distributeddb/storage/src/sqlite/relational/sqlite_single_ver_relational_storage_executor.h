@@ -171,16 +171,18 @@ public:
 
     int CleanResourceForDroppedTable(const std::string &tableName);
 
-    int UpgradedLogForExistedData(TableInfo &tableInfo);
+    int UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged);
 
-    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const std::string &gid,
-        int64_t dataKey = DBConstant::DEFAULT_ROW_ID);
+    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
 
     int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
 
     void SetPutDataMode(PutDataMode mode);
 
     void SetMarkFlagOption(MarkFlagOption option);
+
+    int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -414,7 +416,8 @@ private:
 
     int GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields, int startIndex, VBucket &record);
 
-    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
+    static constexpr const char *CONSISTENT_FLAG = "0x20";
+    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
     static constexpr const char *FLAG_IS_WAIT_COMPENSATED_SYNC = "flag & 0x10 != 0";
 

@@ -16,6 +16,7 @@
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_storage_utils.h"
 #include "cloud/cloud_db_constant.h"
+#include "cloud_db_sync_utils_test.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "mock_asset_loader.h"
@@ -91,6 +92,10 @@ const Asset ASSET_COPY2 = {.version = 1,
     .size = "256",
     .hash = "ASE"};
 const Assets ASSETS_COPY1 = { ASSET_COPY, ASSET_COPY2 };
+const std::string QUERY_CONSISTENT_SQL = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+    " where flag&0x20=0;";
+const std::string QUERY_COMPENSATED_SQL = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+    " where flag&0x10!=0;";
 
 string g_storePath;
 string g_testDir;
@@ -308,6 +313,18 @@ void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
     ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
     EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void CheckConsistentCount(sqlite3 *db, int64_t expectCount)
+{
+    EXPECT_EQ(sqlite3_exec(db, QUERY_CONSISTENT_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
+}
+
+void CheckCompensatedCount(sqlite3 *db, int64_t expectCount)
+{
+    EXPECT_EQ(sqlite3_exec(db, QUERY_COMPENSATED_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
 void CloseDb()
@@ -1224,6 +1241,346 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: FillAssetId019
+ * @tc.desc: Test the stability of cleaning asset id
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId019, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. construct multiple abnormal data_key, then RemoveDeviceData.
+     * @tc.expected: step2. return OK.
+     */
+    std::string sql = "update " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME)
+        + " set data_key='999' where data_key>'10';";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    EXPECT_EQ(g_delegate->RemoveDeviceData("", FLAG_ONLY), OK);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest001
+ * @tc.desc:Assets are the different, check the 0x20 bit of flag after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data for the different asset, sync and check flag
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 10; // 10 is num of local
+    int cloudCount = 20; // 20 is num of cloud
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, cloudCount);
+
+    /**
+     * @tc.steps:step2. update local data, sync and check flag
+     * @tc.expected: step2. return OK.
+     */
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    DeleteCloudDBData(1, 1, ASSETS_TABLE_NAME);
+    CheckConsistentCount(db, 0L);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, cloudCount);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest002
+ * @tc.desc: Assets are the same, check the 0x20 bit of flag after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data for the same asset, sync and check flag
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 20; // 20 is num of cloud
+    InsertLocalData(db, 0, cloudCount, ASSETS_TABLE_NAME, true);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, cloudCount);
+
+    /**
+     * @tc.steps:step2. update local data, sync and check flag
+     * @tc.expected: step2. return OK.
+     */
+    int deleteLocalCount = 5;
+    DeleteLocalRecord(db, 0, deleteLocalCount, ASSETS_TABLE_NAME);
+    CheckConsistentCount(db, cloudCount - deleteLocalCount);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, cloudCount);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest003
+ * @tc.desc: Download returns a conflict, check the 0x20 bit of flag after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20; // 20 is num of local
+    int cloudCount = 10; // 10 is num of cloud
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. fork download, return CLOUD_RECORD_EXIST_CONFLICT once
+     * @tc.expected: step2. return OK.
+     */
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("download gid:%s, index:%d", gid.c_str(), ++index);
+                if (index == 1) { // 1 is first download
+                    return DBStatus::CLOUD_RECORD_EXIST_CONFLICT;
+                }
+                return DBStatus::OK;
+            });
+
+    /**
+     * @tc.steps:step3. fork upload, check consistent count
+     * @tc.expected: step3. return OK.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([this, localCount, cloudCount, &upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("upload index:%d", ++upIdx);
+        if (upIdx == 1) { // 1 is first upload
+            CheckConsistentCount(db, localCount - cloudCount - 1);
+        }
+    });
+
+    /**
+     * @tc.steps:step4. fork query, check consistent count
+     * @tc.expected: step4. return OK.
+     */
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([this, localCount, &queryIdx](const std::string &, VBucket &) {
+        LOGD("query index:%d", ++queryIdx);
+        if (queryIdx == 3) { // 3 is the last query
+            CheckConsistentCount(db, localCount - 1);
+        }
+    });
+
+    /**
+     * @tc.steps:step5. sync, check consistent count
+     * @tc.expected: step5. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // wait compensation sync finish
+    CheckConsistentCount(db, localCount);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest004
+ * @tc.desc: Upload returns error, check the 0x20 bit of flag after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20; // 20 is num of local
+    int cloudCount = 10; // 10 is num of cloud
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. fork upload, return error filed of type string
+     * @tc.expected: step2. return OK.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("upload index:%d", ++upIdx);
+        if (upIdx == 1) {
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, std::string("x"));
+        }
+    });
+
+    /**
+     * @tc.steps:step3. sync, check consistent count
+     * @tc.expected: step3. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, localCount - 1);
+
+    /**
+     * @tc.steps:step4. update local data, fork upload, return error filed of type int64_t
+     * @tc.expected: step4. return OK.
+     */
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("upload index:%d", ++upIdx);
+        if (upIdx == 1) {
+            int64_t err = DBStatus::CLOUD_RECORD_EXIST_CONFLICT;
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, err);
+        }
+        if (upIdx == 2) {
+            int64_t err = DBStatus::CLOUD_RECORD_EXIST_CONFLICT + 1;
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, err);
+        }
+    });
+
+    /**
+     * @tc.steps:step5. sync, check consistent count
+     * @tc.expected: step5. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, localCount - 1);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest005
+ * @tc.desc: Local data changes during download, check the 0x20 bit of flag after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20; // 20 is num of local
+    int cloudCount = 10; // 10 is num of cloud
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. fork download, update local assets where id=2
+     * @tc.expected: step2. return OK.
+     */
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [this, &index](const std::string &, const std::string &gid, const Type &,
+                std::map<std::string, Assets> &assets) {
+                LOGD("download gid:%s, index:%d", gid.c_str(), ++index);
+                if (index == 1) { // 1 is first download
+                    std::string sql = "UPDATE " + ASSETS_TABLE_NAME + " SET assets=NULL where id=2;";
+                    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+                }
+                return DBStatus::OK;
+            });
+
+    /**
+     * @tc.steps:step3. fork upload, check consistent count
+     * @tc.expected: step3. return OK.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([this, localCount, cloudCount, &upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("upload index:%d", ++upIdx);
+        if (upIdx == 1) { // 1 is first upload
+            CheckConsistentCount(db, localCount - cloudCount - 1);
+        }
+    });
+
+    /**
+     * @tc.steps:step4. sync, check consistent count
+     * @tc.expected: step4. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, localCount);
+}
+
+/**
+ * @tc.name: ConsistentFlagTest006
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. fork download, update local assets where id=2
+     * @tc.expected: step2. return OK.
+     */
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    int delCount = 3; // 3 is num of cloud
+    DeleteCloudDBData(1, delCount, ASSETS_TABLE_NAME);
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&index](const std::string &, const std::string &gid, const Type &,
+                std::map<std::string, Assets> &assets) {
+                LOGD("download gid:%s, index:%d", gid.c_str(), ++index);
+                if (index == 1) { // 1 is first download
+                    return DBStatus::CLOUD_RECORD_EXIST_CONFLICT;
+                }
+                return DBStatus::OK;
+            });
+
+    /**
+     * @tc.steps:step3. fork upload, check consistent count
+     * @tc.expected: step3. return OK.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([this, delCount, &upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("upload index:%d", ++upIdx);
+        if (upIdx == 1) { // 1 is first upload
+            CheckConsistentCount(db, delCount);
+            CheckCompensatedCount(db, 0L);
+        }
+    });
+
+    /**
+     * @tc.steps:step4. sync, check consistent count
+     * @tc.expected: step4. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckConsistentCount(db, cloudCount);
 }
 } // namespace
 #endif // RELATIONAL_STORE

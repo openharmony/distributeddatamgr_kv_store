@@ -117,9 +117,12 @@ public:
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
-    int UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict);
+    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
 
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery);
+
+    int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters);
 protected:
     void Init();
 

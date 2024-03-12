@@ -1691,5 +1691,99 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CreateDistributedTable001, TestSize.Le
     BlockSync(query, delegate_);
     CheckCloudTableCount(table, actualCount);
 }
+
+/*
+ * @tc.name: CloseDbTest001
+ * @tc.desc: Test process of db close during sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloseDbTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert user table record.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 10; // 10 is count of records
+    InsertUserTableRecord(tableName_, actualCount);
+
+    /**
+     * @tc.steps:step2. wait for 2 seconds during the query to close the database.
+     * @tc.expected: step2. ok.
+     */
+    std::mutex callMutex;
+    int callCount = 0;
+    virtualCloudDb_->ForkQuery([](const std::string &, VBucket &) {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
+    });
+    const auto callback = [&callCount, &callMutex](
+        const std::map<std::string, SyncProcess> &) {
+        {
+            std::lock_guard<std::mutex> autoLock(callMutex);
+            callCount++;
+        }
+    };
+    Query query = Query::Select().FromTable({ tableName_ });
+    ASSERT_EQ(delegate_->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), OK);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // block notify 1s
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    mgr_ = nullptr;
+
+    /**
+     * @tc.steps:step3. wait for 2 seconds to check the process call count.
+     * @tc.expected: step3. ok.
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
+    EXPECT_EQ(callCount, 0L);
+}
+
+/*
+ * @tc.name: ConsistentFlagTest001
+ * @tc.desc: Test the consistency flag of no asset table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, ConsistentFlagTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 20; // 20 is count of local
+    const int cloudCount = 10; // 10 is count of cloud
+    InsertUserTableRecord(tableName_, localCount);
+    InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+
+    /**
+     * @tc.steps:step2. check the 0x20 bit of flag after sync
+     * @tc.expected: step2. ok.
+     */
+    std::string querySql = "select count(*) from " + DBCommon::GetLogTableName(tableName_) +
+        " where flag&0x20=0;";
+    EXPECT_EQ(sqlite3_exec(db_, querySql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(localCount), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. delete local data and check
+     * @tc.expected: step3. ok.
+     */
+    std::string sql = "delete from " + tableName_ + " where id = '1';";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    EXPECT_EQ(sqlite3_exec(db_, querySql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(localCount - 1), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step4. check the 0x20 bit of flag after sync
+     * @tc.expected: step4. ok.
+     */
+    BlockSync(query, delegate_);
+    EXPECT_EQ(sqlite3_exec(db_, querySql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(localCount), nullptr), SQLITE_OK);
+}
 }
 #endif
