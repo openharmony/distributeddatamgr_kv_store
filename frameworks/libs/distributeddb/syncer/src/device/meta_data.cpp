@@ -162,6 +162,8 @@ int Metadata::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 
 int Metadata::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
+    // reload meta data again
+    (void)LoadAllMetadata();
     std::lock_guard<std::recursive_mutex> autoLock(waterMarkMutex_);
     // try to erase all the waterMark
     // erase deleteSync recv waterMark

@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include "db_constant.h"
+#include "db_common.h"
 #include "distributeddb_tools_unit_test.h"
 #include "meta_data.h"
 #include "virtual_single_ver_sync_db_Interface.h"
@@ -33,6 +34,8 @@ public:
     static void TearDownTestCase();
     void SetUp();
     void TearDown();
+    void GetMetaDataValue(const std::string &hashDeviceId, MetaDataValue &metaDataValue);
+    void PutMetaDataValue(const std::string &hashDeviceId, MetaDataValue &metaDataValue);
 protected:
     std::shared_ptr<Metadata> metadata_ = nullptr;
     VirtualSingleVerSyncDBInterface *storage_ = nullptr;
@@ -63,6 +66,29 @@ void DistributedDBMetaDataTest::TearDown()
         delete storage_;
         storage_ = nullptr;
     }
+}
+
+void DistributedDBMetaDataTest::GetMetaDataValue(const std::string &hashDeviceId, MetaDataValue &metaDataValue)
+{
+    Key key;
+    DBCommon::StringToVector(hashDeviceId, key);
+    Value value;
+    int errCode = storage_->GetMetaData(key, value);
+    if (errCode == -E_NOT_FOUND) {
+        return;
+    }
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(memcpy_s(&metaDataValue, sizeof(MetaDataValue), value.data(), value.size()), EOK);
+}
+
+void DistributedDBMetaDataTest::PutMetaDataValue(const std::string &hashDeviceId, MetaDataValue &metaDataValue)
+{
+    Key key;
+    DBCommon::StringToVector(hashDeviceId, key);
+    Value value;
+    value.resize(sizeof(MetaDataValue));
+    EXPECT_EQ(memcpy_s(value.data(), value.size(), &metaDataValue, sizeof(MetaDataValue)), EOK);
+    EXPECT_EQ(storage_->PutMetaData(key, value, false), E_OK);
 }
 
 /**
@@ -249,5 +275,37 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest005, TestSize.Level0)
     res = metadata_->GetLocalSchemaVersion();
     EXPECT_EQ(res.first, E_OK);
     EXPECT_EQ(res.second, SOFTWARE_VERSION_CURRENT);
+}
+
+/**
+ * @tc.name: MetadataTest006
+ * @tc.desc: Test metadata remove device data with reload.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMetaDataTest, MetadataTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set storage ability sync finish.
+     * @tc.expected: step1. A is finish.
+     */
+    std::string hashDeviceId = DBConstant::DEVICEID_PREFIX_KEY + DBCommon::TransferHashString(DEVICE_A);
+    MetaDataValue metaDataValue;
+    GetMetaDataValue(hashDeviceId, metaDataValue);
+    EXPECT_EQ(metaDataValue.syncMark & static_cast<uint64_t>(SyncMark::SYNC_MARK_ABILITY_SYNC), 0u);
+    metaDataValue.syncMark = static_cast<uint64_t>(SyncMark::SYNC_MARK_ABILITY_SYNC);
+    PutMetaDataValue(hashDeviceId, metaDataValue);
+    /**
+     * @tc.steps: step2. Check ability sync finish by meta.
+     * @tc.expected: step2. A is not finish because of cached.
+     */
+    EXPECT_FALSE(metadata_->IsAbilitySyncFinish(DEVICE_A));
+    /**
+     * @tc.steps: step3. Erase water mark and check again.
+     * @tc.expected: step3. A is finish because reload cache.
+     */
+    EXPECT_EQ(metadata_->EraseDeviceWaterMark(DEVICE_A, true), E_OK);
+    EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_A));
 }
 }

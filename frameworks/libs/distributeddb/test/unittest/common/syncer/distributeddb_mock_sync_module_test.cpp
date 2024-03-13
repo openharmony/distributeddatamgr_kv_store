@@ -2150,6 +2150,29 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TimeSync003
+ * @tc.desc: Test time sync cal system offset.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync003, TestSize.Level0)
+{
+    TimeSyncPacket timeSyncInfo;
+    const TimeOffset requestOffset = 100; // 100 is request offset
+    timeSyncInfo.SetRequestLocalOffset(requestOffset);
+    timeSyncInfo.SetResponseLocalOffset(0);
+    timeSyncInfo.SetSourceTimeBegin(requestOffset);
+    const TimeOffset rtt = 100;
+    timeSyncInfo.SetTargetTimeBegin(rtt/2); // 2 is half of rtt
+    timeSyncInfo.SetTargetTimeEnd(rtt/2 + 1); // 2 is half of rtt
+    timeSyncInfo.SetSourceTimeEnd(requestOffset + rtt + 1);
+    auto [offset, actualRtt] = MockTimeSync::CalCalculateTimeOffset(timeSyncInfo);
+    EXPECT_EQ(MockTimeSync::CallCalculateRawTimeOffset(timeSyncInfo, offset), 0); // 0 is virtual delta time
+    EXPECT_EQ(actualRtt, rtt);
+}
+
+/**
  * @tc.name: SyncContextCheck001
  * @tc.desc: Test context time out logic.
  * @tc.type: FUNC
