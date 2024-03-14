@@ -138,13 +138,19 @@ public:
         return E_OK;
     }
 
-    virtual int UpdateRecordFlag([[gnu::unused]] const std::string &tableName, [[gnu::unused]] const std::string &gid,
-        [[gnu::unused]] bool recordConflict)
+    virtual int UpdateRecordFlag([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] bool recordConflict, [[gnu::unused]] const LogInfo &logInfo)
     {
         return E_OK;
     }
 
     virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery)
+    {
+        return E_OK;
+    }
+
+    virtual int MarkFlagAsConsistent([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] const DownloadData &downloadData, [[gnu::unused]] const std::set<std::string> &gidFilters)
     {
         return E_OK;
     }

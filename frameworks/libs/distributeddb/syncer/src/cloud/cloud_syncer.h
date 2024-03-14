@@ -89,6 +89,7 @@ protected:
         std::map<std::string, Assets> assets;
         Key hashKey;
         std::vector<Type> primaryKeyValList;
+        Timestamp timestamp;
         bool recordConflict = false;
     };
     struct ResumeTaskInfo {
@@ -225,8 +226,8 @@ protected:
     int FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
         VBucket &failedAssets);
 
-    int HandleDownloadResult(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
-        uint32_t &successCount);
+    int HandleDownloadResult(const DownloadItem &downloadItem, const std::string &tableName,
+        DownloadCommitList &commitList, uint32_t &successCount);
 
     int FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
         VBucket &extend);
@@ -253,7 +254,8 @@ protected:
 
     int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
 
-    int CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList, int errCode);
+    int CommitDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
+        DownloadCommitList &commitList, int errCode);
 
     int GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
         std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
@@ -311,6 +313,8 @@ protected:
 
     int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
+    int BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
+
     int DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
@@ -320,8 +324,8 @@ protected:
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
-    int CommitDownloadAssets(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
-        uint32_t &successCount);
+    int CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
+        DownloadCommitList &commitList, uint32_t &successCount);
 
     void GenerateCompensatedSync();
 
@@ -330,6 +334,8 @@ protected:
     int SaveCursorIfNeed(const std::string &tableName);
 
     int PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
+
+    int UpdateFlagForSavedRecord(const SyncParam &param);
 
     std::mutex dataLock_;
     TaskId lastTaskId_;

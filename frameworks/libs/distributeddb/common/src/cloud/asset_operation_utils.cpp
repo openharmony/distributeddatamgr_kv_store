@@ -74,7 +74,7 @@ uint32_t AssetOperationUtils::EraseBitMask(uint32_t status)
 void AssetOperationUtils::UpdateAssetsFlag(std::vector<VBucket> &from, std::vector<VBucket> &target)
 {
     if (from.size() != target.size()) {
-        LOGE("the num of VBucket are not equal when update assets flag.");
+        LOGW("the num of VBucket are not equal when update assets flag.");
         return;
     }
     for (size_t i = 0; i < from.size(); ++i) {

@@ -22,7 +22,7 @@
 #include "ref_object.h"
 namespace DistributedDB {
 using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key,
-    std::vector<Type>>>;
+    std::vector<Type>, Timestamp>>;
 class ICloudSyncer : public virtual RefObject {
 public:
     using TaskId = uint64_t;

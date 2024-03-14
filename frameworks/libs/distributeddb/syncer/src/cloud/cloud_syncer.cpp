@@ -437,8 +437,8 @@ int CloudSyncer::FillCloudAssets(const std::string &tableName, VBucket &normalAs
     return E_OK;
 }
 
-int CloudSyncer::HandleDownloadResult(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
-    uint32_t &successCount)
+int CloudSyncer::HandleDownloadResult(const DownloadItem &downloadItem, const std::string &tableName,
+    DownloadCommitList &commitList, uint32_t &successCount)
 {
     successCount = 0;
     int errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
@@ -446,7 +446,7 @@ int CloudSyncer::HandleDownloadResult(bool recordConflict, const std::string &ta
         LOGE("[CloudSyncer] start transaction Failed before handle download.");
         return errCode;
     }
-    errCode = CommitDownloadAssets(recordConflict, tableName, commitList, successCount);
+    errCode = CommitDownloadAssets(downloadItem, tableName, commitList, successCount);
     if (errCode != E_OK) {
         successCount = 0;
         int ret = E_OK;
@@ -495,12 +495,13 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
             return errorCode;
         }
         if (downloadItem.strategy == OpType::DELETE) {
-            continue;
+            downloadItem.assets = {};
+            downloadItem.gid = "";
         }
         // Process result of each asset
         commitList.push_back(std::make_tuple(downloadItem.gid, std::move(downloadItem.assets), errorCode == E_OK));
         downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
-        int ret = CommitDownloadResult(downloadItem.recordConflict, info, commitList, errorCode);
+        int ret = CommitDownloadResult(downloadItem, info, commitList, errorCode);
         if (ret != E_OK && ret != -E_REMOVE_ASSETS_FAILED) {
             return ret;
         }
@@ -518,6 +519,7 @@ void CloudSyncer::GetDownloadItem(const DownloadList &downloadList, size_t i, Do
     downloadItem.assets = std::get<CloudSyncUtils::ASSETS_INDEX>(downloadList[i]);
     downloadItem.hashKey = std::get<CloudSyncUtils::HASH_KEY_INDEX>(downloadList[i]);
     downloadItem.primaryKeyValList = std::get<CloudSyncUtils::PRIMARY_KEY_INDEX>(downloadList[i]);
+    downloadItem.timestamp = std::get<CloudSyncUtils::TIMESTAMP_INDEX>(downloadList[i]);
 }
 
 int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
@@ -653,7 +655,8 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
         param.withoutRowIdData.assetInsertData.push_back(std::make_tuple(idx, param.assetsDownloadList.size()));
     }
     param.assetsDownloadList.push_back(
-        std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey, pkVals));
+        std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey,
+        pkVals, dataInfo.cloudLogInfo.timestamp));
     return ret;
 }
 
@@ -742,7 +745,7 @@ int CloudSyncer::SaveData(SyncParam &param)
     // Get latest cloudWaterMark
     VBucket &lastData = param.downloadData.data.back();
     param.cloudWaterMark = std::get<std::string>(lastData[CloudDbConstant::CURSOR_FIELD]);
-    return E_OK;
+    return UpdateFlagForSavedRecord(param);
 }
 
 int CloudSyncer::PreCheck(CloudSyncer::TaskId &taskId, const TableName &tableName)
@@ -1026,12 +1029,10 @@ int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &delete
 {
     int errCode = E_OK;
     if (!uploadData.delData.record.empty() && !uploadData.delData.extend.empty()) {
-        errCode = cloudDB_.BatchDelete(uploadData.tableName, uploadData.delData.record,
-            uploadData.delData.extend, deleteInfo);
+        errCode = BatchDelete(deleteInfo, uploadData, innerProcessInfo);
         if (errCode != E_OK) {
             return errCode;
         }
-        innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
     }
 
     if (!uploadData.insData.record.empty() && !uploadData.insData.extend.empty()) {
@@ -1669,14 +1670,14 @@ void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
     }
 }
 
-int CloudSyncer::CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList,
-    int errCode)
+int CloudSyncer::CommitDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
+    DownloadCommitList &commitList, int errCode)
 {
     if (commitList.empty()) {
         return E_OK;
     }
     uint32_t successCount = 0u;
-    int ret = HandleDownloadResult(recordConflict, info.tableName, commitList, successCount);
+    int ret = HandleDownloadResult(downloadItem, info.tableName, commitList, successCount);
     if (errCode == E_OK) {
         info.downLoadInfo.failCount += (commitList.size() - successCount);
         info.downLoadInfo.successCount -= (commitList.size() - successCount);

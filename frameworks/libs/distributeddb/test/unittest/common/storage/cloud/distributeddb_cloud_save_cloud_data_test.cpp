@@ -1118,7 +1118,7 @@ namespace {
             DBCommon::VectorToString(deviceVec, getDevice);
             EXPECT_EQ(device, getDevice);
             EXPECT_EQ(sqlite3_column_int64(stmt, 1), BASE_MODIFY_TIME + 1);
-            EXPECT_EQ(sqlite3_column_int(stmt, 2), 1); // 2 is flag
+            EXPECT_EQ(sqlite3_column_int(stmt, 2), 0x20|0x01); // 2 is flag
             count++;
             return OK;
         });
@@ -1472,5 +1472,64 @@ namespace {
         syncData.insData.extend.resize(1); // rowid is 1
         EXPECT_EQ(storage->CallFillReferenceData(syncData), E_OK);
         RefObject::KillAndDecObjRef(storage);
+    }
+
+    /**
+     * @tc.name: ConsistentFlagTest001
+     * @tc.desc: Check the 0x20 bit of flag changed from the trigger
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, ConsistentFlagTest001, TestSize.Level1)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. success.
+         */
+        PrepareDataBase(g_tableName, PrimaryKeyType::SINGLE_PRIMARY_KEY, true);
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        ASSERT_NE(db, nullptr);
+        std::string sql = "insert into " + g_tableName + "(id, name) values(10, 'xx1'), (11, 'xx2')";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        sql = "delete from " + g_tableName + "  where id=11;";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+
+        /**
+         * @tc.steps:step2 query inserted and updated data, check flag
+         * @tc.expected: step2. success.
+         */
+        sql = "select flag from " + DBCommon::GetLogTableName(g_tableName) +
+            " where data_key in('10', '1')";
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x20|0x02);
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+
+        /**
+         * @tc.steps:step3 query deleted data which gid is not empty, check flag
+         * @tc.expected: step3. success.
+         */
+        sql = "select flag from " + DBCommon::GetLogTableName(g_tableName) +
+            " where data_key=-1 and cloud_gid !='';";
+        errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x20|0x03);
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+
+        /**
+         * @tc.steps:step4 query deleted data which gid is empty, check flag
+         * @tc.expected: step4. success.
+         */
+        sql = "select flag from " + DBCommon::GetLogTableName(g_tableName) +
+              " where data_key=-1 and cloud_gid ='';";
+        errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x03);
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
 }

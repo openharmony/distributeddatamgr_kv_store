@@ -112,6 +112,8 @@ DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::v
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) == extend[i].end()) {
             extend[i][g_gidField] = std::to_string(currentGid_++);
+        } else {
+            currentGid_++;
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][g_deleteField] = false;
@@ -331,8 +333,28 @@ bool VirtualCloudDb::IsPrimaryKeyMatching(const std::vector<QueryNode> &queryNod
 bool VirtualCloudDb::IsPrimaryKeyMatchingInner(const QueryNode &queryNode, VBucket &record)
 {
     for (const auto &value : queryNode.fieldValue) {
-        if (std::get<std::string>(record[queryNode.fieldName]) == std::get<std::string>(value)) {
-            return true;
+        size_t type = record[queryNode.fieldName].index();
+        switch (type) {
+            case TYPE_INDEX<std::string>: {
+                if (std::get<std::string>(record[queryNode.fieldName]) == std::get<std::string>(value)) {
+                    return true;
+                }
+                break;
+            }
+            case TYPE_INDEX<int64_t>: {
+                if (std::get<int64_t>(record[queryNode.fieldName]) == std::get<int64_t>(value)) {
+                    return true;
+                }
+                break;
+            }
+            case TYPE_INDEX<double>: {
+                if (std::get<double>(record[queryNode.fieldName]) == std::get<double>(value)) {
+                    return true;
+                }
+                break;
+            }
+            default:
+                break;
         }
     }
     return false;

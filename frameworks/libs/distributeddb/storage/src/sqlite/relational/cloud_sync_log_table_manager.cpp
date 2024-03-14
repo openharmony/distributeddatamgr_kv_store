@@ -102,7 +102,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
     insertTrigger += " extend_field, cursor, version, sharing_resource)";
     insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
-    insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
+    insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
     insertTrigger += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
     insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
@@ -133,7 +133,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += "\t UPDATE " + logTblName;
-    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
+    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02|0x20";
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
@@ -162,7 +162,9 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
-    deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
+    deleteTrigger += " SET data_key=-1,";
+    deleteTrigger += "flag=(CASE WHEN cloud_gid='' then 0x03 else 0x03|0x20 END),";
+    deleteTrigger += "timestamp=get_raw_sys_time()";
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
     }

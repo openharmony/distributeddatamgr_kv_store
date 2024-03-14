@@ -42,12 +42,13 @@ static constexpr const char *HASH_KEY = "HASH_KEY";
 static constexpr const char *SHARING_RESOURCE = "SHARING_RESOURCE";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 // set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
-static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(FLAG | 0x02) & (~0x10)";
+static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(CASE WHEN data_key = -1 and "
+    "FLAG & 0x02 = 0x02 THEN (FLAG | 0x02) & (~0x10) & (~0x20) ELSE (FLAG | 0x02 | 0x20) & (~0x10) END)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
-static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
-static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag 0100 use with |
-static constexpr const int SET_CLOUD_FLAG = 0x0D; // set 1th bit of flag to 0 1101 use with &
+static constexpr const int SET_FLAG_ZERO_MASK = ~0x04; // clear 2th bit of flag
+static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag
+static constexpr const int SET_CLOUD_FLAG = ~0x02; // set 1th bit of flag to 0
 static constexpr const int DATA_KEY_INDEX = 0;
 static constexpr const int TIMESTAMP_INDEX = 3;
 static constexpr const int W_TIMESTAMP_INDEX = 4;
@@ -162,7 +163,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
-        timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x2, " +
+        timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x02|0x20, " +
         calPrimaryKeyHash + ", '', ";
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         sql += "'', ''";
@@ -611,6 +612,8 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         cloudSyncData.delData.record.push_back(data);
         cloudSyncData.delData.extend.push_back(log);
         cloudSyncData.delData.hashKey.push_back(*hashKey);
+        cloudSyncData.delData.timestamp.push_back(*timeStamp);
+        cloudSyncData.delData.rowid.push_back(*rowid);
     } else {
         bool isInsert = log.find(CloudDbConstant::GID_FIELD) == log.end();
         if (data.empty()) {

@@ -505,13 +505,13 @@ int StorageProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
     return store_->SetIAssetLoader(loader);
 }
 
-int StorageProxy::UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict)
+int StorageProxy::UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return E_INVALID_DB;
     }
-    return store_->UpdateRecordFlag(tableName, gid, recordConflict);
+    return store_->UpdateRecordFlag(tableName, recordConflict, logInfo);
 }
 
 int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
@@ -521,5 +521,15 @@ int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuer
         return E_INVALID_DB;
     }
     return store_->GetCompensatedSyncQuery(syncQuery);
+}
+
+int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+    const std::set<std::string> &gidFilters)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return E_INVALID_DB;
+    }
+    return store_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
 }
 }

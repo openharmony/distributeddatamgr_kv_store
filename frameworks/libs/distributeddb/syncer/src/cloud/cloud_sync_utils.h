@@ -30,6 +30,7 @@ public:
     static constexpr const int ASSETS_INDEX = 3;
     static constexpr const int HASH_KEY_INDEX = 4;
     static constexpr const int PRIMARY_KEY_INDEX = 5;
+    static constexpr const int TIMESTAMP_INDEX = 6;
 
     static int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
         std::vector<Type> &cloudPkVals);

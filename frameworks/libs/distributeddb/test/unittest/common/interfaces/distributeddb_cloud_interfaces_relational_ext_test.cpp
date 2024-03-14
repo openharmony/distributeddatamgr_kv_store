@@ -248,7 +248,8 @@ void InsertTriggerTest(DistributedDB::TableSyncType tableSyncType)
     EXPECT_EQ(errCode, E_OK);
 
     int resultCount = 0;
-    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr,
+        [tableSyncType, curTime, &resultCount] (sqlite3_stmt *stmt) {
         EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // 1 is row id
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
@@ -262,7 +263,11 @@ void InsertTriggerTest(DistributedDB::TableSyncType tableSyncType)
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
         EXPECT_TRUE(wtimestamp - timestamp < diff);
         EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
-        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index flag == 2
+        if (tableSyncType == DistributedDB::CLOUD_COOPERATION) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 5), 0x02|0x20); // 5 is column index flag == 0x02|0x20
+        } else {
+            EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index flag == 2
+        }
         resultCount++;
         return OK;
     });
@@ -343,7 +348,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest003, Te
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
         EXPECT_EQ(oriDevice, "");
 
-        EXPECT_EQ(sqlite3_column_int(stmt, 3), 2); // 3 is column index flag == 2
+        EXPECT_EQ(sqlite3_column_int(stmt, 3), 0x02|0x20); // 3 is column index flag == 0x02|0x20
         std::string gidStr;
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 4, gidStr), E_OK); // 4 is column index
         EXPECT_EQ(gid, gidStr);
@@ -399,7 +404,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
             EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // 1 is row id
         }
 
-        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index, flag == 2
+        EXPECT_EQ(sqlite3_column_int(stmt, 5), 0x02|0x20); // 5 is column index, flag == 0x02|0x20
 
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
