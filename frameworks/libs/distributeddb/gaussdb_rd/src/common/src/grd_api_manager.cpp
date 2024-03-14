@@ -110,7 +110,7 @@ GRD_APIInfo GetApiInfoInstance()
 {
     GRD_APIInfo GRD_TempApiStruct;
 #ifndef _WIN32
-    g_library = dlopen("/system/lib64/libgaussdb_rd.z.so", RTLD_LAZY);
+    g_library = dlopen("libgaussdb_rd.z.so", RTLD_LAZY);
     if (!g_library) {
         GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
     } else {
