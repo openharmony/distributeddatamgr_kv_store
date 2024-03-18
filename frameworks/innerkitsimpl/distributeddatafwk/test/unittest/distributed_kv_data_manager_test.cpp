@@ -28,6 +28,8 @@ class DistributedKvDataManagerTest : public testing::Test {
 public:
     static constexpr size_t NUM_MIN = 5;
     static constexpr size_t NUM_MAX = 12;
+    static std::shared_ptr<ExecutorPool> executors;
+
     static DistributedKvDataManager manager;
     static Options create;
     static Options noCreate;
@@ -59,6 +61,8 @@ public:
     virtual ~MyDeathRecipient() {}
     void OnRemoteDied() override {}
 };
+std::shared_ptr<ExecutorPool> DistributedKvDataManagerTest::executors =
+    std::make_shared<ExecutorPool>(NUM_MAX, NUM_MIN);
 
 DistributedKvDataManager DistributedKvDataManagerTest::manager;
 Options DistributedKvDataManagerTest::create;
@@ -82,7 +86,6 @@ void DistributedKvDataManagerTest::RemoveAllStore(DistributedKvDataManager &mana
 }
 void DistributedKvDataManagerTest::SetUpTestCase(void)
 {
-    auto executors = std::make_shared<ExecutorPool>(NUM_MAX, NUM_MIN);
     manager.SetExecutors(executors);
 
     userId.userId = "account0";
