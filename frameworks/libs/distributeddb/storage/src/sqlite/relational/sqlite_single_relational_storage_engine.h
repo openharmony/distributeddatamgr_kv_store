@@ -126,6 +126,7 @@ private:
     mutable std::mutex schemaMutex_;
 
     RelationalDBProperties properties_;
+    std::mutex createDistributedTableMutex_;
 };
 } // namespace DistributedDB
 #endif
