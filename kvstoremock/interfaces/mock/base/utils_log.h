@@ -18,11 +18,11 @@
 #ifdef CONFIG_HILOG
 #include "hilog/log.h"
 static constexpr OHOS::HiviewDFX::HiLogLabel label = { LOG_CORE, 0xD003D00, "utils_base" };
-#define UTILS_LOGF(...) (void)OHOS::HiviewDFX::HiLog::Fatal(label, __VA_ARGS__)
-#define UTILS_LOGE(...) (void)OHOS::HiviewDFX::HiLog::Error(label, __VA_ARGS__)
-#define UTILS_LOGW(...) (void)OHOS::HiviewDFX::HiLog::Warn(label, __VA_ARGS__)
-#define UTILS_LOGI(...) (void)OHOS::HiviewDFX::HiLog::Info(label, __VA_ARGS__)
-#define UTILS_LOGD(...) (void)OHOS::HiviewDFX::HiLog::Debug(label, __VA_ARGS__)
+#define UTILS_LOGF(...) printf("fatal: " fmt "\n",  __VA_ARGS__)
+#define UTILS_LOGE(...) printf("error: " fmt "\n",  __VA_ARGS__)
+#define UTILS_LOGW(...) printf("warn: " fmt "\n", __VA_ARGS__)
+#define UTILS_LOGI(...) printf("info: " fmt "\n", __VA_ARGS__)
+#define UTILS_LOGD(...) printf("debug: " fmt "\n",  __VA_ARGS__)
 #else
 #define UTILS_LOGF(...)
 #define UTILS_LOGE(...)
@@ -32,12 +32,12 @@ static constexpr OHOS::HiviewDFX::HiLogLabel label = { LOG_CORE, 0xD003D00, "uti
 #endif  // CONFIG_HILOG
 
 #if (defined CONFIG_HILOG) && (defined CONFIG_PARCEL_DEBUG)
-static constexpr OHOS::HiviewDFX::HiLogLabel parcelLabel = { LOG_CORE, 0xD003D01, "parcel" };
-#define PARCEL_LOGF(...) (void)OHOS::HiviewDFX::HiLog::Fatal(parcelLabel, __VA_ARGS__)
-#define PARCEL_LOGE(...) (void)OHOS::HiviewDFX::HiLog::Error(parcelLabel, __VA_ARGS__)
-#define PARCEL_LOGW(...) (void)OHOS::HiviewDFX::HiLog::Warn(parcelLabel, __VA_ARGS__)
-#define PARCEL_LOGI(...) (void)OHOS::HiviewDFX::HiLog::Info(parcelLabel, __VA_ARGS__)
-#define PARCEL_LOGD(...) (void)OHOS::HiviewDFX::HiLog::Debug(parcelLabel, __VA_ARGS__)
+static constexpr OHOS::HiviewDFX::HiLogLabel parcel = { LOG_CORE, 0xD003D01, "parcel" };
+#define PARCEL_LOGF(...) printf("fatal: " fmt "\n", __VA_ARGS__)
+#define PARCEL_LOGE(...) printf("error: " fmt "\n", __VA_ARGS__)
+#define PARCEL_LOGW(...) printf("warn: " fmt "\n",  __VA_ARGS__)
+#define PARCEL_LOGI(...) printf("info: " fmt "\n", __VA_ARGS__)
+#define PARCEL_LOGD(...) printf("debug: " fmt "\n",  __VA_ARGS__)
 #else
 #define PARCEL_LOGF(...)
 #define PARCEL_LOGE(...)

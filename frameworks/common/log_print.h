@@ -90,47 +90,54 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
     return { LOG_CORE, 0xD001656, "DSRCH" };
 }
 } // end namespace DataSearchable
+
+namespace ConnectInner {
+    static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+    {
+        return { LOG_CORE, 0xD001610, "Connect" };
+    }
+} // end namespace ConnectInner
 } // end namespace OHOS
 
-#define ZLOGD(fmt, ...)                                                                 \
-    do {                                                                                \
-        using HiLog = OHOS::HiviewDFX::HiLog;                                           \
-        auto lable = LogLabel();                                                        \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_DEBUG)) {                     \
-            break;                                                                      \
-        }                                                                               \
-        HiLog::Debug(lable, LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__); \
+#define ZLOGD(fmt, ...)                                                   \
+    do {                                                                  \
+        auto lable = LogLabel();                                          \
+        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_DEBUG)) {       \
+            break;                                                        \
+        }                                                                 \
+        ((void)HILOG_IMPL(lable.type, LOG_DEBUG, lable.domain, lable.tag, \
+            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
     } while (0)
 
-#define ZLOGI(fmt, ...)                                                                \
-    do {                                                                               \
-        using HiLog = OHOS::HiviewDFX::HiLog;                                          \
-        auto lable = LogLabel();                                                       \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_INFO)) {                     \
-            break;                                                                     \
-        }                                                                              \
-        HiLog::Info(lable, LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__); \
+#define ZLOGI(fmt, ...)                                                   \
+    do {                                                                  \
+        auto lable = LogLabel();                                          \
+        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_INFO)) {        \
+            break;                                                        \
+        }                                                                 \
+        ((void)HILOG_IMPL(lable.type, LOG_INFO, lable.domain, lable.tag,  \
+            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
     } while (0)
 
-#define ZLOGW(fmt, ...)                                                                \
-    do {                                                                               \
-        using HiLog = OHOS::HiviewDFX::HiLog;                                          \
-        auto lable = LogLabel();                                                       \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_WARN)) {                     \
-            break;                                                                     \
-        }                                                                              \
-        HiLog::Warn(lable, LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__); \
+#define ZLOGW(fmt, ...)                                                   \
+    do {                                                                  \
+        auto lable = LogLabel();                                          \
+        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_WARN)) {        \
+            break;                                                        \
+        }                                                                 \
+        ((void)HILOG_IMPL(lable.type, LOG_WARN, lable.domain, lable.tag,  \
+            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
     } while (0)
 
-#define ZLOGE(fmt, ...)                                                                 \
-    do {                                                                                \
-        using HiLog = OHOS::HiviewDFX::HiLog;                                           \
-        auto lable = LogLabel();                                                        \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_ERROR)) {                     \
-            break;                                                                      \
-        }                                                                               \
-        HiLog::Error(lable, LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__); \
-    } while (0)
+#define ZLOGE(fmt, ...)                                                   \
+    do {                                                                  \
+        auto lable = LogLabel();                                          \
+        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_ERROR)) {       \
+            break;                                                        \
+        }                                                                 \
+        ((void)HILOG_IMPL(lable.type, LOG_ERROR, lable.domain, lable.tag, \
+            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
+    } while (0)                                   \
 
 #else
     #error // unknown system
