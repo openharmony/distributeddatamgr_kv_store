@@ -159,7 +159,7 @@ public:
      * @param syncCallback The callback will be called when sync finished.
      * @return Return SUCCESS for success, others for failure.
     */
-    Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
+    virtual Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
         std::shared_ptr<KvStoreSyncCallback> syncCallback)
     {
         return Sync(devices, mode, query, syncCallback, 0);
@@ -181,7 +181,10 @@ public:
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
-        std::shared_ptr<KvStoreSyncCallback> syncCallback, uint32_t delay) = 0;
+        std::shared_ptr<KvStoreSyncCallback> syncCallback, uint32_t delay)
+        {
+            return Status::SUCCESS;
+        }
 
     /**
      * @brief Sync store with other device, while delay is 0.
