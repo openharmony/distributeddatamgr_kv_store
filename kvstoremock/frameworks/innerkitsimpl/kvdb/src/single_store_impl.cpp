@@ -427,7 +427,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
-                             std::shared_ptr<SyncCallback> syncCallback)
+                             std::shared_ptr<SyncCallback> syncCallback, uint32_t delay)
 {
     return SERVER_UNAVAILABLE;
 }

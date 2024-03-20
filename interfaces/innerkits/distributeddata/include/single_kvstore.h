@@ -159,8 +159,29 @@ public:
      * @param syncCallback The callback will be called when sync finished.
      * @return Return SUCCESS for success, others for failure.
     */
+    Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
+        std::shared_ptr<KvStoreSyncCallback> syncCallback)
+    {
+        return Sync(devices, mode, query, syncCallback, 0);
+    }
+
+    /**
+     * @brief Sync store with other devices only syncing the data which is satisfied with the condition.
+     *
+     * This is an asynchronous method.
+     * sync will fail if there is a syncing operation in progress.
+     *
+     * @param devices      Device list to sync.
+     * @param mode         Mode can be set to SyncMode::PUSH, SyncMode::PULL and SyncMode::PUSH_PULL.
+     *                     PUSH_PULL will firstly push all not-local store to listed devices,
+     *                     then pull these stores back.
+     * @param query        The query condition.
+     * @param delay   Allowed delay milli-second to sync.
+     * @param syncCallback The callback will be called when sync finished.
+     * @return Return SUCCESS for success, others for failure.
+    */
     virtual Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
-        std::shared_ptr<KvStoreSyncCallback> syncCallback) = 0;
+        std::shared_ptr<KvStoreSyncCallback> syncCallback, uint32_t delay) = 0;
 
     /**
      * @brief Sync store with other device, while delay is 0.

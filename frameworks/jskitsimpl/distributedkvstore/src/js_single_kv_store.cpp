@@ -1195,7 +1195,8 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
     Status status = Status::INVALID_ARGUMENT;
     if (ctxt->type == napi_object) {
         auto query = ctxt->query->GetDataQuery();
-        status = kvStore->Sync(ctxt->deviceIdList, static_cast<SyncMode>(ctxt->mode), query, nullptr);
+        status = kvStore->Sync(ctxt->deviceIdList, static_cast<SyncMode>(ctxt->mode), query,
+                               nullptr, ctxt->allowedDelayMs);
     }
     if (ctxt->type == napi_number) {
         status = kvStore->Sync(ctxt->deviceIdList, static_cast<SyncMode>(ctxt->mode), ctxt->allowedDelayMs);
