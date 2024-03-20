@@ -91,7 +91,7 @@ int Acl::InsertEntry(const AclXattrEntry &entry)
     return E_OK;
 }
 
-std::unique_ptr<char[]> Acl::Serialize(int32_t &bufSize)
+std::unique_ptr<char[]> Acl::Serialize(uint32_t &bufSize)
 {
     bufSize = sizeof(AclXattrHeader) + sizeof(AclXattrEntry) * entries_.size();
     if (bufSize > static_cast<int32_t>(BUF_MAX_SIZE)) {
@@ -105,7 +105,7 @@ std::unique_ptr<char[]> Acl::Serialize(int32_t &bufSize)
         return nullptr;
     }
 
-    int32_t restSize = bufSize - sizeof(AclXattrHeader);
+    int32_t restSize = static_cast<int32_t>(bufSize - sizeof(AclXattrHeader));
     AclXattrEntry *ptr = reinterpret_cast<AclXattrEntry *>(buf.get() + sizeof(AclXattrHeader));
     for (const auto &e : entries_) {
         auto err = memcpy_s(ptr++, restSize, &e, sizeof(AclXattrEntry));

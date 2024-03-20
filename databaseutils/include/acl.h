@@ -146,7 +146,7 @@ private:
     void AclFromDefault();
     void CompareInsertEntry(const AclXattrEntry &entry);
     ACL_PERM ReCalcMaskPerm();
-    std::unique_ptr<char[]> Serialize(int32_t &bufSize);
+    std::unique_ptr<char[]> Serialize(uint32_t &bufSize);
     int DeSerialize(const char *p, int32_t bufSize);
     int InsertEntry(const AclXattrEntry &entry);
     AclXattrHeader header_;
