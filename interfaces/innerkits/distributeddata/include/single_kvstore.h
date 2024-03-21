@@ -182,9 +182,9 @@ public:
     */
     virtual Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
         std::shared_ptr<KvStoreSyncCallback> syncCallback, uint32_t delay)
-        {
-            return Status::SUCCESS;
-        }
+    {
+        return Status::SUCCESS;
+    }
 
     /**
      * @brief Sync store with other device, while delay is 0.
