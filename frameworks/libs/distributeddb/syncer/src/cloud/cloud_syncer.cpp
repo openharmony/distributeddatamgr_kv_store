@@ -1035,15 +1035,15 @@ int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &delete
         }
     }
 
-    if (!uploadData.insData.record.empty() && !uploadData.insData.extend.empty()) {
-        errCode = BatchInsert(insertInfo, uploadData, innerProcessInfo);
+    if (!uploadData.updData.record.empty() && !uploadData.updData.extend.empty()) {
+        errCode = BatchUpdate(updateInfo, uploadData, innerProcessInfo);
         if (errCode != E_OK) {
             return errCode;
         }
     }
 
-    if (!uploadData.updData.record.empty() && !uploadData.updData.extend.empty()) {
-        errCode = BatchUpdate(updateInfo, uploadData, innerProcessInfo);
+    if (!uploadData.insData.record.empty() && !uploadData.insData.extend.empty()) {
+        errCode = BatchInsert(insertInfo, uploadData, innerProcessInfo);
     }
     return errCode;
 }
