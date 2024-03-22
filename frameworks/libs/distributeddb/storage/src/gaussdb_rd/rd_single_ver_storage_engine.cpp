@@ -129,7 +129,7 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     }
     int errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
-        LOGE("Failed to open the main database [%d]", errCode);
+        LOGE("Failed to open the main database [%d], uri: %s", errCode, (option_.uri).c_str());
         return errCode;
     }
 

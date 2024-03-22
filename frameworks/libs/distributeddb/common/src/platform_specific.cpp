@@ -117,7 +117,10 @@ int MakeDBDirectory(const std::string &directory)
 {
     int errCode = mkdir(directory.c_str());
     if (errCode < 0) {
-        LOGE("[MakeDir] Make directory fail:%d.", errno);
+        // 3 means one-third
+        std::string str = directory.length() == 0 ? "empty directory path" :
+            directory.substr(0, directory.length() / 3) + "*****" + directory.substr((2 * directory.length()) / 3);
+        LOGE("[MakeDir] Make directory fail:%d, directory path: %s", errno, str.c_str());
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
@@ -434,7 +437,10 @@ int MakeDBDirectory(const std::string &directory)
 {
     int errCode = mkdir(directory.c_str(), (S_IRWXU | S_IRWXG)); // The permission is 770 for linux based os
     if (errCode < 0) {
-        LOGE("[MakeDir] Make directory fail:%d.", errno);
+        // 3 means one-third
+        std::string str = directory.length() == 0 ? "empty directory path" :
+            directory.substr(0, directory.length() / 3) + "*****" + directory.substr((2 * directory.length()) / 3);
+        LOGE("[MakeDir] Make directory fail:%d, directory path: %s", errno, str.c_str());
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
@@ -613,7 +619,7 @@ int OpenFile(const std::string &fileName, FileHandle *&fileHandle)
     }
     fileHandle->handle = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
     if (fileHandle->handle < 0) {
-        LOGE("[FileLock] can not open file when lock it:[%d]", errno);
+        LOGE("[FileLock] can not open file when lock it:[%d], filename: %s", errno, fileName.c_str());
         delete fileHandle;
         fileHandle = nullptr;
         return -E_SYSTEM_API_FAIL;

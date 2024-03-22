@@ -79,7 +79,7 @@ int RdSingleVerStorageExecutor::OpenResultSet(const Key &beginKey, const Key &en
 {
     int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME.c_str(), beginKey, endKey, resultSet);
     if (errCode != E_OK) {
-        LOGE("Can not open rd result set.");
+        LOGE("[RdSingleVerStorageExecutor][OpenResultSet] Can not open rd result set.");
     }
     return errCode;
 }
@@ -306,7 +306,7 @@ int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, const GRD_KvScanMo
             return -E_INVALID_ARGS;
     }
     if (ret != E_OK) {
-        LOGE("[RdSingleVerStorageExecutor][GetEntries]ERROR %d", ret);
+        LOGE("[RdSingleVerStorageExecutor][GetEntriesPrepare]ERROR %d", ret);
         return ret;
     }
     entries.clear();
