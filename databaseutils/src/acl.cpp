@@ -180,7 +180,7 @@ int32_t Acl::SetDefault()
     }
 
     /* transform to binary and write to file */
-    int32_t bufSize;
+    uint32_t bufSize;
     auto buf = Serialize(bufSize);
     if (buf == nullptr) {
         ZLOGE("Failed to serialize ACL into binary: %{public}s", std::strerror(errno));
