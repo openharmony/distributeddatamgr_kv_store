@@ -621,7 +621,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
     auto sessionId = message->GetSessionId();
     return SendPacket(deviceId_, message, [handler, timeSyncPtr, sessionId, this](int errCode) {
         if (closed_) {
-            LOGW("[TimeSync] DB closed, ignore send end");
+            LOGW("[TimeSync] DB closed, ignore send end! dev=%.3s", deviceId_.c_str());
             return;
         }
         {
@@ -639,7 +639,7 @@ Timestamp TimeSync::GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessi
 {
     std::lock_guard<std::mutex> autoLock(beginTimeMutex_);
     if (sessionBeginTime_.find(sessionId) == sessionBeginTime_.end()) {
-        LOGD("[TimeSync] Current cache not exist packet send time");
+        LOGW("[TimeSync] Current cache not exist packet send time");
         return packetBeginTime;
     }
     auto sendTime = sessionBeginTime_[sessionId];

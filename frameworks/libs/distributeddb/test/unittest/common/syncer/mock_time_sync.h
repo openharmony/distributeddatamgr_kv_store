@@ -38,6 +38,16 @@ public:
         return TimeSync::IsClosed();
     }
 
+    static TimeOffset CallCalculateRawTimeOffset(const TimeSyncPacket &timeSyncInfo, TimeOffset deltaTime)
+    {
+        return TimeSync::CalculateRawTimeOffset(timeSyncInfo, deltaTime);
+    }
+
+    static std::pair<TimeOffset, TimeOffset> CalCalculateTimeOffset(const TimeSyncPacket &timeSyncInfo)
+    {
+        return TimeSync::CalculateTimeOffset(timeSyncInfo);
+    }
+
     MOCK_METHOD2(SyncStart, int(const CommErrHandler &, uint32_t));
 };
 }

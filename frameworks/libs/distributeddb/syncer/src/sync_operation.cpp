@@ -14,6 +14,7 @@
  */
 
 #include "sync_operation.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "performance_analysis.h"
@@ -156,7 +157,8 @@ void SyncOperation::Finished()
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_ACK_RECV_TO_USER_CALL_BACK);
     }
     if (userCallback_) {
-        LOGI("[SyncOperation] Sync %d finished call onComplete.", syncId_);
+        std::string msg = GetFinishDetailMsg(tmpStatus);
+        LOGI("[SyncOperation] SyncId=%d finished, %s", syncId_, msg.c_str());
         if (IsBlockSync()) {
             userCallback_(tmpStatus);
         } else {
@@ -338,6 +340,22 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
             return node.operationStatus == operationStatus;
         });
     return result == std::end(syncOperationStatusNodes) ? DB_ERROR : result->status;
+}
+
+std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &finishStatus)
+{
+    std::string msg = "Sync detail is:";
+    for (const auto &[dev, status]: finishStatus) {
+        msg += "dev=" + DBCommon::StringMasking(dev);
+        if (status > static_cast<int>(OP_FINISHED_ALL)) {
+            msg += " sync failed, reason is " + std::to_string(status);
+        } else {
+            msg += " sync success";
+        }
+        msg += " ";
+    }
+    msg.pop_back();
+    return msg;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SyncOperation)
 } // namespace DistributedDB

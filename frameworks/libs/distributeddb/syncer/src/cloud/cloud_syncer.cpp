@@ -71,9 +71,11 @@ int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
         return errCode;
     }
     if (cloudDB_.IsNotExistCloudDB()) {
+        LOGE("[CloudSyncer] Not set cloudDB!");
         return -E_CLOUD_ERROR;
     }
     if (closed_) {
+        LOGE("[CloudSyncer] DB is closed!");
         return -E_DB_CLOSED;
     }
     CloudTaskInfo info = taskInfo;
