@@ -530,7 +530,11 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     }
 
     int errCode = E_OK;
-    auto handle = GetHandle(true, errCode);
+    SecurityOption option;
+    (void)GetSecurityOption(option);
+    bool isWrite = (option.securityLabel >= S3) && (option.securityFlag == SECE);
+    // meta in S3 SECE open meta.db, should use write handle
+    auto handle = GetHandle(isWrite, errCode);
     if (handle == nullptr) {
         return errCode;
     }
