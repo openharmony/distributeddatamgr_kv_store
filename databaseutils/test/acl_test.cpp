@@ -30,7 +30,8 @@ public:
     static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
     static constexpr const char *PATH_ABC_XIAOMING_TEST = "/data/test/abc/xiaoming/test.txt";
     static constexpr const char *DATA = "SetDefaultUserTest";
-    static constexpr int UID = 2024;
+    static constexpr uint32_t UID = 2024;
+    static constexpr uint32_t TESTUID = 2025;
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
@@ -177,5 +178,65 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
         EXPECT_EQ(std::string(buf, buf + strlen(buf) - 1), std::string(DATA)) << "buffer:[" << buf << "]";
         close(fd[0]);
     }
+}
+
+/**
+* @tc.name: AclXattrEntry001
+* @tc.desc: Test operator.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
+{
+    AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    AclXattrEntry entryB(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    EXPECT_TRUE(entryA == entryB);
+
+    AclXattrEntry entryC(ACL_TAG::USER, TESTUID, Acl::R_RIGHT | Acl::W_RIGHT);
+    EXPECT_FALSE(entryA == entryC);
+}
+
+/**
+* @tc.name: AclXattrEntry002
+* @tc.desc: Test IsValid().
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level0)
+{
+    AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    auto result = entryA.IsValid();
+    EXPECT_TRUE(result);
+
+    AclXattrEntry entryB(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    result = entryB.IsValid();
+    EXPECT_TRUE(result);
+
+    AclXattrEntry entryC(ACL_TAG::UNDEFINED, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    result = entryC.IsValid();
+    EXPECT_FALSE(result);
+}
+
+/**
+* @tc.name: ACL_PERM001
+* @tc.desc: Test ACL_PERM.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(AclTest, ACL_PERM001, TestSize.Level0)
+{
+    ACL_PERM perm1;
+    perm1.SetR();
+    perm1.SetW();
+    ACL_PERM perm2;
+    perm2.SetE();
+
+    perm1.Merge(perm2);
+    EXPECT_TRUE(perm1.IsReadable());
+    EXPECT_TRUE(perm1.IsWritable());
+    EXPECT_TRUE(perm1.IsExecutable());
 }
 } // namespace OHOS::Test
