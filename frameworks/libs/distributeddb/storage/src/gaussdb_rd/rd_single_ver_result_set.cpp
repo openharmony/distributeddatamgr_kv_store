@@ -168,7 +168,8 @@ int RdSingleVerResultSet::Move(int offset) const
         }
         --offset;
         if (errCode == -E_NOT_FOUND && offset >= 0) {
-            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds, position: %d", offset, position_);
+            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds or result set empty, position: %d",
+                offset, position_);
             return -E_INVALID_ARGS;
         }
     }
@@ -180,7 +181,8 @@ int RdSingleVerResultSet::Move(int offset) const
         }
         ++offset;
         if (errCode == -E_NOT_FOUND && offset <= 0) {
-            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds, position: %d", offset, position_);
+            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds or result set empty, position: %d",
+                offset, position_);
             return -E_INVALID_ARGS;
         }
     }

@@ -129,6 +129,26 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, const
     return E_OK;
 }
 
+static void PrintResultsetKeys(const QueryExpression &queryExpression)
+{
+    std::vector<uint8_t> beginKeyVec = queryExpression.GetBeginKey();
+    std::vector<uint8_t> endKeyVec = queryExpression.GetEndKey();
+    std::string beginKey;
+    std::string endKey;
+    if (beginKeyVec.size() == 0) {
+        beginKey = "NULL";
+    } else {
+        beginKey.assign(beginKeyVec.begin(), beginKeyVec.end());
+    }
+    if (endKeyVec.size() == 0) {
+        endKey = "NULL";
+    } else {
+        endKey.assign(endKeyVec.begin(), endKeyVec.end());
+    }
+
+    LOGD("begin key: %s, end key: %s", beginKey.c_str(), endKey.c_str());
+}
+
 int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option,
     const Query &query, IKvDBResultSet *&resultSet) const
 {
@@ -325,6 +345,9 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
         queryExpression.GetEndKey()), entries);
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTracing();
+    if (errCode != -E_NOT_FOUND) {
+        PrintResultsetKeys(queryExpression);
+    }
     return errCode;
 }
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
