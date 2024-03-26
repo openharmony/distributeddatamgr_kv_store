@@ -524,7 +524,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
 }
 
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
-    std::shared_ptr<SyncCallback> syncCallback)
+    std::shared_ptr<SyncCallback> syncCallback, uint32_t delay)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     KVDBService::SyncInfo syncInfo;
@@ -532,6 +532,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     syncInfo.mode = mode;
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
+    syncInfo.delay = delay;
     return DoSync(syncInfo, syncCallback);
 }
 
