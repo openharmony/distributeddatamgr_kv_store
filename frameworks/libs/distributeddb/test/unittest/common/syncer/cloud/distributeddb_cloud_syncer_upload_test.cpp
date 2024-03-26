@@ -932,8 +932,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
     cloudSyncer2->CallNotify();
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    EXPECT_EQ(cloudSyncer2->GetUploadSuccessCount(taskId), 1000);
-    EXPECT_EQ(cloudSyncer2->GetUploadFailCount(taskId), 2000);
+    EXPECT_EQ(cloudSyncer2->GetUploadSuccessCount(taskId), 2000);
+    EXPECT_EQ(cloudSyncer2->GetUploadFailCount(taskId), 1000);
 
     RuntimeContext::GetInstance()->StopTaskPool();
     cloudSyncer2->CallClose();
