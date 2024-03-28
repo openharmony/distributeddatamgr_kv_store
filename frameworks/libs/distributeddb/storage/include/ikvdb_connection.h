@@ -19,7 +19,9 @@
 #include <string>
 #include <functional>
 
+#include "cloud_store_types.h"
 #include "db_types.h"
+#include "icloud_db.h"
 #include "iconnection.h"
 #include "macro_utils.h"
 #include "query.h"
@@ -135,6 +137,18 @@ public:
     virtual int UpdateKey(const UpdateKeyCallback &callback) = 0;
 
     virtual int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) = 0;
+
+    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
+
+    virtual int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) = 0;
+
+    virtual int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) = 0;
+
+    virtual int RemoveDeviceData(const std::string &device, ClearMode mode) = 0;
+
+    virtual int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) = 0;
+
+    virtual int32_t GetTaskCount() = 0;
 };
 } // namespace DistributedDB
 

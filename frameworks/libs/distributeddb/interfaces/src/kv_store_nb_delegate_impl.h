@@ -161,6 +161,18 @@ public:
     DBStatus UpdateKey(const UpdateKeyCallback &callback) override;
 
     std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
+
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
+    DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) override;
+
+    DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
+
+    int32_t GetTaskCount() override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

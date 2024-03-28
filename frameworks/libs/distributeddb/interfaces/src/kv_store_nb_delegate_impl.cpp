@@ -1028,4 +1028,70 @@ std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const
     res.first = TransferDBErrno(errCode);
     return res;
 }
+
+DBStatus KvStoreNbDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->Sync(option, onProcess));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (cloudDBs.empty()) {
+        LOGE("[KvStoreNbDelegateImpl] no cloud db");
+        return INVALID_ARGS;
+    }
+    return TransferDBErrno(conn_->SetCloudDB(cloudDBs));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetCloudDbSchema(schema));
+}
+
+DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, ClearMode mode)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (mode == DEFAULT) {
+        return RemoveDeviceData(device);
+    }
+    int errCode = conn_->RemoveDeviceData(device, mode);
+    LOGI("[KvStoreNbDelegateImpl] remove device data res %d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, const std::string &user,
+    ClearMode mode)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->RemoveDeviceData(device, user, mode);
+    LOGI("[KvStoreNbDelegateImpl] remove device data with user res %d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+int32_t KvStoreNbDelegateImpl::GetTaskCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return conn_->GetTaskCount();
+}
 } // namespace DistributedDB
