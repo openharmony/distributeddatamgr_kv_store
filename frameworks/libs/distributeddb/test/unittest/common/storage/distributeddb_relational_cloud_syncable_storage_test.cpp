@@ -1603,7 +1603,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     gid = "11";
     pk = "1";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), E_OK);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_CLOUD_GID_MISMATCH);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::NORMAL));
 
     /**

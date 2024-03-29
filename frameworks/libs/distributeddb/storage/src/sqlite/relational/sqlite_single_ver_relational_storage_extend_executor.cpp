@@ -113,7 +113,8 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
     VBucket dbAssets;
     errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+    if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
+        LOGE("get assets by gid or hashkey failed %d.", errCode);
         return errCode;
     }
     AssetOperationUtils::RecordAssetOpType assetOpType = AssetOperationUtils::CalAssetOperation(vBucket, dbAssets,
@@ -274,7 +275,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
     std::string cloudGid;
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     int errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_CLOUD_GID_MISMATCH) {
         return errCode;
     }
     AssetOperationUtils::CloudSyncAction action = opType == OpType::SET_UPLOADING ?
@@ -1237,7 +1238,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const Tabl
     if (assetFields.empty()) {
         return -E_NOT_FOUND;
     }
-    sql.pop_back();
+    sql += "a.cloud_gid ";
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE (a." + FLAG_NOT_LOGIC_DELETE + ") AND (";
     if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
@@ -1261,6 +1262,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const Tabl
             if (errCode != E_OK) {
                 break;
             }
+        }
+        std::string curGid;
+        errCode = SQLiteUtils::GetColumnTextValue(stmt, index, curGid);
+        if (errCode == E_OK && CloudStorageUtils::IsCloudGidMismatch(gid, curGid)) {
+            // Gid is different, there may be duplicate primary keys in the cloud
+            errCode = -E_CLOUD_GID_MISMATCH;
         }
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = -E_NOT_FOUND;

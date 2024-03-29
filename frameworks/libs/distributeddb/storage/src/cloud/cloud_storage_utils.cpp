@@ -1177,4 +1177,9 @@ int CloudStorageUtils::BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBuc
     }
     return errCode;
 }
+
+bool CloudStorageUtils::IsCloudGidMismatch(const std::string &downloadGid, const std::string &curGid)
+{
+    return !downloadGid.empty() && !curGid.empty() && downloadGid != curGid;
+}
 }

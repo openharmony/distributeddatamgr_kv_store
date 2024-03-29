@@ -247,7 +247,12 @@ int CloudSyncer::GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, c
     int errCode = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, downloadItem.gid,
         downloadItem.hashKey, dbAssets);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        LOGE("[CloudSyncer] get assets from db failed %d", errCode);
+        if (errCode != -E_CLOUD_GID_MISMATCH) {
+            LOGE("[CloudSyncer] get assets from db failed %d", errCode);
+        }
+        if (!isSharedTable) {
+            transactionCode = storageProxy_->Rollback();
+        }
         return errCode;
     }
     if (!isSharedTable) {
@@ -271,6 +276,11 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
             uint32_t tmpFlag = asset.flag;
             VBucket dbAssets;
             int tmpCode = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
+            if (tmpCode == -E_CLOUD_GID_MISMATCH) {
+                LOGW("[CloudSyncer] skip download asset because gid mismatch");
+                errCode = E_OK;
+                break;
+            }
             if (tmpCode != E_OK) {
                 errCode = (errCode != E_OK) ? errCode : tmpCode;
                 break;

@@ -1633,7 +1633,7 @@ int RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableS
         return -E_INVALID_DB;
     }
     int errCode = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+    if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
         LOGE("get assets by gid or hashKey failed. %d", errCode);
     }
     return errCode;

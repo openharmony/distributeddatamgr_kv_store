@@ -142,6 +142,7 @@ constexpr int E_CLOUD_RECORD_EXIST_CONFLICT = (E_BASE + 121); // record conflict
 constexpr int E_REMOVE_ASSETS_FAILED = (E_BASE + 122); // remove local assets failed
 constexpr int E_ABILITY_SYNC_FINISHED = (E_BASE + 123); // add at 108 version, use for machine check ability sync finish
 constexpr int E_NEED_TIME_SYNC = (E_BASE + 124); // time sync has not done
+constexpr int E_CLOUD_GID_MISMATCH = (E_BASE + 125); // cloud gid cannot match in db
 constexpr int E_WITH_INVENTORY_DATA = (E_BASE + 126); // inventory data exists when setTracker for the first time
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level

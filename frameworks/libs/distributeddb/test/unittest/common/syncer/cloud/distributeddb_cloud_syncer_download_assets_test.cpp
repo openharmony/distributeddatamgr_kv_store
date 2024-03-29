@@ -261,10 +261,8 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
     for (auto &item : assets) {
         for (auto &asset : item.second) {
             EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::DOWNLOADING));
-            if (index > 4) { // 1-4 is deleted; 5-8 is inserted
+            if (index < 4) { // 1-4 is inserted
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
-            } else {
-                EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::DELETE));
             }
             LOGD("asset [name]:%s, [status]:%u, [flag]:%u, [index]:%d", asset.name.c_str(), asset.status, asset.flag,
                 index);
@@ -473,7 +471,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
     int index = 1;
     EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
-        .Times(8)
+        .Times(4)
         .WillRepeatedly(
             [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s", gid.c_str());

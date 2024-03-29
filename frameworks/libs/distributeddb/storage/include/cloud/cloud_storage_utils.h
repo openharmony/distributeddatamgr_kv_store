@@ -109,6 +109,7 @@ public:
         const LogInfo &logInfo);
     static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
         const std::set<std::string> &gidFilters);
+    static bool IsCloudGidMismatch(const std::string &downloadGid, const std::string &curGid);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
