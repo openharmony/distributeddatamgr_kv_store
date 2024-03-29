@@ -1257,10 +1257,6 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
 
 int32_t AbilitySync::TransformSecLabelIfNeed(int32_t originLabel, int targetLabel)
 {
-    if ((originLabel == S0 && targetLabel == S1) || (originLabel == S1 && targetLabel == S0)) {
-        LOGI("[AbilitySync] Accept SecLabel From %d To %d", originLabel, targetLabel);
-        return targetLabel;
-    }
     return originLabel;
 }
 
