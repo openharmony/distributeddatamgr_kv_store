@@ -1090,6 +1090,10 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     if (errCode != E_OK) {
         return errCode;
     }
+    if (option.compensatedSyncOnly) {
+        cloudSyncer_->GenerateCompensatedSync();
+        return E_OK;
+    }
     CloudSyncer::CloudTaskInfo info;
     FillSyncInfo(option, onProcess, info);
     auto [table, ret] = sqliteStorageEngine_->CalTableRef(info.table, storageEngine_->GetSharedTableOriginNames());
@@ -1112,7 +1116,7 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
         return -E_INVALID_ARGS;
     }
-    int errCode = CheckQueryValid(option.priorityTask, option.query);
+    int errCode = CheckQueryValid(option);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1127,21 +1131,24 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     return E_OK;
 }
 
-int SQLiteRelationalStore::CheckQueryValid(bool priorityTask, const Query &query)
+int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
 {
-    QuerySyncObject syncObject(query);
+    if (option.compensatedSyncOnly) {
+        return E_OK;
+    }
+    QuerySyncObject syncObject(option.query);
     int errCode = syncObject.GetValidStatus();
     if (errCode != E_OK) {
         LOGE("[RelationalStore] query is invalid or not support %d", errCode);
         return errCode;
     }
-    std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(query);
-    if (!priorityTask && !object.empty()) {
+    std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(option.query);
+    if (!option.priorityTask && !object.empty()) {
         LOGE("[RelationalStore] not support normal sync with query");
         return -E_NOT_SUPPORT;
     }
     const auto tableNames = syncObject.GetRelationTableNames();
-    if (priorityTask && !tableNames.empty()) {
+    if (option.priorityTask && !tableNames.empty()) {
         LOGE("[RelationalStore] not support priority sync with from tables");
         return -E_NOT_SUPPORT;
     }
@@ -1159,7 +1166,7 @@ int SQLiteRelationalStore::CheckQueryValid(bool priorityTask, const Query &query
     if (errCode != E_OK) {
         return errCode;
     }
-    return CheckObjectValid(priorityTask, object);
+    return CheckObjectValid(option.priorityTask, object);
 }
 
 int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object)

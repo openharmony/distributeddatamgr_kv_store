@@ -97,6 +97,8 @@ public:
     static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
     static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
     static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
+    static std::string GetUpdateLockChangedSql();
+    static std::string GetDeleteLockChangedSql();
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);

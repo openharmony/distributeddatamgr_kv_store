@@ -166,6 +166,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_2 = "5.02"; // fix failure caused by comparing NULL using <>
     static constexpr const char *LOG_TABLE_VERSION_5_3 = "5.03"; // add sharing_resource field
     static constexpr const char *LOG_TABLE_VERSION_5_4 = "5.04"; // new flag bit 0x20 added, upgrade trigger
+    static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;

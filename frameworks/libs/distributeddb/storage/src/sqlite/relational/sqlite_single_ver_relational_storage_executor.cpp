@@ -174,7 +174,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
             std::string(DBConstant::SQLITE_INNER_ROWID) +
             ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
     }
-    sql += ", '', ''";
+    sql += ", '', '', 0";
     sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }

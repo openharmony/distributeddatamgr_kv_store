@@ -1544,6 +1544,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, Test
      * @tc.expected: step2. return OK.
      */
     UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     int delCount = 3; // 3 is num of cloud
     DeleteCloudDBData(1, delCount, ASSETS_TABLE_NAME);
     std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();

@@ -61,6 +61,8 @@ public:
     void Close();
 
     std::string GetIdentify() const override;
+
+    void GenerateCompensatedSync();
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -326,8 +328,6 @@ protected:
 
     int CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
         DownloadCommitList &commitList, uint32_t &successCount);
-
-    void GenerateCompensatedSync();
 
     void ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam);
 

@@ -846,6 +846,16 @@ std::string CloudStorageUtils::GetLeftJoinLogSql(const std::string &tableName, b
     return sql;
 }
 
+std::string CloudStorageUtils::GetUpdateLockChangedSql()
+{
+    return " status = CASE WHEN status == 2 THEN 3 ELSE status END";
+}
+
+std::string CloudStorageUtils::GetDeleteLockChangedSql()
+{
+    return " status = CASE WHEN status == 2 or status == 3 THEN 1 ELSE status END";
+}
+
 bool CloudStorageUtils::ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode)
 {
     if (data.assets.empty()) {
