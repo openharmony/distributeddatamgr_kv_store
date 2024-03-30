@@ -51,7 +51,10 @@ ohos_unittest("ExecutorPoolTest") {
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
 
   deps = [ "//third_party/googletest:gtest" ]
 }
@@ -63,7 +66,10 @@ ohos_unittest("LruBucketTest") {
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
 
   deps = [ "//third_party/googletest:gtest" ]
 }
@@ -75,7 +81,10 @@ ohos_unittest("TaskSchedulerTest") {
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
 
   deps = [ "//third_party/googletest:gtest" ]
 }
@@ -87,7 +96,10 @@ ohos_unittest("TraitsTest") {
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
 
   deps = [ "//third_party/googletest:gtest" ]
 }

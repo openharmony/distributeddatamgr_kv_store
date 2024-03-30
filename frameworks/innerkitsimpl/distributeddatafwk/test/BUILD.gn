@@ -270,6 +270,7 @@ ohos_unittest("BlobTest") {
 
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "ipc:ipc_single",
   ]
 }
@@ -289,6 +290,7 @@ ohos_unittest("TypesUtilTest") {
 
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "ipc:ipc_single",
   ]
 }
@@ -308,6 +310,7 @@ ohos_unittest("KvUtilTest") {
 
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "ipc:ipc_single",
   ]
 }
@@ -327,6 +330,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "ipc:ipc_single",
   ]
 }
