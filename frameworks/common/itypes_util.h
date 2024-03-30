@@ -128,16 +128,6 @@ static inline bool Unmarshalling(std::monostate &output, MessageParcel &data)
     return true;
 }
 
-static inline bool Marshalling(const std::vector<float> &input, MessageParcel &data)
-{
-    return data.WriteFloatVector(input);
-}
-
-static inline bool Unmarshalling(std::vector<float> &output, MessageParcel &data)
-{
-    return data.ReadFloatVector(&output);
-}
-
 static inline bool Marshalling(const std::string &input, MessageParcel &data)
 {
     return data.WriteString(input);
@@ -318,7 +308,10 @@ bool ITypesUtil::Marshalling(const std::map<K, V> &result, MessageParcel &parcel
         return false;
     }
     for (const auto &entry : result) {
-        if ((!ITypesUtil::Marshalling(entry.first, parcel)) || (!ITypesUtil::Marshalling(entry.second, parcel))) {
+        if (!ITypesUtil::Marshalling(entry.first, parcel)) {
+            return false;
+        }
+        if (!ITypesUtil::Marshalling(entry.second, parcel)) {
             return false;
         }
     }
@@ -343,7 +336,10 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
 
     for (int32_t i = 0; i < size; i++) {
         K key;
-        if ((!ITypesUtil::Unmarshalling(key, parcel)) || (!ITypesUtil::Unmarshalling(val[key], parcel))) {
+        if (!ITypesUtil::Unmarshalling(key, parcel)) {
+            return false;
+        }
+        if (!ITypesUtil::Unmarshalling(val[key], parcel)) {
             return false;
         }
     }
