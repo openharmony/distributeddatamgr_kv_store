@@ -20,6 +20,7 @@
 #include "res_finalizer.h"
 #include "sqlite_relational_database_upgrader.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
+#include "sqlite_relational_utils.h"
 
 
 namespace DistributedDB {
@@ -457,11 +458,11 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     }
     bool isUpgrade = !tracker.GetTrackerTable(schema.tableName).IsEmpty();
     tracker.InsertTrackerSchema(schema);
-    errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
-    if (errCode != E_OK) {
+    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
+    if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
-        return errCode;
+        return ret;
     }
 
     if (schema.trackerColNames.empty()) {
@@ -482,10 +483,11 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
 
     trackerSchema_ = tracker;
     ReleaseExecutor(handle);
-    return E_OK;
+    return ret;
 }
 
-int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo)
+int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo,
+    bool &isFirstCreate)
 {
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         return -E_NOT_SUPPORT;
@@ -502,6 +504,7 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         LOGW("tracker schema is no change for distributed table.");
         return -E_IGNORE_DATA;
     }
+    isFirstCreate = tracker.GetTrackerTable(schema.tableName).IsEmpty();
     tracker.InsertTrackerSchema(schema);
     tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
     errCode = tableInfo.CheckTrackerTable();
@@ -557,7 +560,7 @@ int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
     return E_OK;
 }
 
-int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema()
+int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema(const std::string &tableName, bool isFirstCreate)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -567,6 +570,11 @@ int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema()
     }
     RelationalSchemaObject tracker = trackerSchema_;
     errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
+    if (errCode != E_OK || !isFirstCreate) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    errCode = handle->CheckInventoryData(DBCommon::GetLogTableName(tableName));
     ReleaseExecutor(handle);
     return errCode;
 }

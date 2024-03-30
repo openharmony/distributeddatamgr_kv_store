@@ -82,6 +82,7 @@ enum DBStatus {
     CLOUD_VERSION_CONFLICT, // cloud failed to update version
     CLOUD_RECORD_EXIST_CONFLICT, // this error happen in Download/BatchInsert/BatchUpdate
     REMOTE_ASSETS_FAIL, // remove local assets failed
+    WITH_INVENTORY_DATA, // inventory data exists when setTracker for the first time
 };
 
 struct KvStoreConfig {
