@@ -110,6 +110,8 @@ public:
 
     int UpgradeSchemaVerInMeta() override;
 
+    void ResetSyncStatus() override;
+
     int64_t GetLocalTimeOffset() override;
 
     int32_t GetTaskCount() override;

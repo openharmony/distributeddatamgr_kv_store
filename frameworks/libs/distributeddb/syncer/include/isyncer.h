@@ -130,6 +130,8 @@ public:
 
     virtual int UpgradeSchemaVerInMeta() = 0;
 
+    virtual void ResetSyncStatus() = 0;
+
     virtual int64_t GetLocalTimeOffset() = 0;
 
     virtual int32_t GetTaskCount() = 0;

@@ -95,6 +95,8 @@ public:
 
     int UpgradeSchemaVerInMeta();
 
+    void ResetSyncStatus() override;
+
     TimeOffset GetLocalTimeOffset();
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
