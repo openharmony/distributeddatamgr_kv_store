@@ -112,6 +112,7 @@ GRD_APIInfo GetApiInfoInstance()
 #ifndef _WIN32
     g_library = dlopen("libgaussdb_rd.z.so", RTLD_LAZY);
     if (!g_library) {
+        GLOGI("use default db kernel");
         GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
     } else {
         GRD_DBApiInitEnhance(GRD_TempApiStruct);
