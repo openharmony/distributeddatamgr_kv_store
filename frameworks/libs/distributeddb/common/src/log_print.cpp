@@ -36,26 +36,26 @@ public:
             return;
         }
 #ifdef DB_DEBUG_ENV
-        const std::string format = "%s";
+#define FORMAT "%s"
 #else
-        const std::string format = "%{public}s";
+#define FORMAT "%{public}s"
 #endif
         OHOS::HiviewDFX::HiLogLabel label = { LOG_CORE, 0xD001630, tag.c_str() }; // log module id.
         switch (level) {
             case Level::LEVEL_DEBUG:
-                (void)OHOS::HiviewDFX::HiLog::Debug(label, format.c_str(), msg.c_str());
+                (void)HILOG_IMPL(label.type, LOG_DEBUG, label.domain, label.tag, FORMAT, msg.c_str());
                 break;
             case Level::LEVEL_INFO:
-                (void)OHOS::HiviewDFX::HiLog::Info(label, format.c_str(), msg.c_str());
+                (void)HILOG_IMPL(label.type, LOG_INFO, label.domain, label.tag, FORMAT, msg.c_str());
                 break;
             case Level::LEVEL_WARN:
-                (void)OHOS::HiviewDFX::HiLog::Warn(label, format.c_str(), msg.c_str());
+                (void)HILOG_IMPL(label.type, LOG_WARN, label.domain, label.tag, FORMAT, msg.c_str());
                 break;
             case Level::LEVEL_ERROR:
-                (void)OHOS::HiviewDFX::HiLog::Error(label, format.c_str(), msg.c_str());
+                (void)HILOG_IMPL(label.type, LOG_ERROR, label.domain, label.tag, FORMAT, msg.c_str());
                 break;
             case Level::LEVEL_FATAL:
-                (void)OHOS::HiviewDFX::HiLog::Fatal(label, format.c_str(), msg.c_str());
+                (void)HILOG_IMPL(label.type, LOG_FATAL, label.domain, label.tag, FORMAT, msg.c_str());
                 break;
             default:
                 break;
