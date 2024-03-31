@@ -1349,7 +1349,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, T
 
     /**
      * @tc.steps: step7. insert not contain version effect insert
-     * @tc.expected: E_OK.
+     * @tc.expected: OK.
      */
     EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::INSERT_VERSION, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);

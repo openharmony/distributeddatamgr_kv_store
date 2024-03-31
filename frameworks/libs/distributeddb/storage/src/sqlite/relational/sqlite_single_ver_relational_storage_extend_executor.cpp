@@ -188,43 +188,20 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
     return errCode != E_OK ? errCode : ret;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const CloudSyncData &data)
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data)
 {
     if (!data.isShared) {
         return E_OK;
     }
-    std::vector<CloudSyncBatch> opBatch = {
-        std::move(data.insData), std::move(data.updData), std::move(data.delData)
-    };
-    for (const auto &dataBatch: opBatch) {
-        if (dataBatch.extend.empty()) {
-            continue;
-        }
-        if (dataBatch.hashKey.empty() || dataBatch.extend.size() != dataBatch.hashKey.size()) {
-            LOGE("invalid sync data for filling version");
+    switch (opType) {
+        case OpType::UPDATE_VERSION:
+            return SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(data.tableName, data.updData);
+        case OpType::INSERT_VERSION:
+            return SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(data.tableName, data.insData);
+        default:
+            LOGE("Fill version with unknown type %d", static_cast<int>(opType));
             return -E_INVALID_ARGS;
-        }
     }
-    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(data.tableName) +
-        "' SET version = ? WHERE hash_key = ? ";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    for (const auto &dataBatch: opBatch) {
-        for (size_t i = 0; i < dataBatch.extend.size(); ++i) {
-            errCode = BindUpdateVersionStatement(dataBatch.extend[i], dataBatch.hashKey[i], stmt);
-            if (errCode != E_OK) {
-                LOGE("bind update version stmt failed.");
-                SQLiteUtils::ResetStatement(stmt, true, ret);
-                return errCode;
-            }
-        }
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode == E_OK ? ret : E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey,
@@ -1282,8 +1259,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType 
 {
     int errCode = E_OK;
     switch (opType) {
-        case OpType::UPDATE_VERSION: {
-            errCode = FillCloudVersionForUpload(data);
+        case OpType::UPDATE_VERSION: // fallthrough
+        case OpType::INSERT_VERSION: {
+            errCode = FillCloudVersionForUpload(opType, data);
             break;
         }
         case OpType::SET_UPLOADING: {
@@ -1951,6 +1929,36 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::stri
         return errCode;
     }
     return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
+    const CloudSyncBatch &batchData)
+{
+    if (batchData.extend.empty()) {
+        return E_OK;
+    }
+    if (batchData.hashKey.empty() || batchData.extend.size() != batchData.hashKey.size()) {
+        LOGE("invalid sync data for filling version.");
+        return -E_INVALID_ARGS;
+    }
+    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(tableName) +
+        "' SET version = ? WHERE hash_key = ? ";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int ret = E_OK;
+    for (size_t i = 0; i < batchData.extend.size(); ++i) {
+        errCode = BindUpdateVersionStatement(batchData.extend[i], batchData.hashKey[i], stmt);
+        if (errCode != E_OK) {
+            LOGE("bind update version stmt failed.");
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return errCode;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return ret;
 }
 } // namespace DistributedDB
 #endif

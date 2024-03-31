@@ -132,7 +132,7 @@ public:
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
     int FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema, const CloudSyncBatch &data);
-    int FillCloudVersionForUpload(const CloudSyncData &data);
+    int FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data);
 
     int SetLogTriggerStatus(bool status);
 
@@ -422,6 +422,8 @@ private:
     int QueryCount(const std::string &tableName, int64_t &count);
 
     int GetUploadCountInner(const Timestamp &timestamp, SqliteQueryHelper &helper, std::string &sql, int64_t &count);
+
+    int FillCloudVersionForUpload(const std::string &tableName, const CloudSyncBatch &batchData);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";

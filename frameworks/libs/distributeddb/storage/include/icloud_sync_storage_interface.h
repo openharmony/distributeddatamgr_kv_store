@@ -37,6 +37,7 @@ enum class OpType : uint8_t {
     UPDATE_TIMESTAMP,
     CLEAR_GID,
     UPDATE_VERSION,
+    INSERT_VERSION,
     SET_UPLOADING,
     LOCKED_NOT_HANDLE,
     NOT_HANDLE
