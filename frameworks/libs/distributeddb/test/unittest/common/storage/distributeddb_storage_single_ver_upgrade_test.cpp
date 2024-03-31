@@ -147,6 +147,7 @@ namespace {
         ASSERT_NE(db, nullptr);
 
         for (const auto &item : insertSqls) {
+            LOGW("sql is %s", item.c_str());
             ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, item), E_OK);
         }
         sqlite3_stmt *statement = nullptr;

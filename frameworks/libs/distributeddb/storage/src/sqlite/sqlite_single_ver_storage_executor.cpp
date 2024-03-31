@@ -1490,21 +1490,10 @@ int SQLiteSingleVerStorageExecutor::BindSavedSyncData(sqlite3_stmt *statement, c
         return errCode;
     }
 
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_SYNC_STAMP_INDEX, dataItem.timestamp);
+    errCode = BindSyncDataTime(statement, dataItem, isUpdate);
     if (errCode != E_OK) {
-        LOGE("Bind saved sync data stamp failed:%d", errCode);
         return errCode;
     }
-
-    const int writeTimeIndex = isUpdate ? BIND_SYNC_UPDATE_W_TIME_INDEX : BIND_SYNC_W_TIME_INDEX;
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, writeTimeIndex, dataItem.writeTimestamp);
-    LOGD("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", %" PRIu64,
-        dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag);
-    if (errCode != E_OK) {
-        LOGE("Bind saved sync data write stamp failed:%d", errCode);
-        return errCode;
-    }
-
     return BindDevForSavedSyncData(statement, dataItem, devices.origDev, devices.dev);
 }
 
@@ -2240,5 +2229,39 @@ void SQLiteSingleVerStorageExecutor::CalHashKey(sqlite3_context *ctx, int argc, 
     Key hashKey;
     DBCommon::CalcValueHash(context->newKey, hashKey);
     sqlite3_result_blob(ctx, hashKey.data(), static_cast<int>(hashKey.size()), SQLITE_TRANSIENT);
+}
+
+int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate)
+{
+    int errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_SYNC_STAMP_INDEX, dataItem.timestamp);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data stamp failed:%d", errCode);
+        return errCode;
+    }
+
+    const int writeTimeIndex = isUpdate ? BIND_SYNC_UPDATE_W_TIME_INDEX : BIND_SYNC_W_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, writeTimeIndex, dataItem.writeTimestamp);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data write stamp failed:%d", errCode);
+        return errCode;
+    }
+
+    const int modifyTimeIndex = isUpdate ? BIND_SYNC_UPDATE_MODIFY_TIME_INDEX : BIND_SYNC_MODIFY_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, modifyTimeIndex, dataItem.modifyTime);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data modify time failed:%d", errCode);
+        return errCode;
+    }
+
+    const int createTimeIndex = isUpdate ? BIND_SYNC_UPDATE_CREATE_TIME_INDEX : BIND_SYNC_CREATE_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, createTimeIndex, dataItem.createTime);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data create time failed:%d", errCode);
+        return errCode;
+    }
+
+    LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
+        PRIu64, dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag, dataItem.modifyTime, dataItem.createTime);
+    return errCode;
 }
 } // namespace DistributedDB

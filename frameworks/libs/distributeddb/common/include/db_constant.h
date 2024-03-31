@@ -185,6 +185,9 @@ public:
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr int32_t DEFAULT_ROW_ID = -1;
+    static constexpr int STR_TO_LL_BY_DEVALUE = 10;
+    // key in meta_data
+    static constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

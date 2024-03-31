@@ -341,6 +341,8 @@ private:
 
     static void CalHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
+    static int BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate);
+
     sqlite3_stmt *getSyncStatement_;
     sqlite3_stmt *getResultRowIdStatement_;
     sqlite3_stmt *getResultEntryStatement_;

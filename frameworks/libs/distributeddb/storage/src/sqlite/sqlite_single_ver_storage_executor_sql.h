@@ -43,10 +43,11 @@ namespace DistributedDB {
         "INSERT OR REPLACE INTO meta.meta_data VALUES(?,?);";
 
     const std::string INSERT_SYNC_SQL =
-        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
 
     const std::string UPDATE_SYNC_SQL =
-        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
+        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?," \
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string INSERT_CACHE_SYNC_SQL =
         "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?);";
@@ -193,13 +194,13 @@ namespace DistributedDB {
         "select version from cache.sync_data order by version DESC limit 1;";
 
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_CACHEHANDLE =
-        "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE =
         "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? "
         "WHERE hash_key=?;";
 
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_MAINHANDLE =
-        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_MAINHANDLE =
         "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
 
@@ -255,9 +256,13 @@ namespace DistributedDB {
     const int BIND_SYNC_ORI_DEV_INDEX = 6;
     const int BIND_SYNC_HASH_KEY_INDEX = 7;
     const int BIND_SYNC_W_TIME_INDEX = 8;
+    const int BIND_SYNC_MODIFY_TIME_INDEX = 9;
+    const int BIND_SYNC_CREATE_TIME_INDEX = 10;
 
     const int BIND_SYNC_UPDATE_W_TIME_INDEX = 7;
-    const int BIND_SYNC_UPDATE_HASH_KEY_INDEX = 8;
+    const int BIND_SYNC_UPDATE_MODIFY_TIME_INDEX = 8;
+    const int BIND_SYNC_UPDATE_CREATE_TIME_INDEX = 9;
+    const int BIND_SYNC_UPDATE_HASH_KEY_INDEX = 10;
 
     // cacheDB
     const int BIND_CACHE_LOCAL_KEY_INDEX = 1;

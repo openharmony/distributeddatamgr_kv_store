@@ -38,6 +38,8 @@ namespace {
     SQLiteSingleVerStorageExecutor *g_nullHandle = nullptr;
 
     const char * const ADD_SYNC = "ALTER TABLE sync_data ADD column version INT";
+    const char * const DROP_CREATE = "ALTER TABLE sync_data DROP column create_time";
+    const char * const DROP_MODIFY = "ALTER TABLE sync_data DROP column modify_time";
     const char * const ADD_LOCAL = "ALTER TABLE local_data ADD column flag INT";
     const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1);";
     const int SQL_STATE_ERR = -1;
@@ -448,6 +450,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
      * @tc.steps: step4. Update sync_data table and insert a sync data
      * @tc.expected: step4. Expect E_OK
      */
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, DROP_MODIFY) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, DROP_CREATE) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, ADD_SYNC) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, INSERT_SQL) == E_OK);
     std::vector<DataItem> vec;
@@ -616,6 +620,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest0
     sqlite3 *db;
     ASSERT_TRUE(sqlite3_open_v2((g_testDir + g_databaseName).c_str(),
         &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_MODIFY) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_CREATE) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_SYNC) == E_OK);
     sqlite3_close_v2(db);
     option.dataType = IOption::SYNC_DATA;
