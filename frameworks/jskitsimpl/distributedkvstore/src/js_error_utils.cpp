@@ -90,12 +90,24 @@ void ThrowNapiError(napi_env env, int32_t status, const std::string &errMessage,
         message += errMessage;
     }
 
-    std::string jsCode;
     if (napiError.jsCode == -1) {
-        jsCode = "";
-    } else {
-        jsCode = std::to_string(napiError.jsCode);
+        napi_throw_error(env, "", message.c_str());
+        return;
     }
-    napi_throw_error(env, jsCode.c_str(), message.c_str());
+
+    napi_value errorObj = nullptr;
+    napi_value errorCode = nullptr;
+    napi_value errorMessage = nullptr;
+    napi_create_int32(env, napiError.jsCode, &errorCode);
+    napi_create_string_utf8(env, message.c_str(), NAPI_AUTO_LENGTH, &errorMessage);
+    napi_create_error(env, errorCode, errorMessage, &errorObj);
+    napi_throw(env, errorObj);
+    // std::string jsCode;
+    // if (napiError.jsCode == -1) {
+    //     jsCode = "";
+    // } else {
+    //     jsCode = std::to_string(napiError.jsCode);
+    // }
+    // napi_throw_error(env, jsCode.c_str(), message.c_str());
 }
 } // namespace OHOS::DistributedKVStore
