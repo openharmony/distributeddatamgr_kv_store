@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-#include "log_print.h"
+#include "cloud_store_types.h"
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
@@ -26,6 +26,8 @@
 #include "runtime_context.h"
 #include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
+#include "log_print.h"
+#include "log_table_manager_factory.h"
 
 namespace DistributedDB {
 namespace {
@@ -2263,5 +2265,13 @@ int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, co
     LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
         PRIu64, dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag, dataItem.modifyTime, dataItem.createTime);
     return errCode;
+}
+
+int SQLiteSingleVerStorageExecutor::CreateCloudLogTable()
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return SqliteLogTableManager::CreateKvSyncLogTable(dbHandle_);
 }
 } // namespace DistributedDB

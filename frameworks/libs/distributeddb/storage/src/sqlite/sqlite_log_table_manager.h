@@ -33,6 +33,7 @@ public:
 
     int CreateRelationalLogTable(sqlite3 *db, const TableInfo &table);
 
+    static int CreateKvSyncLogTable(sqlite3 *db);
 protected:
     virtual void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema);
     std::string GetLogTableName(const TableInfo &table) const;

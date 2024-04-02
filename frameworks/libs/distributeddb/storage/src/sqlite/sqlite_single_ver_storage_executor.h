@@ -183,6 +183,7 @@ public:
 
     int UpdateKey(const UpdateKeyCallback &callback);
 
+    int CreateCloudLogTable();
 protected:
     virtual int SaveKvData(SingleVerDataType type, const Key &key, const Value &value, Timestamp timestamp);
 
