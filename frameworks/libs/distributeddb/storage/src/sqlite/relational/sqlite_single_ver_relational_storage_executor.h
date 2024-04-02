@@ -183,6 +183,8 @@ public:
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
+
+    int CheckInventoryData(const std::string &tableName);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -415,6 +417,8 @@ private:
     std::vector<Field> GetUpdateField(const VBucket &vBucket, const TableSchema &tableSchema);
 
     int GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields, int startIndex, VBucket &record);
+
+    int QueryCount(const std::string &tableName, int64_t &count);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";

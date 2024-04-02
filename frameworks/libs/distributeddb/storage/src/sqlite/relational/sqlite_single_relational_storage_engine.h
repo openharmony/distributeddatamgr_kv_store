@@ -44,9 +44,9 @@ public:
     void SetProperties(const RelationalDBProperties &properties);
 
     int SetTrackerTable(const TrackerSchema &schema);
-    int CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo);
+    int CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo, bool &isFirstCreate);
     int GetOrInitTrackerSchemaFromMeta();
-    int SaveTrackerSchema();
+    int SaveTrackerSchema(const std::string &tableName, bool isFirstCreate);
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     RelationalSchemaObject GetTrackerSchema() const;

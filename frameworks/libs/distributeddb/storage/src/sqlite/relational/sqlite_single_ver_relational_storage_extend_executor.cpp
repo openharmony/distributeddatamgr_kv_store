@@ -359,6 +359,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
     if (errCode != E_OK) {
         return errCode;
     }
+    if (!trackerTable.GetTrackerColNames().empty() && !isUpgrade) {
+        return CheckInventoryData(DBCommon::GetLogTableName(table.GetTableName()));
+    }
     return E_OK;
 }
 
@@ -1956,6 +1959,22 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::QueryCount(const std::string &tableName, int64_t &count)
+{
+    return SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::string &tableName)
+{
+    int64_t dataCount = 0;
+    int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
+    if (errCode != E_OK) {
+        LOGE("Query count failed.", errCode);
+        return errCode;
+    }
+    return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
 }
 } // namespace DistributedDB
 #endif

@@ -47,6 +47,8 @@ public:
         const std::vector<std::pair<std::string, std::string>> &fieldList, std::vector<std::string> &sqlList);
 
     static int AnalysisTrackerTable(sqlite3 *db, const TrackerTable &trackerTable, TableInfo &tableInfo);
+
+    static int QueryCount(sqlite3 *db, const std::string &tableName, int64_t &count);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

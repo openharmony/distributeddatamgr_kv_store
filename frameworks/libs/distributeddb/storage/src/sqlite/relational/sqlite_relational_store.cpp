@@ -1242,7 +1242,8 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (tableInfo.Empty()) {
         return sqliteStorageEngine_->SetTrackerTable(trackerSchema);
     }
-    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo);
+    bool isFirstCreate = false;
+    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo, isFirstCreate);
     if (errCode != E_OK) {
         return errCode == -E_IGNORE_DATA ? E_OK : errCode;
     }
@@ -1250,7 +1251,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (errCode != E_OK) {
         return errCode;
     }
-    return sqliteStorageEngine_->SaveTrackerSchema();
+    return sqliteStorageEngine_->SaveTrackerSchema(trackerSchema.tableName, isFirstCreate);
 }
 
 int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)

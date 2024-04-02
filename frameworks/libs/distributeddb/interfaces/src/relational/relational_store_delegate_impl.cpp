@@ -357,7 +357,11 @@ DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schem
     }
     int errCode = conn_->SetTrackerTable(schema);
     if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] Set Subscribe table failed:%d", errCode);
+        if (errCode == -E_WITH_INVENTORY_DATA) {
+            LOGI("[RelationalStore Delegate] create tracker table for the first time.");
+        } else {
+            LOGE("[RelationalStore Delegate] Set Subscribe table failed:%d", errCode);
+        }
         return TransferDBErrno(errCode);
     }
     return OK;
