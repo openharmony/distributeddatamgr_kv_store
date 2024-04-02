@@ -131,6 +131,15 @@ public:
     virtual Status GetSecurityLevel(SecurityLevel &secLevel) const = 0;
 
     /**
+     * @brief Sync store to cloud.
+     *
+     * Sync store to cloud.
+     *
+     * @return Return SUCCESS for success, others for failure.
+    */
+    virtual Status CloudSync() = 0;
+
+    /**
      * @brief Sync store with other devices.
      *
      * This is an asynchronous method.

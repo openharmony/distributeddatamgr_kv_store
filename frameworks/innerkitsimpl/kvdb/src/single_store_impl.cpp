@@ -536,6 +536,25 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     return DoSync(syncInfo, syncCallback);
 }
 
+Status SingleStoreImpl::CloudSync()
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.seqId = StoreUtil::GenSequenceId();
+    auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
+
+    if (status == SUCCESS) {
+        return SUCCESS;
+    } else {
+        ZLOGE("sync failed!: %{public}d", status);
+        return ERROR;
+    }
+}
+
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);

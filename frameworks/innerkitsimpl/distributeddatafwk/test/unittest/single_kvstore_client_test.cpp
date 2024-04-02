@@ -1195,3 +1195,43 @@ HWTEST_F(SingleKvStoreClientTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = singleKvStore->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+
+/**
+ * @tc.name: CloudSync001
+ * desc: create kv store which supports cloud sync and execute CloudSync interface
+ * type: FUNC
+ * require:
+ * author:taoyuxin
+ */
+HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleKvStore> cloudSyncKvStore = nullptr;
+    DistributedKvDataManager manager{};
+    Options options;
+    options.encrypt = true;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.kvStoreType = KvStoreType::SINGLE_VERSION;
+    options.baseDir = "/data/service/el1/public/database/odmf";
+    options.schema = VALID_SCHEMA_STRICT_DEFINE;
+    options.isPublic = true;
+    options.cloudSync = true;
+    AppId appId = { "odmf" };
+    StoreId storeId = { "cloud_store_id" };
+    (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
+    auto status = cloudSyncKvStore->CloudSync();
+    EXPECT_NE(status, Status::SUCCESS) << "cloud sync should not return success";
+}
+
+/**
+ * @tc.name: CloudSync002
+ * desc: KvStore which not supports cloud sync call CloudSync, return NOT_SUPPORT
+ * type: FUNC
+ * require:
+ * author:taoyuxin
+ */
+HWTEST_F(SingleKvStoreClientTest, CloudSync002, TestSize.Level1)
+{
+    auto status = singleKvStore->CloudSync();
+    EXPECT_EQ(status, Status::NOT_SUPPORT) << "cloud sync should not return success";
+}
