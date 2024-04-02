@@ -173,7 +173,8 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       createDBTime_(0),
       dataInterceptor_(nullptr),
       maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
-      abortPerm_(OperatePerm::NORMAL_PERM)
+      abortPerm_(OperatePerm::NORMAL_PERM),
+      sqliteCloudStore_(nullptr)
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
@@ -1131,6 +1132,11 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
     }
 
     {
+        std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+        RefObject::KillAndDecObjRef(sqliteCloudStore_);
+        sqliteCloudStore_ = nullptr;
+    }
+    {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
             storageEngine_->ClearEnginePasswd();
@@ -1323,8 +1329,15 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
     int errCode = storageEngine_->InitSQLiteStorageEngine(poolSize, option, identifier);
     if (errCode != E_OK) {
         LOGE("Init the sqlite storage engine failed:%d", errCode);
+        return errCode;
     }
-    return errCode;
+
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    sqliteCloudStore_ = new(std::nothrow) SqliteCloudStore(this);
+    if (sqliteCloudStore_ == nullptr) {
+        return E_OUT_OF_MEMORY;
+    }
+    return E_OK;
 }
 
 int SQLiteSingleVerNaturalStore::Rekey(const CipherPassword &passwd)
@@ -1900,5 +1913,12 @@ void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarg
         outTarget.resize(0);
     }
 }
+
+ICloudSyncStorageInterface *SQLiteSingleVerNaturalStore::GetICloudSyncInterface() const
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudStore_;
+}
+
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

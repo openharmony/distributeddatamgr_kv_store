@@ -17,17 +17,19 @@
 #include <atomic>
 #include <mutex>
 
+#include "istorage_handle.h"
 #include "isyncer.h"
 #include "kv_store_nb_conflict_data_impl.h"
 #include "runtime_context.h"
 #include "single_ver_natural_store.h"
 #include "single_ver_natural_store_commit_notify_data.h"
+#include "sqlite_cloud_store.h"
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_storage_engine.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
-class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore {
+class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore, public IStorageHandle {
 public:
     SQLiteSingleVerNaturalStore();
     ~SQLiteSingleVerNaturalStore() override;
@@ -195,11 +197,15 @@ public:
 
     int TryHandle() const override;
 
+    std::pair<int, StorageExecutor*> GetStorageExecutor() override;
+
+    int RecycleStorageExecutor(StorageExecutor *executor) override;
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
     void ReleaseResources();
 
+    ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);
@@ -293,6 +299,9 @@ private:
 
     mutable std::shared_mutex abortHandleMutex_;
     OperatePerm abortPerm_;
+
+    mutable std::mutex cloudStoreMutex_;
+    SqliteCloudStore *sqliteCloudStore_;
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

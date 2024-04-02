@@ -31,7 +31,8 @@ SyncAbleKvDB::SyncAbleKvDB()
       isSyncModuleActiveCheck_(false),
       isSyncNeedActive_(true),
       notifyChain_(nullptr),
-      userChangeListener_(nullptr)
+      userChangeListener_(nullptr),
+      cloudSyncer_(nullptr)
 {}
 
 SyncAbleKvDB::~SyncAbleKvDB()
@@ -45,6 +46,9 @@ SyncAbleKvDB::~SyncAbleKvDB()
         userChangeListener_->Drop(true);
         userChangeListener_ = nullptr;
     }
+    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+    KillAndDecObjRef(cloudSyncer_);
+    cloudSyncer_ = nullptr;
 }
 
 void SyncAbleKvDB::DelConnection(GenericKvDBConnection *connection)
@@ -151,6 +155,7 @@ void SyncAbleKvDB::ReSetSyncModuleActive()
 // Start syncer
 int SyncAbleKvDB::StartSyncer(bool isCheckSyncActive, bool isNeedActive)
 {
+    StartCloudSyncer();
     int errCode = E_OK;
     {
         std::unique_lock<std::mutex> lock(syncerOperateLock_);
@@ -470,5 +475,25 @@ int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &inf
 int SyncAbleKvDB::UpgradeSchemaVerInMeta()
 {
     return syncer_.UpgradeSchemaVerInMeta();
+}
+
+ICloudSyncStorageInterface *SyncAbleKvDB::GetICloudSyncInterface() const
+{
+    return nullptr;
+}
+
+void SyncAbleKvDB::StartCloudSyncer()
+{
+    auto cloudStorage = GetICloudSyncInterface();
+    if (cloudStorage == nullptr) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+        if (cloudSyncer_ != nullptr) {
+            return;
+        }
+        cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage));
+    }
 }
 }

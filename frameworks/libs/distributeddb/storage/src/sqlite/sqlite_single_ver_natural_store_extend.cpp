@@ -525,4 +525,15 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
     }
     return E_OK;
 }
+
+std::pair<int, StorageExecutor *> SQLiteSingleVerNaturalStore::GetStorageExecutor()
+{
+    std::pair<int, StorageExecutor *> res;
+    return res;
+}
+
+int SQLiteSingleVerNaturalStore::RecycleStorageExecutor(StorageExecutor *executor)
+{
+    return E_OK;
+}
 }
