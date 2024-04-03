@@ -36,11 +36,15 @@ public:
     uint32_t GetLastUploadSuccessCount(const std::string &tableName) const;
 
     void GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process);
+
+    void SetUser(const std::string &user);
 protected:
     mutable std::mutex processMutex_;
     SyncProcess syncProcess_;
+    std::map<std::string, SyncProcess> multiSyncProcess_;
     std::vector<std::string> devices_;
     ICloudSyncer *syncer_;
+    std::string user_;
 };
 }
 #endif // PROCESS_NOTIFIER_H

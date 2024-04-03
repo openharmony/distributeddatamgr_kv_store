@@ -125,6 +125,8 @@ public:
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
+    void SetUser(const std::string &user);
+
     void OnSyncFinish();
 protected:
     void Init();
@@ -137,6 +139,7 @@ private:
     std::atomic<bool> transactionExeFlag_;
     std::shared_ptr<CloudMetaData> cloudMetaData_;
     std::atomic<bool> isWrite_;
+    std::string user_;
 };
 }
 

@@ -496,4 +496,24 @@ void SyncAbleKvDB::StartCloudSyncer()
         cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage));
     }
 }
+
+void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    CloudSyncer::CloudTaskInfo &info)
+{
+    info.callback = onProcess;
+    info.devices = option.devices;
+    info.mode = option.mode;
+    info.users = option.users;
+}
+
+int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    CloudSyncer::CloudTaskInfo info;
+    FillSyncInfo(option, onProcess, info);
+    return cloudSyncer_->Sync(info);
+}
 }

@@ -340,6 +340,7 @@ protected:
 
     int UpdateFlagForSavedRecord(const SyncParam &param);
 
+    void SetProxyUser(const std::string &user);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

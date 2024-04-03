@@ -166,6 +166,13 @@ int CloudSyncer::TriggerSync()
     return errCode;
 }
 
+void CloudSyncer::SetProxyUser(const std::string &user)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    storageProxy_->SetUser(user);
+    currentContext_.notifier->SetUser(user);
+}
+
 void CloudSyncer::DoSyncIfNeed()
 {
     if (closed_) {
@@ -184,7 +191,23 @@ void CloudSyncer::DoSyncIfNeed()
             break;
         }
         // do sync logic
-        int errCode = DoSync(triggerTaskId);
+        std::vector<std::string> usersList;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            usersList = cloudTaskInfos_[triggerTaskId].users;
+        }
+        int errCode = E_OK;
+        if (usersList.empty()) {
+            SetProxyUser("");
+            errCode = DoSync(triggerTaskId);
+        } else {
+            for (auto user : usersList) {
+                {
+                    SetProxyUser(user);
+                }
+                errCode = DoSync(triggerTaskId);
+            }
+        }
         // finished after sync
         DoFinished(triggerTaskId, errCode);
     } while (!closed_);

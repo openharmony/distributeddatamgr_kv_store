@@ -375,6 +375,7 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
     }
+    taskInfo.users.push_back("");
     for (const auto &query : syncQuery) {
         taskInfo.table.push_back(query.GetRelationTableName());
         taskInfo.queryList.push_back(query);

@@ -94,6 +94,8 @@ public:
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info);
 
     int UpgradeSchemaVerInMeta();
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 
@@ -130,6 +132,9 @@ private:
     bool NeedStartSyncer() const;
 
     void StartCloudSyncer();
+
+    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        CloudSyncer::CloudTaskInfo &info);
 
     SyncerProxy syncer_;
     std::atomic<bool> started_;

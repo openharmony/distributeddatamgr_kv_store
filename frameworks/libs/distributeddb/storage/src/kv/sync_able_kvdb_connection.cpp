@@ -341,4 +341,13 @@ int SyncAbleKvDBConnection::GetWatermarkInfo(const std::string &device, Watermar
     }
     return kvDB->GetWatermarkInfo(device, info);
 }
+
+int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    return kvDB->Sync(option, onProcess);
+}
 }
