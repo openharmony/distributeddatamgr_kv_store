@@ -269,7 +269,6 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore008, TestSize.Level1)
     ZLOGI("GetKvStore007 begin.");
     std::shared_ptr<SingleKvStore> cloudKvStore;
     Options options = create;
-    options.cloudSync = true;
     options.isPublic = true;
     Status status = manager.GetSingleKvStore(options, appId, storeId65, cloudKvStore);
     ASSERT_EQ(status, Status::SUCCESS);

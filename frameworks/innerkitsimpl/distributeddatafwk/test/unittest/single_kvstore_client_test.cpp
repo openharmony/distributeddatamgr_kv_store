@@ -1215,7 +1215,6 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     options.schema = VALID_SCHEMA_STRICT_DEFINE;
     options.isPublic = true;
-    options.cloudSync = true;
     AppId appId = { "odmf" };
     StoreId storeId = { "cloud_store_id" };
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);

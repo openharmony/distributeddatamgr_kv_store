@@ -123,7 +123,6 @@ bool Marshalling(const Options &input, MessageParcel &data)
     target->kvStoreType = input.kvStoreType;
     target->isNeedCompress = input.isNeedCompress;
     target->isPublic = input.isPublic;
-    target->cloudSync = input.cloudSync;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
 
@@ -150,7 +149,6 @@ bool Unmarshalling(Options &output, MessageParcel &data)
     output.syncable = source->syncable;
     output.isNeedCompress = source->isNeedCompress;
     output.isPublic = source->isPublic;
-    output.cloudSync = source->cloudSync;
     return true;
 }
 
