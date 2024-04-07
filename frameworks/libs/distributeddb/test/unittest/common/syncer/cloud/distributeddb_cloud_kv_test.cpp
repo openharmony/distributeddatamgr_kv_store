@@ -29,10 +29,6 @@ using namespace std;
 namespace {
 string g_testDir;
 KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
-KvStoreConfig g_config;
-DistributedDBToolsUnitTest g_tool;
-DBStatus g_kvDelegateStatus = INVALID_ARGS;
-KvStoreNbDelegate* g_kvDelegatePtr = nullptr;
 class DistributedDBCloudKvTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -40,19 +36,22 @@ public:
     void SetUp();
     void TearDown();
 protected:
-    void BlockSync();
-    DataBaseSchema GetDataBaseSchema();
+    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
+    void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
+    static void BlockSync(KvStoreNbDelegate *delegate);
+    static DataBaseSchema GetDataBaseSchema();
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
+    KvStoreConfig config_;
+    KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
+    KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
 };
 
 void DistributedDBCloudKvTest::SetUpTestCase()
 {
+    DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
-    DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    g_config.dataDir = g_testDir;
-    g_mgr.SetKvStoreConfig(g_config);
 
     string dir = g_testDir + "/single_ver";
     DIR* dirTmp = opendir(dir.c_str());
@@ -73,39 +72,24 @@ void DistributedDBCloudKvTest::TearDownTestCase()
 void DistributedDBCloudKvTest::SetUp()
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+    config_.dataDir = g_testDir;
     /**
      * @tc.setup: create virtual device B and C, and get a KvStoreNbDelegate as deviceA
      */
-    KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore(STORE_ID_1, option, [](DBStatus status, KvStoreNbDelegate *delegate) {
-        g_kvDelegateStatus = status;
-        g_kvDelegatePtr = delegate;
-    });
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    EXPECT_NE(g_kvDelegatePtr, nullptr);
-
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
-    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
-    cloudDbs[USER_ID] = virtualCloudDb_;
-    g_kvDelegatePtr->SetCloudDB(cloudDbs);
-    std::map<std::string, DataBaseSchema> schemas;
-    schemas[USER_ID] = GetDataBaseSchema();
-    g_kvDelegatePtr->SetCloudDbSchema(schemas);
+    g_mgr.SetKvStoreConfig(config_);
+    GetKvStore(kvDelegatePtrS1_, STORE_ID_1);
+    GetKvStore(kvDelegatePtrS2_, STORE_ID_2);
 }
 
 void DistributedDBCloudKvTest::TearDown()
 {
-    if (g_kvDelegatePtr != nullptr) {
-        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-        g_kvDelegatePtr = nullptr;
-        DBStatus status = g_mgr.DeleteKvStore(STORE_ID_1);
-        LOGD("delete kv store status %d", status);
-        ASSERT_TRUE(status == OK);
-    }
+    CloseKvStore(kvDelegatePtrS1_, STORE_ID_1);
+    CloseKvStore(kvDelegatePtrS2_, STORE_ID_2);
     virtualCloudDb_ = nullptr;
 }
 
-void DistributedDBCloudKvTest::BlockSync()
+void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
@@ -124,7 +108,7 @@ void DistributedDBCloudKvTest::BlockSync()
     CloudSyncOption option;
     option.users.push_back(USER_ID);
     option.devices.push_back("cloud");
-    ASSERT_EQ(g_kvDelegatePtr->Sync(option, callback), OK);
+    ASSERT_EQ(delegate->Sync(option, callback), OK);
     std::unique_lock<std::mutex> uniqueLock(dataMutex);
     cv.wait(uniqueLock, [&finish]() {
         return finish;
@@ -135,7 +119,7 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
 {
     DataBaseSchema schema;
     TableSchema tableSchema;
-    tableSchema.name = "HiCloudSystemTableForKVDB";
+    tableSchema.name = "sync_data";
     Field field;
     field.colName = "key";
     field.type = TYPE_INDEX<std::string>;
@@ -155,6 +139,36 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
     return schema;
 }
 
+void DistributedDBCloudKvTest::GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
+{
+    KvStoreNbDelegate::Option option;
+    DBStatus openRet = OK;
+    g_mgr.GetKvStore(storeId, option, [&openRet, &delegate](DBStatus status, KvStoreNbDelegate *openDelegate) {
+        openRet = status;
+        delegate = openDelegate;
+    });
+    EXPECT_EQ(openRet, OK);
+    EXPECT_NE(delegate, nullptr);
+
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+    cloudDbs[USER_ID] = virtualCloudDb_;
+    delegate->SetCloudDB(cloudDbs);
+    std::map<std::string, DataBaseSchema> schemas;
+    schemas[USER_ID] = GetDataBaseSchema();
+    delegate->SetCloudDbSchema(schemas);
+}
+
+void DistributedDBCloudKvTest::CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
+{
+    if (delegate != nullptr) {
+        ASSERT_EQ(g_mgr.CloseKvStore(delegate), OK);
+        delegate = nullptr;
+        DBStatus status = g_mgr.DeleteKvStore(storeId);
+        LOGD("delete kv store status %d store %s", status, storeId.c_str());
+        ASSERT_EQ(status, OK);
+    }
+}
+
 /**
  * @tc.name: NormalSync001
  * @tc.desc: Test normal push sync for add data.
@@ -164,7 +178,8 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
  */
 HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
 {
-    g_kvDelegatePtr->Put({'k'}, {'v'});
-    BlockSync();
+    kvDelegatePtrS1_->Put({'k'}, {'v'});
+    BlockSync(kvDelegatePtrS1_);
+    BlockSync(kvDelegatePtrS2_);
 }
 }

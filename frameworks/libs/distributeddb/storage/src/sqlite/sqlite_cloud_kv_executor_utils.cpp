@@ -32,7 +32,7 @@ int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteS
         return errCode;
     }
     uint32_t totalSize = 0;
-    uint32_t stepNum = -1;
+    uint32_t stepNum = 0;
     do {
         if (stepNext) {
             errCode = SQLiteUtils::StepNext(stmt, isMemory);
@@ -49,7 +49,7 @@ int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteS
     if (errCode != -E_UNFINISHED) {
         token.ReleaseCloudQueryStmt();
     }
-    return E_OK;
+    return errCode;
 }
 
 int SqliteCloudKvExecutorUtils::GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult,
@@ -157,7 +157,7 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     std::vector<uint8_t> blob;
     int errCode = SQLiteUtils::GetColumnBlobValue(stmt, index, blob);
     if (errCode != E_OK) {
-        LOGE("[SqliteCloudKvExecutorUtils] Get %s failed %d", keyStr.c_str(), errCode);
+        LOGE("[SqliteCloudKvExecutorUtils] Get %.3s failed %d", keyStr.c_str(), errCode);
         return errCode;
     }
     std::string tmp = std::string(blob.begin(), blob.end());
@@ -194,8 +194,8 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
 {
     std::pair<int, DataInfoWithLog> res;
     int &errCode = res.first;
-    Bytes key;
-    errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::CLOUD_KV_FIELD_KEY, cloudData, key);
+    std::string keyStr;
+    errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::CLOUD_KV_FIELD_KEY, cloudData, keyStr);
     if (errCode == -E_NOT_FOUND) {
         errCode = E_OK;
     }
@@ -203,6 +203,8 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
         LOGE("[SqliteCloudKvExecutorUtils] Get key failed %d", errCode);
         return res;
     }
+    Bytes key;
+    DBCommon::StringToVector(keyStr, key);
     sqlite3_stmt *stmt = nullptr;
     std::tie(errCode, stmt) = GetLogInfoStmt(db, cloudData, !key.empty());
     if (errCode != E_OK) {
@@ -301,9 +303,8 @@ int SqliteCloudKvExecutorUtils::PutCloudData(sqlite3 *db, bool isMemory, Downloa
             downloadData.opType.size());
         return -E_CLOUD_ERROR;
     }
-    int errCode = E_OK;
     std::map<int, int> statisticMap = {};
-    errCode = ExecutePutCloudData(db, isMemory, downloadData, statisticMap);
+    int errCode = ExecutePutCloudData(db, isMemory, downloadData, statisticMap);
     LOGI("[SqliteCloudKvExecutorUtils] save cloud data: %d, insert cnt = %d, update cnt = %d, delete cnt = %d,"
         " only update gid cnt = %d, set LCC flag zero cnt = %d, set LCC flag one cnt = %d,"
         " update timestamp cnt = %d, clear gid count = %d, not handle cnt = %d",
@@ -335,6 +336,7 @@ int SqliteCloudKvExecutorUtils::ExecutePutCloudData(sqlite3 *db, bool isMemory,
             case OpType::UPDATE_TIMESTAMP:               // fallthrough
             case OpType::CLEAR_GID:                      // fallthrough
                 errCode = OnlyUpdateLogTable(db, isMemory, op, vBucket);
+                break;
             case OpType::NOT_HANDLE:
                 break;
             default:
@@ -451,11 +453,7 @@ int SqliteCloudKvExecutorUtils::BindInsertStmt(sqlite3_stmt *logStmt, sqlite3_st
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = BindDataStmt(dataStmt, dataItem, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return BindDataStmt(dataStmt, dataItem, true);
 }
 
 int SqliteCloudKvExecutorUtils::BindInsertLogStmt(sqlite3_stmt *logStmt, const std::string &user,

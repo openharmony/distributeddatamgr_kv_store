@@ -449,7 +449,7 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
 DBStatus VirtualCloudDb::UpdateCloudData(const std::string &tableName, VirtualCloudDb::CloudData &&cloudData)
 {
     if (cloudData_.find(tableName) == cloudData_.end()) {
-        LOGE("[VirtualCloudDb] update cloud data failed, not found tableName");
+        LOGE("[VirtualCloudDb] update cloud data failed, not found tableName %s", tableName.c_str());
         return DB_ERROR;
     }
     std::string paramGid = std::get<std::string>(cloudData.extend[g_gidField]);

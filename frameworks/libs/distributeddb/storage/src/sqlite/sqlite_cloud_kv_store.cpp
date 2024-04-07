@@ -176,10 +176,10 @@ int SqliteCloudKvStore::GetCloudDataNext(ContinueToken &continueStmtToken, Cloud
     }
     int errCode = SqliteCloudKvExecutorUtils::GetCloudData(db, isMemory, *token, cloudDataResult);
     if (errCode != -E_UNFINISHED) {
-        delete token;
-        token = nullptr;
+        ReleaseCloudDataToken(continueStmtToken);
+    } else {
+        continueStmtToken = token;
     }
-    continueStmtToken = token;
     return errCode;
 }
 
@@ -189,6 +189,9 @@ int SqliteCloudKvStore::ReleaseCloudDataToken(ContinueToken &continueStmtToken)
         return E_OK;
     }
     auto token = static_cast<SQLiteSingleVerContinueToken *>(continueStmtToken);
+    if (!token->CheckValid()) {
+        return E_OK;
+    }
     token->ReleaseCloudQueryStmt();
     delete token;
     continueStmtToken = nullptr;
