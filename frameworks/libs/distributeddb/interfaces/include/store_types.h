@@ -121,6 +121,11 @@ enum ObserverMode {
     OBSERVER_CHANGES_NATIVE = 1,
     OBSERVER_CHANGES_FOREIGN = 2,
     OBSERVER_CHANGES_LOCAL_ONLY = 4,
+    OBSERVER_CHANGES_CLOUD = 5,
+    // bit mask
+    OBSERVER_CHANGES_BRIEF = 0x100,  // notify only device
+    OBSERVER_CHANGES_DETAIL = 0x200, // notify with key
+    OBSERVER_CHANGES_DATA = 0x400    // notify with entry
 };
 
 enum SyncMode {

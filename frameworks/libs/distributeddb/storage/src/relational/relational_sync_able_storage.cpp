@@ -1347,12 +1347,6 @@ void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmt
     continueStmtToken = nullptr;
 }
 
-int RelationalSyncAbleStorage::GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
-    std::vector<std::string> &gid)
-{
-    return E_OK;
-}
-
 int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
 {
     int errCode = E_OK;

@@ -129,6 +129,8 @@ public:
     virtual int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) = 0;
 
     virtual int UpgradeSchemaVerInMeta() = 0;
+
+    virtual int64_t GetLocalTimeOffset() = 0;
 };
 } // namespace DistributedDB
 

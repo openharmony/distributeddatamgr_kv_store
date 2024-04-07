@@ -111,6 +111,7 @@ public:
     int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
         sqlite3_stmt *&statement);
 
+    static std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush);
 private:
     int ToQuerySql();
     int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);

@@ -967,6 +967,11 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntry(const Entry &entry, bool is
         dataItem.writeTimestamp = dataItem.timestamp;
     }
 
+    auto offset = naturalStore->GetLocalTimeOffset();
+    if (offset != 0) {
+        dataItem.modifyTime = dataItem.timestamp - offset;
+        dataItem.createTime = dataItem.writeTimestamp - offset;
+    }
     if (IsExtendedCacheDBMode()) {
         uint64_t recordVersion = naturalStore->GetCacheRecordVersion();
         return SaveEntryInCacheMode(dataItem, recordVersion);
@@ -1843,6 +1848,25 @@ int SQLiteSingleVerNaturalStoreConnection::UpdateKey(const DistributedDB::Update
     errCode = handle->UpdateKey(callback);
     ReleaseExecutor(handle);
     return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[Connection]::[UpdateKey] Get executor failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+    errCode = handle->CreateCloudLogTable();
+    ReleaseExecutor(handle);
+
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->SetCloudDbSchema(schema);
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

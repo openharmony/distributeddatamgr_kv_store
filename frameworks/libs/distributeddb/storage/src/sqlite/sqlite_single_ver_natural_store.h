@@ -17,19 +17,19 @@
 #include <atomic>
 #include <mutex>
 
-#include "istorage_handle.h"
 #include "isyncer.h"
+#include "kv_storage_handle.h"
 #include "kv_store_nb_conflict_data_impl.h"
 #include "runtime_context.h"
 #include "single_ver_natural_store.h"
 #include "single_ver_natural_store_commit_notify_data.h"
-#include "sqlite_cloud_store.h"
+#include "sqlite_cloud_kv_store.h"
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_storage_engine.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
-class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore, public IStorageHandle {
+class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore, public KvStorageHandle {
 public:
     SQLiteSingleVerNaturalStore();
     ~SQLiteSingleVerNaturalStore() override;
@@ -197,9 +197,13 @@ public:
 
     int TryHandle() const override;
 
-    std::pair<int, StorageExecutor*> GetStorageExecutor() override;
+    std::pair<int, SQLiteSingleVerStorageExecutor*> GetStorageExecutor(bool isWrite) override;
 
-    int RecycleStorageExecutor(StorageExecutor *executor) override;
+    void RecycleStorageExecutor(SQLiteSingleVerStorageExecutor *executor) override;
+
+    TimeOffset GetLocalTimeOffsetForCloud() override;
+
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
@@ -301,7 +305,7 @@ private:
     OperatePerm abortPerm_;
 
     mutable std::mutex cloudStoreMutex_;
-    SqliteCloudStore *sqliteCloudStore_;
+    SqliteCloudKvStore *sqliteCloudKvStore_;
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

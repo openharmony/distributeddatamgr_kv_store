@@ -350,4 +350,13 @@ int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProces
     }
     return kvDB->Sync(option, onProcess);
 }
+
+int SyncAbleKvDBConnection::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    return kvDB->SetCloudDB(cloudDBs);
+}
 }

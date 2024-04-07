@@ -109,6 +109,8 @@ public:
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 
     int UpgradeSchemaVerInMeta() override;
+
+    int64_t GetLocalTimeOffset() override;
 protected:
 
     // trigger query auto sync or auto subscribe

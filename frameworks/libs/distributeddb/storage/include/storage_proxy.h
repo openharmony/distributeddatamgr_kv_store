@@ -101,8 +101,6 @@ public:
 
     int CleanWaterMarkInMemory(const TableName &tableName);
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
-
     int CreateTempSyncTrigger(const std::string &tableName);
 
     int ClearAllTempSyncTrigger();

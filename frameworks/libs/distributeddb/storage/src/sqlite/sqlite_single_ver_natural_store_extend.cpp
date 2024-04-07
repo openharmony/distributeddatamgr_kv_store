@@ -526,14 +526,20 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
     return E_OK;
 }
 
-std::pair<int, StorageExecutor *> SQLiteSingleVerNaturalStore::GetStorageExecutor()
+std::pair<int, SQLiteSingleVerStorageExecutor*> SQLiteSingleVerNaturalStore::GetStorageExecutor(bool isWrite)
 {
-    std::pair<int, StorageExecutor *> res;
-    return res;
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(isWrite, errCode);
+    return {errCode, handle};
 }
 
-int SQLiteSingleVerNaturalStore::RecycleStorageExecutor(StorageExecutor *executor)
+void SQLiteSingleVerNaturalStore::RecycleStorageExecutor(SQLiteSingleVerStorageExecutor *executor)
 {
-    return E_OK;
+    ReleaseHandle(executor);
+}
+
+TimeOffset SQLiteSingleVerNaturalStore::GetLocalTimeOffsetForCloud()
+{
+    return GetLocalTimeOffset();
 }
 }

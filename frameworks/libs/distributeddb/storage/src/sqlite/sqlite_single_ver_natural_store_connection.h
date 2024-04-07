@@ -103,6 +103,8 @@ public:
     int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const override;
 
     int UpdateKey(const UpdateKeyCallback &callback) override;
+
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

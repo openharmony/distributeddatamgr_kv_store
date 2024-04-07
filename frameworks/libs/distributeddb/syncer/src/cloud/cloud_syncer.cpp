@@ -171,6 +171,7 @@ void CloudSyncer::SetProxyUser(const std::string &user)
     std::lock_guard<std::mutex> autoLock(dataLock_);
     storageProxy_->SetUser(user);
     currentContext_.notifier->SetUser(user);
+    cloudDB_.SwitchCloudDB(user);
 }
 
 void CloudSyncer::DoSyncIfNeed()
@@ -201,10 +202,8 @@ void CloudSyncer::DoSyncIfNeed()
             SetProxyUser("");
             errCode = DoSync(triggerTaskId);
         } else {
-            for (auto user : usersList) {
-                {
-                    SetProxyUser(user);
-                }
+            for (const auto &user : usersList) {
+                SetProxyUser(user);
                 errCode = DoSync(triggerTaskId);
             }
         }
@@ -2199,5 +2198,10 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
     }
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
     return E_OK;
+}
+
+int CloudSyncer::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    return cloudDB_.SetCloudDB(cloudDBs);
 }
 } // namespace DistributedDB

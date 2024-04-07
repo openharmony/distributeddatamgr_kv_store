@@ -268,7 +268,7 @@ int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &d
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-
+    downloadData.user = user_;
     return store_->PutCloudSyncData(tableName, downloadData);
 }
 
@@ -446,15 +446,10 @@ int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableNa
 void StorageProxy::SetUser(const std::string &user)
 {
     user_ = user;
-}
-
-int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
-{
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
+    if (store_ != nullptr) {
+        store_->SetUser(user);
     }
-    return store_->GetCloudDataGid(query, beginTime, gid);
 }
 
 int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)

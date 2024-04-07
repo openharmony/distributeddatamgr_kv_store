@@ -174,7 +174,7 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       dataInterceptor_(nullptr),
       maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
       abortPerm_(OperatePerm::NORMAL_PERM),
-      sqliteCloudStore_(nullptr)
+      sqliteCloudKvStore_(nullptr)
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
@@ -1133,8 +1133,8 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
 
     {
         std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-        RefObject::KillAndDecObjRef(sqliteCloudStore_);
-        sqliteCloudStore_ = nullptr;
+        RefObject::KillAndDecObjRef(sqliteCloudKvStore_);
+        sqliteCloudKvStore_ = nullptr;
     }
     {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
@@ -1333,8 +1333,8 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
     }
 
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-    sqliteCloudStore_ = new(std::nothrow) SqliteCloudStore(this);
-    if (sqliteCloudStore_ == nullptr) {
+    sqliteCloudKvStore_ = new(std::nothrow) SqliteCloudKvStore(this);
+    if (sqliteCloudKvStore_ == nullptr) {
         return E_OUT_OF_MEMORY;
     }
     return E_OK;
@@ -1917,7 +1917,13 @@ void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarg
 ICloudSyncStorageInterface *SQLiteSingleVerNaturalStore::GetICloudSyncInterface() const
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-    return sqliteCloudStore_;
+    return sqliteCloudKvStore_;
+}
+
+int SQLiteSingleVerNaturalStore::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudKvStore_->SetCloudDbSchema(schema);
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)

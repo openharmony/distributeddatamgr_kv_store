@@ -95,7 +95,11 @@ public:
 
     int UpgradeSchemaVerInMeta();
 
+    TimeOffset GetLocalTimeOffset();
+
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

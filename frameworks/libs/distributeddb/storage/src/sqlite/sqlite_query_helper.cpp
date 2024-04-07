@@ -22,6 +22,7 @@
 #include "log_print.h"
 #include "macro_utils.h"
 #include "sqlite_utils.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 #include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
@@ -1229,5 +1230,20 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
         }
     }
     return errCode;
+}
+
+std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *db, bool forcePush)
+{
+    std::pair<int, sqlite3_stmt *> res;
+    sqlite3_stmt *&stmt = res.second;
+    int &errCode = res.first;
+    std::string sql = QUERY_CLOUD_SYNC_DATA;
+    if (forcePush) {
+        sql += " AND flag & 0x04 != 0x04";
+    } else {
+        sql += " AND flag & 0x02 != 0;";
+    }
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    return res;
 }
 }

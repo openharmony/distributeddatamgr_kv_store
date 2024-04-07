@@ -16,13 +16,13 @@
 #define SQLITE_CLOUD_STORE_H
 
 #include "icloud_sync_storage_interface.h"
-#include "istorage_handle.h"
+#include "kv_storage_handle.h"
 
 namespace DistributedDB {
-class SqliteCloudStore : public ICloudSyncStorageInterface, public RefObject {
+class SqliteCloudKvStore : public ICloudSyncStorageInterface, public RefObject {
 public:
-    explicit SqliteCloudStore(IStorageHandle *handle);
-    ~SqliteCloudStore() override = default;
+    explicit SqliteCloudKvStore(KvStorageHandle *handle);
+    ~SqliteCloudKvStore() override = default;
 
     int GetMetaData(const Key &key, Value &value) const override;
 
@@ -60,9 +60,6 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
 
-    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
-        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) override;
-
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
@@ -73,33 +70,25 @@ public:
 
     std::string GetIdentify() const override;
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid) override;
-
     int CheckQueryValid(const QuerySyncObject &query) override;
-
-    int CreateTempSyncTrigger(const std::string &tableName) override;
-
-    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
-
-    int ClearAllTempSyncTrigger() override;
 
     bool IsSharedTable(const std::string &tableName) override;
 
-    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
+    void SetUser(const std::string &user) override;
 
-    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets) override;
-
-    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
-
-    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo) override;
-
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
-
-    int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
-        const std::set<std::string> &gidFilters) override;
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
 private:
-    IStorageHandle *storageHandle_;
+    std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
+
+    KvStorageHandle *storageHandle_;
+
+    std::mutex schemaMutex_;
+    std::map<std::string, DataBaseSchema> schema_;
+
+    mutable std::mutex transactionMutex_;
+    SQLiteSingleVerStorageExecutor *transactionHandle_;
+
+    std::string user_;
 };
 }
 #endif // SQLITE_CLOUD_STORE_H

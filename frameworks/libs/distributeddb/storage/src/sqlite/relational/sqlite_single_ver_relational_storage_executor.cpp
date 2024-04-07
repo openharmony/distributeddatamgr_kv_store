@@ -1605,7 +1605,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     uint32_t stepNum = -1;
     do {
         if (isStepNext) {
-            errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
+            errCode = SQLiteUtils::StepNext(queryStmt, isMemDb_);
             if (errCode != E_OK) {
                 errCode = (errCode == -E_FINISHED ? E_OK : errCode);
                 break;
@@ -1639,7 +1639,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
         return errCode;
     }
     do {
-        errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
+        errCode = SQLiteUtils::StepNext(queryStmt, isMemDb_);
         if (errCode != E_OK) {
             errCode = (errCode == -E_FINISHED ? E_OK : errCode);
             break;
@@ -1683,7 +1683,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         }
     }
 
-    if (IsGetCloudDataContinue(stepNum, totalSize, maxSize)) {
+    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, maxSize)) {
         errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;

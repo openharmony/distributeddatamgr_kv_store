@@ -32,6 +32,22 @@ void CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
     }
 }
 
+int CloudDBProxy::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
+    cloudDbs_ = cloudDBs;
+    return E_OK;
+}
+
+void CloudDBProxy::SwitchCloudDB(const std::string &user)
+{
+    std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
+    if (cloudDbs_.find(user) == cloudDbs_.end()) {
+        return;
+    }
+    iCloudDb_ = cloudDbs_[user];
+}
+
 void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     std::unique_lock<std::shared_mutex> writeLock(assetLoaderMutex_);
@@ -133,6 +149,7 @@ int CloudDBProxy::UnLock()
 int CloudDBProxy::Close()
 {
     std::shared_ptr<ICloudDb> iCloudDb = nullptr;
+    std::vector<std::shared_ptr<ICloudDb>> waitForClose;
     {
         std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
         if (iCloudDb_ == nullptr) {
@@ -140,6 +157,10 @@ int CloudDBProxy::Close()
         }
         iCloudDb = iCloudDb_;
         iCloudDb_ = nullptr;
+        for (const auto &item : cloudDbs_) {
+            waitForClose.push_back(item.second);
+        }
+        cloudDbs_.clear();
     }
     {
         std::unique_lock<std::mutex> uniqueLock(asyncTaskMutex_);
@@ -151,6 +172,10 @@ int CloudDBProxy::Close()
     }
     LOGD("[CloudDBProxy] call cloudDb close begin");
     DBStatus status = iCloudDb->Close();
+    for (const auto &item : waitForClose) {
+        (void)item->Close();
+    }
+    waitForClose.clear();
     LOGD("[CloudDBProxy] call cloudDb close end");
     return status == OK ? E_OK : -E_CLOUD_ERROR;
 }
@@ -170,7 +195,7 @@ int CloudDBProxy::HeartBeat()
 bool CloudDBProxy::IsNotExistCloudDB() const
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
-    return iCloudDb_ == nullptr;
+    return iCloudDb_ == nullptr && cloudDbs_.empty();
 }
 
 int CloudDBProxy::Download(const std::string &tableName, const std::string &gid, const Type &prefix,

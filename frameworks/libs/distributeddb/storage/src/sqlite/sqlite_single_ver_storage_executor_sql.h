@@ -238,6 +238,23 @@ namespace DistributedDB {
 
     constexpr const char *FUNC_NAME_CAL_HASH_KEY = "cal_hash_key";
 
+    constexpr const char *QUERY_CLOUD_SYNC_DATA = "SELECT key, value, flag, device, ori_device, "
+        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid FROM "
+        "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
+        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key "
+        "WHERE modify_time > ?";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
+        "modify_time, create_time, cloud_gid, sync_data.hash_key, FROM "
+        "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
+        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key WHERE cloud_gid = ? ";
+
+    constexpr const char *INSERT_CLOUD_SYNC_DATA_LOG = "INSERT OR REPLACE INTO naturalbase_kv_aux_sync_data_log "
+        "VALUES(?,?,?,?)";
+
+    constexpr const char *UPDATE_CLOUD_SYNC_DATA_LOG = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_gid=?, "
+        "version=? WHERE userid=? AND hash_key=?";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;
@@ -298,6 +315,21 @@ namespace DistributedDB {
 
     const int BIND_ORI_DEVICE_ID = 0;
     const int BIND_PRE_DEVICE_ID = 1;
+
+    constexpr int BIND_CLOUD_TIMESTAMP = 1;
+
+    constexpr int CLOUD_QUERY_KEY_INDEX = 0;
+    constexpr int CLOUD_QUERY_VALUE_INDEX = 1;
+    constexpr int CLOUD_QUERY_FLAG_INDEX = 2;
+    constexpr int CLOUD_QUERY_DEV_INDEX = 3;
+    constexpr int CLOUD_QUERY_ORI_DEV_INDEX = 4;
+    constexpr int CLOUD_QUERY_HASH_KEY_INDEX = 5;
+    constexpr int CLOUD_QUERY_DEV_CREATE_TIME_INDEX = 6;
+    constexpr int CLOUD_QUERY_MODIFY_TIME_INDEX = 7;
+    constexpr int CLOUD_QUERY_CREATE_TIME_INDEX = 8;
+    constexpr int CLOUD_QUERY_CLOUD_GID_INDEX = 9;
+    constexpr int CLOUD_QUERY_VERSION_INDEX = 10;
+    constexpr int CLOUD_QUERY_ROW_ID_INDEX = 11;
 
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB

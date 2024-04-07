@@ -15,17 +15,23 @@
 #ifndef I_STORAGE_HANDLE_H
 #define I_STORAGE_HANDLE_H
 
-#include "storage_executor.h"
+#include "sqlite_single_ver_storage_executor.h"
 
 namespace DistributedDB {
-class IStorageHandle {
+class KvStorageHandle {
 public:
-    IStorageHandle() = default;
-    virtual ~IStorageHandle() = default;
+    KvStorageHandle() = default;
+    virtual ~KvStorageHandle() = default;
 
-    virtual std::pair<int, StorageExecutor*> GetStorageExecutor() = 0;
+    virtual std::pair<int, SQLiteSingleVerStorageExecutor*> GetStorageExecutor(bool isWrite) = 0;
 
-    virtual int RecycleStorageExecutor(StorageExecutor *executor) = 0;
+    virtual void RecycleStorageExecutor(SQLiteSingleVerStorageExecutor *executor) = 0;
+
+    virtual int GetMetaData(const Key &key, Value &value) const = 0;
+
+    virtual int PutMetaData(const Key &key, const Value &value, bool isInTransaction) = 0;
+
+    virtual TimeOffset GetLocalTimeOffsetForCloud() = 0;
 };
 }
 #endif // I_STORAGE_HANDLE_H

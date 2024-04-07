@@ -320,8 +320,6 @@ private:
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
-    bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
-
     int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
     int BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey, sqlite3_stmt *&stmt);

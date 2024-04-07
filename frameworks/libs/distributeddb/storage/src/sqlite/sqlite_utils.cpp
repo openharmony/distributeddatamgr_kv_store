@@ -2401,4 +2401,18 @@ END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
 }
+
+int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_FINISHED;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = E_OK;
+    }
+    return errCode;
+}
 } // namespace DistributedDB

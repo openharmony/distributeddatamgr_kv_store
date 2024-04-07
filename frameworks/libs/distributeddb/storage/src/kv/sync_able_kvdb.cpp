@@ -211,6 +211,14 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
         userChangeListener = userChangeListener_;
         userChangeListener_ = nullptr;
     }
+    {
+        std::unique_lock<std::mutex> lock(cloudSyncerLock_);
+        if (isClosedOperation && cloudSyncer_ != nullptr) {
+            cloudSyncer_->Close();
+            RefObject::KillAndDecObjRef(cloudSyncer_);
+            cloudSyncer_ = nullptr;
+        }
+    }
     if (userChangeListener != nullptr) {
         userChangeListener->Drop(true);
         userChangeListener = nullptr;
@@ -497,9 +505,21 @@ void SyncAbleKvDB::StartCloudSyncer()
     }
 }
 
+TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetLocalTimeOffset();
+}
+
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {
+    QuerySyncObject query(option.query);
+    query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+    info.queryList.push_back(query);
+    info.table.push_back(CloudDbConstant::CLOUD_KV_TABLE_NAME);
     info.callback = onProcess;
     info.devices = option.devices;
     info.mode = option.mode;
@@ -509,11 +529,20 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     if (cloudSyncer_ == nullptr) {
-        LOGE("[SyncAbleKvDB][Sync] storageEngine was not initialized");
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
     CloudSyncer::CloudTaskInfo info;
     FillSyncInfo(option, onProcess, info);
     return cloudSyncer_->Sync(info);
+}
+
+int SyncAbleKvDB::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    return cloudSyncer_->SetCloudDB(cloudDBs);
 }
 }

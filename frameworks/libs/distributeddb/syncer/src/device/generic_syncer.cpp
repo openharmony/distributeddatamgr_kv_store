@@ -1189,4 +1189,17 @@ void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &met
         RuntimeContext::GetInstance()->ResetDBTimeChangeStatus(storage.GetIdentifier());
     }
 }
+
+int64_t GenericSyncer::GetLocalTimeOffset()
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr) {
+            return 0;
+        }
+        metadata = metadata_;
+    }
+    return metadata->GetLocalTimeOffset();
+}
 } // namespace DistributedDB

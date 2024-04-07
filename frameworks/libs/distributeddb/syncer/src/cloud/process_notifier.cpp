@@ -83,6 +83,8 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
         }
         syncProcess_.errCode = TransferDBErrno(taskInfo.errCode);
         syncProcess_.process = taskInfo.status;
+        multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode);
+        multiSyncProcess_[user_].process = taskInfo.status;
         if (user_.empty()) {
             for (const auto &device : devices_) {
                 // make sure only one device

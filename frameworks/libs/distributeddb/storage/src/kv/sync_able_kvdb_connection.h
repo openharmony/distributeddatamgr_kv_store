@@ -40,6 +40,8 @@ public:
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
 protected:
     int DisableManualSync();
 

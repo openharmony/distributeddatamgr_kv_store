@@ -255,4 +255,13 @@ int SyncerProxy::UpgradeSchemaVerInMeta()
     }
     return syncer_->UpgradeSchemaVerInMeta();
 }
+
+int64_t SyncerProxy::GetLocalTimeOffset()
+{
+    if (syncer_ == nullptr) {
+        LOGW("[SyncerProxy] get local time offset without syncer");
+        return 0;
+    }
+    return syncer_->GetLocalTimeOffset();
+}
 } // namespace DistributedDB
