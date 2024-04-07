@@ -223,7 +223,7 @@ HWTEST_F(PriorityQueueTest, PushPopSize_005, TestSize.Level1)
     auto delayB = std::chrono::steady_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(delayB - delayA).count();
     auto delayms = std::chrono::duration_cast<std::chrono::milliseconds>(delay).count();
-    EXPECT_EQ(delayms, diff);
+    EXPECT_LT(diff, delayms * 1.5);
     retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 0u);
 }

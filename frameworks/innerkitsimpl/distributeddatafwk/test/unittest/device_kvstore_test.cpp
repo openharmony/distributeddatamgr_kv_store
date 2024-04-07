@@ -1243,6 +1243,24 @@ HWTEST_F(DeviceKvStoreTest, SyncWithCondition001, TestSize.Level1)
 }
 
 /**
+* @tc.name: SyncWithCondition002
+* @tc.desc: sync device data with condition;
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DeviceKvStoreTest, SyncWithCondition002, TestSize.Level1)
+{
+    EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
+    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    DataQuery dataQuery;
+    dataQuery.KeyPrefix("name");
+    uint32_t delay = 0;
+    auto syncStatus = kvStore_->Sync(deviceIds, SyncMode::PUSH, dataQuery, nullptr, delay);
+    EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should not return success";
+}
+
+/**
  * @tc.name: SubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
