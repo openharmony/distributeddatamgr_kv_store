@@ -38,7 +38,7 @@ public:
 protected:
     void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
-    static void BlockSync(KvStoreNbDelegate *delegate);
+    static void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect);
     static DataBaseSchema GetDataBaseSchema();
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     KvStoreConfig config_;
@@ -89,14 +89,15 @@ void DistributedDBCloudKvTest::TearDown()
     virtualCloudDb_ = nullptr;
 }
 
-void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate)
+void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expect)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    auto callback = [expect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
+                EXPECT_EQ(item.second.errCode, expect);
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
                     finish = true;
@@ -178,8 +179,91 @@ void DistributedDBCloudKvTest::CloseKvStore(KvStoreNbDelegate *&delegate, const 
  */
 HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
 {
-    kvDelegatePtrS1_->Put({'k'}, {'v'});
-    BlockSync(kvDelegatePtrS1_);
-    BlockSync(kvDelegatePtrS2_);
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+}
+
+/**
+ * @tc.name: NormalSync002
+ * @tc.desc: Test normal push pull sync for add data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. store1 put (k1,v1) store2 put (k2,v2)
+     * @tc.expected: step1. both put ok
+     */
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key2, expectValue2), OK);
+    /**
+     * @tc.steps: step2. both store1 and store2 sync
+     * @tc.expected: step2. both sync ok, and store2 got (k1,v1) store1 not exist (k2,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK);
+    LOGW("Store1 sync end");
+    BlockSync(kvDelegatePtrS2_, OK);
+    LOGW("Store2 sync end");
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue1);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
+    /**
+     * @tc.steps: step3. store1 sync again
+     * @tc.expected: step3. sync ok store1 got (k2,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK);
+    LOGW("Store1 sync end");
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue2);
+}
+
+/**
+ * @tc.name: NormalSync003
+ * @tc.desc: Test normal pull sync for update data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. store1 put (k1,v1) store2 put (k1,v2)
+     * @tc.expected: step1. both put ok
+     */
+    Key key = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key, expectValue2), OK);
+    /**
+     * @tc.steps: step2. both store1 and store2 sync
+     * @tc.expected: step2. both sync ok and store2 got (k1,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue2);
+    /**
+     * @tc.steps: step2. store1 sync again
+     * @tc.expected: step2. sync ok and store1 got (k1,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue2);
 }
 }

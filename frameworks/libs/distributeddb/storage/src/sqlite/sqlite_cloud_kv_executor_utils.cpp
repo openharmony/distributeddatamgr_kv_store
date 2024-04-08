@@ -228,7 +228,7 @@ std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3
     std::string sql = QUERY_CLOUD_SYNC_DATA_LOG;
     std::string hashKey;
     if (existKey) {
-        sql += "AND key = ?";
+        sql += "OR key = ?";
     }
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     return res;
