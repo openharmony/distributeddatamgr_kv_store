@@ -631,6 +631,8 @@ int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const C
     switch (opType) {
         case OpType::INSERT:
             return FillCloudGid(db, data.insData, user, ignoreEmptyGid);
+        case OpType::UPDATE:
+            return FillCloudGid(db, data.updData, user, ignoreEmptyGid);
         default:
             return E_OK;
     }
