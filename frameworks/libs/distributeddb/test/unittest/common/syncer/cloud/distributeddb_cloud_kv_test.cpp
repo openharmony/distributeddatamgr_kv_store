@@ -266,4 +266,57 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync003, TestSize.Level0)
     EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue2);
 }
+
+/**
+ * @tc.name: NormalSync004
+ * @tc.desc: Test normal push sync for delete data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. store1 put (k1,v1) and both sync
+     * @tc.expected: step1. put ok and both sync ok
+     */
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    /**
+     * @tc.steps: step2. store1 delete (k1,v1) and both sync
+     * @tc.expected: step2. both put ok
+     */
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(key), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    actualValue.clear();
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), NOT_FOUND);
+    EXPECT_NE(actualValue, expectValue);
+}
+
+/**
+ * @tc.name: NormalSync005
+ * @tc.desc: Test normal push sync for add data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync005, TestSize.Level1)
+{
+    for (int i = 0; i < 60; ++i) { // sync 60 records
+        Key key = {'k'};
+        Value expectValue = {'v'};
+        key.push_back(static_cast<uint8_t>(i));
+        expectValue.push_back(static_cast<uint8_t>(i));
+        ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    }
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+}
 }

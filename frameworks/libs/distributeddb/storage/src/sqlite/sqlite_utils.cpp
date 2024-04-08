@@ -213,7 +213,6 @@ int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt 
         LOGE("Invalid db for statement");
         return -E_INVALID_DB;
     }
-
     // Prepare the new statement only when the input parameter is not null
     if (statement != nullptr) {
         return E_OK;

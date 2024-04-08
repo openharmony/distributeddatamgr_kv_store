@@ -46,6 +46,7 @@ typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
     std::vector<int64_t> existDataKey;
+    std::vector<Key> existDataHashKey;
     std::string user;
     TimeOffset timeOffset = 0;
 } DownloadData;

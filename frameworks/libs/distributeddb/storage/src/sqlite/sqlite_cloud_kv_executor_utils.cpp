@@ -328,7 +328,7 @@ int SqliteCloudKvExecutorUtils::ExecutePutCloudData(sqlite3 *db, bool isMemory,
             case OpType::INSERT: // fallthrough
             case OpType::UPDATE: // fallthrough
             case OpType::DELETE: // fallthrough
-                errCode = OperateCloudData(db, isMemory, downloadData, op, vBucket);
+                errCode = OperateCloudData(db, isMemory, index, op, downloadData);
                 break;
             case OpType::ONLY_UPDATE_GID:                // fallthrough
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO: // fallthrough
@@ -353,8 +353,8 @@ int SqliteCloudKvExecutorUtils::ExecutePutCloudData(sqlite3 *db, bool isMemory,
     return errCode;
 }
 
-int SqliteCloudKvExecutorUtils::OperateCloudData(sqlite3 *db, bool isMemory, const DownloadData &downloadData,
-    OpType opType, VBucket &data)
+int SqliteCloudKvExecutorUtils::OperateCloudData(sqlite3 *db, bool isMemory, int index, OpType opType,
+    DownloadData &downloadData)
 {
     sqlite3_stmt *logStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(opType), logStmt);
@@ -383,12 +383,7 @@ int SqliteCloudKvExecutorUtils::OperateCloudData(sqlite3 *db, bool isMemory, con
             LOGW("[SqliteCloudKvExecutorUtils] Reset data stmt failed %d opType %d", ret, static_cast<int>(opType));
         }
     });
-    DataItem item;
-    std::tie(errCode, item) = CloudStorageUtils::GetDataItemFromCloudData(data);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = BindStmt(logStmt, dataStmt, downloadData, opType, item);
+    errCode = BindStmt(logStmt, dataStmt, index, opType, downloadData);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -421,9 +416,13 @@ std::string SqliteCloudKvExecutorUtils::GetOperateLogSql(OpType opType)
     }
 }
 
-int SqliteCloudKvExecutorUtils::BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt,
-    const DownloadData &downloadData, OpType opType, DataItem &dataItem)
+int SqliteCloudKvExecutorUtils::BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, int index, OpType opType,
+    DownloadData &downloadData)
 {
+    auto [errCode, dataItem] = CloudStorageUtils::GetDataItemFromCloudData(downloadData.data[index]);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     std::string dev;
     (void)RuntimeContext::GetInstance()->GetLocalIdentity(dev);
     dev = DBCommon::TransferHashString(dev);
@@ -440,6 +439,7 @@ int SqliteCloudKvExecutorUtils::BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *da
         case OpType::UPDATE:
             return BindUpdateStmt(logStmt, dataStmt, downloadData.user, dataItem);
         case OpType::DELETE:
+            dataItem.hashKey = downloadData.existDataHashKey[index];
             return BindDeleteStmt(logStmt, dataStmt, downloadData.user, dataItem);
         default:
             return E_OK;

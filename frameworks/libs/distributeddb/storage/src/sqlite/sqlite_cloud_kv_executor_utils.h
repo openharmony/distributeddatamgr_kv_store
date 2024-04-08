@@ -59,15 +59,15 @@ private:
     static int ExecutePutCloudData(sqlite3 *db, bool isMemory, DownloadData &downloadData,
         std::map<int, int> &statisticMap);
 
-    static int OperateCloudData(sqlite3 *db, bool isMemory, const DownloadData &downloadData, OpType opType,
-        VBucket &data);
+    static int OperateCloudData(sqlite3 *db, bool isMemory, int index, OpType opType,
+        DownloadData &downloadData);
 
     static std::string GetOperateDataSql(OpType opType);
 
     static std::string GetOperateLogSql(OpType opType);
 
-    static int BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, const DownloadData &downloadData, OpType opType,
-        DataItem &dataItem);
+    static int BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, int index, OpType opType,
+        DownloadData &downloadData);
 
     static int BindInsertStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, const std::string &user,
         const DataItem &dataItem);

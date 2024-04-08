@@ -936,6 +936,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData = changedData;
         param.downloadData.opType.resize(param.downloadData.data.size());
         param.downloadData.existDataKey.resize(param.downloadData.data.size());
+        param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
         ret = SaveDataInTransaction(taskId, param);
         if (ret != E_OK) {
             return ret;
