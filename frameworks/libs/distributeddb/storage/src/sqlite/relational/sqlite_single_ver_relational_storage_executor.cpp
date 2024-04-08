@@ -56,6 +56,7 @@ static constexpr const int FLAG_INDEX = 5;
 static constexpr const int HASH_KEY_INDEX = 6;
 static constexpr const int CLOUD_GID_INDEX = 7;
 static constexpr const int VERSION_INDEX = 8;
+static constexpr const int STATUS_INDEX = 9;
 
 int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, const char *f)
 {
@@ -571,71 +572,9 @@ void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
         static_cast<int64_t>(sqlite3_column_int64(logStatement, FLAG_INDEX)));
     Bytes hashKey;
     (void)SQLiteUtils::GetColumnBlobValue(logStatement, HASH_KEY_INDEX, hashKey);
-    flags.insert_or_assign(HASH_KEY, hashKey);
-}
-
-bool IsAbnormalData(const VBucket &data)
-{
-    for (const auto &item : data) {
-        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
-        if (asset != nullptr) {
-            if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                (asset->status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                return true;
-            }
-            continue;
-        }
-        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
-        if (assets == nullptr) {
-            continue;
-        }
-        for (const auto &oneAsset : *assets) {
-            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
-{
-    int64_t *rowid = std::get_if<int64_t>(&flags[ROWID]);
-    int64_t *flag = std::get_if<int64_t>(&flags[FLAG]);
-    int64_t *timeStamp = std::get_if<int64_t>(&flags[TIMESTAMP]);
-    Bytes *hashKey = std::get_if<Bytes>(&flags[HASH_KEY]);
-    if (rowid == nullptr || flag == nullptr || timeStamp == nullptr || hashKey == nullptr) {
-        return -E_INVALID_DATA;
-    }
-    if ((static_cast<uint64_t>(*flag) & DataItem::DELETE_FLAG) != 0) {
-        cloudSyncData.delData.record.push_back(data);
-        cloudSyncData.delData.extend.push_back(log);
-        cloudSyncData.delData.hashKey.push_back(*hashKey);
-        cloudSyncData.delData.timestamp.push_back(*timeStamp);
-        cloudSyncData.delData.rowid.push_back(*rowid);
-    } else {
-        bool isInsert = log.find(CloudDbConstant::GID_FIELD) == log.end();
-        if (data.empty()) {
-            LOGE("The cloud data is empty, isInsert:%d", isInsert);
-            return -E_INVALID_DATA;
-        }
-        if (IsAbnormalData(data)) {
-            LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
-            cloudSyncData.ignoredCount++;
-            return -E_IGNORE_DATA;
-        }
-        CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
-        opData.record.push_back(data);
-        opData.rowid.push_back(*rowid);
-        VBucket asset;
-        CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
-        opData.timestamp.push_back(*timeStamp);
-        opData.assets.push_back(asset);
-        opData.extend.push_back(log);
-        opData.hashKey.push_back(*hashKey);
-    }
-    return E_OK;
+    flags.insert_or_assign(CloudDbConstant::HASH_KEY, hashKey);
+    flags.insert_or_assign(CloudDbConstant::STATUS,
+        static_cast<int64_t>(sqlite3_column_int(logStatement, STATUS_INDEX)));
 }
 
 void GetCloudGid(sqlite3_stmt *logStatement, std::vector<std::string> &cloudGid)
@@ -1732,7 +1671,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         for (size_t cid = 0; cid < tableSchema_.fields.size(); ++cid) {
             Type cloudValue;
             errCode = SQLiteRelationalUtils::GetCloudValueByType(statement,
-                tableSchema_.fields[cid].type, cid + 9, cloudValue); // 9 is the start index of query cloud data
+                tableSchema_.fields[cid].type, cid + STATUS_INDEX + 1, cloudValue);
             if (errCode != E_OK) {
                 return errCode;
             }
@@ -1745,7 +1684,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
     }
 
     if (IsGetCloudDataContinue(stepNum, totalSize, maxSize)) {
-        errCode = IdentifyCloudType(cloudDataResult, data, log, extraLog);
+        errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
     }
@@ -1874,10 +1813,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     if (opType == OpType::ONLY_UPDATE_GID) {
         updateLogSql += "cloud_gid = ?";
         updateColName.push_back(CloudDbConstant::GID_FIELD);
+        CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
     } else if (opType == OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO) {
         updateLogSql += "flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK); // clear 2th bit of flag
+        CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
     } else if (opType == OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE) {
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
+        CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
     }  else if (opType == OpType::UPDATE_TIMESTAMP) {
         updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) +
             ", timestamp = ?, cloud_gid = '', version = '', sharing_resource = ''";
@@ -1885,24 +1827,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     } else if (opType == OpType::CLEAR_GID) {
         updateLogSql += "cloud_gid = '', version = '', sharing_resource = '', flag = flag & " +
             std::to_string(SET_FLAG_ZERO_MASK);
+    } else if (opType == OpType::LOCKED_NOT_HANDLE) {
+        updateLogSql += DBConstant::TO_LOCAL_CHANGE;
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
         } else {
-            updateLogSql += GetUpdateDataFlagSql() + ", cloud_gid = ?, ";
+            updateLogSql += GetUpdateDataFlagSql() + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
+            CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
         }
-        updateLogSql += "device = 'cloud', timestamp = ?";
+        updateLogSql += ", device = 'cloud', timestamp = ?";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
-    }
-    if (opType != OpType::DELETE && opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
-        // only share table need to set version
-        if (CloudStorageUtils::IsSharedTable(tableSchema)) {
-            updateLogSql += ", version = ?";
-            updateColName.push_back(CloudDbConstant::VERSION_FIELD);
-        }
-        updateLogSql += ", sharing_resource = ?";
-        updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
     }
 
     int errCode = AppendUpdateLogRecordWhereSqlCondition(tableSchema, vBucket, updateLogSql);

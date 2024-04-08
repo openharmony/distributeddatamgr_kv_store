@@ -41,6 +41,11 @@ public:
     static constexpr const char *CLOUD_OWNER = "cloud_owner";
     static constexpr const char *CLOUD_PRIVILEGE = "cloud_privilege";
     static constexpr const char *DEFAULT_CLOUD_DEV = "cloud";
+
+    // use for inner
+    static constexpr const char *HASH_KEY = "hash_key";
+    static constexpr const char *STATUS = "STATUS";
+
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp

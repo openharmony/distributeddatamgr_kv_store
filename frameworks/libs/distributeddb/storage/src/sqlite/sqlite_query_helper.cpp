@@ -1011,7 +1011,8 @@ std::string GetRelationalCloudSyncDataQueryHeader(const std::vector<Field> &fiel
         "b.flag,"
         "b.hash_key,"
         "b.cloud_gid,"
-        "b.version,";
+        "b.version,"
+        "b.status,";
     if (fields.empty()) {  // For query check. If column count changed, can be discovered.
         sql += "a.*";
     } else {
@@ -1174,6 +1175,10 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql
         " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+    if (queryObjNodes_.empty()) {
+        // a data that should download is locked and unlocked before upload, it cannot be uploaded in normal sync.
+        sql += " AND b.status != 1 ";
+    }
 }
 
 void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &sql)

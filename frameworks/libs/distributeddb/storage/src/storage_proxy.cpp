@@ -480,18 +480,18 @@ void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)
     store_->SetCloudTaskConfig(config);
 }
 
-int StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid, const Bytes &hashKey,
-    VBucket &assets)
+std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
+    const Bytes &hashKey, VBucket &assets)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return { -E_INVALID_DB, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     TableSchema tableSchema;
     int errCode = store_->GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
         LOGE("get cloud table schema failed: %d", errCode);
-        return errCode;
+        return { errCode, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     return store_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
 }

@@ -34,6 +34,7 @@ struct CloudSyncData {
     CloudSyncBatch insData;
     CloudSyncBatch updData;
     CloudSyncBatch delData;
+    CloudSyncBatch lockData;
     bool isCloudForcePushStrategy = false;
     bool isShared = false;
     int ignoredCount = 0;

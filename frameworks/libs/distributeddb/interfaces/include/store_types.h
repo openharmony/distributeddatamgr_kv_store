@@ -83,6 +83,7 @@ enum DBStatus {
     CLOUD_RECORD_EXIST_CONFLICT, // this error happen in Download/BatchInsert/BatchUpdate
     REMOTE_ASSETS_FAIL, // remove local assets failed
     WITH_INVENTORY_DATA, // inventory data exists when setTracker for the first time
+    WAIT_COMPENSATED_SYNC, // need to do compensated sync
 };
 
 struct KvStoreConfig {

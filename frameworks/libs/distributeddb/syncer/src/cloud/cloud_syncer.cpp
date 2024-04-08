@@ -1046,6 +1046,13 @@ int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &delete
 
     if (!uploadData.insData.record.empty() && !uploadData.insData.extend.empty()) {
         errCode = BatchInsert(insertInfo, uploadData, innerProcessInfo);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+
+    if (!uploadData.lockData.rowid.empty()) {
+        errCode = storageProxy_->FillCloudLogAndAsset(OpType::LOCKED_NOT_HANDLE, uploadData);
     }
     return errCode;
 }
@@ -1843,7 +1850,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
     // generate compensated sync
     if (!info.priorityTask) {
-        GenerateCompensatedSync();
+        GenerateCompensatedSync(nullptr);
     }
 }
 

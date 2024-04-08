@@ -1527,7 +1527,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
     std::string gid;
     Bytes hashKey;
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_INVALID_ARGS);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, -E_INVALID_ARGS);
     EXPECT_EQ(assets.size(), 0u);
 
     /**
@@ -1539,7 +1539,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
     UpdateLocalAsset(g_tableName, asset, 2L); // 2 is rowid
     std::string pk = "2";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), E_OK);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, E_OK);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::UPDATE));
 
     /**
@@ -1549,7 +1549,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
     assets = {};
     pk = "11";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_NOT_FOUND);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, -E_NOT_FOUND);
     EXPECT_EQ(assets.size(), 0u);
 
     /**
@@ -1559,7 +1559,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
     gid = "2";
     pk = {};
     assets = {};
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), E_OK);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, E_OK);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::UPDATE));
 
     /**
@@ -1568,7 +1568,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
      */
     gid = "11";
     assets = {};
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_NOT_FOUND);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, -E_NOT_FOUND);
     EXPECT_EQ(assets.size(), 0u);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
@@ -1592,7 +1592,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     std::string pk = "2";
     hashKey.assign(pk.begin(), pk.end());
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), E_OK);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, E_OK);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::INSERT));
 
     /**
@@ -1603,7 +1603,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     gid = "11";
     pk = "1";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_CLOUD_GID_MISMATCH);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, -E_CLOUD_GID_MISMATCH);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::NORMAL));
 
     /**
@@ -1613,7 +1613,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     assets = {};
     pk = "12";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets), -E_NOT_FOUND);
+    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, gid, hashKey, assets).first, -E_NOT_FOUND);
     EXPECT_EQ(assets.size(), 0u);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }

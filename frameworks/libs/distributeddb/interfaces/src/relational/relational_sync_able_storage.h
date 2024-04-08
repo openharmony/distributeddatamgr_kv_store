@@ -197,8 +197,8 @@ public:
 
     void SetCloudTaskConfig(const CloudTaskConfig &config) override;
 
-    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets) override;
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+        const Bytes &hashKey, VBucket &assets) override;
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
@@ -226,7 +226,7 @@ protected:
         const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid);
 
     int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
-        const CloudSyncBatch &updateData);
+        const CloudSyncBatch &updateData, bool isLock = false);
 
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);

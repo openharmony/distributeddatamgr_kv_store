@@ -281,7 +281,8 @@ bool CloudSyncUtils::CheckCloudSyncDataEmpty(const CloudSyncData &uploadData)
 {
     return uploadData.insData.extend.empty() && uploadData.insData.record.empty() &&
         uploadData.updData.extend.empty() && uploadData.updData.record.empty() &&
-        uploadData.delData.extend.empty() && uploadData.delData.record.empty();
+        uploadData.delData.extend.empty() && uploadData.delData.record.empty() &&
+        uploadData.lockData.rowid.empty();
 }
 
 void CloudSyncUtils::ModifyCloudDataTime(DistributedDB::VBucket &data)

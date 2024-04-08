@@ -24,6 +24,7 @@
 namespace DistributedDB {
 class CloudStorageUtils final {
 public:
+
     static int BindInt64(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindBool(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindDouble(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
@@ -99,6 +100,8 @@ public:
     static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
     static std::string GetUpdateLockChangedSql();
     static std::string GetDeleteLockChangedSql();
+    static void AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
+        std::vector<std::string> &updateColName);
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
@@ -158,6 +161,12 @@ public:
 
     static int BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt);
+
+    static int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
+
+    static bool IsAbnormalData(const VBucket &data);
+
+    static bool IsDataLocked(uint32_t status);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

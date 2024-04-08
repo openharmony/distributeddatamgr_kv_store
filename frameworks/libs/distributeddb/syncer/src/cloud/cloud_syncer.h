@@ -62,7 +62,7 @@ public:
 
     std::string GetIdentify() const override;
 
-    void GenerateCompensatedSync();
+    void GenerateCompensatedSync(const SyncProcessCallback &onProcess);
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -320,8 +320,8 @@ protected:
     int DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
-    int GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
-        VBucket &dbAssets);
+    std::pair<int, uint32_t> GetDBAssets(bool isSharedTable, const InnerProcessInfo &info,
+        const DownloadItem &downloadItem, VBucket &dbAssets);
 
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);

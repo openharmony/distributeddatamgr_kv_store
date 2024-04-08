@@ -13,11 +13,15 @@
  * limitations under the License.
  */
 #include "cloud/cloud_merge_strategy.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
+    if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
+        return OpType::LOCKED_NOT_HANDLE;
+    }
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
     if (!existInLocal) {
@@ -28,16 +32,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
         return OpType::INSERT;
     }
     if (localInfo.timestamp > cloudInfo.timestamp) {
-        if (localInfo.cloudGid.empty()) {
-            return isCloudDelete ? OpType::NOT_HANDLE : (isLocalDelete ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
-        }
-        if (isCloudDelete) {
-            return OpType::CLEAR_GID;
-        }
-        if (IsSharingResourceChanged(cloudInfo, localInfo)) {
-            return OpType::ONLY_UPDATE_GID;
-        }
-        return OpType::NOT_HANDLE;
+        return TagLocallyNewer(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
     }
     if (isCloudDelete) {
         return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
@@ -62,5 +57,20 @@ bool CloudMergeStrategy::JudgeUpdateCursor()
 bool CloudMergeStrategy::JudgeUpload()
 {
     return true;
+}
+
+OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo,
+    bool isCloudDelete, bool isLocalDelete)
+{
+    if (localInfo.cloudGid.empty()) {
+        return isCloudDelete ? OpType::NOT_HANDLE : (isLocalDelete ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
+    }
+    if (isCloudDelete) {
+        return OpType::CLEAR_GID;
+    }
+    if (IsSharingResourceChanged(cloudInfo, localInfo)) {
+        return OpType::ONLY_UPDATE_GID;
+    }
+    return OpType::NOT_HANDLE;
 }
 }

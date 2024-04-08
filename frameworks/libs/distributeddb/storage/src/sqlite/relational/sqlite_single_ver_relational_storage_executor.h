@@ -159,13 +159,11 @@ public:
     void SetLogicDelete(bool isLogicDelete);
     int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
 
-    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets);
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+        const Bytes &hashKey, VBucket &assets);
 
     int FillHandleWithOpType(const OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid,
         const TableSchema &tableSchema);
-
-    int GetDbAssets(const TableSchema &tableSchema, const VBucket &vBucket, VBucket &dbAsset);
 
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
@@ -185,6 +183,8 @@ public:
         const std::set<std::string> &gidFilters);
 
     int CheckInventoryData(const std::string &tableName);
+
+    int UpdateRecordStatus(const std::string &tableName, const std::string &status, const Key &hashKey);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -423,7 +423,8 @@ private:
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
-    static constexpr const char *FLAG_IS_WAIT_COMPENSATED_SYNC = "flag & 0x10 != 0";
+    static constexpr const char *FLAG_IS_WAIT_COMPENSATED_SYNC =
+        "(a.flag & 0x10 != 0 and a.status = 0) or a.status = 1";
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

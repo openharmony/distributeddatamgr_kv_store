@@ -1621,22 +1621,22 @@ bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
     return allowLogicDelete_ && logicDelete_;
 }
 
-int RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
-    const Bytes &hashKey, VBucket &assets)
+std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,
+    const std::string &gid, const Bytes &hashKey, VBucket &assets)
 {
     if (gid.empty() && hashKey.empty()) {
         LOGE("both gid and hashKey are empty.");
-        return -E_INVALID_ARGS;
+        return { -E_INVALID_ARGS, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     if (transactionHandle_ == nullptr) {
         LOGE("the transaction has not been started");
-        return -E_INVALID_DB;
+        return { -E_INVALID_DB, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
-    int errCode = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    auto [errCode, status] = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
     if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
         LOGE("get assets by gid or hashKey failed. %d", errCode);
     }
-    return errCode;
+    return { errCode, status };
 }
 
 int RelationalSyncAbleStorage::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -1771,21 +1771,24 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData);
     } else if (opType == OpType::DELETE) {
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData);
+    } else if (opType == OpType::LOCKED_NOT_HANDLE) {
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.lockData, true);
     }
     return errCode;
 }
 
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName, const CloudSyncBatch &updateData)
+    const std::string &tableName, const CloudSyncBatch &updateData, bool isLock)
 {
-    if (updateData.timestamp.size() != updateData.extend.size()) {
-        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
-            updateData.extend.size(), updateData.timestamp.size());
-        return -E_INVALID_ARGS;
-    }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record)) {
+        if (DBCommon::IsRecordError(record) || isLock) {
+            int errCode = handle->UpdateRecordStatus(tableName, DBConstant::TO_LOCAL_CHANGE,
+                updateData.hashKey[i]);
+            if (errCode != E_OK) {
+                LOGE("[RDBStorage] Update record status failed in index %zu", i);
+                return errCode;
+            }
             continue;
         }
         const auto &rowId = updateData.rowid[i];

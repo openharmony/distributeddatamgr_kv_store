@@ -112,8 +112,8 @@ public:
 
     void SetCloudTaskConfig(const CloudTaskConfig &config);
 
-    int GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets);
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
+        const Bytes &hashKey, VBucket &assets);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 

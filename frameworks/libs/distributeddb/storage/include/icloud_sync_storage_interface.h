@@ -17,6 +17,7 @@
 #define ICLOUD_SYNC_STORAGE_INTERFACE_H
 
 #include "cloud/cloud_db_types.h"
+#include "cloud/cloud_store_types.h"
 #include "cloud/iAssetLoader.h"
 #include "data_transformer.h"
 #include "query_sync_object.h"
@@ -37,6 +38,7 @@ enum class OpType : uint8_t {
     CLEAR_GID,
     UPDATE_VERSION,
     SET_UPLOADING,
+    LOCKED_NOT_HANDLE,
     NOT_HANDLE
 };
 
@@ -127,10 +129,10 @@ public:
     {
     }
 
-    virtual int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets)
+    virtual std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+        const Bytes &hashKey, VBucket &assets)
     {
-        return E_OK;
+        return { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
 
     virtual int SetIAssetLoader([[gnu::unused]] const std::shared_ptr<IAssetLoader> &loader)
