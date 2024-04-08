@@ -185,13 +185,6 @@ public:
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr int32_t DEFAULT_ROW_ID = -1;
-
-    static constexpr const char *TO_LOCAL_CHANGE = "status = CASE WHEN status == 2 THEN 3 ELSE status END";
-    static constexpr const char *UNLOADING_TO_UNLOCK = "status = CASE WHEN status == 1 THEN 0 ELSE status END";
-    static constexpr const char *TO_UNLOCK = "status = CASE WHEN status == 2 THEN 0 WHEN status == 3 THEN 1"
-        " ELSE status END";
-    static constexpr const char *TO_LOCK = "status = CASE WHEN status == 0 THEN 2 WHEN status == 1 THEN 3"
-        " ELSE status END";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

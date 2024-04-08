@@ -44,7 +44,18 @@ public:
 
     // use for inner
     static constexpr const char *HASH_KEY = "hash_key";
-    static constexpr const char *STATUS = "STATUS";
+    static constexpr const char *STATUS = "status";
+
+    // data status changes to lock_change
+    static constexpr const char *TO_LOCAL_CHANGE = "status = CASE WHEN status == 2 THEN 3 ELSE status END";
+    // data status changes from unlocking to unlock
+    static constexpr const char *UNLOCKING_TO_UNLOCK = "status = CASE WHEN status == 1 THEN 0 ELSE status END";
+    // data status changes to unlock
+    static constexpr const char *TO_UNLOCK = "status = CASE WHEN status == 2 THEN 0 WHEN status == 3 THEN 1"
+        " ELSE status END";
+    // data status changes to lock
+    static constexpr const char *TO_LOCK = "status = CASE WHEN status == 0 THEN 2 WHEN status == 1 THEN 3"
+        " ELSE status END";
 
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision

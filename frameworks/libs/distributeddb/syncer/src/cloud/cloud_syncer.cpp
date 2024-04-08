@@ -1850,7 +1850,8 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
     // generate compensated sync
     if (!info.priorityTask) {
-        GenerateCompensatedSync(nullptr);
+        CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo();
+        GenerateCompensatedSync(taskInfo);
     }
 }
 

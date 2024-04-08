@@ -1943,7 +1943,7 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
         return -E_CLOUD_ERROR;
     }
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
-        " SET flag=flag&(~0x20), " + DBConstant::UNLOADING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
+        " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {

@@ -555,4 +555,16 @@ void CloudSyncUtils::InsertOrReplaceChangedDataByType(ChangeType type, std::vect
     // insert new changeData
     changedData.primaryData[type].emplace_back(std::move(pkVal));
 }
+
+CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
+{
+    CloudSyncer::CloudTaskInfo taskInfo;
+    taskInfo.priorityTask = true;
+    taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
+    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
+    taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    taskInfo.callback = nullptr;
+    taskInfo.users.push_back("");
+    return taskInfo;
+}
 }

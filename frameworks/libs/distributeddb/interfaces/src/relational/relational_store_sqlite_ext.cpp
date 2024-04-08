@@ -19,6 +19,8 @@
 #include <thread>
 #include <vector>
 
+#include "cloud/cloud_db_constant.h"
+#include "concurrent_adapter.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "kv_store_errno.h"
@@ -55,6 +57,8 @@
 
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
+#include "cloud/cloud_db_constant.h"
+
 using namespace DistributedDB::OS;
 #endif
 using namespace DistributedDB;
@@ -1074,7 +1078,7 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
     }
 
     bool isExists = false;
-    if (sqlite3_step(stmt) == SQLITE_ROW && (sqlite3_column_int(stmt, 0) > 0)) {
+    if ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0)) {
         isExists = true;
     }
     (void)sqlite3_finalize(stmt);
@@ -1084,8 +1088,8 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
 int HandleDataStatus(sqlite3 *db, const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
     bool isLock)
 {
-    std::string sql = "UPDATE " + tableName + " SET " + (isLock ? DBConstant::TO_LOCK : DBConstant::TO_UNLOCK) +
-        " WHERE hash_key in (";
+    std::string sql = "UPDATE " + tableName + " SET " + (isLock ? CloudDbConstant::TO_LOCK :
+        CloudDbConstant::TO_UNLOCK) + " WHERE hash_key in (";
     for (size_t i = 0; i < hashKey.size(); i++) {
         sql += "?,";
     }
@@ -1127,13 +1131,7 @@ DistributedDB::DBStatus HandleDataLock(const std::string &tableName, const std::
     sqlite3 *db, bool isLock)
 {
     std::string fileName;
-    if (!GetDbFileName(db, fileName)) {
-        return DistributedDB::INVALID_ARGS;
-    }
-    if (tableName.empty()) {
-        return DistributedDB::INVALID_ARGS;
-    }
-    if (hashKey.empty()) {
+    if (!GetDbFileName(db, fileName) || tableName.empty() || hashKey.empty()) {
         return DistributedDB::INVALID_ARGS;
     }
     std::string logTblName = DBCommon::GetLogTableName(tableName);

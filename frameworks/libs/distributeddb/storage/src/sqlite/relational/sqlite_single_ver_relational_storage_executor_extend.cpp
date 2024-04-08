@@ -1022,7 +1022,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordStatus(const std::stri
         return errCode;
     }
     int ret = E_OK;
-    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, hashKey);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, hashKey); // 1 is bind index of hashKey
     if (errCode != E_OK) {
         LOGE("[Storage Executor] Bind hashKey to update record status stmt failed, %d", errCode);
         SQLiteUtils::ResetStatement(stmt, true, ret);

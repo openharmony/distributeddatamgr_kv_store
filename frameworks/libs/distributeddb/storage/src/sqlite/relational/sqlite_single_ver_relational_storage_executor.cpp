@@ -1828,7 +1828,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "cloud_gid = '', version = '', sharing_resource = '', flag = flag & " +
             std::to_string(SET_FLAG_ZERO_MASK);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
-        updateLogSql += DBConstant::TO_LOCAL_CHANGE;
+        updateLogSql += CloudDbConstant::TO_LOCAL_CHANGE;
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));

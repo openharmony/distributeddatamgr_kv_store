@@ -24,7 +24,6 @@
 namespace DistributedDB {
 class CloudStorageUtils final {
 public:
-
     static int BindInt64(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindBool(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindDouble(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);

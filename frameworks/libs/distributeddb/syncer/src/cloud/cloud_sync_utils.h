@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <string>
 #include "cloud/cloud_store_types.h"
-#include "icloud_syncer.h"
+#include "cloud_syncer.h"
 #include "icloud_sync_storage_interface.h"
 
 namespace DistributedDB {
@@ -93,6 +93,8 @@ public:
     static bool CheckIfContainsInsertAssets(const Type &assetData);
 
     static void UpdateAssetsFlag(CloudSyncData &uploadData);
+
+    static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo();
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

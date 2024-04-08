@@ -1783,7 +1783,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
         if (DBCommon::IsRecordError(record) || isLock) {
-            int errCode = handle->UpdateRecordStatus(tableName, DBConstant::TO_LOCAL_CHANGE,
+            int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
                 updateData.hashKey[i]);
             if (errCode != E_OK) {
                 LOGE("[RDBStorage] Update record status failed in index %zu", i);

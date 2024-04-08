@@ -25,6 +25,7 @@
 #include "sqlite_log_table_manager.h"
 #include "sqlite_relational_store_connection.h"
 #include "storage_engine_manager.h"
+#include "cloud_sync_utils.h"
 
 namespace DistributedDB {
 namespace {
@@ -1091,7 +1092,9 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
         return errCode;
     }
     if (option.compensatedSyncOnly) {
-        cloudSyncer_->GenerateCompensatedSync(onProcess);
+        CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo();
+        info.callback = onProcess;
+        cloudSyncer_->GenerateCompensatedSync(info);
         return E_OK;
     }
     CloudSyncer::CloudTaskInfo info;

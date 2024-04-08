@@ -62,7 +62,8 @@ public:
 
     std::string GetIdentify() const override;
 
-    void GenerateCompensatedSync(const SyncProcessCallback &onProcess);
+    void GenerateCompensatedSync(CloudTaskInfo &taskInfo);
+
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;

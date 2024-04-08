@@ -237,7 +237,7 @@ std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const Inne
     const DownloadItem &downloadItem, VBucket &dbAssets)
 {
     std::pair<int, uint32_t> res = { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
-    auto [errCode, status] = res;
+    auto &[errCode, status] = res;
     if (!isSharedTable) {
         errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
     }
@@ -363,7 +363,7 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
     return errCode == E_OK ? ret : errCode;
 }
 
-void CloudSyncer::GenerateCompensatedSync(const SyncProcessCallback &onProcess)
+void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
     int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery);
@@ -375,12 +375,6 @@ void CloudSyncer::GenerateCompensatedSync(const SyncProcessCallback &onProcess)
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
     }
-    CloudTaskInfo taskInfo;
-    taskInfo.priorityTask = true;
-    taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
-    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
-    taskInfo.callback = onProcess;
-    taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     for (const auto &query : syncQuery) {
         taskInfo.table.push_back(query.GetRelationTableName());
         taskInfo.queryList.push_back(query);
