@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "db_constant.h"
+#include "store_observer.h"
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -183,5 +184,8 @@ struct DeviceTimeInfo {
     TimeOffset systemTimeOffset = 0; // raw system time offset
     int64_t rtt = 0;
 };
+
+using ObserverAction =
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

@@ -402,4 +402,15 @@ int32_t GenericKvDBConnection::GetTaskCount()
 {
     return 0;
 }
+
+int GenericKvDBConnection::RegisterObserverAction([[gnu::unused]] const KvStoreObserver *observer,
+    [[gnu::unused]] const ObserverAction &action)
+{
+    return E_OK;
+}
+
+int GenericKvDBConnection::UnRegisterObserverAction([[gnu::unused]] const KvStoreObserver *observer)
+{
+    return E_OK;
+}
 }

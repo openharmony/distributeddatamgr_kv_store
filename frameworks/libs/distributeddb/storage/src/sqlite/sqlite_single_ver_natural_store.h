@@ -204,6 +204,10 @@ public:
     TimeOffset GetLocalTimeOffsetForCloud() override;
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
+
+    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
+
+    int UnRegisterObserverAction(const KvStoreObserver *observer);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 

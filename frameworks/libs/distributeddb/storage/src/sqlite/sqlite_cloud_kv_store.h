@@ -77,6 +77,10 @@ public:
     void SetUser(const std::string &user) override;
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
+
+    void RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
+
+    void UnRegisterObserverAction(const KvStoreObserver *observer);
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 
@@ -89,6 +93,9 @@ private:
     SQLiteSingleVerStorageExecutor *transactionHandle_;
 
     std::string user_;
+
+    std::mutex observerMapMutex_;
+    std::map<const KvStoreObserver *, ObserverAction> cloudObserverMap_;
 };
 }
 #endif // SQLITE_CLOUD_STORE_H

@@ -94,6 +94,10 @@ public:
     int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 
     int32_t GetTaskCount() override;
+
+    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
+
+    int UnRegisterObserverAction(const KvStoreObserver *observer) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

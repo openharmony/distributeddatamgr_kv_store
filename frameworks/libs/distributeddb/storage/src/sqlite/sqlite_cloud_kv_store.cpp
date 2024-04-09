@@ -14,6 +14,7 @@
  */
 #include "sqlite_cloud_kv_store.h"
 
+#include "runtime_context.h"
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_single_ver_continue_token.h"
 
@@ -240,6 +241,28 @@ int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData 
 void SqliteCloudKvStore::TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
     bool isChangedData)
 {
+    std::vector<ObserverAction> triggerActions;
+    {
+        std::lock_guard<std::mutex> autoLock(observerMapMutex_);
+        for (const auto &item : cloudObserverMap_) {
+            if (item.second) {
+                triggerActions.push_back(item.second);
+            }
+        }
+    }
+    if (triggerActions.empty()) {
+        return;
+    }
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([triggerActions, deviceName,
+        changedData, isChangedData]() {
+        for (const auto &item : triggerActions) {
+            ChangedData observerChangeData = changedData;
+            item(deviceName, std::move(observerChangeData), isChangedData);
+        }
+    });
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvStore] Trigger observer action failed %d", errCode);
+    }
 }
 
 std::string SqliteCloudKvStore::GetIdentify() const
@@ -287,5 +310,17 @@ std::pair<sqlite3 *, bool> SqliteCloudKvStore::GetTransactionDbHandleAndMemorySt
     sqlite3 *db = nullptr;
     (void)transactionHandle_->GetDbHandle(db);
     return {db, transactionHandle_->IsMemory()};
+}
+
+void SqliteCloudKvStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)
+{
+    std::lock_guard<std::mutex> autoLock(observerMapMutex_);
+    cloudObserverMap_[observer] = action;
+}
+
+void SqliteCloudKvStore::UnRegisterObserverAction(const KvStoreObserver *observer)
+{
+    std::lock_guard<std::mutex> autoLock(observerMapMutex_);
+    cloudObserverMap_.erase(observer);
 }
 }

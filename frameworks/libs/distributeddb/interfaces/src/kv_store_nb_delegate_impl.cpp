@@ -63,6 +63,7 @@ namespace {
     };
 
     constexpr const char *INVALID_CONNECTION = "[KvStoreNbDelegate] Invalid connection for operation";
+    constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
 }
 
 KvStoreNbDelegateImpl::KvStoreNbDelegateImpl(IKvDBConnection *conn, const std::string &storeId)
@@ -374,7 +375,15 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return INVALID_ARGS;
     }
+    uint64_t rawMode = DBCommon::EraseBit(mode, OBSERVER_CHANGES_MASK);
+    if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
+        return RegisterCloudObserver(key, mode, observer);
+    }
+    return RegisterDeviceObserver(key, mode, observer);
+}
 
+DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
+{
     if (!ParamCheckUtils::CheckObserver(key, mode)) {
         LOGE("Register nb observer by illegal mode or key size!");
         return INVALID_ARGS;
@@ -416,7 +425,38 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     }
 
     observerMap_.insert(std::pair<const KvStoreObserver *, const KvDBObserverHandle *>(observer, observerHandle));
-    LOGI("[KvStoreNbDelegate] RegisterObserver ok mode:%u", mode);
+    LOGI("[KvStoreNbDelegate] RegisterDeviceObserver ok mode:%u", mode);
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode,
+    KvStoreObserver *observer)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
+    if (cloudObserverMap_.find(observer) != cloudObserverMap_.end() && cloudObserverMap_[observer] == mode) {
+        LOGE("[KvStoreNbDelegate] Cloud observer has been already registered!");
+        return ALREADY_SET;
+    }
+
+    ObserverAction action = [observer](const std::string &device, ChangedData &&changedData, bool isChangedData) {
+        if (isChangedData) {
+            LOGI("[KvStoreNbDelegate] Begin trigger on change");
+            observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
+            LOGI("[KvStoreNbDelegate] End trigger on change");
+        }
+    };
+    int errCode = conn_->RegisterObserverAction(observer, action);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] RegisterCloudObserver failed:%d!", errCode);
+        return DB_ERROR;
+    }
+    cloudObserverMap_[observer] = mode;
+    LOGI("[KvStoreNbDelegate] RegisterCloudObserver ok mode:%u", mode);
     return OK;
 }
 
@@ -431,6 +471,13 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
         return DB_ERROR;
     }
 
+    DBStatus cloudRet = UnRegisterCloudObserver(observer);
+    DBStatus devRet = UnRegisterDeviceObserver(observer);
+    return cloudRet == OK ? cloudRet : devRet;
+}
+
+DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const KvStoreObserver *observer)
+{
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
     if (iter == observerMap_.end()) {
@@ -445,6 +492,23 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
         return DB_ERROR;
     }
     observerMap_.erase(iter);
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const KvStoreObserver *observer)
+{
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
+    auto iter = cloudObserverMap_.find(observer);
+    if (iter == cloudObserverMap_.end()) {
+        LOGW("[KvStoreNbDelegate] [%s] CloudObserver has not been registered!", storeId_.c_str());
+        return NOT_FOUND;
+    }
+    int errCode = conn_->UnRegisterObserverAction(observer);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] UnRegisterCloudObserver failed:%d!", errCode);
+        return DB_ERROR;
+    }
+    cloudObserverMap_.erase(iter);
     return OK;
 }
 

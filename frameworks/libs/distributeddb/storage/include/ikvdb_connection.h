@@ -23,6 +23,7 @@
 #include "db_types.h"
 #include "icloud_db.h"
 #include "iconnection.h"
+#include "kv_store_observer.h"
 #include "macro_utils.h"
 #include "query.h"
 #include "store_types.h"
@@ -149,6 +150,10 @@ public:
     virtual int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) = 0;
 
     virtual int32_t GetTaskCount() = 0;
+
+    virtual int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) = 0;
+
+    virtual int UnRegisterObserverAction(const KvStoreObserver *observer) = 0;
 };
 } // namespace DistributedDB
 

@@ -105,6 +105,10 @@ public:
     int UpdateKey(const UpdateKeyCallback &callback) override;
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
+    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
+
+    int UnRegisterObserverAction(const KvStoreObserver *observer) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

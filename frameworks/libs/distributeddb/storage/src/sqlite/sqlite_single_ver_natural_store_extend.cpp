@@ -542,4 +542,24 @@ TimeOffset SQLiteSingleVerNaturalStore::GetLocalTimeOffsetForCloud()
 {
     return GetLocalTimeOffset();
 }
+
+int SQLiteSingleVerNaturalStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    sqliteCloudKvStore_->RegisterObserverAction(observer, action);
+    return E_OK;
+}
+
+int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(const KvStoreObserver *observer)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    sqliteCloudKvStore_->UnRegisterObserverAction(observer);
+    return E_OK;
+}
 }

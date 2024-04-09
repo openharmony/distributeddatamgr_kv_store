@@ -1868,5 +1868,26 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::
     }
     return naturalStore->SetCloudDbSchema(schema);
 }
+
+int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(const KvStoreObserver *observer,
+    const ObserverAction &action)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->RegisterObserverAction(observer, action);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const KvStoreObserver *observer)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->UnRegisterObserverAction(observer);
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

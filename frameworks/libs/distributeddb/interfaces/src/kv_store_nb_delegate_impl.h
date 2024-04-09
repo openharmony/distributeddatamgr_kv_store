@@ -182,11 +182,20 @@ private:
     void OnSyncComplete(const std::map<std::string, int> &statuses,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) const;
 
+    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+
+    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+
+    DBStatus UnRegisterDeviceObserver(const KvStoreObserver *observer);
+
+    DBStatus UnRegisterCloudObserver(const KvStoreObserver *observer);
+
     IKvDBConnection *conn_;
     std::string storeId_;
     bool releaseFlag_;
     std::mutex observerMapLock_;
     std::map<const KvStoreObserver *, const KvDBObserverHandle *> observerMap_;
+    std::map<const KvStoreObserver *, unsigned int> cloudObserverMap_;
 };
 } // namespace DistributedDB
 
