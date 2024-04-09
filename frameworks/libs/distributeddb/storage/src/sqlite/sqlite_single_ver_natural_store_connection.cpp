@@ -1884,8 +1884,8 @@ int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const KvStor
 {
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
-        LOGE("[SingleVerConnection] the store is null");
-        return -E_NOT_INIT;
+        LOGW("[SingleVerConnection] unregister observer but store is null");
+        return E_OK;
     }
     return naturalStore->UnRegisterObserverAction(observer);
 }

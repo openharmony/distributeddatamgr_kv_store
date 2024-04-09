@@ -34,6 +34,7 @@ public:
     static constexpr const char *VERSION_FIELD = "#_version";
     static constexpr const char *ERROR_FIELD = "#_error";
     static constexpr const char *SHARING_RESOURCE_FIELD = "#_sharing_resource";
+    static constexpr const char *HASH_KEY_FIELD = "#_hash_key";
     static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
     static constexpr const char *ASSET = "asset";
     static constexpr const char *ASSETS = "assets";

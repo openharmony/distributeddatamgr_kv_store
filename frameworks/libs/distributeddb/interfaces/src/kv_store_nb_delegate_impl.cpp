@@ -379,7 +379,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
         return RegisterCloudObserver(key, mode, observer);
     }
-    return RegisterDeviceObserver(key, mode, observer);
+    return RegisterDeviceObserver(key, rawMode, observer);
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)

@@ -1253,6 +1253,9 @@ int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &
         CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
         opData.timestamp.push_back(*timeStamp);
         opData.assets.push_back(asset);
+        if (isInsert) {
+            log[CloudDbConstant::HASH_KEY_FIELD] = DBCommon::VectorToHexString(*hashKey);
+        }
         opData.extend.push_back(log);
         opData.hashKey.push_back(*hashKey);
     }
