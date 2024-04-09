@@ -114,7 +114,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     Bytes hashKey;
     (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
     VBucket dbAssets;
-    res = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
+    std::tie(errCode, std::ignore) = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
     if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
         LOGE("get assets by gid or hashkey failed %d.", errCode);
         return errCode;
@@ -278,7 +278,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
     std::pair<int, uint32_t> res;
     auto &[errCode, status] = res;
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
-    res = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
+    std::tie(errCode, std::ignore) = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
     if (errCode != E_OK && errCode != -E_CLOUD_GID_MISMATCH) {
         return errCode;
     }

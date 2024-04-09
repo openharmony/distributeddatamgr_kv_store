@@ -57,7 +57,7 @@ public:
         int64_t &count);
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark, bool isCloudForcePush,
-        int64_t &count);
+        bool isCompensatedTask, int64_t &count);
 
     int GetCloudData(const std::string &tableName, const Timestamp &timeRange,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult);
@@ -67,7 +67,8 @@ public:
 
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) const;
 
-    int GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush, std::vector<std::string> &cloudGid);
+    int GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush,
+        bool isCompensatedTask, std::vector<std::string> &cloudGid);
 
     int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
@@ -123,6 +124,8 @@ public:
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
+
+    void OnSyncFinish();
 protected:
     void Init();
 

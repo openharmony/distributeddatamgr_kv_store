@@ -1056,7 +1056,7 @@ int RelationalSyncAbleStorage::Rollback()
 }
 
 int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
-    bool isCloudForcePush, int64_t &count)
+    bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
 {
     int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
@@ -1065,7 +1065,7 @@ int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, cons
     }
     QuerySyncObject queryObj = query;
     queryObj.SetSchema(GetSchemaInfo());
-    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, queryObj, count);
+    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, isCompensatedTask, queryObj, count);
     if (transactionHandle_ == nullptr) {
         ReleaseHandle(handle);
     }
@@ -1122,7 +1122,7 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
 }
 
 int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
-    bool isCloudForcePush, std::vector<std::string> &cloudGid)
+    bool isCloudForcePush, bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
     int errCode = E_OK;
     auto *handle = GetHandle(false, errCode);
@@ -1133,7 +1133,7 @@ int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
     QuerySyncObject query = querySyncObject;
     query.SetSchema(GetSchemaInfo());
-    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, cloudGid);
+    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, isCompensatedTask, cloudGid);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] GetCloudGid failed %d", errCode);
@@ -1368,7 +1368,7 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
     QuerySyncObject queryObj = query;
     queryObj.SetSchema(GetSchemaInfo());
     int64_t count = 0;
-    errCode = handle->GetUploadCount(UINT64_MAX, false, queryObj, count);
+    errCode = handle->GetUploadCount(UINT64_MAX, false, false, queryObj, count);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] CheckQueryValid failed %d", errCode);
@@ -1918,7 +1918,12 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
         }
         for (const auto &[col, value] : oneRow) {
             if (dataIndex.find(col) == dataIndex.end()) {
-                dataIndex[col] = value.index();
+                if (value.index() == TYPE_INDEX<Nil>) {
+                    ignoreCount++;
+                    continue;
+                } else {
+                    dataIndex[col] = value.index();
+                }
             } else if (dataIndex[col] != value.index()) {
                 ignoreCount++;
                 continue;
@@ -2002,6 +2007,19 @@ int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName
         LOGE("[RelationalSyncAbleStorage] mark flag as consistent failed.%d", errCode);
     }
     return errCode;
+}
+
+void RelationalSyncAbleStorage::SyncFinishHook()
+{
+    if (syncFinishFunc_) {
+        syncFinishFunc_();
+    }
+}
+
+int RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)> &func)
+{
+    syncFinishFunc_ = func;
+    return E_OK;
 }
 }
 #endif

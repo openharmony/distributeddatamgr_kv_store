@@ -23,6 +23,7 @@
 #include "relational_store_client.h"
 #include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
+#include "cloud_db_sync_utils_test.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -1293,5 +1294,163 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateTest001,
      */
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
+}
+
+void InitDataStatus(const std::string &tableName, int count, sqlite3 *db)
+{
+    int type = 4; // the num of different status
+    for (int i = 1; i <= type * count; i++) {
+        std::string sql = "insert into " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" +
+            std::to_string(i) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    std::string countStr = std::to_string(count);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " SET status=(case when data_key<=" +
+        countStr + " then 0 when data_key>" + countStr + " and data_key<=2*" + countStr + " then 1 when data_key>2*" +
+        countStr + " and data_key<=3*" + countStr + " then 2 else 3 end)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+}
+
+void CheckDataStatus(const std::string &tableName, const std::string &condition, sqlite3 *db, int64_t expect)
+{
+    std::string sql = "select count(1) from " + DBCommon::GetLogTableName(tableName) + " where " + condition;
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int64_t count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        EXPECT_EQ(count, expect);
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: LockDataTest001
+ * @tc.desc: Test status after lock
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and lock, hashKey has no matching data
+     * @tc.expected: step1. return NOT_FOUND.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    int count = 10;
+    InitDataStatus(tableName, count, db);
+    std::vector<std::vector<uint8_t>> hashKey;
+    hashKey.push_back({'1'});
+    EXPECT_EQ(Lock(tableName, hashKey, db), NOT_FOUND);
+
+    /**
+     * @tc.steps:step2. init data and lock, hashKey has matching data
+     * @tc.expected: step2. return OK.
+     */
+    hashKey.clear();
+    CloudDBSyncUtilsTest::GetHashKey(tableName, " 1=1 ", db, hashKey);
+    EXPECT_EQ(Lock(tableName, hashKey, db), OK);
+
+    /**
+     * @tc.steps:step3. check status
+     * @tc.expected: step3. return OK.
+     */
+    CheckDataStatus(tableName, " status = 2 and data_key <= 10", db , count);
+    CheckDataStatus(tableName, " status = 3 and data_key <= 20", db , count);
+    CheckDataStatus(tableName, " status = 2", db , count + count);
+    CheckDataStatus(tableName, " status = 3",db , count + count);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: LockDataTest002
+ * @tc.desc: Test status after unLock
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and unLock, there is data to be compensated for
+     * @tc.expected: step1. return WAIT_COMPENSATED_SYNC.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    int count = 10;
+    InitDataStatus(tableName, count, db);
+    std::vector<std::vector<uint8_t>> hashKey;
+    CloudDBSyncUtilsTest::GetHashKey(tableName, " 1=1 ", db, hashKey);
+    EXPECT_EQ(UnLock(tableName, hashKey, db), WAIT_COMPENSATED_SYNC);
+
+    /**
+     * @tc.steps:step2. check status
+     * @tc.expected: step2. return OK.
+     */
+    CheckDataStatus(tableName, " status = 0 and data_key <= 10", db , count);
+    CheckDataStatus(tableName, " status = 1 and data_key <= 20", db , count);
+    CheckDataStatus(tableName, " status = 0", db , count + count);
+    CheckDataStatus(tableName, " status = 1",db , count + count);
+
+    /**
+     * @tc.steps:step3. unLock again, there is data to be compensated for
+     * @tc.expected: step3. return WAIT_COMPENSATED_SYNC.
+     */
+    EXPECT_EQ(UnLock(tableName, hashKey, db), WAIT_COMPENSATED_SYNC);
+
+    /**
+     * @tc.steps:step4. unLock again, there is no data to be compensated for
+     * @tc.expected: step4. return OK.
+     */
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " SET status=0";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(UnLock(tableName, hashKey, db), OK);
+
+    /**
+     * @tc.steps:step5. unLock again, hashKey has matching data
+     * @tc.expected: step5. return NOT_FOUND.
+     */
+    hashKey.clear();
+    hashKey.push_back({'1'});
+    EXPECT_EQ(UnLock(tableName, hashKey, db), NOT_FOUND);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: LockDataTest003
+ * @tc.desc: Test status after local change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. update data and check
+     * @tc.expected: step1. return E_OK.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    int count = 10;
+    InitDataStatus(tableName, count, db);
+    std::string sql = "update " + tableName + " SET name='1' where id in (1,11,21,31)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    CheckDataStatus(tableName, " status = 3 and data_key in (1,11,21,31) ", db, 2); // 2 is changed count
+
+    /**
+     * @tc.steps:step1. delete data and check
+     * @tc.expected: step1. return E_OK.
+     */
+    sql = "delete from " + tableName + " where id in (2,12,22,32)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    CheckDataStatus(tableName, " status = 1 and data_key = -1 ", db, 3); // 3 is changed count
 }
 }

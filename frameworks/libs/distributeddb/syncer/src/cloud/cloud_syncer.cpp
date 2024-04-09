@@ -300,6 +300,7 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
 
 void CloudSyncer::DoFinished(TaskId taskId, int errCode)
 {
+    storageProxy_->OnSyncFinish();
     if (errCode == -E_TASK_PAUSED) {
         LOGD("[CloudSyncer] taskId %" PRIu64 " was paused, it won't be finished now", taskId);
         {
@@ -1118,7 +1119,8 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     ReloadWaterMarkIfNeed(taskId, localMark);
 
     int64_t count = 0;
-    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId), count);
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId),
+        IsCompensatedTask(taskId), count);
     if (ret != E_OK) {
         // GetUploadCount will return E_OK when upload count is zero.
         LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
@@ -1248,6 +1250,7 @@ void CloudSyncer::SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadDa
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     uploadData.isCloudForcePushStrategy = (cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH);
+    uploadData.isCompensatedTask = cloudTaskInfos_[taskId].compensatedTask;
 }
 
 bool CloudSyncer::IsModeForcePush(const TaskId taskId)
@@ -2103,7 +2106,8 @@ int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &coun
         return ret;
     }
 
-    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId), count);
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId),
+        IsCompensatedTask(taskId), count);
     if (ret != E_OK) {
         // GetUploadCount will return E_OK when upload count is zero.
         LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);

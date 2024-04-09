@@ -156,6 +156,8 @@ protected:
 
     bool IsPriorityTask(TaskId taskId);
 
+    bool IsCompensatedTask(TaskId taskId);
+
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
 
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);

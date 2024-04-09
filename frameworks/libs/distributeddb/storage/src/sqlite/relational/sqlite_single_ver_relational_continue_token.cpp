@@ -174,7 +174,7 @@ void SQLiteSingleVerRelationalContinueToken::SetCloudTableSchema(const TableSche
 }
 
 int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, const bool &isCloudForcePush,
-    sqlite3_stmt *&queryStmt, bool &isFirstTime)
+    bool isCompensatedTask, sqlite3_stmt *&queryStmt, bool &isFirstTime)
 {
     if (queryStmt_ != nullptr) {
         queryStmt = queryStmt_;
@@ -186,8 +186,8 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, const
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = helper.GetRelationalCloudQueryStatement(db, timeRange_.beginTime, tableSchema_.fields,
-        isCloudForcePush, queryStmt_);
+    std::string sql = helper.GetRelationalCloudQuerySql(tableSchema_.fields, isCloudForcePush, isCompensatedTask);
+    errCode = helper.GetCloudQueryStatement(true, db, timeRange_.beginTime, sql, queryStmt_);
     if (errCode == E_OK) {
         queryStmt = queryStmt_;
     }

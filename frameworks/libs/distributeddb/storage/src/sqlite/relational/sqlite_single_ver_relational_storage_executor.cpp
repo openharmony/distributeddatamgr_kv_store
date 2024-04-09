@@ -1546,7 +1546,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
-    QuerySyncObject &query, int64_t &count)
+    bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
 {
     int errCode;
     SqliteQueryHelper helper = query.GetQueryHelper(errCode);
@@ -1554,8 +1554,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &ti
         return errCode;
     }
     std::string tableName = query.GetRelationTableName();
+    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
     sqlite3_stmt *stmt = nullptr;
-    errCode = helper.GetCountRelationalCloudQueryStatement(dbHandle_, timestamp, isCloudForcePush, stmt);
+    errCode = helper.GetCloudQueryStatement(false, dbHandle_, timestamp, sql, stmt);
     if (errCode != E_OK) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;
@@ -1598,7 +1599,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     token.GetCloudTableSchema(tableSchema_);
     sqlite3_stmt *queryStmt = nullptr;
     bool isStepNext = false;
-    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult.isCloudForcePushStrategy, queryStmt, isStepNext);
+    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult.isCloudForcePushStrategy,
+        cloudDataResult.isCompensatedTask, queryStmt, isStepNext);
     if (errCode != E_OK) {
         (void)token.ReleaseCloudStatement();
         return errCode;
@@ -1625,7 +1627,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &query,
-    const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy, std::vector<std::string> &cloudGid)
+    const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
+    bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
     sqlite3_stmt *queryStmt = nullptr;
     int errCode = E_OK;
@@ -1633,8 +1636,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = helper.GetGidRelationalCloudQueryStatement(dbHandle_, syncTimeRange.beginTime, tableSchema_.fields,
-        isCloudForcePushStrategy, queryStmt);
+    std::string sql = helper.GetGidRelationalCloudQuerySql(tableSchema_.fields, isCloudForcePushStrategy,
+        isCompensatedTask);
+    errCode = helper.GetCloudQueryStatement(false, dbHandle_, syncTimeRange.beginTime, sql, queryStmt);
     if (errCode != E_OK) {
         return errCode;
     }

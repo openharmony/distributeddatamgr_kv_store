@@ -564,6 +564,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
     taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;
+    taskInfo.compensatedTask = true;
     taskInfo.users.push_back("");
     return taskInfo;
 }

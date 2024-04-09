@@ -104,7 +104,7 @@ int CloudSyncer::GetCloudGid(TaskId taskId, const std::string &tableName, QueryS
 {
     std::vector<std::string> cloudGid;
     bool isCloudForcePush = cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
-    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, cloudGid);
+    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, IsCompensatedTask(taskId), cloudGid);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to get cloud gid, %d.", errCode);
     } else if (!cloudGid.empty()) {
@@ -514,5 +514,11 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload delData, %d.", errCode);
     }
     return errCode;
+}
+
+bool CloudSyncer::IsCompensatedTask(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].compensatedTask;
 }
 }

@@ -105,7 +105,7 @@ public:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
-    int GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
+    int GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush, bool isCompensatedTask,
         QuerySyncObject &query, int64_t &count);
 
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid);
@@ -114,7 +114,7 @@ public:
         SQLiteSingleVerRelationalContinueToken &token);
 
     int GetSyncCloudGid(QuerySyncObject &query, const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
-        std::vector<std::string> &cloudGid);
+        bool isCompensatedTask, std::vector<std::string> &cloudGid);
 
     void SetLocalSchema(const RelationalSchemaObject &localSchema);
 

@@ -1144,48 +1144,53 @@ int SqliteQueryHelper::BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&
     return E_OK;
 }
 
-int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-    const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement)
+std::string SqliteQueryHelper::GetRelationalCloudQuerySql(const std::vector<Field> &fields,
+    const bool &isCloudForcePush, bool isCompensatedTask)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
-    AppendCloudQuery(isCloudForcePush, sql);
-    return GetCloudQueryStatement(true, dbHandle, beginTime, sql, statement);
+    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql);
+    return sql;
 }
 
-int SqliteQueryHelper::GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-    bool isCloudForcePush, sqlite3_stmt *&statement)
+std::string SqliteQueryHelper::GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask)
 {
     std::string sql = "SELECT COUNT(*) ";
-    AppendCloudQuery(isCloudForcePush, sql);
-    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql);
+    return sql;
 }
 
-int SqliteQueryHelper::GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-    const std::vector<Field> &fields, bool isCloudForcePush, sqlite3_stmt *&statement)
+std::string SqliteQueryHelper::GetGidRelationalCloudQuerySql(const std::vector<Field> &fields,
+    bool isCloudForcePush, bool isCompensatedTask)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
-    AppendCloudGidQuery(isCloudForcePush, sql);
-    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+    AppendCloudGidQuery(isCloudForcePush, isCompensatedTask, sql);
+    return sql;
 }
 
-void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql)
+void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql)
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
-    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
-        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    sql += " WHERE ";
+    if (isCompensatedTask) {
+        sql += "(b.status = 1) OR ";
+    } else if (queryObjNodes_.empty()) { // means unPriorityTask
+        sql += "(b.status != 1) AND ";
+    }
+    sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
+        " b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
-    if (queryObjNodes_.empty()) {
-        // a data that should download is locked and unlocked before upload, it cannot be uploaded in normal sync.
-        sql += " AND b.status != 1 ";
-    }
 }
 
-void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &sql)
+void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql)
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
-    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
-        " WHERE b.timestamp > ?";
+    sql += " WHERE ";
+    if (isCompensatedTask) {
+        sql += " b.status=1 AND ";
+    }
+    sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
+        " b.timestamp > ?";
     sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.
 }
 

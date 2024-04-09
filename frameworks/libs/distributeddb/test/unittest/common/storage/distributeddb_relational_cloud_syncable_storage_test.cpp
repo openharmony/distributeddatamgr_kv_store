@@ -622,13 +622,13 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
     int64_t resCount = 0;
     QuerySyncObject query;
     query.SetTableName(g_tableName);
-    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), -E_INVALID_QUERY_FORMAT);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, false, resCount), -E_INVALID_QUERY_FORMAT);
 
     CreateLogTable();
     int64_t insCount = 100;
     CreateAndInitUserTable(insCount, insCount, g_localAsset);
     InitLogData(insCount, insCount, insCount, insCount);
-    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, false, resCount), E_OK);
     EXPECT_EQ(resCount, insCount + insCount + insCount);
 
     /**
@@ -636,7 +636,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
      * @tc.expected: count is 0 and return E_OK.
      */
     Timestamp invalidTime = g_startTime + g_startTime;
-    EXPECT_EQ(g_cloudStore->GetUploadCount(query, invalidTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, invalidTime, false, false, resCount), E_OK);
     EXPECT_EQ(resCount, 0);
 }
 

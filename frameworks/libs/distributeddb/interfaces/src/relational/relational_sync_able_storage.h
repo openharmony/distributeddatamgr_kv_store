@@ -140,7 +140,7 @@ public:
     int Rollback() override;
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
-        int64_t &count) override;
+        bool isCompensatedTask, int64_t &count) override;
 
     int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
@@ -148,7 +148,7 @@ public:
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
-        std::vector<std::string> &cloudGid) override;
+        bool isCompensatedTask, std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
@@ -210,6 +210,10 @@ public:
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
+
+    void SyncFinishHook() override;
+
+    int SetSyncFinishHook(const std::function<void (void)> &func) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -306,6 +310,8 @@ private:
 
     std::atomic<bool> logicDelete_ = false;
     std::atomic<bool> allowLogicDelete_ = false;
+
+    std::function<void (void)> syncFinishFunc_;
 };
 }  // namespace DistributedDB
 #endif

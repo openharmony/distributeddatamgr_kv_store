@@ -100,14 +100,16 @@ public:
     int GetRelationalSyncDataQuerySqlWithLimit(const std::vector<std::string> &fieldNames, std::string &sql);
     int GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
         const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement);
-    int GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-        const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement);
+    std::string GetRelationalCloudQuerySql(const std::vector<Field> &fields,
+        const bool &isCloudForcePush, bool isCompensatedTask);
 
-    int GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-        bool isCloudForcePush, sqlite3_stmt *&statement);
+    std::string GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask);
 
-    int GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-        const std::vector<Field> &fields, bool isCloudForcePush, sqlite3_stmt *&statement);
+    std::string GetGidRelationalCloudQuerySql(const std::vector<Field> &fields, bool isCloudForcePush,
+        bool isCompensatedTask);
+
+    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
+        sqlite3_stmt *&statement);
 
 private:
     int ToQuerySql();
@@ -137,12 +139,9 @@ private:
     // Return the left string of symbol in compare clause.
     std::string GetFieldShape(const QueryObjNode &queryNode, const std::string &accessStr = "");
 
-    void AppendCloudQuery(bool isCloudForcePush, std::string &sql);
+    void AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
 
-    void AppendCloudGidQuery(bool isCloudForcePush, std::string &sql);
-
-    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
-        sqlite3_stmt *&statement);
+    void AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
 
     SchemaObject schema_;
     std::list<QueryObjNode> queryObjNodes_;

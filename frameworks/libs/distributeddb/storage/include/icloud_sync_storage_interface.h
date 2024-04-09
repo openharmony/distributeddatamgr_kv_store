@@ -48,7 +48,22 @@ typedef struct DownloadData {
     std::vector<int64_t> existDataKey;
 } DownloadData;
 
-class ICloudSyncStorageInterface {
+class ICloudSyncStorageHook {
+public:
+    ICloudSyncStorageHook() = default;
+    virtual ~ICloudSyncStorageHook() = default;
+
+    virtual int SetSyncFinishHook(const std::function<void (void)> &)
+    {
+        return E_OK;
+    }
+
+    virtual void SyncFinishHook()
+    {
+    }
+};
+
+class ICloudSyncStorageInterface : public ICloudSyncStorageHook {
 public:
     ICloudSyncStorageInterface() = default;
     virtual ~ICloudSyncStorageInterface() = default;
@@ -72,7 +87,7 @@ public:
     virtual int Rollback() = 0;
 
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
-        int64_t &count) = 0;
+        bool isCompensatedTask, int64_t &count) = 0;
 
     virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
@@ -80,7 +95,7 @@ public:
     virtual int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
 
     virtual int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
-        bool isCloudForcePush, std::vector<std::string> &cloudGid) = 0;
+        bool isCloudForcePush, bool isCompensatedTask, std::vector<std::string> &cloudGid) = 0;
 
     virtual int ReleaseCloudDataToken(ContinueToken &continueStmtToken) = 0;
 

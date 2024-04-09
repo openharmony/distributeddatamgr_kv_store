@@ -1243,6 +1243,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.callback = onProcess;
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
+    info.compensatedTask = option.compensatedSyncOnly;
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
