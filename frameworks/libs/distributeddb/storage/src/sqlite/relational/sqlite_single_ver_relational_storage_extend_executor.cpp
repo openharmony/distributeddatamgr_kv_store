@@ -95,10 +95,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const TableSchema &tableSchema,
     VBucket &vBucket, bool isDownloadSuccess)
 {
-    std::pair<int, uint32_t> res;
-    auto &[errCode, status] = res;
     std::string cloudGid;
-    errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     if (errCode != E_OK) {
         LOGE("Miss gid when fill Asset");
         return errCode;
@@ -275,8 +273,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
     VBucket vBucket = data.assets.at(index);
     VBucket dbAssets;
     std::string cloudGid;
-    std::pair<int, uint32_t> res;
-    auto &[errCode, status] = res;
+    int errCode;
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     std::tie(errCode, std::ignore) = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
     if (errCode != E_OK && errCode != -E_CLOUD_GID_MISMATCH) {

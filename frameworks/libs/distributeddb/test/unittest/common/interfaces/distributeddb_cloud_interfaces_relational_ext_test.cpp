@@ -1359,10 +1359,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest001, TestSiz
      * @tc.steps:step3. check status
      * @tc.expected: step3. return OK.
      */
-    CheckDataStatus(tableName, " status = 2 and data_key <= 10", db , count);
-    CheckDataStatus(tableName, " status = 3 and data_key <= 20", db , count);
-    CheckDataStatus(tableName, " status = 2", db , count + count);
-    CheckDataStatus(tableName, " status = 3",db , count + count);
+    CheckDataStatus(tableName, " status = 2 and data_key <= 10 ", db, count);
+    CheckDataStatus(tableName, " status = 3 and data_key <= 20 ", db, count);
+    CheckDataStatus(tableName, " status = 2 ", db, count + count);
+    CheckDataStatus(tableName, " status = 3 ", db, count + count);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
@@ -1393,10 +1393,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest002, TestSiz
      * @tc.steps:step2. check status
      * @tc.expected: step2. return OK.
      */
-    CheckDataStatus(tableName, " status = 0 and data_key <= 10", db , count);
-    CheckDataStatus(tableName, " status = 1 and data_key <= 20", db , count);
-    CheckDataStatus(tableName, " status = 0", db , count + count);
-    CheckDataStatus(tableName, " status = 1",db , count + count);
+    CheckDataStatus(tableName, " status = 0 and data_key <= 10 ", db, count);
+    CheckDataStatus(tableName, " status = 1 and data_key <= 20 ", db, count);
+    CheckDataStatus(tableName, " status = 0 ", db, count + count);
+    CheckDataStatus(tableName, " status = 1 ", db, count + count);
 
     /**
      * @tc.steps:step3. unLock again, there is data to be compensated for

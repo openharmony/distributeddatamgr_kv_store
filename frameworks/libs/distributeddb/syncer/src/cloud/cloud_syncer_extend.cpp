@@ -237,7 +237,7 @@ std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const Inne
     const DownloadItem &downloadItem, VBucket &dbAssets)
 {
     std::pair<int, uint32_t> res = { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
-    auto &[errCode, status] = res;
+    auto &errCode = res.first;
     if (!isSharedTable) {
         errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
     }

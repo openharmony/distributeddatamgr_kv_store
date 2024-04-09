@@ -1917,14 +1917,17 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
             return -E_NOT_SUPPORT;
         }
         for (const auto &[col, value] : oneRow) {
-            if (dataIndex.find(col) == dataIndex.end()) {
-                if (value.index() == TYPE_INDEX<Nil>) {
-                    ignoreCount++;
-                    continue;
-                } else {
-                    dataIndex[col] = value.index();
-                }
-            } else if (dataIndex[col] != value.index()) {
+            bool isFind = dataIndex.find(col) != dataIndex.end();
+            if (!isFind && value.index() == TYPE_INDEX<Nil>) {
+                ignoreCount++;
+                continue;
+            }
+            if (!isFind && value.index() != TYPE_INDEX<Nil>) {
+                dataIndex[col] = value.index();
+                syncPk[col].push_back(value);
+                continue;
+            }
+            if (isFind && dataIndex[col] != value.index()) {
                 ignoreCount++;
                 continue;
             }
