@@ -196,13 +196,14 @@ namespace DistributedDB {
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_CACHEHANDLE =
         "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE =
-        "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? "
-        "WHERE hash_key=?;";
+        "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_MAINHANDLE =
         "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_MAINHANDLE =
-        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
+        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string MIGRATE_DEL_DATA_BY_VERSION_FROM_CACHEHANDLE =
         "DELETE FROM sync_data WHERE version=?;";

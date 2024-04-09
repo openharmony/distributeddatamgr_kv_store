@@ -20,6 +20,7 @@
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
 #include "kvdb_pragma.h"
 #include "storage_engine_manager.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -1042,6 +1043,15 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
         CipherType::DEFAULT, password, cacheDir, EngineState::CACHEDB), E_OK);
     EXPECT_EQ(g_handle->MigrateLocalData(), E_OK);
     EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_BUSY);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(g_handle->GetDbHandle(db), E_OK);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE, stmt), E_OK);
+    int errCode = E_OK;
+    EXPECT_EQ(SQLiteUtils::BindBlobToStatement(stmt, BIND_SYNC_UPDATE_HASH_KEY_INDEX, {}), E_OK);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
 }
 
 /**
