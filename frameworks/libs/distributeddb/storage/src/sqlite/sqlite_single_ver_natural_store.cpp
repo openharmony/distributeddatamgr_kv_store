@@ -1173,11 +1173,16 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
         return -E_INVALID_DB;
     }
     int errCode = E_OK;
-    for (const auto &item : dataItems) {
+    auto offset = GetLocalTimeOffset();
+    for (auto &item : dataItems) {
         // Check only the key and value size
         errCode = CheckDataStatus(item.key, item.value, (item.flag & DataItem::DELETE_FLAG) != 0);
         if (errCode != E_OK) {
             return errCode;
+        }
+        if (offset != 0) {
+            item.modifyTime = item.timestamp - offset;
+            item.createTime = item.writeTimestamp - offset;
         }
     }
     if (checkValueContent) {
