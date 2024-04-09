@@ -501,7 +501,17 @@ int SqliteCloudKvExecutorUtils::BindUpdateLogStmt(sqlite3_stmt *logStmt, const s
     const DataItem &dataItem)
 {
     int index = 1;
-    int errCode = SQLiteUtils::BindTextToStatement(logStmt, index++, user);
+    int errCode = SQLiteUtils::BindTextToStatement(logStmt, index++, dataItem.gid);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind gid failed %d when update", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(logStmt, index++, dataItem.version);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind version failed %d when update", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(logStmt, index++, user);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind user failed %d when update", errCode);
         return errCode;
