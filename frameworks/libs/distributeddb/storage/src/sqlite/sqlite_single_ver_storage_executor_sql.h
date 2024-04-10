@@ -321,6 +321,12 @@ namespace DistributedDB {
     constexpr const char *UPDATE_CLOUD_SYNC_DATA_LOG = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_gid=?, "
         "version=? WHERE userid=? AND hash_key=?";
 
+    constexpr const char *SET_SYNC_DATA_NO_FORCE_PUSH = "UPDATE sync_data SET flag=flag|0x40 WHERE hash_key=?";
+
+    constexpr const char *SET_SYNC_DATA_FORCE_PUSH = "UPDATE sync_data SET flag=flag&(~0x40) WHERE hash_key=?";
+
+    constexpr const char *UPDATE_TIMESTAMP = "UPDATE sync_data SET timestamp=?, modify_time=? WHERE hash_key=?";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;

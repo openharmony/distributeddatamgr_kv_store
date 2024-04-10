@@ -91,9 +91,17 @@ private:
 
     static int StepStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, bool isMemory);
 
-    static int OnlyUpdateLogTable(sqlite3 *db, bool isMemory, OpType op, VBucket &data);
+    static int OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData);
+
+    static int OnlyUpdateSyncData(sqlite3 *db, bool isMemory, int index, OpType opType, DownloadData &downloadData);
+
+    static int BindUpdateSyncDataStmt(sqlite3_stmt *dataStmt, int index, OpType opType, DownloadData &downloadData);
+
+    static int BindUpdateTimestampStmt(sqlite3_stmt *dataStmt, int index, DownloadData &downloadData);
 
     static int FillCloudGid(sqlite3 *db, const CloudSyncBatch &data, const std::string &user, bool ignoreEmptyGid);
+
+    static std::pair<int, DataItem> GetDataItem(int index, DownloadData &downloadData);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H
