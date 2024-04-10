@@ -162,6 +162,13 @@ std::pair<int, sqlite3_stmt *> SQLiteSingleVerContinueToken::GetCloudQueryStmt(s
         LOGE("[SQLiteSingleVerContinueToken] Bind begin time failed %d reset %d", errCode, ret);
         return res;
     }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user_);
+    if (errCode != E_OK) {
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SQLiteSingleVerContinueToken] Bind user failed %d reset %d", errCode, ret);
+        return res;
+    }
     queryDataStmt_ = stmt;
     stepNext = true;
     return res;
@@ -178,5 +185,10 @@ void SQLiteSingleVerContinueToken::ReleaseCloudQueryStmt()
     if (errCode != E_OK) {
         LOGW("[SQLiteSingleVerContinueToken] release cloud query stmt failed %d", errCode);
     }
+}
+
+void SQLiteSingleVerContinueToken::SetUser(const std::string &user)
+{
+    user_ = user;
 }
 }  // namespace DistributedDB

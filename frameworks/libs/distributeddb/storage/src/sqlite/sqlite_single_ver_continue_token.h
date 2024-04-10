@@ -64,6 +64,7 @@ public:
     std::pair<int, sqlite3_stmt *> GetCloudQueryStmt(sqlite3 *db, bool forcePush, bool &stepNext);
     void ReleaseCloudQueryStmt();
 
+    void SetUser(const std::string &user);
 private:
     void RemovePrevDevAndSetBeginTime(const DeviceID &deviceID, Timestamp nextBeginTime, MulDevTimeRanges &timeRanges);
 
@@ -79,6 +80,7 @@ private:
     unsigned int magicEnd_ = MAGIC_END;
 
     sqlite3_stmt *queryDataStmt_ = nullptr;
+    std::string user_;
 };
 }  // namespace DistributedDB
 #endif  // SQLITE_SINGLE_VER_CONTINUE_TOKEN_H

@@ -154,6 +154,7 @@ int SqliteCloudKvStore::GetCloudData(const TableSchema &tableSchema, const Query
         LOGE("[SqliteCloudKvStore] create token failed");
         return -E_OUT_OF_MEMORY;
     }
+    token->SetUser(user_);
     continueStmtToken = static_cast<ContinueToken>(token);
     return GetCloudDataNext(continueStmtToken, cloudDataResult);
 }

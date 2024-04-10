@@ -306,8 +306,9 @@ namespace DistributedDB {
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA = "SELECT key, value, flag, device, ori_device, "
         "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid FROM "
-        "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
-        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key "
+        "sync_data LEFT JOIN "
+        "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
+        " AS log_table ON sync_data.hash_key = log_table.hash_key "
         "WHERE modify_time > ?";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
@@ -388,7 +389,8 @@ namespace DistributedDB {
     const int BIND_ORI_DEVICE_ID = 0;
     const int BIND_PRE_DEVICE_ID = 1;
 
-    constexpr int BIND_CLOUD_TIMESTAMP = 1;
+    constexpr int BIND_CLOUD_USER = 1;
+    constexpr int BIND_CLOUD_TIMESTAMP = 2;
 
     constexpr int CLOUD_QUERY_KEY_INDEX = 0;
     constexpr int CLOUD_QUERY_VALUE_INDEX = 1;
