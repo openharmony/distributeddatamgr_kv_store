@@ -270,14 +270,13 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfoInner(sqli
         LOGE("[SqliteCloudKvExecutorUtils] Get log failed %d", errCode);
         return res;
     }
-    logInfo = FillLogInfoWithStmt(stmt, key);
+    logInfo = FillLogInfoWithStmt(stmt);
     return res;
 }
 
-DataInfoWithLog SqliteCloudKvExecutorUtils::FillLogInfoWithStmt(sqlite3_stmt *stmt, const Bytes &key)
+DataInfoWithLog SqliteCloudKvExecutorUtils::FillLogInfoWithStmt(sqlite3_stmt *stmt)
 {
     DataInfoWithLog dataInfoWithLog;
-    dataInfoWithLog.primaryKeys.insert_or_assign(CloudDbConstant::CLOUD_KV_FIELD_KEY, key);
     int index = 0;
     dataInfoWithLog.logInfo.dataKey = sqlite3_column_int64(stmt, index++);
     dataInfoWithLog.logInfo.flag = static_cast<uint64_t>(sqlite3_column_int64(stmt, index++));
@@ -293,6 +292,10 @@ DataInfoWithLog SqliteCloudKvExecutorUtils::FillLogInfoWithStmt(sqlite3_stmt *st
     (void)SQLiteUtils::GetColumnTextValue(stmt, index++, gid);
     dataInfoWithLog.logInfo.cloudGid = gid;
     (void)SQLiteUtils::GetColumnBlobValue(stmt, index++, dataInfoWithLog.logInfo.hashKey);
+    Bytes key;
+    (void)SQLiteUtils::GetColumnBlobValue(stmt, index++, key);
+    std::string keyStr(key.begin(), key.end());
+    dataInfoWithLog.primaryKeys.insert_or_assign(CloudDbConstant::CLOUD_KV_FIELD_KEY, keyStr);
     return dataInfoWithLog;
 }
 

@@ -54,7 +54,7 @@ private:
     static std::pair<int, DataInfoWithLog> GetLogInfoInner(sqlite3_stmt *stmt, bool isMemory, const std::string &gid,
         const Bytes &key);
 
-    static DataInfoWithLog FillLogInfoWithStmt(sqlite3_stmt *stmt, const Bytes &key);
+    static DataInfoWithLog FillLogInfoWithStmt(sqlite3_stmt *stmt);
 
     static int ExecutePutCloudData(sqlite3 *db, bool isMemory, DownloadData &downloadData,
         std::map<int, int> &statisticMap);
