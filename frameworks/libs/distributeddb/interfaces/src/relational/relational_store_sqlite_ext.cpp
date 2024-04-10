@@ -1077,10 +1077,7 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
         return false;
     }
 
-    bool isExists = false;
-    if ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0)) {
-        isExists = true;
-    }
+    bool isExists = ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0));
     (void)sqlite3_finalize(stmt);
     return isExists;
 }

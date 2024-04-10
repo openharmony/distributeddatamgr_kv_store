@@ -43,6 +43,9 @@ public:
     static constexpr const char *DEFAULT_CLOUD_DEV = "cloud";
 
     // use for inner
+    static constexpr const char *ROWID = "rowid";
+    static constexpr const char *FLAG = "flag";
+    static constexpr const char *TIMESTAMP = "timestamp";
     static constexpr const char *HASH_KEY = "hash_key";
     static constexpr const char *STATUS = "status";
 

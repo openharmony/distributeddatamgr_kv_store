@@ -32,13 +32,9 @@
 
 namespace DistributedDB {
 namespace {
-static constexpr const char *ROWID = "ROWID";
-static constexpr const char *TIMESTAMP = "TIMESTAMP";
-static constexpr const char *FLAG = "FLAG";
 static constexpr const char *DATAKEY = "DATA_KEY";
 static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
-static constexpr const char *HASH_KEY = "HASH_KEY";
 static constexpr const char *SHARING_RESOURCE = "SHARING_RESOURCE";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 // set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
@@ -564,11 +560,11 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
 
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
 {
-    flags.insert_or_assign(ROWID,
+    flags.insert_or_assign(CloudDbConstant::ROWID,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, DATA_KEY_INDEX)));
-    flags.insert_or_assign(TIMESTAMP,
+    flags.insert_or_assign(CloudDbConstant::TIMESTAMP,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
-    flags.insert_or_assign(FLAG,
+    flags.insert_or_assign(CloudDbConstant::FLAG,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, FLAG_INDEX)));
     Bytes hashKey;
     (void)SQLiteUtils::GetColumnBlobValue(logStatement, HASH_KEY_INDEX, hashKey);
@@ -1667,7 +1663,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
 
     VBucket data;
     int64_t flag = 0;
-    int errCode = CloudStorageUtils::GetValueFromVBucket(FLAG, extraLog, flag);
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::FLAG, extraLog, flag);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1738,7 +1734,7 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSc
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
-    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " +
+    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " +
         SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
         DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '' " +
         "WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +

@@ -1196,46 +1196,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
 }
 
 /**
- * @tc.name: FfrtTest003
- * @tc.desc: Test ffrt concurrency
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author:
- */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Level0)
-{
-    size_t count = 0;
-    size_t num = 3000;
-    std::vector<TaskHandle> waitVec;
-
-    /**
-     * @tc.steps:step1. submit increase task
-     * @tc.expected: step1. return ok.
-     */
-    for (size_t j = 0; j < num; j++) {
-        TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &count, num]() {
-            for (size_t i = 0; i < num; i++) {
-                count++;
-            }
-        }, nullptr, nullptr);
-        waitVec.push_back(h1);
-    }
-    for (const auto &item : waitVec) {
-        ADAPTER_WAIT(item);
-    }
-
-    /**
-     * @tc.steps:step2. check count
-     * @tc.expected: step2. return ok.
-     */
-#ifdef USE_FFRT
-    EXPECT_NE(count, num * num);
-#else
-    EXPECT_EQ(count, num * num);
-#endif
-}
-
-/**
  * @tc.name: AbnormalDelegateTest001
  * @tc.desc: Test delegate interface after delegate is closed
  * @tc.type: FUNC

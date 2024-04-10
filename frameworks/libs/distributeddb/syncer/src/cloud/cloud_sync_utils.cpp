@@ -565,7 +565,6 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;
     taskInfo.compensatedTask = true;
-    taskInfo.users.push_back("");
     return taskInfo;
 }
 }
