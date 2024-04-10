@@ -130,6 +130,8 @@ protected:
     void TriggerSync(int notifyEvent);
 
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
+
+    int CleanAllWaterMark();
 private:
     int RegisterEventType(EventType type);
 

@@ -232,6 +232,71 @@ namespace DistributedDB {
     const std::string GET_SYNC_DATA_TIRGGER_SQL =
         "SELECT name FROM SQLITE_MASTER WHERE TYPE = 'trigger' AND TBL_NAME = 'sync_data' AND name like ?;";
 
+    const std::string REMOVE_CLOUD_ALL_LOG_DATA_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log;";
+
+    const std::string REMOVE_CLOUD_ALL_DEV_DATA_SQL =
+        "DELETE FROM sync_data WHERE (flag=0x100);";
+
+    const std::string UPDATE_CLOUD_ALL_DEV_DATA_SQL =
+        "UPDATE sync_data SET flag =0x02 WHERE (flag=0x100);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND (flag=0x100);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+        "UPDATE sync_data SET flag =0x02 WHERE device=? AND (flag=0x100);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "DELETE FROM sync_data WHERE (flag=0x100) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "UPDATE sync_data SET flag =0x02 WHERE (flag=0x100) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+        "DELETE FROM sync_data WHERE device=? AND (flag=0x100) AND hash_key NOT IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+        "UPDATE sync_data SET flag =0x02 WHERE device=? AND (flag=0x100) AND hash_key NOT IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =?;";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+
+    const std::string SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+
+    // Check whether the hashKey is the same but the userId is different
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid !=?);";
+
+    const std::string SELECT_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "SELECT * FROM sync_data WHERE (flag=0x100) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string REMOVE_CLOUD_ALL_HWM_DATA_SQL =
+        "DELETE FROM meta_data WHERE KEY LIKE 'naturalbase_cloud_meta_sync_data_%';";
+
+    const std::string REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL =
+        "DELETE FROM meta_data WHERE KEY =?;";
+
     constexpr const char *UPDATE_SYNC_DATA_KEY_SQL =
         "UPDATE sync_data SET key=translate_key(key), hash_key=cal_hash_key(key) WHERE flag&0x01=0";
 

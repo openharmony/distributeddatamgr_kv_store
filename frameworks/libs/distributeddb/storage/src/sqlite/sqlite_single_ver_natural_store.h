@@ -108,6 +108,11 @@ public:
     // In local procedure, call this function
     int RemoveDeviceData(const std::string &deviceName, bool isNeedNotify, bool isInSync);
 
+    // remove device data for cloud
+    int RemoveDeviceData(const std::string &deviceName, ClearMode mode);
+
+    // remove device data for cloud and user
+    int RemoveDeviceData(const std::string &deviceName, const std::string &user, ClearMode mode);
     SQLiteSingleVerStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
 
@@ -281,6 +286,10 @@ private:
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
     int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
+
+    int RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode);
+
+    int RemoveDeviceDataInner(const std::string &hashDev, const std::string &user, ClearMode mode);
 
     void GetAndResizeLocalIdentity(std::string &outTarget) const;
 

@@ -158,6 +158,13 @@ int CloudMetaData::CleanWaterMark(const TableName &tableName)
     return E_OK;
 }
 
+void CloudMetaData::CleanAllWaterMark()
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    cloudMetaVals_.clear();
+    LOGD("[Meta] clean cloud water mark");
+}
+
 void CloudMetaData::CleanWaterMarkInMemory(const TableName &tableName)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);

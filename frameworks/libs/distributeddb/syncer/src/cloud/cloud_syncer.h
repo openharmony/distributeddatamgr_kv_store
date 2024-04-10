@@ -66,6 +66,7 @@ public:
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
+    void CleanAllWaterMark();
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;

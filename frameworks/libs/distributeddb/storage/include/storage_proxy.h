@@ -126,6 +126,8 @@ public:
     void SetUser(const std::string &user);
 
     void OnSyncFinish();
+
+    void CleanAllWaterMark();
 protected:
     void Init();
 

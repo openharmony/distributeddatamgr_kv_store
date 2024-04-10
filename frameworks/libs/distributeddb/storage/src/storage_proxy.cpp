@@ -565,4 +565,9 @@ void StorageProxy::OnSyncFinish()
     }
     store_->SyncFinishHook();
 }
+
+void StorageProxy::CleanAllWaterMark()
+{
+    cloudMetaData_->CleanAllWaterMark();
+}
 }

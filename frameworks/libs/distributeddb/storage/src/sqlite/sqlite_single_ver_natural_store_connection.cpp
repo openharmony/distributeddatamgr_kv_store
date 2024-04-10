@@ -1889,5 +1889,36 @@ int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const KvStor
     }
     return naturalStore->UnRegisterObserverAction(observer);
 }
+
+int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, ClearMode mode)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (device.length() > DBConstant::MAX_DEV_LENGTH) {
+        return -E_INVALID_ARGS;
+    }
+    if (mode == ClearMode::CLEAR_SHARED_TABLE) {
+        return -E_NOT_SUPPORT;
+    }
+    return naturalStore->RemoveDeviceData(device, mode);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, const std::string &user,
+    ClearMode mode)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (device.length() > DBConstant::MAX_DEV_LENGTH) {
+        return -E_INVALID_ARGS;
+    }
+    if (mode == ClearMode::CLEAR_SHARED_TABLE) {
+        return -E_NOT_SUPPORT;
+    }
+    return naturalStore->RemoveDeviceData(device, user, mode);
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

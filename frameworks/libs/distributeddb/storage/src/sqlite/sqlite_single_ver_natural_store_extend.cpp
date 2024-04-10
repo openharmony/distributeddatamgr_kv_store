@@ -503,6 +503,33 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
     return errCode;
 }
 
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        return errCode;
+    }
+    errCode = handle->RemoveDeviceData(hashDev, mode);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, const std::string &user,
+    ClearMode mode)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        return errCode;
+    }
+    errCode = handle->RemoveDeviceData(hashDev, user, mode);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
 void SQLiteSingleVerNaturalStore::AbortHandle()
 {
     std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);

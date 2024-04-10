@@ -545,4 +545,14 @@ int SyncAbleKvDB::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudD
     }
     return cloudSyncer_->SetCloudDB(cloudDBs);
 }
+
+int SyncAbleKvDB::CleanAllWaterMark()
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    cloudSyncer_->CleanAllWaterMark();
+    return E_OK;
+}
 }

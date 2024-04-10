@@ -66,6 +66,10 @@ public:
 
     int RemoveDeviceData(const std::string &deviceName);
 
+    int RemoveDeviceData(const std::string &deviceName, ClearMode mode);
+
+    int RemoveDeviceData(const std::string &deviceName, const std::string &user, ClearMode mode);
+
     int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify, uint64_t recordVersion) const;
 
     void InitCurrentMaxStamp(Timestamp &maxStamp);
@@ -344,6 +348,18 @@ private:
 
     static int BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate);
 
+    int CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName, const std::string &user);
+
+    int CloudCheckDataExist(const std::string &sql, const std::string &deviceName, const std::string &user,
+        bool &isExist);
+
+    int RemoveDeviceDataInner(ClearMode mode);
+
+    int RemoveDeviceDataInner(const std::string &deviceName, ClearMode mode);
+
+    int RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode);
+
+    int RemoveDeviceDataWithUserInner(const std::string &deviceName, const std::string &user, ClearMode mode);
     sqlite3_stmt *getSyncStatement_;
     sqlite3_stmt *getResultRowIdStatement_;
     sqlite3_stmt *getResultEntryStatement_;

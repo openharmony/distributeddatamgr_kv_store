@@ -2205,4 +2205,9 @@ int CloudSyncer::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb
 {
     return cloudDB_.SetCloudDB(cloudDBs);
 }
+
+void CloudSyncer::CleanAllWaterMark()
+{
+    storageProxy_->CleanAllWaterMark();
+}
 } // namespace DistributedDB

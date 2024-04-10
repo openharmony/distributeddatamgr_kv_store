@@ -1130,7 +1130,7 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, Clea
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
-    if (mode == DEFAULT) {
+    if (mode == ClearMode::DEFAULT) {
         return RemoveDeviceData(device);
     }
     int errCode = conn_->RemoveDeviceData(device, mode);
@@ -1144,6 +1144,9 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, cons
     if (conn_ == nullptr) {
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
+    }
+    if (mode == ClearMode::DEFAULT) {
+        return RemoveDeviceData(device);
     }
     int errCode = conn_->RemoveDeviceData(device, user, mode);
     LOGI("[KvStoreNbDelegateImpl] remove device data with user res %d", errCode);

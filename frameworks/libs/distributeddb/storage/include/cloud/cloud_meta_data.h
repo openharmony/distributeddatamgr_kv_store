@@ -40,6 +40,8 @@ public:
 
     int CleanWaterMark(const TableName &tableName);
 
+    void CleanAllWaterMark();
+
     void CleanWaterMarkInMemory(const TableName &tableName);
 private:
     typedef struct CloudMetaValue {

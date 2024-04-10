@@ -959,6 +959,27 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     return RemoveDeviceDataInner(hashDeviceId, isNeedNotify);
 }
 
+// In sync procedure, call this function
+int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, ClearMode mode)
+{
+    int errCode = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), mode);
+    if (errCode == E_OK) {
+        CleanAllWaterMark();
+    }
+    return errCode;
+}
+
+// In sync procedure, call this function
+int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, const std::string &user,
+    ClearMode mode)
+{
+    int errCode = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), user, mode);
+    if (errCode == E_OK) {
+        CleanAllWaterMark();
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify) const
 {
     int errCode = E_OK;

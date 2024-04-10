@@ -20,13 +20,14 @@
 #include "kv_store_nb_delegate.h"
 #include "platform_specific.h"
 #include "virtual_cloud_db.h"
-
+#include "sqlite_utils.h"
 using namespace testing::ext;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
+static std::string HWM_HEAD = "naturalbase_cloud_meta_sync_data_";
 string g_testDir;
 KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
 class DistributedDBCloudKvTest : public testing::Test {
@@ -35,6 +36,14 @@ public:
     static void TearDownTestCase();
     void SetUp();
     void TearDown();
+    void InsertRecord(int num);
+    void SetDeviceId(const Key &key, const std::string &deviceId);
+    void SetFlag(const Key &key, bool isCloudFlag);
+    int CheckFlag(const Key &key, bool isCloudFlag);
+    int CheckLogTable(const std::string &deviceId);
+    int CheckWaterMark(const std::string &key);
+    int ChangeUserId(const std::string &deviceId, const std::string &wantUserId);
+    int ChangeHashKey(const std::string &deviceId);
 protected:
     void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
@@ -87,6 +96,9 @@ void DistributedDBCloudKvTest::TearDown()
     CloseKvStore(kvDelegatePtrS1_, STORE_ID_1);
     CloseKvStore(kvDelegatePtrS2_, STORE_ID_2);
     virtualCloudDb_ = nullptr;
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
 }
 
 void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expect)
@@ -318,5 +330,695 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync005, TestSize.Level1)
     }
     BlockSync(kvDelegatePtrS1_, OK);
     BlockSync(kvDelegatePtrS2_, OK);
+}
+
+void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr) == SQLITE_OK);
+    int errCode = E_OK;
+    std::string sql;
+    if (isCloudFlag) {
+        sql = "UPDATE sync_data SET flag=256 WHERE Key=?";
+    } else {
+        sql = "UPDATE sync_data SET flag=2 WHERE Key=?";
+    }
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    ASSERT_EQ(errCode, E_OK);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, true); // only one arg.
+    ASSERT_EQ(errCode, E_OK);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+}
+
+int DistributedDBCloudKvTest::CheckFlag(const Key &key, bool isCloudFlag)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
+    if (errCode != E_OK) {
+        return NOT_FOUND;
+    }
+    std::string sql;
+    if (isCloudFlag) {
+        sql = "SELECT * FROM sync_data WHERE Key =? AND (flag=0x100)";
+    } else {
+        sql = "SELECT * FROM sync_data WHERE Key =? AND (flag=0x02)";
+    }
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return NOT_FOUND;
+    }
+    std::vector<uint8_t> keyVec(key.begin(), key.end());
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyVec, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return NOT_FOUND;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return NOT_FOUND; // cant find.
+    }
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return OK;
+    }
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+    return NOT_FOUND;
+}
+
+int DistributedDBCloudKvTest::CheckWaterMark(const std::string &user)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
+    if (errCode != E_OK) {
+        return NOT_FOUND;
+    }
+    std::string sql;
+    if (user.empty()) {
+        sql = "SELECT * FROM meta_data WHERE KEY LIKE 'naturalbase_cloud_meta_sync_data_%'";
+    } else {
+        sql = "SELECT * FROM meta_data WHERE KEY =?;";
+    }
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return NOT_FOUND;
+    }
+    if (!user.empty()) {
+        std::string waterMarkKey = HWM_HEAD + user;
+        std::vector<uint8_t> keyVec(waterMarkKey.begin(), waterMarkKey.end());
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyVec, true); // only one arg.
+        if (errCode != E_OK) {
+            SQLiteUtils::ResetStatement(statement, true, errCode);
+            return NOT_FOUND;
+        }
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return NOT_FOUND; // cant find.
+    }
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return OK;
+    }
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+    return NOT_FOUND;
+}
+
+void DistributedDBCloudKvTest::SetDeviceId(const Key &key, const std::string &deviceId)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr) == SQLITE_OK);
+    int errCode = E_OK;
+    std::string sql = "UPDATE sync_data SET device=? WHERE Key=?";
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    ASSERT_EQ(errCode, E_OK);
+    std::string hashDevice = DBCommon::TransferHashString(deviceId);
+    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
+    int bindIndex = 1;
+    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, deviceIdVec, true); // only one arg.
+    ASSERT_EQ(errCode, E_OK);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    bindIndex++;
+    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, key, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+}
+
+int DistributedDBCloudKvTest::CheckLogTable(const std::string &deviceId)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
+    if (errCode != E_OK) {
+        return NOT_FOUND;
+    }
+    std::string sql = "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
+        "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return NOT_FOUND;
+    }
+    std::string hashDevice = DBCommon::TransferHashString(deviceId);
+    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, deviceIdVec, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return NOT_FOUND;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return NOT_FOUND; // cant find.
+    }
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return OK;
+    }
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+    return NOT_FOUND;
+}
+
+int DistributedDBCloudKvTest::ChangeUserId(const std::string &deviceId, const std::string &wantUserId)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
+    if (errCode != E_OK) {
+        return INVALID_ARGS;
+    }
+    std::string sql = "UPDATE naturalbase_kv_aux_sync_data_log SET userid =? WHERE hash_key IN" \
+        "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return INVALID_ARGS;
+    }
+    int bindIndex = 1;
+    std::vector<uint8_t> wantUserIdVec(wantUserId.begin(), wantUserId.end());
+    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, wantUserIdVec, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return INVALID_ARGS;
+    }
+    bindIndex++;
+    std::string hashDevice = DBCommon::TransferHashString(deviceId);
+    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
+    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, deviceIdVec, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return INVALID_ARGS;
+    }
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+    return INVALID_ARGS;
+}
+
+int DistributedDBCloudKvTest::ChangeHashKey(const std::string &deviceId)
+{
+    sqlite3 *db_;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
+    if (errCode != E_OK) {
+        return INVALID_ARGS;
+    }
+    std::string updataLogTableSql = "UPDATE naturalbase_kv_aux_sync_data_log SET hash_Key ='99';";
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, updataLogTableSql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return INVALID_ARGS;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+
+    std::string sql = "UPDATE sync_data SET hash_Key ='99' WHERE device =? AND (flag=0x100);";
+    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return INVALID_ARGS;
+    }
+    std::string hashDevice = DBCommon::TransferHashString(deviceId);
+    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, deviceIdVec, true); // only one arg.
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        sqlite3_close_v2(db_);
+        return OK; // cant find.
+    }
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+    sqlite3_close_v2(db_);
+    return INVALID_ARGS;
+}
+
+void DistributedDBCloudKvTest::InsertRecord(int num)
+{
+    for (int i = 0; i < num; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value value;
+        value.push_back('k');
+        value.push_back('0' + i);
+        ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+        BlockSync(kvDelegatePtrS1_, OK);
+        SetFlag(key, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+}
+
+/**
+ * @tc.name: RemoveDeviceTest001
+ * @tc.desc: remove all log table record with empty deviceId and FLAG_ONLY flag
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
+     * (Key:k2, device:2, userId:0)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+        EXPECT_EQ(CheckFlag(key, true), OK);
+        EXPECT_EQ(CheckWaterMark(""), OK);
+    }
+    /**
+     * @tc.steps: step3. remove log data with empty deviceId.
+     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_ONLY), OK);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), NOT_FOUND);
+        EXPECT_EQ(CheckFlag(key, false), OK);
+        EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
+    }
+}
+
+/**
+ * @tc.name: RemoveDeviceTest002
+ * @tc.desc: remove all record with empty deviceId and FLAG_AND_DATA flag
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
+     * (Key:k2, device:2, userId:0)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+        EXPECT_EQ(CheckWaterMark(""), OK);
+    }
+    /**
+     * @tc.steps: step3. remove log data with empty deviceId.
+     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), NOT_FOUND);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), NOT_FOUND);
+        EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
+    }
+}
+
+/**
+ * @tc.name: RemoveDeviceTest003
+ * @tc.desc: remove record with deviceId
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
+     * (Key:k2, device:2, userId:0)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+        EXPECT_EQ(CheckFlag(key, true), OK); // flag become 0x2;
+        EXPECT_EQ(CheckWaterMark(""), OK);
+    }
+    /**
+     * @tc.steps: step3. remove "2" deviceId log data with FLAG_AND_DATA, remove "1" with FLAG_ONLY.
+     * * @tc.expected: step3. remove OK
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("1", ClearMode::FLAG_ONLY), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("2", ClearMode::FLAG_AND_DATA), OK);
+    Key key1({'k', '1'});
+    std::string deviceId1 = "1";
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
+    EXPECT_EQ(CheckFlag(key1, false), OK); // flag become 0x2;
+    Key key2({'k', '2'});
+    std::string deviceId2 = "2";
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
+    EXPECT_EQ(CheckLogTable(deviceId2), NOT_FOUND);
+    EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest004
+ * @tc.desc: remove all record with userId and empty deviceId.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
+     * (Key:k2, device:2, userId:2)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    std::string userHead = "user";
+    InsertRecord(recordNum);
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+        EXPECT_EQ(CheckFlag(key, true), OK);
+    }
+    EXPECT_EQ(CheckWaterMark(userHead + "0"), OK);
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+    }
+    /**
+     * @tc.steps: step3. remove "user1" userid log data with FLAG_AND_DATA, remove "user2" userid with FLAG_ONLY.
+     * * @tc.expected: step3. remove OK
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "user0", ClearMode::FLAG_ONLY), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "user2", ClearMode::FLAG_AND_DATA), OK);
+    Key key0({'k', '0'});
+    std::string deviceId1 = "0";
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key0, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
+    EXPECT_EQ(CheckFlag(key0, false), OK); // flag become 0x2;
+    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
+    Key key2({'k', '2'});
+    std::string deviceId2 = "2";
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
+    EXPECT_EQ(CheckLogTable(deviceId2), NOT_FOUND);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest005
+ * @tc.desc: remove record with userId and deviceId.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
+     * (Key:k2, device:2, userId:2)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    std::string userHead = "user";
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+    EXPECT_EQ(CheckWaterMark(userHead + "0"), OK);
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+        EXPECT_EQ(CheckFlag(key, true), OK);
+    }
+    /**
+     * @tc.steps: step3. remove "user1" userid log data with FLAG_AND_DATA, remove "user0" userid with FLAG_ONLY.
+     * remove "user2" userid log data with dismatch deviceId, it cant not remove the data.
+     * * @tc.expected: step3. remove OK
+    */
+    std::string deviceId0 = "0";
+    std::string deviceId1 = "1";
+    std::string deviceId2 = "2";
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user0", ClearMode::FLAG_ONLY), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user1", ClearMode::FLAG_AND_DATA), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user2", ClearMode::FLAG_AND_DATA), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user2", ClearMode::FLAG_ONLY), OK);
+    Key key0({'k', '0'});
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key0, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId0), NOT_FOUND);
+    EXPECT_EQ(CheckFlag(key0, false), OK); // flag become 0x2;
+    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
+    Key key1({'k', '1'});
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), NOT_FOUND);
+    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
+    Key key2({'k', '2'});;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId2), OK);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest006
+ * @tc.desc: remove record with userId and deviceId, and there are same hashKey record in log table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
+     * (Key:k2, device:2, userId:2)
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    std::string userHead = "user";
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        SetFlag(key, true);
+        SetDeviceId(key, std::to_string(i));
+        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+    }
+    /**
+     * @tc.steps: step2. Check three Log record whether exist or not;
+     * * @tc.expected: step2. record exist
+    */
+    for (int i = 0; i < recordNum; i++) {
+        Key key;
+        key.push_back('k');
+        key.push_back('0' + i);
+        Value actualValue;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        std::string deviceId = std::to_string(i);
+        EXPECT_EQ(CheckLogTable(deviceId), OK);
+    }
+    /**
+     * @tc.steps: step3. Make log table all users's hashKey become same hashKey '99', and the hashKey in syncTable
+     *  where device is deviceId1 also become '99',remove data with FLAG_AND_DATA flag.
+     * * @tc.expected: step3. remove OK
+    */
+    std::string deviceId1 = "1";
+    std::string deviceId2 = "2";
+    std::string deviceId0 = "0";
+    DistributedDBCloudKvTest::ChangeHashKey(deviceId1);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user1", ClearMode::FLAG_AND_DATA), OK);
+    Key key1({'k', '1'});
+    Value actualValue;
+    // there are other users with same hash_key connect with this data in sync_data table, cant not remove the data.
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId1), OK); // match user2 and user0;
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user2", ClearMode::FLAG_AND_DATA), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
+    EXPECT_EQ(CheckLogTable(deviceId1), OK); // only user0 match the hash_key that same as device1.
+    EXPECT_EQ(CheckFlag(key1, true), OK); // flag still 0x100;
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user0", ClearMode::FLAG_AND_DATA), OK);
+    // all log have been deleted, so data would also be deleted.
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), NOT_FOUND);
+    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
+    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest007
+ * @tc.desc: remove record with invalid deviceId and mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Test removeDeviceData with invalid length deviceId.
+     * * @tc.expected:
+    */
+    std::string deviceId = std::string(128, 'a');
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, ClearMode::FLAG_AND_DATA), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "user1", ClearMode::FLAG_AND_DATA), OK);
+
+    std::string invaliDeviceId = std::string(129, 'a');
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(invaliDeviceId, ClearMode::FLAG_AND_DATA), INVALID_ARGS);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(invaliDeviceId, "user1", ClearMode::FLAG_AND_DATA), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. Test removeDeviceData with invalid mode.
+     * * @tc.expected:
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, ClearMode::CLEAR_SHARED_TABLE), NOT_SUPPORT);
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "user1", ClearMode::CLEAR_SHARED_TABLE), NOT_SUPPORT);
 }
 }

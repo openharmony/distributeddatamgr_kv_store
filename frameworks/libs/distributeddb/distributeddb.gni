@@ -185,6 +185,7 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_schema_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_engine.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_executor.cpp",
+  "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_executor_extend.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_executor_cache.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_executor_subscribe.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_storage_engine.cpp",

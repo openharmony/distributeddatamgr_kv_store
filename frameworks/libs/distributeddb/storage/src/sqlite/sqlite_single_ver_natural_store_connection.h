@@ -109,6 +109,10 @@ public:
     int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
 
     int UnRegisterObserverAction(const KvStoreObserver *observer) override;
+
+    int RemoveDeviceData(const std::string &device, ClearMode mode) override;
+
+    int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 
