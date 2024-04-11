@@ -307,4 +307,37 @@ namespace DistributedDB {
         };
         dataBaseSchema.tables.push_back(tableSchema);
     }
+
+    void CloudDBSyncUtilsTest::InitStoreProp(const std::string &storePath, const std::string &appId,
+        const std::string &userId, const std::string &storeId, RelationalDBProperties &properties)
+    {
+        properties.SetStringProp(RelationalDBProperties::DATA_DIR, storePath);
+        properties.SetStringProp(RelationalDBProperties::APP_ID, appId);
+        properties.SetStringProp(RelationalDBProperties::USER_ID, userId);
+        properties.SetStringProp(RelationalDBProperties::STORE_ID, storeId);
+        std::string identifier = userId + "-" + appId + "-" + storeId;
+        std::string hashIdentifier = DBCommon::TransferHashString(identifier);
+        properties.SetStringProp(RelationalDBProperties::IDENTIFIER_DATA, hashIdentifier);
+    }
+
+    void CloudDBSyncUtilsTest::CheckCount(sqlite3 *db, const std::string &sql, int64_t count)
+    {
+        EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback, reinterpret_cast<void *>(count), nullptr),
+            SQLITE_OK);
+    }
+
+    void CloudDBSyncUtilsTest::GetHashKey(const std::string &tableName, const std::string &condition, sqlite3 *db,
+        std::vector<std::vector<uint8_t>> &hashKey)
+    {
+        sqlite3_stmt *stmt = nullptr;
+        std::string sql = "select hash_key from " + DBCommon::GetLogTableName(tableName) + " where " + condition;
+        EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            std::vector<uint8_t> blob;
+            EXPECT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, blob), E_OK);
+            hashKey.push_back(blob);
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
 }

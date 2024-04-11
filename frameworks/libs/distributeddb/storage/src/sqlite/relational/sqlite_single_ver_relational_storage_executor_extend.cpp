@@ -102,6 +102,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt
     (void)SQLiteUtils::GetColumnBlobValue(statement, index++, logInfo.hashKey); // 6 is hash_key
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.cloudGid); // 7 is cloud_gid
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.sharingResource); // 8 is sharing_resource
+    logInfo.status = static_cast<uint64_t>(sqlite3_column_int64(statement, index++)); // 9 is status
     return index;
 }
 
@@ -109,7 +110,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
     std::vector<Field> &assetFields, const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog,
     VBucket &assetInfo)
 {
-    GetLogInfoByStatement(statement, dataInfoWithLog.logInfo);
     int index = GetLogInfoByStatement(statement, dataInfoWithLog.logInfo); // start index of assetInfo or primary key
     int errCode = E_OK;
     for (const auto &field: assetFields) {
@@ -236,7 +236,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         return -E_CLOUD_ERROR;
     }
     std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
-        " sharing_resource FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
+        " sharing_resource, status FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
     if (!cloudGid.empty()) {
         sql += "cloud_gid = ? OR ";
     }
@@ -269,6 +269,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE:
             case OpType::UPDATE_TIMESTAMP:
             case OpType::CLEAR_GID:
+            case OpType::LOCKED_NOT_HANDLE:
                 errCode = OnlyUpdateLogTable(vBucket, tableSchema, op);
                 [[fallthrough]];
             case OpType::NOT_HANDLE:
@@ -573,7 +574,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
     }
 
     std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)";
+        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)";
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {
@@ -1009,5 +1010,33 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLogicDelete(bool isLogicDelete
 {
     isLogicDelete_ = isLogicDelete;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordStatus(const std::string &tableName,
+    const std::string &status, const Key &hashKey)
+{
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET " + status + " WHERE hash_key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor] Get stmt failed when update record status, %d", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, hashKey); // 1 is bind index of hashKey
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor] Bind hashKey to update record status stmt failed, %d", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[Storage Executor]Step update record status stmt failed, %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
 } // namespace DistributedDB
 #endif

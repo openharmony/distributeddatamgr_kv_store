@@ -143,7 +143,7 @@ private:
 
     int CheckBeforeSync(const CloudSyncOption &option);
 
-    int CheckQueryValid(bool priorityTask, const Query &query);
+    int CheckQueryValid(const CloudSyncOption &option);
 
     int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object);
 

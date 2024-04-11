@@ -81,6 +81,14 @@ public:
 
     static void GetCloudDbSchema(const std::string &tableName, const std::vector<Field> &cloudField,
         DataBaseSchema &dataBaseSchema);
+
+    static void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
+        const std::string &storeId, RelationalDBProperties &properties);
+
+    static void CheckCount(sqlite3 *db, const std::string &sql, int64_t count);
+
+    static void GetHashKey(const std::string &tableName, const std::string &condition, sqlite3 *db,
+        std::vector<std::vector<uint8_t>> &hashKey);
 };
 }
 

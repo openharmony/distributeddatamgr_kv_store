@@ -16,16 +16,20 @@
 #include <gtest/gtest.h>
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
+#include "cloud_db_sync_utils_test.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "log_print.h"
 #include "relational_store_delegate.h"
+#include "relational_store_instance.h"
 #include "relational_store_manager.h"
+#include "relational_sync_able_storage.h"
 #include "runtime_config.h"
 #include "time_helper.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+
 namespace {
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -58,13 +62,14 @@ void CreateUserDBAndTable(sqlite3 *&db)
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, g_createNonPrimaryKeySQL), SQLITE_OK);
 }
 
-void PrepareOption(CloudSyncOption &option, const Query &query, bool isPriorityTask)
+void PrepareOption(CloudSyncOption &option, const Query &query, bool isPriorityTask, bool isCompensatedSyncOnly = false)
 {
     option.devices = { "CLOUD" };
     option.mode = SYNC_MODE_CLOUD_MERGE;
     option.query = query;
     option.waitTime = g_syncWaitTime;
     option.priorityTask = isPriorityTask;
+    option.compensatedSyncOnly = isCompensatedSyncOnly;
 }
 
 void BlockSync(const Query &query, RelationalStoreDelegate *delegate)
@@ -90,7 +95,8 @@ void BlockSync(const Query &query, RelationalStoreDelegate *delegate)
     });
 }
 
-void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bool isPriority, DBStatus expectResult)
+void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bool isPriority, DBStatus expectResult,
+    bool isCompensatedSyncOnly = false)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
@@ -107,7 +113,7 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
         }
     };
     CloudSyncOption option;
-    PrepareOption(option, query, isPriority);
+    PrepareOption(option, query, isPriority, isCompensatedSyncOnly);
     ASSERT_EQ(delegate->Sync(option, callback), expectResult);
     if (expectResult == OK) {
         std::unique_lock<std::mutex> uniqueLock(dataMutex);
@@ -159,6 +165,7 @@ protected:
     void InitLogicDeleteDataEnv(int64_t dataCount);
     void CheckLocalCount(int64_t expectCount);
     void CheckLogCleaned(int64_t expectCount);
+    void SyncDataStatusTest(bool isCompensatedSyncOnly);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -1786,6 +1793,80 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, ConsistentFlagTest001, TestSize.Level1
     BlockSync(query, delegate_);
     EXPECT_EQ(sqlite3_exec(db_, querySql.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(localCount), nullptr), SQLITE_OK);
+}
+
+void DistributedDBCloudCheckSyncTest::SyncDataStatusTest(bool isCompensatedSyncOnly)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 20; // 20 is count of local
+    const int cloudCount = 10; // 10 is count of cloud
+    InsertUserTableRecord(tableName_, localCount);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 1 where data_key in (1,11);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 2 where data_key in (2,12);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 3 where data_key in (3,13);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
+    Query query = Query::Select().FromTable({tableName_});
+
+    /**
+     * @tc.steps:step2. check count
+     * @tc.expected: step2. ok.
+     */
+    int64_t syncCount = 2;
+    BlockPrioritySync(query, delegate_, false, OK, isCompensatedSyncOnly);
+    if (!isCompensatedSyncOnly) {
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // wait compensated sync finish
+    }
+    std::string preSql = "select count(*) from " + DBCommon::GetLogTableName(tableName_);
+    std::string querySql = preSql + " where status=0 and data_key in (1,11) and cloud_gid !='';";
+    CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
+    if (isCompensatedSyncOnly) {
+        querySql = preSql + " where status=2 and data_key in (2,12) and cloud_gid ='';";
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
+        querySql = preSql + " where status=3 and data_key in (3,13) and cloud_gid ='';";
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
+        querySql = preSql + " where status=0 and cloud_gid ='';";
+        int unSyncCount = 14; // 14 is the num of unSync data with status 0
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, unSyncCount);
+    } else {
+        querySql = preSql + " where status=3 and data_key in (2,12) and cloud_gid ='';";
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
+        querySql = preSql + " where status=3 and data_key in (3,13) and cloud_gid ='';";
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
+        querySql = preSql + " where status=0 and cloud_gid !='';";
+        int unSyncCount = 16; // 16 is the num of sync finish
+        CloudDBSyncUtilsTest::CheckCount(db_, querySql, unSyncCount);
+    }
+}
+
+/*
+ * @tc.name: SyncDataStatusTest001
+ * @tc.desc: Test the status after compensated sync the no asset table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SyncDataStatusTest001, TestSize.Level1)
+{
+    SyncDataStatusTest(true);
+}
+
+/*
+ * @tc.name: SyncDataStatusTest002
+ * @tc.desc: Test the status after normal sync the no asset table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SyncDataStatusTest002, TestSize.Level1)
+{
+    SyncDataStatusTest(false);
 }
 }
 #endif

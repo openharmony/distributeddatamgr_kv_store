@@ -37,4 +37,9 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db);
 
 DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 
+DB_API DistributedDB::DBStatus Lock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    sqlite3 *db);
+
+DB_API DistributedDB::DBStatus UnLock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    sqlite3 *db);
 #endif // RELATIONAL_STORE_CLIENT_H

@@ -61,6 +61,9 @@ public:
     void Close();
 
     std::string GetIdentify() const override;
+
+    void GenerateCompensatedSync(CloudTaskInfo &taskInfo);
+
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -152,6 +155,8 @@ protected:
     bool IsModeForcePull(const TaskId taskId);
 
     bool IsPriorityTask(TaskId taskId);
+
+    bool IsCompensatedTask(TaskId taskId);
 
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
 
@@ -318,16 +323,14 @@ protected:
     int DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
-    int GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
-        VBucket &dbAssets);
+    std::pair<int, uint32_t> GetDBAssets(bool isSharedTable, const InnerProcessInfo &info,
+        const DownloadItem &downloadItem, VBucket &dbAssets);
 
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
     int CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
         DownloadCommitList &commitList, uint32_t &successCount);
-
-    void GenerateCompensatedSync();
 
     void ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam);
 

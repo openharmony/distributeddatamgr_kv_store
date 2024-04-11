@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return -E_CLOUD_ERROR;
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
-        " a.cloud_gid, a.sharing_resource";
+        " a.cloud_gid, a.sharing_resource, a.status";
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
@@ -112,8 +112,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     Bytes hashKey;
     (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
     VBucket dbAssets;
-    errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+    std::tie(errCode, std::ignore) = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
+        LOGE("get assets by gid or hashkey failed %d.", errCode);
         return errCode;
     }
     AssetOperationUtils::RecordAssetOpType assetOpType = AssetOperationUtils::CalAssetOperation(vBucket, dbAssets,
@@ -272,9 +273,10 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
     VBucket vBucket = data.assets.at(index);
     VBucket dbAssets;
     std::string cloudGid;
+    int errCode;
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
-    int errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
-    if (errCode != E_OK) {
+    std::tie(errCode, std::ignore) = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
+    if (errCode != E_OK && errCode != -E_CLOUD_GID_MISMATCH) {
         return errCode;
     }
     AssetOperationUtils::CloudSyncAction action = opType == OpType::SET_UPLOADING ?
@@ -993,9 +995,9 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
     } else {
         sql += "data_key = -1,  flag = flag&" + std::string(CONSISTENT_FLAG) + "|0x01";
     }
-    sql += ", cloud_gid = '', version = '', ";
+    sql += ", cloud_gid = '', version = ''";
     if (!isLogicDelete_) {
-        sql += "sharing_resource = '', ";
+        sql += ", sharing_resource = ''";
     }
     return sql;
 }
@@ -1223,9 +1225,11 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetsIdOnUserTable(const std
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,
-    const std::string &gid, const Bytes &hashKey, VBucket &assets)
+std::pair<int, uint32_t> SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(
+    const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey, VBucket &assets)
 {
+    std::pair<int, uint32_t> res = { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
+    auto &[errCode, status] = res;
     std::vector<Field> assetFields;
     std::string sql = "SELECT";
     for (const auto &field: tableSchema.fields) {
@@ -1235,18 +1239,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const Tabl
         }
     }
     if (assetFields.empty()) {
-        return -E_NOT_FOUND;
+        return { -E_NOT_FOUND, status };
     }
-    sql.pop_back();
-    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE (a." + FLAG_NOT_LOGIC_DELETE + ") AND (";
-    if (!gid.empty()) {
-        sql += " a.cloud_gid = ? or ";
-    }
-    sql += " a.hash_key = ?);";
+    sql += "a.cloud_gid, a.status ";
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE (a." + FLAG_NOT_LOGIC_DELETE + ") AND (" +
+        (gid.empty() ? "a.hash_key = ?);" : " a.cloud_gid = ? OR  a.hash_key = ?);");
     sqlite3_stmt *stmt = nullptr;
-    int errCode = InitGetAssetStmt(sql, gid, hashKey, stmt);
+    errCode = InitGetAssetStmt(sql, gid, hashKey, stmt);
     if (errCode != E_OK) {
-        return errCode;
+        return res;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt);
     int index = 0;
@@ -1262,13 +1263,20 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const Tabl
                 break;
             }
         }
+        std::string curGid;
+        errCode = SQLiteUtils::GetColumnTextValue(stmt, index++, curGid);
+        if (errCode == E_OK && CloudStorageUtils::IsCloudGidMismatch(gid, curGid)) {
+            // Gid is different, there may be duplicate primary keys in the cloud
+            errCode = -E_CLOUD_GID_MISMATCH;
+        }
+        status = sqlite3_column_int(stmt, index++);
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = -E_NOT_FOUND;
     } else {
         LOGE("step get asset stmt failed. %d", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    return res;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::InitGetAssetStmt(const std::string &sql, const std::string &gid,
@@ -1336,17 +1344,6 @@ int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType 
             break;
     }
     return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetDbAssets(const TableSchema &tableSchema,
-    const VBucket &vBucket, VBucket &dbAsset)
-{
-    std::string cloudGid;
-    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
-    Bytes hashKey;
-    (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
-    VBucket dbAssets;
-    return GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByRowId(sqlite3_stmt *&selectStmt, Assets &assets)
@@ -1809,8 +1806,14 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string
         SQLiteUtils::ResetStatement(stmt, true, ret);
         return errCode;
     }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, 2, logInfo.timestamp); // 2 is timestamp
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor] Bind timestamp to update record status stmt failed, %d", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        return errCode;
+    }
     if (useHashKey) {
-        errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, logInfo.hashKey); // 2 is hash_key
+        errCode = SQLiteUtils::BindBlobToStatement(stmt, 3, logInfo.hashKey); // 3 is hash_key
         if (errCode != E_OK) {
             LOGE("[Storage Executor] Bind hashKey to update record flag stmt failed, %d", errCode);
             SQLiteUtils::ResetStatement(stmt, true, ret);
@@ -1844,7 +1847,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
         return E_OK;
     }
     sql.pop_back();
-    sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE a." + FLAG_IS_WAIT_COMPENSATED_SYNC;
+    sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE " + FLAG_IS_WAIT_COMPENSATED_SYNC;
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
@@ -1937,7 +1940,7 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
         return -E_CLOUD_ERROR;
     }
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
-        " SET flag=flag&(~0x20) WHERE cloud_gid=? and timestamp=?;";
+        " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
@@ -1949,7 +1952,7 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
     for (const auto &data: downloadData.data) {
         SQLiteUtils::ResetStatement(stmt, false, ret);
         OpType opType = downloadData.opType[index++];
-        if (opType == OpType::NOT_HANDLE) {
+        if (opType == OpType::NOT_HANDLE || opType == OpType::LOCKED_NOT_HANDLE) {
             continue;
         }
         errCode = CloudStorageUtils::BindStepConsistentFlagStmt(stmt, data, gidFilters);

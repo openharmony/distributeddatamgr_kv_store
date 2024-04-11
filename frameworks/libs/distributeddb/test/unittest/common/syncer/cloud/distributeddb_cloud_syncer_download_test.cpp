@@ -227,7 +227,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest001, TestSize.Lev
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
@@ -279,7 +279,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest002, TestSize.Lev
 {
     TaskId taskId = 6u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -325,7 +325,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest002, TestSiz
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -358,7 +358,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -416,7 +416,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00302, TestS
 {
     TaskId taskId = 4u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -460,7 +460,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -505,7 +505,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
 {
     TaskId taskId = 3u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -561,7 +561,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest005, TestSiz
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -593,7 +593,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest006, TestSize.Lev
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -711,7 +711,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));

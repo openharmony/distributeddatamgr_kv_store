@@ -30,11 +30,12 @@ public:
     MOCK_METHOD1(StartTransaction, int(TransactType));
     MOCK_METHOD0(Commit, int(void));
     MOCK_METHOD0(Rollback, int(void));
-    MOCK_METHOD4(GetUploadCount, int(const QuerySyncObject &, const Timestamp &, bool, int64_t &));
+    MOCK_METHOD5(GetUploadCount, int(const QuerySyncObject &, const Timestamp &, bool, bool, int64_t &));
     MOCK_METHOD5(GetCloudData, int(const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
         CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));
-    MOCK_METHOD4(GetCloudGid, int(const TableSchema &, const QuerySyncObject &, bool, std::vector<std::string> &));
+    MOCK_METHOD5(GetCloudGid, int(const TableSchema &, const QuerySyncObject &, bool, bool,
+        std::vector<std::string> &));
     MOCK_METHOD1(ReleaseCloudDataToken, int(ContinueToken &));
     MOCK_METHOD4(GetInfoByPrimaryKeyOrGid, int(const std::string &, const VBucket &, DataInfoWithLog &, VBucket &));
     MOCK_METHOD2(PutCloudSyncData, int(const std::string &, DownloadData &));

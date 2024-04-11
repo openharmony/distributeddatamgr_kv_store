@@ -61,6 +61,7 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
         "cursor INT DEFAULT 0," + \
         "version TEXT DEFAULT ''," + \
         "sharing_resource TEXT DEFAULT ''," + \
+        "status INT DEFAULT 0," + \
         primaryKey + ");";
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);

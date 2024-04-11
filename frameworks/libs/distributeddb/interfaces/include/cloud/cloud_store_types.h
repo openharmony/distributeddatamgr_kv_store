@@ -123,6 +123,7 @@ struct CloudSyncOption {
     Query query;
     int64_t waitTime = 0;
     bool priorityTask = false;
+    bool compensatedSyncOnly = false;
 };
 
 enum class QueryNodeType : uint32_t {
@@ -148,7 +149,16 @@ struct SqlCondition {
 };
 
 enum class RecordStatus {
-    WAIT_COMPENSATED_SYNC
+    WAIT_COMPENSATED_SYNC,
+    NORMAL
+};
+
+enum class LockStatus : uint32_t {
+    UNLOCK = 0,
+    UNLOCKING,
+    LOCK,
+    LOCK_CHANGE,
+    BUTT,
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

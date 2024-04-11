@@ -281,7 +281,8 @@ bool CloudSyncUtils::CheckCloudSyncDataEmpty(const CloudSyncData &uploadData)
 {
     return uploadData.insData.extend.empty() && uploadData.insData.record.empty() &&
         uploadData.updData.extend.empty() && uploadData.updData.record.empty() &&
-        uploadData.delData.extend.empty() && uploadData.delData.record.empty();
+        uploadData.delData.extend.empty() && uploadData.delData.record.empty() &&
+        uploadData.lockData.rowid.empty();
 }
 
 void CloudSyncUtils::ModifyCloudDataTime(DistributedDB::VBucket &data)
@@ -553,5 +554,17 @@ void CloudSyncUtils::InsertOrReplaceChangedDataByType(ChangeType type, std::vect
     }
     // insert new changeData
     changedData.primaryData[type].emplace_back(std::move(pkVal));
+}
+
+CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
+{
+    CloudSyncer::CloudTaskInfo taskInfo;
+    taskInfo.priorityTask = true;
+    taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
+    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
+    taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    taskInfo.callback = nullptr;
+    taskInfo.compensatedTask = true;
+    return taskInfo;
 }
 }

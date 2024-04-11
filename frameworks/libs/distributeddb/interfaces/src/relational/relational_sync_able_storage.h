@@ -140,7 +140,7 @@ public:
     int Rollback() override;
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
-        int64_t &count) override;
+        bool isCompensatedTask, int64_t &count) override;
 
     int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
@@ -148,7 +148,7 @@ public:
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
-        std::vector<std::string> &cloudGid) override;
+        bool isCompensatedTask, std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
@@ -197,8 +197,8 @@ public:
 
     void SetCloudTaskConfig(const CloudTaskConfig &config) override;
 
-    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
-        VBucket &assets) override;
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+        const Bytes &hashKey, VBucket &assets) override;
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
@@ -210,6 +210,10 @@ public:
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
+
+    void SyncFinishHook() override;
+
+    int SetSyncFinishHook(const std::function<void (void)> &func) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -226,7 +230,7 @@ protected:
         const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid);
 
     int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
-        const CloudSyncBatch &updateData);
+        const CloudSyncBatch &updateData, bool isLock = false);
 
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
@@ -306,6 +310,8 @@ private:
 
     std::atomic<bool> logicDelete_ = false;
     std::atomic<bool> allowLogicDelete_ = false;
+
+    std::function<void (void)> syncFinishFunc_;
 };
 }  // namespace DistributedDB
 #endif

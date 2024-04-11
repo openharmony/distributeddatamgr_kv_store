@@ -21,6 +21,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "mock_asset_loader.h"
 #include "process_system_api_adapter_impl.h"
+#include "relational_store_client.h"
 #include "relational_store_instance.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
@@ -55,6 +56,7 @@ const string COL_ASSET = "asset";
 const string COL_ASSETS = "assets";
 const string COL_AGE = "age";
 const int64_t SYNC_WAIT_TIME = 600;
+const int64_t COMPENSATED_SYNC_WAIT_TIME = 5;
 const std::vector<Field> CLOUD_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>, true}, {COL_NAME, TYPE_INDEX<std::string>},
     {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSET, TYPE_INDEX<Asset>}, {COL_ASSETS, TYPE_INDEX<Assets>},
     {COL_AGE, TYPE_INDEX<int64_t>}};
@@ -108,6 +110,8 @@ std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
 SyncProcess g_syncProcess;
 std::condition_variable g_processCondition;
 std::mutex g_processMutex;
+IRelationalStore *g_store = nullptr;
+ICloudSyncStorageHook *g_cloudStoreHook = nullptr;
 using CloudSyncStatusCallback = std::function<void(const std::map<std::string, SyncProcess> &onProcess)>;
 
 void InitDatabase(sqlite3 *&db)
@@ -261,10 +265,8 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
     for (auto &item : assets) {
         for (auto &asset : item.second) {
             EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::DOWNLOADING));
-            if (index > 4) { // 1-4 is deleted; 5-8 is inserted
+            if (index < 4) { // 1-4 is inserted
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
-            } else {
-                EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::DELETE));
             }
             LOGD("asset [name]:%s, [status]:%u, [flag]:%u, [index]:%d", asset.name.c_str(), asset.status, asset.flag,
                 index);
@@ -349,6 +351,15 @@ protected:
         const std::set<int> &failIndex);
     void CheckLocalAssetIsEmpty(const std::string &tableName);
     void CheckCursorData(const std::string &tableName, int begin);
+    void WaitForSync(int &syncCount);
+    const RelationalSyncAbleStorage *GetRelationalStore();
+    void InitDataStatusTest(bool needDownload);
+    void DataStatusTest001(bool needDownload);
+    void DataStatusTest003();
+    void DataStatusTest004();
+    void DataStatusTest005();
+    void DataStatusTest006();
+    void DataStatusTest007();
     sqlite3 *db = nullptr;
 };
 
@@ -390,10 +401,13 @@ void DistributedDBCloudSyncerDownloadAssetsTest::SetUp(void)
     DataBaseSchema dataBaseSchema;
     GetCloudDbSchema(dataBaseSchema);
     ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    g_cloudStoreHook = (ICloudSyncStorageHook *) GetRelationalStore();
+    ASSERT_NE(g_cloudStoreHook, nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::TearDown(void)
 {
+    RefObject::DecObjRef(g_store);
     g_virtualCloudDb->ForkUpload(nullptr);
     CloseDb();
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
@@ -456,7 +470,229 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckCursorData(const std::stri
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
-/**
+void DistributedDBCloudSyncerDownloadAssetsTest::WaitForSync(int &syncCount)
+{
+    std::unique_lock<std::mutex> lock(g_processMutex);
+    bool result = g_processCondition.wait_for(lock, std::chrono::seconds(COMPENSATED_SYNC_WAIT_TIME),
+        [&syncCount]() { return syncCount == 2; }); // 2 is compensated sync
+    ASSERT_EQ(result, true);
+}
+
+const RelationalSyncAbleStorage* DistributedDBCloudSyncerDownloadAssetsTest::GetRelationalStore()
+{
+    RelationalDBProperties properties;
+    CloudDBSyncUtilsTest::InitStoreProp(g_storePath, APP_ID, USER_ID, STORE_ID, properties);
+    int errCode = E_OK;
+    g_store = RelationalStoreInstance::GetDataBase(properties, errCode);
+    if (g_store == nullptr) {
+        return nullptr;
+    }
+    return static_cast<SQLiteRelationalStore *>(g_store)->GetStorageEngine();
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::InitDataStatusTest(bool needDownload)
+{
+    int cloudCount = 20;
+    int localCount = 10;
+    InsertLocalData(db, 0, cloudCount, ASSETS_TABLE_NAME, true);
+    if (needDownload) {
+        UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    }
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "update " + logName + " SET status = 1 where data_key in (1,11);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    sql = "update " + logName + " SET status = 2 where data_key in (2,12);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    sql = "update " + logName + " SET status = 3 where data_key in (3,13);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    InsertCloudDBData(0, localCount, 0, ASSETS_TABLE_NAME);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest001(bool needDownload)
+{
+    int cloudCount = 20;
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, cloudCount, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 1 and data_key = 11) or (status = 0)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, cloudCount);
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 0)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, cloudCount);
+            g_processCondition.notify_one();
+        }
+    });
+    InitDataStatusTest(needDownload);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    WaitForSync(count);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest003()
+{
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (0,2,3,12,13)) or (status = 1 and data_key = 11)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 6); // 6 is match count
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (0,2,3,12,13) or (status = 0))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 20); // 20 is match count
+            g_processCondition.notify_one();
+        }
+    });
+    int downLoadCount = 0;
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+        downLoadCount++;
+        if (downLoadCount == 1) {
+            std::vector<std::vector<uint8_t>> hashKey;
+            CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0 ", db, hashKey);
+            EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+        }
+    });
+    InitDataStatusTest(true);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    WaitForSync(count);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
+{
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 1 and data_key in (-1,11))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 6); // 6 is match count
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 0)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 20); // 20 is match count
+            g_processCondition.notify_one();
+        }
+    });
+    int downLoadCount = 0;
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+        downLoadCount++;
+        if (downLoadCount == 1) {
+            std::vector<std::vector<uint8_t>> hashKey;
+            CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0 ", db, hashKey);
+            EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+            std::string sql = "delete from " + ASSETS_TABLE_NAME + " WHERE id=0";
+            EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        }
+    });
+    InitDataStatusTest(true);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    WaitForSync(count);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
+{
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (0,2,3,12,13)) or (status = 1 and data_key in (11))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 6); // 6 is match count
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (0,2,3,12,13)) or (status = 0)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 20); // 20 is match count
+            g_processCondition.notify_one();
+        }
+    });
+    int downLoadCount = 0;
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+        downLoadCount++;
+        if (downLoadCount == 1) {
+            std::vector<std::vector<uint8_t>> hashKey;
+            CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0 ", db, hashKey);
+            EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+            std::string sql = "update " + ASSETS_TABLE_NAME + " set name='x' WHERE id=0";
+            EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        }
+    });
+    InitDataStatusTest(true);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    WaitForSync(count);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
+{
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 1 and data_key in (0,11))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 6); // 6 is match count
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,12,13)) or (status = 0)";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 20); // 20 is match count
+            g_processCondition.notify_one();
+        }
+    });
+    int downLoadCount = 0;
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+        downLoadCount++;
+        if (downLoadCount == 1) {
+            std::vector<std::vector<uint8_t>> hashKey;
+            CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0 ", db, hashKey);
+            EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+            std::string sql = "update " + ASSETS_TABLE_NAME + " set name='x' WHERE id=0";
+            EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+            EXPECT_EQ(UnLock(ASSETS_TABLE_NAME, hashKey, db), WAIT_COMPENSATED_SYNC);
+        }
+    });
+    InitDataStatusTest(true);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    WaitForSync(count);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest007()
+{
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count, this]() {
+        count++;
+        if (count == 1) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,13)) or (status = 1 and data_key in (1,11))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 5); // 5 is match count
+        }
+        if (count == 2) { // 2 is compensated sync
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
+                " (status = 3 and data_key in (2,3,13)) or (status = 1 and data_key in (1,11))";
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 5); // 5 is match count
+            g_processCondition.notify_one();
+        }
+    });
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly([](const std::string &, const std::string &gid, const Type &,
+            std::map<std::string, Assets> &assets) {
+            return CLOUD_ERROR;
+        });
+    InitDataStatusTest(true);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    WaitForSync(count);
+}
+
+/*
  * @tc.name: DownloadAssetForDupDataTest001
  * @tc.desc: Test the download interface call with duplicate data for the same primary key.
  * @tc.type: FUNC
@@ -473,7 +709,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
     int index = 1;
     EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
-        .Times(8)
+        .Times(4)
         .WillRepeatedly(
             [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s", gid.c_str());
@@ -1546,6 +1782,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, Test
      * @tc.expected: step2. return OK.
      */
     UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
     int delCount = 3; // 3 is num of cloud
     DeleteCloudDBData(1, delCount, ASSETS_TABLE_NAME);
     std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
@@ -1581,6 +1818,90 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, Test
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckConsistentCount(db, cloudCount);
+}
+
+/**
+ * @tc.name: SyncDataStatusTest001
+ * @tc.desc: No need to download asset, check status after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest001, TestSize.Level0)
+{
+    DataStatusTest001(false);
+}
+
+/**
+ * @tc.name: SyncDataStatusTest002
+ * @tc.desc: Need to download asset, check status after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest002, TestSize.Level0)
+{
+    DataStatusTest001(true);
+}
+
+/**
+ * @tc.name: SyncDataStatusTest003
+ * @tc.desc: Lock during download and check status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest003, TestSize.Level0)
+{
+    DataStatusTest003();
+}
+
+/**
+ * @tc.name: SyncDataStatusTest004
+ * @tc.desc: Lock and delete during download, check status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest004, TestSize.Level0)
+{
+    DataStatusTest004();
+}
+
+/**
+ * @tc.name: SyncDataStatusTest005
+ * @tc.desc: Lock and update during download, check status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest005, TestSize.Level0)
+{
+    DataStatusTest005();
+}
+
+/**
+ * @tc.name: SyncDataStatusTest006
+ * @tc.desc: Lock and update and Unlock during download, check status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest006, TestSize.Level0)
+{
+    DataStatusTest006();
+}
+
+/**
+ * @tc.name: SyncDataStatusTest007
+ * @tc.desc: Download return error, check status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, TestSize.Level0)
+{
+    DataStatusTest007();
 }
 } // namespace
 #endif // RELATIONAL_STORE
