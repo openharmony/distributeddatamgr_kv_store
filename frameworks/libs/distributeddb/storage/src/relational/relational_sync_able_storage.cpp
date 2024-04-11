@@ -1794,6 +1794,11 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const CloudSyncBatch &updateData, bool isLock)
 {
+    if (updateData.timestamp.size() != updateData.extend.size()) {
+        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
+            updateData.extend.size(), updateData.timestamp.size());
+        return -E_INVALID_ARGS;
+    }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
         if (DBCommon::IsRecordError(record) || DBCommon::IsRecordVersionConflict(record) || isLock) {
