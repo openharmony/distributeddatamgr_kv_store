@@ -399,6 +399,14 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
         VBucket vBucket;
         extend.push_back(vBucket);
     }
+    if (isDelete) {
+        for (auto &vb: extend) {
+            for (auto &[key, value]: vb) {
+                std::ignore = std::move(value);
+                vb.insert_or_assign(key, value);
+            }
+        }
+    }
     if (cloudNetworkError_) {
         return CLOUD_NETWORK_ERROR;
     }

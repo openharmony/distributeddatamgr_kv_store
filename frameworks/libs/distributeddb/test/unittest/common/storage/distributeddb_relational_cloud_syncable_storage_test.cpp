@@ -777,6 +777,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
     syncData.insData.extend.pop_back();
     bucket2.insert_or_assign(CloudDbConstant::GID_FIELD, std::string("2"));
     syncData.insData.extend.push_back(bucket2);
+    syncData.insData.hashKey.push_back({'3', '3'});
+    syncData.insData.hashKey.push_back({'3', '3'});
     EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), E_OK);
 
     /**
