@@ -31,7 +31,7 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInf
         if (IsDelete(localInfo)) {
             return OpType::INSERT;
         }
-        return OpType::UPDATE;
+        return IsSameVersion(cloudInfo, localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
     }
     bool gidEmpty = localInfo.cloudGid.empty();
     if (IsDelete(cloudInfo)) {

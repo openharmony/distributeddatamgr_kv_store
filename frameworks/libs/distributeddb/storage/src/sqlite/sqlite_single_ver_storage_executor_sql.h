@@ -312,7 +312,7 @@ namespace DistributedDB {
         "WHERE modify_time > ?";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
-        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key FROM "
+        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "
         "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
         "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key WHERE cloud_gid = ? ";
 

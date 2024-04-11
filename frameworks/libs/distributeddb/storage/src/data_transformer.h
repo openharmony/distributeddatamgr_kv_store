@@ -37,6 +37,7 @@ struct LogInfo {
     Key hashKey; // primary key hash value
     std::string cloudGid; // use for sync with cloud
     std::string sharingResource; // use for cloud share data
+    std::string version; // use for conflict check
     uint32_t status = static_cast<uint32_t>(LockStatus::UNLOCK); // record lock status
 };
 

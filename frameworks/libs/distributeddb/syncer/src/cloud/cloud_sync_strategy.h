@@ -55,6 +55,14 @@ public:
     {
         return (cloudInfo.sharingResource != localInfo.sharingResource);
     }
+
+    static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo)
+    {
+        if (cloudInfo.version.empty() || localInfo.version.empty()) {
+            return false;
+        }
+        return (cloudInfo.version == localInfo.version);
+    }
 };
 }
 #endif // CLOUD_SYNC_STRATEGY_H

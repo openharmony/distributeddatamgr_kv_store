@@ -46,7 +46,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
     if (isTimeSame && (localInfo.cloudGid.empty() || IsSharingResourceChanged(cloudInfo, localInfo))) {
         return OpType::ONLY_UPDATE_GID;
     }
-    return OpType::UPDATE;
+    return IsSameVersion(cloudInfo, localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
 }
 
 bool CloudMergeStrategy::JudgeUpdateCursor()

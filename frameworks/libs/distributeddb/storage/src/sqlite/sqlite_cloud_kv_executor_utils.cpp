@@ -296,6 +296,7 @@ DataInfoWithLog SqliteCloudKvExecutorUtils::FillLogInfoWithStmt(sqlite3_stmt *st
     (void)SQLiteUtils::GetColumnBlobValue(stmt, index++, key);
     std::string keyStr(key.begin(), key.end());
     dataInfoWithLog.primaryKeys.insert_or_assign(CloudDbConstant::CLOUD_KV_FIELD_KEY, keyStr);
+    (void)SQLiteUtils::GetColumnTextValue(stmt, index++, dataInfoWithLog.logInfo.version);
     return dataInfoWithLog;
 }
 
