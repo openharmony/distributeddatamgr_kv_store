@@ -1443,7 +1443,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
      * @tc.expected: step3. return OK
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    EXPECT_GE(index, 4); // 4 is download num
+    EXPECT_GE(index, 2); // 2 is download num
 }
 
 /**

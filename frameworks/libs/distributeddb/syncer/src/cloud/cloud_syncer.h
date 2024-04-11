@@ -353,6 +353,9 @@ protected:
     std::pair<int, uint32_t> GetDBAssets(bool isSharedTable, const InnerProcessInfo &info,
         const DownloadItem &downloadItem, VBucket &dbAssets);
 
+    std::map<std::string, Assets> BackFillAssetsAfterDownload(std::map<std::string, Assets> tmpAssets,
+        std::map<std::string, std::vector<uint32_t>> tmpFlags);
+
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
