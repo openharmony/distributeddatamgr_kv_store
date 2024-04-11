@@ -31,13 +31,16 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInf
         if (IsDelete(localInfo)) {
             return OpType::INSERT;
         }
-        return IsSameVersion(cloudInfo, localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
+        return TagUpdateLocal(cloudInfo, localInfo);
     }
     bool gidEmpty = localInfo.cloudGid.empty();
     if (IsDelete(cloudInfo)) {
         return gidEmpty ? OpType::NOT_HANDLE : OpType::DELETE;
     }
-    return gidEmpty ? OpType::INSERT : OpType::UPDATE;
+    if (gidEmpty) {
+        return OpType::INSERT;
+    }
+    return TagUpdateLocal(cloudInfo, localInfo);
 }
 
 bool CloudForcePullStrategy::JudgeUpdateCursor()

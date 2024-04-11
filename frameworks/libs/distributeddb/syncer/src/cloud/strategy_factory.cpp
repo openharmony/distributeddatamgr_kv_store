@@ -19,18 +19,25 @@
 #include "strategy_factory.h"
 
 namespace DistributedDB {
-std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode mode)
+std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode mode,
+    SingleVerConflictResolvePolicy policy)
 {
+    std::shared_ptr<CloudSyncStrategy> strategy;
     switch (mode) {
         case SyncMode::SYNC_MODE_CLOUD_MERGE:
-            return std::make_shared<CloudMergeStrategy>();
+            strategy = std::make_shared<CloudMergeStrategy>();
+            break;
         case SyncMode::SYNC_MODE_CLOUD_FORCE_PULL:
-            return std::make_shared<CloudForcePullStrategy>();
+            strategy = std::make_shared<CloudForcePullStrategy>();
+            break;
         case SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH:
-            return std::make_shared<CloudForcePushStrategy>();
+            strategy = std::make_shared<CloudForcePushStrategy>();
+            break;
         default:
             LOGW("[StrategyFactory] Not support mode %d", static_cast<int>(mode));
-            return std::make_shared<CloudSyncStrategy>();
+            strategy = std::make_shared<CloudSyncStrategy>();
     }
+    strategy->SetConflictResolvePolicy(policy);
+    return strategy;
 }
 }

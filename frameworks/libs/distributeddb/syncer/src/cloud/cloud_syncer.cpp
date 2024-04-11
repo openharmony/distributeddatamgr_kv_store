@@ -33,14 +33,15 @@
 #include "version.h"
 
 namespace DistributedDB {
-CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
+CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerConflictResolvePolicy policy)
     : lastTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
       timerId_(0u),
       heartBeatCount_(0),
-      failedHeartBeatCount_(0)
+      failedHeartBeatCount_(0),
+      policy_(policy)
 {
     if (storageProxy_ != nullptr) {
         id_ = storageProxy_->GetIdentify();
@@ -1503,7 +1504,7 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode);
+        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices);
     }
     LOGI("[CloudSyncer] exec taskId %" PRIu64, taskId);

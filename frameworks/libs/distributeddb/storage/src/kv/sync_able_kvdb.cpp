@@ -496,12 +496,15 @@ void SyncAbleKvDB::StartCloudSyncer()
     if (cloudStorage == nullptr) {
         return;
     }
+    int conflictType = MyProp().GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY,
+        static_cast<int>(SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN));
     {
         std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
         if (cloudSyncer_ != nullptr) {
             return;
         }
-        cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage));
+        cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage),
+            static_cast<SingleVerConflictResolvePolicy>(conflictType));
     }
 }
 
