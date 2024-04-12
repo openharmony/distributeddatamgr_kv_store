@@ -28,6 +28,7 @@ namespace DistributedKv {
 using namespace std::chrono;
 
 enum {
+    CLOUD_ONCHANGE,
     ONCHANGE,
 };
 
@@ -83,6 +84,32 @@ void KvStoreObserverProxy::OnChange(const ChangeNotification &changeNotification
     }
 }
 
+void KvStoreObserverProxy::OnChange(const DataOrigin &origin, Keys &&keys)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    if (!data.WriteInterfaceToken(KvStoreObserverProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
+    int64_t insertSize = keys[OP_INSERT].size();
+    int64_t updateSize = keys[OP_UPDATE].size();
+    int64_t deleteSize = keys[OP_DELETE].size();
+    ZLOGD("I(%" PRId64 ") U(%" PRId64 ") D(%" PRId64 ")", insertSize, updateSize, deleteSize);
+
+    if (!ITypesUtil::Marshal(data, origin.store) || !ITypesUtil::Marshal(data, keys[OP_INSERT]) ||
+        !ITypesUtil::Marshal(data, keys[OP_UPDATE]) || !ITypesUtil::Marshal(data, keys[OP_DELETE])) {
+        ZLOGE("WriteChangeInfo to Parcel failed.");
+        return;
+    }
+
+    MessageOption mo{ MessageOption::TF_WAIT_TIME };
+    int error = Remote()->SendRequest(CLOUD_ONCHANGE, data, reply, mo);
+    if (error != 0) {
+        ZLOGE("SendRequest failed, error %d", error);
+    }
+}
+
 int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply,
     MessageOption &option)
 {
@@ -122,6 +149,18 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
                 OnChange(change);
             }
             return 0;
+        }
+        case CLOUD_ONCHANGE: {
+            std::string store;
+            Keys keys;
+            if (!ITypesUtil::Unmarshal(data, store) || !ITypesUtil::Unmarshal(data, keys[OP_INSERT]) ||
+                !ITypesUtil::Unmarshal(data, keys[OP_UPDATE]) || !ITypesUtil::Unmarshal(data, keys[OP_DELETE])) {
+                ZLOGE("ReadChangeList from Parcel failed");
+                return -1;
+            }
+            DataOrigin origin;
+            origin.store = store;
+            OnChange(origin, std::move(keys));
         }
         default:
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

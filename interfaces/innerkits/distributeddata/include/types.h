@@ -168,9 +168,27 @@ enum SubscribeType : uint32_t {
     */
     SUBSCRIBE_TYPE_REMOTE = 2,
     /**
+     * Synced data changes from remote devices
+    */
+    SUBSCRIBE_TYPE_CLOUD = 4,
+    /**
      * Both local changes and synced data changes.
     */
-    SUBSCRIBE_TYPE_ALL = 3,
+    SUBSCRIBE_TYPE_ALL = 7,
+};
+
+struct DataOrigin {
+    enum OriginType : int32_t {
+        ORIGIN_NEARBY,
+        ORIGIN_CLOUD,
+        ORIGIN_ALL,
+        ORIGIN_BUTT,
+    };
+    int32_t origin = ORIGIN_ALL;
+    // origin is ORIGIN_NEARBY, the id is networkId;
+    // origin is ORIGIN_CLOUD, the id is the cloud account id
+    std::vector<std::string> id;
+    std::string store;
 };
 
 /**

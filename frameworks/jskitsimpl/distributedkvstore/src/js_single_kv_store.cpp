@@ -26,7 +26,7 @@
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::DistributedKVStore {
-
+inline static uint8_t UNVALID_SUBSCRIBE_TYPE = 255;
 std::map<std::string, JsSingleKVStore::Exec> JsSingleKVStore::onEventHandlers_ = {
     { "dataChange", JsSingleKVStore::OnDataChange },
     { "syncComplete", JsSingleKVStore::OnSyncComplete }
@@ -49,9 +49,18 @@ static bool ValidSubscribeType(uint8_t type)
     return (SUBSCRIBE_LOCAL <= type) && (type <= SUBSCRIBE_LOCAL_REMOTE);
 }
 
-static SubscribeType ToSubscribeType(uint8_t type)
+static SubscribeType ToSubscribeType(uint8_t type) // todo 该接口定义不合理
 {
-    return static_cast<SubscribeType>(type + 1);
+    switch (type) {
+        case 0:
+            return SubscribeType::SUBSCRIBE_TYPE_LOCAL;
+        case 1:
+            return SubscribeType::SUBSCRIBE_TYPE_REMOTE;
+        case 2:
+            return SubscribeType::SUBSCRIBE_TYPE_ALL;
+        default:
+            return static_cast<SubscribeType>(UNVALID_SUBSCRIBE_TYPE); // todo 如果入参的type错误了,应该抛出参数异常的，当前无异常抛出
+    }
 }
 
 JsSingleKVStore::JsSingleKVStore(const std::string& storeId)
