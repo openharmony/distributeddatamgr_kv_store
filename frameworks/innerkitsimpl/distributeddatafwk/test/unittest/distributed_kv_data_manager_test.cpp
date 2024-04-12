@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "dev_manager.h"
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
 #include "types.h"
@@ -721,5 +722,102 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore004, TestSize.Level1)
     EXPECT_EQ(stat, Status::SUCCESS);
     stat = manager.DeleteAllKvStore(appId, create.baseDir);
     EXPECT_EQ(stat, Status::SUCCESS);
+}
+
+/**
+* @tc.name: PutSwitchWithEmptyAppId
+* @tc.desc: put switch data, but appId is empty.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, PutSwitchWithEmptyAppId, TestSize.Level1)
+{
+    ZLOGI("PutSwitchWithEmptyAppId begin.");
+    SwitchData data;
+    Status status = manager.PutSwitch( { "" }, data);
+    ASSERT_EQ(status, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: PutSwitchWithInvalidAppId
+* @tc.desc: put switch data, but appId is not 'distributed_device_profile_service'.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, PutSwitchWithInvalidAppId, TestSize.Level1)
+{
+    ZLOGI("PutSwitchWithInvalidAppId begin.");
+    SwitchData data;
+    Status status = manager.PutSwitch( { "swicthes_test_appId" }, data);
+    ASSERT_EQ(status, Status::PERMISSION_DENIED);
+}
+
+/**
+* @tc.name: GetSwitchWithInvalidArg
+* @tc.desc: get switch data, but appId is empty, networkId is invalid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidArg, TestSize.Level1)
+{
+    ZLOGI("GetSwitchWithInvalidArg begin.");
+    auto [status1, data1] = manager.GetSwitch( { "" }, "networkId_test");
+    ASSERT_EQ(status1, Status::INVALID_ARGUMENT);
+    auto [status2, data2] = manager.GetSwitch( { "swicthes_test_appId" }, "");
+    ASSERT_EQ(status2, Status::INVALID_ARGUMENT);
+    auto [status3, data3] = manager.GetSwitch( { "swicthes_test_appId" }, "networkId_test");
+    ASSERT_EQ(status3, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: GetSwitchWithInvalidAppId
+* @tc.desc: get switch data, but appId is not 'distributed_device_profile_service'.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidAppId, TestSize.Level1)
+{
+    ZLOGI("GetSwitchWithInvalidAppId begin.");
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_NE(devInfo.networkId, "");
+    auto [status, data] = manager.GetSwitch( { "swicthes_test_appId" }, devInfo.networkId);
+    ASSERT_EQ(status, Status::PERMISSION_DENIED);
+}
+
+/**
+* @tc.name: PutAndGetSwitchesData
+* @tc.desc: put switch and get switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, PutAndGetSwitchesData, TestSize.Level1)
+{
+    ZLOGI("PutAndGetSwitchesData begin.");
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_NE(devInfo.networkId, "");
+    auto result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    ASSERT_EQ(result.first, Status::NOT_FOUND);
+    SwitchData input;
+    input.value = 0x0003;
+    input.length = 2;
+    Status status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    ASSERT_EQ(status, Status::SUCCESS);
+    result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    ASSERT_EQ(result.first, Status::SUCCESS);
+    ASSERT_EQ(result.second.value, input.value);
+    ASSERT_EQ(result.second.length, input.length);
+    input.value = 0x004E;
+    input.length = 7;
+    status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    ASSERT_EQ(status, Status::SUCCESS);
+    result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    ASSERT_EQ(result.first, Status::SUCCESS);
+    ASSERT_EQ(result.second.value, input.value);
+    ASSERT_EQ(result.second.length, input.length);
 }
 } // namespace OHOS::Test

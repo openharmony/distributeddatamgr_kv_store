@@ -50,18 +50,29 @@ public:
 
     /**
      * @brief Get value from KvStore by its key.
-     * If key is not found, a compensation synchronization will be automatically
-     * triggered to the specified device only when the networkId is valid.
+     * A compensation synchronization will be automatically triggered to the
+     * specified device only when the networkId is valid.
+     * This interface is only effective for dynamic data, others do not support.
      *
-     * @param key   Key of this entry.
+     * @param key Key of this entry.
      * @param networkId The networkId of online device.
-     * @param value Value will be returned in this parameter.
-     * @return Return SUCCESS for success, others for failure.
+     * @param onResult Value and Status will be returned in this parameter.
     */
-    virtual Status Get(const Key &key, const std::string &networkId, Value &value)
-    {
-        return Status::SUCCESS;
-    }
+    virtual void Get(const Key &key,
+        const std::string &networkId, const std::function<void(Status, Value&&)> &onResult) {}
+
+    /**
+     * @brief Get all entries in this store which key start with prefixKey.
+     * A compensation synchronization will be automatically triggered to the
+     * specified device only when the networkId is valid.
+     * This interface is only effective for dynamic data, others do not support.
+     *
+     * @param prefix The prefix to be searched.
+     * @param networkId The networkId of online device.
+     * @param onResult Entries and Status will be returned in this parameter.
+    */
+    virtual void GetEntries(const Key &prefix,
+        const std::string &networkId, const std::function<void(Status, std::vector<Entry>&&)> &onResult) {}
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.

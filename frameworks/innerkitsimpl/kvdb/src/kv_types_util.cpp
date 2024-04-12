@@ -163,15 +163,15 @@ bool Unmarshalling(SyncPolicy &output, MessageParcel &data)
 }
 
 template<>
-bool Marshalling(const DevBrief &input, MessageParcel &data)
+bool Marshalling(const SwitchData &input, MessageParcel &data)
 {
-    return ITypesUtil::Marshal(data, input.uuid, input.networkId);
+    return ITypesUtil::Marshal(data, input.value, input.length);
 }
 
 template<>
-bool Unmarshalling(DevBrief &output, MessageParcel &data)
+bool Unmarshalling(SwitchData &output, MessageParcel &data)
 {
-    return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
+    return ITypesUtil::Unmarshal(data, output.value, output.length);
 }
 
 int64_t GetTotalSize(const std::vector<Entry> &entries)

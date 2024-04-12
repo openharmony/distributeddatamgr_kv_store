@@ -17,7 +17,7 @@
 #include <limits>
 #include <memory>
 #include "ikvstore_observer.h"
-#include "ikvstore_sync_callback.h"
+#include "ikvdb_notifier.h"
 #include "iremote_broker.h"
 #include "kvstore_death_recipient.h"
 #include "single_kvstore.h"
@@ -33,10 +33,6 @@ public:
         std::vector<std::string> devices;
         std::string query;
     };
-    struct DevBrief {
-        std::string uuid;
-        std::string networkId;
-    };
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
     API_EXPORT KVDBService() = default;
@@ -50,8 +46,8 @@ public:
     virtual Status Delete(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
-    virtual Status RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback) = 0;
-    virtual Status UnregisterSyncCallback(const AppId &appId) = 0;
+    virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;
+    virtual Status UnregServiceNotifier(const AppId &appId) = 0;
     virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) = 0;
     virtual Status GetSyncParam(const AppId &appId, const StoreId &storeId, KvSyncParam &syncParam) = 0;
     virtual Status EnableCapability(const AppId &appId, const StoreId &storeId) = 0;
@@ -64,6 +60,9 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
+    virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId) = 0;
+    virtual Status PutSwitch(const AppId &appId, const SwitchData &data) = 0;
+    virtual Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_H

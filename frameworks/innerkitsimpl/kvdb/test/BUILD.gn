@@ -65,9 +65,9 @@ ohos_source_set("kvdb_src_file") {
   ]
 
   kvdb_sources = [
-    "../src/auto_sync_timer.cpp",
     "../src/backup_manager.cpp",
     "../src/convertor.cpp",
+    "../src/data_change_notifier.cpp",
     "../src/dev_manager.cpp",
     "../src/device_convertor.cpp",
     "../src/kv_types_util.cpp",
@@ -176,10 +176,10 @@ ohos_unittest("BackupManagerTest") {
   ]
 }
 
-ohos_unittest("AutoSyncTimerTest") {
+ohos_unittest("DataChangeNotifierTest") {
   module_out_path = module_output_path
 
-  sources = [ "auto_sync_timer_test.cpp" ]
+  sources = [ "data_change_notifier_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
@@ -274,8 +274,8 @@ group("unittest") {
 
   deps = []
   deps += [
-    ":AutoSyncTimerTest",
     ":BackupManagerTest",
+    ":DataChangeNotifierTest",
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",

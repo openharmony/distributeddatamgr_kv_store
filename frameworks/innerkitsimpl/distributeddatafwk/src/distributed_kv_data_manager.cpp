@@ -52,6 +52,10 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
             appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
         return Status::INVALID_ARGUMENT;
     }
+    if (options.dataType == DataType::TYPE_STATICS && options.autoSync) {
+        ZLOGE("STATICS data do not support auto sync, type:%{public}d", options.dataType);
+        return Status::INVALID_ARGUMENT;
+    }
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
@@ -234,6 +238,16 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
     }
     isAlreadySet_ = true;
     return status;
+}
+
+Status DistributedKvDataManager::PutSwitch(const AppId &appId, const SwitchData &data)
+{
+    return StoreManager::GetInstance().PutSwitch(appId, data);
+}
+
+std::pair<Status, SwitchData> DistributedKvDataManager::GetSwitch(const AppId &appId, const std::string &networkId)
+{
+    return StoreManager::GetInstance().GetSwitch(appId, networkId);
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

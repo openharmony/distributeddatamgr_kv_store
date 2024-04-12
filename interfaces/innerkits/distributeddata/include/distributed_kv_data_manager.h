@@ -162,6 +162,24 @@ public:
      * @return Return SUCCESS for success, others for failure.
      */
     API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
+
+    /**
+     * @brief Put switch data to database.
+     * 
+     * @param appId The name of the application.
+     * @param SwitchData The value of switch data.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    API_EXPORT Status PutSwitch(const AppId &appId, const SwitchData &data);
+
+    /**
+     * @brief Get switch data by networkId.
+     * 
+     * @param appId The name of the application.
+     * @param networkId The networkId of device.
+     * @return Return Status and SwitchData, Status is SUCCESS for success, others for failure.
+     */
+    API_EXPORT std::pair<Status, SwitchData> GetSwitch(const AppId &appId, const std::string &networkId);
 private:
     static bool isAlreadySet_;
     std::mutex mutex_;

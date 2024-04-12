@@ -19,7 +19,7 @@
 #include "iremote_broker.h"
 #include "iremote_proxy.h"
 #include "kvdb_service.h"
-#include "kvstore_sync_callback_client.h"
+#include "kvdb_notifier_client.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
 class KVDBServiceProxy : public KVDBService, public IRemoteBroker {
@@ -37,8 +37,8 @@ public:
     Status Delete(const AppId &appId, const StoreId &storeId) override;
     Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
-    Status RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback) override;
-    Status UnregisterSyncCallback(const AppId &appIdd) override;
+    Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) override;
+    Status UnregServiceNotifier(const AppId &appIdd) override;
     Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) override;
     Status GetSyncParam(const AppId &appId, const StoreId &storeId, KvSyncParam &syncParam) override;
     Status EnableCapability(const AppId &appId, const StoreId &storeId) override;
@@ -50,7 +50,10 @@ public:
     Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
-    sptr<KvStoreSyncCallbackClient> GetSyncAgent(const AppId &appId);
+    Status NotifyDataChange(const AppId &appId, const StoreId &storeId) override;
+    Status PutSwitch(const AppId &appId, const SwitchData &data) override;
+    Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) override;
+    sptr<KVDBNotifierClient> GetServiceAgent(const AppId &appId);
 
 protected:
     explicit KVDBServiceClient(const sptr<IRemoteObject> &object);
@@ -68,7 +71,7 @@ private:
     static std::atomic_bool isWatched_;
     sptr<IRemoteObject> remote_;
     std::mutex agentMtx_;
-    sptr<KvStoreSyncCallbackClient> syncAgent_;
+    sptr<KVDBNotifierClient> serviceAgent_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_CLIENT_H

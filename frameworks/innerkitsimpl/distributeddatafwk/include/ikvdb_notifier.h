@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef I_KVSTORE_SYNC_CALLBACK_H
-#define I_KVSTORE_SYNC_CALLBACK_H
+#ifndef I_KVDB_NOTIFIER_H
+#define I_KVDB_NOTIFIER_H
 
 #include <map>
 #include "iremote_broker.h"
@@ -25,27 +25,13 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class IKvStoreSyncCallback : public IRemoteBroker {
+class IKVDBNotifier : public IRemoteBroker {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreSyncCallback");
     virtual void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) = 0;
+    virtual void OnRemoteChanged(const std::string &deviceId, bool isChanged) = 0;
 };
+} // namespace DistributedKv
+} // namespace OHOS
 
-class KvStoreSyncCallbackStub : public IRemoteStub<IKvStoreSyncCallback> {
-public:
-    int OnRemoteRequest(uint32_t code, MessageParcel &data,
-                        MessageParcel &reply, MessageOption &option) override;
-};
-
-class API_EXPORT KvStoreSyncCallbackProxy : public IRemoteProxy<IKvStoreSyncCallback> {
-public:
-    explicit KvStoreSyncCallbackProxy(const sptr<IRemoteObject> &impl);
-    ~KvStoreSyncCallbackProxy() = default;
-    void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
-private:
-    static inline BrokerDelegator<KvStoreSyncCallbackProxy> delegator_;
-};
-}  // namespace DistributedKv
-}  // namespace OHOS
-
-#endif  // I_KVSTORE_SYNC_CALLBACK_H
+#endif // I_KVDB_NOTIFIER_H

@@ -30,7 +30,7 @@ using DeviceInfo = DistributedKv::DeviceInfo;
 using ChangeNotification = DistributedKv::ChangeNotification;
 using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
-using DevBrief = DistributedKv::KVDBService::DevBrief;
+using SwitchData = DistributedKv::SwitchData;
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -72,9 +72,9 @@ template<>
 API_EXPORT bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
 template<>
-API_EXPORT bool Marshalling(const DevBrief &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const SwitchData &input, MessageParcel &data);
 template<>
-API_EXPORT bool Unmarshalling(DevBrief &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(SwitchData &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

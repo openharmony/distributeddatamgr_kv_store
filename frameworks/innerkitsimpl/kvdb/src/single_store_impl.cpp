@@ -15,8 +15,8 @@
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
 
-#include "auto_sync_timer.h"
 #include "backup_manager.h"
+#include "data_change_notifier.h"
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
@@ -38,6 +38,7 @@ SingleStoreImpl::SingleStoreImpl(
     isClientSync_ = options.isClientSync;
     syncObserver_ = std::make_shared<SyncObserver>();
     roleType_ = options.role;
+    dataType_ = options.dataType;
     if (options.backup) {
         BackupManager::GetInstance().Prepare(path, storeId_);
     }
@@ -88,7 +89,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
     }
-    DoAutoSync();
+    DoNotifyChange();
     return status;
 }
 
@@ -118,7 +119,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
-    DoAutoSync();
+    DoNotifyChange();
     return status;
 }
 
@@ -141,7 +142,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
-    DoAutoSync();
+    DoNotifyChange();
     return status;
 }
 
@@ -168,7 +169,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
-    DoAutoSync();
+    DoNotifyChange();
     return status;
 }
 
@@ -330,48 +331,114 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     return status;
 }
 
-Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value &value)
+void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
+    const std::function<void(Status, Value&&)> &onResult)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    if (dataType_ != DataType::TYPE_DYNAMICAL) {
+        onResult(NOT_SUPPORT, Value());
+        return;
+    }
+    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
+        Value value;
+        auto status = Get(key, value);
+        onResult(status, std::move(value));
+        return;
+    }
+    auto result = SyncExt(networkId);
+    if (result.first != SUCCESS) {
+        onResult(result.first, Value());
+        return;
+    }
+    asyncFuncs_.Insert(result.second, { .key = key, .toGet = onResult });
+}
+
+void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId,
+    const std::function<void(Status, std::vector<Entry>&&)> &onResult)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    if (dataType_ != DataType::TYPE_DYNAMICAL) {
+        onResult(NOT_SUPPORT, {});
+        return;
+    }
+    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
+        std::vector<Entry> entries;
+        auto status = GetEntries(prefix, entries);
+        onResult(status, std::move(entries));
+        return;
+    }
+    auto result = SyncExt(networkId);
+    if (result.first != SUCCESS) {
+        onResult(result.first, {});
+        return;
+    }
+    asyncFuncs_.Insert(result.second, { .key = prefix, .toGetEntries = onResult });
+}
+
+std::pair<Status, uint64_t> SingleStoreImpl::SyncExt(const std::string &networkId)
+{
     auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
     if (clientUuid.empty()) {
-        return INVALID_ARGUMENT;
+        return { INVALID_ARGUMENT, INVALID_SEQ_ID };
     }
-    auto status = Get(key, value);
-    if (status != NOT_FOUND) {
-        return status;
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.seqId = StoreUtil::GenSequenceId();
+    syncInfo.devices = { networkId };
+    auto status = DoSyncExt(syncInfo, shared_from_this());
+    if (status != SUCCESS) {
+        ZLOGE("sync ext failed, status:%{public}d networkId:%{public}s app:%{public}s store:%{public}s", status,
+            StoreUtil::Anonymous(networkId).c_str(), appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
+        return { status, INVALID_SEQ_ID };;
     }
-    {
-        std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-        auto watermark = dbStore_->GetWatermarkInfo(clientUuid);
-        if (StoreUtil::ConvertStatus(watermark.first) != SUCCESS
-            || (watermark.second.sendMark != 0 && watermark.second.receiveMark != 0)) {
-            ZLOGD("Do not need sync, dbStatus:%{public}d", watermark.first);
-            return status;
-        }
-    }
-    timePoints_.Compute(clientUuid, [this, &networkId, &status](const auto &key, auto &value) {
-        auto now = std::chrono::steady_clock::now();
-        if (value.first != 0 && now < value.second) {
-            status = SYNC_ACTIVATED;
-            return true;
-        }
-        KVDBService::SyncInfo syncInfo;
-        syncInfo.seqId = StoreUtil::GenSequenceId();
-        syncInfo.devices = { networkId };
-        auto result = DoSyncExt(syncInfo, nullptr);
-        if (result != SUCCESS) {
-            ZLOGE("sync ext failed, result:%{public}d networkId:%{public}s app:%{public}s store:%{public}s", result,
-                StoreUtil::Anonymous(networkId).c_str(), appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-            status = ERROR;
-            return false;
-        }
-        value.first = syncInfo.seqId;
-        value.second = now + SYNC_DURATION;
-        return true;
-    });
-    return status;
+    return { SUCCESS, syncInfo.seqId };
 }
+
+void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
+{
+    AsyncFunc asyncFunc;
+    auto exist = asyncFuncs_.ComputeIfPresent(sequenceId, [&asyncFunc](const auto &key, auto &value) -> bool {
+        asyncFunc = value;
+        return false;
+    });
+    if (!exist) {
+        ZLOGD("not exist, sequenceId:%{public}" PRIu64, sequenceId);
+        return ;
+    }
+    if (asyncFunc.toGet) {
+        Value value;
+        auto status = Get(asyncFunc.key, value);
+        asyncFunc.toGet(status, std::move(value));
+        return;
+    }
+    if (asyncFunc.toGetEntries) {
+        std::vector<Entry> entries;
+        auto status = GetEntries(asyncFunc.key, entries);
+        asyncFunc.toGetEntries(status, std::move(entries));
+        return;
+    }
+    ZLOGW("sync ext completed, but do nothing, key:%{public}s, sequenceId:%{public}" PRIu64,
+        StoreUtil::Anonymous(asyncFunc.key.ToString()).c_str(), sequenceId);
+}
+
+bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
+{
+    auto clientUuid = DevManager::GetInstance().ToUUID(deviceId);
+    if (clientUuid.empty()) {
+        return true;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return true;
+    }
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
+        return true;
+    }
+    return serviceAgent->IsChanged(clientUuid);
+}
+
+void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results)
+{}
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
@@ -609,14 +676,14 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
     syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
-    auto syncAgent = service->GetSyncAgent({ appId_ });
-    if (syncAgent == nullptr) {
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
         ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
-    syncAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
+    serviceAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
     return service->AddSubscribeInfo({ appId_ }, { storeId_ }, syncInfo);
 }
 
@@ -631,14 +698,14 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
     syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
-    auto syncAgent = service->GetSyncAgent({ appId_ });
-    if (syncAgent == nullptr) {
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
         ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
-    syncAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
+    serviceAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
     return service->RmvSubscribeInfo({ appId_ }, { storeId_ }, syncInfo);
 }
 
@@ -658,8 +725,8 @@ int32_t SingleStoreImpl::Close(bool isForce)
         return ref_;
     }
 
-    timePoints_.Clear();
     observers_.Clear();
+    asyncFuncs_.Clear();
     syncObserver_->Clean();
     std::unique_lock<decltype(rwMutex_)> lock(rwMutex_);
     dbStore_ = nullptr;
@@ -848,17 +915,17 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
         return SERVER_UNAVAILABLE;
     }
 
-    auto syncAgent = service->GetSyncAgent({ appId_ });
-    if (syncAgent == nullptr) {
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
         ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
-    syncAgent->AddSyncCallback(observer, syncInfo.seqId);
+    serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
     auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
-        syncAgent->DeleteSyncCallback(syncInfo.seqId);
+        serviceAgent->DeleteSyncCallback(syncInfo.seqId);
     }
 
     if (!isClientSync_) {
@@ -878,27 +945,32 @@ Status SingleStoreImpl::DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<Sync
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    auto syncAgent = service->GetSyncAgent({ appId_ });
-    if (syncAgent == nullptr) {
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
         ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!",
             appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
-    syncAgent->AddSyncCallback(observer, syncInfo.seqId);
+    serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
     auto status = service->SyncExt({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
-        syncAgent->DeleteSyncCallback(syncInfo.seqId);
+        serviceAgent->DeleteSyncCallback(syncInfo.seqId);
     }
     return status;
 }
 
-void SingleStoreImpl::DoAutoSync()
+void SingleStoreImpl::DoNotifyChange()
 {
-    if (!autoSync_) {
+    if (!autoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {
         return;
     }
-    ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-    AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
+    ZLOGD("app:%{public}s store:%{public}s dataType:%{public}d!",
+        appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str(), dataType_);
+    if (dataType_ == DataType::TYPE_STATICS) {
+        DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } }, true);
+        return;
+    }
+    DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } });
 }
 
 void SingleStoreImpl::OnRemoteDied()
