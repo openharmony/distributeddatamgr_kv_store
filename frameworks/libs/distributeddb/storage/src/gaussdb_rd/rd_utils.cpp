@@ -51,7 +51,6 @@ namespace DistributedDB {
 std::string InitRdConfig()
 {
     return R"("redoFlushByTrx": 1, "maxConnNum": 100, "crcCheckEnable": 0, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
-
 }
 
 struct GrdErrnoPair {

@@ -88,5 +88,6 @@ struct GRD_APIInfo {
     KVBatchDestory KVBatchDestoryApi = nullptr;
 };
 GRD_APIInfo GetApiInfoInstance();
+void SetLibType(bool isHash);
 } // namespace DocumentDB
 #endif // __cplusplus

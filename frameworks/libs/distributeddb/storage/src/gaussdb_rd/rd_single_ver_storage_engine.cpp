@@ -39,6 +39,9 @@ inline std::string GetTableMode(bool isHash)
 
 int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
 {
+    if (option_.isHashTable) {
+        GRD_SetLibType(option_.isHashTable);
+    }
     int ret = PreCreateExecutor(isWrite);
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine][CreateNewExecutor] PreCreateExecutor unscuccess");
