@@ -33,8 +33,9 @@
 
 #ifndef _WIN32
 static void *g_library = nullptr;
-static bool g_isHashLib = false;
 #endif
+
+static bool g_isHashLib = false;
 
 namespace DocumentDB {
 void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
