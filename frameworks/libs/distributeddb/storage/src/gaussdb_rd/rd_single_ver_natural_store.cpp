@@ -434,7 +434,6 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     config += R"("redoPubBufSize":)" + std::to_string(cacheSize) + R"(, )";
     config += isSharedMode ? R"("sharedModeEnable": 1)" : R"("sharedModeEnable": 0)";
     config += "}";
-    LOGE("=============config json=%s", config.c_str()); // for test
     option.rdConfig = config;
 }
 
