@@ -100,6 +100,8 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    int32_t GetTaskCount();
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 
@@ -141,6 +143,8 @@ private:
 
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
+
+    CloudSyncer *GetAndIncCloudSyncer();
 
     SyncerProxy syncer_;
     std::atomic<bool> started_;

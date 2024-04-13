@@ -111,6 +111,8 @@ public:
     int UpgradeSchemaVerInMeta() override;
 
     int64_t GetLocalTimeOffset() override;
+
+    int32_t GetTaskCount() override;
 protected:
 
     // trigger query auto sync or auto subscribe

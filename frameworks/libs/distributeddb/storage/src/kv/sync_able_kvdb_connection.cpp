@@ -359,4 +359,14 @@ int SyncAbleKvDBConnection::SetCloudDB(const std::map<std::string, std::shared_p
     }
     return kvDB->SetCloudDB(cloudDBs);
 }
+
+int32_t SyncAbleKvDBConnection::GetTaskCount()
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        LOGW("[SyncAbleKvDBConnection] Get task count with null db");
+        return 0;
+    }
+    return kvDB->GetTaskCount();
+}
 }

@@ -831,4 +831,10 @@ void SyncTaskContext::TimeChange()
     }
     stateMachine_->TimeChange();
 }
+
+int32_t SyncTaskContext::GetResponseTaskCount()
+{
+    std::lock_guard<std::mutex> autoLock(targetQueueLock_);
+    return static_cast<int32_t>(responseTargetQueue_.size());
+}
 } // namespace DistributedDB

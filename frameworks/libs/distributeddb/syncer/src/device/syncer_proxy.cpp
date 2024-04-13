@@ -264,4 +264,13 @@ int64_t SyncerProxy::GetLocalTimeOffset()
     }
     return syncer_->GetLocalTimeOffset();
 }
+
+int32_t SyncerProxy::GetTaskCount()
+{
+    if (syncer_ == nullptr) {
+        LOGW("[SyncerProxy] get task count without syncer");
+        return 0;
+    }
+    return syncer_->GetTaskCount();
+}
 } // namespace DistributedDB

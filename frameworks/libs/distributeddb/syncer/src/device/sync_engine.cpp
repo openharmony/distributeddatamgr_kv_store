@@ -1258,4 +1258,23 @@ void SyncEngine::TimeChange()
         RefObject::DecObjRef(iter);
     }
 }
+
+int32_t SyncEngine::GetResponseTaskCount()
+{
+    std::vector<ISyncTaskContext *> decContext;
+    {
+        // copy context
+        std::lock_guard<std::mutex> lock(contextMapLock_);
+        for (const auto &iter : syncTaskContextMap_) {
+            RefObject::IncObjRef(iter.second);
+            decContext.push_back(iter.second);
+        }
+    }
+    int32_t taskCount = 0;
+    for (auto &iter : decContext) {
+        taskCount += iter->GetResponseTaskCount();
+        RefObject::DecObjRef(iter);
+    }
+    return taskCount;
+}
 } // namespace DistributedDB

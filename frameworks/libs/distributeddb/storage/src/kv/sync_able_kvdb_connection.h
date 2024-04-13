@@ -42,6 +42,8 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    int32_t GetTaskCount() override;
 protected:
     int DisableManualSync();
 

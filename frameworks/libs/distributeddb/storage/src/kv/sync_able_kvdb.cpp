@@ -531,31 +531,64 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
 
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
-    if (cloudSyncer_ == nullptr) {
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
         LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
     CloudSyncer::CloudTaskInfo info;
     FillSyncInfo(option, onProcess, info);
-    return cloudSyncer_->Sync(info);
+    int errCode = syncer->Sync(info);
+    RefObject::DecObjRef(syncer);
+    return errCode;
 }
 
 int SyncAbleKvDB::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
 {
-    if (cloudSyncer_ == nullptr) {
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
         LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
-    return cloudSyncer_->SetCloudDB(cloudDBs);
+    int errCode = syncer->SetCloudDB(cloudDBs);
+    RefObject::DecObjRef(syncer);
+    return errCode;
 }
 
 int SyncAbleKvDB::CleanAllWaterMark()
 {
-    if (cloudSyncer_ == nullptr) {
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
         LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
-    cloudSyncer_->CleanAllWaterMark();
+    syncer->CleanAllWaterMark();
+    RefObject::DecObjRef(syncer);
     return E_OK;
+}
+
+int32_t SyncAbleKvDB::GetTaskCount()
+{
+    int32_t taskCount = 0;
+    auto cloudSyncer = GetAndIncCloudSyncer();
+    if (cloudSyncer != nullptr) {
+        taskCount += cloudSyncer->GetCloudSyncTaskCount();
+        RefObject::DecObjRef(cloudSyncer);
+    }
+    if (NeedStartSyncer()) {
+        return taskCount;
+    }
+    taskCount += syncer_.GetTaskCount();
+    return taskCount;
+}
+
+CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
+{
+    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+    if (cloudSyncer_ == nullptr) {
+        return nullptr;
+    }
+    RefObject::IncObjRef(cloudSyncer_);
+    return cloudSyncer_;
 }
 }
