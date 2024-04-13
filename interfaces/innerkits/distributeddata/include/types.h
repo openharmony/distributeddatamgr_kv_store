@@ -346,11 +346,29 @@ enum RoleType : uint32_t {
       * The user has read-only permission.
     */
     VISITOR,
+    VISITOR_WRITE,
 };
 
 struct Group {
     std::string groupDir = "";
     std::string groupId = "";
+};
+
+enum IndexType : uint32_t {
+    /**
+      * use btree index type in database
+    */
+    BTREE = 0,
+    /**
+      * use hash index type in database
+    */
+    HASH,
+};
+
+struct DatabaseConfig {
+    IndexType type = BTREE;
+    uint32_t pageSize = 32u;
+    uint32_t cacheSize = 2048u;
 };
 
 /**
@@ -461,6 +479,10 @@ struct Options {
      * Whether the sync need compress.
     */
     bool isNeedCompress = true;
+   /**
+     * config database details.
+    */
+    DatabaseConfig config;
 };
 
 /**

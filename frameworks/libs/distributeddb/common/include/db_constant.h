@@ -86,6 +86,7 @@ public:
     static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
 
     static const std::string RD_KV_COLLECTION_MODE;
+    static const std::string RD_KV_HASH_COLLECTION_MODE;
 
     static const std::string PATH_POSTFIX_UNPACKED;
     static const std::string PATH_POSTFIX_IMPORT_BACKUP;

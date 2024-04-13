@@ -15,8 +15,11 @@
 
 #include "db_common.h"
 
+#include <atomic>
 #include <climits>
 #include <cstdio>
+#include <dlfcn.h>
+#include <mutex>
 #include <queue>
 
 #include "cloud/cloud_db_constant.h"
@@ -58,6 +61,9 @@ namespace {
     const std::string HEX_CHAR_MAP = "0123456789abcdef";
     const std::string CAP_HEX_CHAR_MAP = "0123456789ABCDEF";
 }
+
+static std::atomic_bool g_isGRDLoaded = false;
+static std::mutex g_mutex;
 
 int DBCommon::CreateDirectory(const std::string &directory)
 {
@@ -632,5 +638,27 @@ std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
 uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 {
     return origin & (~eraseBit);
+}
+
+void DBCommon::LoadGrdLib(bool isHash)
+{
+    if (g_isGRDLoaded) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_mutex);
+    void *libApi = NULL;
+    if (isHash) {
+        libApi = dlopen("libgaussdb_rd_vector.z.so", RTLD_LAZY);
+    } else {
+        libApi = dlopen("libgaussdb_rd.z.so", RTLD_LAZY);
+    }
+    if (libApi != NULL) {
+        g_isGRDLoaded = true;
+    }
+}
+
+bool DBCommon::IsGrdLibLoaded(void)
+{
+    return g_isGRDLoaded;
 }
 } // namespace DistributedDB

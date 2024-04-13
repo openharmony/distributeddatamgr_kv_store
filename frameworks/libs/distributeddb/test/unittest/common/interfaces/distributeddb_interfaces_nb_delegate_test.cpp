@@ -362,6 +362,114 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
 }
 
 /**
+  * @tc.name: CombineTest002
+  * @tc.desc: Test the NbDelegate for combined operation, try to use GAUSSDB_RD.
+  * @tc.type: FUNC
+  * @tc.require: AR000CCPOM
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    g_mgr.GetKvStore("distributed_nb_delegate_test", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    Key key;
+    key = {'A', 'C', 'Q'};
+    Value value;
+    value = {'G', 'D', 'O'};
+    Value valueRead;
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    ASSERT_TRUE(observer != nullptr);
+    /**
+     * @tc.steps:step2. Register the non-null observer for the special key.
+     * @tc.expected: step2. Register results OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_LOCAL_ONLY, observer), OK);
+    /**
+     * @tc.steps:step3. Put the local data.
+     * @tc.expected: step3. Put returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(key, value), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step4. Check the local data.
+     * @tc.expected: step4. The get data is equal to the put data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(key, valueRead), OK);
+    /**
+     * @tc.steps:step5. Delete the local data.
+     * @tc.expected: step5. Delete returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocal(key), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step6. Check the local data.
+     * @tc.expected: step6. Couldn't find the deleted data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(key, valueRead), NOT_FOUND);
+    /**
+     * @tc.steps:step7. UnRegister the observer.
+     * @tc.expected: step7. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
+    delete observer;
+    observer = nullptr;
+    Key key1;
+    key1 = {'D', 'B', 'N'};
+    Value value1;
+    value1 = {'P', 'D', 'G'};
+
+    Key key2 = key1;
+    Value value2;
+    key2.push_back('U');
+    value2 = {'C'};
+    /**
+     * @tc.steps:step8. Put the data.
+     * @tc.expected: step8. Put returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key1, value1), OK);
+    Value valueRead2;
+    /**
+     * @tc.steps:step9. Check the data.
+     * @tc.expected: step9. Getting the put data returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key1, valueRead2), OK);
+    /**
+     * @tc.steps:step10. Put another data.
+     * @tc.expected: step10. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key2, value2), OK);
+    std::vector<Entry> vect;
+    /**
+     * @tc.steps:step10. Get the batch data using the prefix key.
+     * @tc.expected: step10. Results OK and the batch data size is equal to the put data size.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(key1, vect), OK);
+    EXPECT_EQ(vect.size(), 2UL);
+    /**
+     * @tc.steps:step11. Delete one data.
+     * @tc.expected: step11. Results OK and couldn't get the deleted data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(key1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key1, valueRead2), NOT_FOUND);
+
+    LOGD("Close store");
+    /**
+     * @tc.steps:step12. Close the kv store.
+     * @tc.expected: step12. Results OK and delete successfully.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
   * @tc.name: CreateMemoryDb001
   * @tc.desc: Create memory database after.
   * @tc.type: FUNC

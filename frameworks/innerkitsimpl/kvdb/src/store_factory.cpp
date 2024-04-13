@@ -174,8 +174,8 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     DBOption dbOption;
     dbOption.syncDualTupleMode =
         (options.kvStoreType == KvStoreType::LOCAL_ONLY ? false : true); // tuple of (appid+storeid)
-    dbOption.createIfNecessary = (options.role == VISITOR ? false : options.createIfMissing);
-    dbOption.isNeedRmCorruptedDb = (options.role == VISITOR ? false : options.rebuild);
+    dbOption.createIfNecessary = (options.role != OWNER ? false : options.createIfMissing);
+    dbOption.isNeedRmCorruptedDb = (options.role != OWNER ? false : options.rebuild);
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
     dbOption.isMemoryDb = (!options.persistent);
     dbOption.isEncryptedDb = options.encrypt;
@@ -196,6 +196,9 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.createDirByStoreIdOnly = true;
     dbOption.secOption = StoreUtil::GetDBSecurity(options.securityLevel);
     dbOption.localOnly = !options.syncable;
+    dbOption.rdconfig.type = options.config.type;
+    dbOption.rdconfig.pageSize = options.config.pageSize;
+    dbOption.rdconfig.cacheSize = options.config.cacheSize;
     return dbOption;
 }
 

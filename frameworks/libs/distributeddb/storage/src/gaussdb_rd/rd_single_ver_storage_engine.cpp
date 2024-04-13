@@ -14,6 +14,7 @@
  */
 #include "rd_single_ver_storage_engine.h"
 
+#include "db_constant.h"
 #include "grd_error.h"
 #include "grd_type_export.h"
 #include "rd_single_ver_storage_executor.h"
@@ -22,7 +23,6 @@
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
-
 RdSingleVerStorageEngine::RdSingleVerStorageEngine()
 {
     LOGD("[RdSingleVerStorageEngine] RdSingleVerStorageEngine Created");
@@ -30,6 +30,11 @@ RdSingleVerStorageEngine::RdSingleVerStorageEngine()
 
 RdSingleVerStorageEngine::~RdSingleVerStorageEngine()
 {
+}
+
+inline std::string GetTableMode(bool isHash)
+{
+    return isHash ? DBConstant::RD_KV_HASH_COLLECTION_MODE : DBConstant::RD_KV_COLLECTION_MODE;
 }
 
 int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
@@ -46,8 +51,8 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
         return ret;
     }
     if (!option_.readOnly) {
-        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME.c_str(),
-            DBConstant::RD_KV_COLLECTION_MODE.c_str(), 0));
+        std::string tableMode = GetTableMode(option_.isHashTable);
+        ret = RdCreateCollection(db, SYNC_COLLECTION_NAME.c_str(), tableMode.c_str(), 0);
         if (ret != E_OK) {
             LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
             return ret;
