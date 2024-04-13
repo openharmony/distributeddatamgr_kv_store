@@ -145,6 +145,8 @@ public:
     void SetSaveDataCallback(const std::function<void()> &callback);
 
     void ForkGetSecurityOption(std::function<int(SecurityOption &)> callBack);
+
+    void SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
         std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const;
@@ -185,6 +187,9 @@ private:
     std::function<void()> saveDataCallback_;
 
     std::function<int(SecurityOption &)> getSecurityOptionCallBack_;
+
+    mutable std::mutex pushNotifierMutex_;
+    std::function<void(const std::string &)> pushNotifier_;
 };
 }  // namespace DistributedDB
 

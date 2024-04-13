@@ -43,6 +43,8 @@ public:
 
     void SetSaveDataCallback(const std::function<void()> &callback);
     void EraseWaterMark(const std::string &dev);
+
+    void SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier);
 };
 } // namespace DistributedDB
 
