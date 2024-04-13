@@ -112,6 +112,8 @@ public:
         sqlite3_stmt *&statement);
 
     static std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush);
+
+    static std::string GetKvCloudQuerySql(bool countOnly, bool forcePush);
 private:
     int ToQuerySql();
     int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);

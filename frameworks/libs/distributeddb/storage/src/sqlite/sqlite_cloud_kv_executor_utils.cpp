@@ -817,4 +817,44 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     dataItem.timestamp = dataItem.modifyTime + downloadData.timeOffset;
     return res;
 }
+
+std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudData(sqlite3 *db, bool isMemory,
+    const Timestamp &timestamp, const std::string &user, bool forcePush)
+{
+    std::pair<int, int64_t> res;
+    auto &[errCode, count] = res;
+    std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Count data stmt failed %d", errCode);
+        return res;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset log stmt failed %d when count data", ret);
+        }
+    });
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind user failed %d", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, static_cast<int64_t>(timestamp));
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind begin time failed %d", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::StepNext(stmt, isMemory);
+    if (errCode == -E_FINISHED) {
+        count = 0;
+        return res;
+    }
+    count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
+    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
+    return res;
+}
 }

@@ -1237,13 +1237,25 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
     std::pair<int, sqlite3_stmt *> res;
     sqlite3_stmt *&stmt = res.second;
     int &errCode = res.first;
-    std::string sql = QUERY_CLOUD_SYNC_DATA;
-    if (forcePush) {
-        sql += " AND flag & 0x04 != 0x04";
-    } else {
-        sql += " AND flag & 0x02 != 0;";
-    }
+    std::string sql = GetKvCloudQuerySql(false, forcePush);
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     return res;
+}
+
+std::string SqliteQueryHelper::GetKvCloudQuerySql(bool countOnly, bool forcePush)
+{
+    std::string sql;
+    if (countOnly) {
+        sql = QUERY_COUNT_HEAD;
+    } else {
+        sql = QUERY_CLOUD_SYNC_DATA_HEAD;
+    }
+    sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    if (forcePush) {
+        sql += " AND flag & 0x04 != 0x04"; // get all data which hasn't pushed
+    } else {
+        sql += " AND flag & 0x02 != 0;"; // get all data which is local
+    }
+    return sql;
 }
 }

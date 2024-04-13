@@ -304,9 +304,12 @@ namespace DistributedDB {
 
     constexpr const char *FUNC_NAME_CAL_HASH_KEY = "cal_hash_key";
 
-    constexpr const char *QUERY_CLOUD_SYNC_DATA = "SELECT key, value, flag, device, ori_device, "
-        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid FROM "
-        "sync_data LEFT JOIN "
+    constexpr const char *QUERY_COUNT_HEAD = "SELECT count(1) ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_HEAD = "SELECT key, value, flag, device, ori_device, "
+        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_DETAIL = "FROM sync_data LEFT JOIN "
         "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
         " AS log_table ON sync_data.hash_key = log_table.hash_key "
         "WHERE modify_time > ?";
@@ -404,6 +407,8 @@ namespace DistributedDB {
     constexpr int CLOUD_QUERY_CLOUD_GID_INDEX = 9;
     constexpr int CLOUD_QUERY_VERSION_INDEX = 10;
     constexpr int CLOUD_QUERY_ROW_ID_INDEX = 11;
+
+    constexpr int CLOUD_QUERY_COUNT_INDEX = 0;
 
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB

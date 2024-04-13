@@ -34,6 +34,9 @@ public:
 
     static int FillCloudLog(sqlite3 *db, OpType opType, const CloudSyncData &data, const std::string &user,
         bool ignoreEmptyGid);
+
+    static std::pair<int, int64_t> CountCloudData(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
+        const std::string &user, bool forcePush);
 private:
     static int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
         uint32_t &totalSize);
