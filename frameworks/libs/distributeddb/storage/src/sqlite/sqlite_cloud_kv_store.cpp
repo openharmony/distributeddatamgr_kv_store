@@ -279,7 +279,7 @@ std::string SqliteCloudKvStore::GetIdentify() const
 }
 
 int SqliteCloudKvStore::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
-    bool isCloudForcePush, std::vector<std::string> &cloudGid)
+    bool isCloudForcePush, bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
     return E_OK;
 }

@@ -19,7 +19,7 @@
 #include <string>
 #include <functional>
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "db_types.h"
 #include "icloud_db.h"
 #include "iconnection.h"

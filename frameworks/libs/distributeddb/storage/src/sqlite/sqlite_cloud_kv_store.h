@@ -43,7 +43,7 @@ public:
     int Rollback() override;
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
-        int64_t &count) override;
+        bool isCompensatedTask, int64_t &count) override;
 
     int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
@@ -51,7 +51,7 @@ public:
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
-        std::vector<std::string> &cloudGid) override;
+        bool isCompensatedTask, std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 

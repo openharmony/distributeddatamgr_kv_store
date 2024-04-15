@@ -72,13 +72,6 @@ namespace {
     const constexpr char *DROP_META_TABLE_SQL = "DROP TABLE IF EXISTS main.meta_data;";
     const constexpr char *COPY_META_TABLE_SQL = "INSERT OR REPLACE INTO meta.meta_data SELECT * FROM meta_data "
         "where (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='main.meta_data') > 0;";
-
-    // X'6C6F63616C54696D654F6666736574 means hex('localTimeOffset') and change to binary code
-    const constexpr char *COPY_SYNC_DATA_TIME_SQL = "UPDATE sync_data SET modifyTime=timestamp - " \
-        "(SELECT CAST(value AS INT) FROM meta_data WHERE key=X'6C6F63616C54696D654F6666736574)," \
-        " create_time=w_timestamp - " \
-        "(SELECT CAST(value AS INT) FROM meta_data WHERE key=X'6C6F63616C54696D654F6666736574)" \
-        " WHERE modify_time is null";
 }
 
 SQLiteSingleVerDatabaseUpgrader::SQLiteSingleVerDatabaseUpgrader(sqlite3 *db,
