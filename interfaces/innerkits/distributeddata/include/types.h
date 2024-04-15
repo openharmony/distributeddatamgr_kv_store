@@ -346,7 +346,6 @@ enum RoleType : uint32_t {
       * The user has read-only permission.
     */
     VISITOR,
-    VISITOR_WRITE,
 };
 
 struct Group {
@@ -363,12 +362,6 @@ enum IndexType : uint32_t {
       * use hash index type in database
     */
     HASH,
-};
-
-struct DatabaseConfig {
-    IndexType type = BTREE;
-    uint32_t pageSize = 32u;
-    uint32_t cacheSize = 2048u;
 };
 
 /**
@@ -475,14 +468,18 @@ struct Options {
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
-   /**
+    /**
      * Whether the sync need compress.
     */
     bool isNeedCompress = true;
-   /**
+    /**
      * config database details.
     */
-    DatabaseConfig config;
+    struct Config {
+        IndexType type = BTREE;
+        uint32_t pageSize = 32u;
+        uint32_t cacheSize = 2048u;
+    } config;
 };
 
 /**
