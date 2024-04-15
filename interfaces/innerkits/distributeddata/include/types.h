@@ -353,6 +353,17 @@ struct Group {
     std::string groupId = "";
 };
 
+enum IndexType : uint32_t {
+    /**
+      * use btree index type in database
+    */
+    BTREE = 0,
+    /**
+      * use hash index type in database
+    */
+    HASH,
+};
+
 /**
  * @brief Provide configuration information for database creation.
 */
@@ -457,10 +468,18 @@ struct Options {
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
-   /**
+    /**
      * Whether the sync need compress.
     */
     bool isNeedCompress = true;
+    /**
+     * config database details.
+    */
+    struct Config {
+        IndexType type = BTREE;
+        uint32_t pageSize = 32u;
+        uint32_t cacheSize = 2048u;
+    } config;
 };
 
 /**

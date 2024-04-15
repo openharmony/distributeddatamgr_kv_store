@@ -48,6 +48,7 @@ struct OpenDbProperties {
     bool isNeedIntegrityCheck = false;
     bool isNeedRmCorruptedDb = false;
     bool readOnly = false;
+    bool isHashTable = false;
 };
 
 int GetPathSecurityOption(const std::string &filePath, SecurityOption &secOpt);

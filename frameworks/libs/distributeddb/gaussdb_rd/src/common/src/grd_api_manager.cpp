@@ -35,6 +35,8 @@
 static void *g_library = nullptr;
 #endif
 
+static bool g_isHashLib = false;
+
 namespace DocumentDB {
 void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
 {
@@ -106,11 +108,17 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
 #endif
 }
 
+void SetLibType(bool isHash)
+{
+    g_isHashLib = isHash;
+}
+
 GRD_APIInfo GetApiInfoInstance()
 {
     GRD_APIInfo GRD_TempApiStruct;
 #ifndef _WIN32
-    g_library = dlopen("libgaussdb_rd.z.so", RTLD_LAZY);
+    std::string libPath = g_isHashLib ? "libgaussdb_rd_vector.z.so" : "libgaussdb_rd.z.so";
+    g_library = dlopen(libPath.c_str(), RTLD_LAZY);
     if (!g_library) {
         GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
     } else {

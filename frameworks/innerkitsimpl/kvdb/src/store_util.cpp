@@ -45,6 +45,14 @@ StoreUtil::DBSecurity StoreUtil::GetDBSecurity(int32_t secLevel)
     return { secLevel, DistributedDB::ECE };
 }
 
+StoreUtil::DBIndexType StoreUtil::GetDBIndexType(IndexType type)
+{
+    if (type == IndexType::BTREE) {
+        return DistributedDB::BTREE;
+    }
+    return DistributedDB::HASH;
+}
+
 int32_t StoreUtil::GetSecLevel(StoreUtil::DBSecurity dbSec)
 {
     switch (dbSec.securityLabel) {
