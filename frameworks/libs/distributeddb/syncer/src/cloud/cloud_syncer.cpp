@@ -1189,7 +1189,8 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
 {
     int errCode = E_OK;
     // if we use local cover cloud strategy, it won't update local water mark also.
-    if (IsModeForcePush(uploadParam.taskId) || IsPriorityTask(uploadParam.taskId)) {
+    if (IsModeForcePush(uploadParam.taskId) || (IsPriorityTask(uploadParam.taskId) &&
+        !IsQueryListEmpty(uploadParam.taskId))) {
         return E_OK;
     }
     errCode = storageProxy_->PutWaterMarkByMode(tableName, uploadParam.localMark, uploadParam.mode);
@@ -1335,7 +1336,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId tas
         cloudWaterMark = currentContext_.cloudWaterMarks[tableName];
         isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
     }
-    isUpdateCloudCursor = isUpdateCloudCursor && !IsPriorityTask(taskId);
+    isUpdateCloudCursor = isUpdateCloudCursor && !(IsPriorityTask(taskId) && !IsQueryListEmpty(taskId));
     if (isUpdateCloudCursor) {
         int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
         if (errCode != E_OK) {
@@ -1507,31 +1508,6 @@ int CloudSyncer::GetCurrentTableName(std::string &tableName)
         return -E_BUSY;
     }
     tableName = currentContext_.tableName;
-    return E_OK;
-}
-
-int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
-{
-    if (closed_) {
-        LOGW("[CloudSyncer] syncer is closed, should not sync now");
-        return -E_DB_CLOSED;
-    }
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    int errCode = CheckQueueSizeWithNoLock(taskInfo.priorityTask);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    do {
-        lastTaskId_++;
-    } while (lastTaskId_ == 0);
-    taskInfo.taskId = lastTaskId_;
-    if (taskInfo.priorityTask) {
-        priorityTaskQueue_.push_back(lastTaskId_);
-    } else {
-        taskQueue_.push_back(lastTaskId_);
-    }
-    cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
-    LOGI("[CloudSyncer] Add task ok, taskId %" PRIu64, cloudTaskInfos_[lastTaskId_].taskId);
     return E_OK;
 }
 
@@ -2035,7 +2011,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         currentContext_.assetFields[currentContext_.tableName] = assetFields;
     }
     param.isSinglePrimaryKey = CloudSyncUtils::IsSinglePrimaryKey(param.pkColNames);
-    if (!IsModeForcePull(taskId) && !IsPriorityTask(taskId)) {
+    if (!IsModeForcePull(taskId) && !(IsPriorityTask(taskId) && !IsQueryListEmpty(taskId))) {
         ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);

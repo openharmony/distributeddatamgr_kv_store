@@ -723,4 +723,155 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
     }
     return ret;
 }
+
+int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
+{
+    if (closed_) {
+        LOGW("[CloudSyncer] syncer is closed, should not sync now");
+        return -E_DB_CLOSED;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    int errCode = storageProxy_->GetCloudDbSchema(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Get cloud schema failed %d when add task", errCode);
+        return errCode;
+    }
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    errCode = CheckQueueSizeWithNoLock(taskInfo.priorityTask);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    lastTaskId_++;
+    if (lastTaskId_ == UINT64_MAX) {
+        lastTaskId_ = 1u;
+    }
+    taskInfo.taskId = lastTaskId_;
+    cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
+    if (cloudTaskInfos_[lastTaskId_].priorityTask) {
+        priorityTaskQueue_.push_back(lastTaskId_);
+    } else {
+        if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
+            taskQueue_.push_back(lastTaskId_);
+            LOGI("[CloudSyncer] Add task ok, taskId %" PRIu64, cloudTaskInfos_[lastTaskId_].taskId);
+        }
+    }
+    return E_OK;
+}
+
+bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId)
+{
+    if (!cloudTaskInfos_[taskId].merge) {
+        return false;
+    }
+    bool isMerge = false;
+    bool mergeHappen = false;
+    TaskId checkTaskId = taskId;
+    do {
+        std::tie(isMerge, checkTaskId) = TryMergeTask(cloudSchema, checkTaskId);
+        mergeHappen |= isMerge;
+    } while (isMerge);
+    return mergeHappen;
+}
+
+std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId)
+{
+    std::pair<bool, TaskId> res;
+    auto &[merge, nextTryTask] = res;
+    TaskId beMergeTask = INVALID_TASK_ID;
+    TaskId runningTask = currentContext_.currentTaskId;
+    for (const auto &taskId : taskQueue_) {
+        if (taskId == runningTask || taskId == tryTaskId) {
+            continue;
+        }
+        if (IsTaskCantMerge(taskId, tryTaskId)) {
+            continue;
+        }
+        if (MergeTaskTablesIfConsistent(taskId, tryTaskId)) {
+            beMergeTask = taskId;
+            nextTryTask = tryTaskId;
+            merge = true;
+            break;
+        }
+        if (MergeTaskTablesIfConsistent(tryTaskId, taskId)) {
+            beMergeTask = tryTaskId;
+            nextTryTask = taskId;
+            merge = true;
+            break;
+        }
+    }
+    if (!merge) {
+        return res;
+    }
+    if (beMergeTask < nextTryTask) {
+        std::tie(beMergeTask, nextTryTask) = SwapTwoTaskAndCopyTable(beMergeTask, nextTryTask);
+    }
+    AdjustTableBasedOnSchema(cloudSchema, cloudTaskInfos_[nextTryTask]);
+    auto processNotifier = std::make_shared<ProcessNotifier>(this);
+    processNotifier->Init(cloudTaskInfos_[beMergeTask].table, cloudTaskInfos_[beMergeTask].devices);
+    cloudTaskInfos_[beMergeTask].errCode = -E_CLOUD_SYNC_TASK_MERGED;
+    cloudTaskInfos_[beMergeTask].status = ProcessStatus::FINISHED;
+    processNotifier->NotifyProcess(cloudTaskInfos_[beMergeTask], {}, true);
+    cloudTaskInfos_.erase(beMergeTask);
+    taskQueue_.remove(beMergeTask);
+    LOGW("[CloudSyncer] TaskId %" PRIu64 " has been merged", beMergeTask);
+    return res;
+}
+
+bool CloudSyncer::IsTaskCantMerge(TaskId taskId, TaskId tryTaskId)
+{
+    const auto &taskInfo = cloudTaskInfos_[taskId];
+    const auto &tryTaskInfo = cloudTaskInfos_[tryTaskId];
+    return taskInfo.compensatedTask || tryTaskInfo.compensatedTask ||
+        taskInfo.priorityTask || tryTaskInfo.priorityTask ||
+        !taskInfo.merge || taskInfo.devices != tryTaskInfo.devices ||
+        tryTaskInfo.mode != SYNC_MODE_CLOUD_MERGE;
+}
+
+bool CloudSyncer::MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId)
+{
+    const auto &source = cloudTaskInfos_[sourceId];
+    const auto &target = cloudTaskInfos_[targetId];
+    bool isMerge = true;
+    for (const auto &table : source.table) {
+        if (std::find(target.table.begin(), target.table.end(), table) == target.table.end()) {
+            isMerge = false;
+            break;
+        }
+    }
+    return isMerge;
+}
+
+void CloudSyncer::AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema> &cloudSchema,
+    CloudTaskInfo &taskInfo)
+{
+    std::vector<std::string> tmpTables = taskInfo.table;
+    taskInfo.table.clear();
+    taskInfo.queryList.clear();
+    for (const auto &table : cloudSchema->tables) {
+        if (std::find(tmpTables.begin(), tmpTables.end(), table.name) != tmpTables.end()) {
+            taskInfo.table.push_back(table.name);
+            QuerySyncObject querySyncObject;
+            querySyncObject.SetTableName(table.name);
+            taskInfo.queryList.push_back(querySyncObject);
+        }
+    }
+}
+
+std::pair<TaskId, TaskId> CloudSyncer::SwapTwoTaskAndCopyTable(TaskId target, TaskId source)
+{
+    cloudTaskInfos_[target].table = cloudTaskInfos_[source].table;
+    cloudTaskInfos_[target].queryList = cloudTaskInfos_[source].queryList;
+    return {source, target};
+}
+
+bool CloudSyncer::IsQueryListEmpty(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    for (const auto &item : cloudTaskInfos_[taskId].queryList) {
+        if (item.IsContainQueryNodes()) {
+            return false;
+        }
+    }
+    return true;
+}
 }

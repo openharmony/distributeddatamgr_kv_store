@@ -139,6 +139,8 @@ public:
     void CleanAllWaterMark();
 
     std::string AppendWithUserIfNeed(const std::string &source) const;
+
+    int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema);
 protected:
     void Init();
 

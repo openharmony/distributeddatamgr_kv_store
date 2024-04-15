@@ -720,6 +720,10 @@ distributeddb_unittest("DistributedDBCloudAssetsOperationSyncTest") {
   sources = [ "unittest/common/storage/cloud/distributeddb_cloud_assets_operation_sync_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudTaskMergeTest") {
+  sources = [ "unittest/common/storage/cloud/distributeddb_cloud_task_merge_test.cpp" ]
+}
+
 ###############################################################################
 # testcase using rd kernel
 

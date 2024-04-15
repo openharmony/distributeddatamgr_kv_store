@@ -42,6 +42,7 @@ public:
         std::vector<QuerySyncObject> queryList;
         std::vector<std::string> users;
         LockAction lockAction = LockAction::INSERT;
+        bool merge = false;
     };
 
     struct InnerProcessInfo {
