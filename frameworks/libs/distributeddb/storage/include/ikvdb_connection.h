@@ -20,8 +20,8 @@
 #include <functional>
 
 #include "cloud/cloud_store_types.h"
+#include "cloud/icloud_db.h"
 #include "db_types.h"
-#include "icloud_db.h"
 #include "iconnection.h"
 #include "kv_store_observer.h"
 #include "macro_utils.h"

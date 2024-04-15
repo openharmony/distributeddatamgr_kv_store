@@ -1650,6 +1650,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.L
             return;
         }
         messageCount++;
+        EXPECT_EQ(g_kvDelegatePtr->GetTaskCount(), 1);
     });
     /**
      * @tc.steps: step2. deviceA call sync and wait

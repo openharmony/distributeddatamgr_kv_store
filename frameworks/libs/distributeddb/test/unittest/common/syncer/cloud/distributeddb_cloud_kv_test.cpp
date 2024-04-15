@@ -47,12 +47,13 @@ public:
 protected:
     void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
-    static void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect);
+    void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect);
     static DataBaseSchema GetDataBaseSchema();
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     KvStoreConfig config_;
     KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
     KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
+    SyncProcess lastProcess_;
 };
 
 void DistributedDBCloudKvTest::SetUpTestCase()
@@ -106,13 +107,15 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [expect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    SyncProcess last;
+    auto callback = [expect, &last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 EXPECT_EQ(item.second.errCode, expect);
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
                     finish = true;
+                    last = item.second;
                 }
                 cv.notify_one();
             }
@@ -126,6 +129,7 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
     cv.wait(uniqueLock, [&finish]() {
         return finish;
     });
+    lastProcess_ = last;
 }
 
 DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
@@ -195,6 +199,9 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
     Value expectValue = {'v'};
     ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
     BlockSync(kvDelegatePtrS1_, OK);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+    }
     BlockSync(kvDelegatePtrS2_, OK);
     Value actualValue;
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
