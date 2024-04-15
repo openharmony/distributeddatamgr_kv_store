@@ -2201,14 +2201,4 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
     return E_OK;
 }
-
-int CloudSyncer::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
-{
-    return cloudDB_.SetCloudDB(cloudDBs);
-}
-
-void CloudSyncer::CleanAllWaterMark()
-{
-    storageProxy_->CleanAllWaterMark();
-}
 } // namespace DistributedDB
