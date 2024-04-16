@@ -50,7 +50,7 @@ public:
     virtual Status Delete(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
-    virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
+    virtual Status CloudSync(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback) = 0;
     virtual Status UnregisterSyncCallback(const AppId &appId) = 0;
     virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) = 0;

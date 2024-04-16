@@ -543,9 +543,7 @@ Status SingleStoreImpl::CloudSync()
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    KVDBService::SyncInfo syncInfo;
-    syncInfo.seqId = StoreUtil::GenSequenceId();
-    auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
+    auto status = service->CloudSync({ appId_ }, { storeId_ });
 
     if (status == SUCCESS) {
         return SUCCESS;
