@@ -39,6 +39,26 @@ int CloudMetaData::GetLocalWaterMark(const TableName &tableName, Timestamp &loca
     return E_OK;
 }
 
+int CloudMetaData::GetLocalWaterMarkByType(const TableName &tableName, CloudWaterType type, Timestamp &localMark)
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    if (cloudMetaVals_.count(tableName) == 0) {
+        int ret = ReadMarkFromMeta(tableName);
+        if (ret != E_OK) {
+            return ret;
+        }
+    }
+    if (type == CloudWaterType::INSERT) {
+        localMark = cloudMetaVals_[tableName].insertLocalMark;
+    } else if (type == CloudWaterType::UPDATE) {
+        localMark = cloudMetaVals_[tableName].updateLocalMark;
+    } else if (type == CloudWaterType::DELETE) {
+        localMark = cloudMetaVals_[tableName].deleteLocalMark;
+    }
+    localMark = std::max(localMark, cloudMetaVals_[tableName].localMark);
+    return E_OK;
+}
+
 int CloudMetaData::GetCloudWaterMark(const TableName &tableName, std::string &cloudMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
@@ -70,6 +90,34 @@ int CloudMetaData::SetLocalWaterMark(const TableName &tableName, Timestamp local
         cloudMetaVals_[tableName] = cloudMetaVal;
     } else {
         iter->second.localMark = localMark;
+    }
+    return E_OK;
+}
+
+int CloudMetaData::SetLocalWaterMarkByType(const TableName &tableName, CloudWaterType type, Timestamp localMark)
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    CloudMetaValue cloudMetaVal;
+    auto iter = cloudMetaVals_.find(tableName);
+    if (iter != cloudMetaVals_.end()) {
+        cloudMetaVal = iter->second;
+    }
+    if (type == CloudWaterType::INSERT) {
+        cloudMetaVal.insertLocalMark = localMark;
+    } else if (type == CloudWaterType::UPDATE) {
+        cloudMetaVal.updateLocalMark = localMark;
+    } else if (type == CloudWaterType::DELETE) {
+        cloudMetaVal.deleteLocalMark = localMark;
+    }
+    cloudMetaVal.localMark = localMark;
+    int ret = WriteTypeMarkToMeta(tableName, cloudMetaVal);
+    if (ret != E_OK) {
+        return ret;
+    }
+    if (iter == cloudMetaVals_.end()) {
+        cloudMetaVals_[tableName] = cloudMetaVal;
+    } else {
+        iter->second = cloudMetaVal;
     }
     return E_OK;
 }
@@ -128,16 +176,65 @@ int CloudMetaData::WriteMarkToMeta(const TableName &tableName, Timestamp localma
     return store_->PutMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal);
 }
 
+int CloudMetaData::WriteTypeMarkToMeta(const TableName &tableName, CloudMetaValue &cloudMetaValue)
+{
+    Value blobMetaVal;
+    int ret = SerializeWaterMark(cloudMetaValue, blobMetaVal);
+    if (ret != E_OK) {
+        return ret;
+    }
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->PutMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal);
+}
+
+uint64_t CloudMetaData::GetParcelCurrentLength(CloudMetaValue &cloudMetaValue)
+{
+    return Parcel::GetUInt64Len() + Parcel::GetStringLen(cloudMetaValue.cloudMark) + Parcel::GetUInt64Len() +
+           Parcel::GetUInt64Len() + Parcel::GetUInt64Len();
+}
+
+int CloudMetaData::SerializeWaterMark(CloudMetaValue &cloudMetaValue, Value &blobMetaVal)
+{
+    uint64_t length = GetParcelCurrentLength(cloudMetaValue);
+    blobMetaVal.resize(length);
+    Parcel parcel(blobMetaVal.data(), blobMetaVal.size());
+    parcel.ReadUInt64(cloudMetaValue.localMark);
+    parcel.ReadString(cloudMetaValue.cloudMark);
+    parcel.ReadUInt64(cloudMetaValue.insertLocalMark);
+    parcel.ReadUInt64(cloudMetaValue.updateLocalMark);
+    parcel.ReadUInt64(cloudMetaValue.deleteLocalMark);
+    if (parcel.IsError()) {
+        LOGE("[Meta] Parcel error while deserializing cloud meta data.");
+        return -E_PARSE_FAIL;
+    }
+    return E_OK;
+}
+
 int CloudMetaData::DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue)
 {
     if (blobMark.empty()) {
         cloudMetaValue.localMark = 0;
+        cloudMetaValue.insertLocalMark = 0;
+        cloudMetaValue.updateLocalMark = 0;
+        cloudMetaValue.deleteLocalMark = 0;
         cloudMetaValue.cloudMark = "";
         return E_OK;
     }
     Parcel parcel(blobMark.data(), blobMark.size());
     parcel.ReadUInt64(cloudMetaValue.localMark);
     parcel.ReadString(cloudMetaValue.cloudMark);
+    if (parcel.IsContinueRead()) {
+        parcel.ReadUInt64(cloudMetaValue.insertLocalMark);
+        parcel.ReadUInt64(cloudMetaValue.updateLocalMark);
+        parcel.ReadUInt64(cloudMetaValue.deleteLocalMark);
+    }
+    if (blobMark.size() < GetParcelCurrentLength(cloudMetaValue)) {
+        cloudMetaValue.insertLocalMark = cloudMetaValue.localMark;
+        cloudMetaValue.updateLocalMark = cloudMetaValue.localMark;
+        cloudMetaValue.deleteLocalMark = cloudMetaValue.localMark;
+    }
     if (parcel.IsError()) {
         LOGE("[Meta] Parcel error while deserializing cloud meta data.");
         return -E_PARSE_FAIL;
