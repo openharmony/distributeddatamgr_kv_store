@@ -79,24 +79,24 @@ public:
         return it.second;
     }
 
-    template<typename... _Args>
-    typename std::enable_if<!std::is_convertible_v<decltype(First<_Args...>()), filter_type>, bool>::type
-    Emplace(_Args &&...__args) noexcept
+    template<typename... Args>
+    typename std::enable_if<!std::is_convertible_v<decltype(First<Args...>()), filter_type>, bool>::type
+    Emplace(Args &&...args) noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = entries_.emplace(std::forward<_Args>(__args)...);
+        auto it = entries_.emplace(std::forward<Args>(args)...);
         return it.second;
     }
 
-    template<typename _Filter, typename... _Args>
-    typename std::enable_if<std::is_convertible_v<_Filter, filter_type>, bool>::type
-    Emplace(const _Filter &filter, _Args &&...__args) noexcept
+    template<typename Filter, typename... Args>
+    typename std::enable_if<std::is_convertible_v<Filter, filter_type>, bool>::type
+    Emplace(const Filter &filter, Args &&...args) noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         if (!filter(entries_)) {
             return false;
         }
-        auto it = entries_.emplace(std::forward<_Args>(__args)...);
+        auto it = entries_.emplace(std::forward<Args>(args)...);
         return it.second;
     }
 
@@ -109,19 +109,6 @@ public:
         }
 
         return std::pair { true, it->second };
-    }
-
-    bool ContainIf(const key_type &key, const std::function<bool(const mapped_type &value)> &action) const noexcept
-    {
-        std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = entries_.find(key);
-        if (it == entries_.end()) {
-            return false;
-        }
-        if (action) {
-            return action(it->second);
-        }
-        return true;
     }
 
     bool Contains(const key_type &key) const noexcept

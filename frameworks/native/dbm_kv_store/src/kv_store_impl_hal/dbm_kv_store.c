@@ -317,10 +317,9 @@ static int LoadDataItem(DBHandle db, int index, KeyItem* item)
     }
 
     // 1st pos is default 0
-    // 3 pos represented flag
-    item->flag.isValid = *(itemContent + 1);
-    item->flag.isBakValid = *(itemContent + 2);
-    item->flag.valueType = *(itemContent + 3);
+    item->flag.isValid = *(itemContent + 1); // 1 pos represented flag
+    item->flag.isBakValid = *(itemContent + 2); // 2 pos represented flag
+    item->flag.valueType = *(itemContent + 3); // 3 pos represented flag
 
     char keyLen[KV_SUM_BLOCK_SIZE] = {0}; // default key content len is 32
     ret = memcpy_s(keyLen, KV_SUM_BLOCK_SIZE, itemContent + KV_SUM_BLOCK_SIZE, KV_SUM_BLOCK_SIZE);
@@ -719,7 +718,8 @@ static boolean IsDataItemMatched(DBHandle db, const char* key, int index)
     return IsStrSame(itemContent + KV_MAGIC_SIZE + KV_SUM_BLOCK_SIZE, strlen(key) + 1, key);
 }
 
-static int IsNeedTransferValue(DBHandle db, const char* key, const char* fileRead, unsigned int fileLen, boolean* isNeed)
+static int IsNeedTransferValue(DBHandle db, const char* key, const char* fileRead, unsigned int fileLen,
+    boolean* isNeed)
 {
     if (fileLen <= KV_SUM_BLOCK_SIZE) { // value size < index, means old version data
         *isNeed = FALSE;

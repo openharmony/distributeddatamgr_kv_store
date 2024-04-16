@@ -24,7 +24,7 @@
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class SingleKvStoreClientTest : public testing::Test {
 public:
     static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
@@ -658,7 +658,6 @@ static std::string SingleGenerate1025KeyLen()
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
 {
-
     EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     std::vector<Entry> entries;
@@ -1195,3 +1194,4 @@ HWTEST_F(SingleKvStoreClientTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = singleKvStore->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+} // namespace OHOS::Test

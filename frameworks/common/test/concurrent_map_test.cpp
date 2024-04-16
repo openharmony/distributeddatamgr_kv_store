@@ -62,9 +62,9 @@ HWTEST_F(ConcurrentMapTest, EmplaceWithNone, TestSize.Level0)
 /**
 * @tc.name: EmplaceWithFilter
 * @tc.desc: test the function:
- * template<typename _Filter, typename... _Args>
- * typename std::enable_if<std::is_convertible_v<_Filter, filter_type>, bool>::type
- * Emplace(const _Filter &filter, _Args &&...__args) noexcept
+ * template<typename Filter, typename... Args>
+ * typename std::enable_if<std::is_convertible_v<Filter, filter_type>, bool>::type
+ * Emplace(const Filter &filter, Args &&...args) noexcept
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: Sven Wang
@@ -99,9 +99,9 @@ HWTEST_F(ConcurrentMapTest, EmplaceWithFilter, TestSize.Level0)
 /**
 * @tc.name: EmplaceWithArgs
 * @tc.desc: test the function:
- * template<typename... _Args>
- * typename std::enable_if<!std::is_convertible_v<decltype(First<_Args...>()), filter_type>, bool>::type
- * Emplace(_Args &&...__args) noexcept
+ * template<typename... Args>
+ * typename std::enable_if<!std::is_convertible_v<decltype(First<Args...>()), filter_type>, bool>::type
+ * Emplace(Args &&...args) noexcept
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: Sven Wang
