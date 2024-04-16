@@ -111,6 +111,19 @@ public:
         return std::pair { true, it->second };
     }
 
+    bool ContainIf(const key_type &key, const std::function<bool(const mapped_type &value)> &action) const noexcept
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        auto it = entries_.find(key);
+        if (it == entries_.end()) {
+            return false;
+        }
+        if (action) {
+            return action(it->second);
+        }
+        return true;
+    }
+
     bool Contains(const key_type &key) const noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
