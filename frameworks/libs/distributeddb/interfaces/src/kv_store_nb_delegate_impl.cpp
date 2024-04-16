@@ -63,7 +63,6 @@ namespace {
     };
 
     constexpr const char *INVALID_CONNECTION = "[KvStoreNbDelegate] Invalid connection for operation";
-    constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
 }
 
 KvStoreNbDelegateImpl::KvStoreNbDelegateImpl(IKvDBConnection *conn, const std::string &storeId)
@@ -375,7 +374,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return INVALID_ARGS;
     }
-    uint64_t rawMode = DBCommon::EraseBit(mode, OBSERVER_CHANGES_MASK);
+    uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
     if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
         return RegisterCloudObserver(key, mode, observer);
     }
