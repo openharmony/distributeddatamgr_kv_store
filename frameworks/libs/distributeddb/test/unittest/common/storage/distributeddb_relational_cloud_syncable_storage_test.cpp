@@ -1433,6 +1433,19 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, T
     syncData.updData.hashKey.push_back(hashKey);
     syncData.insData.hashKey.push_back(hashKey);
     EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step6. insert not contain version no effect update
+     * @tc.expected: OK.
+     */
+    syncData.insData.extend[0].erase(CloudDbConstant::VERSION_FIELD);
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step7. insert not contain version effect insert
+     * @tc.expected: E_OK.
+     */
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::INSERT_VERSION, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
@@ -1447,7 +1460,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
 {
     /**
      * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
-     * @tc.expected: -E_CLOUD_ERROR.
+     * @tc.expected: E_OK.
      */
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1458,7 +1471,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
         OpType::ONLY_UPDATE_GID, OpType::NOT_HANDLE };
     ConstructMultiDownloadData(insCount, downloadData, opTypes);
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), -E_CLOUD_ERROR);
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), E_OK);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 
     /**

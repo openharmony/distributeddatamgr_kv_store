@@ -161,12 +161,10 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    if (isSharedTable) {
-        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-            return ret;
-        }
+    ret = storageProxy_->FillCloudLogAndAsset(OpType::INSERT_VERSION, uploadData);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
+        return ret;
     }
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     return E_OK;
@@ -194,12 +192,10 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    if (isSharedTable) {
-        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-            return ret;
-        }
+    ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
+        return ret;
     }
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     return E_OK;

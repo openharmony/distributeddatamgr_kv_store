@@ -288,11 +288,6 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
             LOGE("[CloudSyncer] upload failed %d", errCode);
             break;
         }
-        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
-            break;
-        }
     }
     if (errCode == -E_TASK_PAUSED) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1263,7 +1258,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId tas
     if (isUpdateCloudCursor) {
         int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Cannot set cloud water mark while Uploading, %d.", errCode);
+            LOGE("[CloudSyncer] Cannot set cloud water mark, %d.", errCode);
         }
         return errCode;
     }
@@ -1905,7 +1900,7 @@ int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param, bool isFirstD
         return ret;
     }
     (void)NotifyInDownload(taskId, param, isFirstDownload);
-    return ret;
+    return SaveCloudWaterMark(param.tableName, taskId);
 }
 
 int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
@@ -2191,11 +2186,6 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
                 continue;
             }
             needNotifyTables.emplace_back(table);
-        }
-        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
-            return errCode;
         }
     }
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);

@@ -550,12 +550,10 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
             totalSize += cloudGid.size();
         }
     }
-    if (isShared) {
-        std::string version;
-        SQLiteUtils::GetColumnTextValue(logStatement, VERSION_INDEX, version);
-        logInfo.insert_or_assign(CloudDbConstant::VERSION_FIELD, version);
-        totalSize += version.size();
-    }
+    std::string version;
+    SQLiteUtils::GetColumnTextValue(logStatement, VERSION_INDEX, version);
+    logInfo.insert_or_assign(CloudDbConstant::VERSION_FIELD, version);
+    totalSize += version.size();
 }
 
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)

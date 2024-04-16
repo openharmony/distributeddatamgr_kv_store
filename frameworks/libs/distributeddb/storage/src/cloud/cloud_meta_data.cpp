@@ -86,7 +86,9 @@ int CloudMetaData::SetLocalWaterMark(const TableName &tableName, Timestamp local
         return ret;
     }
     if (iter == cloudMetaVals_.end()) {
-        CloudMetaValue cloudMetaVal = { .localMark = localMark, .cloudMark = cloudMark };
+        CloudMetaValue cloudMetaVal;
+        cloudMetaVal.localMark = localMark;
+        cloudMetaVal.cloudMark = cloudMark;
         cloudMetaVals_[tableName] = cloudMetaVal;
     } else {
         iter->second.localMark = localMark;
@@ -135,7 +137,9 @@ int CloudMetaData::SetCloudWaterMark(const TableName &tableName, std::string &cl
         return ret;
     }
     if (iter == cloudMetaVals_.end()) {
-        CloudMetaValue cloudMetaVal = { .localMark = localMark, .cloudMark = cloudMark };
+        CloudMetaValue cloudMetaVal;
+        cloudMetaVal.localMark = localMark;
+        cloudMetaVal.cloudMark = cloudMark;
         cloudMetaVals_[tableName] = cloudMetaVal;
     } else {
         iter->second.cloudMark = cloudMark;

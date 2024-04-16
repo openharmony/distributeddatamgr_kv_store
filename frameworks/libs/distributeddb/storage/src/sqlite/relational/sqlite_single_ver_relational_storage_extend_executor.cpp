@@ -231,19 +231,10 @@ int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const V
     sqlite3_stmt *&stmt)
 {
     int errCode = E_OK;
-    if (vBucket.find(CloudDbConstant::VERSION_FIELD) == vBucket.end()) {
-        LOGE("can not find version from vBucket.");
-        return -E_CLOUD_ERROR;
-    }
     std::string version;
     if (CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD,
         vBucket, version) != E_OK) {
-        LOGE("get version from vBucket failed.");
-        return -E_CLOUD_ERROR;
-    }
-    if (version.empty()) {
-        LOGE("version is empty when update version");
-        return -E_CLOUD_ERROR;
+        LOGW("get version from vBucket failed.");
     }
     if (hashKey.empty()) {
         LOGE("hash key is empty when update version");
@@ -1883,9 +1874,9 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
 {
     int errCode = E_OK;
     std::string version;
-    if (putDataMode_ == PutDataMode::SYNC && CloudStorageUtils::IsSharedTable(tableSchema)) {
+    if (putDataMode_ == PutDataMode::SYNC) {
         errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
-        if (errCode != E_OK || version.empty()) {
+        if ((errCode != E_OK && errCode != -E_NOT_FOUND)) {
             LOGE("get version for insert log statement failed, %d", errCode);
             return -E_CLOUD_ERROR;
         }
