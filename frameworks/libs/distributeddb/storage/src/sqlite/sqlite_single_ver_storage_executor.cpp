@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"

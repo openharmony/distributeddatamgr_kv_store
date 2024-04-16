@@ -16,6 +16,7 @@
 
 #include <iomanip>
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
@@ -23,7 +24,6 @@
 #include "macro_utils.h"
 #include "sqlite_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
-#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 using namespace TriggerMode;
