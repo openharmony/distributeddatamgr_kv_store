@@ -26,10 +26,10 @@
 #undef __STDC_WANT_SECURE_LIB__
 #endif
 #define __STDC_WANT_SECURE_LIB__ 0
-#ifdef CRTIMP_ALTERNATIVE
-#undef CRTIMP_ALTERNATIVE
+#ifdef _CRTIMP_ALTERNATIVE
+#undef _CRTIMP_ALTERNATIVE
 #endif
-#define CRTIMP_ALTERNATIVE
+#define _CRTIMP_ALTERNATIVE
 #endif
 #endif
 
