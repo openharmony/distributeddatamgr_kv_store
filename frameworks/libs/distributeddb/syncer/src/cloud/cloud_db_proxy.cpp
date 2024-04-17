@@ -158,6 +158,9 @@ int CloudDBProxy::Close()
         iCloudDb = iCloudDb_;
         iCloudDb_ = nullptr;
         for (const auto &item : cloudDbs_) {
+            if (iCloudDb == item.second) {
+                iCloudDb = nullptr;
+            }
             waitForClose.push_back(item.second);
         }
         cloudDbs_.clear();
@@ -171,9 +174,13 @@ int CloudDBProxy::Close()
         LOGD("[CloudDBProxy] wait for all asyncTask end");
     }
     LOGD("[CloudDBProxy] call cloudDb close begin");
-    DBStatus status = iCloudDb->Close();
+    DBStatus status;
+    if (iCloudDb != nullptr) {
+        status = iCloudDb->Close();
+    }
     for (const auto &item : waitForClose) {
-        (void)item->Close();
+        DBStatus ret = item->Close();
+        status = (status == OK ? ret : status);
     }
     waitForClose.clear();
     LOGD("[CloudDBProxy] call cloudDb close end");

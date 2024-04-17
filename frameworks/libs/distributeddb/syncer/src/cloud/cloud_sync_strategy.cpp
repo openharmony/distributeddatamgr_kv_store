@@ -73,6 +73,6 @@ bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo)
 
 OpType CloudSyncStrategy::TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo)
 {
-    return IsSameVersion(cloudInfo, localInfo) && IsIgnoreUpdate(localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
+    return IsSameVersion(cloudInfo, localInfo) || IsIgnoreUpdate(localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
 }
 }

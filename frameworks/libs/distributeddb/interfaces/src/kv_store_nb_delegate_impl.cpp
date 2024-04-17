@@ -473,7 +473,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
 
     DBStatus cloudRet = UnRegisterCloudObserver(observer);
     DBStatus devRet = UnRegisterDeviceObserver(observer);
-    return cloudRet == OK ? cloudRet : devRet;
+    return cloudRet == OK ? devRet : cloudRet;
 }
 
 DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const KvStoreObserver *observer)

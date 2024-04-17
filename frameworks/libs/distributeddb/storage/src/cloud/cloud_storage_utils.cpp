@@ -1308,7 +1308,7 @@ std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &da
 int CloudStorageUtils::GetBytesFromCloudData(const std::string &field, VBucket &data, Bytes &bytes)
 {
     std::string blobStr;
-    int errCode = CloudStorageUtils::GetValueFromVBucket(field, data, blobStr);
+    int errCode = GetValueFromVBucket(field, data, blobStr);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
         return errCode;
@@ -1319,7 +1319,7 @@ int CloudStorageUtils::GetBytesFromCloudData(const std::string &field, VBucket &
 
 int CloudStorageUtils::GetStringFromCloudData(const std::string &field, VBucket &data, std::string &str)
 {
-    int errCode = CloudStorageUtils::GetValueFromVBucket(field, data, str);
+    int errCode = GetValueFromVBucket(field, data, str);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
         return errCode;
@@ -1330,7 +1330,7 @@ int CloudStorageUtils::GetStringFromCloudData(const std::string &field, VBucket 
 int CloudStorageUtils::GetUInt64FromCloudData(const std::string &field, VBucket &data, uint64_t &number)
 {
     int64_t intNum;
-    int errCode = CloudStorageUtils::GetValueFromVBucket(field, data, intNum);
+    int errCode = GetValueFromVBucket(field, data, intNum);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
         return errCode;

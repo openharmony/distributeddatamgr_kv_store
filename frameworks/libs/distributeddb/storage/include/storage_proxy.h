@@ -128,6 +128,8 @@ public:
     void OnSyncFinish();
 
     void CleanAllWaterMark();
+
+    std::string AppendWithUserIfNeed(const std::string &source) const;
 protected:
     void Init();
 
