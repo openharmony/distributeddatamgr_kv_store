@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_sync_state_machine.h"
 #include "cloud/cloud_sync_strategy.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_syncer.h"
@@ -40,6 +41,7 @@ class CloudSyncer : public ICloudSyncer {
 public:
     explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy,
         SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
+    void InitCloudSyncStateMachine();
     ~CloudSyncer() override = default;
     DISABLE_COPY_ASSIGN_MOVE(CloudSyncer);
 
@@ -68,6 +70,12 @@ public:
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
     void CleanAllWaterMark();
+
+    CloudSyncEvent SyncMachineDoDownload();
+
+    CloudSyncEvent SyncMachineDoUpload();
+
+    CloudSyncEvent SyncMachineDoFinished();
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -82,6 +90,11 @@ protected:
         std::map<TableName, std::string> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
         bool isNeedUpload = false;  // whether the current task need do upload
+        CloudSyncState currentState = CloudSyncState::IDLE;
+        bool isRealNeedUpload = false;
+        bool isFirstDownload = false;
+        std::map<std::string, bool> isDownloadFinished;
+        int currentUserIndex = 0;
     };
     struct UploadParam {
         int64_t count = 0;
@@ -114,6 +127,8 @@ protected:
     void DoSyncIfNeed();
 
     int DoSync(TaskId taskId);
+
+    int PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index);
 
     int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
@@ -375,6 +390,8 @@ protected:
     static constexpr const TaskId INVALID_TASK_ID = 0u;
     static constexpr const int MAX_HEARTBEAT_FAILED_LIMIT = 2;
     static constexpr const int HEARTBEAT_PERIOD = 3;
+
+    CloudSyncStateMachine cloudSyncStateMachine_;
 };
 }
 #endif // CLOUD_SYNCER_H

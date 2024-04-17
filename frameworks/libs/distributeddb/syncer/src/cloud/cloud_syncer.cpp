@@ -46,6 +46,21 @@ CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerCo
     if (storageProxy_ != nullptr) {
         id_ = storageProxy_->GetIdentify();
     }
+    InitCloudSyncStateMachine();
+}
+
+void CloudSyncer::InitCloudSyncStateMachine()
+{
+    cloudSyncStateMachine_.Initialize();
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_DOWNLOAD, [this]() {
+        return SyncMachineDoDownload();
+    });
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_UPLOAD, [this]() {
+        return SyncMachineDoUpload();
+    });
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_FINISHED, [this]() {
+        return SyncMachineDoFinished();
+    });
 }
 
 int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
@@ -172,6 +187,7 @@ void CloudSyncer::SetProxyUser(const std::string &user)
     std::lock_guard<std::mutex> autoLock(dataLock_);
     storageProxy_->SetUser(user);
     currentContext_.notifier->SetUser(user);
+    currentContext_.currentUserIndex = currentContext_.currentUserIndex + 1;
     cloudDB_.SwitchCloudDB(user);
 }
 
@@ -197,6 +213,7 @@ void CloudSyncer::DoSyncIfNeed()
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             usersList = cloudTaskInfos_[triggerTaskId].users;
+            currentContext_.currentUserIndex = 0;
         }
         int errCode = E_OK;
         if (usersList.empty()) {
@@ -208,8 +225,7 @@ void CloudSyncer::DoSyncIfNeed()
                 errCode = DoSync(triggerTaskId);
             }
         }
-        // finished after sync
-        DoFinished(triggerTaskId, errCode);
+        LOGD("[CloudSyncer] DoSync finished, errCode %d", errCode);
     } while (!closed_);
     LOGD("[CloudSyncer] DoSyncIfNeed finished, closed status %d", static_cast<int>(closed_));
 }
@@ -238,6 +254,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         // do first download
         errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
         if (errCode != E_OK) {
+            DoFinished(taskInfo.taskId, errCode);
             return errCode;
         }
         bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
@@ -247,18 +264,55 @@ int CloudSyncer::DoSync(TaskId taskId)
         }
         if (!isActuallyNeedUpload) {
             LOGI("[CloudSyncer] no table need upload!");
+            DoFinished(taskInfo.taskId, E_OK);
             return E_OK;
         }
         isFirstDownload = false;
     }
 
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        currentContext_.isFirstDownload = isFirstDownload;
+        currentContext_.isRealNeedUpload = needUpload;
+    }
     // lock cloud and then do the second sync
     errCode = LockCloudIfNeed(taskId);
     if (errCode != E_OK) {
+        DoFinished(taskInfo.taskId, errCode);
         return errCode;
     }
     errCode = DoSyncInner(taskInfo, needUpload, isFirstDownload);
     UnlockIfNeed();
+    return errCode;
+}
+
+int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
+{
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        currentContext_.tableName = taskInfo.table[index];
+    }
+    int errCode = CheckTaskIdValid(taskInfo.taskId);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] task is invalid, abort sync");
+        return errCode;
+    }
+    errCode = DoUpload(taskInfo.taskId, index == (taskInfo.table.size() - 1u));
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            currentContext_.isDownloadFinished[taskInfo.table[index]] = false;
+        }
+        return errCode;
+    }
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] upload failed %d", errCode);
+        return errCode;
+    }
+    errCode = SaveCloudWaterMark(taskInfo.table[index], taskInfo.taskId);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
+    }
     return errCode;
 }
 
@@ -274,18 +328,8 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
     }
     for (size_t i = GetStartTableIndex(taskInfo.taskId, true); i < taskInfo.table.size(); ++i) {
         LOGD("[CloudSyncer] try upload table, index: %zu", i);
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            currentContext_.tableName = taskInfo.table[i];
-        }
-        errCode = CheckTaskIdValid(taskInfo.taskId);
+        errCode = PrepareAndUpload(taskInfo, i);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] task is invalid, abort sync");
-            break;
-        }
-        errCode = DoUpload(taskInfo.taskId, i == (taskInfo.table.size() - 1u));
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] upload failed %d", errCode);
             break;
         }
     }
@@ -307,13 +351,75 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
     return errCode;
 }
 
-int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
+CloudSyncEvent CloudSyncer::SyncMachineDoDownload()
 {
+    CloudTaskInfo taskInfo;
+    bool needUpload;
+    bool isFirstDownload;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
+        needUpload = currentContext_.isRealNeedUpload;
+        isFirstDownload = currentContext_.isFirstDownload;
+    }
     int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
     if (errCode != E_OK) {
-        return errCode;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+        }
+        return CloudSyncEvent::ERROR_EVENT;
     }
-    return DoUploadInNeed(taskInfo, needUpload);
+    return CloudSyncEvent::DOWNLOAD_FINISHED_EVENT;
+}
+
+CloudSyncEvent CloudSyncer::SyncMachineDoUpload()
+{
+    CloudTaskInfo taskInfo;
+    bool needUpload;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
+        needUpload = currentContext_.isRealNeedUpload;
+    }
+    int errCode = DoUploadInNeed(taskInfo, needUpload);
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
+    }
+    if (errCode != E_OK) {
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+        }
+        return CloudSyncEvent::ERROR_EVENT;
+    }
+
+    return CloudSyncEvent::UPLOAD_FINISHED_EVENT;
+}
+
+CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
+{
+    TaskId taskId;
+    int errCode;
+    int currentUserIndex;
+    int userListSize;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        taskId = currentContext_.currentTaskId;
+        errCode = cloudTaskInfos_[currentContext_.currentTaskId].errCode;
+        currentUserIndex = currentContext_.currentUserIndex;
+        userListSize = cloudTaskInfos_[taskId].users.size();
+    }
+    if (currentUserIndex >= userListSize) {
+        DoFinished(taskId, errCode);
+    }
+    return CloudSyncEvent::ALL_TASK_FINISHED_EVENT;
+}
+
+int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
+{
+    cloudSyncStateMachine_.SwitchStateAndStep(CloudSyncEvent::START_SYNC_EVENT);
+    return E_OK;
 }
 
 void CloudSyncer::DoFinished(TaskId taskId, int errCode)
@@ -1841,6 +1947,9 @@ void CloudSyncer::ClearCurrentContextWithoutLock()
     currentContext_.assetsInfo.clear();
     currentContext_.cloudWaterMarks.clear();
     currentContext_.isNeedUpload = false;
+    currentContext_.isDownloadFinished.clear();
+    currentContext_.currentState = CloudSyncState::IDLE;
+    currentContext_.currentUserIndex = 0;
 }
 
 void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
@@ -2157,7 +2266,10 @@ void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, con
 int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     std::vector<std::string> needNotifyTables;
-    for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
+    for (size_t i = 0; i < taskInfo.table.size(); ++i) {
+        if (currentContext_.isDownloadFinished[taskInfo.table[i]] == true) {
+            continue;
+        }
         LOGD("[CloudSyncer] try download table, index: %zu", i);
         std::string table;
         {
@@ -2186,6 +2298,15 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
                 continue;
             }
             needNotifyTables.emplace_back(table);
+        }
+        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
+            return errCode;
+        }
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            currentContext_.isDownloadFinished[taskInfo.table[i]] = true;
         }
     }
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);

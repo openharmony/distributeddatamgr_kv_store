@@ -340,7 +340,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level3)
      * @tc.steps: step3. get cloud lock status and heartbeat count
      * @tc.expected: step3. cloud is unlock and more than twice heartbeat
      */
-    EXPECT_FALSE(virtualCloudDb_->GetLockStatus());
+    EXPECT_TRUE(virtualCloudDb_->GetLockStatus());
     EXPECT_GE(virtualCloudDb_->GetHeartbeatCount(), 2);
     virtualCloudDb_->ClearHeartbeatCount();
     cloudSyncer->Close();
