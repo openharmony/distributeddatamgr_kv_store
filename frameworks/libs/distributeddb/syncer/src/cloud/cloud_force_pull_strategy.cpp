@@ -13,11 +13,15 @@
  * limitations under the License.
  */
 #include "cloud_force_pull_strategy.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 
 OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
+    if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
+        return OpType::LOCKED_NOT_HANDLE;
+    }
     if (existInLocal) {
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
             return OpType::DELETE;

@@ -82,7 +82,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 
@@ -139,7 +139,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 
@@ -196,7 +196,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 

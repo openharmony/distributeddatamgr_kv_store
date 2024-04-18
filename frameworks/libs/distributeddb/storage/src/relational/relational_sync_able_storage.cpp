@@ -1056,7 +1056,7 @@ int RelationalSyncAbleStorage::Rollback()
 }
 
 int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
-    bool isCloudForcePush, int64_t &count)
+    bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
 {
     int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
@@ -1065,7 +1065,7 @@ int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, cons
     }
     QuerySyncObject queryObj = query;
     queryObj.SetSchema(GetSchemaInfo());
-    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, queryObj, count);
+    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, isCompensatedTask, queryObj, count);
     if (transactionHandle_ == nullptr) {
         ReleaseHandle(handle);
     }
@@ -1122,7 +1122,7 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
 }
 
 int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
-    bool isCloudForcePush, std::vector<std::string> &cloudGid)
+    bool isCloudForcePush, bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
     int errCode = E_OK;
     auto *handle = GetHandle(false, errCode);
@@ -1133,7 +1133,7 @@ int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
     QuerySyncObject query = querySyncObject;
     query.SetSchema(GetSchemaInfo());
-    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, cloudGid);
+    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, isCompensatedTask, cloudGid);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] GetCloudGid failed %d", errCode);
@@ -1368,7 +1368,7 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
     QuerySyncObject queryObj = query;
     queryObj.SetSchema(GetSchemaInfo());
     int64_t count = 0;
-    errCode = handle->GetUploadCount(UINT64_MAX, false, queryObj, count);
+    errCode = handle->GetUploadCount(UINT64_MAX, false, false, queryObj, count);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] CheckQueryValid failed %d", errCode);
@@ -1621,22 +1621,22 @@ bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
     return allowLogicDelete_ && logicDelete_;
 }
 
-int RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
-    const Bytes &hashKey, VBucket &assets)
+std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,
+    const std::string &gid, const Bytes &hashKey, VBucket &assets)
 {
     if (gid.empty() && hashKey.empty()) {
         LOGE("both gid and hashKey are empty.");
-        return -E_INVALID_ARGS;
+        return { -E_INVALID_ARGS, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     if (transactionHandle_ == nullptr) {
         LOGE("the transaction has not been started");
-        return -E_INVALID_DB;
+        return { -E_INVALID_DB, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
-    int errCode = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+    auto [errCode, status] = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND && errCode != -E_CLOUD_GID_MISMATCH) {
         LOGE("get assets by gid or hashKey failed. %d", errCode);
     }
-    return errCode;
+    return { errCode, status };
 }
 
 int RelationalSyncAbleStorage::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -1771,21 +1771,24 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData);
     } else if (opType == OpType::DELETE) {
         errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData);
+    } else if (opType == OpType::LOCKED_NOT_HANDLE) {
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.lockData, true);
     }
     return errCode;
 }
 
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName, const CloudSyncBatch &updateData)
+    const std::string &tableName, const CloudSyncBatch &updateData, bool isLock)
 {
-    if (updateData.timestamp.size() != updateData.extend.size()) {
-        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
-            updateData.extend.size(), updateData.timestamp.size());
-        return -E_INVALID_ARGS;
-    }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record)) {
+        if (DBCommon::IsRecordError(record) || isLock) {
+            int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
+                updateData.hashKey[i]);
+            if (errCode != E_OK) {
+                LOGE("[RDBStorage] Update record status failed in index %zu", i);
+                return errCode;
+            }
             continue;
         }
         const auto &rowId = updateData.rowid[i];
@@ -1795,7 +1798,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
         logInfo.cloudGid = cloudGid;
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = rowId;
-        logInfo.hashKey = {};
+        logInfo.hashKey = updateData.hashKey[i];
         int errCode = handle->UpdateRecordFlag(tableName, DBCommon::IsRecordIgnored(record), logInfo);
         if (errCode != E_OK) {
             LOGE("[RDBStorage] Update record flag failed in index %zu", i);
@@ -1914,9 +1917,17 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
             return -E_NOT_SUPPORT;
         }
         for (const auto &[col, value] : oneRow) {
-            if (dataIndex.find(col) == dataIndex.end()) {
+            bool isFind = dataIndex.find(col) != dataIndex.end();
+            if (!isFind && value.index() == TYPE_INDEX<Nil>) {
+                ignoreCount++;
+                continue;
+            }
+            if (!isFind && value.index() != TYPE_INDEX<Nil>) {
                 dataIndex[col] = value.index();
-            } else if (dataIndex[col] != value.index()) {
+                syncPk[col].push_back(value);
+                continue;
+            }
+            if (isFind && dataIndex[col] != value.index()) {
                 ignoreCount++;
                 continue;
             }
@@ -1999,6 +2010,19 @@ int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName
         LOGE("[RelationalSyncAbleStorage] mark flag as consistent failed.%d", errCode);
     }
     return errCode;
+}
+
+void RelationalSyncAbleStorage::SyncFinishHook()
+{
+    if (syncFinishFunc_) {
+        syncFinishFunc_();
+    }
+}
+
+int RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)> &func)
+{
+    syncFinishFunc_ = func;
+    return E_OK;
 }
 }
 #endif

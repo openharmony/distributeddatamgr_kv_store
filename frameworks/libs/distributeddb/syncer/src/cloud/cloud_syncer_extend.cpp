@@ -104,7 +104,7 @@ int CloudSyncer::GetCloudGid(TaskId taskId, const std::string &tableName, QueryS
 {
     std::vector<std::string> cloudGid;
     bool isCloudForcePush = cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
-    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, cloudGid);
+    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, IsCompensatedTask(taskId), cloudGid);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to get cloud gid, %d.", errCode);
     } else if (!cloudGid.empty()) {
@@ -233,30 +233,36 @@ int CloudSyncer::DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadIt
     return (errCode == E_OK) ? transactionCode : errCode;
 }
 
-int CloudSyncer::GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
-    VBucket &dbAssets)
+std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const InnerProcessInfo &info,
+    const DownloadItem &downloadItem, VBucket &dbAssets)
 {
-    int transactionCode = E_OK;
+    std::pair<int, uint32_t> res = { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
+    auto &errCode = res.first;
     if (!isSharedTable) {
-        transactionCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
+        errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
     }
-    if (transactionCode != E_OK) {
-        LOGE("[CloudSyncer] begin transaction before download failed %d", transactionCode);
-        return transactionCode;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] begin transaction before download failed %d", errCode);
+        return res;
     }
-    int errCode = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, downloadItem.gid,
+    res = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, downloadItem.gid,
         downloadItem.hashKey, dbAssets);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        LOGE("[CloudSyncer] get assets from db failed %d", errCode);
-        return errCode;
+        if (errCode != -E_CLOUD_GID_MISMATCH) {
+            LOGE("[CloudSyncer] get assets from db failed %d", errCode);
+        }
+        if (!isSharedTable) {
+            (void)storageProxy_->Rollback();
+        }
+        return res;
     }
     if (!isSharedTable) {
-        transactionCode = storageProxy_->Commit();
+        errCode = storageProxy_->Commit();
     }
-    if (transactionCode != E_OK) {
-        LOGE("[CloudSyncer] commit transaction before download failed %d", transactionCode);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] commit transaction before download failed %d", errCode);
     }
-    return transactionCode;
+    return res;
 }
 
 int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
@@ -270,7 +276,17 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
             tmpAssets[col] = { asset };
             uint32_t tmpFlag = asset.flag;
             VBucket dbAssets;
-            int tmpCode = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
+            auto [tmpCode, status] = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
+            if (tmpCode == -E_CLOUD_GID_MISMATCH) {
+                LOGW("[CloudSyncer] skip download asset because gid mismatch");
+                errCode = E_OK;
+                break;
+            }
+            if (CloudStorageUtils::IsDataLocked(status)) {
+                LOGI("[CloudSyncer] skip download asset because data lock:%u", status);
+                errCode = E_OK;
+                break;
+            }
             if (tmpCode != E_OK) {
                 errCode = (errCode != E_OK) ? errCode : tmpCode;
                 break;
@@ -347,7 +363,7 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
     return errCode == E_OK ? ret : errCode;
 }
 
-void CloudSyncer::GenerateCompensatedSync()
+void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
     int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery);
@@ -359,12 +375,6 @@ void CloudSyncer::GenerateCompensatedSync()
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
     }
-    CloudTaskInfo taskInfo;
-    taskInfo.priorityTask = true;
-    taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
-    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
-    taskInfo.callback = nullptr;
-    taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     for (const auto &query : syncQuery) {
         taskInfo.table.push_back(query.GetRelationTableName());
         taskInfo.queryList.push_back(query);
@@ -466,6 +476,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         logInfo.logInfo.cloudGid = localLogInfoCache[hashKey].cloudGid;
         logInfo.logInfo.device = localLogInfoCache[hashKey].device;
         logInfo.logInfo.sharingResource = localLogInfoCache[hashKey].sharingResource;
+        logInfo.logInfo.status = localLogInfoCache[hashKey].status;
         // delete record should remove local asset info
         if ((localLogInfoCache[hashKey].flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
             localAssetInfo.clear();
@@ -503,5 +514,11 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload delData, %d.", errCode);
     }
     return errCode;
+}
+
+bool CloudSyncer::IsCompensatedTask(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].compensatedTask;
 }
 }

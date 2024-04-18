@@ -97,6 +97,10 @@ public:
     static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
     static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
     static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
+    static std::string GetUpdateLockChangedSql();
+    static std::string GetDeleteLockChangedSql();
+    static void AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
+        std::vector<std::string> &updateColName);
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
@@ -109,6 +113,7 @@ public:
         const LogInfo &logInfo);
     static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
         const std::set<std::string> &gidFilters);
+    static bool IsCloudGidMismatch(const std::string &downloadGid, const std::string &curGid);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
@@ -155,6 +160,12 @@ public:
 
     static int BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt);
+
+    static int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
+
+    static bool IsAbnormalData(const VBucket &data);
+
+    static bool IsDataLocked(uint32_t status);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

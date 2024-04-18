@@ -25,12 +25,14 @@ public:
     using DBSecurity = DistributedDB::SecurityOption;
     using DBStatus = DistributedDB::DBStatus;
     using DBMode = DistributedDB::SyncMode;
+    using DBIndexType = DistributedDB::IndexType;
     struct FileInfo {
         std::string name;
         size_t size;
         time_t modifyTime;
     };
     static DBSecurity GetDBSecurity(int32_t secLevel);
+    static DBIndexType GetDBIndexType(IndexType type);
     static int32_t GetSecLevel(DBSecurity dbSec);
     static DBMode GetDBMode(SyncMode syncMode);
     static uint32_t GetObserverMode(SubscribeType subType);

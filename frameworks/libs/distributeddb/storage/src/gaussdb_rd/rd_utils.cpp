@@ -50,8 +50,7 @@ namespace DistributedDB {
 
 std::string InitRdConfig()
 {
-    return R"("pageSize": 32, "redoFlushByTrx": 1, "redoPubBufSize": 2048, "maxConnNum": 100,
-        "bufferPoolSize": 2048, "crcCheckEnable": 0, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
+    return R"("redoFlushByTrx": 1, "maxConnNum": 100, "crcCheckEnable": 0, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
 }
 
 struct GrdErrnoPair {

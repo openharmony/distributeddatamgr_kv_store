@@ -28,6 +28,8 @@ public:
     bool JudgeUpdateCursor() override;
 
     bool JudgeUpload() override;
+private:
+    OpType TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete, bool isLocalDelete);
 };
 }
 #endif // DIFFERENTIAL_STRATEGY_H

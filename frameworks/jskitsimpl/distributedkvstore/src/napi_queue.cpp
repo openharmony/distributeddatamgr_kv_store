@@ -136,7 +136,7 @@ void NapiQueue::GenerateOutput(AsyncContext &ctx, napi_value output)
         napi_value message = nullptr;
         napi_value errorCode = nullptr;
         if (ctx.ctx->jsCode != 0 && ctx.ctx->jsCode != -1) {
-            napi_create_string_utf8(ctx.env, std::to_string(ctx.ctx->jsCode).c_str(), NAPI_AUTO_LENGTH, &errorCode);
+            napi_create_int32(ctx.env, ctx.ctx->jsCode, &errorCode);
         }
         if (ctx.ctx->jsCode == -1) {
             std::string jscode = "";

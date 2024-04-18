@@ -97,8 +97,7 @@ void KvStoreObserverProxy::OnChange(const DataOrigin &origin, Keys &&keys)
     int64_t deleteSize = keys[OP_DELETE].size();
     ZLOGD("I(%" PRId64 ") U(%" PRId64 ") D(%" PRId64 ")", insertSize, updateSize, deleteSize);
 
-    if (!ITypesUtil::Marshal(data, origin.store) || !ITypesUtil::Marshal(data, keys[OP_INSERT]) ||
-        !ITypesUtil::Marshal(data, keys[OP_UPDATE]) || !ITypesUtil::Marshal(data, keys[OP_DELETE])) {
+    if (!ITypesUtil::Marshal(data, origin.store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
         ZLOGE("WriteChangeInfo to Parcel failed.");
         return;
     }
@@ -153,8 +152,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
         case CLOUD_ONCHANGE: {
             std::string store;
             Keys keys;
-            if (!ITypesUtil::Unmarshal(data, store) || !ITypesUtil::Unmarshal(data, keys[OP_INSERT]) ||
-                !ITypesUtil::Unmarshal(data, keys[OP_UPDATE]) || !ITypesUtil::Unmarshal(data, keys[OP_DELETE])) {
+            if (!ITypesUtil::Unmarshal(data, store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
                 ZLOGE("ReadChangeList from Parcel failed");
                 return -1;
             }

@@ -42,6 +42,7 @@ const std::string DBConstant::RELATIONAL_SCHEMA_KEY = "relational_schema";
 const std::string DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
 
 const std::string DBConstant::RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";
+const std::string DBConstant::RD_KV_HASH_COLLECTION_MODE = "{\"mode\" : \"kv\", \"indextype\" : \"hash\"}";
 
 const std::string DBConstant::PATH_POSTFIX_UNPACKED = "_unpacked";
 const std::string DBConstant::PATH_POSTFIX_IMPORT_BACKUP = "_import_bak";
@@ -75,7 +76,7 @@ const std::string DBConstant::LOG_POSTFIX = "_log";
 
 const std::string DBConstant::LOG_TABLE_VERSION_1 = "1.0";
 const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
-const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_4;
+const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_5;
 
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";
 

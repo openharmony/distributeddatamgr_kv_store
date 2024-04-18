@@ -25,7 +25,7 @@
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class DeviceKvStoreTest : public testing::Test {
 public:
     static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
@@ -1243,6 +1243,24 @@ HWTEST_F(DeviceKvStoreTest, SyncWithCondition001, TestSize.Level1)
 }
 
 /**
+* @tc.name: SyncWithCondition002
+* @tc.desc: sync device data with condition;
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DeviceKvStoreTest, SyncWithCondition002, TestSize.Level1)
+{
+    EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
+    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    DataQuery dataQuery;
+    dataQuery.KeyPrefix("name");
+    uint32_t delay = 0;
+    auto syncStatus = kvStore_->Sync(deviceIds, SyncMode::PUSH, dataQuery, nullptr, delay);
+    EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should not return success";
+}
+
+/**
  * @tc.name: SubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
@@ -1275,3 +1293,4 @@ HWTEST_F(DeviceKvStoreTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = kvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+} // namespace OHOS::Test

@@ -846,6 +846,16 @@ std::string CloudStorageUtils::GetLeftJoinLogSql(const std::string &tableName, b
     return sql;
 }
 
+std::string CloudStorageUtils::GetUpdateLockChangedSql()
+{
+    return " status = CASE WHEN status == 2 THEN 3 ELSE status END";
+}
+
+std::string CloudStorageUtils::GetDeleteLockChangedSql()
+{
+    return " status = CASE WHEN status == 2 or status == 3 THEN 1 ELSE status END";
+}
+
 bool CloudStorageUtils::ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode)
 {
     if (data.assets.empty()) {
@@ -1119,7 +1129,8 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableNa
     } else {
         sql += "flag & ~" + compensatedBit + " & ~" + consistentBit + " ELSE flag & ~" + compensatedBit;
     }
-    sql += " end) WHERE ";
+    sql += " end), status = (case when status == 2 then 3 when (status == 1 and timestamp = ?) then 0 else status end)";
+    sql += " WHERE ";
     if (!gidEmpty) {
         sql += " cloud_gid = '" + logInfo.cloudGid + "'";
     }
@@ -1176,5 +1187,101 @@ int CloudStorageUtils::BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBuc
         LOGE("[Storage Executor]Step mark flag as consistent stmt failed, %d", errCode);
     }
     return errCode;
+}
+
+bool CloudStorageUtils::IsCloudGidMismatch(const std::string &downloadGid, const std::string &curGid)
+{
+    return !downloadGid.empty() && !curGid.empty() && downloadGid != curGid;
+}
+
+int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
+{
+    int64_t *rowid = std::get_if<int64_t>(&flags[CloudDbConstant::ROWID]);
+    int64_t *flag = std::get_if<int64_t>(&flags[CloudDbConstant::FLAG]);
+    int64_t *timeStamp = std::get_if<int64_t>(&flags[CloudDbConstant::TIMESTAMP]);
+    Bytes *hashKey = std::get_if<Bytes>(&flags[CloudDbConstant::HASH_KEY]);
+    int64_t *status = std::get_if<int64_t>(&flags[CloudDbConstant::STATUS]);
+    if (rowid == nullptr || flag == nullptr || timeStamp == nullptr || hashKey == nullptr) {
+        return -E_INVALID_DATA;
+    }
+    if (status != nullptr && CloudStorageUtils::IsDataLocked(*status)) {
+        cloudSyncData.ignoredCount++;
+        cloudSyncData.lockData.extend.push_back(log);
+        cloudSyncData.lockData.hashKey.push_back(*hashKey);
+        cloudSyncData.lockData.timestamp.push_back(*timeStamp);
+        cloudSyncData.lockData.rowid.push_back(*rowid);
+        return -E_IGNORE_DATA;
+    }
+    if ((static_cast<uint64_t>(*flag) & DataItem::DELETE_FLAG) != 0) {
+        cloudSyncData.delData.record.push_back(data);
+        cloudSyncData.delData.extend.push_back(log);
+        cloudSyncData.delData.hashKey.push_back(*hashKey);
+        cloudSyncData.delData.timestamp.push_back(*timeStamp);
+        cloudSyncData.delData.rowid.push_back(*rowid);
+    } else {
+        bool isInsert = (log.find(CloudDbConstant::GID_FIELD) == log.end());
+        if (data.empty()) {
+            LOGE("The cloud data is empty, isInsert:%d", isInsert);
+            return -E_INVALID_DATA;
+        }
+        if (CloudStorageUtils::IsAbnormalData(data)) {
+            LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
+            cloudSyncData.ignoredCount++;
+            return -E_IGNORE_DATA;
+        }
+        CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
+        opData.record.push_back(data);
+        opData.rowid.push_back(*rowid);
+        VBucket asset;
+        CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
+        opData.timestamp.push_back(*timeStamp);
+        opData.assets.push_back(asset);
+        opData.extend.push_back(log);
+        opData.hashKey.push_back(*hashKey);
+    }
+    return E_OK;
+}
+
+bool CloudStorageUtils::IsAbnormalData(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                (asset->status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
+                return true;
+            }
+            continue;
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void CloudStorageUtils::AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
+    std::vector<std::string> &updateColName)
+{
+    // only share table need to set version
+    if (CloudStorageUtils::IsSharedTable(tableSchema)) {
+        updateLogSql += ", version = ?";
+        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
+    }
+    updateLogSql += ", sharing_resource = ?";
+    updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
+}
+
+bool CloudStorageUtils::IsDataLocked(uint32_t status)
+{
+    return status == static_cast<uint32_t>(LockStatus::LOCK) ||
+        status == static_cast<uint32_t>(LockStatus::LOCK_CHANGE);
 }
 }

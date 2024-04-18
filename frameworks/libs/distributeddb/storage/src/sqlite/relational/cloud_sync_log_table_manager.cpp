@@ -100,7 +100,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
-    insertTrigger += " extend_field, cursor, version, sharing_resource)";
+    insertTrigger += " extend_field, cursor, version, sharing_resource, status)";
     insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
@@ -111,7 +111,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += ", case when (SELECT count(1)<>0 FROM " + logTblName + ") then ";
     insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
     insertTrigger += " FROM " +  logTblName + ")";
-    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '');\n";
+    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '', 0);\n";
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";
@@ -138,8 +138,9 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
     updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
-    updateTrigger += " from " + logTblName;
-    updateTrigger += ") WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    updateTrigger += " from " + logTblName + "), ";
+    updateTrigger += CloudStorageUtils::GetUpdateLockChangedSql();
+    updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::UPDATE);
     updateTrigger += "select client_observer('" + tableName + "', OLD.";
     updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
@@ -169,8 +170,9 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
         deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
     }
     deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
-    deleteTrigger += " FROM " +  logTblName + ")";
-    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
+    deleteTrigger += " FROM " +  logTblName + "), ";
+    deleteTrigger += CloudStorageUtils::GetDeleteLockChangedSql();
+    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     deleteTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::DELETE);
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";

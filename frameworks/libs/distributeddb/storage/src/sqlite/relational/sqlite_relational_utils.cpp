@@ -427,4 +427,24 @@ int SQLiteRelationalUtils::AnalysisTrackerTable(sqlite3 *db, const TrackerTable 
     }
     return errCode;
 }
+
+int SQLiteRelationalUtils::QueryCount(sqlite3 *db, const std::string &tableName, int64_t &count)
+{
+    std::string sql = "SELECT COUNT(1) FROM " + tableName ;
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Query count failed. %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        errCode = E_OK;
+    } else {
+        LOGE("Failed to get the count. %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
 } // namespace DistributedDB

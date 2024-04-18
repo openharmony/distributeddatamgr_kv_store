@@ -380,15 +380,19 @@ NotificationChain::Listener *SyncAbleKvDB::AddRemotePushFinishedNotify(const Rem
 
 void SyncAbleKvDB::NotifyRemotePushFinishedInner(const std::string &targetId) const
 {
+    NotificationChain *notify = nullptr;
     {
         std::shared_lock<std::shared_mutex> lock(notifyChainLock_);
         if (notifyChain_ == nullptr) {
             return;
         }
+        notify = notifyChain_;
+        RefObject::IncObjRef(notify);
     }
     RemotePushNotifyInfo info;
     info.deviceId = targetId;
-    notifyChain_->NotifyEvent(REMOTE_PUSH_FINISHED, static_cast<void *>(&info));
+    notify->NotifyEvent(REMOTE_PUSH_FINISHED, static_cast<void *>(&info));
+    RefObject::DecObjRef(notify);
 }
 
 int SyncAbleKvDB::SetSyncRetry(bool isRetry)

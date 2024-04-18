@@ -147,11 +147,11 @@ int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &
     }
     QuerySyncObject query;
     query.SetTableName(tableName);
-    return store_->GetUploadCount(query, localMark, isCloudForcePush, count);
+    return store_->GetUploadCount(query, localMark, isCloudForcePush, false, count);
 }
 
 int StorageProxy::GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark,
-    bool isCloudForcePush, int64_t &count)
+    bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -161,7 +161,7 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const Timestamp &
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-    return store_->GetUploadCount(query, localMark, isCloudForcePush, count);
+    return store_->GetUploadCount(query, localMark, isCloudForcePush, isCompensatedTask, count);
 }
 
 int StorageProxy::GetCloudData(const std::string &tableName, const Timestamp &timeRange,
@@ -205,7 +205,7 @@ int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncDa
 }
 
 int StorageProxy::GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush,
-    std::vector<std::string> &cloudGid)
+    bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -216,7 +216,7 @@ int StorageProxy::GetCloudGid(const QuerySyncObject &querySyncObject, bool isClo
     if (errCode != E_OK) {
         return errCode;
     }
-    return store_->GetCloudGid(tableSchema, querySyncObject, isCloudForcePush, cloudGid);
+    return store_->GetCloudGid(tableSchema, querySyncObject, isCloudForcePush, isCompensatedTask, cloudGid);
 }
 
 int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
@@ -480,18 +480,18 @@ void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)
     store_->SetCloudTaskConfig(config);
 }
 
-int StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid, const Bytes &hashKey,
-    VBucket &assets)
+std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
+    const Bytes &hashKey, VBucket &assets)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return { -E_INVALID_DB, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     TableSchema tableSchema;
     int errCode = store_->GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
         LOGE("get cloud table schema failed: %d", errCode);
-        return errCode;
+        return { errCode, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
     return store_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
 }
@@ -531,5 +531,14 @@ int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const Downl
         return E_INVALID_DB;
     }
     return store_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
+}
+
+void StorageProxy::OnSyncFinish()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->SyncFinishHook();
 }
 }

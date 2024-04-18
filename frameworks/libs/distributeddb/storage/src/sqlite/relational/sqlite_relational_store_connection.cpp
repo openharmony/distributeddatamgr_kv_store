@@ -384,7 +384,7 @@ int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema
         return -E_INVALID_CONNECTION;
     }
     int errCode = store->SetTrackerTable(schema);
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_WITH_INVENTORY_DATA) {
         LOGE("[RelationalConnection] set tracker table failed. %d", errCode);
     }
     return errCode;

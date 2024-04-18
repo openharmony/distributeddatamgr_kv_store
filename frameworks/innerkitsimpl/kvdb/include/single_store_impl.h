@@ -81,7 +81,7 @@ public:
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay) override;
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
         std::shared_ptr<SyncCallback> syncCallback, uint32_t delay) override;
-    Status CloudSync() override;
+    Status CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallback) override;
     Status RegisterSyncCallback(std::shared_ptr<SyncCallback> callback) override;
     Status UnRegisterSyncCallback() override;
     Status SetSyncParam(const KvSyncParam &syncParam) override;

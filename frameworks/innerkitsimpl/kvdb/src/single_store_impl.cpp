@@ -536,7 +536,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     return DoSync(syncInfo, syncCallback);
 }
 
-Status SingleStoreImpl::CloudSync()
+Status SingleStoreImpl::CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallback)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto service = KVDBServiceClient::GetInstance();

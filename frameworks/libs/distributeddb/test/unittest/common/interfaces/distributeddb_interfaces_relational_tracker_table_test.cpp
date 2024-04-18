@@ -390,14 +390,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005,
 {
     /**
      * @tc.steps:step1. SetTrackerTable twice in same delegate
-     * @tc.expected: step1. Return OK.
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA for the first time, return OK again
      */
     TrackerSchema schema = g_normalSchema1;
     CreateMultiTable();
     OpenStore();
     uint64_t num = 10;
     BatchInsertTableName2Data(num);
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
 
@@ -491,14 +491,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest007,
 {
     /**
      * @tc.steps:step1. SetTrackerTable when the db exist data
-     * @tc.expected: step1. Return OK.
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA.
      */
     uint64_t num = 10;
     CreateMultiTable();
     BatchInsertTableName2Data(num);
     OpenStore();
     TrackerSchema schema = g_normalSchema3;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
 
     /**
      * @tc.steps:step2. SetTrackerTable again with diff tracker schema
@@ -526,14 +526,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
-     * @tc.expected: step1. Return OK.
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA.
      */
     uint64_t num = 10;
     CreateMultiTable();
     BatchInsertTableName2Data(num);
     OpenStore();
     TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
 
     /**
      * @tc.steps:step2. Update non tracker columns,then check extend_field and cursor
@@ -587,14 +587,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest009,
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
-     * @tc.expected: step1. Return OK.
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA.
      */
     uint64_t num = 10;
     CreateMultiTable();
     BatchInsertTableName2Data(num);
     OpenStore();
     TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
 
     /**
      * @tc.steps:step2. select extend_field and cursor after delete
@@ -767,14 +767,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest013,
 {
     /**
      * @tc.steps:step1. init data and SetTrackerTable on table2
-     * @tc.expected: step1. Return OK.
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA.
      */
     uint64_t num = 10;
     CreateMultiTable();
     BatchInsertTableName2Data(num);
     OpenStore();
     TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
 
     /**
      * @tc.steps:step2. CreateDistributedTable on table2
@@ -861,10 +861,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
 
     /**
      * @tc.steps:step3. SetTrackerTable on table2
-     * @tc.expected: step3. Return OK.
+     * @tc.expected: step3. Return WITH_INVENTORY_DATA.
      */
     TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
     string querySql = "select extend_field from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
         " where data_key = 15;";
     sqlite3_stmt *stmt = nullptr;

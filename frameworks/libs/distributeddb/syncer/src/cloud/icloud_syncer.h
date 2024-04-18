@@ -28,6 +28,7 @@ public:
     using TaskId = uint64_t;
     struct CloudTaskInfo {
         bool priorityTask = false;
+        bool compensatedTask = false;
         bool pause = false;
         bool resume = false;
         SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;

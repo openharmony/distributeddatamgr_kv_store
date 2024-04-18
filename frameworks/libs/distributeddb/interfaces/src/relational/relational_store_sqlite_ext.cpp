@@ -19,7 +19,10 @@
 #include <thread>
 #include <vector>
 
+#include "cloud/cloud_db_constant.h"
+#include "concurrent_adapter.h"
 #include "db_common.h"
+#include "db_constant.h"
 #include "kv_store_errno.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
@@ -54,6 +57,8 @@
 
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
+#include "cloud/cloud_db_constant.h"
+
 using namespace DistributedDB::OS;
 #endif
 using namespace DistributedDB;
@@ -1063,6 +1068,95 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
     }
 }
 
+bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
+{
+    sqlite3_stmt *stmt = nullptr;
+    std::string sql = "SELECT count(1) FROM " + tableName + " WHERE status=1";
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        (void)sqlite3_finalize(stmt);
+        return false;
+    }
+
+    bool isExists = ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0));
+    (void)sqlite3_finalize(stmt);
+    return isExists;
+}
+
+int HandleDataStatus(sqlite3 *db, const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    bool isLock)
+{
+    std::string sql = "UPDATE " + tableName + " SET " + (isLock ? CloudDbConstant::TO_LOCK :
+        CloudDbConstant::TO_UNLOCK) + " WHERE hash_key in (";
+    for (size_t i = 0; i < hashKey.size(); i++) {
+        sql += "?,";
+    }
+    sql.pop_back();
+    sql += ");";
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Prepare handle status stmt failed:%d, isLock:%d", errCode, isLock);
+        return errCode;
+    }
+    int index = 1;
+    for (const auto &hash: hashKey) {
+        errCode = BindBlobToStatement(stmt, index++, hash);
+        if (errCode != E_OK) {
+            (void)ResetStatement(stmt);
+            LOGE("Bind handle status stmt failed:%d, index:%d, isLock:%d", errCode, index, isLock);
+            return errCode;
+        }
+    }
+    errCode = StepWithRetry(stmt);
+    (void)ResetStatement(stmt);
+    if (errCode == SQLITE_DONE) {
+        if (!isLock && CheckUnLockingDataExists(db, tableName)) {
+            return -E_WAIT_COMPENSATED_SYNC;
+        }
+        if (sqlite3_changes(db) == 0) {
+            return -E_NOT_FOUND;
+        }
+    } else {
+        LOGE("step handle status failed:%d, isLock:%d", errCode, isLock);
+        return -E_ERROR;
+    }
+    return E_OK;
+}
+
+DistributedDB::DBStatus HandleDataLock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    sqlite3 *db, bool isLock)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName) || tableName.empty() || hashKey.empty()) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    std::string logTblName = DBCommon::GetLogTableName(tableName);
+    if (!CheckTableExists(db, logTblName)) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::BeginTransaction(db, TransactType::IMMEDIATE);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("begin transaction failed before lock data:%d, isLock:%d", errCode, isLock);
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    errCode = HandleDataStatus(db, logTblName, hashKey, isLock);
+    if (errCode != DistributedDB::E_OK && errCode != -DistributedDB::E_NOT_FOUND &&
+        errCode != -DistributedDB::E_WAIT_COMPENSATED_SYNC) {
+        int ret = SQLiteUtils::RollbackTransaction(db);
+        if (ret != DistributedDB::E_OK) {
+            LOGE("rollback failed when lock data:%d, isLock:%d", ret, isLock);
+        }
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    int ret = SQLiteUtils::CommitTransaction(db);
+    if (ret != DistributedDB::E_OK) {
+        LOGE("commit failed when lock data:%d, isLock:%d", ret, isLock);
+    }
+    return errCode == DistributedDB::E_OK ? DistributedDB::TransferDBErrno(ret) :
+        DistributedDB::TransferDBErrno(errCode);
+}
+
 int GetDBIdentity(sqlite3 *db, std::string &identity)
 {
     auto filePath = sqlite3_db_filename(db, "main");
@@ -1193,6 +1287,18 @@ DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::stri
         LOGE("commit failed when drop logic deleted data. %d", ret);
     }
     return ret == DistributedDB::E_OK ? DistributedDB::OK : DistributedDB::TransferDBErrno(ret);
+}
+
+DB_API DistributedDB::DBStatus Lock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    sqlite3 *db)
+{
+    return HandleDataLock(tableName, hashKey, db, true);
+}
+
+DB_API DistributedDB::DBStatus UnLock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
+    sqlite3 *db)
+{
+    return HandleDataLock(tableName, hashKey, db, false);
 }
 
 // hw export the symbols

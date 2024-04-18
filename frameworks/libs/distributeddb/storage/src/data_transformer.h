@@ -18,6 +18,7 @@
 
 #include <vector>
 
+#include "cloud/cloud_store_types.h"
 #include "data_value.h"
 #include "db_types.h"
 #include "relational_schema_object.h"
@@ -36,6 +37,7 @@ struct LogInfo {
     Key hashKey; // primary key hash value
     std::string cloudGid; // use for sync with cloud
     std::string sharingResource; // use for cloud share data
+    uint32_t status = static_cast<uint32_t>(LockStatus::UNLOCK); // record lock status
 };
 
 enum class LogInfoFlag : uint32_t {

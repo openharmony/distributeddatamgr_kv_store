@@ -13,11 +13,15 @@
  * limitations under the License.
  */
 #include "cloud_force_push_strategy.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
 OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
+    if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
+        return OpType::LOCKED_NOT_HANDLE;
+    }
     bool isCloudDelete = IsDelete(cloudInfo);
     if (!existInLocal) {
         return OpType::NOT_HANDLE;
