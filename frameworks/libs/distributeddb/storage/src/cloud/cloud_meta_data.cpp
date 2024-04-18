@@ -55,7 +55,7 @@ int CloudMetaData::GetLocalWaterMarkByType(const TableName &tableName, CloudWate
     } else if (type == CloudWaterType::DELETE) {
         localMark = cloudMetaVals_[tableName].deleteLocalMark;
     }
-    localMark = std::max(localMark, cloudMetaVals_[tableName].localMark);
+    cloudMetaVals_[tableName].localMark = std::max(localMark, cloudMetaVals_[tableName].localMark);
     return E_OK;
 }
 
@@ -104,14 +104,17 @@ int CloudMetaData::SetLocalWaterMarkByType(const TableName &tableName, CloudWate
     if (iter != cloudMetaVals_.end()) {
         cloudMetaVal = iter->second;
     }
-    if (type == CloudWaterType::INSERT) {
-        cloudMetaVal.insertLocalMark = localMark;
+    cloudMetaVal.localMark = std::max(localMark, cloudMetaVal.localMark);
+    if (type == CloudWaterType::DELETE) {
+        cloudMetaVal.deleteLocalMark = localMark;
     } else if (type == CloudWaterType::UPDATE) {
         cloudMetaVal.updateLocalMark = localMark;
-    } else if (type == CloudWaterType::DELETE) {
-        cloudMetaVal.deleteLocalMark = localMark;
+        cloudMetaVal.deleteLocalMark = std::max(cloudMetaVal.deleteLocalMark, localMark);
+    } else if (type == CloudWaterType::INSERT) {
+        cloudMetaVal.insertLocalMark = localMark;
+        cloudMetaVal.deleteLocalMark = std::max(cloudMetaVal.deleteLocalMark, localMark);
+        cloudMetaVal.updateLocalMark = std::max(cloudMetaVal.updateLocalMark, localMark);
     }
-    cloudMetaVal.localMark = localMark;
     int ret = WriteTypeMarkToMeta(tableName, cloudMetaVal);
     if (ret != E_OK) {
         return ret;
@@ -204,11 +207,11 @@ int CloudMetaData::SerializeWaterMark(CloudMetaValue &cloudMetaValue, Value &blo
     uint64_t length = GetParcelCurrentLength(cloudMetaValue);
     blobMetaVal.resize(length);
     Parcel parcel(blobMetaVal.data(), blobMetaVal.size());
-    parcel.ReadUInt64(cloudMetaValue.localMark);
-    parcel.ReadString(cloudMetaValue.cloudMark);
-    parcel.ReadUInt64(cloudMetaValue.insertLocalMark);
-    parcel.ReadUInt64(cloudMetaValue.updateLocalMark);
-    parcel.ReadUInt64(cloudMetaValue.deleteLocalMark);
+    parcel.WriteUInt64(cloudMetaValue.localMark);
+    parcel.WriteString(cloudMetaValue.cloudMark);
+    parcel.WriteUInt64(cloudMetaValue.insertLocalMark);
+    parcel.WriteUInt64(cloudMetaValue.updateLocalMark);
+    parcel.WriteUInt64(cloudMetaValue.deleteLocalMark);
     if (parcel.IsError()) {
         LOGE("[Meta] Parcel error while deserializing cloud meta data.");
         return -E_PARSE_FAIL;

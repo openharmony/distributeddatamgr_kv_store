@@ -21,17 +21,12 @@
 #include <unordered_map>
 
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_db_types.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
 #include "types_export.h"
 
 namespace DistributedDB {
-
-enum class CloudWaterType {
-    INSERT,
-    UPDATE,
-    DELETE
-};
 
 class CloudMetaData {
 public:

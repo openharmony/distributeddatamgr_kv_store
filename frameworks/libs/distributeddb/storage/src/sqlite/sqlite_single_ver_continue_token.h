@@ -61,7 +61,8 @@ public:
     bool IsQuerySync() const;
     QueryObject GetQuery() const;
 
-    std::pair<int, sqlite3_stmt *> GetCloudQueryStmt(sqlite3 *db, bool forcePush, bool &stepNext);
+    std::pair<int, sqlite3_stmt *> GetCloudQueryStmt(sqlite3 *db, bool forcePush, bool &stepNext,
+        const CloudWaterType mode);
     void ReleaseCloudQueryStmt();
 
     void SetUser(const std::string &user);

@@ -309,10 +309,6 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
         LOGE("[CloudSyncer] upload failed %d", errCode);
         return errCode;
     }
-    errCode = SaveCloudWaterMark(taskInfo.table[index], taskInfo.taskId);
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
-    }
     return errCode;
 }
 
@@ -1143,12 +1139,6 @@ int CloudSyncer::PreCheckUpload(CloudSyncer::TaskId &taskId, const TableName &ta
         }
     }
 
-    if (!IsModeForcePush(taskId) && !IsPriorityTask(taskId)) {
-        ret = storageProxy_->GetLocalWaterMark(tableName, localMark);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to get local water mark when upload, %d.", ret);
-        }
-    }
     return ret;
 }
 
@@ -1219,7 +1209,7 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     if (IsModeForcePush(uploadParam.taskId) || IsPriorityTask(uploadParam.taskId)) {
         return E_OK;
     }
-    errCode = storageProxy_->PutLocalWaterMark(tableName, uploadParam.localMark);
+    errCode = storageProxy_->PutWaterMarkByMode(tableName, uploadParam.localMark, uploadParam.mode);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Cannot set local water mark while Uploading, %d.", errCode);
     }
@@ -1244,8 +1234,8 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     ReloadWaterMarkIfNeed(taskId, localMark);
 
     int64_t count = 0;
-    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId),
-        IsCompensatedTask(taskId), count);
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), IsModeForcePush(taskId),
+        IsCompensatedTask(taskId), IsPriorityTask(taskId), count);
     if (ret != E_OK) {
         // GetUploadCount will return E_OK when upload count is zero.
         LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
@@ -1257,7 +1247,6 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     }
     UploadParam param;
     param.count = count;
-    param.localMark = localMark;
     param.lastTable = lastTable;
     param.taskId = taskId;
     return DoUploadInner(tableName, param);
@@ -1396,42 +1385,40 @@ bool CloudSyncer::IsPriorityTask(TaskId taskId)
     return cloudTaskInfos_[taskId].priorityTask;
 }
 
-int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
+int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode)
 {
     ContinueToken continueStmtToken = nullptr;
     CloudSyncData uploadData(tableName);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
-    int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), uploadParam.localMark, continueStmtToken,
-        uploadData);
+    uploadData.mode = mode;
+    Timestamp typeTimeStamp;
+    (void)storageProxy_->GetLocalWaterMarkByMode(tableName, typeTimeStamp, mode);
+    uploadParam.localMark = typeTimeStamp;
+    int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), typeTimeStamp, continueStmtToken, uploadData);
     if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
         LOGE("[CloudSyncer] Failed to get cloud data when upload, %d.", ret);
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
-
     InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
     uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
-
+    uploadParam.mode = mode;
     while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
         ret = PreProcessBatchUpload(uploadParam.taskId, info, uploadData, uploadParam.localMark);
         if (ret != E_OK) {
             break;
         }
         info.upLoadInfo.batchIndex = ++batchIndex;
-
         ret = DoBatchUpload(uploadData, uploadParam, info);
         if (ret != E_OK) {
             NotifyUploadFailed(ret, info);
             break;
         }
-
         uploadData = CloudSyncData(tableName);
-
         if (continueStmtToken == nullptr) {
             break;
         }
         SetUploadDataFlag(uploadParam.taskId, uploadData);
-
         RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
         ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
         if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
@@ -1448,6 +1435,19 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         storageProxy_->ReleaseContinueToken(continueStmtToken);
     }
     return ret;
+}
+
+int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
+{
+    int errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::DELETE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::UPDATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT);
 }
 
 int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)

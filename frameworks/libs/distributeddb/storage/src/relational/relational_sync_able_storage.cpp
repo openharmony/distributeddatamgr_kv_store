@@ -1055,6 +1055,23 @@ int RelationalSyncAbleStorage::Rollback()
     return errCode;
 }
 
+int RelationalSyncAbleStorage::GetAllUploadCount(const QuerySyncObject &query,
+    const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    errCode = handle->GetAllUploadCount(timestampVec, isCloudForcePush, isCompensatedTask, queryObj, count);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
     bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
 {

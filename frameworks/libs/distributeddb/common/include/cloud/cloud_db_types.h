@@ -20,6 +20,12 @@
 #include <string>
 
 namespace DistributedDB {
+enum class CloudWaterType {
+    INSERT,
+    UPDATE,
+    DELETE
+};
+
 struct CloudSyncBatch {
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
@@ -41,6 +47,7 @@ struct CloudSyncData {
     int ignoredCount = 0;
     CloudSyncData() = default;
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
+    CloudWaterType mode;
 };
 
 struct CloudTaskConfig {

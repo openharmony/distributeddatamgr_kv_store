@@ -92,6 +92,9 @@ public:
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) = 0;
 
+    virtual int GetAllUploadCount(const QuerySyncObject &query, const std::vector<Timestamp> &timestampVec,
+        bool isCloudForcePush, bool isCompensatedTask, int64_t &count) = 0;
+
     virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
 

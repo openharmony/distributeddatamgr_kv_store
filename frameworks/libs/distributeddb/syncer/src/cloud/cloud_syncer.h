@@ -101,6 +101,7 @@ protected:
         TaskId taskId = 0u;
         Timestamp localMark = 0u;
         bool lastTable = false;
+        CloudWaterType mode;
     };
     struct DownloadItem {
         std::string gid;
@@ -178,6 +179,8 @@ protected:
     bool IsCompensatedTask(TaskId taskId);
 
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
+
+    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode);
 
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 

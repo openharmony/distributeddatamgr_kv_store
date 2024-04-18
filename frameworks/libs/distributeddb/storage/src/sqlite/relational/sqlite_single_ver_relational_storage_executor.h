@@ -108,6 +108,9 @@ public:
     int GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush, bool isCompensatedTask,
         QuerySyncObject &query, int64_t &count);
 
+    int GetAllUploadCount(const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, bool isCompensatedTask,
+        QuerySyncObject &query, int64_t &count);
+
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid);
 
     int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
@@ -417,6 +420,8 @@ private:
     int GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields, int startIndex, VBucket &record);
 
     int QueryCount(const std::string &tableName, int64_t &count);
+
+    int GetUploadCountInner(const Timestamp &timestamp, SqliteQueryHelper &helper, std::string &sql, int64_t &count);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";
