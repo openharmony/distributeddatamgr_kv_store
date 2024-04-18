@@ -27,7 +27,10 @@ group("build_module") {
 config("distributeddatafwk_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-multichar" ]
+  cflags = [
+    "-Wno-multichar",
+    "-Wno-c99-designator",
+  ]
 
   cflags_cc = [ "-fvisibility=hidden" ]
 
