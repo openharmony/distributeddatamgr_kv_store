@@ -312,7 +312,7 @@ namespace DistributedDB {
     constexpr const char *QUERY_CLOUD_SYNC_DATA_DETAIL = "FROM sync_data LEFT JOIN "
         "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
         " AS log_table ON sync_data.hash_key = log_table.hash_key "
-        "WHERE modify_time > ?";
+        "WHERE modify_time > ? AND (cloud_gid is not null or (cloud_gid is null and flag&0x01=0))";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
         "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "

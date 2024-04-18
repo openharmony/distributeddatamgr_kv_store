@@ -339,6 +339,32 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync005, TestSize.Level1)
     BlockSync(kvDelegatePtrS2_, OK);
 }
 
+/**
+ * @tc.name: NormalSync006
+ * @tc.desc: Test normal push sync with insert delete update.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync006, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
+    Value v1 = {'v', '1'};
+    Value v2 = {'v', '2'};
+    Value v3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k2, v2), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k2, v3), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(k1), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), NOT_FOUND);
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k2, actualValue), OK);
+    EXPECT_EQ(actualValue, v3);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;
