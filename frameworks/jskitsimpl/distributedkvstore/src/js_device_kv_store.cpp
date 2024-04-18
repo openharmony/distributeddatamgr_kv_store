@@ -94,7 +94,7 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
         if (argc > 1) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameter deviceId is incorrect.");
+                "Parameter error:Incorrect Parameter type (parameter deviceId is incorrect)");
         }
         int32_t pos = (argc == 1) ? 0 : 1;
         ctxt->status = JSUtil::GetValue(env, argv[pos], ctxt->key);
@@ -136,14 +136,14 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[pos], &type);
     if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
-        va.errMsg = "Parameter error:Incorrect Parameter type";
+        va.errMsg = "Parameter error:Incorrect Parameter type (parameters keyPrefix/query is incorrect)";
         return statusMsg != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
         std::string keyPrefix;
         statusMsg = JSUtil::GetValue(env, argv[pos], keyPrefix);
         if (keyPrefix.empty()) {
-            va.errMsg = "Parameter error:Incorrect Parameter type";
+            va.errMsg = "Parameter error:Incorrect Parameter type (parameters keyPrefix is incorrect)";
             return napi_invalid_arg;
         }
         va.dataQuery.KeyPrefix(keyPrefix);
@@ -243,7 +243,7 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
-            "Parameter error:Incorrect Parameter type (resultSet is null)");
+            "Parameter error:Parameters verification failed (resultSet is null)");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
@@ -321,7 +321,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     ASSERT_NULL(!ctxt->isThrowError, "New JsDeviceKVStore exit");
 
     JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId);
-    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "Parameter error:incorrect parameters types (no memory for kvStore)");
+    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed (kvStore is nullptr)");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("deviceKvStore finalize.");
