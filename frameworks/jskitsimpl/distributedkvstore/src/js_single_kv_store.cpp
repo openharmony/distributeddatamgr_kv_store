@@ -168,16 +168,16 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<PutContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <key> <value>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of key must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         if (ctxt->status != napi_ok) {
             ctxt->isThrowError = true;
             napi_valuetype ntype = napi_undefined;
             napi_typeof(env, argv[0], &ntype);
             auto type = valueTypeToString_.find(ntype);
-            ThrowNapiError(env, Status::INVALID_ARGUMENT, "The type of value must be " + type->second);
+            ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:incorrect parameter type " + type->second);
             return;
         }
     });
@@ -214,20 +214,20 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key> || <predicates>
-        ASSERT_BUSINESS_ERR(ctxt, argc == 1, Status::INVALID_ARGUMENT, "The number of parameter is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc == 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &(ctxt->type));
         if (ctxt->type == napi_string) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
             ZLOGD("kvStore->Delete %{public}.6s  status:%{public}d", ctxt->key.c_str(), ctxt->status);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The type of key must be string.");
+                "Parameter error:Parameters verification failed");
         } else if (ctxt->type == napi_object) {
             JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->keys);
             ctxt->status = statusMsg.status;
             ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameters predicates is incorrect.");
+                "Parameter error:Parameters verification failed");
             ASSERT_PERMISSION_ERR(ctxt,
                 !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
                 reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
@@ -263,13 +263,13 @@ napi_value JsSingleKVStore::OnEvent(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <event> [...] <callback>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("subscribe to event:%{public}s", event.c_str());
         auto handle = onEventHandlers_.find(event);
         ASSERT_BUSINESS_ERR(ctxt, handle != onEventHandlers_.end(), Status::INVALID_ARGUMENT,
-            "The type of parameters event is incorrect.");
+            "Parameter error:Parameters verification failed");
         // shift 1 argument, for JsSingleKVStore::Exec.
         handle->second(env, argc - 1, &argv[1], ctxt);
     };
@@ -292,13 +292,13 @@ napi_value JsSingleKVStore::OffEvent(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <event> [callback]
-        ASSERT_BUSINESS_ERR(ctxt, argc != 0, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc != 0, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("unsubscribe to event:%{public}s", event.c_str());
         auto handle = offEventHandlers_.find(event);
         ASSERT_BUSINESS_ERR(ctxt, handle != offEventHandlers_.end(), Status::INVALID_ARGUMENT,
-            "The type of parameters event is incorrect.");
+            "Parameter error:Parameters verification failed");
         // shift 1 argument, for JsSingleKVStore::Exec.
         handle->second(env, argc - 1, &argv[1], ctxt);
     };
@@ -327,12 +327,12 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<PutBatchContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value *argv) {
         // required 1 arguments :: <entries>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         auto isSchemaStore = reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSchemaStore();
         JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of entries is incorrect.");
+            "Parameter error:Parameters verification failed");
         ASSERT_PERMISSION_ERR(ctxt,
             !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
             reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
@@ -364,9 +364,9 @@ napi_value JsSingleKVStore::DeleteBatch(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteBatchContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keys>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of keys is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteBatch exit");
@@ -466,10 +466,10 @@ napi_value JsSingleKVStore::EnableSync(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<EnableSyncContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <enable>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = napi_get_value_bool(env, argv[0], &ctxt->enable);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The parameters of enable is incorrect.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "EnableSync exit");
@@ -500,13 +500,13 @@ napi_value JsSingleKVStore::SetSyncRange(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<SyncRangeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <localLabels> <remoteSupportLabels>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->localLabels);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of parameter localLabels is string array.");
+            "Parameter error:Parameters verification failed");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->remoteSupportLabels);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of parameter remoteSupportLabels is string array.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "SetSyncRange exit");
@@ -536,10 +536,10 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<BackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <file>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of parameter file is string.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Backup exit");
@@ -569,10 +569,10 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<RestoreContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <file>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of parameter file is string.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Restore exit");
@@ -603,10 +603,10 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteBackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <files>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->files);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The type of parameter file is string.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteBackup exit");
@@ -634,18 +634,18 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
 void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 2 arguments :: <SubscribeType> <observer>
-    ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
 
     int32_t type = SUBSCRIBE_COUNT;
     ctxt->status = napi_get_value_int32(env, argv[0], &type);
     ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "");
     ASSERT_BUSINESS_ERR(ctxt, ValidSubscribeType(type), Status::INVALID_ARGUMENT,
-        "The type of parameter event is incorrect.");
+        "Parameter error:Parameters verification failed");
 
     napi_valuetype valueType = napi_undefined;
     ctxt->status = napi_typeof(env, argv[1], &valueType);
     ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-        "The type of parameter Callback is incorrect.");
+        "Parameter error:Parameters verification failed");
  
     ZLOGI("subscribe data change type %{public}d", type);
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
@@ -672,13 +672,13 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
 void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: [callback]
-    ASSERT_BUSINESS_ERR(ctxt, argc <= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc <= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
     // have 1 arguments :: have the callback
     if (argc == 1) {
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-            "The type of parameter Callback is incorrect.");
+            "Parameter error:Parameters verification failed");
     }
 
     ZLOGI("unsubscribe dataChange, %{public}s specified observer.", (argc == 0) ? "without": "with");
@@ -721,15 +721,15 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
 void JsSingleKVStore::OnSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: <callback>
-    ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
     napi_valuetype valueType = napi_undefined;
     ctxt->status = napi_typeof(env, argv[0], &valueType);
     ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-        "The type of parameter Callback is incorrect.");
+        "Parameter error:Parameters verification failed");
 
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     ctxt->status = proxy->RegisterSyncCallback(std::make_shared<SyncObserver>(proxy->uvQueue_, argv[0]));
-    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "RegisterSyncCallback failed!");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
 }
 
 /*
@@ -746,7 +746,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-            "The type of parameter Callback is incorrect.");
+            "Parameter error:Incorrect parameter types");
         std::lock_guard<std::mutex> lck(proxy->listMutex_);
         auto it = proxy->syncObservers_.begin();
         while (it != proxy->syncObservers_.end()) {
@@ -762,7 +762,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     if (argc == 0 || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
-    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "UnRegisterSyncCallback failed!");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
 }
 
 /*
@@ -860,9 +860,9 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of key must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Get exit");
@@ -897,14 +897,14 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[0], &type);
     if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
-        va.errMsg = "The type of parameters keyPrefix/query is incorrect.";
+        va.errMsg = "Parameter error:Incorrect parameter type";
         return statusMsg.status != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
         std::string keyPrefix;
         JSUtil::GetValue(env, argv[0], keyPrefix);
         if (keyPrefix.empty()) {
-            va.errMsg = "The type of parameters keyPrefix is incorrect.";
+            va.errMsg = "Parameter error:Parameters verification failed";
             return napi_invalid_arg;
         }
         va.dataQuery.KeyPrefix(keyPrefix);
@@ -915,7 +915,7 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
             JsQuery *jsQuery = nullptr;
             statusMsg = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
             if (jsQuery == nullptr) {
-                va.errMsg = "The parameters query is incorrect.";
+                va.errMsg = "Parameter error:Parameters verification failed";
                 return napi_invalid_arg;
             }
             va.dataQuery = jsQuery->GetDataQuery();
@@ -945,7 +945,7 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetEntriesContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keyPrefix/query>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
     };
@@ -985,7 +985,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keyPrefix/query>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         JSUtil::StatusMsg statusMsg = GetVariantArgs(env, argc, argv, ctxt->va);
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
@@ -995,7 +995,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
-            "KVStoreResultSet::New failed!");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
@@ -1033,15 +1033,15 @@ napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info
     auto ctxt = std::make_shared<CloseResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <resultSet>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         napi_valuetype type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &type);
         ASSERT_BUSINESS_ERR(ctxt, type == napi_object, Status::INVALID_ARGUMENT,
-            "The type of parameters resultSet is incorrect.");
+            "Parameter error:Incorrect Parameters types");
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
-            "The parameters resultSet is incorrect.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CloseResultSet exit");
@@ -1072,14 +1072,14 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ResultSizeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <query>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         napi_valuetype type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &type);
         ASSERT_BUSINESS_ERR(ctxt, type == napi_object, Status::INVALID_ARGUMENT,
-            "The type of parameters query is incorrect.");
+            "Parameter error:Incorrect Parameters types");
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->query != nullptr, Status::INVALID_ARGUMENT,
-            "The parameters query is incorrect.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSize exit");
@@ -1112,10 +1112,10 @@ napi_value JsSingleKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
     auto ctxt = std::make_shared<RemoveDeviceContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <deviceId>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
         ASSERT_BUSINESS_ERR(ctxt, (!ctxt->deviceId.empty()) && (ctxt->status == napi_ok), Status::INVALID_ARGUMENT,
-            "The parameters deviceId is incorrect.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "RemoveDeviceData exit");
@@ -1141,39 +1141,39 @@ struct SyncContext : public ContextBase {
     {
         auto input = [env, this](size_t argc, napi_value* argv) {
             // required 3 arguments :: <deviceIdList> <mode> [allowedDelayMs]
-            ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+            ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
             this->status = JSUtil::GetValue(env, argv[0], this->deviceIdList);
             ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The deviceIdList parameters is incorrect.");
+                "Parameter error:Parameters verification failed");
             napi_typeof(env, argv[1], &this->type);
             if (this->type == napi_object) {
                 this->status = JSUtil::Unwrap(env,
                     argv[1], reinterpret_cast<void**>(&this->query), JsQuery::Constructor(env));
                 ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
-                    "The parameters query is incorrect.");
+                    "Parameter error:Parameters verification failed");
                 this->status = JSUtil::GetValue(env, argv[2], this->mode);
                 ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
-                    "The parameters mode is incorrect.");
+                    "Parameter error:Parameters verification failed");
                 if (argc == 4) {
                     this->status = JSUtil::GetValue(env, argv[3], this->allowedDelayMs);
                     ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[3])),
-                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                        Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
                     this->status = napi_ok;
                 }
             }
             if (this->type == napi_number) {
                 this->status = JSUtil::GetValue(env, argv[1], this->mode);
                 ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
-                    "The parameters mode is incorrect.");
+                    "Parameter error:Parameters verification failed");
                 if (argc == 3) {
                     this->status = JSUtil::GetValue(env, argv[2], this->allowedDelayMs);
                     ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[2])),
-                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                        Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
                     this->status = napi_ok;
                 }
             }
             ASSERT_BUSINESS_ERR(this, (this->mode <= uint32_t(SyncMode::PUSH_PULL)) && (this->status == napi_ok),
-                Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+                Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
         };
         ContextBase::GetCbInfoSync(env, info, input);
     }
@@ -1219,10 +1219,10 @@ napi_value JsSingleKVStore::SetSyncParam(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<SyncParamContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <allowedDelayMs>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->allowedDelayMs);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The parameters allowedDelayMs is incorrect.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "SetSyncParam exit");
@@ -1272,17 +1272,17 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &storeId](size_t argc, napi_value* argv) {
         // required 2 arguments :: <storeId> <options>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], storeId);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), Status::INVALID_ARGUMENT,
-            "The type of storeId must be string.");
+            "Parameter error:Parameters verification failed");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "SingleKVStore new exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "no memory for kvStore");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
 
     JsSingleKVStore* kvStore = new (std::nothrow) JsSingleKVStore(storeId);
-    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "no memory for kvStore");
+    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("singleKVStore finalize.");
