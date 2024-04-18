@@ -365,6 +365,36 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync006, TestSize.Level0)
     EXPECT_EQ(actualValue, v3);
 }
 
+/**
+ * @tc.name: NormalSync007
+ * @tc.desc: Test normal push sync with download and upload.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
+    Key k3 = {'k', '3'};
+    Key k4 = {'k', '4'};
+    Value v1 = {'v', '1'};
+    Value v2 = {'v', '2'};
+    Value v3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k1, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k2, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k3, v1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v2), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k2, v2), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k4, v2), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k4, v3), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(k2), OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;

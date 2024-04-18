@@ -123,8 +123,8 @@ struct CloudSyncOption {
     Query query;
     int64_t waitTime = 0;
     bool priorityTask = false;
-    std::vector<std::string> users;
     bool compensatedSyncOnly = false;
+    std::vector<std::string> users;
 };
 
 enum class QueryNodeType : uint32_t {

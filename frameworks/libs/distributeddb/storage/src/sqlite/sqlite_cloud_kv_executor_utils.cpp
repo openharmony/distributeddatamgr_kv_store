@@ -654,7 +654,7 @@ int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const C
 int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData)
 {
     sqlite3_stmt *logStmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(OpType::UPDATE), logStmt);
+    int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(OpType::INSERT), logStmt);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Get update sync data stmt failed %d", errCode);
         return errCode;
@@ -672,7 +672,7 @@ int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, i
         LOGE("[SqliteCloudKvExecutorUtils] Get data item failed %d", res.first);
         return res.first;
     }
-    errCode = BindUpdateLogStmt(logStmt, downloadData.user, res.second);
+    errCode = BindInsertLogStmt(logStmt, downloadData.user, res.second);
     if (errCode != E_OK) {
         return errCode;
     }
