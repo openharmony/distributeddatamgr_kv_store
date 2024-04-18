@@ -725,9 +725,9 @@ napi_value JsQuery::DeviceId(napi_env env, napi_callback_info info)
         // required 1 arguments :: <deviceId>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
             "Parameter error:Mandatory parameters are left unspecified");
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:Parameters verification failed");
         ctxt->status = JSUtil::GetValue(env, argv[0], deviceId);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            "Parameter error:deviceId incorrect");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeviceId exit");
