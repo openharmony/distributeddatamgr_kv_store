@@ -85,13 +85,13 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], fieldName);
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && !fieldName.empty()),
-            Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed (fieldName empty)");
+            Status::INVALID_ARGUMENT, "Parameter error:fieldName empty");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "JsFieldNode New exit");
 
     JsFieldNode* fieldNode = new (std::nothrow) JsFieldNode(fieldName);
-    ASSERT_ERR(env, fieldNode != nullptr, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed (fieldNode is nullptr)");
+    ASSERT_ERR(env, fieldNode != nullptr, Status::INVALID_ARGUMENT, "Parameter error:fieldNode is nullptr");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
@@ -160,7 +160,7 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->defaultValue_ = vv;
@@ -188,7 +188,7 @@ napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid isNullable!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->isNullable_ = isNullable;
@@ -218,7 +218,7 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
             "invalid arg[0], i.e. invalid valueType!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->valueType_ = type;
