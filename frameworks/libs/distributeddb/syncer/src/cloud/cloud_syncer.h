@@ -166,7 +166,7 @@ protected:
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);
 
-    virtual int DoUpload(CloudSyncer::TaskId taskId, bool lastTable);
+    virtual int DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction lockAction);
 
     void SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadData);
 
@@ -178,7 +178,7 @@ protected:
 
     bool IsCompensatedTask(TaskId taskId);
 
-    int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
+    int DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction);
 
     int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode);
 

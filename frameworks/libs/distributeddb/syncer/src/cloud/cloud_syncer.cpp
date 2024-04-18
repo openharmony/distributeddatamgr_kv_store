@@ -275,14 +275,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         currentContext_.isFirstDownload = isFirstDownload;
         currentContext_.isRealNeedUpload = needUpload;
     }
-    // lock cloud and then do the second sync
-    errCode = LockCloudIfNeed(taskId);
-    if (errCode != E_OK) {
-        DoFinished(taskInfo.taskId, errCode);
-        return errCode;
-    }
     errCode = DoSyncInner(taskInfo, needUpload, isFirstDownload);
-    UnlockIfNeed();
     return errCode;
 }
 
@@ -297,7 +290,7 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
         LOGE("[CloudSyncer] task is invalid, abort sync");
         return errCode;
     }
-    errCode = DoUpload(taskInfo.taskId, index == (taskInfo.table.size() - 1u));
+    errCode = DoUpload(taskInfo.taskId, index == (taskInfo.table.size() - 1u), taskInfo.lockAction);
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1216,7 +1209,7 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     return errCode;
 }
 
-int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
+int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction lockAction)
 {
     std::string tableName;
     int ret = GetCurrentTableName(tableName);
@@ -1249,7 +1242,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     param.count = count;
     param.lastTable = lastTable;
     param.taskId = taskId;
-    return DoUploadInner(tableName, param);
+    return DoUploadInner(tableName, param, lockAction);
 }
 
 int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
@@ -1437,7 +1430,7 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     return ret;
 }
 
-int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
+int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction)
 {
     int errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::DELETE);
     if (errCode != E_OK) {
@@ -1447,7 +1440,17 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
     if (errCode != E_OK) {
         return errCode;
     }
-    return DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT);
+    if (lockAction == LockAction::INSERT) {
+        errCode = LockCloudIfNeed(uploadParam.taskId);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT);
+    if (lockAction == LockAction::INSERT) {
+        UnlockIfNeed();
+    }
+    return errCode;
 }
 
 int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)
