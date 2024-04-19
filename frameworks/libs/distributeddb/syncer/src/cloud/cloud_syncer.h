@@ -140,7 +140,7 @@ protected:
 
     int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
 
-    void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName, bool needNotify);
+    void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName, bool needNotify);
 
     virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
@@ -358,7 +358,7 @@ protected:
 
     int SaveCursorIfNeed(const std::string &tableName);
 
-    int PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
+    int PrepareAndDownload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
 
     int UpdateFlagForSavedRecord(const SyncParam &param);
 

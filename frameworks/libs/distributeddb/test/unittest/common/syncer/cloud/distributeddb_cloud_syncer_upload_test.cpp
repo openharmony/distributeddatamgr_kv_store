@@ -69,6 +69,7 @@ protected:
     void PrepareUploadDataInsData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
     void PrepareUploadDataUpdData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
     void PrepareUploadDataForUploadModeCheck012(CloudSyncData &uploadData);
+    void PrepareCloudDBMockCheck(MockICloudDB &idb);
 };
 
 void DistributedDBCloudSyncerUploadTest::SetUpTestCase(void)
@@ -122,6 +123,19 @@ void DistributedDBCloudSyncerUploadTest::PrepareUploadDataForUploadModeCheck012(
     uploadData.insData.assets = std::vector<VBucket>(COUNT, assets);
     uploadData.delData.record = std::vector<VBucket>(COUNT, tmp);
     uploadData.delData.extend = std::vector<VBucket>(COUNT, tmp);
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareCloudDBMockCheck(MockICloudDB &idb)
+{
+    EXPECT_CALL(idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(idb, Lock()).WillRepeatedly([]() {
+        std::pair<DBStatus, uint32_t> res = { OK, 1 };
+        return res;
+    });
+    EXPECT_CALL(idb, UnLock()).WillRepeatedly(Return(OK));
+    EXPECT_CALL(idb, HeartBeat()).WillRepeatedly(Return(OK));
 }
 
 /**
@@ -544,15 +558,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
     PrepareRecord(tmp, assets);
     CommonExpectCall(iCloud);
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, Lock()).WillRepeatedly([]() {
-        std::pair<DBStatus, uint32_t> res = { OK, 1 };
-        return res;
-    });
-    EXPECT_CALL(*idb, UnLock()).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, HeartBeat()).WillRepeatedly(Return(OK));
+    PrepareCloudDBMockCheck(*idb);
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
         .WillRepeatedly([](const QuerySyncObject &, const std::vector<Timestamp> &, bool, bool, int64_t & count) {
         count = 10000;
@@ -679,18 +685,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, Lock()).WillRepeatedly([]() {
-        std::pair<DBStatus, uint32_t> res = { OK, 1 };
-        return res;
-    });
-    EXPECT_CALL(*idb, UnLock()).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, HeartBeat()).WillRepeatedly(Return(OK));
+    PrepareCloudDBMockCheck(*idb);
 
     int errCode = cloudSyncer->CallDoUpload(taskId);
     EXPECT_EQ(errCode, E_OK);
@@ -736,18 +734,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, Lock()).WillRepeatedly([]() {
-        std::pair<DBStatus, uint32_t> res = { OK, 1 };
-        return res;
-    });
-    EXPECT_CALL(*idb, UnLock()).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, HeartBeat()).WillRepeatedly(Return(OK));
+    PrepareCloudDBMockCheck(*idb);
 
     // insert has no data, update and delete have data
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
@@ -801,18 +791,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, Lock()).WillRepeatedly([]() {
-        std::pair<DBStatus, uint32_t> res = { OK, 1 };
-        return res;
-    });
-    EXPECT_CALL(*idb, UnLock()).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, HeartBeat()).WillRepeatedly(Return(OK));
+    PrepareCloudDBMockCheck(*idb);
 
     // insert has data, update has no data, delete has data
     CloudSyncData uploadData3(cloudSyncer->GetCurrentContextTableName());
