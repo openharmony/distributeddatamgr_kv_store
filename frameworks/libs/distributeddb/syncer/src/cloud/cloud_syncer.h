@@ -362,6 +362,8 @@ protected:
 
     int UpdateFlagForSavedRecord(const SyncParam &param);
 
+    bool IsNeedGetLocalWater(TaskId taskId);
+
     void SetProxyUser(const std::string &user);
     std::mutex dataLock_;
     TaskId lastTaskId_;

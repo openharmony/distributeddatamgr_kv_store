@@ -184,7 +184,7 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isClou
         CloudWaterType::INSERT};
     for (size_t i = 0; i < waterTypeVec.size(); i++) {
         Timestamp tmpMark = 0u;
-        if (!isPriorityTask && !isCompensatedTask) {
+        if (!isPriorityTask && !isCompensatedTask && !isCloudForcePush) {
             int errCode = cloudMetaData_->GetLocalWaterMarkByType(query.GetTableName(), waterTypeVec[i], tmpMark);
             if (errCode != E_OK) {
                 return errCode;

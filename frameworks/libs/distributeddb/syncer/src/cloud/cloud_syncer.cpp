@@ -1374,8 +1374,10 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     CloudSyncData uploadData(tableName);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
     uploadData.mode = mode;
-    Timestamp typeTimeStamp;
-    (void)storageProxy_->GetLocalWaterMarkByMode(tableName, typeTimeStamp, mode);
+    Timestamp typeTimeStamp = 0u;
+    if (IsNeedGetLocalWater(uploadParam.taskId)) {
+        (void)storageProxy_->GetLocalWaterMarkByMode(tableName, typeTimeStamp, mode);
+    }
     uploadParam.localMark = typeTimeStamp;
     int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), typeTimeStamp, continueStmtToken, uploadData);
     if ((ret != E_OK) && (ret != -E_UNFINISHED)) {

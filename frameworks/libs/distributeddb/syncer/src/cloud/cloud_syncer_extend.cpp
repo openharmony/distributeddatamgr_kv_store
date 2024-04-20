@@ -661,4 +661,9 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
     return E_OK;
 }
+
+bool CloudSyncer::IsNeedGetLocalWater(TaskId taskId)
+{
+    return !IsModeForcePush(taskId) && !IsPriorityTask(taskId) && !IsCompensatedTask(taskId);
+}
 }
