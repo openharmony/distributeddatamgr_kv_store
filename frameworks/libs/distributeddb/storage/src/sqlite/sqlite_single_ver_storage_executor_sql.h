@@ -43,7 +43,7 @@ namespace DistributedDB {
         "INSERT OR REPLACE INTO meta.meta_data VALUES(?,?);";
 
     const std::string INSERT_SYNC_SQL =
-        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
+        "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
 
     const std::string UPDATE_SYNC_SQL =
         "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?," \
