@@ -1274,10 +1274,9 @@ std::string SqliteQueryHelper::GetKvCloudQuerySql(bool countOnly, bool forcePush
         sql = QUERY_CLOUD_SYNC_DATA_HEAD;
     }
     sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    sql += " AND flag & 0x02 != 0 "; // get all data which is local
     if (forcePush) {
         sql += " AND flag & 0x04 != 0x04 "; // get all data which hasn't pushed
-    } else {
-        sql += " AND flag & 0x02 != 0 "; // get all data which is local
     }
     return sql;
 }
