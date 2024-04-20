@@ -14,6 +14,8 @@
  */
 
 #include "sqlite_single_ver_continue_token.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
+#include "sqlite_utils.h"
 
 namespace DistributedDB {
 SQLiteSingleVerContinueToken::SQLiteSingleVerContinueToken(Timestamp begin, Timestamp end)
@@ -137,5 +139,56 @@ Timestamp SQLiteSingleVerContinueToken::GetEndTimestamp(const MulDevTimeRanges &
         return static_cast<Timestamp>(INT64_MAX);
     }
     return timeRanges.begin()->second.second;
+}
+
+std::pair<int, sqlite3_stmt *> SQLiteSingleVerContinueToken::GetCloudQueryStmt(sqlite3 *db, bool forcePush,
+    bool &stepNext)
+{
+    if (queryDataStmt_ != nullptr) {
+        return {E_OK, queryDataStmt_};
+    }
+    std::pair<int, sqlite3_stmt *> res;
+    int &errCode = res.first;
+    sqlite3_stmt *&stmt = res.second;
+    std::tie(errCode, stmt) = SqliteQueryHelper::GetKvCloudQueryStmt(db, forcePush);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerContinueToken] Get kv cloud query stmt failed %d", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, timeRanges_[""].first);
+    if (errCode != E_OK) {
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SQLiteSingleVerContinueToken] Bind begin time failed %d reset %d", errCode, ret);
+        return res;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user_);
+    if (errCode != E_OK) {
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SQLiteSingleVerContinueToken] Bind user failed %d reset %d", errCode, ret);
+        return res;
+    }
+    queryDataStmt_ = stmt;
+    stepNext = true;
+    return res;
+}
+
+void SQLiteSingleVerContinueToken::ReleaseCloudQueryStmt()
+{
+    if (queryDataStmt_ == nullptr) {
+        return;
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(queryDataStmt_, true, errCode);
+    queryDataStmt_ = nullptr;
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSingleVerContinueToken] release cloud query stmt failed %d", errCode);
+    }
+}
+
+void SQLiteSingleVerContinueToken::SetUser(const std::string &user)
+{
+    user_ = user;
 }
 }  // namespace DistributedDB

@@ -24,37 +24,29 @@
 namespace DistributedDB {
 class CloudSyncStrategy {
 public:
-    CloudSyncStrategy() = default;
+    CloudSyncStrategy();
     virtual ~CloudSyncStrategy() = default;
 
-    virtual OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
-    {
-        (void)existInLocal;
-        (void)localInfo;
-        (void)cloudInfo;
-        return OpType::NOT_HANDLE;
-    }
+    void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
-    virtual bool JudgeUpdateCursor()
-    {
-        return false;
-    }
+    virtual OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo);
 
-    virtual bool JudgeUpload()
-    {
-        return false;
-    }
+    virtual bool JudgeUpdateCursor();
 
-    static bool IsDelete(const LogInfo &info)
-    {
-        return (info.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
-            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
-    }
+    virtual bool JudgeUpload();
 
-    static bool IsSharingResourceChanged(const LogInfo &cloudInfo, const LogInfo &localInfo)
-    {
-        return (cloudInfo.sharingResource != localInfo.sharingResource);
-    }
+    static bool IsDelete(const LogInfo &info);
+
+    static bool IsSharingResourceChanged(const LogInfo &cloudInfo, const LogInfo &localInfo);
+
+protected:
+    static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo);
+
+    bool IsIgnoreUpdate(const LogInfo &localInfo);
+
+    OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo);
+
+    SingleVerConflictResolvePolicy policy_;
 };
 }
 #endif // CLOUD_SYNC_STRATEGY_H

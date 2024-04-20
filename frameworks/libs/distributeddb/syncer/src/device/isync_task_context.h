@@ -186,6 +186,8 @@ public:
     virtual void SetDbAbility(DbAbility &remoteDbAbility) = 0;
 
     virtual void TimeChange() = 0;
+
+    virtual int32_t GetResponseTaskCount() = 0;
 protected:
     virtual ~ISyncTaskContext() {};
 };

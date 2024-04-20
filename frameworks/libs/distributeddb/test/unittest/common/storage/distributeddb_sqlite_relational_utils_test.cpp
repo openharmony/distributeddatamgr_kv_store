@@ -140,7 +140,7 @@ HWTEST_F(DistributedDBSqliteRelationalUtilsTest, SqliteRelationalUtilsTest001, T
     EXPECT_EQ(SQLiteRelationalUtils::GetDataValueByType(statement, 0, dataValue), -E_INVALID_ARGS);
     Type typeValue;
     EXPECT_EQ(SQLiteRelationalUtils::GetCloudValueByType(statement, TYPE_INDEX<Nil>, 0, typeValue), -E_INVALID_ARGS);
-    EXPECT_EQ(SQLiteRelationalUtils::StepNext(false, statement), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteUtils::StepNext(statement, false), -E_INVALID_ARGS);
     std::string tableName = "worker1";
     EXPECT_NE(SQLiteRelationalUtils::SelectServerObserver(g_db, tableName, false), E_OK);
 

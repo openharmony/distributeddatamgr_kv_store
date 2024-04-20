@@ -38,7 +38,8 @@ namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
 class CloudSyncer : public ICloudSyncer {
 public:
-    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy);
+    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy,
+        SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
     ~CloudSyncer() override = default;
     DISABLE_COPY_ASSIGN_MOVE(CloudSyncer);
 
@@ -64,6 +65,9 @@ public:
 
     void GenerateCompensatedSync(CloudTaskInfo &taskInfo);
 
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    void CleanAllWaterMark();
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -340,6 +344,7 @@ protected:
 
     int UpdateFlagForSavedRecord(const SyncParam &param);
 
+    void SetProxyUser(const std::string &user);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
@@ -365,6 +370,7 @@ protected:
     std::atomic<int32_t> failedHeartBeatCount_;
 
     std::string id_;
+    std::atomic<SingleVerConflictResolvePolicy> policy_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;
     static constexpr const int MAX_HEARTBEAT_FAILED_LIMIT = 2;

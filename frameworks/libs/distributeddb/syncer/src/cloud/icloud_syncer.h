@@ -40,6 +40,7 @@ public:
         std::vector<std::string> table;
         std::vector<std::string> devices;
         std::vector<QuerySyncObject> queryList;
+        std::vector<std::string> users;
     };
 
     struct InnerProcessInfo {

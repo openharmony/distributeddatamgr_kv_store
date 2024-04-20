@@ -20,6 +20,8 @@
 #include <map>
 #include <string>
 
+#include "cloud/cloud_store_types.h"
+#include "cloud/icloud_db.h"
 #include "intercepted_data.h"
 #include "iprocess_system_api_adapter.h"
 #include "kv_store_nb_conflict_data.h"
@@ -236,6 +238,24 @@ public:
     // get full watermark by device which is not contain query watermark
     // this api get watermark from cache which reload in get kv store
     DB_API virtual std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) = 0;
+
+    // sync with cloud
+    DB_API virtual DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
+
+    // set cloud db with user
+    DB_API virtual DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) = 0;
+
+    // set cloud schema
+    DB_API virtual DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) = 0;
+
+    // remove device data for cloud
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) = 0;
+
+    // remove device data for cloud and user
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) = 0;
+
+    // get all sync task count
+    DB_API virtual int32_t GetTaskCount() = 0;
 };
 } // namespace DistributedDB
 

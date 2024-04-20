@@ -17,14 +17,23 @@
 #define KV_STORE_OBSERVER_H
 
 #include "kv_store_changed_data.h"
+#include "store_observer.h"
 
 namespace DistributedDB {
-class KvStoreObserver {
+class KvStoreObserver : public StoreObserver {
 public:
-    virtual ~KvStoreObserver() {}
+    ~KvStoreObserver() override {}
 
     // Data change callback
     virtual void OnChange(const KvStoreChangedData &data) = 0;
+
+    void OnChange(const StoreChangedData &data) override
+    {
+    }
+
+    void OnChange(Origin origin, const std::string &originalId, ChangedData &&data) override
+    {
+    }
 };
 } // namespace DistributedDB
 

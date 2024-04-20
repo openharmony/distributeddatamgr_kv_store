@@ -30,6 +30,10 @@ public:
 
     void SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
 
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    void SwitchCloudDB(const std::string &user);
+
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
@@ -153,6 +157,7 @@ protected:
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs_;
     std::shared_ptr<IAssetLoader> iAssetLoader_;
     std::atomic<int64_t> timeout_;
 

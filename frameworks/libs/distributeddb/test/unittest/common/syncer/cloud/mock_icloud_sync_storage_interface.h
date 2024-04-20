@@ -46,7 +46,6 @@ public:
     MOCK_METHOD1(SetLogTriggerStatus, int(bool));
     MOCK_METHOD4(FillCloudLogAndAsset, int(OpType, const CloudSyncData &, bool, bool));
     MOCK_CONST_METHOD0(GetIdentify, std::string());
-    MOCK_METHOD3(GetCloudDataGid, int(const QuerySyncObject &, Timestamp, std::vector<std::string> &));
     MOCK_METHOD1(CheckQueryValid, int(const QuerySyncObject &));
     MOCK_METHOD1(IsSharedTable, bool(const std::string &));
 };

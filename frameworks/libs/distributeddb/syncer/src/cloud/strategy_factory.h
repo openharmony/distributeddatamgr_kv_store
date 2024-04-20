@@ -21,7 +21,8 @@
 namespace DistributedDB {
 class StrategyFactory {
 public:
-    static std::shared_ptr<CloudSyncStrategy> BuildSyncStrategy(SyncMode mode);
+    static std::shared_ptr<CloudSyncStrategy> BuildSyncStrategy(SyncMode mode,
+        SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
 };
 }
 

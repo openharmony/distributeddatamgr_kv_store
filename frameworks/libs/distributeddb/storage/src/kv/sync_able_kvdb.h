@@ -18,7 +18,9 @@
 
 #include <shared_mutex>
 
+#include "cloud/cloud_syncer.h"
 #include "generic_kvdb.h"
+#include "icloud_sync_storage_interface.h"
 #include "ikvdb_sync_interface.h"
 #include "intercepted_data.h"
 #include "sync_able_kvdb_connection.h"
@@ -92,6 +94,14 @@ public:
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info);
 
     int UpgradeSchemaVerInMeta();
+
+    TimeOffset GetLocalTimeOffset();
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    int32_t GetTaskCount();
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 
@@ -121,10 +131,20 @@ protected:
 
     void TriggerSync(int notifyEvent);
 
+    virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
+
+    int CleanAllWaterMark();
 private:
     int RegisterEventType(EventType type);
 
     bool NeedStartSyncer() const;
+
+    void StartCloudSyncer();
+
+    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        CloudSyncer::CloudTaskInfo &info);
+
+    CloudSyncer *GetAndIncCloudSyncer();
 
     SyncerProxy syncer_;
     std::atomic<bool> started_;
@@ -136,6 +156,9 @@ private:
 
     mutable std::mutex syncerOperateLock_;
     NotificationChain::Listener *userChangeListener_;
+
+    mutable std::mutex cloudSyncerLock_;
+    CloudSyncer *cloudSyncer_;
 
     static const EventType REMOTE_PUSH_FINISHED;
 };

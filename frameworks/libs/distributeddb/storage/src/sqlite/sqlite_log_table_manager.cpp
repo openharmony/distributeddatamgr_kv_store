@@ -77,6 +77,24 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
     return E_OK;
 }
 
+int SqliteLogTableManager::CreateKvSyncLogTable(sqlite3 *db)
+{
+    const std::string tableName = "naturalbase_kv_aux_sync_data_log";
+    const std::string primaryKey = "PRIMARY KEY(userid, hash_key)";
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+        "userid    TEXT NOT NULL," + \
+        "hash_key  BLOB NOT NULL," + \
+        "cloud_gid TEXT," + \
+        "version   TEXT," + \
+        primaryKey + ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, createTableSql);
+    if (errCode != E_OK) {
+        LOGE("[LogTableManager] execute create cloud log table schema failed, errCode=%d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
 void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
 {
     const std::string tableName = GetLogTableName(table);

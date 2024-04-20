@@ -304,24 +304,6 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
     return SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + ROW_ID_INDEX, rowid);
 }
 
-bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize,
-    uint32_t maxSize)
-{
-    if (curNum == 0) {
-        return true;
-    }
-#ifdef MAX_UPLOAD_COUNT
-    if (curSize < maxSize && curNum < MAX_UPLOAD_COUNT) {
-        return true;
-    }
-#else
-    if (curSize < maxSize) {
-        return true;
-    }
-#endif
-    return false;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const TrackerTable &trackerTable,
     TableInfo &tableInfo)
 {
@@ -414,7 +396,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
             return errCode;
         }
     }
-    while ((errCode = SQLiteRelationalUtils::StepNext(isMemDb_, statement)) == E_OK) {
+    while ((errCode = SQLiteUtils::StepNext(statement, isMemDb_)) == E_OK) {
         VBucket bucket;
         errCode = SQLiteRelationalUtils::GetSelectVBucket(statement, bucket);
         if (errCode != E_OK) {
@@ -551,7 +533,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
         return errCode;
     }
     int ret = E_OK;
-    while ((errCode = SQLiteRelationalUtils::StepNext(isMemDb_, stmt)) == E_OK) {
+    while ((errCode = SQLiteUtils::StepNext(stmt, isMemDb_)) == E_OK) {
         std::string str;
         (void)SQLiteUtils::GetColumnTextValue(stmt, 0, str);
         if (errCode != E_OK) {
@@ -865,7 +847,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidByStmt(sqlite3_stmt
             LOGE("[RDBExecutor] bind timestamp to stmt failed. %d", errCode);
             break;
         }
-        while ((errCode = SQLiteRelationalUtils::StepNext(isMemDb_, statement)) == E_OK) {
+        while ((errCode = SQLiteUtils::StepNext(statement, isMemDb_)) == E_OK) {
             std::string gid;
             (void)SQLiteUtils::GetColumnTextValue(statement, 0, gid);
             if (gid.empty()) {

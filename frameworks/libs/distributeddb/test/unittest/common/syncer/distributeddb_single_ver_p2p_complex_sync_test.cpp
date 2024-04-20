@@ -53,7 +53,10 @@ namespace {
         "device      BLOB," \
         "ori_device  BLOB," \
         "hash_key    BLOB PRIMARY KEY NOT NULL," \
-        "w_timestamp INT);";
+        "w_timestamp INT," \
+        "modify_time INT," \
+        "create_time INT" \
+        ");";
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;

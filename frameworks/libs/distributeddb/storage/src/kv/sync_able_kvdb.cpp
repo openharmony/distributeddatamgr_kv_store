@@ -31,7 +31,8 @@ SyncAbleKvDB::SyncAbleKvDB()
       isSyncModuleActiveCheck_(false),
       isSyncNeedActive_(true),
       notifyChain_(nullptr),
-      userChangeListener_(nullptr)
+      userChangeListener_(nullptr),
+      cloudSyncer_(nullptr)
 {}
 
 SyncAbleKvDB::~SyncAbleKvDB()
@@ -45,6 +46,9 @@ SyncAbleKvDB::~SyncAbleKvDB()
         userChangeListener_->Drop(true);
         userChangeListener_ = nullptr;
     }
+    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+    KillAndDecObjRef(cloudSyncer_);
+    cloudSyncer_ = nullptr;
 }
 
 void SyncAbleKvDB::DelConnection(GenericKvDBConnection *connection)
@@ -151,6 +155,7 @@ void SyncAbleKvDB::ReSetSyncModuleActive()
 // Start syncer
 int SyncAbleKvDB::StartSyncer(bool isCheckSyncActive, bool isNeedActive)
 {
+    StartCloudSyncer();
     int errCode = E_OK;
     {
         std::unique_lock<std::mutex> lock(syncerOperateLock_);
@@ -205,6 +210,14 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
         StopSyncerWithNoLock(isClosedOperation);
         userChangeListener = userChangeListener_;
         userChangeListener_ = nullptr;
+    }
+    {
+        std::unique_lock<std::mutex> lock(cloudSyncerLock_);
+        if (isClosedOperation && cloudSyncer_ != nullptr) {
+            cloudSyncer_->Close();
+            RefObject::KillAndDecObjRef(cloudSyncer_);
+            cloudSyncer_ = nullptr;
+        }
     }
     if (userChangeListener != nullptr) {
         userChangeListener->Drop(true);
@@ -470,5 +483,112 @@ int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &inf
 int SyncAbleKvDB::UpgradeSchemaVerInMeta()
 {
     return syncer_.UpgradeSchemaVerInMeta();
+}
+
+ICloudSyncStorageInterface *SyncAbleKvDB::GetICloudSyncInterface() const
+{
+    return nullptr;
+}
+
+void SyncAbleKvDB::StartCloudSyncer()
+{
+    auto cloudStorage = GetICloudSyncInterface();
+    if (cloudStorage == nullptr) {
+        return;
+    }
+    int conflictType = MyProp().GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY,
+        static_cast<int>(SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN));
+    {
+        std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+        if (cloudSyncer_ != nullptr) {
+            return;
+        }
+        cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage),
+            static_cast<SingleVerConflictResolvePolicy>(conflictType));
+    }
+}
+
+TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetLocalTimeOffset();
+}
+
+void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    CloudSyncer::CloudTaskInfo &info)
+{
+    QuerySyncObject query(option.query);
+    query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+    info.queryList.push_back(query);
+    info.table.push_back(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+    info.callback = onProcess;
+    info.devices = option.devices;
+    info.mode = option.mode;
+    info.users = option.users;
+}
+
+int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    CloudSyncer::CloudTaskInfo info;
+    FillSyncInfo(option, onProcess, info);
+    int errCode = syncer->Sync(info);
+    RefObject::DecObjRef(syncer);
+    return errCode;
+}
+
+int SyncAbleKvDB::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    int errCode = syncer->SetCloudDB(cloudDBs);
+    RefObject::DecObjRef(syncer);
+    return errCode;
+}
+
+int SyncAbleKvDB::CleanAllWaterMark()
+{
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    syncer->CleanAllWaterMark();
+    RefObject::DecObjRef(syncer);
+    return E_OK;
+}
+
+int32_t SyncAbleKvDB::GetTaskCount()
+{
+    int32_t taskCount = 0;
+    auto cloudSyncer = GetAndIncCloudSyncer();
+    if (cloudSyncer != nullptr) {
+        taskCount += cloudSyncer->GetCloudSyncTaskCount();
+        RefObject::DecObjRef(cloudSyncer);
+    }
+    if (NeedStartSyncer()) {
+        return taskCount;
+    }
+    taskCount += syncer_.GetTaskCount();
+    return taskCount;
+}
+
+CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
+{
+    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+    if (cloudSyncer_ == nullptr) {
+        return nullptr;
+    }
+    RefObject::IncObjRef(cloudSyncer_);
+    return cloudSyncer_;
 }
 }

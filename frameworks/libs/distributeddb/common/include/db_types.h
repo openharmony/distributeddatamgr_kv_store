@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "db_constant.h"
+#include "store_observer.h"
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -48,6 +49,10 @@ struct DataItem {
     std::string dev;
     bool neglect = false;
     Key hashKey{};
+    Timestamp modifyTime = 0;
+    Timestamp createTime = 0;
+    std::string version; // use for cloud
+    std::string gid; // use for cloud
     static constexpr uint64_t DELETE_FLAG = 0x01;
     static constexpr uint64_t LOCAL_FLAG = 0x02;
     static constexpr uint64_t REMOVE_DEVICE_DATA_FLAG = 0x04; // only use for cachedb
@@ -179,5 +184,8 @@ struct DeviceTimeInfo {
     TimeOffset systemTimeOffset = 0; // raw system time offset
     int64_t rtt = 0;
 };
+
+using ObserverAction =
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

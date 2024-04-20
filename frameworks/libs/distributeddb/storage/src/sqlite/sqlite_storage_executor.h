@@ -31,7 +31,7 @@ public:
 
     int Reset() override;
     int GetDbHandle(sqlite3 *&dbHandle) const;
-
+    bool IsMemory() const;
 protected:
     sqlite3 *dbHandle_;
     bool isMemDb_;

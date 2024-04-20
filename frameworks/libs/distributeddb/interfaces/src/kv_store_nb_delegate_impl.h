@@ -161,6 +161,18 @@ public:
     DBStatus UpdateKey(const UpdateKeyCallback &callback) override;
 
     std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
+
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
+    DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) override;
+
+    DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
+
+    int32_t GetTaskCount() override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);
@@ -170,11 +182,20 @@ private:
     void OnSyncComplete(const std::map<std::string, int> &statuses,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) const;
 
+    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+
+    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+
+    DBStatus UnRegisterDeviceObserver(const KvStoreObserver *observer);
+
+    DBStatus UnRegisterCloudObserver(const KvStoreObserver *observer);
+
     IKvDBConnection *conn_;
     std::string storeId_;
     bool releaseFlag_;
     std::mutex observerMapLock_;
     std::map<const KvStoreObserver *, const KvDBObserverHandle *> observerMap_;
+    std::map<const KvStoreObserver *, unsigned int> cloudObserverMap_;
 };
 } // namespace DistributedDB
 

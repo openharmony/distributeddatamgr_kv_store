@@ -46,6 +46,9 @@ typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
     std::vector<int64_t> existDataKey;
+    std::vector<Key> existDataHashKey;
+    std::string user;
+    TimeOffset timeOffset = 0;
 } DownloadData;
 
 class ICloudSyncStorageHook {
@@ -105,7 +108,10 @@ public:
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
 
     virtual int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
-        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) = 0;
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets)
+    {
+        return E_OK;
+    }
 
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
@@ -117,9 +123,6 @@ public:
     virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
-
-    virtual int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
-        std::vector<std::string> &gid) = 0;
 
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
 
@@ -170,6 +173,10 @@ public:
         [[gnu::unused]] const DownloadData &downloadData, [[gnu::unused]] const std::set<std::string> &gidFilters)
     {
         return E_OK;
+    }
+
+    virtual void SetUser([[gnu::unused]] const std::string &user)
+    {
     }
 };
 }

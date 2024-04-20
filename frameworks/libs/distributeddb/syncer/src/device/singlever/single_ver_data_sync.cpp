@@ -1626,6 +1626,8 @@ int SingleVerDataSync::GetReSendData(SyncEntry &syncData, SingleVerSyncTaskConte
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         return errCode;
     }
+    SingleVerDataSyncUtils::TransDbDataItemToSendDataItem(
+        DBCommon::TransferHashString(GetLocalDeviceName()), syncData.entries);
 
     int innerCode = InterceptData(syncData);
     if (innerCode != E_OK) {

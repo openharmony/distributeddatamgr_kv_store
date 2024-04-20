@@ -53,4 +53,9 @@ int SQLiteStorageExecutor::GetDbHandle(sqlite3 *&dbHandle) const
     dbHandle = dbHandle_;
     return E_OK;
 }
+
+bool SQLiteStorageExecutor::IsMemory() const
+{
+    return isMemDb_;
+}
 } // namespace DistributedDB

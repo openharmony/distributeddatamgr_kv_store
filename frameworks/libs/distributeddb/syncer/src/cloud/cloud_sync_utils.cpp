@@ -187,6 +187,8 @@ LogInfo CloudSyncUtils::GetCloudLogInfo(DistributedDB::VBucket &datum)
     cloudLogInfo.cloudGid = std::get<std::string>(datum[CloudDbConstant::GID_FIELD]);
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
         datum, cloudLogInfo.sharingResource);
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD,
+        datum, cloudLogInfo.version);
     return cloudLogInfo;
 }
 

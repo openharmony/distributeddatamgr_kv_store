@@ -124,6 +124,8 @@ public:
         const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) override;
 
     void TimeChange() override;
+
+    int32_t GetResponseTaskCount() override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext() = 0;

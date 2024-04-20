@@ -33,14 +33,15 @@
 #include "version.h"
 
 namespace DistributedDB {
-CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
+CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerConflictResolvePolicy policy)
     : lastTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
       timerId_(0u),
       heartBeatCount_(0),
-      failedHeartBeatCount_(0)
+      failedHeartBeatCount_(0),
+      policy_(policy)
 {
     if (storageProxy_ != nullptr) {
         id_ = storageProxy_->GetIdentify();
@@ -166,6 +167,14 @@ int CloudSyncer::TriggerSync()
     return errCode;
 }
 
+void CloudSyncer::SetProxyUser(const std::string &user)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    storageProxy_->SetUser(user);
+    currentContext_.notifier->SetUser(user);
+    cloudDB_.SwitchCloudDB(user);
+}
+
 void CloudSyncer::DoSyncIfNeed()
 {
     if (closed_) {
@@ -184,7 +193,21 @@ void CloudSyncer::DoSyncIfNeed()
             break;
         }
         // do sync logic
-        int errCode = DoSync(triggerTaskId);
+        std::vector<std::string> usersList;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            usersList = cloudTaskInfos_[triggerTaskId].users;
+        }
+        int errCode = E_OK;
+        if (usersList.empty()) {
+            SetProxyUser("");
+            errCode = DoSync(triggerTaskId);
+        } else {
+            for (const auto &user : usersList) {
+                SetProxyUser(user);
+                errCode = DoSync(triggerTaskId);
+            }
+        }
         // finished after sync
         DoFinished(triggerTaskId, errCode);
     } while (!closed_);
@@ -914,6 +937,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData = changedData;
         param.downloadData.opType.resize(param.downloadData.data.size());
         param.downloadData.existDataKey.resize(param.downloadData.data.size());
+        param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
         ret = SaveDataInTransaction(taskId, param);
         if (ret != E_OK) {
             return ret;
@@ -1480,7 +1504,7 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode);
+        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices);
     }
     LOGI("[CloudSyncer] exec taskId %" PRIu64, taskId);
