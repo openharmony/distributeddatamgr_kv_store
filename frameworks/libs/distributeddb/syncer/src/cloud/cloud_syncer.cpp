@@ -253,8 +253,12 @@ int CloudSyncer::DoSync(TaskId taskId)
     if (isNeedFirstDownload) {
         // do first download
         errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+        }
         if (errCode != E_OK) {
-            DoFinished(taskInfo.taskId, errCode);
+            SyncMachineDoFinished();
             return errCode;
         }
         bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
@@ -264,7 +268,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         }
         if (!isActuallyNeedUpload) {
             LOGI("[CloudSyncer] no table need upload!");
-            DoFinished(taskInfo.taskId, E_OK);
+            SyncMachineDoFinished();
             return E_OK;
         }
         isFirstDownload = false;
@@ -396,6 +400,7 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskId = currentContext_.currentTaskId;
         errCode = cloudTaskInfos_[currentContext_.currentTaskId].errCode;
+        cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
         currentUserIndex = currentContext_.currentUserIndex;
         userListSize = cloudTaskInfos_[taskId].users.size();
     }
