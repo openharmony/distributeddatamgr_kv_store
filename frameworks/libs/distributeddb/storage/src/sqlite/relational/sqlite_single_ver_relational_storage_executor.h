@@ -425,8 +425,6 @@ private:
 
     int FillCloudVersionForUpload(const std::string &tableName, const CloudSyncBatch &batchData);
 
-    int FillCloudVersionForUpload(const std::string &tableName, const CloudSyncBatch &batchData);
-
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";

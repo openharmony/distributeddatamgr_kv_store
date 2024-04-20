@@ -157,10 +157,10 @@ namespace DistributedDB {
         "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0);";
 
     const std::string REMOVE_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0);";
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 
     const std::string REMOVE_ALL_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE (flag&0x02=0);";
+        "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
 
     const std::string REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
