@@ -1368,7 +1368,8 @@ bool CloudSyncer::IsPriorityTask(TaskId taskId)
     return cloudTaskInfos_[taskId].priorityTask;
 }
 
-int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode)
+int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode,
+    InnerProcessInfo &info)
 {
     ContinueToken continueStmtToken = nullptr;
     CloudSyncData uploadData(tableName);
@@ -1385,7 +1386,6 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
-    InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
     uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
     uploadParam.mode = mode;
     while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
@@ -1424,11 +1424,12 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
 
 int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction)
 {
-    int errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::DELETE);
+    InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
+    int errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::DELETE, info);
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::UPDATE);
+    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::UPDATE, info);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1438,7 +1439,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
             return errCode;
         }
     }
-    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT);
+    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT, info);
     if (lockAction == LockAction::INSERT) {
         UnlockIfNeed();
     }

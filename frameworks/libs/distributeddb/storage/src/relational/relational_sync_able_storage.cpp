@@ -1126,9 +1126,9 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
-    LOGI("upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.insData.extend.size(),
-        cloudDataResult.updData.extend.size(), cloudDataResult.delData.extend.size(),
-        cloudDataResult.lockData.extend.size());
+    LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
+        cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
+        cloudDataResult.delData.extend.size(), cloudDataResult.lockData.extend.size());
     if (errCode != -E_UNFINISHED) {
         delete token;
         token = nullptr;

@@ -180,7 +180,8 @@ protected:
 
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction);
 
-    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode);
+    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode,
+        InnerProcessInfo &info);
 
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
