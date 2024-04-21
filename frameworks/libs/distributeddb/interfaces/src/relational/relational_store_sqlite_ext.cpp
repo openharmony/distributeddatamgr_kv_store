@@ -17,6 +17,7 @@
 #include <string>
 #include <sys/time.h>
 #include <thread>
+#include <variant>
 #include <vector>
 
 #include "cloud/cloud_db_constant.h"
@@ -24,6 +25,7 @@
 #include "db_common.h"
 #include "db_constant.h"
 #include "kv_store_errno.h"
+#include "param_check_utils.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
 #include "runtime_context.h"
@@ -381,6 +383,14 @@ std::map<std::string, ClientObserver> g_clientObserverMap;
 std::mutex g_clientChangedDataMutex;
 std::map<std::string, ClientChangedData> g_clientChangedDataMap;
 
+std::mutex g_storeObserverMutex;
+std::map<std::string, std::list<std::shared_ptr<StoreObserver>>> g_storeObserverMap;
+std::mutex g_storeChangedDataMutex;
+std::map<std::string, std::vector<ChangedData>> g_storeChangedDataMap;
+
+std::mutex g_clientCreateTableMutex;
+std::set<std::string> g_clientCreateTable;
+
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -614,19 +624,23 @@ static bool GetDbFileName(sqlite3 *db, std::string &fileName)
     return true;
 }
 
+static bool GetDbHashString(sqlite3 *db, std::string &hashFileName)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return false;
+    }
+    return GetHashString(fileName, hashFileName) == DistributedDB::DBStatus::OK;
+}
+
 void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
-    std::string fileName;
-    if (!GetDbFileName(db, fileName)) {
-        return;
-    }
-    std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    std::string hashFileName = "";
+    if (!GetDbHashString(db, hashFileName)) {
         return;
     }
     auto tableNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
@@ -658,17 +672,222 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
+int JudgeIfGetRowid(sqlite3 *db, const std::string &tableName, std::string &type, bool &isRowid)
 {
-    std::string fileName;
-    if (!GetDbFileName(db, fileName)) {
-        return 0;
+    if (db == nullptr) {
+        return -E_ERROR;
     }
-    std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
-        return 0;
+    std::string checkPrimaryKeySql = "SELECT count(1), type FROM pragma_table_info('" + tableName;
+    checkPrimaryKeySql += "') WHERE pk = 1";
+    sqlite3_stmt *checkPrimaryKeyStmt = nullptr;
+    int errCode = GetStatement(db, checkPrimaryKeySql, checkPrimaryKeyStmt);
+    if (errCode != E_OK) {
+        LOGE("Prepare get primarykey info statement failed. err=%d", errCode);
+        return -E_ERROR;
     }
+    errCode = SQLiteUtils::StepWithRetry(checkPrimaryKeyStmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int count = sqlite3_column_int(checkPrimaryKeyStmt, 0);
+        GetColumnTextValue(checkPrimaryKeyStmt, 1, type);
+        isRowid = (count != 1) || (type != "TEXT" && type != "INT" && type != "INTEGER");
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        errCode = SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    ResetStatement(checkPrimaryKeyStmt);
+    return errCode;
+}
+
+void SaveChangedData(const std::string &hashFileName, const std::string &tableName, const std::string &columnName,
+    const DistributedDB::Type &data, ChangeType option)
+{
+    if (option < ChangeType::OP_INSERT || option >= ChangeType::OP_BUTT) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_storeChangedDataMutex);
+    auto itTable = std::find_if(g_storeChangedDataMap[hashFileName].begin(), g_storeChangedDataMap[hashFileName].end(),
+        [tableName](DistributedDB::ChangedData changedData) {
+            return tableName == changedData.tableName;
+        });
+    if (itTable != g_storeChangedDataMap[hashFileName].end()) {
+        std::vector<Type> dataVec;
+        dataVec.push_back(data);
+        itTable->primaryData[option].push_back(dataVec);
+    } else {
+        DistributedDB::ChangedData changedData;
+        changedData.tableName = tableName;
+        changedData.field.push_back(columnName);
+        std::vector<DistributedDB::Type> dataVec;
+        dataVec.push_back(data);
+        changedData.primaryData[option].push_back(dataVec);
+        g_storeChangedDataMap[hashFileName].push_back(changedData);
+    }
+}
+
+void DataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
+        return;
+    }
+    sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
+    std::string hashFileName = "";
+    if (!GetDbHashString(db, hashFileName)) {
+        return;
+    }
+    bool isExistObserver = false;
+    {
+        std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+        auto it = g_storeObserverMap.find(hashFileName);
+        isExistObserver = (it != g_storeObserverMap.end());
+    }
+    if (!isExistObserver) {
+        return;
+    }
+    auto tableNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+    if (tableNameChar == nullptr) {
+        return;
+    }
+    std::string tableName = static_cast<std::string>(tableNameChar);
+    auto columnNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[1])); // 1 is param index of column
+    if (columnNameChar == nullptr) {
+        return;
+    }
+    std::string columnName = static_cast<std::string>(columnNameChar);
+    DistributedDB::Type data;
+    std::string type = "";
+    bool isRowid = false;
+    int errCode = JudgeIfGetRowid(db, tableName, type, isRowid);
+    if (errCode != E_OK) {
+        sqlite3_result_error(ctx, "Get primary key info error.", -1);
+        return;
+    }
+    if (!isRowid && type == "TEXT") {
+        auto dataChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[2])); // 2 is param index of changed data
+        if (dataChar == nullptr) {
+            return;
+        }
+        data = static_cast<std::string>(dataChar);
+    } else {
+        data = static_cast<int64_t>(sqlite3_value_int64(argv[2])); // 2 is param index of data
+    }
+    ChangeType option = static_cast<ChangeType>(sqlite3_value_int64(argv[3])); // 3 is param index of option type
+    SaveChangedData(hashFileName, tableName, columnName, data, option);
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1)); // 1 is result ok
+}
+
+std::string GetInsertTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
+{
+    std::string insertTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    insertTrigger += "naturalbase_rdb_" + tableName + "_local_ON_INSERT AFTER INSERT\n";
+    insertTrigger += "ON '" + tableName + "'\n";
+    insertTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) {
+        insertTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 0);\n";
+    } else {
+        insertTrigger += "SELECT data_change('" + tableName + "', ";
+        insertTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        insertTrigger += "NEW." + primaryKey + ", 0);\n";
+    }
+    insertTrigger += "END;";
+    return insertTrigger;
+}
+
+std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
+{
+    std::string updateTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    updateTrigger += "naturalbase_rdb_" + tableName + "_local_ON_UPDATE AFTER UPDATE\n";
+    updateTrigger += "ON '" + tableName + "'\n";
+    updateTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) {
+        updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 2);\n";
+    } else {
+        updateTrigger += "SELECT data_change('" + tableName + "', ";
+        updateTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        updateTrigger += "NEW." + primaryKey + ", 1);\n";
+    }
+    updateTrigger += "END;";
+    return updateTrigger;
+}
+
+std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
+{
+    std::string deleteTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    deleteTrigger += "naturalbase_rdb_" + tableName + "_local_ON_DELETE AFTER DELETE\n";
+    deleteTrigger += "ON '" + tableName + "'\n";
+    deleteTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) {
+        deleteTrigger += "SELECT data_change('" + tableName + "', 'rowid', OLD._rowid_, 2);\n";
+    } else {
+        deleteTrigger += "SELECT data_change('" + tableName + "', ";
+        deleteTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        deleteTrigger += "OLD." + primaryKey + ", 2);\n";
+    }
+    deleteTrigger += "END;";
+    return deleteTrigger;
+}
+
+int GetPrimaryKeyName(sqlite3 *db, const std::string &tableName, std::string &primaryKey)
+{
+    if (db == nullptr) {
+        return -E_ERROR;
+    }
+    std::string sql = "SELECT name FROM pragma_table_info('";
+    sql += tableName + "') WHERE pk = 1";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Prepare get primary key name statement failed. err=%d", errCode);
+        return -E_ERROR;
+    }
+    while ((errCode = StepWithRetry(stmt)) != SQLITE_DONE) {
+        if (errCode != SQLITE_ROW) {
+            ResetStatement(stmt);
+            return -E_ERROR;
+        }
+        GetColumnTextValue(stmt, 0, primaryKey);
+    }
+    ResetStatement(stmt);
+    return E_OK;
+}
+
+int GetTriggerSqls(sqlite3 *db, const std::map<std::string, bool> &tableInfos, std::vector<std::string> &triggerSqls)
+{
+    for (const auto &tableInfo : tableInfos) {
+        std::string primaryKey = "";
+        if (!tableInfo.second) {
+            int errCode = GetPrimaryKeyName(db, tableInfo.first, primaryKey);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+        std::string sql = GetInsertTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        triggerSqls.push_back(sql);
+        sql = GetUpdateTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        triggerSqls.push_back(sql);
+        sql = GetDeleteTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        triggerSqls.push_back(sql);
+    }
+    return E_OK;
+}
+
+int AuthorizerCallback(void *data, int operation, const char *tableNameChar, const char *, const char *, const char *)
+{
+    if (operation != SQLITE_CREATE_TABLE || tableNameChar == nullptr) {
+        return SQLITE_OK;
+    }
+    std::lock_guard<std::mutex> clientCreateTableLock(g_clientCreateTableMutex);
+    std::string tableName = static_cast<std::string>(tableNameChar);
+    if (ParamCheckUtils::CheckRelationalTableName(tableName) && tableName.find("sqlite_") != 0 &&
+        tableName.find("naturalbase_") != 0) {
+        g_clientCreateTable.insert(tableName);
+    }
+    return SQLITE_OK;
+}
+
+void ClientObserverCallback(const std::string &hashFileName)
+{
     ClientObserver clientObserver;
     {
         std::lock_guard<std::mutex> clientObserverLock(g_clientObserverMutex);
@@ -676,7 +895,7 @@ int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
         if (it != g_clientObserverMap.end() && it->second != nullptr) {
             clientObserver = it->second;
         } else {
-            return 0;
+            return;
         }
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
@@ -689,6 +908,78 @@ int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
         });
         g_clientChangedDataMap[hashFileName].tableData.clear();
     }
+}
+
+void TriggerObserver(std::vector<std::shared_ptr<StoreObserver>> storeObservers, const std::string &hashFileName)
+{
+    std::lock_guard<std::mutex> storeChangedDataLock(g_storeChangedDataMutex);
+    for (const auto &storeObserver : storeObservers) {
+        auto it = g_storeChangedDataMap.find(hashFileName);
+        if (it != g_storeChangedDataMap.end() && !it->second.empty()) {
+            std::vector<DistributedDB::ChangedData> storeChangedData = g_storeChangedDataMap[hashFileName];
+            storeObserver->OnChange(std::move(storeChangedData));
+        }
+    }
+    g_storeChangedDataMap[hashFileName].clear();
+}
+
+void StoreObserverCallback(sqlite3 *db, const std::string &hashFileName)
+{
+    std::vector<std::shared_ptr<StoreObserver>> storeObserver;
+    {
+        std::lock_guard<std::mutex> storeObserverLock(g_storeObserverMutex);
+        auto it = g_storeObserverMap.find(hashFileName);
+        if (it != g_storeObserverMap.end() && !it->second.empty()) {
+            for (const auto &observer : it->second) {
+                storeObserver.push_back(observer);
+            }
+        } else {
+            return;
+        }
+    }
+    TriggerObserver(storeObserver, hashFileName);
+    std::map<std::string, bool> tableInfos;
+    {
+        std::lock_guard<std::mutex> clientCreateTableLock(g_clientCreateTableMutex);
+        if (g_clientCreateTable.empty()) {
+            return;
+        }
+        for (const auto &tableName : g_clientCreateTable) {
+            bool isRowid = true;
+            std::string type = "";
+            JudgeIfGetRowid(db, tableName, type, isRowid);
+            tableInfos.insert(std::make_pair(tableName, isRowid));
+        }
+        g_clientCreateTable.clear();
+    }
+    std::vector<std::string> triggerSqls;
+    int errCode = GetTriggerSqls(db, tableInfos, triggerSqls);
+    if (errCode != E_OK) {
+        return;
+    }
+    for (const auto &sql : triggerSqls) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGE("Create data change trigger failed %d", errCode);
+            return;
+        }
+    }
+    return;
+}
+
+int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return 0;
+    }
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        return 0;
+    }
+    ClientObserverCallback(hashFileName);
+    StoreObserverCallback(db, hashFileName);
     return 0;
 }
 
@@ -739,8 +1030,16 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
     return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
 }
 
+int RegisterDataChangeObserver(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &DataChangedObserver;
+    return RegisterFunction(db, "data_change", 4, db, func); // 4 is param counts
+}
+
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
+    sqlite3_set_authorizer(db, AuthorizerCallback, nullptr);
     sqlite3_wal_hook(db, LogCommitHookCallback, db);
     sqlite3_rollback_hook(db, RollbackHookCallback, db);
 }
@@ -1180,11 +1479,67 @@ void PostHandle(bool isExists, sqlite3 *db)
     RegisterGetLastTime(db);
     RegisterGetRawSysTime(db);
     RegisterCloudDataChangeObserver(db);
+    RegisterDataChangeObserver(db);
     RegisterCommitAndRollbackHook(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
     (void)ExecuteRawSQL(db, recursiveTrigger);
+}
+
+int GetTableInfos(sqlite3 *db, std::map<std::string, bool> &tableInfos)
+{
+    if (db == nullptr) {
+        return -E_ERROR;
+    }
+    std::string sql = "SELECT name FROM main.sqlite_master where type = 'table'";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Prepare get table and primary key statement failed. err=%d", errCode);
+        return -E_ERROR;
+    }
+    while ((errCode = StepWithRetry(stmt)) != SQLITE_DONE) {
+        if (errCode != SQLITE_ROW) {
+            ResetStatement(stmt);
+            return -E_ERROR;
+        }
+        std::string tableName;
+        GetColumnTextValue(stmt, 0, tableName);
+        if (tableName.empty() || !ParamCheckUtils::CheckRelationalTableName(tableName) ||
+            tableName.find("sqlite_") == 0 || tableName.find("naturalbase_") == 0) {
+            continue;
+        }
+        tableInfos.insert(std::make_pair(tableName, true));
+    }
+    ResetStatement(stmt);
+    for (auto &tableInfo : tableInfos) {
+        std::string type = "";
+        JudgeIfGetRowid(db, tableInfo.first, type, tableInfo.second);
+    }
+    return E_OK;
+}
+
+int CreateTempTrigger(sqlite3 *db)
+{
+    std::map<std::string, bool> tableInfos;
+    int errCode = GetTableInfos(db, tableInfos);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::vector<std::string> triggerSqls;
+    errCode = GetTriggerSqls(db, tableInfos, triggerSqls);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (const auto &sql : triggerSqls) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGE("Create data change trigger failed %d", errCode);
+            return errCode;
+        }
+    }
+    return errCode;
 }
 }
 
@@ -1256,6 +1611,101 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
     auto it = g_clientObserverMap.find(hashFileName);
     if (it != g_clientObserverMap.end()) {
         g_clientObserverMap.erase(it);
+    }
+    return DistributedDB::OK;
+}
+
+DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::shared_ptr<StoreObserver> &storeObserver)
+{
+    if (storeObserver == nullptr) {
+        LOGE("[RegisterStoreObserver] StoreObserver is invalid.");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[RegisterStoreObserver] Get db filename failed.");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        LOGE("[RegisterStoreObserver] Get db filename hash string failed.");
+        return DistributedDB::DB_ERROR;
+    }
+
+    errCode = CreateTempTrigger(db);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        LOGE("[RegisterStoreObserver] Create trigger failed.");
+        return DistributedDB::DB_ERROR;
+    }
+
+    std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+    if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(), storeObserver) !=
+        g_storeObserverMap[hashFileName].end()) {
+        LOGE("[RegisterStoreObserver] Duplicate observer.");
+        return DistributedDB::INVALID_ARGS;
+    }
+    g_storeObserverMap[hashFileName].push_back(storeObserver);
+    return DistributedDB::OK;
+}
+
+DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db, const std::shared_ptr<StoreObserver> &storeObserver)
+{
+    if (storeObserver == nullptr) {
+        LOGE("[UnregisterStoreObserver] StoreObserver is invalid.");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[UnregisterStoreObserver] Get db filename failed.");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        LOGE("[UnregisterStoreObserver] Get db filename hash string failed.");
+        return DistributedDB::DB_ERROR;
+    }
+
+    std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+    auto it = g_storeObserverMap.find(hashFileName);
+    if (it != g_storeObserverMap.end()) {
+        it->second.remove(storeObserver);
+    }
+    if (it->second.empty()) {
+        g_storeObserverMap.erase(it);
+    }
+
+    return DistributedDB::OK;
+}
+
+DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[UnregisterAllStoreObserver] StoreObserver is invalid.");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        LOGE("[UnregisterAllStoreObserver] Get db filename hash string failed.");
+        return DistributedDB::DB_ERROR;
+    }
+
+    if (errCode != DistributedDB::DBStatus::OK) {
+        return DistributedDB::DB_ERROR;
+    }
+
+    std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+    auto it = g_storeObserverMap.find(hashFileName);
+    if (it != g_storeObserverMap.end()) {
+        g_storeObserverMap.erase(it);
     }
     return DistributedDB::OK;
 }

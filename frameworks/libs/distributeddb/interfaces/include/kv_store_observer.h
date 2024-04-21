@@ -34,6 +34,10 @@ public:
     void OnChange(Origin origin, const std::string &originalId, ChangedData &&data) override
     {
     }
+
+    void OnChange(StoreChangedInfo &&data) override
+    {
+    }
 };
 } // namespace DistributedDB
 
