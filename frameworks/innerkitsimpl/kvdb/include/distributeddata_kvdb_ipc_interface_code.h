@@ -43,6 +43,8 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_NOTIFY_DATA_CHANGE,
     TRANS_PUT_SWITCH,
     TRANS_GET_SWITCH,
+    TRANS_SUBSCRIBE_SWITCH_DATA,
+    TRANS_UNSUBSCRIBE_SWITCH_DATA,
     TRANS_BUTT
 };
 
@@ -50,6 +52,7 @@ enum class KVDBNotifierCode : uint32_t {
     TRANS_HEAD = 0,
     TRANS_SYNC_COMPLETED = TRANS_HEAD,
     TRANS_ON_REMOTE_CHANGED,
+    TRANS_ON_SWITCH_CHANGED,
     TRANS_BUTT
 };
 } // namespace OHOS::DistributedKv

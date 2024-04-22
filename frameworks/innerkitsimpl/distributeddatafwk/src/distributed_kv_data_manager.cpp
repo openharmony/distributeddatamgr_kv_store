@@ -249,5 +249,15 @@ std::pair<Status, SwitchData> DistributedKvDataManager::GetSwitch(const AppId &a
 {
     return StoreManager::GetInstance().GetSwitch(appId, networkId);
 }
+
+Status DistributedKvDataManager::SubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+{
+    return StoreManager::GetInstance().SubscribeSwitchData(appId, observer);
+}
+
+Status DistributedKvDataManager::UnsubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+{
+    return StoreManager::GetInstance().UnsubscribeSwitchData(appId, observer);
+}
 }  // namespace DistributedKv
 }  // namespace OHOS

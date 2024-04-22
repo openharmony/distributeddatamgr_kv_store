@@ -515,6 +515,51 @@ struct SwitchData {
     */
     uint16_t length;
 };
+
+/**
+ * @brief Switch data opertaion.
+*/
+enum SwitchState: uint32_t {
+    /**
+     * INSERT: means insert data.
+    */
+    INSERT = 0,
+
+    /**
+     * UPDATE: means update data.
+    */
+    UPDATE,
+
+    /**
+     * DELETE: means delete data.
+    */
+    DELETE,
+};
+
+/**
+ * @brief Switch data notification for change.
+*/
+struct SwitchNotification {
+    /**
+     * Switch data.
+    */
+    SwitchData data;
+
+    /**
+     * The device networkId.
+    */
+    std::string deviceId;
+
+    /**
+     * Switch state.
+    */
+    SwitchState state = SwitchState::INSERT;
+};
+
+/**
+ * Switch data change observer.
+*/
+using SwitchDataObserver = std::function<void(const SwitchNotification &&notification)>;
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

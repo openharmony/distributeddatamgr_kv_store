@@ -194,6 +194,11 @@ enum Status : int32_t {
      * Data is being synchronized.
     */
     SYNC_ACTIVATED = DISTRIBUTEDDATAMGR_ERR_OFFSET + 39,
+
+    /**
+     * Not support broadcast.
+    */
+    NOT_SUPPORT_BROADCAST = DISTRIBUTEDDATAMGR_ERR_OFFSET + 40
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_INTERFACES_DISTRIBUTEDDATA_STORE_ERRNO_H

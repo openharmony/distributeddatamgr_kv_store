@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,9 +16,11 @@
 #define LOG_TAG "KVDBNotifierClient"
 
 #include "kvdb_notifier_client.h"
-#include <cinttypes>
 #include <atomic>
+#include <cinttypes>
+#include <functional>
 #include "dds_trace.h"
+#include "dev_manager.h"
 #include "log_print.h"
 #include "store_util.h"
 
@@ -41,16 +43,27 @@ void KVDBNotifierClient::SyncCompleted(const std::map<std::string, Status> &resu
     }
 }
 
-void KVDBNotifierClient::OnRemoteChanged(const std::string &deviceId, bool isChanged)
+void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask)
 {
-    ZLOGD("remote changed deviceId:%{public}s, isChanged:%{public}d",
-        StoreUtil::Anonymous(deviceId).c_str(), isChanged);
-    if (deviceId.empty()) {
-        return;
+    ZLOGD("remote changed mask:%{public}zu", mask.size());
+    for (const auto &[device, value] : mask) {
+        auto clientUuid = DevManager::GetInstance().ToUUID(device);
+        if (clientUuid.empty()) {
+            continue;
+        }
+        remotes_.InsertOrAssign(clientUuid, value);
     }
-    remotes_.Compute(deviceId, [isChanged](auto &, bool &value) {
-        value = isChanged;
-        return true;
+}
+
+void KVDBNotifierClient::OnSwicthChange(const SwitchNotification &notification)
+{
+    switchObservers_.ForEachCopies([&notification](auto &, std::list<SwitchDataObserver> &value) {
+        for (const auto &item : value) {
+            if (item) {
+                item(std::move(notification));
+            }
+        }
+        return false;
     });
 }
 
@@ -77,6 +90,40 @@ void KVDBNotifierClient::AddSyncCallback(
 void KVDBNotifierClient::DeleteSyncCallback(uint64_t sequenceId)
 {
     syncCallbackInfo_.Erase(sequenceId);
+}
+
+void KVDBNotifierClient::AddSwicthCallback(const std::string &appId, const SwitchDataObserver observer)
+{
+    if (!observer) {
+        return;
+    }
+    switchObservers_.Compute(appId, [observer](auto &, std::list<SwitchDataObserver> &value) {
+         for (const auto &item : value) {
+            if (!item) {
+                continue;
+            }
+            if (&item == &observer) {
+                ZLOGE("duplicate observer");
+                return true;
+            }
+        }
+        value.push_back(observer);
+        return true;
+    });
+}
+
+void KVDBNotifierClient::DeleteSwicthCallback(const std::string &appId, const SwitchDataObserver observer)
+{
+    if (!observer) {
+        return;
+    }
+    switchObservers_.ComputeIfPresent(appId, [observer](auto &, std::list<SwitchDataObserver> &value) {
+        value.remove_if([observer](const SwitchDataObserver &item) {
+            return &observer == &item;
+        });
+        ZLOGI("delete end, left:%{public}zu", value.size());
+        return !value.empty();
+    });
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

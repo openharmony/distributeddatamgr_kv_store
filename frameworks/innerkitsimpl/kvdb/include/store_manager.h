@@ -27,6 +27,8 @@ public:
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
     Status PutSwitch(const AppId &appId, const SwitchData &data);
     std::pair<Status, SwitchData> GetSwitch(const AppId &appId, const std::string &networkId);
+    Status SubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer);
+    Status UnsubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer);
 };
 }
 

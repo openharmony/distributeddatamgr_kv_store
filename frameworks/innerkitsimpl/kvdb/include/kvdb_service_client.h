@@ -53,6 +53,8 @@ public:
     Status NotifyDataChange(const AppId &appId, const StoreId &storeId) override;
     Status PutSwitch(const AppId &appId, const SwitchData &data) override;
     Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) override;
+    Status SubscribeSwitchData(const AppId &appId) override;
+    Status UnsubscribeSwitchData(const AppId &appId) override;
     sptr<KVDBNotifierClient> GetServiceAgent(const AppId &appId);
 
 protected:

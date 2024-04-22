@@ -148,4 +148,48 @@ std::pair<Status, SwitchData> StoreManager::GetSwitch(const AppId &appId, const 
     auto status = service->GetSwitch(appId, networkId, data);
     return { status, std::move(data) };
 }
+
+Status StoreManager::SubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+{
+    ZLOGD("appId:%{public}s", appId.appId.c_str());
+    if (!appId.IsValid() || observer == nullptr) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto status = service->SubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
+    }
+    auto serviceAgent = service->GetServiceAgent(appId);
+    if (serviceAgent == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    serviceAgent->AddSwicthCallback(appId.appId, observer);
+    return SUCCESS;
+}
+
+Status StoreManager::UnsubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+{
+    ZLOGD("appId:%{public}s", appId.appId.c_str());
+    if (!appId.IsValid() || observer == nullptr) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto status = service->UnsubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
+    }
+    auto serviceAgent = service->GetServiceAgent(appId);
+    if (serviceAgent == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    serviceAgent->DeleteSwicthCallback(appId.appId, observer);
+    return SUCCESS;
+}
 } // namespace OHOS::DistributedKv

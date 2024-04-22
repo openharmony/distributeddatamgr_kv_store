@@ -63,6 +63,8 @@ public:
     virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status PutSwitch(const AppId &appId, const SwitchData &data) = 0;
     virtual Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) = 0;
+    virtual Status SubscribeSwitchData(const AppId &appId) = 0;
+    virtual Status UnsubscribeSwitchData(const AppId &appId) = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_H

@@ -33,7 +33,8 @@ namespace DistributedKv {
 const KVDBNotifierStub::Handler
     KVDBNotifierStub::HANDLERS[static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT)] = {
     &KVDBNotifierStub::OnSyncCompleted,
-    &KVDBNotifierStub::OnOnRemoteChanged,
+    &KVDBNotifierStub::OnOnRemoteChange,
+    &KVDBNotifierStub::OnOnSwitchChange,
 };
 
 int32_t KVDBNotifierStub::OnRemoteRequest(
@@ -63,20 +64,29 @@ int32_t KVDBNotifierStub::OnSyncCompleted(MessageParcel& data, MessageParcel& re
         ZLOGE("Unmarshal results size:%{public}zu, sequenceId:%{public}" PRIu64, results.size(), sequenceId);
         return IPC_STUB_INVALID_DATA_ERR;
     }
-    SyncCompleted(results, sequenceId);
+    SyncCompleted(std::move(results), sequenceId);
     return ERR_NONE;
 }
 
-int32_t KVDBNotifierStub::OnOnRemoteChanged(MessageParcel& data, MessageParcel& reply)
+int32_t KVDBNotifierStub::OnOnRemoteChange(MessageParcel& data, MessageParcel& reply)
 {
-    std::string deviceId;
-    bool isChanged = true;
-    if (!ITypesUtil::Unmarshal(data, deviceId, isChanged)) {
-        ZLOGE("Unmarshal deviceId:%{public}s, isChanged:%{public}d",
-            StoreUtil::Anonymous(deviceId).c_str(), isChanged);
+    std::map<std::string, bool> mask;
+    if (!ITypesUtil::Unmarshal(data, mask)) {
+        ZLOGE("Unmarshal fail mask size:%{public}zu", mask.size());
         return IPC_STUB_INVALID_DATA_ERR;
     }
-    OnRemoteChanged(deviceId, isChanged);
+    OnRemoteChange(std::move(mask));
+    return ERR_NONE;
+}
+
+int32_t KVDBNotifierStub::OnOnSwitchChange(MessageParcel& data, MessageParcel& reply)
+{
+    SwitchNotification notification;
+    if (!ITypesUtil::Unmarshal(data, notification)) {
+        ZLOGE("Unmarshal fail");
+        return IPC_STUB_INVALID_DATA_ERR;
+    }
+    OnSwicthChange(std::move(notification));
     return ERR_NONE;
 }
 }  // namespace DistributedKv

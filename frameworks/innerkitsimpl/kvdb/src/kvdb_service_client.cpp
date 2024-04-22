@@ -378,4 +378,26 @@ Status KVDBServiceClient::GetSwitch(const AppId &appId, const std::string &netwo
     ITypesUtil::Unmarshal(reply, data);
     return static_cast<Status>(status);
 }
+
+Status KVDBServiceClient::SubscribeSwitchData(const AppId &appId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SUBSCRIBE_SWITCH_DATA), reply, appId, StoreId());
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+    }
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::UnsubscribeSwitchData(const AppId &appId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNSUBSCRIBE_SWITCH_DATA), reply, appId, StoreId());
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+    }
+    return static_cast<Status>(status);
+}
 } // namespace OHOS::DistributedKv
