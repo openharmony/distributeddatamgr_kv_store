@@ -22,6 +22,10 @@
 namespace DistributedDB {
 class VirtualCloudDb : public ICloudDb {
 public:
+    struct CloudData {
+        VBucket record;
+        VBucket extend;
+    };
     VirtualCloudDb() = default;
     ~VirtualCloudDb() override = default;
     DBStatus BatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
@@ -75,7 +79,10 @@ public:
 
     void ForkUpload(const std::function<void(const std::string &, VBucket &)> &forkUploadFunc);
 
-    int32_t GetLockCount();
+    void ForkInsertConflict(const std::function<DBStatus(const std::string &, VBucket &, VBucket &,
+        std::vector<CloudData> &)> &forkUploadFunc);
+
+    int32_t GetLockCount() const;
 
     void Reset();
 
@@ -89,11 +96,6 @@ public:
 
     void SetHeartbeatBlockTime(int32_t blockTime);
 private:
-    struct CloudData {
-        VBucket record;
-        VBucket extend;
-    };
-
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
 
@@ -144,6 +146,8 @@ private:
     DBStatus actionStatus_ = OK;
     std::function<void(const std::string &, VBucket &)> forkFunc_;
     std::function<void(const std::string &, VBucket &)> forkUploadFunc_;
+    std::function<DBStatus(const std::string &, VBucket &, VBucket &,
+        std::vector<CloudData> &)> forkUploadConflictFunc_;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

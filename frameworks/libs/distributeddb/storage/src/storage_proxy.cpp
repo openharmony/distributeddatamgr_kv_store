@@ -607,6 +607,15 @@ void StorageProxy::OnSyncFinish()
     store_->SyncFinishHook();
 }
 
+void StorageProxy::OnUploadStart()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->DoUploadHook();
+}
+
 void StorageProxy::CleanAllWaterMark()
 {
     cloudMetaData_->CleanAllWaterMark();

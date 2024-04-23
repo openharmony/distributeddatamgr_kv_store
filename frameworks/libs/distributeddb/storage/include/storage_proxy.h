@@ -134,6 +134,8 @@ public:
 
     void OnSyncFinish();
 
+    void OnUploadStart();
+
     void CleanAllWaterMark();
 
     std::string AppendWithUserIfNeed(const std::string &source) const;

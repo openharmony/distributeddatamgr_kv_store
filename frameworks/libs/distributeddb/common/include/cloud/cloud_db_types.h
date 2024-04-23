@@ -45,9 +45,10 @@ struct CloudSyncData {
     bool isCompensatedTask = false;
     bool isShared = false;
     int ignoredCount = 0;
+    CloudWaterType mode;
     CloudSyncData() = default;
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
-    CloudWaterType mode;
+    CloudSyncData(const std::string &_tableName, CloudWaterType _mode) : tableName(_tableName), mode(_mode) {};
 };
 
 struct CloudTaskConfig {

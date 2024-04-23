@@ -101,7 +101,8 @@ protected:
         TaskId taskId = 0u;
         Timestamp localMark = 0u;
         bool lastTable = false;
-        CloudWaterType mode;
+        CloudWaterType mode = CloudWaterType::DELETE;
+        LockAction lockAction = LockAction::INSERT;
     };
     struct DownloadItem {
         std::string gid;
@@ -161,8 +162,8 @@ protected:
 
     int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
 
-    int PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
-        CloudSyncData &uploadData, Timestamp &localMark);
+    int PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
+        CloudSyncData &uploadData);
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);
 
@@ -178,10 +179,9 @@ protected:
 
     bool IsCompensatedTask(TaskId taskId);
 
-    int DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction);
+    int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
 
-    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode,
-        InnerProcessInfo &info);
+    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info);
 
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
@@ -366,6 +366,13 @@ protected:
     bool IsNeedGetLocalWater(TaskId taskId);
 
     void SetProxyUser(const std::string &user);
+
+    std::pair<int, Timestamp> GetLocalWater(const std::string &tableName, UploadParam &uploadParam);
+
+    int HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info, CloudSyncData &uploadData,
+        ContinueToken &continueStmtToken);
+
+    bool IsNeedLock(const UploadParam &param);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

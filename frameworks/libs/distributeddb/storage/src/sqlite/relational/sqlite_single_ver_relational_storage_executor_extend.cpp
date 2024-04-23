@@ -103,6 +103,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.cloudGid); // 7 is cloud_gid
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.sharingResource); // 8 is sharing_resource
     logInfo.status = static_cast<uint64_t>(sqlite3_column_int64(statement, index++)); // 9 is status
+    (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.version); // 10 is version
     return index;
 }
 
@@ -236,7 +237,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         return -E_CLOUD_ERROR;
     }
     std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
-        " sharing_resource, status FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
+        " sharing_resource, status, version FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
     if (!cloudGid.empty()) {
         sql += "cloud_gid = ? OR ";
     }

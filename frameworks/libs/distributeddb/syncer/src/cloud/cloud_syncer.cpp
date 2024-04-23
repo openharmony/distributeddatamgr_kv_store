@@ -299,6 +299,7 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             currentContext_.isDownloadFinished[taskInfo.table[index]] = false;
+            LOGI("[CloudSyncer] upload version conflict, index:%zu", index);
         }
         return errCode;
     }
@@ -1220,6 +1221,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
         return ret;
     }
     ReloadWaterMarkIfNeed(taskId, localMark);
+    storageProxy_->OnUploadStart();
 
     int64_t count = 0;
     ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), IsModeForcePush(taskId),
@@ -1237,7 +1239,8 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
     param.count = count;
     param.lastTable = lastTable;
     param.taskId = taskId;
-    return DoUploadInner(tableName, param, lockAction);
+    param.lockAction = lockAction;
+    return DoUploadInner(tableName, param);
 }
 
 int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
@@ -1296,16 +1299,16 @@ int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
     return E_OK;
 }
 
-int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
-    CloudSyncData &uploadData, Timestamp &localMark)
+int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
+    CloudSyncData &uploadData)
 {
     // Precheck and calculate local water mark which would be updated if batch upload successed.
-    int ret = CheckTaskIdValid(taskId);
+    int ret = CheckTaskIdValid(uploadParam.taskId);
     if (ret != E_OK) {
         return ret;
     }
     ret = CloudSyncUtils::CheckCloudSyncDataValid(uploadData, innerProcessInfo.tableName,
-        innerProcessInfo.upLoadInfo.total, taskId);
+        innerProcessInfo.upLoadInfo.total, uploadParam.taskId);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Invalid Cloud Sync Data of Upload, %d.", ret);
         return ret;
@@ -1317,9 +1320,11 @@ int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &in
     }
     CloudSyncUtils::UpdateAssetsFlag(uploadData);
     // get local water mark to be updated in future.
-    ret = CloudSyncUtils::UpdateExtendTime(uploadData, innerProcessInfo.upLoadInfo.total, taskId, localMark);
+    ret = CloudSyncUtils::UpdateExtendTime(uploadData, innerProcessInfo.upLoadInfo.total,
+        uploadParam.taskId, uploadParam.localMark);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Failed to get new local water mark in Cloud Sync Data, %d.", ret);
+        return ret;
     }
     return ret;
 }
@@ -1373,50 +1378,22 @@ bool CloudSyncer::IsPriorityTask(TaskId taskId)
     return cloudTaskInfos_[taskId].priorityTask;
 }
 
-int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, CloudWaterType mode,
-    InnerProcessInfo &info)
+int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info)
 {
     ContinueToken continueStmtToken = nullptr;
-    CloudSyncData uploadData(tableName);
+    CloudSyncData uploadData(tableName, uploadParam.mode);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
-    uploadData.mode = mode;
-    Timestamp typeTimeStamp = 0u;
-    if (IsNeedGetLocalWater(uploadParam.taskId)) {
-        (void)storageProxy_->GetLocalWaterMarkByMode(tableName, typeTimeStamp, mode);
+    auto [err, localWater] = GetLocalWater(tableName, uploadParam);
+    if (err != E_OK) {
+        return err;
     }
-    uploadParam.localMark = typeTimeStamp;
-    int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), typeTimeStamp, continueStmtToken, uploadData);
+    int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), localWater, continueStmtToken, uploadData);
     if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
         LOGE("[CloudSyncer] Failed to get cloud data when upload, %d.", ret);
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
-    uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
-    uploadParam.mode = mode;
-    while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
-        ret = PreProcessBatchUpload(uploadParam.taskId, info, uploadData, uploadParam.localMark);
-        if (ret != E_OK) {
-            break;
-        }
-        info.upLoadInfo.batchIndex = ++batchIndex;
-        ret = DoBatchUpload(uploadData, uploadParam, info);
-        if (ret != E_OK) {
-            NotifyUploadFailed(ret, info);
-            break;
-        }
-        uploadData = CloudSyncData(tableName);
-        if (continueStmtToken == nullptr) {
-            break;
-        }
-        SetUploadDataFlag(uploadParam.taskId, uploadData);
-        RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
-        ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
-        if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
-            LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
-            break;
-        }
-        ChkIgnoredProcess(info, uploadData, uploadParam);
-    }
+    ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused
         RecordWaterMark(uploadParam.taskId, 0u);
@@ -1427,26 +1404,19 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     return ret;
 }
 
-int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam, LockAction lockAction)
+int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
 {
     InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
-    int errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::DELETE, info);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::UPDATE, info);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (lockAction == LockAction::INSERT) {
-        errCode = LockCloudIfNeed(uploadParam.taskId);
+    static std::vector<CloudWaterType> waterTypes = {
+        CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT
+    };
+    int errCode = E_OK;
+    for (const auto &waterType: waterTypes) {
+        uploadParam.mode = waterType;
+        errCode = DoUploadByMode(tableName, uploadParam, info);
         if (errCode != E_OK) {
             return errCode;
         }
-    }
-    errCode = DoUploadByMode(tableName, uploadParam, CloudWaterType::INSERT, info);
-    if (lockAction == LockAction::INSERT) {
-        UnlockIfNeed();
     }
     return errCode;
 }
@@ -1921,12 +1891,6 @@ void CloudSyncer::UnlockIfNeed()
     std::shared_ptr<CloudLocker> cacheLocker;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (!closed_ &&
-            ((cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && priorityTaskQueue_.size() > 1) ||
-            (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && !priorityTaskQueue_.empty()))) {
-            LOGD("[CloudSyncer] don't unlock because exist priority task");
-            return;
-        }
         if (currentContext_.locker == nullptr) {
             LOGW("[CloudSyncer] locker is nullptr when unlock it"); // should not happen
         }

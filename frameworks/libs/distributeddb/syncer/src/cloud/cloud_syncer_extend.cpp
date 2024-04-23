@@ -129,7 +129,11 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 
 void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 {
-    LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        LOGW("[CloudSyncer] Stop upload due to version conflict, %d", errCode);
+    } else {
+        LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
+    }
     info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
     info.tableStatus = ProcessStatus::FINISHED;
     {
@@ -161,11 +165,6 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    ret = storageProxy_->FillCloudLogAndAsset(OpType::INSERT_VERSION, uploadData);
-    if (ret != E_OK) {
-        LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-        return ret;
-    }
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     return E_OK;
 }
@@ -191,11 +190,6 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
     if ((errorCode != E_OK) || (ret != E_OK)) {
         LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
-    }
-    ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
-    if (ret != E_OK) {
-        LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-        return ret;
     }
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     return E_OK;
@@ -665,5 +659,63 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
 bool CloudSyncer::IsNeedGetLocalWater(TaskId taskId)
 {
     return !IsModeForcePush(taskId) && !IsPriorityTask(taskId) && !IsCompensatedTask(taskId);
+}
+
+bool CloudSyncer::IsNeedLock(const UploadParam &param)
+{
+    return param.lockAction == LockAction::INSERT && param.mode == CloudWaterType::INSERT;
+}
+
+std::pair<int, Timestamp> CloudSyncer::GetLocalWater(const std::string &tableName, UploadParam &uploadParam)
+{
+    std::pair<int, Timestamp> res = { E_OK, 0u };
+    if (IsNeedGetLocalWater(uploadParam.taskId)) {
+        res.first = storageProxy_->GetLocalWaterMarkByMode(tableName, res.second, uploadParam.mode);
+    }
+    uploadParam.localMark = res.second;
+    return res;
+}
+
+int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info,
+    CloudSyncData &uploadData, ContinueToken &continueStmtToken)
+{
+    int ret = E_OK;
+    uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
+    bool isLocked = false;
+    while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+        ret = PreProcessBatchUpload(uploadParam, info, uploadData);
+        if (ret != E_OK) {
+            break;
+        }
+        if (IsNeedLock(uploadParam) && !isLocked) {
+            ret = LockCloudIfNeed(uploadParam.taskId);
+            if (ret != E_OK) {
+                break;
+            }
+            isLocked = true;
+        }
+        info.upLoadInfo.batchIndex = ++batchIndex;
+        ret = DoBatchUpload(uploadData, uploadParam, info);
+        if (ret != E_OK) {
+            NotifyUploadFailed(ret, info);
+            break;
+        }
+        uploadData = CloudSyncData(uploadData.tableName, uploadParam.mode);
+        if (continueStmtToken == nullptr) {
+            break;
+        }
+        SetUploadDataFlag(uploadParam.taskId, uploadData);
+        RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
+        ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
+        if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
+            LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
+            break;
+        }
+        ChkIgnoredProcess(info, uploadData, uploadParam);
+    }
+    if (isLocked && IsNeedLock(uploadParam)) {
+        UnlockIfNeed();
+    }
+    return ret;
 }
 }

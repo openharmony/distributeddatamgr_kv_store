@@ -69,10 +69,18 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
 DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
     std::vector<VBucket> &extend)
 {
+    DBStatus res = OK;
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) != extend[i].end()) {
             LOGE("[VirtualCloudDb] Insert data should not have gid");
             return DB_ERROR;
+        }
+        if (forkUploadConflictFunc_) {
+            DBStatus ret = forkUploadConflictFunc_(tableName, extend[i], record[i], cloudData_[tableName]);
+            if (ret != OK) {
+                res = ret;
+                continue;
+            }
         }
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
@@ -92,7 +100,7 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
         cloudData_[tableName].push_back(cloudData);
         auto gid = std::get<std::string>(extend[i][g_gidField]);
     }
-    return OK;
+    return res;
 }
 
 DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::vector<VBucket> &&record,
@@ -416,6 +424,7 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
 DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, std::vector<VBucket> &&record,
     std::vector<VBucket> &extend, bool isDelete)
 {
+    DBStatus res = OK;
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) == extend[i].end()) {
             LOGE("[VirtualCloudDb] Update data should have gid");
@@ -425,7 +434,6 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
-        extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
         AddAssetIdForExtend(record[i], extend[i]);
         if (forkUploadFunc_) {
             forkUploadFunc_(tableName, extend[i]);
@@ -439,11 +447,16 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
             .record = std::move(record[i]),
             .extend = extend[i]
         };
-        if (UpdateCloudData(tableName, std::move(cloudData)) != OK) {
-            return DB_ERROR;
+        extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
+        DBStatus ret = UpdateCloudData(tableName, std::move(cloudData));
+        if (ret == CLOUD_VERSION_CONFLICT) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+            res = CLOUD_VERSION_CONFLICT;
+        } else if (ret != OK) {
+            return ret;
         }
     }
-    return OK;
+    return res;
 }
 
 DBStatus VirtualCloudDb::UpdateCloudData(const std::string &tableName, VirtualCloudDb::CloudData &&cloudData)
@@ -467,6 +480,13 @@ DBStatus VirtualCloudDb::UpdateCloudData(const std::string &tableName, VirtualCl
             }
             LOGD("[VirtualCloudDb] delete data, gid %s", paramGid.c_str());
         }
+        if (cloudData.extend.find(CloudDbConstant::VERSION_FIELD) != cloudData.extend.end()) {
+            if (std::get<std::string>(data.extend[CloudDbConstant::VERSION_FIELD]) !=
+                std::get<std::string>(cloudData.extend[CloudDbConstant::VERSION_FIELD])) {
+                return CLOUD_VERSION_CONFLICT;
+            }
+        }
+        cloudData.extend[CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_ - 1);
         data = std::move(cloudData);
         return OK;
     }
@@ -562,7 +582,7 @@ void VirtualCloudDb::ForkUpload(const std::function<void(const std::string &, VB
     forkUploadFunc_ = forkUploadFunc;
 }
 
-int32_t VirtualCloudDb::GetLockCount()
+int32_t VirtualCloudDb::GetLockCount() const
 {
     return lockCount_;
 }
@@ -622,5 +642,11 @@ void VirtualCloudDb::AddAssetsIdInner(Assets &assets)
 void VirtualCloudDb::SetHeartbeatBlockTime(int32_t blockTime)
 {
     heartbeatBlockTimeMs_ = blockTime;
+}
+
+void VirtualCloudDb::ForkInsertConflict(const std::function<DBStatus(const std::string &, VBucket &, VBucket &,
+    std::vector<CloudData> &)> &func)
+{
+    forkUploadConflictFunc_ = func;
 }
 }

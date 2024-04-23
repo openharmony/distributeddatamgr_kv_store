@@ -150,6 +150,7 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
         EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
         localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
         localLogInfo.sharingResource == cloudLogInfo.sharingResource &&
+        localLogInfo.version == cloudLogInfo.version &&
         (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
     return !isSame;
 }

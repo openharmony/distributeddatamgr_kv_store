@@ -65,6 +65,14 @@ public:
     virtual void SyncFinishHook()
     {
     }
+
+    virtual void SetDoUploadHook(const std::function<void (void)> &)
+    {
+    }
+
+    virtual void DoUploadHook()
+    {
+    }
 };
 
 class ICloudSyncStorageInterface : public ICloudSyncStorageHook {

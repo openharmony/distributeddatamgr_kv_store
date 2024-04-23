@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return -E_CLOUD_ERROR;
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
-        " a.cloud_gid, a.sharing_resource, a.status";
+        " a.cloud_gid, a.sharing_resource, a.status, a.version";
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
@@ -155,7 +155,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
         if (data.assets.at(i).empty()) {
             continue;
         }
-        if (DBCommon::IsRecordIgnored(data.extend[i])) {
+        if (DBCommon::IsRecordIgnored(data.extend[i]) || DBCommon::IsRecordVersionConflict(data.extend[i])) {
             continue;
         }
         errCode = InitFillUploadAssetStatement(opType, tableSchema, data, i, stmt);
@@ -190,9 +190,6 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
 
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data)
 {
-    if (!data.isShared) {
-        return E_OK;
-    }
     switch (opType) {
         case OpType::UPDATE_VERSION:
             return SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(data.tableName, data.updData);
@@ -1281,14 +1278,23 @@ int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType 
             }
             if (fillAsset) {
                 errCode = FillCloudAssetForUpload(opType, tableSchema, data.insData);
+                if (errCode != E_OK) {
+                    LOGE("Failed to fill asset for ins, %d.", errCode);
+                    return errCode;
+                }
             }
+            errCode = FillCloudVersionForUpload(OpType::INSERT_VERSION, data);
             break;
         }
         case OpType::UPDATE: {
-            if (!fillAsset || data.updData.assets.empty()) {
-                break;
+            if (fillAsset && !data.updData.assets.empty()) {
+                errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+                if (errCode != E_OK) {
+                    LOGE("Failed to fill asset for upd, %d.", errCode);
+                    return errCode;
+                }
             }
-            errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+            errCode = FillCloudVersionForUpload(OpType::UPDATE_VERSION, data);
             break;
         }
         default:

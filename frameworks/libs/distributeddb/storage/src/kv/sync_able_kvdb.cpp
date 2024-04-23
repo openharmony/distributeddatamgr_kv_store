@@ -527,6 +527,7 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.devices = option.devices;
     info.mode = option.mode;
     info.users = option.users;
+    info.lockAction = option.lockAction;
 }
 
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)

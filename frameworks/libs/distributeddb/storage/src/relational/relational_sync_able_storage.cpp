@@ -1796,7 +1796,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
 {
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record) || isLock) {
+        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordVersionConflict(record) || isLock) {
             int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
                 updateData.hashKey[i]);
             if (errCode != E_OK) {
@@ -2037,6 +2037,18 @@ int RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)
 {
     syncFinishFunc_ = func;
     return E_OK;
+}
+
+void RelationalSyncAbleStorage::DoUploadHook()
+{
+    if (uploadStartFunc_) {
+        uploadStartFunc_();
+    }
+}
+
+void RelationalSyncAbleStorage::SetDoUploadHook(const std::function<void (void)> &func)
+{
+    uploadStartFunc_ = func;
 }
 }
 #endif

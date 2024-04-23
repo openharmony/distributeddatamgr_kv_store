@@ -215,6 +215,10 @@ public:
     void SyncFinishHook() override;
 
     int SetSyncFinishHook(const std::function<void (void)> &func) override;
+
+    void SetDoUploadHook(const std::function<void (void)> &) override;
+
+    void DoUploadHook() override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -313,6 +317,7 @@ private:
     std::atomic<bool> allowLogicDelete_ = false;
 
     std::function<void (void)> syncFinishFunc_;
+    std::function<void (void)> uploadStartFunc_;
 };
 }  // namespace DistributedDB
 #endif
