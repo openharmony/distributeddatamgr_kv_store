@@ -94,12 +94,12 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
         if (argc > 1) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "Parameter error:parameter deviceId is incorrect");
+                "Parameter error:parameter deviceId must be string and not allow empty");
         }
         int32_t pos = (argc == 1) ? 0 : 1;
         ctxt->status = JSUtil::GetValue(env, argv[pos], ctxt->key);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:type of key must be string");
+            "Parameter error:type of key must be string and not allow empty");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeviceGet exits");
@@ -136,14 +136,14 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[pos], &type);
     if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
-        va.errMsg = "Parameter error:parameters keyPrefix/query is incorrect";
+        va.errMsg = "Parameter error:parameters keyPrefix/query must string or object type";
         return statusMsg != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
         std::string keyPrefix;
         statusMsg = JSUtil::GetValue(env, argv[pos], keyPrefix);
         if (keyPrefix.empty()) {
-            va.errMsg = "Parameter error:parameters keyPrefix is incorrect";
+            va.errMsg = "Parameter error:parameters keyPrefix must string";
             return napi_invalid_arg;
         }
         va.dataQuery.KeyPrefix(keyPrefix);
@@ -154,7 +154,7 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
             JsQuery *jsQuery = nullptr;
             statusMsg = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
             if (jsQuery == nullptr) {
-                va.errMsg = "Parameter error:The parameters query is incorrect";
+                va.errMsg = "Parameter error:The parameters query must string";
                 return napi_invalid_arg;
             }
             va.dataQuery = jsQuery->GetDataQuery();

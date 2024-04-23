@@ -100,13 +100,17 @@ struct GetKVStoreContext : public ContextBase {
             ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT,
                 "Parameter error:Mandatory parameters are left unspecified");
             status = JSUtil::GetValue(env, argv[0], storeId);
-            ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && !storeId.empty()), Status::INVALID_ARGUMENT,
-                "Parameter error:storeId must be string");
+            ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && JSUtil::IsValid(storeId)), Status::INVALID_ARGUMENT,
+                "Parameter error:The storeId must string; consist of only letters, digits, and underscores (_), and cannot exceed 128 characters");
             status = JSUtil::GetValue(env, argv[1], options);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
                 "Parameter error:The type of options is incorrect");
+            ASSERT_BUSINESS_ERR(this, options.securityLevel != INVALID_LABEL, Status::INVALID_ARGUMENT,
+                "Parameter error:unusable securityLevel");
             ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), Status::INVALID_ARGUMENT,
                 "Parameter error:kvStoreType is incorrect");
+            ASSERT_BUSINESS_ERR(this, options.IsPathValid(), Status::INVALID_ARGUMENT,
+                "Parameter error:baseDir and groupDir can not be empty/exist at the same time");
             ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
                 ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
@@ -184,10 +188,10 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:invalid appId");
+            "Parameter error:appId empty");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:invalid storeId");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
+            "Parameter error:The storeId must string; consist of only letters, digits, and underscores (_), limit 128 characters");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CloseKVStore exits");
@@ -224,10 +228,10 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         size_t index = 0;
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->appId);
         ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:invalid appId");
+            "Parameter error:appId empty");
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->storeId);
-        ASSERT_BUSINESS_ERR(ctxt, !ctxt->storeId.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:invalid appId");
+        ASSERT_BUSINESS_ERR(ctxt, JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
+            "Parameter error:The storeId must string; consist of only letters, digits, and underscores (_), limit 128 characters");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteKVStore exits");
@@ -265,7 +269,9 @@ napi_value JsKVManager::GetAllKVStoreId(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
         ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:invalid appId");
+            "Parameter error:appId empty");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->appId.size() < MAX_APP_ID_LEN), Status::INVALID_ARGUMENT,
+            "Parameter error:appId exceed 256 characters");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetAllKVStoreId exits");
@@ -296,12 +302,12 @@ napi_value JsKVManager::On(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("subscribe to event:%{public}s", event.c_str());
         ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", Status::INVALID_ARGUMENT,
-            "Parameter error:parameter event incorrect");
+            "Parameter error:parameter event type not equal distributedDataServiceDie");
 
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[1], &valueType);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-            "Parameter error:parameter callback type error");
+            "Parameter error:parameter callback must function type");
 
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         ASSERT_BUSINESS_ERR(ctxt, proxy != nullptr, Status::INVALID_ARGUMENT,
@@ -337,13 +343,13 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         // required 1 arguments :: <event>
         ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without" : "with");
         ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", Status::INVALID_ARGUMENT,
-            "Parameter error:parameter event incorrect");
+            "Parameter error:parameter event not equal distributedDataServiceDie");
         // have 2 arguments :: have the [callback]
         if (argc == 2) {
             napi_valuetype valueType = napi_undefined;
             ctxt->status = napi_typeof(env, argv[1], &valueType);
             ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function),
-                Status::INVALID_ARGUMENT, "Parameter error:parameter callback type error");
+                Status::INVALID_ARGUMENT, "Parameter error:parameter callback type must function");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         std::lock_guard<std::mutex> lck(proxy->deathMutex_);
@@ -401,13 +407,13 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
         napi_value jsContext = nullptr;
         JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
         ctxt->status = JSUtil::GetValue(env, jsContext, param);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:get context failed");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "JsKVManager New exit");
 
     JsKVManager* kvManager = new (std::nothrow) JsKVManager(bundleName, env, param);
-    ASSERT_ERR(env, kvManager != nullptr, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
+    ASSERT_ERR(env, kvManager != nullptr, Status::INVALID_ARGUMENT, "Parameter error:kvManager  nullptr");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");

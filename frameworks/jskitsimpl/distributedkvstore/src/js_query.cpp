@@ -72,7 +72,7 @@ napi_value JsQuery::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:get params failed");
 
     JsQuery* query = new (std::nothrow) JsQuery();
     ASSERT_ERR(env, query != nullptr, Status::INVALID_ARGUMENT,
@@ -92,7 +92,7 @@ napi_value JsQuery::Reset(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:reset failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Reset();
@@ -111,10 +111,10 @@ struct ValueContext : public ContextBase {
                 "Parameter error:Mandatory parameters are left unspecified");
             status = JSUtil::GetValue(env, argv[0], field);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                "Parameter error:parameter field is incorrect");
+                "Parameter error:parameter field type must string");
             status = JSUtil::GetValue(env, argv[1], vv);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                "Parameter error:parameter value is incorrect");
+                "Parameter error:parameter value type must object");
         };
         GetCbInfoSync(env, info, input);
     }
@@ -132,7 +132,7 @@ napi_value JsQuery::EqualTo(napi_env env, napi_callback_info info)
     }
     ASSERT_NULL(!ctxt->isThrowError, "EqualTo exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:equalto failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -159,7 +159,7 @@ napi_value JsQuery::NotEqualTo(napi_env env, napi_callback_info info)
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "NotEqualTo exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:NotEqualTo failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -267,7 +267,7 @@ napi_value JsQuery::LessThanOrEqualTo(napi_env env, napi_callback_info info)
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "LessThanOrEqualTo exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "The function LessThanOrEqualTo parameter is incorrect.");
+        "The function LessThanOrEqualTo failed.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -297,12 +297,12 @@ napi_value JsQuery::IsNull(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters field is incorrect");
+            "Parameter error:parameters field must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "IsNull exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:IsNull failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.IsNull(field);
@@ -334,7 +334,7 @@ struct NumbersContext : public ContextBase {
                 "Parameter error:Mandatory parameters are left unspecified");
             status = JSUtil::GetValue(env, argv[0], field);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                "Parameter error:parameters field is incorrect");
+                "Parameter error:parameters field must string");
             bool isTypedArray = false;
             status = napi_is_typedarray(env, argv[1], &isTypedArray);
             ZLOGD("arg[1] %{public}s a TypedArray", isTypedArray ? "is" : "is not");
@@ -346,7 +346,7 @@ struct NumbersContext : public ContextBase {
                 void* data = nullptr;
                 status = napi_get_typedarray_info(env, argv[1], &type, &length, &data, &buffer, &offset);
                 ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                    "Parameter error:parameters numberArray is incorrect");
+                    "Parameter error:parameters numberArray must array");
                 if (type < napi_uint32_array) {
                     status = JSUtil::GetValue(env, argv[1], intList);
                     innerType = NumberType::NUMBER_INT;
@@ -361,11 +361,11 @@ struct NumbersContext : public ContextBase {
                 bool isArray = false;
                 status = napi_is_array(env, argv[1], &isArray);
                 ASSERT_BUSINESS_ERR(this, isArray, Status::INVALID_ARGUMENT,
-                    "Parameter error:Incorrect parameter types");
+                    "Parameter error:parameter isArray must boolean");
                 ZLOGD("arg[1] %{public}s a Array, treat as array of double.", isTypedArray ? "is" : "is not");
                 status = JSUtil::GetValue(env, argv[1], doubleList);
                 ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                    "Parameter error:parameters numberArray is incorrect");
+                    "Parameter error:parameters doubleList must array");
                 innerType = NumberType::NUMBER_DOUBLE;
             }
         };
@@ -380,7 +380,7 @@ napi_value JsQuery::InNumber(napi_env env, napi_callback_info info)
     ctxt->GetNumberSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "InNumber exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:InNumber failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     if (ctxt->innerType == NumberType::NUMBER_INT) {
@@ -407,15 +407,15 @@ napi_value JsQuery::InString(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters filed is incorrect");
+            "Parameter error:parameters filed must string");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->valueList);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters valueList is incorrect");
+            "Parameter error:parameters valueList must array");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "InString exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:InString failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.In(ctxt->field, ctxt->valueList);
@@ -429,7 +429,7 @@ napi_value JsQuery::NotInNumber(napi_env env, napi_callback_info info)
     ctxt->GetNumberSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "NotInNumber exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:NotInNumber failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     if (ctxt->innerType == NumberType::NUMBER_INT) {
@@ -456,14 +456,14 @@ napi_value JsQuery::NotInString(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters filed is incorrect");
+            "Parameter error:parameters filed must string");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->valueList);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters valueList is incorrect");
+            "Parameter error:parameters valueList must array");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "NotInString exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:Parameters verification failed");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:NotInString failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.NotIn(ctxt->field, ctxt->valueList);
@@ -484,15 +484,15 @@ napi_value JsQuery::Like(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters filed is incorrect");
+            "Parameter error:parameters filed must string");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters value is incorrect");
+            "Parameter error:parameters value must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Like exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:Like failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Like(ctxt->field, ctxt->value);
@@ -513,15 +513,15 @@ napi_value JsQuery::Unlike(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters field is incorrect");
+            "Parameter error:parameters field must string");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters value is incorrect");
+            "Parameter error:parameters value must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Unlike exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:Unlike failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Unlike(ctxt->field, ctxt->value);
@@ -533,7 +533,7 @@ napi_value JsQuery::And(napi_env env, napi_callback_info info)
     ZLOGD("Query::And()");
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:And failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.And();
@@ -545,7 +545,7 @@ napi_value JsQuery::Or(napi_env env, napi_callback_info info)
     ZLOGD("Query::Or()");
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Or failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Or();
@@ -563,12 +563,12 @@ napi_value JsQuery::OrderByAsc(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters field is incorrect");
+            "Parameter error:parameters field must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "OrderByAsc exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:OrderByAsc failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.OrderByAsc(field);
@@ -586,12 +586,12 @@ napi_value JsQuery::OrderByDesc(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters field is incorrect");
+            "Parameter error:parameters field must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "OrderByDesc exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:OrderByDesc failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.OrderByDesc(field);
@@ -611,15 +611,15 @@ napi_value JsQuery::Limit(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = napi_get_value_int32(env, argv[0], &ctxt->number);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters number is incorrect");
+            "Parameter error:parameters number must int");
         ctxt->status = napi_get_value_int32(env, argv[1], &ctxt->offset);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters offset is incorrect");
+            "Parameter error:parameters offset must int");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Limit exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:Limit failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Limit(ctxt->number, ctxt->offset);
@@ -637,12 +637,12 @@ napi_value JsQuery::IsNotNull(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters field is incorrect");
+            "Parameter error:parameters field must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "IsNotNull exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:IsNotNull failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.IsNotNull(field);
@@ -654,7 +654,7 @@ napi_value JsQuery::BeginGroup(napi_env env, napi_callback_info info)
     ZLOGD("Query::BeginGroup()");
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:BeginGroup failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.BeginGroup();
@@ -666,7 +666,7 @@ napi_value JsQuery::EndGroup(napi_env env, napi_callback_info info)
     ZLOGD("Query::EndGroup()");
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:EndGroup failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.EndGroup();
@@ -683,12 +683,12 @@ napi_value JsQuery::PrefixKey(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], prefix);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters prefix is incorrect");
+            "Parameter error:parameters prefix must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "PrefixKey exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:PrefixKey failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.KeyPrefix(prefix);
@@ -705,12 +705,12 @@ napi_value JsQuery::SetSuggestIndex(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], suggestIndex);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:parameters suggestIndex is incorrect");
+            "Parameter error:parameters suggestIndex must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "SetSuggestIndex exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:SetSuggestIndex failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.SetSuggestIndex(suggestIndex);
@@ -727,12 +727,12 @@ napi_value JsQuery::DeviceId(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], deviceId);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:deviceId incorrect");
+            "Parameter error:deviceId must string");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeviceId exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:Parameters verification failed");
+        "Parameter error:DeviceId failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.DeviceId(deviceId);
@@ -744,7 +744,7 @@ napi_value JsQuery::GetSqlLike(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters verification failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:GetSqlLike failed");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     JSUtil::SetValue(env, query.ToString(), ctxt->output);
