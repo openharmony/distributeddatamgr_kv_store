@@ -45,6 +45,14 @@ StoreUtil::DBSecurity StoreUtil::GetDBSecurity(int32_t secLevel)
     return { secLevel, DistributedDB::ECE };
 }
 
+StoreUtil::DBIndexType StoreUtil::GetDBIndexType(IndexType type)
+{
+    if (type == IndexType::BTREE) {
+        return DistributedDB::BTREE;
+    }
+    return DistributedDB::HASH;
+}
+
 int32_t StoreUtil::GetSecLevel(StoreUtil::DBSecurity dbSec)
 {
     switch (dbSec.securityLabel) {
@@ -105,7 +113,7 @@ std::string StoreUtil::Anonymous(const std::string &name)
 uint32_t StoreUtil::Anonymous(const void *ptr)
 {
     uint32_t hash = (uintptr_t(ptr) & 0xFFFFFFFF);
-    hash = (hash & 0xFFFF) ^ ((hash >> 16) & 0xFFFF);
+    hash = (hash & 0xFFFF) ^ ((hash >> 16) & 0xFFFF); // 16 is right shift quantity
     return hash;
 }
 

@@ -34,6 +34,7 @@ public:
     static constexpr const char *VERSION_FIELD = "#_version";
     static constexpr const char *ERROR_FIELD = "#_error";
     static constexpr const char *SHARING_RESOURCE_FIELD = "#_sharing_resource";
+    static constexpr const char *HASH_KEY_FIELD = "#_hash_key";
     static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
     static constexpr const char *ASSET = "asset";
     static constexpr const char *ASSETS = "assets";
@@ -48,6 +49,14 @@ public:
     static constexpr const char *TIMESTAMP = "timestamp";
     static constexpr const char *HASH_KEY = "hash_key";
     static constexpr const char *STATUS = "status";
+
+    // kv cloud field
+    static constexpr const char *CLOUD_KV_FIELD_KEY = "key";
+    static constexpr const char *CLOUD_KV_FIELD_VALUE = "value";
+    static constexpr const char *CLOUD_KV_FIELD_DEVICE = "cur_device";
+    static constexpr const char *CLOUD_KV_FIELD_ORI_DEVICE = "ori_device";
+    static constexpr const char *CLOUD_KV_FIELD_DEVICE_CREATE_TIME = "device_create_time";
+    static constexpr const char *CLOUD_KV_TABLE_NAME = "sync_data";
 
     // data status changes to lock_change
     static constexpr const char *TO_LOCAL_CHANGE = "status = CASE WHEN status == 2 THEN 3 ELSE status END";

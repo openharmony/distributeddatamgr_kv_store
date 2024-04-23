@@ -101,8 +101,6 @@ public:
 
     int CleanWaterMarkInMemory(const TableName &tableName);
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
-
     int CreateTempSyncTrigger(const std::string &tableName);
 
     int ClearAllTempSyncTrigger();
@@ -125,7 +123,13 @@ public:
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
+    void SetUser(const std::string &user);
+
     void OnSyncFinish();
+
+    void CleanAllWaterMark();
+
+    std::string AppendWithUserIfNeed(const std::string &source) const;
 protected:
     void Init();
 
@@ -137,6 +141,7 @@ private:
     std::atomic<bool> transactionExeFlag_;
     std::shared_ptr<CloudMetaData> cloudMetaData_;
     std::atomic<bool> isWrite_;
+    std::string user_;
 };
 }
 

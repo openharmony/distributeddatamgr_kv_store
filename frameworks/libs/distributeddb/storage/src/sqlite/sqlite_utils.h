@@ -201,6 +201,7 @@ public:
 
     static int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table);
 
+    static int StepNext(sqlite3_stmt *stmt, bool isMemDb = false);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

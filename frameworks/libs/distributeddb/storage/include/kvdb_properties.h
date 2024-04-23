@@ -70,6 +70,9 @@ public:
 
     static const std::string SHARED_MODE;
     static const std::string READ_ONLY_MODE;
+    static const std::string PAGE_SIZE;
+    static const std::string INDEX_TYPE;
+    static const std::string CACHE_SIZE;
 
     static const int LOCAL_TYPE_SQLITE = 1;
     static const int MULTI_VER_TYPE_SQLITE = 2;

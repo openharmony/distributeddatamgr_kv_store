@@ -182,8 +182,6 @@ public:
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid) override;
-
     int CheckQueryValid(const QuerySyncObject &query) override;
 
     int CreateTempSyncTrigger(const std::string &tableName) override;

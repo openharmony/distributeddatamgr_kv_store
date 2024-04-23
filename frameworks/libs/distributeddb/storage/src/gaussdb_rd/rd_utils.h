@@ -27,8 +27,7 @@
 
 namespace DistributedDB {
 
-const std::string SYNC_COLLECTION_NAME =
-    "naturalbase_kv_sync_data";
+const std::string SYNC_COLLECTION_NAME = "naturalbase_kv_sync_data";
 
 std::string InitRdConfig();
 

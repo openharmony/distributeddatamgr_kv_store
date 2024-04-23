@@ -112,6 +112,10 @@ public:
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 
     int UpgradeSchemaVerInMeta() override;
+
+    int64_t GetLocalTimeOffset() override;
+
+    int32_t GetTaskCount() override;
 private:
     std::mutex syncerLock_;
     std::shared_ptr<ISyncer> syncer_;

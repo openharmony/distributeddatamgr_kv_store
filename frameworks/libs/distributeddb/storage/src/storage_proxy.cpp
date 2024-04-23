@@ -60,7 +60,7 @@ int StorageProxy::GetLocalWaterMark(const std::string &tableName, Timestamp &loc
         LOGE("the write transaction has been started, can not get meta");
         return -E_BUSY;
     }
-    return cloudMetaData_->GetLocalWaterMark(tableName, localMark);
+    return cloudMetaData_->GetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
 }
 
 int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &localMark)
@@ -73,7 +73,7 @@ int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &loc
         LOGE("the write transaction has been started, can not put meta");
         return -E_BUSY;
     }
-    return cloudMetaData_->SetLocalWaterMark(tableName, localMark);
+    return cloudMetaData_->SetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
 }
 
 int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
@@ -82,7 +82,7 @@ int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &c
     if (cloudMetaData_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->GetCloudWaterMark(tableName, cloudMark);
+    return cloudMetaData_->GetCloudWaterMark(AppendWithUserIfNeed(tableName), cloudMark);
 }
 
 int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
@@ -91,7 +91,7 @@ int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &c
     if (cloudMetaData_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->SetCloudWaterMark(tableName, cloudMark);
+    return cloudMetaData_->SetCloudWaterMark(AppendWithUserIfNeed(tableName), cloudMark);
 }
 
 int StorageProxy::StartTransaction(TransactType type)
@@ -252,7 +252,7 @@ int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &d
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-
+    downloadData.user = user_;
     return store_->PutCloudSyncData(tableName, downloadData);
 }
 
@@ -405,7 +405,7 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
         LOGW("[StorageProxy] meta is nullptr return default");
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->CleanWaterMark(tableName);
+    return cloudMetaData_->CleanWaterMark(AppendWithUserIfNeed(tableName));
 }
 
 int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableName)
@@ -415,17 +415,17 @@ int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableNa
         LOGW("[StorageProxy] CleanWaterMarkInMemory is nullptr return default");
         return -E_INVALID_DB;
     }
-    cloudMetaData_->CleanWaterMarkInMemory(tableName);
+    cloudMetaData_->CleanWaterMarkInMemory(AppendWithUserIfNeed(tableName));
     return E_OK;
 }
 
-int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
+void StorageProxy::SetUser(const std::string &user)
 {
+    user_ = user;
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
+    if (store_ != nullptr) {
+        store_->SetUser(user);
     }
-    return store_->GetCloudDataGid(query, beginTime, gid);
 }
 
 int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
@@ -540,5 +540,18 @@ void StorageProxy::OnSyncFinish()
         return;
     }
     store_->SyncFinishHook();
+}
+
+void StorageProxy::CleanAllWaterMark()
+{
+    cloudMetaData_->CleanAllWaterMark();
+}
+
+std::string StorageProxy::AppendWithUserIfNeed(const std::string &source) const
+{
+    if (user_.empty()) {
+        return source;
+    }
+    return source + "_" + user_;
 }
 }

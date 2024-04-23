@@ -423,8 +423,16 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     option.isNeedIntegrityCheck = kvDBProp.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false);
     option.isNeedRmCorruptedDb = kvDBProp.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false);
     bool isSharedMode = kvDBProp.GetBoolProp(KvDBProperties::SHARED_MODE, false);
-    std::string config = "{" + InitRdConfig();
-    config += isSharedMode ? R"(, "sharedModeEnable": 1)" : R"(, "sharedModeEnable": 0)";
+    option.isHashTable = (IndexType)kvDBProp.GetIntProp(KvDBProperties::INDEX_TYPE, BTREE) == HASH;
+    int pageSize = kvDBProp.GetIntProp(KvDBProperties::PAGE_SIZE, 32);
+    int cacheSize = kvDBProp.GetIntProp(KvDBProperties::CACHE_SIZE, 2048);
+
+    std::string config = "{";
+    config += InitRdConfig() + R"(, )";
+    config += R"("pageSize":)" + std::to_string(pageSize) + R"(, )";
+    config += R"("bufferPoolSize":)" + std::to_string(cacheSize) + R"(, )";
+    config += R"("redoPubBufSize":)" + std::to_string(cacheSize) + R"(, )";
+    config += isSharedMode ? R"("sharedModeEnable": 1)" : R"("sharedModeEnable": 0)";
     config += "}";
     option.rdConfig = config;
 }

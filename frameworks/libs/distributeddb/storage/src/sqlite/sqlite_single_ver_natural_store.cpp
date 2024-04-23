@@ -173,7 +173,8 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       createDBTime_(0),
       dataInterceptor_(nullptr),
       maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
-      abortPerm_(OperatePerm::NORMAL_PERM)
+      abortPerm_(OperatePerm::NORMAL_PERM),
+      sqliteCloudKvStore_(nullptr)
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
@@ -958,6 +959,27 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     return RemoveDeviceDataInner(hashDeviceId, isNeedNotify);
 }
 
+// In sync procedure, call this function
+int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, ClearMode mode)
+{
+    int errCode = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), mode);
+    if (errCode == E_OK) {
+        CleanAllWaterMark();
+    }
+    return errCode;
+}
+
+// In sync procedure, call this function
+int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, const std::string &user,
+    ClearMode mode)
+{
+    int errCode = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), user, mode);
+    if (errCode == E_OK) {
+        CleanAllWaterMark();
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify) const
 {
     int errCode = E_OK;
@@ -1131,6 +1153,11 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
     }
 
     {
+        std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+        RefObject::KillAndDecObjRef(sqliteCloudKvStore_);
+        sqliteCloudKvStore_ = nullptr;
+    }
+    {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
             storageEngine_->ClearEnginePasswd();
@@ -1167,11 +1194,16 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
         return -E_INVALID_DB;
     }
     int errCode = E_OK;
-    for (const auto &item : dataItems) {
+    auto offset = GetLocalTimeOffset();
+    for (auto &item : dataItems) {
         // Check only the key and value size
         errCode = CheckDataStatus(item.key, item.value, (item.flag & DataItem::DELETE_FLAG) != 0);
         if (errCode != E_OK) {
             return errCode;
+        }
+        if (offset != 0) {
+            item.modifyTime = item.timestamp - offset;
+            item.createTime = item.writeTimestamp - offset;
         }
     }
     if (checkValueContent) {
@@ -1323,8 +1355,15 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
     int errCode = storageEngine_->InitSQLiteStorageEngine(poolSize, option, identifier);
     if (errCode != E_OK) {
         LOGE("Init the sqlite storage engine failed:%d", errCode);
+        return errCode;
     }
-    return errCode;
+
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    sqliteCloudKvStore_ = new(std::nothrow) SqliteCloudKvStore(this);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return E_OUT_OF_MEMORY;
+    }
+    return E_OK;
 }
 
 int SQLiteSingleVerNaturalStore::Rekey(const CipherPassword &passwd)
@@ -1900,5 +1939,18 @@ void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarg
         outTarget.resize(0);
     }
 }
+
+ICloudSyncStorageInterface *SQLiteSingleVerNaturalStore::GetICloudSyncInterface() const
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudKvStore_;
+}
+
+int SQLiteSingleVerNaturalStore::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudKvStore_->SetCloudDbSchema(schema);
+}
+
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

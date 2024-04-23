@@ -21,8 +21,8 @@
 #include "log_print.h"
 
 namespace DistributedDB {
-constexpr const char *ASSET = "asset";
-constexpr const char *ASSETS = "assets";
+constexpr const char *ASSET_STR = "asset";
+constexpr const char *ASSETS_STR = "assets";
 constexpr const char *ROW_ID = "rowid";
 
 const std::string &FieldInfo::GetFieldName() const
@@ -194,12 +194,12 @@ int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
 
 bool FieldInfo::IsAssetType() const
 {
-    return strcasecmp(dataType_.c_str(), ASSET) == 0;
+    return strcasecmp(dataType_.c_str(), ASSET_STR) == 0;
 }
 
 bool FieldInfo::IsAssetsType() const
 {
-    return strcasecmp(dataType_.c_str(), ASSETS) == 0;
+    return strcasecmp(dataType_.c_str(), ASSETS_STR) == 0;
 }
 
 CollateType FieldInfo::GetCollateType() const

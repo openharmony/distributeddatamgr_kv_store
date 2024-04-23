@@ -25,7 +25,7 @@
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class DeviceKvStoreTest : public testing::Test {
 public:
     static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
@@ -1293,3 +1293,4 @@ HWTEST_F(DeviceKvStoreTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = kvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+} // namespace OHOS::Test

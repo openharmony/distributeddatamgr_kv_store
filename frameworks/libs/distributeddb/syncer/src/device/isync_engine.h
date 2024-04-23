@@ -100,6 +100,8 @@ public:
         const std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery) = 0;
 
     virtual void TimeChange() = 0;
+
+    virtual int32_t GetResponseTaskCount() = 0;
 protected:
     ~ISyncEngine() override {};
 };

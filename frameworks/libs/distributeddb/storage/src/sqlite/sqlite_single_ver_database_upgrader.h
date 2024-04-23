@@ -44,6 +44,9 @@ protected:
     int SetDatabaseVersion(int version) override;
     int UpgradeFromDatabaseVersion(int version) override;
     void SetUpgradeSqls(int version, std::vector<std::string> &sqls, bool &isCreateUpgradeFile) const;
+    void InitTimeForUpgrade(int version);
+    std::pair<int, TimeOffset> GetLocalTimeOffset();
+    void UpgradeTime(TimeOffset offset);
     static int MoveDatabaseToNewDir(const std::string &parentDir, const std::string &upgradeLockFile);
     static int GetDbVersion(const std::string &dbPath, const OpenDbProperties &option, int &version);
 

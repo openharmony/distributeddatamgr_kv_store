@@ -213,7 +213,6 @@ int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt 
         LOGE("Invalid db for statement");
         return -E_INVALID_DB;
     }
-
     // Prepare the new statement only when the input parameter is not null
     if (statement != nullptr) {
         return E_OK;
@@ -2399,6 +2398,20 @@ int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, boo
     isCreated = (sqlite3_column_int(stmt, 0) == 1);
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_FINISHED;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = E_OK;
+    }
     return errCode;
 }
 } // namespace DistributedDB

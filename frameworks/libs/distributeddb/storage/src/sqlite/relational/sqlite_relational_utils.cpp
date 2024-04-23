@@ -236,20 +236,6 @@ int SQLiteRelationalUtils::BindExtendStatementByType(sqlite3_stmt *statement, in
     return errCode;
 }
 
-int SQLiteRelationalUtils::StepNext(bool isMemDB, sqlite3_stmt *stmt)
-{
-    if (stmt == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_FINISHED;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = E_OK;
-    }
-    return errCode;
-}
-
 int SQLiteRelationalUtils::GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket)
 {
     if (stmt == nullptr) {

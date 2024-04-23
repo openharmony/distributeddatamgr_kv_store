@@ -370,4 +370,47 @@ int GenericKvDBConnection::GetWatermarkInfo([[gnu::unused]] const std::string &d
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::Sync([[gnu::unused]] const CloudSyncOption &option,
+    [[gnu::unused]] const SyncProcessCallback &onProcess)
+{
+    return -E_NOT_SUPPORT;
+}
+
+int GenericKvDBConnection::SetCloudDB([[gnu::unused]] const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    return -E_NOT_SUPPORT;
+}
+
+int GenericKvDBConnection::SetCloudDbSchema([[gnu::unused]] const std::map<std::string, DataBaseSchema> &schema)
+{
+    return -E_NOT_SUPPORT;
+}
+
+int GenericKvDBConnection::RemoveDeviceData([[gnu::unused]] const std::string &device, [[gnu::unused]] ClearMode mode)
+{
+    return -E_NOT_SUPPORT;
+}
+
+int GenericKvDBConnection::RemoveDeviceData([[gnu::unused]] const std::string &device,
+    [[gnu::unused]] const std::string &user, [[gnu::unused]] ClearMode mode)\
+{
+    return -E_NOT_SUPPORT;
+}
+
+int32_t GenericKvDBConnection::GetTaskCount()
+{
+    return 0;
+}
+
+int GenericKvDBConnection::RegisterObserverAction([[gnu::unused]] const KvStoreObserver *observer,
+    [[gnu::unused]] const ObserverAction &action)
+{
+    return E_OK;
+}
+
+int GenericKvDBConnection::UnRegisterObserverAction([[gnu::unused]] const KvStoreObserver *observer)
+{
+    return E_OK;
+}
 }

@@ -121,6 +121,11 @@ enum ObserverMode {
     OBSERVER_CHANGES_NATIVE = 1,
     OBSERVER_CHANGES_FOREIGN = 2,
     OBSERVER_CHANGES_LOCAL_ONLY = 4,
+    OBSERVER_CHANGES_CLOUD = 8,
+    // bit mask
+    OBSERVER_CHANGES_BRIEF = 0x100,  // notify only device
+    OBSERVER_CHANGES_DETAIL = 0x200, // notify with key
+    OBSERVER_CHANGES_DATA = 0x400    // notify with entry
 };
 
 enum SyncMode {
@@ -215,8 +220,22 @@ struct ChangeProperties {
     bool isTrackedDataChange = false;
 };
 
+enum IndexType : uint32_t {
+    /**
+      * use btree index type in database
+    */
+    BTREE = 0,
+    /**
+      * use hash index type in database
+    */
+    HASH,
+};
+
 struct Rdconfig {
     bool readOnly = false;
+    IndexType type = BTREE;
+    int pageSize = 32u;
+    int cacheSize = 2048u;
 };
 
 struct WatermarkInfo {

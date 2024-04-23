@@ -35,7 +35,7 @@ namespace {
     SQLiteSingleVerNaturalStoreConnection *g_connection = nullptr;
 
     const char * const ADD_SYNC = "ALTER TABLE sync_data ADD column version INT";
-    const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1);";
+    const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1, 0, 0);";
     const int SQL_STATE_ERR = -1;
 
     void CopyCacheDb()

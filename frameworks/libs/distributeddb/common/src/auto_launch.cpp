@@ -1052,33 +1052,31 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
 int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param,
     DBTypeInner &openType)
 {
-    int errCode = E_OK;
-    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &param, &errCode, &openType] () mutable {
+    std::map<DBTypeInner, AutoLaunchRequestCallback> callbackMap;
+    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &callbackMap] () mutable {
         ADAPTER_AUTO_LOCK(autoLock, extLock_);
-        if (autoLaunchRequestCallbackMap_.empty()) {
-            LOGI("[AutoLaunch] autoLaunchRequestCallbackMap_ is empty");
-            errCode = -E_NOT_FOUND; // not E_OK is ok for communicator
-            return errCode;
-        }
-
-        bool needOpen = false;
-        for (const auto &[type, callBack] : autoLaunchRequestCallbackMap_) {
-            needOpen = callBack(identifier, param);
-            if (needOpen) {
-                openType = type;
-                break;
-            }
-        }
-
-        if (!needOpen) {
-            LOGI("[AutoLaunch] autoLaunchRequestCallback is not need open");
-            errCode = -E_NOT_FOUND; // not E_OK is ok for communicator
-            return errCode;
-        }
+        callbackMap = autoLaunchRequestCallbackMap_;
         return E_OK;
     }, &autoLaunchRequestCallbackMap_);
     ADAPTER_WAIT(handle);
-    return errCode;
+    if (callbackMap.empty()) {
+        LOGI("[AutoLaunch] autoLaunchRequestCallbackMap_ is empty");
+        return -E_NOT_FOUND;
+    }
+    bool needOpen = false;
+    for (const auto &[type, callBack] : callbackMap) {
+        needOpen = callBack(identifier, param);
+        if (needOpen) {
+            openType = type;
+            break;
+        }
+    }
+
+    if (!needOpen) {
+        LOGI("[AutoLaunch] autoLaunchRequestCallback is not need open");
+        return -E_NOT_FOUND; // not E_OK is ok for communicator
+    }
+    return E_OK;
 }
 
 int AutoLaunch::OpenKvConnection(AutoLaunchItem &autoLaunchItem)

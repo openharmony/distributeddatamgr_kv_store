@@ -353,6 +353,17 @@ struct Group {
     std::string groupId = "";
 };
 
+enum IndexType : uint32_t {
+    /**
+      * use btree index type in database
+    */
+    BTREE = 0,
+    /**
+      * use hash index type in database
+    */
+    HASH,
+};
+
 /**
  * @brief Data type, that determined the way and timing of data synchronization.
 */
@@ -475,7 +486,7 @@ struct Options {
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
-   /**
+    /**
      * Whether the sync need compress.
     */
     bool isNeedCompress = true;
@@ -484,6 +495,14 @@ struct Options {
      * Only dynamic data support auto sync.
     */
     DataType dataType = DataType::TYPE_DYNAMICAL;
+    /**
+     * config database details.
+    */
+    struct Config {
+        IndexType type = BTREE;
+        uint32_t pageSize = 32u;
+        uint32_t cacheSize = 2048u;
+    } config;
 };
 
 /**

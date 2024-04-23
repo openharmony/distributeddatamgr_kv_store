@@ -86,6 +86,7 @@ public:
     static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
 
     static const std::string RD_KV_COLLECTION_MODE;
+    static const std::string RD_KV_HASH_COLLECTION_MODE;
 
     static const std::string PATH_POSTFIX_UNPACKED;
     static const std::string PATH_POSTFIX_IMPORT_BACKUP;
@@ -185,6 +186,11 @@ public:
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr int32_t DEFAULT_ROW_ID = -1;
+    static constexpr int STR_TO_LL_BY_DEVALUE = 10;
+    // key in meta_data
+    static constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
+
+    static constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

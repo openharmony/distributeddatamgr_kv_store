@@ -375,6 +375,7 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
     }
+    taskInfo.users.push_back("");
     for (const auto &query : syncQuery) {
         taskInfo.table.push_back(query.GetRelationTableName());
         taskInfo.queryList.push_back(query);
@@ -467,6 +468,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         return errCode;
     }
     param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
+    param.downloadData.existDataHashKey[index] = logInfo.logInfo.hashKey;
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
         LOGD("[CloudSyncer] exist same record in one batch, override from cache record! hash=%.3s",
             DBCommon::TransferStringToHex(hashKey).c_str());
@@ -520,5 +522,15 @@ bool CloudSyncer::IsCompensatedTask(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     return cloudTaskInfos_[taskId].compensatedTask;
+}
+
+int CloudSyncer::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    return cloudDB_.SetCloudDB(cloudDBs);
+}
+
+void CloudSyncer::CleanAllWaterMark()
+{
+    storageProxy_->CleanAllWaterMark();
 }
 }

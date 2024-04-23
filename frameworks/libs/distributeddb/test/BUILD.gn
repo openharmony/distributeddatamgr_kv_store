@@ -16,6 +16,37 @@ import("../distributeddb.gni")
 module_output_path = "kv_store/distributeddb"
 
 ###############################################################################
+config("gaussdb_rd_config") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "../gaussdb_rd/src/common/include",
+    "../gaussdb_rd/src/executor/include",
+    "../gaussdb_rd/src/executor/document",
+    "../gaussdb_rd/src/oh_adapter/include",
+    "../gaussdb_rd/src/oh_adapter/src",
+    "../gaussdb_rd/src/interface/include",
+  ]
+
+  defines = [
+    "SQLITE_ENABLE_SNAPSHOT",
+    "SQLITE_HAS_CODEC",
+    "SQLITE_ENABLE_JSON1",
+    "USING_HILOG_LOGGER",
+    "USE_SQLITE_SYMBOLS",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+  ]
+}
+
+config("gaussdb_rd_public_config") {
+  visibility = [ "*:*" ]
+  include_dirs = [
+    "../gaussdb_rd/include",
+    "../gaussdb_rd/include/grd_base",
+    "../gaussdb_rd/include/grd_document",
+    "../gaussdb_rd/include/grd_kv",
+  ]
+}
+
 config("module_private_config") {
   visibility = [ ":*" ]
 
@@ -96,6 +127,33 @@ ohos_source_set("src_file") {
 
   sources = distributeddb_src
   sources += [
+    "../gaussdb_rd/src/common/src/collection_option.cpp",
+    "../gaussdb_rd/src/common/src/db_config.cpp",
+    "../gaussdb_rd/src/common/src/grd_api_manager.cpp",
+    "../gaussdb_rd/src/common/src/json_common.cpp",
+    "../gaussdb_rd/src/common/src/os_api.cpp",
+    "../gaussdb_rd/src/common/src/rd_log_print.cpp",
+    "../gaussdb_rd/src/executor/base/grd_db_api.cpp",
+    "../gaussdb_rd/src/executor/base/grd_db_api_inner.cpp",
+    "../gaussdb_rd/src/executor/document/check_common.cpp",
+    "../gaussdb_rd/src/executor/document/grd_document_api.cpp",
+    "../gaussdb_rd/src/executor/document/grd_document_api_inner.cpp",
+    "../gaussdb_rd/src/executor/document/grd_resultset_api.cpp",
+    "../gaussdb_rd/src/executor/document/grd_resultset_api_inner.cpp",
+    "../gaussdb_rd/src/executor/kv/grd_kv_api.cpp",
+    "../gaussdb_rd/src/executor/kv/grd_kv_api_inner.cpp",
+    "../gaussdb_rd/src/interface/src/collection.cpp",
+    "../gaussdb_rd/src/interface/src/doc_errno.cpp",
+    "../gaussdb_rd/src/interface/src/document_key.cpp",
+    "../gaussdb_rd/src/interface/src/document_store.cpp",
+    "../gaussdb_rd/src/interface/src/document_store_manager.cpp",
+    "../gaussdb_rd/src/interface/src/projection_tree.cpp",
+    "../gaussdb_rd/src/interface/src/result_set.cpp",
+    "../gaussdb_rd/src/interface/src/result_set_common.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/kv_store_manager.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/rd_json_object.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/rd_sqlite_utils.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/sqlite_store_executor_impl.cpp",
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
@@ -129,10 +187,13 @@ ohos_source_set("src_file") {
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps += [
-    "../gaussdb_rd:gaussdb_rd",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]
+  configs += [ ":gaussdb_rd_config" ]
+  public_configs = [ ":gaussdb_rd_public_config" ]
+  configs += [ "//third_party/cJSON:cJSON_config" ]
+  deps += [ "//third_party/cJSON:cjson" ]
   external_deps = [
     "c_utils:utils",
     "ffrt:libffrt",
@@ -164,7 +225,6 @@ template("distributeddb_unittest") {
     configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
     deps += [
-      "../gaussdb_rd:gaussdb_rd",
       "//third_party/jsoncpp:jsoncpp",
       "//third_party/openssl:libcrypto_shared",
     ]
@@ -770,6 +830,10 @@ distributeddb_unittest("DistributedDBMetaDataTest") {
   sources = [ "unittest/common/syncer/distributeddb_meta_data_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudKvTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_kv_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -787,6 +851,7 @@ group("unittest") {
     ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",
     ":DistributedDBCloudInterfacesSetCloudSchemaTest",
+    ":DistributedDBCloudKvTest",
     ":DistributedDBCloudReferenceSyncTest",
     ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedDBCloudSchemaMgrTest",

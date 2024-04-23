@@ -21,6 +21,7 @@
 #include <string>
 #include <set>
 
+#include "store_observer.h"
 #include "store_types.h"
 
 typedef struct sqlite3 sqlite3;
@@ -30,10 +31,18 @@ struct ClientChangedData {
 };
 
 using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>;
+using StoreObserver = DistributedDB::StoreObserver;
 
 DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver);
 
 DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::shared_ptr<StoreObserver> &storeObserver);
+
+DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db,
+    const std::shared_ptr<StoreObserver> &storeObserver);
+
+DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db);
 
 DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 

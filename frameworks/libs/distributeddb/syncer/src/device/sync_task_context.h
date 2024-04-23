@@ -214,6 +214,8 @@ public:
     void SetDbAbility(DbAbility &remoteDbAbility) override;
 
     void TimeChange() override;
+
+    int32_t GetResponseTaskCount() override;
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 

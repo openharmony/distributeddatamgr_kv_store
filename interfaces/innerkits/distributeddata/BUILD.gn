@@ -27,7 +27,10 @@ group("build_module") {
 config("distributeddatafwk_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-multichar" ]
+  cflags = [
+    "-Wno-multichar",
+    "-Wno-c99-designator",
+  ]
 
   cflags_cc = [ "-fvisibility=hidden" ]
 
@@ -117,7 +120,6 @@ ohos_shared_library("distributeddata_inner") {
     cfi = true
     cfi_cross_dso = true
     debug = false
-    blocklist = "./cfi_blocklist.txt"
   }
   sources = old_source_config + kvdb_source_config
 

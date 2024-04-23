@@ -20,6 +20,7 @@
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
 #include "kvdb_pragma.h"
 #include "storage_engine_manager.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -38,6 +39,8 @@ namespace {
     SQLiteSingleVerStorageExecutor *g_nullHandle = nullptr;
 
     const char * const ADD_SYNC = "ALTER TABLE sync_data ADD column version INT";
+    const char * const DROP_CREATE = "ALTER TABLE sync_data DROP column create_time";
+    const char * const DROP_MODIFY = "ALTER TABLE sync_data DROP column modify_time";
     const char * const ADD_LOCAL = "ALTER TABLE local_data ADD column flag INT";
     const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1);";
     const int SQL_STATE_ERR = -1;
@@ -448,6 +451,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
      * @tc.steps: step4. Update sync_data table and insert a sync data
      * @tc.expected: step4. Expect E_OK
      */
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, DROP_MODIFY) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, DROP_CREATE) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, ADD_SYNC) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, INSERT_SQL) == E_OK);
     std::vector<DataItem> vec;
@@ -616,6 +621,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest0
     sqlite3 *db;
     ASSERT_TRUE(sqlite3_open_v2((g_testDir + g_databaseName).c_str(),
         &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_MODIFY) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_CREATE) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_SYNC) == E_OK);
     sqlite3_close_v2(db);
     option.dataType = IOption::SYNC_DATA;
@@ -1036,6 +1043,15 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
         CipherType::DEFAULT, password, cacheDir, EngineState::CACHEDB), E_OK);
     EXPECT_EQ(g_handle->MigrateLocalData(), E_OK);
     EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_BUSY);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(g_handle->GetDbHandle(db), E_OK);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE, stmt), E_OK);
+    int errCode = E_OK;
+    EXPECT_EQ(SQLiteUtils::BindBlobToStatement(stmt, BIND_SYNC_UPDATE_HASH_KEY_INDEX, {}), E_OK);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
 }
 
 /**
