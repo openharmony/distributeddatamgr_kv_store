@@ -22,14 +22,14 @@
 #ifndef SECUREC_ONLY_DECLARE_MEMSET
 /* Shielding VC symbol redefinition warning */
 #if defined(_MSC_VER) && (_MSC_VER >= 1400)
-#ifdef __STDC_WANT_SECURE_LIB__
-#undef __STDC_WANT_SECURE_LIB__
+#ifdef STDC_WANT_SECURE_LIB__
+#undef STDC_WANT_SECURE_LIB__
 #endif
-#define __STDC_WANT_SECURE_LIB__ 0
-#ifdef _CRTIMP_ALTERNATIVE
-#undef _CRTIMP_ALTERNATIVE
+#define STDC_WANT_SECURE_LIB__ 0
+#ifdef CRTIMP_ALTERNATIVE
+#undef CRTIMP_ALTERNATIVE
 #endif
-#define _CRTIMP_ALTERNATIVE
+#define CRTIMP_ALTERNATIVE
 #endif
 #endif
 
@@ -86,7 +86,7 @@
 #define SECUREC_ATTRIBUTE(x, y)
 #endif
 
-/* SECUREC_PCLINT for tool do not recognize __builtin_expect ,just for pclint */
+/* SECUREC_PCLINT for tool do not recognize builtin_expect ,just for pclint */
 #if defined(__GNUC__) && \
     ((__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 3))) && \
     !defined(SECUREC_PCLINT)
@@ -94,10 +94,10 @@
  * you can add -DSECUREC_NEED_BUILTIN_EXPECT_DECLARE to compiler options
  */
 #if defined(SECUREC_NEED_BUILTIN_EXPECT_DECLARE)
-long __builtin_expect(long exp, long c);
+long builtin_expect(long exp, long c);
 #endif
-#define SECUREC_LIKELY(x) __builtin_expect(!!(x), 1)
-#define SECUREC_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define SECUREC_LIKELY(x) builtin_expect(!!(x), 1)
+#define SECUREC_UNLIKELY(x) builtin_expect(!!(x), 0)
 #else
 #define SECUREC_LIKELY(x) (x)
 #define SECUREC_UNLIKELY(x) (x)
