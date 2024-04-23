@@ -68,6 +68,26 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
     return sql;
 }
 
+const std::string TrackerTable::GetDiffIncCursorSql(const std::string &tableName) const
+{
+    if (trackerColNames_.empty()) {
+        return "";
+    }
+    std::string sql = ", cursor = case when (";
+    size_t index = 0;
+    for (const auto &colName: trackerColNames_) {
+        sql += "(NEW." + colName + " IS NOT OLD." + colName + ")";
+        if (index < trackerColNames_.size() - 1) {
+            sql += " or ";
+        }
+        index++;
+    }
+    sql += ") then (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
+    sql += " from " + tableName + ") ";
+    sql += " ELSE cursor END ";
+    return sql;
+}
+
 const std::string TrackerTable::GetExtendName() const
 {
     return extendColName_;
