@@ -90,7 +90,7 @@ describe('schemaTest', function () {
             let name = new ddm.FieldNode('name');
             name.type = ddm.ValueType.INTEGER;
             name.nullable = false;
-            name.default = 0;
+            name.default = '0';
 
             let schema = new ddm.Schema();
             schema.root.appendChild(name);
