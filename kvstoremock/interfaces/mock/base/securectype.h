@@ -86,7 +86,7 @@
 #define SECUREC_ATTRIBUTE(x, y)
 #endif
 
-/* SECUREC_PCLINT for tool do not recognize builtin_expect ,just for pclint */
+/* SECUREC_PCLINT for tool do not recognize __builtin_expect ,just for pclint */
 #if defined(__GNUC__) && \
     ((__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 3))) && \
     !defined(SECUREC_PCLINT)
@@ -94,10 +94,10 @@
  * you can add -DSECUREC_NEED_BUILTIN_EXPECT_DECLARE to compiler options
  */
 #if defined(SECUREC_NEED_BUILTIN_EXPECT_DECLARE)
-long builtin_expect(long exp, long c);
+long __builtin_expect(long exp, long c);
 #endif
-#define SECUREC_LIKELY(x) builtin_expect(!!(x), 1)
-#define SECUREC_UNLIKELY(x) builtin_expect(!!(x), 0)
+#define SECUREC_LIKELY(x) __builtin_expect(!!(x), 1)
+#define SECUREC_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
 #define SECUREC_LIKELY(x) (x)
 #define SECUREC_UNLIKELY(x) (x)
