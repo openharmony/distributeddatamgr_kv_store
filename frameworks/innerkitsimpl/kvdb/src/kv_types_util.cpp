@@ -174,6 +174,41 @@ bool Unmarshalling(SwitchData &output, MessageParcel &data)
     return ITypesUtil::Unmarshal(data, output.value, output.length);
 }
 
+template<>
+bool Marshalling(const Status &input, MessageParcel &data)
+{
+  return ITypesUtil::Marshal(data, static_cast<int32_t>(input));
+}
+
+template<>
+bool Unmarshalling(Status &output, MessageParcel &data)
+{
+  int32_t status;
+  if (!ITypesUtil::Unmarshal(data, status)) {
+    return false;
+  }
+  output = static_cast<Status>(status);
+  return true;
+}
+
+template<>
+bool Marshalling(const Notification &input, MessageParcel &data)
+{
+  return ITypesUtil::Marshal(
+      data, input.data.value, input.data.length, input.deviceId, static_cast<int32_t>(input.state));
+}
+
+template<>
+bool Unmarshalling(Notification &output, MessageParcel &data)
+{
+  int32_t state;
+  if (!ITypesUtil::Unmarshal(data, output.data.value, output.data.length, output.deviceId, state)) {
+    return false;
+  }
+  output.state = static_cast<SwitchState>(state);
+  return true;
+}
+
 int64_t GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;
