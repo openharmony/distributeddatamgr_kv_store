@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "block_data.h"
 #include "dev_manager.h"
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
@@ -819,5 +820,73 @@ HWTEST_F(DistributedKvDataManagerTest, PutAndGetSwitchesData, TestSize.Level1)
     ASSERT_EQ(result.first, Status::SUCCESS);
     ASSERT_EQ(result.second.value, input.value);
     ASSERT_EQ(result.second.length, input.length);
+}
+
+/**
+* @tc.name: SubscribeSwitchesData
+* @tc.desc: subscribe switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
+{
+    ZLOGI("SubscribeSwitchesData begin.");
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_NE(devInfo.networkId, "");
+    BlockData<SwitchData> blockData{ 1, SwitchData() };
+    SwitchData input;
+    input.value = 0x000D;
+    input.length = 4;
+    SwitchDataObserver observer = [input, &devInfo.networkId, &blockData](const SwitchNotification &&notification) {
+        ASSERT_EQ(notification.state, SwitchState::UPDATE);
+        ASSERT_EQ(notification.deviceId, devInfo.networkId);
+        blockData.SetValue(notification.data);
+    };
+    auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
+    ASSERT_EQ(status, Status::SUCCESS);
+    status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    ASSERT_EQ(status, Status::SUCCESS);
+    auto output = blockData.GetValue();
+    ASSERT_EQ(input.value, output.value);
+    ASSERT_EQ(input.length, output.length);
+}
+
+/**
+* @tc.name: MutiSubscribeSwitchesData
+* @tc.desc: muti subscribe switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level1)
+{
+    ZLOGI("MutiSubscribeSwitchesData begin.");
+    SwitchDataObserver observer1 = [](const SwitchNotification &&notification) {};
+    SwitchDataObserver observer2 = [](const SwitchNotification &&notification) {};
+    SwitchDataObserver observer3 = [](const SwitchNotification &&notification) {};
+    auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer1);
+    ASSERT_EQ(status, Status::SUCCESS);
+    status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer2);
+    ASSERT_EQ(status, Status::SUCCESS);
+    status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer3);
+    ASSERT_EQ(status, Status::SUCCESS);
+}
+
+/**
+* @tc.name: UnsubscribeSwitchesData
+* @tc.desc: unsubscribe switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, UnsubscribeSwitchesData, TestSize.Level1)
+{
+    ZLOGI("UnsubscribeSwitchesData begin.");
+    SwitchDataObserver observer = [](const SwitchNotification &&notification) {};
+    auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
+    ASSERT_EQ(status, Status::SUCCESS);
+    status = manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);
+    ASSERT_EQ(status, Status::SUCCESS);
 }
 } // namespace OHOS::Test
