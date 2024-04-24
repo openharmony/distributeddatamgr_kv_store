@@ -48,7 +48,7 @@ int32_t KVDBNotifierStub::OnRemoteRequest(
         return -1;
     }
     if (code >= static_cast<uint32_t>(KVDBNotifierCode::TRANS_HEAD) &&
-        code < static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT) && HANDLERS[code] == nullptr) {
+        code < static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT) && HANDLERS[code] != nullptr) {
         return (this->*HANDLERS[code])(data, reply);
     }
     ZLOGE("not support code:%{public}u, BUTT:%{public}d",
