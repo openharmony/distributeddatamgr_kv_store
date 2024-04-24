@@ -284,6 +284,144 @@ describe('schemaTest', function() {
     })
 
     /**
+    * @tc.name SchemaToJsonStringTest005
+    * @tc.desc Test Js Api Schema.ToJsonString() testcase 003
+    * @tc.type: FUNC
+    * @tc.require: issueNumber
+    */
+    it('SchemaToJsonStringTest005', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.FLOAT;
+            name.nullable = true;
+            name.default = '3.14';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringTest005 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":1.5}');
+                await kvStore.put("test_key_2", '{"name":2.5}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringTest005 Put success');
+            });
+            console.info('SchemaToJsonStringTest005 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", 3.14);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringTest005 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 1).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringTest005 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringTest005 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SchemaToJsonStringTest006
+     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 003
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SchemaToJsonStringTest006', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.DOUBLE;
+            name.nullable = true;
+            name.default = '3.1415';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringTest006 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":1.51}');
+                await kvStore.put("test_key_2", '{}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringTest006 Put success');
+            });
+            console.info('SchemaToJsonStringTest006 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", 3.1415);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringTest006 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 2).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringTest006 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringTest006 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SchemaToJsonStringTest007
+     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 003
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SchemaToJsonStringTest007', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.BOOLEAN;
+            name.nullable = true;
+            name.default = 'false';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringTest007 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":false}');
+                await kvStore.put("test_key_2", '{"name":true}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringTest007 Put success');
+            });
+            console.info('SchemaToJsonStringTest007 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", false);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringTest007 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 2).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringTest007 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringTest007 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
      * @tc.name SchemarootTest001
      * @tc.desc  Test Js Api Schema.root testcase 001
      * @tc.type: FUNC

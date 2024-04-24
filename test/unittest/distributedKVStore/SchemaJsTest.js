@@ -127,6 +127,194 @@ describe('schemaTest', function () {
     })
 
     /**
+    * @tc.name SchemaToJsonStringSucTest001
+    * @tc.desc Test Js Api Schema.ToJsonString() successfully
+    * @tc.type: FUNC
+    * @tc.require: issueNumber
+    */
+    it('SchemaToJsonStringSucTest001', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.STRING;
+            name.nullable = true;
+            name.default = 'zhangsan';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            schema.skip = 0;
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringSucTest001 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":"lisi"}');
+                await kvStore.put("test_key_2", '{"name":"wangwu"}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringSucTest001 Put success');
+            });
+            console.info('SchemaToJsonStringSucTest001 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", 'zhangsan');
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringSucTest001 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 1).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringSucTest001 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringSucTest001 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SchemaToJsonStringSucTest002
+     * @tc.desc  Test Js Api Schema.ToJsonString() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SchemaToJsonStringSucTest002', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.FLOAT;
+            name.nullable = true;
+            name.default = '1.23';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            schema.skip = 0;
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringSucTest002 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":3.14}');
+                await kvStore.put("test_key_2", '{"name":1.25}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringSucTest002 Put success');
+            });
+            console.info('SchemaToJsonStringSucTest002 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", 1.23);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringSucTest002 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 1).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringSucTest002 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringSucTest002 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SchemaToJsonStringSucTest003
+     * @tc.desc  Test Js Api Schema.ToJsonString() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SchemaToJsonStringSucTest003', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.DOUBLE;
+            name.nullable = true;
+            name.default = '3.1415';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            schema.skip = 0;
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringSucTest003 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":3.1415}');
+                await kvStore.put("test_key_2", '{"name":1.2523}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringSucTest003 Put success');
+            });
+            console.info('SchemaToJsonStringSucTest003 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", 3.1415);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringSucTest003 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 2).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringSucTest003 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringSucTest003 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SchemaToJsonStringSucTest004
+     * @tc.desc  Test Js Api Schema.ToJsonString() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SchemaToJsonStringSucTest004', 0, async function (done) {
+        try {
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.BOOLEAN;
+            name.nullable = true;
+            name.default = 'true';
+
+            let schema = new ddm.Schema();
+            schema.root.appendChild(name);
+            schema.indexes = ['$.name'];
+            schema.mode = 1; // STRICT
+            schema.skip = 0;
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringSucTest004 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":true}');
+                await kvStore.put("test_key_2", '{"name":false}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringSucTest004 Put success');
+            });
+            console.info('SchemaToJsonStringSucTest004 start Query ...');
+            var query = new ddm.Query();
+            query.prefixKey('test_key_');
+            query.equalTo("$.name", true);
+            await kvStore.getEntries(query).then((entries) => {
+                console.info('SchemaToJsonStringSucTest004 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 2).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringSucTest004 get fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.info("SchemaToJsonStringSucTest004 fail on exception: " + e);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
      * @tc.name SchemaRootTest
      * @tc.desc  Test Js Api Schema.root successfully
      * @tc.type: FUNC
