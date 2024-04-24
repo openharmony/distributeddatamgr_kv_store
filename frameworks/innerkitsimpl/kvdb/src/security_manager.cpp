@@ -196,6 +196,7 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_NONCE, .blob = blobNonce },
         { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
@@ -245,6 +246,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_NONCE, .blob = blobNonce },
         { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
@@ -291,6 +293,7 @@ int32_t SecurityManager::GenerateRootKey()
         { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
 
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
@@ -330,6 +333,7 @@ int32_t SecurityManager::CheckRootKey()
         { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
 
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
