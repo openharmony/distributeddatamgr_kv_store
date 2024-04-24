@@ -164,16 +164,6 @@ public:
         return (jsValue == nullptr) ? status : GetValue(env, jsValue, value);
     };
 
-    inline bool IsValid(const std::string& storeId) const
-    {
-        if (storeId.empty() || storeId.size() > MAX_STORE_ID_LEN) {
-            return false;
-        }
-        auto iter = std::find_if_not(storeId.begin(), storeId.end(),
-            [](char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
-        return (iter == storeId.end());
-    }
-
     /* napi_define_class  wrapper */
     static napi_value DefineClass(napi_env env, const std::string& name,
         const napi_property_descriptor* properties, size_t count, napi_callback newcb);
@@ -197,7 +187,6 @@ private:
     };
     static std::pair<napi_status, napi_value> GetInnerValue(
         napi_env env, napi_value in, const std::string& prop, bool optional);
-    static constexpr int MAX_STORE_ID_LEN = 128;
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_JS_UTIL_H

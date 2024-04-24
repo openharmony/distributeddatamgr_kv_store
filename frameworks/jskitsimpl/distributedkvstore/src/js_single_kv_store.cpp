@@ -688,7 +688,8 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
 void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: [callback]
-    ASSERT_BUSINESS_ERR(ctxt, argc <= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
+    ASSERT_BUSINESS_ERR(ctxt, argc <= 1, Status::INVALID_ARGUMENT,
+        "Parameter error:Mandatory parameters are left unspecified");
     // have 1 arguments :: have the callback
     if (argc == 1) {
         napi_valuetype valueType = napi_undefined;
@@ -737,7 +738,8 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
 void JsSingleKVStore::OnSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: <callback>
-    ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "Parameter error:Mandatory parameters are left unspecified");
+    ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+        "Parameter error:Mandatory parameters are left unspecified");
     napi_valuetype valueType = napi_undefined;
     ctxt->status = napi_typeof(env, argv[0], &valueType);
     ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
@@ -745,7 +747,8 @@ void JsSingleKVStore::OnSyncComplete(napi_env env, size_t argc, napi_value* argv
 
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     ctxt->status = proxy->RegisterSyncCallback(std::make_shared<SyncObserver>(proxy->uvQueue_, argv[0]));
-    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:RegisterSyncCallback params must function");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        "Parameter error:RegisterSyncCallback params must function");
 }
 
 /*
@@ -778,7 +781,8 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     if (argc == 0 || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
-    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:params type must function");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        "Parameter error:params type must function");
 }
 
 /*
