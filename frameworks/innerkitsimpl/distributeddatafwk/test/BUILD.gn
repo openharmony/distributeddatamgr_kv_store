@@ -54,13 +54,13 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/distributed_kv_data_manager.cpp",
     "../src/ikvstore_client_death_observer.cpp",
     "../src/ikvstore_observer.cpp",
-    "../src/ikvstore_sync_callback.cpp",
     "../src/kv_utils.cpp",
+    "../src/kvdb_notifier_client.cpp",
+    "../src/kvdb_notifier_stub.cpp",
     "../src/kvstore_client_death_observer.cpp",
     "../src/kvstore_datashare_bridge.cpp",
     "../src/kvstore_observer_client.cpp",
     "../src/kvstore_service_death_notifier.cpp",
-    "../src/kvstore_sync_callback_client.cpp",
     "../src/sync_observer.cpp",
   ]
 
