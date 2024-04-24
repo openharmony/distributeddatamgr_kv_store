@@ -22,14 +22,14 @@
 #ifndef SECUREC_ONLY_DECLARE_MEMSET
 /* Shielding VC symbol redefinition warning */
 #if defined(_MSC_VER) && (_MSC_VER >= 1400)
-#ifdef __STDC_WANT_SECURE_LIB__
-#undef __STDC_WANT_SECURE_LIB__
+#ifdef STDC_WANT_SECURE_LIB__
+#undef STDC_WANT_SECURE_LIB__
 #endif
-#define __STDC_WANT_SECURE_LIB__ 0
-#ifdef _CRTIMP_ALTERNATIVE
-#undef _CRTIMP_ALTERNATIVE
+#define STDC_WANT_SECURE_LIB__ 0
+#ifdef CRTIMP_ALTERNATIVE
+#undef CRTIMP_ALTERNATIVE
 #endif
-#define _CRTIMP_ALTERNATIVE
+#define CRTIMP_ALTERNATIVE
 #endif
 #endif
 

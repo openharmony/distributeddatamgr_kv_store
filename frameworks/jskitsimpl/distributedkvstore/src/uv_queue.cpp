@@ -53,7 +53,9 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         return;
     }
     int retVal = uv_queue_work(
-        loop_, work, [](uv_work_t* work) {}, UvQueue::Work);
+        loop_, work, [](uv_work_t* work) {
+            ZLOGD("AsyncCall callback");
+        }, UvQueue::Work);
     if (retVal != 0) {
         delete (reinterpret_cast<UvEntry*>(work->data));
         work->data = nullptr;
