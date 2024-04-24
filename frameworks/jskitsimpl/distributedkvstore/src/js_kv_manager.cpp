@@ -109,8 +109,6 @@ struct GetKVStoreContext : public ContextBase {
                 "Parameter error:unusable securityLevel");
             ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), Status::INVALID_ARGUMENT,
                 "Parameter error:kvStoreType is incorrect");
-            ASSERT_BUSINESS_ERR(this, options.IsPathValid(), Status::INVALID_ARGUMENT,
-                "Parameter error:baseDir and groupDir can not be empty/exist at the same time");
             ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
                 ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
