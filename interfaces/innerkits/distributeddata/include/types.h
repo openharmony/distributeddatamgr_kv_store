@@ -136,7 +136,6 @@ struct API_EXPORT StoreId {
     }
 private:
     static constexpr int MAX_STORE_ID_LEN = 128;
-    static constexpr int MAX_APP_ID_LEN = 256;
 };
 
 /**

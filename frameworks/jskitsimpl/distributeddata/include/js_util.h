@@ -197,6 +197,7 @@ private:
     };
     static std::pair<napi_status, napi_value> GetInnerValue(
         napi_env env, napi_value in, const std::string& prop, bool optional);
+    static constexpr int MAX_STORE_ID_LEN = 128;
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_JS_UTIL_H
