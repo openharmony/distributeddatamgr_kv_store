@@ -61,7 +61,7 @@ int32_t KVDBNotifierStub::OnSyncCompleted(MessageParcel& data, MessageParcel& re
     std::map<std::string, Status> results;
     uint64_t sequenceId;
     if (!ITypesUtil::Unmarshal(data, results, sequenceId)) {
-        ZLOGE("Unmarshal results size:%{puBlockDatablic}zu, sequenceId:%{public}" PRIu64, results.size(), sequenceId);
+        ZLOGE("Unmarshal results size:%{public}zu, sequenceId:%{public}" PRIu64, results.size(), sequenceId);
         return IPC_STUB_INVALID_DATA_ERR;
     }
     SyncCompleted(std::move(results), sequenceId);

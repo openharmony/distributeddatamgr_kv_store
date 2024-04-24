@@ -838,7 +838,7 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     SwitchData input;
     input.value = 0x000D;
     input.length = 4;
-    SwitchDataObserver observer = [input, &devInfo.networkId, &blockData](const SwitchNotification &&notification) {
+    SwitchDataObserver observer = [input, devInfo, &blockData](const SwitchNotification &&notification) {
         ASSERT_EQ(notification.state, SwitchState::UPDATE);
         ASSERT_EQ(notification.deviceId, devInfo.networkId);
         blockData.SetValue(notification.data);
