@@ -164,7 +164,7 @@ public:
         return (jsValue == nullptr) ? status : GetValue(env, jsValue, value);
     };
 
-    inline bool IsValid(const string& storeId) const
+    inline bool IsValid(const std::string& storeId) const
     {
         if (storeId.empty() || storeId.size() > MAX_STORE_ID_LEN) {
             return false;
