@@ -162,7 +162,8 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters type must belong one of string,number,array,bool.");
+    NAPI_ASSERT(env, ctxt->status == napi_ok,
+        "Parameter error:Parameters type must belong one of string,number,array,bool.");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->defaultValue_ = vv;

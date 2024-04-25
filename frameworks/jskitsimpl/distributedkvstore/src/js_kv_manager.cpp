@@ -101,7 +101,7 @@ struct GetKVStoreContext : public ContextBase {
                 "Parameter error:Mandatory parameters are left unspecified");
             status = JSUtil::GetValue(env, argv[0], storeId);
             ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && JSUtil::IsValid(storeId)), Status::INVALID_ARGUMENT,
-                "Parameter error:storeId must be string,consist of letters, digits, underscores(_), limit 128 characters");
+                "Parameter error:storeId must be string,consist of letters,digits,underscores(_),limit 128 chars");
             status = JSUtil::GetValue(env, argv[1], options);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
                 "Parameter error:The params type not matching option");
