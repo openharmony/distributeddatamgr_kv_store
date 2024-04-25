@@ -137,7 +137,7 @@ public:
      *
      * @return Return SUCCESS for success, others for failure.
     */
-    virtual Status CloudSync() = 0;
+    virtual Status CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallback = nullptr) = 0;
 
     /**
      * @brief Sync store with other devices.
