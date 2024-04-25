@@ -179,7 +179,7 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
             napi_valuetype ntype = napi_undefined;
             napi_typeof(env, argv[0], &ntype);
             auto type = valueTypeToString_.find(ntype);
-            ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:incorrect parameter type:" + type->second);
+            ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:the type of value must be:" + type->second);
             return;
         }
     });
@@ -937,7 +937,7 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
             JsQuery *jsQuery = nullptr;
             statusMsg = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
             if (jsQuery == nullptr) {
-                va.errMsg = "Parameter error:parameters query is incorrect";
+                va.errMsg = "Parameter error:parameters query is must be object";
                 return napi_invalid_arg;
             }
             va.dataQuery = jsQuery->GetDataQuery();

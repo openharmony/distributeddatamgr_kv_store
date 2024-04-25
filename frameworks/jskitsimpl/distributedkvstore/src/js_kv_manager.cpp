@@ -108,7 +108,7 @@ struct GetKVStoreContext : public ContextBase {
             ASSERT_BUSINESS_ERR(this, options.securityLevel != INVALID_LABEL, Status::INVALID_ARGUMENT,
                 "Parameter error:unusable securityLevel");
             ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), Status::INVALID_ARGUMENT,
-                "Parameter error:kvStoreType is incorrect");
+                "Parameter error:only support DEVICE_COLLABORATION or SINGLE_VERSION");
             ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
                 ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
