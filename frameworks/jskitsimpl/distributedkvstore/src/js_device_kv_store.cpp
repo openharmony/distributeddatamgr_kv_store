@@ -137,14 +137,14 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[pos], &type);
     if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
-        va.errMsg = "Parameter error:parameters keyPrefix/query must string or object type";
+        va.errMsg = "Parameter error:parameters keyPrefix/query must be string or object";
         return statusMsg != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
         std::string keyPrefix;
         statusMsg = JSUtil::GetValue(env, argv[pos], keyPrefix);
         if (keyPrefix.empty()) {
-            va.errMsg = "Parameter error:parameters keyPrefix must string";
+            va.errMsg = "Parameter error:parameters keyPrefix must be string";
             return napi_invalid_arg;
         }
         va.dataQuery.KeyPrefix(keyPrefix);
@@ -155,7 +155,7 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
             JsQuery *jsQuery = nullptr;
             statusMsg = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
             if (jsQuery == nullptr) {
-                va.errMsg = "Parameter error:The parameters query must string";
+                va.errMsg = "Parameter error:The parameters query must be string";
                 return napi_invalid_arg;
             }
             va.dataQuery = jsQuery->GetDataQuery();

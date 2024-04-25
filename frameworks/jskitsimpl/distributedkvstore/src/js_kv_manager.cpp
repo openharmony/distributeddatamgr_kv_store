@@ -101,10 +101,10 @@ struct GetKVStoreContext : public ContextBase {
                 "Parameter error:Mandatory parameters are left unspecified");
             status = JSUtil::GetValue(env, argv[0], storeId);
             ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && JSUtil::IsValid(storeId)), Status::INVALID_ARGUMENT,
-                "Parameter error:storeId must string,consist of letters, digits, underscores(_), limit 128 characters");
+                "Parameter error:storeId must be string,consist of letters, digits, underscores(_), limit 128 characters");
             status = JSUtil::GetValue(env, argv[1], options);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT,
-                "Parameter error:The type of options is incorrect");
+                "Parameter error:The params type not matching option");
             ASSERT_BUSINESS_ERR(this, options.securityLevel != INVALID_LABEL, Status::INVALID_ARGUMENT,
                 "Parameter error:unusable securityLevel");
             ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), Status::INVALID_ARGUMENT,
@@ -190,7 +190,7 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
             "Parameter error:appId empty");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
-            "Parameter error:storeId must string,consist of letters, digits, underscores(_), limit 128 characters");
+            "Parameter error:storeId must be string,consist of letters, digits, underscores(_), limit 128 characters");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CloseKVStore exits");
@@ -231,7 +231,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
             "Parameter error:appId empty");
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->storeId);
         ASSERT_BUSINESS_ERR(ctxt, JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
-            "error:storeId must string; consist of only letters, digits underscores (_),limit 128 characters");
+            "error:storeId must be string; consist of only letters, digits underscores (_),limit 128 characters");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteKVStore exits");
@@ -309,7 +309,7 @@ napi_value JsKVManager::On(napi_env env, napi_callback_info info)
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[1], &valueType);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
-            "Parameter error:parameter callback must function type");
+            "Parameter error:parameter callback must be function type");
 
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         ASSERT_BUSINESS_ERR(ctxt, proxy != nullptr, Status::INVALID_ARGUMENT,
@@ -352,7 +352,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
             napi_valuetype valueType = napi_undefined;
             ctxt->status = napi_typeof(env, argv[1], &valueType);
             ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function),
-                Status::INVALID_ARGUMENT, "Parameter error:parameter callback type must function");
+                Status::INVALID_ARGUMENT, "Parameter error:parameter callback type must be function");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         std::lock_guard<std::mutex> lck(proxy->deathMutex_);
@@ -418,7 +418,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
     ASSERT_NULL(!ctxt->isThrowError, "JsKVManager New exit");
 
     JsKVManager* kvManager = new (std::nothrow) JsKVManager(bundleName, env, param);
-    ASSERT_ERR(env, kvManager != nullptr, Status::INVALID_ARGUMENT, "Parameter error:kvManager  nullptr");
+    ASSERT_ERR(env, kvManager != nullptr, Status::INVALID_ARGUMENT, "Parameter error:kvManager is nullptr");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");

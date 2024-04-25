@@ -115,7 +115,7 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&child), JsFieldNode::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)),
-            Status::INVALID_ARGUMENT, "Parameter error:child nullptr");
+            Status::INVALID_ARGUMENT, "Parameter error:child is nullptr");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "AppendChild exit");
@@ -162,7 +162,7 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters type failed");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters type must belong one of string,number,array,bool.");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->defaultValue_ = vv;

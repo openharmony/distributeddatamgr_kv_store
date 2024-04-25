@@ -167,7 +167,7 @@ napi_value JsKVStoreResultSet::Move(napi_env env, napi_callback_info info) /* bo
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Move exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:get parameters offset failed");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:params offset must be number");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
     bool isMoved = resultSet->Move(offset);
@@ -189,7 +189,7 @@ napi_value JsKVStoreResultSet::MoveToPosition(napi_env env, napi_callback_info i
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "MoveToPosition exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "Parameter error:get position failed");
+        "Parameter error:params position must be number");
     ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
