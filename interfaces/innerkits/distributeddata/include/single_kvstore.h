@@ -131,15 +131,6 @@ public:
     virtual Status GetSecurityLevel(SecurityLevel &secLevel) const = 0;
 
     /**
-     * @brief Sync store to cloud.
-     *
-     * Sync store to cloud.
-     *
-     * @return Return SUCCESS for success, others for failure.
-    */
-    virtual Status CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallback = nullptr) = 0;
-
-    /**
      * @brief Sync store with other devices.
      *
      * This is an asynchronous method.
@@ -294,6 +285,18 @@ public:
     {
         return Status::SUCCESS;
     };
+
+    /**
+     * @brief Sync store to cloud.
+     *
+     * Sync store to cloud.
+     *
+     * @return Return SUCCESS for success, others for failure.
+     */
+    virtual Status CloudSync(const AsyncDetail &async)
+    {
+        return Status::SUCCESS;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

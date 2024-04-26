@@ -50,7 +50,6 @@ public:
     virtual Status Delete(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
-    virtual Status CloudSync(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback) = 0;
     virtual Status UnregisterSyncCallback(const AppId &appId) = 0;
     virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) = 0;
@@ -65,6 +64,7 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
+    virtual Status CloudSync(const AppId &appId, const StoreId &storeId) = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_H

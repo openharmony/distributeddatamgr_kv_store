@@ -31,6 +31,7 @@ public:
     ~KvStoreObserverClient();
 
     void OnChange(const ChangeNotification &changeNotification) override;
+    void OnChange(const DataOrigin &origin, IKvStoreObserver::Keys &&keys) override;
 
 private:
     static const int MAX_TRY_COUNT = 10;

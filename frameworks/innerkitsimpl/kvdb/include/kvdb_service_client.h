@@ -36,7 +36,6 @@ public:
         const std::vector<uint8_t> &password) override;
     Status Delete(const AppId &appId, const StoreId &storeId) override;
     Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
-    Status CloudSync(const AppId &appId, const StoreId &storeId) override;
     Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback) override;
     Status UnregisterSyncCallback(const AppId &appIdd) override;
@@ -51,6 +50,7 @@ public:
     Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
+    Status CloudSync(const AppId &appId, const StoreId &storeId) override;
     sptr<KvStoreSyncCallbackClient> GetSyncAgent(const AppId &appId);
 
 protected:

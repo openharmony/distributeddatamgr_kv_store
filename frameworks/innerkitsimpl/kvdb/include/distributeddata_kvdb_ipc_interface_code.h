@@ -27,7 +27,6 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_AFTER_CREATE,
     TRANS_DELETE,
     TRANS_SYNC,
-    TRANS_CLOUD_SYNC,
     TRANS_REGISTER_CALLBACK,
     TRANS_UNREGISTER_CALLBACK,
     TRANS_SET_SYNC_PARAM,
@@ -41,6 +40,7 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_UNSUB,
     TRANS_GET_PASSWORD,
     TRANS_SYNC_EXT,
+    TRANS_CLOUD_SYNC,
     TRANS_BUTT
 };
 } // namespace OHOS::DistributedKv

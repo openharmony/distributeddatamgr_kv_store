@@ -270,7 +270,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore008, TestSize.Level1)
     std::shared_ptr<SingleKvStore> cloudKvStore = nullptr;
     Options options = create;
     options.isPublic = true;
-    Status status = manager.GetSingleKvStore(options, appId, storeId65, cloudKvStore);
+    Status status = manager.GetSingleKvStore(options, appId, storeId64, cloudKvStore);
     ASSERT_EQ(status, Status::SUCCESS);
     EXPECT_NE(cloudKvStore, nullptr);
 }

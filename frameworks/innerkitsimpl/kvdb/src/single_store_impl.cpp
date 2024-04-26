@@ -253,7 +253,9 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
-    if (((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) && status == SUCCESS) {
+    if ((((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) ||
+            ((realType & SUBSCRIBE_TYPE_CLOUD) == SUBSCRIBE_TYPE_CLOUD)) &&
+        status == SUCCESS) {
         realType &= ~SUBSCRIBE_TYPE_LOCAL;
         status = bridge->RegisterRemoteObserver();
     }
@@ -536,7 +538,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     return DoSync(syncInfo, syncCallback);
 }
 
-Status SingleStoreImpl::CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallback)
+Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto service = KVDBServiceClient::GetInstance();
@@ -544,7 +546,6 @@ Status SingleStoreImpl::CloudSync(std::shared_ptr<KvStoreSyncCallback> syncCallb
         return SERVER_UNAVAILABLE;
     }
     auto status = service->CloudSync({ appId_ }, { storeId_ });
-
     if (status == SUCCESS) {
         return SUCCESS;
     } else {

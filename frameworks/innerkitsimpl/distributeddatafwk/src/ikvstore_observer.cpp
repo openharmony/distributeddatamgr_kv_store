@@ -113,17 +113,14 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
     MessageOption &option)
 {
     ZLOGD("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
-    std::u16string descriptor = KvStoreObserverStub::GetDescriptor();
-    std::u16string remoteDescriptor = data.ReadInterfaceToken();
-    if (descriptor != remoteDescriptor) {
+    const int errorResult = -1;
+    if (KvStoreObserverStub::GetDescriptor() != data.ReadInterfaceToken()) {
         ZLOGE("local descriptor is not equal to remote");
-        return -1;
+        return errorResult;
     }
     switch (code) {
         case ONCHANGE: {
-            const int errorResult = -1;
-            int totalSize = data.ReadInt32();
-            if (totalSize < SWITCH_RAW_DATA_SIZE) {
+            if (data.ReadInt32() < SWITCH_RAW_DATA_SIZE) {
                 ChangeNotification notification({}, {}, {}, "", false);
                 if (!ITypesUtil::Unmarshal(data, notification)) {
                     ZLOGE("changeNotification is nullptr");
@@ -136,8 +133,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
                 std::vector<Entry> inserts;
                 std::vector<Entry> updates;
                 std::vector<Entry> deletes;
-                if (!ITypesUtil::Unmarshal(data, deviceId, clear) ||
-                    !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
+                if (!ITypesUtil::Unmarshal(data, deviceId, clear) || !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
                     !ITypesUtil::UnmarshalFromBuffer(data, updates) ||
                     !ITypesUtil::UnmarshalFromBuffer(data, deletes)) {
                     ZLOGE("WriteChangeList to Parcel by buffer failed");
@@ -154,11 +150,10 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
             Keys keys;
             if (!ITypesUtil::Unmarshal(data, store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
                 ZLOGE("ReadChangeList from Parcel failed");
-                return -1;
+                return errorResult;
             }
-            DataOrigin origin;
-            origin.store = store;
-            OnChange(origin, std::move(keys));
+            OnChange({ .store = store }, std::move(keys));
+            return 0;
         }
         default:
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);

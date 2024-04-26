@@ -518,6 +518,38 @@ struct UserInfo {
     */
     int32_t userType;
 };
+
+/**
+ * @brief Cloud sync statistic.
+*/
+struct Statistic {
+    uint32_t total;
+    uint32_t success;
+    uint32_t failed;
+    uint32_t untreated;
+};
+
+/**
+ * @brief Cloud sync table detail.
+*/
+struct TableDetail {
+    Statistic upload;
+    Statistic download;
+};
+
+/**
+ * @brief Cloud sync process detail.
+*/
+struct ProgressDetail {
+    /**
+     * Cloud sync progress status
+    */
+    int32_t progress;
+    int32_t code;
+    TableDetail details;
+};
+
+using AsyncDetail = std::function<void(ProgressDetail &&)>;
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

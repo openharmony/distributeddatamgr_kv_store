@@ -39,5 +39,13 @@ void KvStoreObserverClient::OnChange(const ChangeNotification &changeNotificatio
         kvStoreObserver_->OnChange(changeNotification);
     }
 }
+
+void KvStoreObserverClient::OnChange(const DataOrigin &origin, IKvStoreObserver::Keys &&keys)
+{
+    ZLOGI("start");
+    if (kvStoreObserver_ != nullptr) {
+        kvStoreObserver_->OnChange(origin, std::move(keys));
+    }
+}
 } // namespace DistributedKv
 } // namespace OHOS

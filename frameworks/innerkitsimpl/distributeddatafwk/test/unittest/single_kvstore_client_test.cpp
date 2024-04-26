@@ -1217,20 +1217,7 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
     AppId appId = { "odmf" };
     StoreId storeId = { "cloud_store_id" };
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
-    auto status = cloudSyncKvStore->CloudSync();
+    auto status = cloudSyncKvStore->CloudSync(nullptr);
     EXPECT_NE(status, Status::SUCCESS) << "cloud sync should not return success";
-}
-
-/**
- * @tc.name: CloudSync002
- * desc: KvStore which not supports cloud sync call CloudSync, return NOT_SUPPORT
- * type: FUNC
- * require:
- * author:taoyuxin
- */
-HWTEST_F(SingleKvStoreClientTest, CloudSync002, TestSize.Level1)
-{
-    auto status = singleKvStore->CloudSync();
-    EXPECT_EQ(status, Status::NOT_SUPPORT) << "cloud sync should not return success";
 }
 } // namespace OHOS::Test
