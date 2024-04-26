@@ -38,7 +38,6 @@ config("distributeddatafwk_config") {
     "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
-    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
   ]
 }
@@ -80,7 +79,6 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//utils/system/safwk/native/include",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
-    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
@@ -124,6 +122,7 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/libuv:uv",
     "//third_party/sqlite:sqlite_sdk",
+    "file_api:securitylabel"
   ]
 
   if (use_platform_win) {
