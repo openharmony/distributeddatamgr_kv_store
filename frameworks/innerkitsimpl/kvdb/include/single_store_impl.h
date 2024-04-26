@@ -122,7 +122,7 @@ private:
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    std::pair<Status, uint64_t> SyncExt(const std::string &networkId);
+    Status SyncExt(const std::string &networkId, uint64_t sequenceId);
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();

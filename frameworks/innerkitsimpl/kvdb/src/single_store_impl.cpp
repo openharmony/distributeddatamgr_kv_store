@@ -345,12 +345,14 @@ void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
         onResult(status, std::move(value));
         return;
     }
-    auto result = SyncExt(networkId);
-    if (result.first != SUCCESS) {
+    uint64_t sequenceId = StoreUtil::GenSequenceId();
+    asyncFuncs_.Insert(sequenceId, { .key = key, .toGet = onResult });
+    auto result = SyncExt(networkId, sequenceId);
+    if (result != SUCCESS) {
+        asyncFuncs_.Erase(sequenceId);
         onResult(result.first, Value());
         return;
     }
-    asyncFuncs_.Insert(result.second, { .key = key, .toGet = onResult });
 }
 
 void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId,
@@ -367,30 +369,32 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
         onResult(status, std::move(entries));
         return;
     }
-    auto result = SyncExt(networkId);
-    if (result.first != SUCCESS) {
-        onResult(result.first, {});
+    uint64_t sequenceId = StoreUtil::GenSequenceId();
+    asyncFuncs_.Insert(sequenceId, { .key = prefix, .toGetEntries = onResult });
+    auto result = SyncExt(networkId, sequenceId);
+    if (result != SUCCESS) {
+        asyncFuncs_.Erase(sequenceId);
+        onResult(result, {});
         return;
     }
-    asyncFuncs_.Insert(result.second, { .key = prefix, .toGetEntries = onResult });
 }
 
-std::pair<Status, uint64_t> SingleStoreImpl::SyncExt(const std::string &networkId)
+Status SingleStoreImpl::SyncExt(const std::string &networkId, uint64_t sequenceId)
 {
     auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
     if (clientUuid.empty()) {
-        return { INVALID_ARGUMENT, INVALID_SEQ_ID };
+        return INVALID_ARGUMENT;
     }
     KVDBService::SyncInfo syncInfo;
-    syncInfo.seqId = StoreUtil::GenSequenceId();
+    syncInfo.seqId = sequenceId;
     syncInfo.devices = { networkId };
     auto status = DoSyncExt(syncInfo, shared_from_this());
     if (status != SUCCESS) {
         ZLOGE("sync ext failed, status:%{public}d networkId:%{public}s app:%{public}s store:%{public}s", status,
             StoreUtil::Anonymous(networkId).c_str(), appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-        return { status, INVALID_SEQ_ID };;
+        return status;
     }
-    return { SUCCESS, syncInfo.seqId };
+    return SUCCESS;
 }
 
 void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
