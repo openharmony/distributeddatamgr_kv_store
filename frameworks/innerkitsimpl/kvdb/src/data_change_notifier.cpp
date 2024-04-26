@@ -76,6 +76,10 @@ std::map<std::string, std::vector<StoreId>> DataChangeNotifier::GetStoreIds()
 std::function<void()> DataChangeNotifier::GenTask()
 {
     return [this]() {
+        {
+            std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+            taskId_ = TaskExecutor::INVALID_TASK_ID;
+        }
         auto storeIds = GetStoreIds();
         for (const auto &id : storeIds) {
             DoNotify({ id.first }, id.second);
