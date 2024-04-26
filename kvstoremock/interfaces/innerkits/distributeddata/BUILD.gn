@@ -122,7 +122,6 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/libuv:uv",
     "//third_party/sqlite:sqlite_sdk",
-    "file_api:securitylabel"
   ]
 
   if (use_platform_win) {
