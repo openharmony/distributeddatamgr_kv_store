@@ -721,7 +721,9 @@ distributeddb_unittest("DistributedDBCloudAssetsOperationSyncTest") {
 }
 
 distributeddb_unittest("DistributedDBCloudTaskMergeTest") {
-  sources = [ "unittest/common/storage/cloud/distributeddb_cloud_task_merge_test.cpp" ]
+  sources = [
+    "unittest/common/storage/cloud/distributeddb_cloud_task_merge_test.cpp",
+  ]
 }
 
 ###############################################################################

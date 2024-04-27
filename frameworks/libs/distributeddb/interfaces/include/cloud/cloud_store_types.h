@@ -147,9 +147,9 @@ struct CloudSyncOption {
     bool priorityTask = false;
     bool compensatedSyncOnly = false;
     std::vector<std::string> users;
+    bool merge = false;
     // default, upload insert need lock
     LockAction lockAction = LockAction::INSERT;
-    bool merge = false;
 };
 
 enum class QueryNodeType : uint32_t {
