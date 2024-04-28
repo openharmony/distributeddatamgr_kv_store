@@ -256,6 +256,14 @@ int SyncerProxy::UpgradeSchemaVerInMeta()
     return syncer_->UpgradeSchemaVerInMeta();
 }
 
+void SyncerProxy::ResetSyncStatus()
+{
+    if (syncer_ == nullptr) {
+        return;
+    }
+    syncer_->ResetSyncStatus();
+}
+
 int64_t SyncerProxy::GetLocalTimeOffset()
 {
     if (syncer_ == nullptr) {

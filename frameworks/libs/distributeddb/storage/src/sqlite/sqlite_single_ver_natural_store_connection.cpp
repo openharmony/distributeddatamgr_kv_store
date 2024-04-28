@@ -524,6 +524,9 @@ int SQLiteSingleVerNaturalStoreConnection::Import(const std::string &filePath, c
     GenericKvDBConnection::ResetExclusiveStatus();
     kvDB_->ReEnableConnection(OperatePerm::IMPORT_MONOPOLIZE_PERM);
     EnableManualSync();
+    if (errCode == E_OK) {
+        kvDB_->ResetSyncStatus();
+    }
     return errCode;
 }
 

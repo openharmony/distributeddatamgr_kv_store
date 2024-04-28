@@ -45,7 +45,7 @@ int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bo
     return CloudSyncer::DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
 }
 
-int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
+int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction lockAction)
 {
     if (!doUpload_) {
         LOGI("[VirtualCloudSyncer] upload just return ok");
@@ -54,7 +54,7 @@ int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     if (uploadFunc_) {
         return uploadFunc_();
     }
-    return CloudSyncer::DoUpload(taskId, lastTable);
+    return CloudSyncer::DoUpload(taskId, lastTable, lockAction);
 }
 
 void VirtualCloudSyncer::SetSyncAction(bool doDownload, bool doUpload)

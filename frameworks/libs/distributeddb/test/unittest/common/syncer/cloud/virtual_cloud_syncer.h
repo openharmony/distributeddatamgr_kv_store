@@ -26,7 +26,7 @@ public:
 
     int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload) override;
 
-    int DoUpload(TaskId taskId, bool lastTable) override;
+    int DoUpload(TaskId taskId, bool lastTable, LockAction lockAction) override;
 
     void SetSyncAction(bool doDownload, bool doUpload);
 

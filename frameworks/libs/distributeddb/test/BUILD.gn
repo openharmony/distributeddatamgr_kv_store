@@ -654,6 +654,12 @@ distributeddb_unittest("DistributedDBCloudSyncerDownloadAssetsTest") {
   sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_download_assets_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudSyncerLockTest") {
+  sources = [
+    "unittest/common/syncer/cloud/distributeddb_cloud_syncer_lock_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBCloudSyncerUploadTest") {
   sources = [
     "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp",
@@ -797,6 +803,7 @@ group("unittest") {
     ":DistributedDBCloudSchemaMgrTest",
     ":DistributedDBCloudStrategyTest",
     ":DistributedDBCloudSyncerDownloadTest",
+    ":DistributedDBCloudSyncerLockTest",
     ":DistributedDBCloudSyncerProgressManagerTest",
     ":DistributedDBCloudSyncerUploadTest",
     ":DistributedDBCloudTableCompoundPrimaryKeySyncTest",

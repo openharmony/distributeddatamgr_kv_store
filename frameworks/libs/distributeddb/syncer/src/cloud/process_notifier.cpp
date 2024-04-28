@@ -108,7 +108,7 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     auto id = syncer->GetIdentify();
     int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(id, [callback, currentProcess, syncer]() {
         LOGD("[ProcessNotifier] begin notify process");
-        if (syncer->IsKilled()) {
+        if (syncer->IsClosed()) {
             LOGI("[ProcessNotifier] db has closed, process return");
             RefObject::DecObjRef(syncer);
             return;

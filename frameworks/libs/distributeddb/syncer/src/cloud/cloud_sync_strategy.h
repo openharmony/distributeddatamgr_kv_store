@@ -37,7 +37,7 @@ public:
 
     static bool IsDelete(const LogInfo &info);
 
-    static bool IsSharingResourceChanged(const LogInfo &cloudInfo, const LogInfo &localInfo);
+    static bool IsLogNeedUpdate(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
 protected:
     static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo);

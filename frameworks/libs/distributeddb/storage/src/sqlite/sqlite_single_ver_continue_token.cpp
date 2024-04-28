@@ -142,7 +142,7 @@ Timestamp SQLiteSingleVerContinueToken::GetEndTimestamp(const MulDevTimeRanges &
 }
 
 std::pair<int, sqlite3_stmt *> SQLiteSingleVerContinueToken::GetCloudQueryStmt(sqlite3 *db, bool forcePush,
-    bool &stepNext)
+    bool &stepNext, const CloudWaterType mode)
 {
     if (queryDataStmt_ != nullptr) {
         return {E_OK, queryDataStmt_};
@@ -150,7 +150,7 @@ std::pair<int, sqlite3_stmt *> SQLiteSingleVerContinueToken::GetCloudQueryStmt(s
     std::pair<int, sqlite3_stmt *> res;
     int &errCode = res.first;
     sqlite3_stmt *&stmt = res.second;
-    std::tie(errCode, stmt) = SqliteQueryHelper::GetKvCloudQueryStmt(db, forcePush);
+    std::tie(errCode, stmt) = SqliteQueryHelper::GetKvCloudQueryStmt(db, forcePush, mode);
     if (errCode != E_OK) {
         LOGE("[SQLiteSingleVerContinueToken] Get kv cloud query stmt failed %d", errCode);
         return res;

@@ -260,11 +260,11 @@ DataBaseSchema DistributedDBCloudCheckSyncTest::GetSchema()
 void DistributedDBCloudCheckSyncTest::CloseDb()
 {
     virtualCloudDb_ = nullptr;
-    if (delegate_ != nullptr) {
+    if (mgr_ != nullptr) {
         EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
         delegate_ = nullptr;
+        mgr_ = nullptr;
     }
-    mgr_ = nullptr;
 }
 
 void DistributedDBCloudCheckSyncTest::InsertUserTableRecord(const std::string &tableName,
