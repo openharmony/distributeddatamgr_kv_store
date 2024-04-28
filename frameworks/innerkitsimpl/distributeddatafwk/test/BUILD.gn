@@ -96,6 +96,7 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
   external_deps = [
     "c_utils:utils",
+    "file_api:securitylabel",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -103,7 +104,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
-    "file_api:securitylabel"
   ]
 
   part_name = "kv_store"
