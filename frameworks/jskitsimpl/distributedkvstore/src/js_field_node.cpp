@@ -87,16 +87,17 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &fieldName](size_t argc, napi_value* argv) {
         // required 1 arguments :: <fieldName>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+            "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], fieldName);
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && !fieldName.empty()),
-            Status::INVALID_ARGUMENT, "The parameters of fieldName is incorrect.");
+            Status::INVALID_ARGUMENT, "Parameter error:fieldName empty");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "JsFieldNode New exit");
 
     JsFieldNode* fieldNode = new (std::nothrow) JsFieldNode(fieldName);
-    ASSERT_ERR(env, fieldNode != nullptr, Status::INVALID_ARGUMENT, "no memory for fieldNode.");
+    ASSERT_ERR(env, fieldNode != nullptr, Status::INVALID_ARGUMENT, "Parameter error:fieldNode is nullptr");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
@@ -115,10 +116,11 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &child](size_t argc, napi_value* argv) {
         // required 1 arguments :: <child>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+            "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&child), JsFieldNode::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)),
-            Status::INVALID_ARGUMENT, "The parameters JsFieldNode is incorrect.");
+            Status::INVALID_ARGUMENT, "Parameter error:child is nullptr");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "AppendChild exit");
@@ -165,7 +167,8 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok,
+        "Parameter error:Parameters type must belong one of string,number,array,bool.");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->defaultValue_ = vv;
@@ -193,7 +196,7 @@ napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
         ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid isNullable!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters type failed");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->isNullable_ = isNullable;
@@ -223,7 +226,7 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
             "invalid arg[0], i.e. invalid valueType!");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "Parameter error:Parameters type failed");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
     fieldNode->valueType_ = type;

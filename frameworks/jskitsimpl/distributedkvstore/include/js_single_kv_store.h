@@ -121,6 +121,7 @@ private:
     std::mutex listMutex_ {};
     std::list<std::shared_ptr<DataObserver>> dataObserver_[SUBSCRIBE_COUNT];
     std::shared_ptr<UvQueue> uvQueue_;
+    static constexpr const char *AUTO_BACKUP_NAME = "autoBackup";
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_SINGLE_KV_STORE_H

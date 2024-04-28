@@ -335,6 +335,7 @@ Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value 
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
     if (clientUuid.empty()) {
+        ZLOGE("clientUuid is empty");
         return INVALID_ARGUMENT;
     }
     auto status = Get(key, value);
