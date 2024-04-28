@@ -111,7 +111,7 @@ external_deps_config = [
   "huks:libhukssdk",
   "ipc:ipc_single",
   "samgr:samgr_proxy",
-  "file_api:securitylabel"
+  "file_api:securitylabel",
 ]
 
 ohos_shared_library("distributeddata_inner") {
@@ -151,8 +151,8 @@ ohos_shared_library("distributeddata_client_sync") {
 
   external_deps = [
     "c_utils:utils",
+    "file_api:securitylabel",
     "hilog:libhilog",
-    "file_api:securitylabel"
   ]
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
