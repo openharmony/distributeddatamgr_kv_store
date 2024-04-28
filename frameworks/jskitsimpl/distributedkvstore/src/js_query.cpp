@@ -213,7 +213,7 @@ napi_value JsQuery::LessThan(napi_env env, napi_callback_info info)
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "LessThan exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "The function LessThan params must belong one of string number");
+        "The parameter of the LessThan function must be a string or number.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);

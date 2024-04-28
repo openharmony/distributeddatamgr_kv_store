@@ -338,7 +338,7 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
         JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "Parameter error:please check params entries type");
+            "Parameter error:params entries type must be one of string,number,boolean,array");
         ASSERT_PERMISSION_ERR(ctxt,
             !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
             reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
@@ -919,7 +919,7 @@ static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* a
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[0], &type);
     if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
-        va.errMsg = "Parameter error:parameters keyPrefix/query is incorrect";
+        va.errMsg = "Parameter error:parameters keyPrefix/query must be string or object";
         return statusMsg.status != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {

@@ -371,7 +371,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfoSync(env, info, input);
     if (ctxt->status != napi_ok) {
-        ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:incorrect parameters type.");
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:params must be sting or function");
     }
     ZLOGD("KVManager::Off callback is not register or already unregister!");
     return nullptr;
@@ -404,9 +404,9 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
-            "Parameter error:missing bundleName");
+            "Parameter error:The bundleName parameter is missing.");
         ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), Status::INVALID_ARGUMENT,
-            "Parameter error:empty bundleName");
+            "Parameter error:The bundleName field cannot be empty.");
 
         napi_value jsContext = nullptr;
         JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
