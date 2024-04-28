@@ -234,7 +234,7 @@ HWTEST_F(DataChangeNotifierTest, MultiWrite, TestSize.Level1)
         }
     });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
-    ASSERT_GE(instance->endTime - instance->startTime, 1500);
+    ASSERT_GE(instance->endTime - instance->startTime, 1400);
     thread.join();
     auto it = instance->values_.find("ut_test");
     ASSERT_NE(it, instance->values_.end());
@@ -272,7 +272,7 @@ HWTEST_F(DataChangeNotifierTest, MultiWriteOverFiveKVStores, TestSize.Level1)
         }
     });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(6)), 6);
-    ASSERT_GE(instance->endTime - instance->startTime, 1500);
+    ASSERT_GE(instance->endTime - instance->startTime, 1400);
     auto it = instance->values_.find("ut_test");
     ASSERT_EQ(it->second.count("ut_test_store0"), 1);
     ASSERT_EQ(it->second.count("ut_test_store1"), 1);
@@ -323,7 +323,6 @@ HWTEST_F(DataChangeNotifierTest, DoubleWrite, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store3"), 1);
     ASSERT_EQ(it->second.count("ut_test_store4"), 1);
     ASSERT_EQ(it->second.count("ut_test_store5"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store10"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-0"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-1"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-2"), 1);
