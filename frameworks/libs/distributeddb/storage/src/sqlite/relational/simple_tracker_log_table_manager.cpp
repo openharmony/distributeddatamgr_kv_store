@@ -42,7 +42,10 @@ void SimpleTrackerLogTableManager::GetIndexSql(const TableInfo &table, std::vect
 
     std::string indexCursor = "CREATE INDEX IF NOT EXISTS " + tableName +
         "_cursor_index ON " + tableName + "(cursor);";
+    std::string indexDataKey = "CREATE INDEX IF NOT EXISTS " + tableName +
+        "_data_key_index ON " + tableName + "(data_key);";
     schema.emplace_back(indexCursor);
+    schema.emplace_back(indexDataKey);
 }
 
 std::string SimpleTrackerLogTableManager::GetPrimaryKeySql(const TableInfo &table)
@@ -97,9 +100,8 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
-    updateTrigger += " from " + logTblName + ") where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
-    updateTrigger += ";\n";
+    updateTrigger += table.GetTrackerTable().GetDiffIncCursorSql(logTblName);
+    updateTrigger += " where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += "select client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ", 1, ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
