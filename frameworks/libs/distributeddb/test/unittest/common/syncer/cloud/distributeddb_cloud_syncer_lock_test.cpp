@@ -310,6 +310,10 @@ void DistributedDBCloudSyncerLockTest::CallSync(const CloudSyncOption &option, D
 
 void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
 {
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return ok.
+     */
     int cloudCount = 20;
     int localCount = 10;
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
@@ -317,6 +321,10 @@ void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
     CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
     CallSync(option);
 
+    /**
+     * @tc.steps:step2. update local data to upload, and set hook before upload, operator cloud data which id is 1
+     * @tc.expected: step2. return ok.
+     */
     std::string sql;
     if (isUpdate) {
         sql = "update " + ASSETS_TABLE_NAME + " set name = 'xxx' where id = 1;";
@@ -330,6 +338,11 @@ void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
             UpdateCloudDBData(1, 1, 0, 21, ASSETS_TABLE_NAME); // 21 is version
         }
     });
+
+    /**
+     * @tc.steps:step3. sync and check local data
+     * @tc.expected: step3. return ok.
+     */
     CallSync(option);
     sql = "select count(*) from " + ASSETS_TABLE_NAME + " where name = 'name30' AND id = '1';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
@@ -345,6 +358,10 @@ void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
  */
 HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level0)
 {
+    /**
+     * @tc.steps:step1. init data and sync with none lock
+     * @tc.expected: step1. return ok.
+     */
     int cloudCount = 20;
     int localCount = 10;
     InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
@@ -362,6 +379,10 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level
  */
 HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync001, TestSize.Level0)
 {
+    /**
+     * @tc.steps:step1. init data and set hook before upload, update cloud data which gid is 1
+     * @tc.expected: step1. return ok.
+     */
     int cloudCount = 20;
     int localCount = 10;
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
@@ -373,6 +394,11 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync001, TestSize.Lev
             UpdateCloudDBData(1, 1, 0, 1, ASSETS_TABLE_NAME);
         }
     });
+
+    /**
+     * @tc.steps:step2. sync and check local data
+     * @tc.expected: step2. return ok.
+     */
     CallSync(option);
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
         " where flag&0x02=0 AND version='20' AND cloud_gid = '1';";
@@ -413,6 +439,10 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync003, TestSize.Lev
  */
 HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Level0)
 {
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return ok.
+     */
     int cloudCount = 20;
     int localCount = 10;
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
@@ -420,6 +450,10 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
     CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
     CallSync(option);
 
+    /**
+     * @tc.steps:step2. insert local data and set hook before upload, insert cloud data which id is 20
+     * @tc.expected: step2. return ok.
+     */
     std::string sql = "INSERT INTO " + ASSETS_TABLE_NAME + " VALUES('20', 'XXX', NULL, NULL);";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
     int index = 0;
@@ -428,6 +462,11 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
             InsertCloudDBData(cloudCount, 1, cloudCount, ASSETS_TABLE_NAME);
         }
     });
+
+    /**
+     * @tc.steps:step3. set hook for batch insert, return CLOUD_VERSION_CONFLICT err
+     * @tc.expected: step3. return ok.
+     */
     g_virtualCloudDb->ForkInsertConflict([](const std::string &tableName, VBucket &extend, VBucket &record,
         std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
         for (const auto &[cloudRecord, cloudExtend]: cloudDataVec) {
@@ -449,6 +488,11 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
         }
         return OK;
     });
+
+    /**
+     * @tc.steps:step3. sync and check local data
+     * @tc.expected: step3. return ok.
+     */
     CallSync(option);
     sql = "select count(*) from " + ASSETS_TABLE_NAME + " where name = 'name30' AND id = '20';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,

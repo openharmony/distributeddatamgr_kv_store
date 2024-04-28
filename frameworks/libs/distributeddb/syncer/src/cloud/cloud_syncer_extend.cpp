@@ -130,7 +130,7 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 {
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
-        LOGW("[CloudSyncer] Stop upload due to version conflict, %d", errCode);
+        LOGI("[CloudSyncer] Stop upload due to version conflict, %d", errCode);
     } else {
         LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
     }
