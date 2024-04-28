@@ -151,6 +151,21 @@ int SqliteCloudKvStore::GetUploadCount([[gnu::unused]] const QuerySyncObject &qu
     return errCode;
 }
 
+int SqliteCloudKvStore::GetAllUploadCount([[gnu::unused]] const QuerySyncObject &query,
+    const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, [[gnu::unused]] bool isCompensatedTask,
+    int64_t &count)
+{
+    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
+    if (db == nullptr) {
+        LOGE("[SqliteCloudKvStore] get upload count without transaction");
+        return -E_INTERNAL_ERROR;
+    }
+    int errCode = E_OK;
+    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountAllCloudData(db, isMemory, timestampVec, user_,
+        isCloudForcePush);
+    return errCode;
+}
+
 int SqliteCloudKvStore::GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object,
     const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {

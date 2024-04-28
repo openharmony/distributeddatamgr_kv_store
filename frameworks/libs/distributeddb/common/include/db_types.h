@@ -167,8 +167,8 @@ struct CaseInsensitiveComparator {
     {
         std::string str1(first.length(), ' ');
         std::string str2(second.length(), ' ');
-        std::transform(first.begin(), first.end(), str1.begin(), tolower);
-        std::transform(second.begin(), second.end(), str2.begin(), tolower);
+        std::transform(first.begin(), first.end(), str1.begin(), ::tolower);
+        std::transform(second.begin(), second.end(), str2.begin(), ::tolower);
         return str1 < str2;
     }
 };

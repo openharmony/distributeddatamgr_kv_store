@@ -1245,6 +1245,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.priorityTask = option.priorityTask;
     info.compensatedTask = option.compensatedSyncOnly;
     info.users.push_back("");
+    info.lockAction = option.lockAction;
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)

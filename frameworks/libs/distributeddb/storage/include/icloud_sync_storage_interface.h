@@ -37,6 +37,7 @@ enum class OpType : uint8_t {
     UPDATE_TIMESTAMP,
     CLEAR_GID,
     UPDATE_VERSION,
+    INSERT_VERSION,
     SET_UPLOADING,
     LOCKED_NOT_HANDLE,
     NOT_HANDLE
@@ -62,6 +63,14 @@ public:
     }
 
     virtual void SyncFinishHook()
+    {
+    }
+
+    virtual void SetDoUploadHook(const std::function<void (void)> &)
+    {
+    }
+
+    virtual void DoUploadHook()
     {
     }
 };
@@ -91,6 +100,9 @@ public:
 
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) = 0;
+
+    virtual int GetAllUploadCount(const QuerySyncObject &query, const std::vector<Timestamp> &timestampVec,
+        bool isCloudForcePush, bool isCompensatedTask, int64_t &count) = 0;
 
     virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;

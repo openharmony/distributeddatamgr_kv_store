@@ -1910,6 +1910,44 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level0)
 }
 
 /**
+ * @tc.name: KVSyncOpt007
+ * @tc.desc: check re ability sync after import
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, true);
+    /**
+     * @tc.steps: step2. deviceB call sync and wait
+     * @tc.expected: step2. sync should return OK.
+     */
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(messageCount, 2); // DEV_A send negotiation 2 ack packet.
+    /**
+     * @tc.steps: step3. export and import
+     * @tc.expected: step3. export and import OK.
+     */
+    std::string singleExportFileName = g_testDir + "/KVSyncOpt007.$$";
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvDelegatePtr->Export(singleExportFileName, passwd), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Import(singleExportFileName, passwd), OK);
+    /**
+     * @tc.steps: step4. reopen kv store and sync again
+     * @tc.expected: step4. reopen OK and sync success, no negotiation packet.
+     */
+    messageCount = 0;
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(messageCount, 1); // DEV_A send negotiation 1 ack packet.
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
  * @tc.name: KVTimeChange001
  * @tc.desc: check time sync and ability sync once
  * @tc.type: FUNC

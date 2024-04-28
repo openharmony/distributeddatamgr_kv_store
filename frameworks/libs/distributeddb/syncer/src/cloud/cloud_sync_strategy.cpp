@@ -46,9 +46,9 @@ bool CloudSyncStrategy::IsDelete(const LogInfo &info)
         static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
 }
 
-bool CloudSyncStrategy::IsSharingResourceChanged(const LogInfo &cloudInfo, const LogInfo &localInfo)
+bool CloudSyncStrategy::IsLogNeedUpdate(const LogInfo &cloudInfo, const LogInfo &localInfo)
 {
-    return (cloudInfo.sharingResource != localInfo.sharingResource);
+    return (cloudInfo.sharingResource != localInfo.sharingResource) || (cloudInfo.version != localInfo.version);
 }
 
 bool CloudSyncStrategy::IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo)
@@ -73,6 +73,6 @@ bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo)
 
 OpType CloudSyncStrategy::TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo)
 {
-    return IsSameVersion(cloudInfo, localInfo) || IsIgnoreUpdate(localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
+    return IsIgnoreUpdate(localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
 }
 }

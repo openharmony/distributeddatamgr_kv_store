@@ -37,6 +37,9 @@ public:
 
     static std::pair<int, int64_t> CountCloudData(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
         const std::string &user, bool forcePush);
+
+    static std::pair<int, int64_t> CountAllCloudData(sqlite3 *db, bool isMemory,
+        const std::vector<Timestamp> &timestampVec, const std::string &user, bool forcePush);
 private:
     static int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
         uint32_t &totalSize);
@@ -105,6 +108,9 @@ private:
     static int FillCloudGid(sqlite3 *db, const CloudSyncBatch &data, const std::string &user, bool ignoreEmptyGid);
 
     static std::pair<int, DataItem> GetDataItem(int index, DownloadData &downloadData);
+
+    static std::pair<int, int64_t> CountCloudDataInner(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
+        const std::string &user, std::string &sql);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H

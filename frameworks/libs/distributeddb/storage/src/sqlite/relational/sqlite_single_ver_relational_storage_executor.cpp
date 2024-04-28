@@ -550,12 +550,10 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
             totalSize += cloudGid.size();
         }
     }
-    if (isShared) {
-        std::string version;
-        SQLiteUtils::GetColumnTextValue(logStatement, VERSION_INDEX, version);
-        logInfo.insert_or_assign(CloudDbConstant::VERSION_FIELD, version);
-        totalSize += version.size();
-    }
+    std::string version;
+    SQLiteUtils::GetColumnTextValue(logStatement, VERSION_INDEX, version);
+    logInfo.insert_or_assign(CloudDbConstant::VERSION_FIELD, version);
+    totalSize += version.size();
 }
 
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
@@ -1541,16 +1539,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::
         isMemDb_, devices);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
-    bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
+int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestamp &timestamp,
+    SqliteQueryHelper &helper, std::string &sql, int64_t &count)
 {
-    int errCode;
-    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    std::string tableName = query.GetRelationTableName();
-    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
+    int errCode = E_OK;
     sqlite3_stmt *stmt = nullptr;
     errCode = helper.GetCloudQueryStatement(false, dbHandle_, timestamp, sql, stmt);
     if (errCode != E_OK) {
@@ -1565,8 +1557,47 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &ti
         LOGE("Failed to get the count to be uploaded. %d", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    LOGD("upload count is %d, isCloudForcePush is %d", count, isCloudForcePush);
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
+    bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
+{
+    int errCode;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string tableName = query.GetRelationTableName();
+    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
+    return GetUploadCountInner(timestamp, helper, sql, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vector<Timestamp> &timestampVec,
+    bool isCloudForcePush, bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
+{
+    if (timestampVec.size() != 3) { // 3 is the number of three mode.
+        return -E_INVALID_ARGS;
+    }
+    int errCode;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string tableName = query.GetRelationTableName();
+    count = 0;
+    std::vector<CloudWaterType> typeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
+    for (size_t i = 0; i < typeVec.size(); i++) {
+        std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
+        int64_t tempCount = 0;
+        helper.AppendCloudQueryToGetDiffData(sql, typeVec[i]);
+        errCode = GetUploadCountInner(timestampVec[i], helper, sql, tempCount);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        count += tempCount;
+    }
+    return E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncData &cloudDataResult,
@@ -1595,8 +1626,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     token.GetCloudTableSchema(tableSchema_);
     sqlite3_stmt *queryStmt = nullptr;
     bool isStepNext = false;
-    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult.isCloudForcePushStrategy,
-        cloudDataResult.isCompensatedTask, queryStmt, isStepNext);
+    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult, queryStmt, isStepNext);
     if (errCode != E_OK) {
         (void)token.ReleaseCloudStatement();
         return errCode;
@@ -1782,7 +1812,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
 {
     sqlite3_stmt *selectStmt = nullptr;
     std::string sql = "SELECT DATA_KEY FROM '" + logTableName + "' WHERE " + CLOUD_GID_FIELD +
-        " IS NOT NULL AND " + CLOUD_GID_FIELD + " != ''";
+        " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '' AND data_key != '-1'";
     if (distinguishCloudFlag) {
         sql += " AND ";
         sql += FLAG_IS_CLOUD;

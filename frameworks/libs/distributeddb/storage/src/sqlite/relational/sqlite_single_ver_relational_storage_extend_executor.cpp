@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return -E_CLOUD_ERROR;
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
-        " a.cloud_gid, a.sharing_resource, a.status";
+        " a.cloud_gid, a.sharing_resource, a.status, a.version";
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
@@ -155,7 +155,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
         if (data.assets.at(i).empty()) {
             continue;
         }
-        if (DBCommon::IsRecordIgnored(data.extend[i])) {
+        if (DBCommon::IsRecordIgnored(data.extend[i]) || DBCommon::IsRecordVersionConflict(data.extend[i])) {
             continue;
         }
         errCode = InitFillUploadAssetStatement(opType, tableSchema, data, i, stmt);
@@ -188,62 +188,27 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
     return errCode != E_OK ? errCode : ret;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const CloudSyncData &data)
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data)
 {
-    if (!data.isShared) {
-        return E_OK;
-    }
-    std::vector<CloudSyncBatch> opBatch = {
-        std::move(data.insData), std::move(data.updData), std::move(data.delData)
-    };
-    for (const auto &dataBatch: opBatch) {
-        if (dataBatch.extend.empty()) {
-            continue;
-        }
-        if (dataBatch.hashKey.empty() || dataBatch.extend.size() != dataBatch.hashKey.size()) {
-            LOGE("invalid sync data for filling version");
+    switch (opType) {
+        case OpType::UPDATE_VERSION:
+            return SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(data.tableName, data.updData);
+        case OpType::INSERT_VERSION:
+            return SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(data.tableName, data.insData);
+        default:
+            LOGE("Fill version with unknown type %d", static_cast<int>(opType));
             return -E_INVALID_ARGS;
-        }
     }
-    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(data.tableName) +
-        "' SET version = ? WHERE hash_key = ? ";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    for (const auto &dataBatch: opBatch) {
-        for (size_t i = 0; i < dataBatch.extend.size(); ++i) {
-            errCode = BindUpdateVersionStatement(dataBatch.extend[i], dataBatch.hashKey[i], stmt);
-            if (errCode != E_OK) {
-                LOGE("bind update version stmt failed.");
-                SQLiteUtils::ResetStatement(stmt, true, ret);
-                return errCode;
-            }
-        }
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode == E_OK ? ret : E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey,
     sqlite3_stmt *&stmt)
 {
     int errCode = E_OK;
-    if (vBucket.find(CloudDbConstant::VERSION_FIELD) == vBucket.end()) {
-        LOGE("can not find version from vBucket.");
-        return -E_CLOUD_ERROR;
-    }
     std::string version;
     if (CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD,
         vBucket, version) != E_OK) {
-        LOGE("get version from vBucket failed.");
-        return -E_CLOUD_ERROR;
-    }
-    if (version.empty()) {
-        LOGE("version is empty when update version");
-        return -E_CLOUD_ERROR;
+        LOGW("get version from vBucket failed.");
     }
     if (hashKey.empty()) {
         LOGE("hash key is empty when update version");
@@ -1291,8 +1256,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType 
 {
     int errCode = E_OK;
     switch (opType) {
-        case OpType::UPDATE_VERSION: {
-            errCode = FillCloudVersionForUpload(data);
+        case OpType::UPDATE_VERSION: // fallthrough
+        case OpType::INSERT_VERSION: {
+            errCode = FillCloudVersionForUpload(opType, data);
             break;
         }
         case OpType::SET_UPLOADING: {
@@ -1312,14 +1278,23 @@ int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType 
             }
             if (fillAsset) {
                 errCode = FillCloudAssetForUpload(opType, tableSchema, data.insData);
+                if (errCode != E_OK) {
+                    LOGE("Failed to fill asset for ins, %d.", errCode);
+                    return errCode;
+                }
             }
+            errCode = FillCloudVersionForUpload(OpType::INSERT_VERSION, data);
             break;
         }
         case OpType::UPDATE: {
-            if (!fillAsset || data.updData.assets.empty()) {
-                break;
+            if (fillAsset && !data.updData.assets.empty()) {
+                errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+                if (errCode != E_OK) {
+                    LOGE("Failed to fill asset for upd, %d.", errCode);
+                    return errCode;
+                }
             }
-            errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+            errCode = FillCloudVersionForUpload(OpType::UPDATE_VERSION, data);
             break;
         }
         default:
@@ -1883,9 +1858,9 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
 {
     int errCode = E_OK;
     std::string version;
-    if (putDataMode_ == PutDataMode::SYNC && CloudStorageUtils::IsSharedTable(tableSchema)) {
+    if (putDataMode_ == PutDataMode::SYNC) {
         errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
-        if (errCode != E_OK || version.empty()) {
+        if ((errCode != E_OK && errCode != -E_NOT_FOUND)) {
             LOGE("get version for insert log statement failed, %d", errCode);
             return -E_CLOUD_ERROR;
         }
@@ -1960,6 +1935,36 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::stri
         return errCode;
     }
     return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
+    const CloudSyncBatch &batchData)
+{
+    if (batchData.extend.empty()) {
+        return E_OK;
+    }
+    if (batchData.hashKey.empty() || batchData.extend.size() != batchData.hashKey.size()) {
+        LOGE("invalid sync data for filling version.");
+        return -E_INVALID_ARGS;
+    }
+    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(tableName) +
+        "' SET version = ? WHERE hash_key = ? ";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int ret = E_OK;
+    for (size_t i = 0; i < batchData.extend.size(); ++i) {
+        errCode = BindUpdateVersionStatement(batchData.extend[i], batchData.hashKey[i], stmt);
+        if (errCode != E_OK) {
+            LOGE("bind update version stmt failed.");
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return errCode;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return ret;
 }
 } // namespace DistributedDB
 #endif

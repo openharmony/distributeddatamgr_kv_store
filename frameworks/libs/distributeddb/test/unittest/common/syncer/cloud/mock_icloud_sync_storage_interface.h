@@ -31,6 +31,8 @@ public:
     MOCK_METHOD0(Commit, int(void));
     MOCK_METHOD0(Rollback, int(void));
     MOCK_METHOD5(GetUploadCount, int(const QuerySyncObject &, const Timestamp &, bool, bool, int64_t &));
+    MOCK_METHOD5(GetAllUploadCount, int(const QuerySyncObject &, const std::vector<Timestamp> &, bool,
+        bool, int64_t &));
     MOCK_METHOD5(GetCloudData, int(const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
         CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));

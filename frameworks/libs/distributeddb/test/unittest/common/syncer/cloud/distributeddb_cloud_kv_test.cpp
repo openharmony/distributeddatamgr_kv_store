@@ -17,8 +17,10 @@
 
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "kv_virtual_device.h"
 #include "kv_store_nb_delegate.h"
 #include "platform_specific.h"
+#include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
 #include "sqlite_utils.h"
 using namespace testing::ext;
@@ -47,13 +49,15 @@ public:
 protected:
     void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
-    void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect);
+    void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect, SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE);
     static DataBaseSchema GetDataBaseSchema();
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     KvStoreConfig config_;
     KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
     KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
     SyncProcess lastProcess_;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
+    KvVirtualDevice *deviceB_ = nullptr;
 };
 
 void DistributedDBCloudKvTest::SetUpTestCase()
@@ -89,7 +93,17 @@ void DistributedDBCloudKvTest::SetUp()
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
     g_mgr.SetKvStoreConfig(config_);
     GetKvStore(kvDelegatePtrS1_, STORE_ID_1);
+    // set aggregator after get store1, only store2 can sync with p2p
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     GetKvStore(kvDelegatePtrS2_, STORE_ID_2);
+
+    deviceB_ = new (std::nothrow) KvVirtualDevice("DEVICE_B");
+    ASSERT_TRUE(deviceB_ != nullptr);
+    auto syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_EQ(deviceB_->Initialize(communicatorAggregator_, syncInterfaceB), E_OK);
 }
 
 void DistributedDBCloudKvTest::TearDown()
@@ -100,9 +114,17 @@ void DistributedDBCloudKvTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+
+    if (deviceB_ != nullptr) {
+        delete deviceB_;
+        deviceB_ = nullptr;
+    }
+
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
 }
 
-void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expect)
+void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expect, SyncMode mode)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
@@ -122,6 +144,7 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
         }
     };
     CloudSyncOption option;
+    option.mode = mode;
     option.users.push_back(USER_ID);
     option.devices.push_back("cloud");
     ASSERT_EQ(delegate->Sync(option, callback), OK);
@@ -393,6 +416,54 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level0)
     ASSERT_EQ(kvDelegatePtrS2_->Put(k4, v3), OK);
     ASSERT_EQ(kvDelegatePtrS1_->Delete(k2), OK);
     BlockSync(kvDelegatePtrS2_, OK);
+}
+
+/**
+ * @tc.name: NormalSync008
+ * @tc.desc: Test complex sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync008, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    deviceB_->PutData(k1, v1, 1u, 0); // 1 is current timestamp
+    deviceB_->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
+    EXPECT_EQ(actualValue, v1);
+    BlockSync(kvDelegatePtrS2_, OK, SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH);
+    BlockSync(kvDelegatePtrS1_, OK);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(k1, actualValue), NOT_FOUND);
+}
+
+/**
+ * @tc.name: NormalSync009
+ * @tc.desc: Test normal push sync with download and upload.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync009, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
+    Key k3 = {'k', '3'};
+    Value v1 = {'v', '1'};
+    Value v2 = {'v', '2'};
+    Value v3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k2, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(k1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k1, v2), OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k3, v2), OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
 }
 
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)

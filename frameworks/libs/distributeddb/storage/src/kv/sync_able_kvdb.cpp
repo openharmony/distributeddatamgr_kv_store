@@ -485,6 +485,11 @@ int SyncAbleKvDB::UpgradeSchemaVerInMeta()
     return syncer_.UpgradeSchemaVerInMeta();
 }
 
+void SyncAbleKvDB::ResetSyncStatus()
+{
+    syncer_.ResetSyncStatus();
+}
+
 ICloudSyncStorageInterface *SyncAbleKvDB::GetICloudSyncInterface() const
 {
     return nullptr;
@@ -527,6 +532,7 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.devices = option.devices;
     info.mode = option.mode;
     info.users = option.users;
+    info.lockAction = option.lockAction;
 }
 
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
