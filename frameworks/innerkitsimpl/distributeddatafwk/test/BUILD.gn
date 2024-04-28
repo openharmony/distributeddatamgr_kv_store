@@ -234,6 +234,27 @@ ohos_unittest("SingleKvStoreClientTest") {
   ]
 }
 
+ohos_unittest("SingleKvStoreAsyncGetTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/single_kvstore_async_get_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//third_party/googletest:gtest_main",
+  ]
+}
+
 ohos_unittest("DeviceKvStoreTest") {
   module_out_path = module_output_path
 
@@ -395,6 +416,7 @@ group("unittest") {
     ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",
     ":LocalSubscribeStoreTest",
+    ":SingleKvStoreAsyncGetTest",
     ":SingleKvStoreClientQueryTest",
     ":SingleKvStoreClientTest",
     ":TypesUtilTest",

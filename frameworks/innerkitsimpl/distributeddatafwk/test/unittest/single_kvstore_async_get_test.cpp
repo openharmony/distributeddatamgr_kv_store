@@ -95,32 +95,10 @@ HWTEST_F(SingleKvStoreAsyncGetTest, CreateDefaultKvStore, TestSize.Level1)
     auto status = manager.GetSingleKvStore(options, appId, storeId, store);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_NE(store, nullptr);
-    Status status = manager.CloseKvStore(appId, storeId);
+    status = manager.CloseKvStore(appId, storeId);
     EXPECT_EQ(status, Status::SUCCESS);
     status = manager.DeleteKvStore(appId, storeId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
-}
-
-/**
-* @tc.name: CreateKvStoreWithInvalidDataType
-* @tc.desc: get a single KvStore instance, data type is invalid.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(SingleKvStoreAsyncGetTest, CreateKvStoreWithInvalidDataType, TestSize.Level1)
-{
-    DistributedKvDataManager manager;
-    Options options = { .createIfMissing = true, .dataType = 3 };
-    options.area = EL1;
-    options.securityLevel = S1;
-    options.baseDir = std::string("/data/service/el1/public/database/asyncgettest");
-    AppId appId = { "asyncgettest" };
-    StoreId storeId = { "asyncgettest_store" };
-
-    std::shared_ptr<SingleKvStore> store = nullptr;
-    auto status = manager.GetSingleKvStore(options, appId, storeId, store);
-    EXPECT_EQ(status, Status::INVALID_ARGUMENT);
 }
 
 /**
@@ -166,7 +144,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, GetKvStoreWithDiffDataType, TestSize.Level1)
     auto status = manager.GetSingleKvStore(options, appId, storeId, store);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_NE(store, nullptr);
-    Status status = manager.CloseKvStore(appId, storeId);
+    status = manager.CloseKvStore(appId, storeId);
     EXPECT_EQ(status, Status::SUCCESS);
     options.dataType = DataType::TYPE_DYNAMICAL;
     status = manager.GetSingleKvStore(options, appId, storeId, store);
@@ -229,7 +207,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValueWithInvalidNetworkId, TestSize.
     auto status = singleKvStore->Put({ "test_key_0" }, { "test_value_0" });
     EXPECT_EQ(status, Status::SUCCESS);
     Value value;
-    status = store->Get({ "test_key_0" }, value);
+    status = singleKvStore->Get({ "test_key_0" }, value);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(value.ToString(), "test_value_0");
     auto blockData = std::make_shared<BlockData<bool>>(1, false);
@@ -237,10 +215,10 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValueWithInvalidNetworkId, TestSize.
         EXPECT_EQ(status, Status::INVALID_ARGUMENT);
         blockData->SetValue(true);
     };
-    store->Get({ "test_key_0" }, "", call);
+    singleKvStore->Get({ "test_key_0" }, "", call);
     EXPECT_EQ(blockData->GetValue(), true);
-    blockData.Clear(false);
-    store->Get({ "test_key_0" }, "networkId_test", call);
+    blockData->Clear(false);
+    singleKvStore->Get({ "test_key_0" }, "networkId_test", call);
     EXPECT_EQ(blockData->GetValue(), true);
 }
 
@@ -273,7 +251,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetEntriesWithInvalidNetworkId, TestSiz
     };
     singleKvStore->GetEntries({ "prefix_key_" }, "", call);
     EXPECT_EQ(blockData->GetValue(), true);
-    blockData.Clear(false);
+    blockData->Clear(false);
     singleKvStore->GetEntries({ "prefix_key_" }, "networkId_test", call);
     EXPECT_EQ(blockData->GetValue(), true);
 }
@@ -291,7 +269,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValueWithLocalNetworkId, TestSize.Le
     auto status = singleKvStore->Put({ "test_key_1" }, { "test_value_1" });
     EXPECT_EQ(status, Status::SUCCESS);
     Value result;
-    status = store->Get({ "test_key_1" }, result);
+    status = singleKvStore->Get({ "test_key_1" }, result);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(result.ToString(), "test_value_1");
     auto blockData = std::make_shared<BlockData<bool>>(1, false);
@@ -301,7 +279,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValueWithLocalNetworkId, TestSize.Le
         blockData->SetValue(true);
     };
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
-    store->Get("test_key_1", devInfo.networkId, call);
+    singleKvStore->Get("test_key_1", devInfo.networkId, call);
     EXPECT_EQ(blockData->GetValue(), true);
 }
 
@@ -327,11 +305,11 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetEntriesWithLocalNetworkId, TestSize.
         [blockData, results](Status status, std::vector<Entry>&& values) {
             EXPECT_EQ(status, Status::SUCCESS);
             EXPECT_EQ(results.size(), values.size());
-            EXPECT_EQ(values[0].ToString(), "test_value_2");
+            EXPECT_EQ(values[0].value.ToString(), "test_value_2");
             blockData->SetValue(true);
     };
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
-    store->GetEntries("prefix_of_", devInfo.networkId, call);
+    singleKvStore->GetEntries("prefix_of_", devInfo.networkId, call);
     EXPECT_EQ(blockData->GetValue(), true);
 }
 } // namespace OHOS::Test

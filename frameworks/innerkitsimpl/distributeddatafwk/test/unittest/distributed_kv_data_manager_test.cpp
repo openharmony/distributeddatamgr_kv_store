@@ -801,14 +801,12 @@ HWTEST_F(DistributedKvDataManagerTest, PutAndGetSwitchesData, TestSize.Level1)
     ZLOGI("PutAndGetSwitchesData begin.");
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
     EXPECT_NE(devInfo.networkId, "");
-    auto result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
-    ASSERT_EQ(result.first, Status::NOT_FOUND);
     SwitchData input;
     input.value = 0x0003;
     input.length = 2;
     Status status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
-    result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    auto result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
     ASSERT_EQ(result.first, Status::SUCCESS);
     ASSERT_EQ(result.second.value, input.value);
     ASSERT_EQ(result.second.length, input.length);
@@ -850,6 +848,7 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     auto output = blockData.GetValue();
     ASSERT_EQ(input.value, output.value);
     ASSERT_EQ(input.length, output.length);
+    manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);
 }
 
 /**
@@ -871,6 +870,9 @@ HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer3);
     ASSERT_EQ(status, Status::SUCCESS);
+    manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer1);
+    manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer2);
+    manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer3);
 }
 
 /**

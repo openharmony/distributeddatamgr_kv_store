@@ -350,8 +350,7 @@ void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
     auto result = SyncExt(networkId, sequenceId);
     if (result != SUCCESS) {
         asyncFuncs_.Erase(sequenceId);
-        onResult(result.first, Value());
-        return;
+        onResult(result, Value());
     }
 }
 
@@ -375,7 +374,6 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
     if (result != SUCCESS) {
         asyncFuncs_.Erase(sequenceId);
         onResult(result, {});
-        return;
     }
 }
 
