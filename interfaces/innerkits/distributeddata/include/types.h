@@ -542,7 +542,6 @@ struct UserInfo {
     int32_t userType;
 };
 
-
 /**
  * @brief Cloud sync statistic.
 */
