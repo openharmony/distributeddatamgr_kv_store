@@ -214,10 +214,6 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     return status;
 }
 
-Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value &value)
-{
-    return Get(key, value);
-}
 void SingleStoreImpl::Get(
     const Key &key, const std::string &networkId, const std::function<void(Status, Value &&)> &onResult)
 {
