@@ -628,4 +628,13 @@ std::string StorageProxy::AppendWithUserIfNeed(const std::string &source) const
     }
     return source + "_" + user_;
 }
+
+int StorageProxy::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return E_INVALID_DB;
+    }
+    return store_->GetCloudDbSchema(cloudSchema);
+}
 }

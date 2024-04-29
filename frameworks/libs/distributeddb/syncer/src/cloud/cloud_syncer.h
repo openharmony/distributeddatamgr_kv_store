@@ -375,6 +375,21 @@ protected:
         ContinueToken &continueStmtToken);
 
     bool IsNeedLock(const UploadParam &param);
+
+    bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
+
+    std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
+
+    bool IsTaskCantMerge(TaskId taskId, TaskId tryTaskId);
+
+    bool MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId);
+
+    void AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema> &cloudSchema, CloudTaskInfo &taskInfo);
+
+    std::pair<TaskId, TaskId> SwapTwoTaskAndCopyTable(TaskId source, TaskId target);
+
+    bool IsQueryListEmpty(TaskId taskId);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

@@ -257,6 +257,7 @@ DBStatus VirtualCloudDb::DeleteByGid(const std::string &tableName, VBucket &exte
 
 DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
 {
+    LOGW("begin query %s", tableName.c_str());
     if (actionStatus_ != OK) {
         return actionStatus_;
     }
