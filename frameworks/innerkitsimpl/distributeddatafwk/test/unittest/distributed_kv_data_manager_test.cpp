@@ -754,7 +754,7 @@ HWTEST_F(DistributedKvDataManagerTest, PutSwitchWithEmptyAppId, TestSize.Level1)
 {
     ZLOGI("PutSwitchWithEmptyAppId begin.");
     SwitchData data;
-    Status status = manager.PutSwitch( { "" }, data);
+    Status status = manager.PutSwitch({ "" }, data);
     ASSERT_EQ(status, Status::INVALID_ARGUMENT);
 }
 
@@ -769,7 +769,7 @@ HWTEST_F(DistributedKvDataManagerTest, PutSwitchWithInvalidAppId, TestSize.Level
 {
     ZLOGI("PutSwitchWithInvalidAppId begin.");
     SwitchData data;
-    Status status = manager.PutSwitch( { "swicthes_test_appId" }, data);
+    Status status = manager.PutSwitch({ "swicthes_test_appId" }, data);
     ASSERT_EQ(status, Status::PERMISSION_DENIED);
 }
 
@@ -783,11 +783,11 @@ HWTEST_F(DistributedKvDataManagerTest, PutSwitchWithInvalidAppId, TestSize.Level
 HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidArg, TestSize.Level1)
 {
     ZLOGI("GetSwitchWithInvalidArg begin.");
-    auto [status1, data1] = manager.GetSwitch( { "" }, "networkId_test");
+    auto [status1, data1] = manager.GetSwitch({ "" }, "networkId_test");
     ASSERT_EQ(status1, Status::INVALID_ARGUMENT);
-    auto [status2, data2] = manager.GetSwitch( { "swicthes_test_appId" }, "");
+    auto [status2, data2] = manager.GetSwitch({ "swicthes_test_appId" }, "");
     ASSERT_EQ(status2, Status::INVALID_ARGUMENT);
-    auto [status3, data3] = manager.GetSwitch( { "swicthes_test_appId" }, "networkId_test");
+    auto [status3, data3] = manager.GetSwitch({ "swicthes_test_appId" }, "networkId_test");
     ASSERT_EQ(status3, Status::INVALID_ARGUMENT);
 }
 
@@ -803,7 +803,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidAppId, TestSize.Level
     ZLOGI("GetSwitchWithInvalidAppId begin.");
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
     EXPECT_NE(devInfo.networkId, "");
-    auto [status, data] = manager.GetSwitch( { "swicthes_test_appId" }, devInfo.networkId);
+    auto [status, data] = manager.GetSwitch({ "swicthes_test_appId" }, devInfo.networkId);
     ASSERT_EQ(status, Status::PERMISSION_DENIED);
 }
 
@@ -822,17 +822,17 @@ HWTEST_F(DistributedKvDataManagerTest, PutAndGetSwitchesData, TestSize.Level1)
     SwitchData input;
     input.value = 0x0003;
     input.length = 2;
-    Status status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    Status status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
-    auto result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    auto result = manager.GetSwitch({ "distributed_device_profile_service" }, devInfo.networkId);
     ASSERT_EQ(result.first, Status::SUCCESS);
     ASSERT_EQ(result.second.value, input.value);
     ASSERT_EQ(result.second.length, input.length);
     input.value = 0x004E;
     input.length = 7;
-    status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
-    result = manager.GetSwitch( { "distributed_device_profile_service" }, devInfo.networkId);
+    result = manager.GetSwitch({ "distributed_device_profile_service" }, devInfo.networkId);
     ASSERT_EQ(result.first, Status::SUCCESS);
     ASSERT_EQ(result.second.value, input.value);
     ASSERT_EQ(result.second.length, input.length);
@@ -861,7 +861,7 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     };
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
     ASSERT_EQ(status, Status::SUCCESS);
-    status = manager.PutSwitch( { "distributed_device_profile_service" }, input);
+    status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
     auto output = blockData.GetValue();
     ASSERT_EQ(input.value, output.value);

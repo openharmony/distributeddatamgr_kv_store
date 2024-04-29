@@ -60,9 +60,9 @@ public:
     Status UnSubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer) override;
     Status Get(const Key &key, Value &value) override;
     void Get(const Key &key, const std::string &networkId,
-        const std::function<void(Status, Value&&)> &onResult) override;
+        const std::function<void(Status, Value &&)> &onResult) override;
     void GetEntries(const Key &prefix, const std::string &networkId,
-        const std::function<void(Status, std::vector<Entry>&&)> &onResult) override;
+        const std::function<void(Status, std::vector<Entry> &&)> &onResult) override;
     Status GetEntries(const Key &prefix, std::vector<Entry> &entries) const override;
     Status GetEntries(const DataQuery &query, std::vector<Entry> &entries) const override;
     Status GetResultSet(const Key &prefix, std::shared_ptr<ResultSet> &resultSet) const override;
@@ -107,8 +107,8 @@ private:
     using Duration = ExecutorPool::Duration;
     struct AsyncFunc {
         Key key;
-        std::function<void(Status, Value&&)> toGet;
-        std::function<void(Status, std::vector<Entry>&&)> toGetEntries;
+        std::function<void(Status, Value &&)> toGet;
+        std::function<void(Status, std::vector<Entry> &&)> toGetEntries;
     };
 
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;

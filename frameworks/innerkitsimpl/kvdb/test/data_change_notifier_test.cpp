@@ -58,7 +58,6 @@ public:
             }
             return KVDBServiceClient::NotifyDataChange(appId, storeId);
         }
-        
 
         uint32_t GetCallCount(uint32_t value)
         {

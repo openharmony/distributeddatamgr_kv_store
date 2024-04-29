@@ -59,7 +59,7 @@ public:
      * @param onResult Value and Status will be returned in this parameter.
     */
     virtual void Get(const Key &key,
-        const std::string &networkId, const std::function<void(Status, Value&&)> &onResult) {}
+        const std::string &networkId, const std::function<void(Status, Value &&)> &onResult) {}
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.
@@ -72,7 +72,7 @@ public:
      * @param onResult Entries and Status will be returned in this parameter.
     */
     virtual void GetEntries(const Key &prefix,
-        const std::string &networkId, const std::function<void(Status, std::vector<Entry>&&)> &onResult) {}
+        const std::string &networkId, const std::function<void(Status, std::vector<Entry> &&)> &onResult) {}
 
     /**
      * @brief Get all entries in this store which key start with prefixKey.
