@@ -427,7 +427,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Lev
     EXPECT_EQ(status, OK);
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
-        EXPECT_TRUE(pair.second == OK);
+        EXPECT_EQ(pair.second, SECURITY_OPTION_CHECK_ERROR);
     }
 
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
