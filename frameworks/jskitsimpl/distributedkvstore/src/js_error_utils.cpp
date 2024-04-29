@@ -22,7 +22,7 @@ namespace OHOS::DistributedKVStore {
 using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
 static constexpr JsErrorCode JS_ERROR_CODE_MSGS[] = {
-    { Status::INVALID_ARGUMENT, 401, "Parameter error." },
+    { Status::INVALID_ARGUMENT, 401, "Parameter error: Parameters verification failed." },
     { Status::STORE_NOT_OPEN, 0, "" },
     { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
     { Status::STORE_NOT_SUBSCRIBE, 0, "" },

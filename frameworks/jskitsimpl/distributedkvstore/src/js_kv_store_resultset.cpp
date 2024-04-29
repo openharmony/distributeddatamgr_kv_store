@@ -161,12 +161,13 @@ napi_value JsKVStoreResultSet::Move(napi_env env, napi_callback_info info) /* bo
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &offset](size_t argc, napi_value* argv) {
         // required 1 arguments :: <offset>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+            "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&offset));
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Move exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function MoveV9 parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:params offset must be number");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
     bool isMoved = resultSet->Move(offset);
@@ -181,13 +182,14 @@ napi_value JsKVStoreResultSet::MoveToPosition(napi_env env, napi_callback_info i
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &position](size_t argc, napi_value* argv) {
         // required 1 arguments :: <position>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+            "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&position));
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "MoveToPosition exit");
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-        "The function MoveToPositionV9 parameter is incorrect.");
+        "Parameter error:params position must be number");
     ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();

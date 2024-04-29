@@ -402,4 +402,8 @@ std::string GenericKvDB::GetStorePath() const
 void GenericKvDB::Dump(int fd)
 {
 }
+
+void GenericKvDB::ResetSyncStatus()
+{
+}
 } // namespace DistributedDB

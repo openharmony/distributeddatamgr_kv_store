@@ -17,8 +17,11 @@
 
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "kv_virtual_device.h"
 #include "kv_store_nb_delegate.h"
 #include "platform_specific.h"
+#include "process_system_api_adapter_impl.h"
+#include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
 #include "sqlite_utils.h"
 using namespace testing::ext;
@@ -45,15 +48,18 @@ public:
     int ChangeUserId(const std::string &deviceId, const std::string &wantUserId);
     int ChangeHashKey(const std::string &deviceId);
 protected:
-    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
+    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId, int securityLabel = NOT_SET);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
-    void BlockSync(KvStoreNbDelegate *delegate, DBStatus expect);
+    void BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
+        SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE, int expectSyncResult = OK);
     static DataBaseSchema GetDataBaseSchema();
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     KvStoreConfig config_;
     KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
     KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
     SyncProcess lastProcess_;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
+    KvVirtualDevice *deviceB_ = nullptr;
 };
 
 void DistributedDBCloudKvTest::SetUpTestCase()
@@ -89,7 +95,17 @@ void DistributedDBCloudKvTest::SetUp()
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
     g_mgr.SetKvStoreConfig(config_);
     GetKvStore(kvDelegatePtrS1_, STORE_ID_1);
+    // set aggregator after get store1, only store2 can sync with p2p
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     GetKvStore(kvDelegatePtrS2_, STORE_ID_2);
+
+    deviceB_ = new (std::nothrow) KvVirtualDevice("DEVICE_B");
+    ASSERT_TRUE(deviceB_ != nullptr);
+    auto syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_EQ(deviceB_->Initialize(communicatorAggregator_, syncInterfaceB), E_OK);
 }
 
 void DistributedDBCloudKvTest::TearDown()
@@ -100,18 +116,28 @@ void DistributedDBCloudKvTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+
+    if (deviceB_ != nullptr) {
+        delete deviceB_;
+        deviceB_ = nullptr;
+    }
+
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
 }
 
-void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expect)
+void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
+    SyncMode mode, int expectSyncResult)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
     SyncProcess last;
-    auto callback = [expect, &last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    auto callback =
+        [expectDBStatus, &last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
-                EXPECT_EQ(item.second.errCode, expect);
+                EXPECT_EQ(item.second.errCode, expectDBStatus);
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
                     finish = true;
@@ -122,13 +148,16 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
         }
     };
     CloudSyncOption option;
+    option.mode = mode;
     option.users.push_back(USER_ID);
     option.devices.push_back("cloud");
-    ASSERT_EQ(delegate->Sync(option, callback), OK);
-    std::unique_lock<std::mutex> uniqueLock(dataMutex);
-    cv.wait(uniqueLock, [&finish]() {
-        return finish;
-    });
+    EXPECT_EQ(delegate->Sync(option, callback), expectSyncResult);
+    if (expectSyncResult == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&finish]() {
+            return finish;
+        });
+    }
     lastProcess_ = last;
 }
 
@@ -156,10 +185,11 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
     return schema;
 }
 
-void DistributedDBCloudKvTest::GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
+void DistributedDBCloudKvTest::GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId, int securityLabel)
 {
     KvStoreNbDelegate::Option option;
     DBStatus openRet = OK;
+    option.secOption.securityLabel = securityLabel;
     g_mgr.GetKvStore(storeId, option, [&openRet, &delegate](DBStatus status, KvStoreNbDelegate *openDelegate) {
         openRet = status;
         delegate = openDelegate;
@@ -393,6 +423,74 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level0)
     ASSERT_EQ(kvDelegatePtrS2_->Put(k4, v3), OK);
     ASSERT_EQ(kvDelegatePtrS1_->Delete(k2), OK);
     BlockSync(kvDelegatePtrS2_, OK);
+}
+
+/**
+ * @tc.name: NormalSync008
+ * @tc.desc: Test complex sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync008, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    deviceB_->PutData(k1, v1, 1u, 0); // 1 is current timestamp
+    deviceB_->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
+    EXPECT_EQ(actualValue, v1);
+    BlockSync(kvDelegatePtrS2_, OK, SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH);
+    BlockSync(kvDelegatePtrS1_, OK);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(k1, actualValue), NOT_FOUND);
+}
+
+/**
+ * @tc.name: NormalSync009
+ * @tc.desc: Test normal push sync with download and upload.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync009, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
+    Key k3 = {'k', '3'};
+    Value v1 = {'v', '1'};
+    Value v2 = {'v', '2'};
+    Value v3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k2, v1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(k1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k1, v2), OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k3, v2), OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
+}
+
+/**
+ * @tc.name: NormalSync010
+ * @tc.desc: Do not synchronize when security label is S4.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync010, TestSize.Level0)
+{
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+
+    GetKvStore(kvDelegatePtrS3_, STORE_ID_3, S4);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    BlockSync(kvDelegatePtrS3_, OK, SyncMode::SYNC_MODE_CLOUD_MERGE, SECURITY_OPTION_CHECK_ERROR);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
 }
 
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)

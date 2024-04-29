@@ -180,8 +180,9 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
         return -E_JSON_PARSE_FAIL;
     }
 #ifdef JSONCPP_USE_BUILDER
-    auto begin = reinterpret_cast<const std::string::value_type *>(dataBegin);
-    auto end = reinterpret_cast<const std::string::value_type *>(dataEnd);
+    std::string jsonStr(dataBegin, dataEnd);
+    auto begin = jsonStr.c_str();
+    auto end = jsonStr.c_str() + jsonStr.size();
 
     JSONCPP_STRING errs;
     Json::CharReaderBuilder builder;

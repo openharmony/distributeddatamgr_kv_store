@@ -348,6 +348,14 @@ int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProces
     if (kvDB == nullptr) {
         return -E_INVALID_CONNECTION;
     }
+
+    int securityLabel = INVALID_SEC_LABEL;
+    int securityFlag = INVALID_SEC_FLAG;
+    GetSecurityOption(securityLabel, securityFlag);
+    if (securityLabel == S4) {
+        LOGE("The current data does not support synchronization.");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     return kvDB->Sync(option, onProcess);
 }
 

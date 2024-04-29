@@ -42,7 +42,7 @@ OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, const LogInf
             return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO;
         }
     }
-    if (IsSharingResourceChanged(cloudInfo, localInfo)) {
+    if (IsLogNeedUpdate(cloudInfo, localInfo)) {
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;

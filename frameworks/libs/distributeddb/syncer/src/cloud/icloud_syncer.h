@@ -41,6 +41,8 @@ public:
         std::vector<std::string> devices;
         std::vector<QuerySyncObject> queryList;
         std::vector<std::string> users;
+        LockAction lockAction = LockAction::INSERT;
+        bool merge = false;
     };
 
     struct InnerProcessInfo {
@@ -69,6 +71,7 @@ public:
         bool isSinglePrimaryKey = false;
         bool isLastBatch = false;
         WithoutRowIdData withoutRowIdData;
+        std::vector<std::vector<Type>> insertPk;
     };
 
     struct DataInfo {
@@ -77,6 +80,8 @@ public:
     };
 
     virtual std::string GetIdentify() const = 0;
+
+    virtual bool IsClosed() const = 0;
 };
 }
 #endif // I_CLOUD_SYNCER_H

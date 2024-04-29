@@ -1576,7 +1576,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest002, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. init data
@@ -1628,13 +1628,19 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, Test
             CheckConsistentCount(db, localCount - 1);
         }
     });
-
+    int count = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&count]() {
+        count++;
+        if (count == 2) { // 2 is compensated sync
+            g_processCondition.notify_one();
+        }
+    });
     /**
      * @tc.steps:step5. sync, check consistent count
      * @tc.expected: step5. return OK.
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    std::this_thread::sleep_for(std::chrono::seconds(2)); // wait compensation sync finish
+    WaitForSync(count);
     CheckConsistentCount(db, localCount);
 }
 

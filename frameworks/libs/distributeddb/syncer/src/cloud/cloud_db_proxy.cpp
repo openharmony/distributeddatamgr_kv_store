@@ -314,7 +314,11 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     if (status == OK) {
         context->SetInfo(dataSize, dataSize, 0u);
     } else {
-        LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
+        if (status == CLOUD_VERSION_CONFLICT) {
+            LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
+        } else {
+            LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
+        }
         context->SetInfo(dataSize, 0u, dataSize);
     }
     return status;

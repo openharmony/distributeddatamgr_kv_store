@@ -18,12 +18,20 @@
 
 #include <memory>
 #include "change_notification.h"
+#include "types.h"
 
 namespace OHOS {
 namespace DistributedKv {
 // client implement this class to watch kvstore change.
 class API_EXPORT KvStoreObserver {
 public:
+    enum ChangeOp : int32_t {
+        OP_INSERT,
+        OP_UPDATE,
+        OP_DELETE,
+        OP_BUTT,
+    };
+    using Keys = std::vector<std::string>[OP_BUTT];
     /**
      * @brief Constructor.
      */
@@ -40,6 +48,13 @@ public:
      * client should override this function to receive change notification.
     */
     API_EXPORT virtual void OnChange(const ChangeNotification &changeNotification) {}
+
+    /**
+     * @brief Would called when kvstore data change.
+     *
+     * client should override this function to receive change notification.
+    */
+    API_EXPORT virtual void OnChange(const DataOrigin &origin, Keys &&keys) {}
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

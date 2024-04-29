@@ -1091,11 +1091,12 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
             errCode = SQLiteUtils::BindInt64ToStatement(updateLogStmt, index, std::get<int64_t>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::VERSION_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
-                LOGE("cloud data doesn't contain version field when bind update log stmt.");
-                return -E_CLOUD_ERROR;
+                LOGW("cloud data doesn't contain version field when bind update log stmt.");
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
+            } else {
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
+                    std::get<std::string>(vBucket.at(colName)));
             }
-            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
-                std::get<std::string>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::SHARING_RESOURCE_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
                 errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
@@ -1342,11 +1343,8 @@ int CloudStorageUtils::GetUInt64FromCloudData(const std::string &field, VBucket 
 void CloudStorageUtils::AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
     std::vector<std::string> &updateColName)
 {
-    // only share table need to set version
-    if (CloudStorageUtils::IsSharedTable(tableSchema)) {
-        updateLogSql += ", version = ?";
-        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
-    }
+    updateLogSql += ", version = ?";
+    updateColName.push_back(CloudDbConstant::VERSION_FIELD);
     updateLogSql += ", sharing_resource = ?";
     updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
 }

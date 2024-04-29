@@ -129,7 +129,11 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 
 void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 {
-    LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        LOGI("[CloudSyncer] Stop upload due to version conflict, %d", errCode);
+    } else {
+        LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
+    }
     info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
     info.tableStatus = ProcessStatus::FINISHED;
     {
@@ -161,13 +165,6 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    if (isSharedTable) {
-        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-            return ret;
-        }
-    }
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     return E_OK;
 }
@@ -193,13 +190,6 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
     if ((errorCode != E_OK) || (ret != E_OK)) {
         LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
-    }
-    if (isSharedTable) {
-        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
-            return ret;
-        }
     }
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     return E_OK;
@@ -428,7 +418,7 @@ int CloudSyncer::SaveCursorIfNeed(const std::string &tableName)
     return errCode;
 }
 
-int CloudSyncer::PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload)
+int CloudSyncer::PrepareAndDownload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload)
 {
     int errCode = SaveCursorIfNeed(table);
     if (errCode != E_OK) {
@@ -488,6 +478,11 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
     return errCode;
 }
 
+bool CloudSyncer::IsClosed() const
+{
+    return closed_ || IsKilled();
+}
+
 int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
 {
     DownloadList downloadList;
@@ -532,5 +527,351 @@ int CloudSyncer::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb
 void CloudSyncer::CleanAllWaterMark()
 {
     storageProxy_->CleanAllWaterMark();
+}
+
+void CloudSyncer::GetDownloadItem(const DownloadList &downloadList, size_t i, DownloadItem &downloadItem)
+{
+    downloadItem.gid = std::get<CloudSyncUtils::GID_INDEX>(downloadList[i]);
+    downloadItem.prefix = std::get<CloudSyncUtils::PREFIX_INDEX>(downloadList[i]);
+    downloadItem.strategy = std::get<CloudSyncUtils::STRATEGY_INDEX>(downloadList[i]);
+    downloadItem.assets = std::get<CloudSyncUtils::ASSETS_INDEX>(downloadList[i]);
+    downloadItem.hashKey = std::get<CloudSyncUtils::HASH_KEY_INDEX>(downloadList[i]);
+    downloadItem.primaryKeyValList = std::get<CloudSyncUtils::PRIMARY_KEY_INDEX>(downloadList[i]);
+    downloadItem.timestamp = std::get<CloudSyncUtils::TIMESTAMP_INDEX>(downloadList[i]);
+}
+
+void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
+    const bool isFirstDownload)
+{
+    bool isNeedNotify = false;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        // only when the first download and the task no need upload actually, notify the process, otherwise,
+        // the process will notify in the upload procedure, which can guarantee the notify order of the tables
+        isNeedNotify = isFirstDownload && !currentContext_.isNeedUpload;
+    }
+    if (!isNeedNotify) {
+        return;
+    }
+    for (size_t i = 0; i < needNotifyTables.size(); ++i) {
+        UpdateProcessInfoWithoutUpload(taskId, needNotifyTables[i], i != (needNotifyTables.size() - 1u));
+    }
+}
+
+int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count)
+{
+    std::string tableName;
+    int ret = GetCurrentTableName(tableName);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Invalid table name for get local water mark: %d", ret);
+        return ret;
+    }
+    Timestamp localMark = 0u;
+    if (!IsModeForcePush(taskId) && !IsPriorityTask(taskId)) {
+        ret = storageProxy_->GetLocalWaterMark(tableName, localMark);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to get local water mark when upload, %d.", ret);
+            return ret;
+        }
+    }
+    ReloadWaterMarkIfNeed(taskId, localMark);
+
+    ret = storageProxy_->StartTransaction();
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] start transaction failed before getting upload count.");
+        return ret;
+    }
+
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId),
+        IsCompensatedTask(taskId), count);
+    if (ret != E_OK) {
+        // GetUploadCount will return E_OK when upload count is zero.
+        LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
+    }
+    // No need Rollback when GetUploadCount failed
+    storageProxy_->Commit();
+    return ret;
+}
+
+void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName,
+    bool needNotify)
+{
+    LOGI("[CloudSyncer] There is no need to doing upload, as the upload data count is zero.");
+    InnerProcessInfo innerProcessInfo;
+    innerProcessInfo.tableName = tableName;
+    innerProcessInfo.upLoadInfo.total = 0;  // count is zero
+    innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (!needNotify) {
+            currentContext_.notifier->UpdateProcess(innerProcessInfo);
+        } else {
+            currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], innerProcessInfo);
+        }
+    }
+}
+
+int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
+{
+    std::vector<std::string> needNotifyTables;
+    for (size_t i = 0; i < taskInfo.table.size(); ++i) {
+        if (currentContext_.isDownloadFinished[taskInfo.table[i]] == true) {
+            continue;
+        }
+        LOGD("[CloudSyncer] try download table, index: %zu", i);
+        std::string table;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            currentContext_.tableName = taskInfo.table[i];
+            table = currentContext_.tableName;
+        }
+        int errCode = PrepareAndDownload(table, taskInfo, isFirstDownload);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        // needUpload indicate that the syncMode need push
+        if (needUpload) {
+            int64_t count = 0;
+            errCode = GetUploadCountByTable(taskInfo.taskId, count);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncer] GetUploadCountByTable failed %d", errCode);
+                return errCode;
+            }
+            // count > 0 means current table need upload actually
+            if (count > 0) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataLock_);
+                    currentContext_.isNeedUpload = true;
+                }
+                continue;
+            }
+            needNotifyTables.emplace_back(table);
+        }
+        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
+            return errCode;
+        }
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            currentContext_.isDownloadFinished[taskInfo.table[i]] = true;
+        }
+    }
+    DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
+    return E_OK;
+}
+
+bool CloudSyncer::IsNeedGetLocalWater(TaskId taskId)
+{
+    return !IsModeForcePush(taskId) && !IsPriorityTask(taskId) && !IsCompensatedTask(taskId);
+}
+
+bool CloudSyncer::IsNeedLock(const UploadParam &param)
+{
+    return param.lockAction == LockAction::INSERT && param.mode == CloudWaterType::INSERT;
+}
+
+std::pair<int, Timestamp> CloudSyncer::GetLocalWater(const std::string &tableName, UploadParam &uploadParam)
+{
+    std::pair<int, Timestamp> res = { E_OK, 0u };
+    if (IsNeedGetLocalWater(uploadParam.taskId)) {
+        res.first = storageProxy_->GetLocalWaterMarkByMode(tableName, res.second, uploadParam.mode);
+    }
+    uploadParam.localMark = res.second;
+    return res;
+}
+
+int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info,
+    CloudSyncData &uploadData, ContinueToken &continueStmtToken)
+{
+    int ret = E_OK;
+    uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
+    bool isLocked = false;
+    while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+        ret = PreProcessBatchUpload(uploadParam, info, uploadData);
+        if (ret != E_OK) {
+            break;
+        }
+        if (IsNeedLock(uploadParam) && !isLocked) {
+            ret = LockCloudIfNeed(uploadParam.taskId);
+            if (ret != E_OK) {
+                break;
+            }
+            isLocked = true;
+        }
+        info.upLoadInfo.batchIndex = ++batchIndex;
+        ret = DoBatchUpload(uploadData, uploadParam, info);
+        if (ret != E_OK) {
+            NotifyUploadFailed(ret, info);
+            break;
+        }
+        uploadData = CloudSyncData(uploadData.tableName, uploadParam.mode);
+        if (continueStmtToken == nullptr) {
+            break;
+        }
+        SetUploadDataFlag(uploadParam.taskId, uploadData);
+        RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
+        ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
+        if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
+            LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
+            break;
+        }
+        ChkIgnoredProcess(info, uploadData, uploadParam);
+    }
+    if (isLocked && IsNeedLock(uploadParam)) {
+        UnlockIfNeed();
+    }
+    return ret;
+}
+
+int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
+{
+    if (closed_) {
+        LOGW("[CloudSyncer] syncer is closed, should not sync now");
+        return -E_DB_CLOSED;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    int errCode = storageProxy_->GetCloudDbSchema(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Get cloud schema failed %d when add task", errCode);
+        return errCode;
+    }
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    errCode = CheckQueueSizeWithNoLock(taskInfo.priorityTask);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    lastTaskId_++;
+    if (lastTaskId_ == UINT64_MAX) {
+        lastTaskId_ = 1u;
+    }
+    taskInfo.taskId = lastTaskId_;
+    cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
+    if (cloudTaskInfos_[lastTaskId_].priorityTask) {
+        priorityTaskQueue_.push_back(lastTaskId_);
+    } else {
+        if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
+            taskQueue_.push_back(lastTaskId_);
+            LOGI("[CloudSyncer] Add task ok, taskId %" PRIu64, cloudTaskInfos_[lastTaskId_].taskId);
+        }
+    }
+    return E_OK;
+}
+
+bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId)
+{
+    if (!cloudTaskInfos_[taskId].merge) {
+        return false;
+    }
+    bool isMerge = false;
+    bool mergeHappen = false;
+    TaskId checkTaskId = taskId;
+    do {
+        std::tie(isMerge, checkTaskId) = TryMergeTask(cloudSchema, checkTaskId);
+        mergeHappen |= isMerge;
+    } while (isMerge);
+    return mergeHappen;
+}
+
+std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId)
+{
+    std::pair<bool, TaskId> res;
+    auto &[merge, nextTryTask] = res;
+    TaskId beMergeTask = INVALID_TASK_ID;
+    TaskId runningTask = currentContext_.currentTaskId;
+    for (const auto &taskId : taskQueue_) {
+        if (taskId == runningTask || taskId == tryTaskId) {
+            continue;
+        }
+        if (IsTaskCantMerge(taskId, tryTaskId)) {
+            continue;
+        }
+        if (MergeTaskTablesIfConsistent(taskId, tryTaskId)) {
+            beMergeTask = taskId;
+            nextTryTask = tryTaskId;
+            merge = true;
+            break;
+        }
+        if (MergeTaskTablesIfConsistent(tryTaskId, taskId)) {
+            beMergeTask = tryTaskId;
+            nextTryTask = taskId;
+            merge = true;
+            break;
+        }
+    }
+    if (!merge) {
+        return res;
+    }
+    if (beMergeTask < nextTryTask) {
+        std::tie(beMergeTask, nextTryTask) = SwapTwoTaskAndCopyTable(beMergeTask, nextTryTask);
+    }
+    AdjustTableBasedOnSchema(cloudSchema, cloudTaskInfos_[nextTryTask]);
+    auto processNotifier = std::make_shared<ProcessNotifier>(this);
+    processNotifier->Init(cloudTaskInfos_[beMergeTask].table, cloudTaskInfos_[beMergeTask].devices);
+    cloudTaskInfos_[beMergeTask].errCode = -E_CLOUD_SYNC_TASK_MERGED;
+    cloudTaskInfos_[beMergeTask].status = ProcessStatus::FINISHED;
+    processNotifier->NotifyProcess(cloudTaskInfos_[beMergeTask], {}, true);
+    cloudTaskInfos_.erase(beMergeTask);
+    taskQueue_.remove(beMergeTask);
+    LOGW("[CloudSyncer] TaskId %" PRIu64 " has been merged", beMergeTask);
+    return res;
+}
+
+bool CloudSyncer::IsTaskCantMerge(TaskId taskId, TaskId tryTaskId)
+{
+    const auto &taskInfo = cloudTaskInfos_[taskId];
+    const auto &tryTaskInfo = cloudTaskInfos_[tryTaskId];
+    return taskInfo.compensatedTask || tryTaskInfo.compensatedTask ||
+        taskInfo.priorityTask || tryTaskInfo.priorityTask ||
+        !taskInfo.merge || taskInfo.devices != tryTaskInfo.devices ||
+        tryTaskInfo.mode != SYNC_MODE_CLOUD_MERGE;
+}
+
+bool CloudSyncer::MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId)
+{
+    const auto &source = cloudTaskInfos_[sourceId];
+    const auto &target = cloudTaskInfos_[targetId];
+    bool isMerge = true;
+    for (const auto &table : source.table) {
+        if (std::find(target.table.begin(), target.table.end(), table) == target.table.end()) {
+            isMerge = false;
+            break;
+        }
+    }
+    return isMerge;
+}
+
+void CloudSyncer::AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema> &cloudSchema,
+    CloudTaskInfo &taskInfo)
+{
+    std::vector<std::string> tmpTables = taskInfo.table;
+    taskInfo.table.clear();
+    taskInfo.queryList.clear();
+    for (const auto &table : cloudSchema->tables) {
+        if (std::find(tmpTables.begin(), tmpTables.end(), table.name) != tmpTables.end()) {
+            taskInfo.table.push_back(table.name);
+            QuerySyncObject querySyncObject;
+            querySyncObject.SetTableName(table.name);
+            taskInfo.queryList.push_back(querySyncObject);
+        }
+    }
+}
+
+std::pair<TaskId, TaskId> CloudSyncer::SwapTwoTaskAndCopyTable(TaskId target, TaskId source)
+{
+    cloudTaskInfos_[target].table = cloudTaskInfos_[source].table;
+    cloudTaskInfos_[target].queryList = cloudTaskInfos_[source].queryList;
+    return {source, target};
+}
+
+bool CloudSyncer::IsQueryListEmpty(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    for (const auto &item : cloudTaskInfos_[taskId].queryList) {
+        if (item.IsContainQueryNodes()) {
+            return false;
+        }
+    }
+    return true;
 }
 }

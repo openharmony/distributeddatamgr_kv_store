@@ -191,6 +191,16 @@ public:
         return (jsValue == nullptr) ? StatusMsg(status) : GetValue(env, jsValue, value);
     };
 
+    static inline bool IsValid(const std::string& storeId)
+    {
+        if (storeId.empty() || storeId.size() > MAX_STORE_ID_LEN) {
+            return false;
+        }
+        auto iter = std::find_if_not(storeId.begin(), storeId.end(),
+            [](char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
+        return (iter == storeId.end());
+    }
+
     static const std::optional<JsFeatureSpace> GetJsFeatureSpace(const std::string &name);
     /* napi_define_class  wrapper */
     static napi_value DefineClass(napi_env env, const std::string &spaceName, const std::string &className,
@@ -218,6 +228,7 @@ private:
     static napi_status GetLevel(int32_t level, int32_t &out);
     static std::pair<napi_status, napi_value> GetInnerValue(
         napi_env env, napi_value in, const std::string& prop, bool optional);
+    static constexpr int MAX_STORE_ID_LEN = 128;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

@@ -260,18 +260,18 @@ DataBaseSchema DistributedDBCloudCheckSyncTest::GetSchema()
 void DistributedDBCloudCheckSyncTest::CloseDb()
 {
     virtualCloudDb_ = nullptr;
-    if (delegate_ != nullptr) {
+    if (mgr_ != nullptr) {
         EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
         delegate_ = nullptr;
+        mgr_ = nullptr;
     }
-    mgr_ = nullptr;
 }
 
 void DistributedDBCloudCheckSyncTest::InsertUserTableRecord(const std::string &tableName,
     int64_t recordCounts, int64_t begin)
 {
     ASSERT_NE(db_, nullptr);
-    for (int64_t i = begin; i < recordCounts; ++i) {
+    for (int64_t i = begin; i < begin + recordCounts; ++i) {
         string sql = "INSERT OR REPLACE INTO " + tableName
             + " (id, name, height, photo, age) VALUES ('" + std::to_string(i) + "', 'Local"
             + std::to_string(i) + "', '155.10',  'text', '21');";
@@ -730,8 +730,8 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest001, TestSize.Lev
      * @tc.expected: step4. ok.
      */
     InsertUserTableRecord(tableName_, actualCount, actualCount);
-    BlockPrioritySync(query, delegate_, true, NOT_SUPPORT);
-    CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records
+    BlockPrioritySync(query, delegate_, true, OK);
+    CheckCloudTableCount(tableName_, 20); // 20 is count of cloud records
 }
 
 

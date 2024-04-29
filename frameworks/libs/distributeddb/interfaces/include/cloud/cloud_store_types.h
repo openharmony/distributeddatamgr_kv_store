@@ -54,6 +54,7 @@ enum AssetStatus : uint32_t {
     DELETE,
     UPDATE,
     // high 16 bit USE WITH BIT MASK
+    HIDDEN = 0x20000000,
     DOWNLOAD_WITH_NULL = 0x40000000,
     UPLOADING = 0x80000000,
 };
@@ -117,6 +118,27 @@ enum class CloudQueryType : int64_t {
     QUERY_FIELD = 1 // query with some fields
 };
 
+enum class LockAction : uint32_t {
+    NONE = 0,
+    INSERT = 1
+};
+
+enum CloudSyncState {
+    IDLE = 0,
+    DO_DOWNLOAD,
+    DO_UPLOAD,
+    DO_FINISHED
+};
+
+enum CloudSyncEvent {
+    UPLOAD_FINISHED_EVENT,
+    DOWNLOAD_FINISHED_EVENT,
+    ERROR_EVENT,
+    REPEAT_DOWNLOAD_EVENT,
+    START_SYNC_EVENT,
+    ALL_TASK_FINISHED_EVENT
+};
+
 struct CloudSyncOption {
     std::vector<std::string> devices;
     SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
@@ -125,6 +147,9 @@ struct CloudSyncOption {
     bool priorityTask = false;
     bool compensatedSyncOnly = false;
     std::vector<std::string> users;
+    bool merge = false;
+    // default, upload insert need lock
+    LockAction lockAction = LockAction::INSERT;
 };
 
 enum class QueryNodeType : uint32_t {

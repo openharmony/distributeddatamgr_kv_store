@@ -45,6 +45,9 @@ public:
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) override;
 
+    int GetAllUploadCount(const QuerySyncObject &query, const std::vector<Timestamp> &timestampVec,
+        bool isCloudForcePush, bool isCompensatedTask, int64_t &count) override;
+
     int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 

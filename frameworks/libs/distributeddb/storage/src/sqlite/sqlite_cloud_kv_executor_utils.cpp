@@ -26,7 +26,7 @@ int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteS
     CloudSyncData &data)
 {
     bool stepNext = false;
-    auto [errCode, stmt] = token.GetCloudQueryStmt(db, data.isCloudForcePushStrategy, stepNext);
+    auto [errCode, stmt] = token.GetCloudQueryStmt(db, data.isCloudForcePushStrategy, stepNext, data.mode);
     if (errCode != E_OK) {
         token.ReleaseCloudQueryStmt();
         return errCode;
@@ -818,12 +818,11 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     return res;
 }
 
-std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudData(sqlite3 *db, bool isMemory,
-    const Timestamp &timestamp, const std::string &user, bool forcePush)
+std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudDataInner(sqlite3 *db, bool isMemory,
+    const Timestamp &timestamp, const std::string &user, std::string &sql)
 {
     std::pair<int, int64_t> res;
     auto &[errCode, count] = res;
-    std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
     sqlite3_stmt *stmt = nullptr;
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -856,5 +855,32 @@ std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudData(sqlite3 *db, 
     count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
     LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
     return res;
+}
+
+std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudData(sqlite3 *db, bool isMemory,
+    const Timestamp &timestamp, const std::string &user, bool forcePush)
+{
+    std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
+    return CountCloudDataInner(db, isMemory, timestamp, user, sql);
+}
+
+std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountAllCloudData(sqlite3 *db, bool isMemory,
+    const std::vector<Timestamp> &timestampVec, const std::string &user, bool forcePush)
+{
+    if (timestampVec.size() != 3) { // 3 is the number of three mode.
+        return std::pair(-E_INVALID_ARGS, 0);
+    }
+    std::vector<CloudWaterType> typeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
+    std::pair<int, int64_t> result = std::pair(E_OK, 0);
+    for (size_t i = 0; i < typeVec.size(); i++) {
+        std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
+        SqliteQueryHelper::AppendCloudQueryToGetDiffData(sql, typeVec[i], true);
+        std::pair<int, int64_t> res = CountCloudDataInner(db, isMemory, timestampVec[i], user, sql);
+        if (res.first != E_OK) {
+            return res;
+        }
+        result.second += res.second;
+    }
+    return result;
 }
 }

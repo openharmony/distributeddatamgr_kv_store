@@ -317,11 +317,13 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
     ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
+    ASSERT_EQ(status, SUCCESS);
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
-    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
@@ -386,7 +388,7 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
 
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, subscribedObserver);
-    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+    ASSERT_EQ(status, SUCCESS);
 
     status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, subscribedObserver);
     ASSERT_EQ(status, SUCCESS);
@@ -424,6 +426,8 @@ HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
     auto status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
     ASSERT_EQ(status, SUCCESS);
     status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
     ASSERT_EQ(status, SUCCESS);
     status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
     ASSERT_EQ(status, STORE_NOT_SUBSCRIBE);

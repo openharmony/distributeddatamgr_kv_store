@@ -128,6 +128,8 @@ public:
 
     void Dump(int fd) override;
 
+    virtual void ResetSyncStatus();
+
 protected:
     // Create a connection object, no DB ref increased.
     virtual GenericKvDBConnection *NewConnection(int &errCode) = 0;

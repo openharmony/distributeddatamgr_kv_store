@@ -93,6 +93,11 @@ void ObserverBridge::ObserverClient::OnChange(const ChangeNotification &data)
     KvStoreObserverClient::OnChange(notice);
 }
 
+void ObserverBridge::ObserverClient::OnChange(const DataOrigin &origin, Keys &&keys)
+{
+    KvStoreObserverClient::OnChange(origin, std::move(keys));
+}
+
 template<class T>
 std::vector<Entry> ObserverBridge::ConvertDB(const T &dbEntries, std::string &deviceId, const Convertor &convert)
 {

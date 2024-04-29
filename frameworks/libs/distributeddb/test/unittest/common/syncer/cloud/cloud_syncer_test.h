@@ -133,10 +133,10 @@ public:
         return currentContext_.currentTaskId;
     }
 
-    int CallDoUpload(TaskId taskId, bool lastTable = false)
+    int CallDoUpload(TaskId taskId, bool lastTable = false, LockAction lockAction = LockAction::INSERT)
     {
         storageProxy_->StartTransaction();
-        int ret = CloudSyncer::DoUpload(taskId, lastTable);
+        int ret = CloudSyncer::DoUpload(taskId, lastTable, lockAction);
         storageProxy_->Commit();
         return ret;
     }
