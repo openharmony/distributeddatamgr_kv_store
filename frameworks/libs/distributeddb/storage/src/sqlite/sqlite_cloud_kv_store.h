@@ -84,8 +84,16 @@ public:
     void RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
 
     void UnRegisterObserverAction(const KvStoreObserver *observer);
+
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
+
+    std::pair<int, CloudSyncData> GetLocalCloudVersion() override;
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
+
+    static void FillTimestamp(Timestamp rawSystemTime, Timestamp virtualTime, CloudSyncBatch &syncBatch);
+
+    static void FilterCloudVersionPrefixKey(std::vector<std::vector<Type>> &changeValList);
 
     KvStorageHandle *storageHandle_;
 

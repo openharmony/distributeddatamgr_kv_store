@@ -78,6 +78,8 @@ public:
     CloudSyncEvent SyncMachineDoUpload();
 
     CloudSyncEvent SyncMachineDoFinished();
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -390,6 +392,7 @@ protected:
 
     bool IsQueryListEmpty(TaskId taskId);
 
+    int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

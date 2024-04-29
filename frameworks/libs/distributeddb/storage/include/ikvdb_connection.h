@@ -154,6 +154,10 @@ public:
     virtual int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) = 0;
 
     virtual int UnRegisterObserverAction(const KvStoreObserver *observer) = 0;
+
+    virtual void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) = 0;
+
+    virtual int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) = 0;
 };
 } // namespace DistributedDB
 

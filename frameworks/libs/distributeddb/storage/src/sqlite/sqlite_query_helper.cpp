@@ -1274,9 +1274,29 @@ std::string SqliteQueryHelper::GetKvCloudQuerySql(bool countOnly, bool forcePush
         sql = QUERY_CLOUD_SYNC_DATA_HEAD;
     }
     sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    sql += QUERY_CLOUD_SYNC_DATA_CONDITION;
     sql += " AND flag & 0x02 != 0 "; // get all data which is local
     if (forcePush) {
         sql += " AND flag & 0x04 != 0x04 "; // get all data which hasn't pushed
+    }
+    return sql;
+}
+
+std::string SqliteQueryHelper::GetKvCloudRecordSql()
+{
+    std::string sql = QUERY_CLOUD_SYNC_DATA_HEAD;
+    sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    sql += QUERY_CLOUD_VERSION_RECORD_CONDITION;
+    return sql;
+}
+
+std::string SqliteQueryHelper::GetCloudVersionRecordSql(bool isDeviceEmpty)
+{
+    std::string sql = QUERY_CLOUD_VERSION_RECORD_SQL_HEAD;
+    if (!isDeviceEmpty) {
+        sql += QUERY_CLOUD_VERSION_RECORD_SQL_DEVICE_CONDITION;
+    } else {
+        sql += QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION;
     }
     return sql;
 }

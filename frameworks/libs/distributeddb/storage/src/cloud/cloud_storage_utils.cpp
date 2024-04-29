@@ -1294,7 +1294,6 @@ std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &da
     auto &[errCode, dataItem] = res;
     GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_KEY, data, dataItem.key);
     GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, data, dataItem.value);
-    (void)DBCommon::CalcValueHash(dataItem.key, dataItem.hashKey);
     GetStringFromCloudData(CloudDbConstant::GID_FIELD, data, dataItem.gid);
     GetStringFromCloudData(CloudDbConstant::VERSION_FIELD, data, dataItem.version);
     GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
@@ -1303,6 +1302,24 @@ std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &da
     GetUInt64FromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME, data, dataItem.writeTimestamp);
     GetUInt64FromCloudData(CloudDbConstant::MODIFY_FIELD, data, dataItem.modifyTime);
     errCode = GetUInt64FromCloudData(CloudDbConstant::CREATE_FIELD, data, dataItem.createTime);
+    bool isSystemRecord = IsSystemRecord(dataItem.key);
+    if (isSystemRecord) {
+        dataItem.hashKey = dataItem.key;
+        dataItem.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_SYSTEM_RECORD);
+    } else {
+        (void)DBCommon::CalcValueHash(dataItem.key, dataItem.hashKey);
+    }
+    return res;
+}
+
+std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudVersionData(VBucket &data)
+{
+    std::pair<int, DataItem> res;
+    auto &[errCode, dataItem] = res;
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_KEY, data, dataItem.key);
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, data, dataItem.value);
+    GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
+    errCode = E_OK;
     return res;
 }
 
@@ -1353,5 +1370,28 @@ bool CloudStorageUtils::IsDataLocked(uint32_t status)
 {
     return status == static_cast<uint32_t>(LockStatus::LOCK) ||
         status == static_cast<uint32_t>(LockStatus::LOCK_CHANGE);
+}
+
+std::pair<int, DataItem> CloudStorageUtils::GetSystemRecordFromCloudData(VBucket &data)
+{
+    auto res = CloudStorageUtils::GetDataItemFromCloudData(data); // only record first one
+    auto &[errCode, dataItem] = res;
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get data item failed %d", errCode);
+        return res;
+    }
+    dataItem.dev = "";
+    dataItem.origDev = "";
+    return res;
+}
+
+bool CloudStorageUtils::IsSystemRecord(const Key &key)
+{
+    std::string prefixKey = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY;
+    if (key.size() < prefixKey.size()) {
+        return false;
+    }
+    std::string keyStr(key.begin(), key.end());
+    return keyStr.find(prefixKey) == 0;
 }
 }

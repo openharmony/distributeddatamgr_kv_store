@@ -597,4 +597,15 @@ CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
     RefObject::IncObjRef(cloudSyncer_);
     return cloudSyncer_;
 }
+
+void SyncAbleKvDB::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    auto cloudSyncer = GetAndIncCloudSyncer();
+    if (cloudSyncer == nullptr) {
+        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        return;
+    }
+    cloudSyncer->SetGenCloudVersionCallback(callback);
+    RefObject::DecObjRef(cloudSyncer);
+}
 }

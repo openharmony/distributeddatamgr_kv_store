@@ -64,6 +64,11 @@ public:
 
     int RemoveLocalAssets(const std::vector<Asset> &assets);
 
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
+
+    bool IsExistCloudVersionCallback() const;
+
+    std::pair<int, std::string> GetCloudVersion(const std::string &originVersion) const;
 protected:
     class CloudActionContext {
     public:
@@ -164,6 +169,9 @@ protected:
     std::mutex asyncTaskMutex_;
     std::condition_variable asyncTaskCv_;
     int32_t asyncTaskCount_;
+
+    mutable std::mutex genVersionMutex_;
+    GenerateCloudVersionCallback genVersionCallback_;
 };
 }
 #endif // CLOUD_DB_PROXY_H

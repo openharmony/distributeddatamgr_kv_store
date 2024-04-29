@@ -1163,4 +1163,36 @@ int32_t KvStoreNbDelegateImpl::GetTaskCount()
     }
     return conn_->GetTaskCount();
 }
+
+void KvStoreNbDelegateImpl::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    if (conn_ == nullptr || callback == nullptr) {
+        return;
+    }
+    conn_->SetGenCloudVersionCallback(callback);
+}
+
+std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::GetCloudVersion(
+    const std::string &device)
+{
+    std::pair<DBStatus, std::map<std::string, std::string>> res;
+    if (device.size() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[KvStoreNbDelegate] device invalid length %zu", device.size());
+        res.first = INVALID_ARGS;
+        return res;
+    }
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        res.first = DB_ERROR;
+        return res;
+    }
+    int errCode = conn_->GetCloudVersion(device, res.second);
+    if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate] get cloudVersion success");
+    } else {
+        LOGE("[KvStoreNbDelegate] get cloudVersion failed:%d", errCode);
+    }
+    res.first = TransferDBErrno(errCode);
+    return res;
+}
 } // namespace DistributedDB

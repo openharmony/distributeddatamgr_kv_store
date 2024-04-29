@@ -69,6 +69,8 @@ public:
     static constexpr const char *TO_LOCK = "status = CASE WHEN status == 0 THEN 2 WHEN status == 1 THEN 3"
         " ELSE status END";
 
+    static constexpr const char *CLOUD_VERSION_RECORD_PREFIX_KEY = "naturalbase_cloud_version_";
+
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp

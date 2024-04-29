@@ -113,6 +113,8 @@ public:
     int RemoveDeviceData(const std::string &device, ClearMode mode) override;
 
     int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
+
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

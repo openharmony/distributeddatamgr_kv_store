@@ -637,4 +637,13 @@ int StorageProxy::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
     }
     return store_->GetCloudDbSchema(cloudSchema);
 }
+
+std::pair<int, CloudSyncData> StorageProxy::GetLocalCloudVersion()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return {-E_INTERNAL_ERROR, {}};
+    }
+    return store_->GetLocalCloudVersion();
+}
 }

@@ -141,6 +141,8 @@ public:
     std::string AppendWithUserIfNeed(const std::string &source) const;
 
     int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema);
+
+    std::pair<int, CloudSyncData> GetLocalCloudVersion();
 protected:
     void Init();
 

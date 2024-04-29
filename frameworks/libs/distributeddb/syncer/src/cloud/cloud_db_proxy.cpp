@@ -581,4 +581,33 @@ std::string CloudDBProxy::CloudActionContext::GetTableName()
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     return tableName_;
 }
+
+void CloudDBProxy::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+    genVersionCallback_ = callback;
+    LOGI("[CloudDBProxy] Set generate cloud version callback ok");
+}
+
+bool CloudDBProxy::IsExistCloudVersionCallback() const
+{
+    std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+    return genVersionCallback_ != nullptr;
+}
+
+std::pair<int, std::string> CloudDBProxy::GetCloudVersion(const std::string &originVersion) const
+{
+    GenerateCloudVersionCallback genVersionCallback;
+    {
+        std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+        if (genVersionCallback_ == nullptr) {
+            return {-E_NOT_SUPPORT, ""};
+        }
+        genVersionCallback = genVersionCallback_;
+    }
+    LOGI("[CloudDBProxy] Begin get cloud version");
+    std::string version = genVersionCallback(originVersion);
+    LOGI("[CloudDBProxy] End get cloud version");
+    return {E_OK, version};
+}
 }

@@ -413,4 +413,15 @@ int GenericKvDBConnection::UnRegisterObserverAction([[gnu::unused]] const KvStor
 {
     return E_OK;
 }
+
+void GenericKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    (void)callback;
+    return;
+}
+
+int GenericKvDBConnection::GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap)
+{
+    return -E_NOT_SUPPORT;
+}
 }

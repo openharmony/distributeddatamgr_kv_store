@@ -90,6 +90,7 @@ using Bytes = std::vector<uint8_t>;
 using Entries = std::map<std::string, std::string>;
 using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets, Entries>;
 using VBucket = std::map<std::string, Type>;
+using GenerateCloudVersionCallback = std::function<std::string(const std::string &originVersion)>;
 
 struct Field {
     std::string colName;

@@ -104,6 +104,8 @@ public:
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
     int32_t GetTaskCount();
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

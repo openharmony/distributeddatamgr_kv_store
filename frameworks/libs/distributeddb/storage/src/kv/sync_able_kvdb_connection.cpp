@@ -377,4 +377,14 @@ int32_t SyncAbleKvDBConnection::GetTaskCount()
     }
     return kvDB->GetTaskCount();
 }
+
+void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    auto *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        LOGW("[SyncAbleKvDBConnection] Set generate cloud version callback with null db");
+        return;
+    }
+    kvDB->SetGenCloudVersionCallback(callback);
+}
 }

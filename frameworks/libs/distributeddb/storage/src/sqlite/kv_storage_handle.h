@@ -32,6 +32,8 @@ public:
     virtual int PutMetaData(const Key &key, const Value &value, bool isInTransaction) = 0;
 
     virtual TimeOffset GetLocalTimeOffsetForCloud() = 0;
+
+    virtual Timestamp GetCurrentTimestamp() = 0;
 };
 }
 #endif // I_STORAGE_HANDLE_H

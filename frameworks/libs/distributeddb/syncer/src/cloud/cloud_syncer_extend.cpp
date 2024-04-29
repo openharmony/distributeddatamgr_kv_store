@@ -146,6 +146,9 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
 {
     int errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
         uploadData.insData.extend, insertInfo);
+    if (uploadData.isCloudVersionRecord) {
+        return errCode;
+    }
     bool isSharedTable = false;
     int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
     if (ret != E_OK) {
@@ -173,6 +176,9 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
 {
     int errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
         uploadData.updData.extend, updateInfo);
+    if (uploadData.isCloudVersionRecord) {
+        return errCode;
+    }
     bool isSharedTable = false;
     int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
     if (ret != E_OK) {
@@ -873,5 +879,63 @@ bool CloudSyncer::IsQueryListEmpty(TaskId taskId)
         }
     }
     return true;
+}
+
+int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
+{
+    InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
+    static std::vector<CloudWaterType> waterTypes = {
+        CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT
+    };
+    for (const auto &waterType: waterTypes) {
+        uploadParam.mode = waterType;
+        int errCode = DoUploadByMode(tableName, uploadParam, info);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return UploadVersionRecordIfNeed(uploadParam);
+}
+
+int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
+{
+    if (uploadParam.count == 0) {
+        // no record upload
+        return E_OK;
+    }
+    if (!cloudDB_.IsExistCloudVersionCallback()) {
+        return E_OK;
+    }
+    auto [errCode, uploadData] = storageProxy_->GetLocalCloudVersion();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    bool isInsert = !uploadData.insData.record.empty();
+    CloudSyncBatch &batchData = isInsert ? uploadData.insData : uploadData.updData;
+    if (batchData.record.empty()) {
+        LOGE("[CloudSyncer] Get invalid cloud version record");
+        return -E_INTERNAL_ERROR;
+    }
+    std::string oriVersion;
+    CloudStorageUtils::GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, batchData.record[0], oriVersion);
+    std::string newVersion;
+    std::tie(errCode, newVersion) = cloudDB_.GetCloudVersion(oriVersion);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Get cloud version error %d", errCode);
+        return errCode;
+    }
+    batchData.record[0][CloudDbConstant::CLOUD_KV_FIELD_VALUE] = newVersion;
+    InnerProcessInfo processInfo;
+    Info info;
+    std::vector<VBucket> copyRecord = batchData.record;
+    WaterMark waterMark;
+    CloudSyncUtils::GetWaterMarkAndUpdateTime(batchData.extend, waterMark);
+    errCode = isInsert ? BatchInsert(info, uploadData, processInfo) : BatchUpdate(info, uploadData, processInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    batchData.record = copyRecord;
+    CloudSyncUtils::ModifyCloudDataTime(batchData.extend[0]);
+    return storageProxy_->FillCloudLogAndAsset(isInsert ? OpType::INSERT : OpType::UPDATE, uploadData);
 }
 }
