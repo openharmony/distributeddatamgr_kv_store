@@ -218,6 +218,21 @@ Status SingleStoreImpl::Get(const Key &key, const std::string &networkId, Value 
 {
     return Get(key, value);
 }
+void SingleStoreImpl::Get(
+    const Key &key, const std::string &networkId, const std::function<void(Status, Value &&)> &onResult)
+{
+    Value value;
+    auto status = Get(key, value);
+    onResult(status, std::move(value));
+}
+
+void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId,
+    const std::function<void(Status, std::vector<Entry> &&)> &onResult)
+{
+    std::vector<Entry> entries;
+    auto status = GetEntries(prefix, entries);
+    onResult(status, std::move(entries));
+}
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
