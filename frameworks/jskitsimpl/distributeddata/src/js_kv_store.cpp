@@ -28,6 +28,7 @@ using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 
 namespace OHOS::DistributedData {
+inline static uint8_t UNVALID_SUBSCRIBE_TYPE = 255;
 std::map<std::string, JsKVStore::Exec> JsKVStore::onEventHandlers_ = {
     { "dataChange", JsKVStore::OnDataChange },
     { "syncComplete", JsKVStore::OnSyncComplete }
@@ -45,7 +46,16 @@ static bool ValidSubscribeType(uint8_t type)
 
 static SubscribeType ToSubscribeType(uint8_t type)
 {
-    return static_cast<SubscribeType>(type + 1);
+    switch (type) {
+        case 0:  // 0 means SUBSCRIBE_TYPE_LOCAL
+            return SubscribeType::SUBSCRIBE_TYPE_LOCAL;
+        case 1:  // 1 means SUBSCRIBE_TYPE_REMOTE
+            return SubscribeType::SUBSCRIBE_TYPE_REMOTE;
+        case 2:  // 2 means SUBSCRIBE_TYPE_ALL
+            return SubscribeType::SUBSCRIBE_TYPE_ALL;
+        default:
+            return static_cast<SubscribeType>(UNVALID_SUBSCRIBE_TYPE);
+    }
 }
 
 JsKVStore::JsKVStore(const std::string& storeId)

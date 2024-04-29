@@ -164,6 +164,17 @@ Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, const
     return static_cast<Status>(status);
 }
 
+Status KVDBServiceClient::CloudSync(const AppId &appId, const StoreId &storeId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_CLOUD_SYNC), reply, appId, storeId);
+    if (status != SUCCESS) {
+        ZLOGE("status: 0x%{public}x" PRIu64, status);
+    }
+    return static_cast<Status>(status);
+}
+
 Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
 {
     MessageParcel reply;

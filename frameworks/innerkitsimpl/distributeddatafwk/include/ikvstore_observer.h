@@ -21,13 +21,22 @@
 #include "ikvstore_observer.h"
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
+#include "types.h"
 
 namespace OHOS {
 namespace DistributedKv {
 class IKvStoreObserver : public IRemoteBroker {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreObserver");
+    enum ChangeOp : int32_t {
+        OP_INSERT,
+        OP_UPDATE,
+        OP_DELETE,
+        OP_BUTT,
+    };
+    using Keys = std::vector<std::string>[OP_BUTT];
     virtual void OnChange(const ChangeNotification &changeNotification) = 0;
+    virtual void OnChange(const DataOrigin &origin, Keys &&keys) = 0;
 protected:
     static constexpr int64_t SWITCH_RAW_DATA_SIZE = 700 * 1024;
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
@@ -44,6 +53,7 @@ public:
     explicit KvStoreObserverProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreObserverProxy() = default;
     void OnChange(const ChangeNotification &changeNotification) override;
+    void OnChange(const DataOrigin &origin, Keys &&keys) override;
 private:
     static inline BrokerDelegator<KvStoreObserverProxy> delegator_;
 };

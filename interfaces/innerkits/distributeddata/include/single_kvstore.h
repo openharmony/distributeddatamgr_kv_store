@@ -285,6 +285,18 @@ public:
     {
         return Status::SUCCESS;
     };
+
+    /**
+     * @brief Sync store to cloud.
+     *
+     * Sync store to cloud.
+     *
+     * @return Return SUCCESS for success, others for failure.
+     */
+    virtual Status CloudSync(const AsyncDetail &async)
+    {
+        return Status::SUCCESS;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

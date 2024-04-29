@@ -258,6 +258,24 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore007, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKvStore008
+ * @tc.desc: Get a SingleKvStore which supports cloud sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Hollokin
+ */
+HWTEST_F(DistributedKvDataManagerTest, GetKvStore008, TestSize.Level1)
+{
+    ZLOGI("GetKvStore008 begin.");
+    std::shared_ptr<SingleKvStore> cloudKvStore = nullptr;
+    Options options = create;
+    options.isPublic = true;
+    Status status = manager.GetSingleKvStore(options, appId, storeId64, cloudKvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    EXPECT_NE(cloudKvStore, nullptr);
+}
+
+/**
 * @tc.name: GetKvStoreInvalidSecurityLevel
 * @tc.desc: Get a SingleKvStore with a 64
  * -byte storeId, the callback function should receive INVALID_ARGUMENT

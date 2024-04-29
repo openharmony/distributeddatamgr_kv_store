@@ -40,6 +40,7 @@ private:
     public:
         ObserverClient(std::shared_ptr<Observer> observer, const Convertor &cvt);
         void OnChange(const ChangeNotification &data) override __attribute__((no_sanitize("cfi")));
+        void OnChange(const DataOrigin &origin, Keys &&keys) override __attribute__((no_sanitize("cfi")));
 
     private:
         const Convertor &convert_;

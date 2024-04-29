@@ -40,6 +40,7 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_UNSUB,
     TRANS_GET_PASSWORD,
     TRANS_SYNC_EXT,
+    TRANS_CLOUD_SYNC,
     TRANS_BUTT
 };
 } // namespace OHOS::DistributedKv

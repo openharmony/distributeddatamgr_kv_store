@@ -28,6 +28,7 @@ namespace DistributedKv {
 using namespace std::chrono;
 
 enum {
+    CLOUD_ONCHANGE,
     ONCHANGE,
 };
 
@@ -83,21 +84,43 @@ void KvStoreObserverProxy::OnChange(const ChangeNotification &changeNotification
     }
 }
 
+void KvStoreObserverProxy::OnChange(const DataOrigin &origin, Keys &&keys)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    if (!data.WriteInterfaceToken(KvStoreObserverProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
+    int64_t insertSize = keys[OP_INSERT].size();
+    int64_t updateSize = keys[OP_UPDATE].size();
+    int64_t deleteSize = keys[OP_DELETE].size();
+    ZLOGD("I(%" PRId64 ") U(%" PRId64 ") D(%" PRId64 ")", insertSize, updateSize, deleteSize);
+
+    if (!ITypesUtil::Marshal(data, origin.store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
+        ZLOGE("WriteChangeInfo to Parcel failed.");
+        return;
+    }
+
+    MessageOption mo{ MessageOption::TF_WAIT_TIME };
+    int error = Remote()->SendRequest(CLOUD_ONCHANGE, data, reply, mo);
+    if (error != 0) {
+        ZLOGE("SendRequest failed, error %d", error);
+    }
+}
+
 int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply,
     MessageOption &option)
 {
     ZLOGD("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
-    std::u16string descriptor = KvStoreObserverStub::GetDescriptor();
-    std::u16string remoteDescriptor = data.ReadInterfaceToken();
-    if (descriptor != remoteDescriptor) {
+    const int errorResult = -1;
+    if (KvStoreObserverStub::GetDescriptor() != data.ReadInterfaceToken()) {
         ZLOGE("local descriptor is not equal to remote");
-        return -1;
+        return errorResult;
     }
     switch (code) {
         case ONCHANGE: {
-            const int errorResult = -1;
-            int totalSize = data.ReadInt32();
-            if (totalSize < SWITCH_RAW_DATA_SIZE) {
+            if (data.ReadInt32() < SWITCH_RAW_DATA_SIZE) {
                 ChangeNotification notification({}, {}, {}, "", false);
                 if (!ITypesUtil::Unmarshal(data, notification)) {
                     ZLOGE("changeNotification is nullptr");
@@ -110,8 +133,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
                 std::vector<Entry> inserts;
                 std::vector<Entry> updates;
                 std::vector<Entry> deletes;
-                if (!ITypesUtil::Unmarshal(data, deviceId, clear) ||
-                    !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
+                if (!ITypesUtil::Unmarshal(data, deviceId, clear) || !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
                     !ITypesUtil::UnmarshalFromBuffer(data, updates) ||
                     !ITypesUtil::UnmarshalFromBuffer(data, deletes)) {
                     ZLOGE("WriteChangeList to Parcel by buffer failed");
@@ -121,6 +143,16 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
                     clear != 0);
                 OnChange(change);
             }
+            return 0;
+        }
+        case CLOUD_ONCHANGE: {
+            std::string store;
+            Keys keys;
+            if (!ITypesUtil::Unmarshal(data, store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
+                ZLOGE("ReadChangeList from Parcel failed");
+                return errorResult;
+            }
+            OnChange({ .store = store }, std::move(keys));
             return 0;
         }
         default:
