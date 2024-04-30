@@ -237,7 +237,7 @@ private:
 class KvStoreObserverUnitTest : public DistributedDB::KvStoreObserver {
 public:
     KvStoreObserverUnitTest();
-    ~KvStoreObserverUnitTest() {}
+    ~KvStoreObserverUnitTest() override = default;
 
     KvStoreObserverUnitTest(const KvStoreObserverUnitTest&) = delete;
     KvStoreObserverUnitTest& operator=(const KvStoreObserverUnitTest&) = delete;
@@ -245,7 +245,14 @@ public:
     KvStoreObserverUnitTest& operator=(KvStoreObserverUnitTest&&) = delete;
 
     // callback function will be called when the db data is changed.
-    void OnChange(const DistributedDB::KvStoreChangedData&);
+    void OnChange(const DistributedDB::KvStoreChangedData&) override;
+
+    void OnChange(const DistributedDB::StoreChangedData &data) override;
+
+    void OnChange(DistributedDB::Origin origin, const std::string &originalId,
+        DistributedDB::ChangedData &&data) override;
+
+    void OnChange(StoreChangedInfo &&data) override;
 
     // reset the callCount_ to zero.
     void ResetToZero();
