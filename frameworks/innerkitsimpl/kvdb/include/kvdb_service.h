@@ -64,7 +64,7 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
-    virtual Status CloudSync(const AppId &appId, const StoreId &storeId) = 0;
+    virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const AsyncDetail &async) = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_H

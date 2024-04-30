@@ -545,7 +545,7 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    auto status = service->CloudSync({ appId_ }, { storeId_ });
+    auto status = service->CloudSync({ appId_ }, { storeId_ }, async);
     if (status == SUCCESS) {
         return SUCCESS;
     } else {

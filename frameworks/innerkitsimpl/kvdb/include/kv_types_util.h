@@ -31,6 +31,9 @@ using ChangeNotification = DistributedKv::ChangeNotification;
 using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
 using DevBrief = DistributedKv::KVDBService::DevBrief;
+using TableDetail = DistributedKv::TableDetail;
+using Statistic = DistributedKv::Statistic;
+using ProgressDetail = DistributedKv::ProgressDetail;
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -75,6 +78,21 @@ template<>
 API_EXPORT bool Marshalling(const DevBrief &input, MessageParcel &data);
 template<>
 API_EXPORT bool Unmarshalling(DevBrief &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const ProgressDetail &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(ProgressDetail &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const TableDetail &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(TableDetail &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const Statistic &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(Statistic &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

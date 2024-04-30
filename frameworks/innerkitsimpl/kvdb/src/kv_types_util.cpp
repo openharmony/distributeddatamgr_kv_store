@@ -176,6 +176,37 @@ bool Unmarshalling(DevBrief &output, MessageParcel &data)
     return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
 }
 
+template<>
+bool Marshalling(const ProgressDetail &input, MessageParcel &data)
+{
+    return Marshal(data, input.progress, input.code, input.details);
+}
+template<>
+bool Unmarshalling(ProgressDetail &output, MessageParcel &data)
+{
+    return Unmarshal(data, output.progress, output.code, output.details);
+}
+template<>
+bool Marshalling(const TableDetail &input, MessageParcel &data)
+{
+    return Marshal(data, input.upload, input.download);
+}
+template<>
+bool Unmarshalling(TableDetail &output, MessageParcel &data)
+{
+    return Unmarshal(data, output.upload, output.download);
+}
+template<>
+bool Marshalling(const Statistic &input, MessageParcel &data)
+{
+    return Marshal(data, input.total, input.success, input.failed, input.untreated);
+}
+template<>
+bool Unmarshalling(Statistic &output, MessageParcel &data)
+{
+    return Unmarshal(data, output.total, output.success, output.failed, output.untreated);
+}
+
 int64_t GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;
