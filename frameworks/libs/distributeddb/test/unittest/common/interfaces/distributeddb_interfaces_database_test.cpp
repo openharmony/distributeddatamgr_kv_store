@@ -21,8 +21,10 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kvdb_manager.h"
+#include "kv_store_changed_data_impl.h"
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
+#include "relational_store_changed_data_impl.h"
 #include "runtime_context.h"
 
 using namespace testing::ext;
@@ -1503,4 +1505,18 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, DataInterceptor1, TestSize.Level1)
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+}
+
+HWTEST_F(DistributedDBInterfacesDatabaseTest, KvObserver001, TestSize.Level0)
+{
+    KvStoreObserverUnitTest observer;
+    KvStoreChangedDataImpl changedData(nullptr);
+    EXPECT_FALSE(changedData.IsCleared());
+    observer.OnChange(changedData);
+    RelationalStoreChangedDataImpl storeChangedData("");
+    observer.OnChange(storeChangedData);
+    StoreObserver::StoreChangedInfo info;
+    observer.OnChange(std::move(info));
+    ChangedData simpleData;
+    observer.OnChange(Origin::ORIGIN_ALL, "", std::move(simpleData));
 }

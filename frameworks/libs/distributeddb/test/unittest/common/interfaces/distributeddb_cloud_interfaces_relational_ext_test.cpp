@@ -108,6 +108,7 @@ void DistributedDBCloudInterfacesRelationalExtTest::SetUp()
 
 void DistributedDBCloudInterfacesRelationalExtTest::TearDown()
 {
+    g_alreadyNotify = false;
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
 }
 
