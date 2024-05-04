@@ -628,11 +628,6 @@ struct SwitchNotification {
     */
     SwitchState state = SwitchState::INSERT;
 };
-
-/**
- * Switch data change observer.
-*/
-using SwitchDataObserver = std::function<void(const SwitchNotification &&notification)>;
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

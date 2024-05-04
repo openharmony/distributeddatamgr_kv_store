@@ -55,15 +55,12 @@ void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask)
     }
 }
 
-void KVDBNotifierClient::OnSwicthChange(const SwitchNotification &notification)
+void KVDBNotifierClient::OnSwitchChange(const SwitchNotification &notification)
 {
-    switchObservers_.ForEachCopies([&notification](auto &, std::list<SwitchDataObserver> &value) {
-        for (const auto &item : value) {
-            if (item) {
-                item(std::move(notification));
-            }
-        }
-        return false;
+    switchObservers_.ForEachCopies(
+        [notifier = std::move(notification)](auto &, std::shared_ptr<KvStoreObserver> &observer) {
+            observer->OnChange(std::move(notifier));
+            return false;
     });
 }
 
@@ -92,38 +89,24 @@ void KVDBNotifierClient::DeleteSyncCallback(uint64_t sequenceId)
     syncCallbackInfo_.Erase(sequenceId);
 }
 
-void KVDBNotifierClient::AddSwicthCallback(const std::string &appId, const SwitchDataObserver observer)
+void KVDBNotifierClient::AddSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer)
 {
-    if (!observer) {
+    if (observer == nullptr) {
         return;
     }
-    switchObservers_.Compute(appId, [observer](auto &, std::list<SwitchDataObserver> &value) {
-         for (const auto &item : value) {
-            if (!item) {
-                continue;
-            }
-            if (&item == &observer) {
-                ZLOGE("duplicate observer");
-                return true;
-            }
-        }
-        value.push_back(observer);
-        return true;
-    });
+    if (switchObservers_.Contains(uintptr_t(observer.get()))) {
+        ZLOGI("duplicate observer");
+        return;
+    }
+    switchObservers_.Insert(uintptr_t(observer.get()), observer);
 }
 
-void KVDBNotifierClient::DeleteSwicthCallback(const std::string &appId, const SwitchDataObserver observer)
+void KVDBNotifierClient::DeleteSwitchCallback(const std::string &appId, const SwitchDataObserver observer)
 {
-    if (!observer) {
+    if (observer == nullptr) {
         return;
     }
-    switchObservers_.ComputeIfPresent(appId, [observer](auto &, std::list<SwitchDataObserver> &value) {
-        value.remove_if([observer](const SwitchDataObserver &item) {
-            return &observer == &item;
-        });
-        ZLOGI("delete end, left:%{public}zu", value.size());
-        return !value.empty();
-    });
+    switchObservers_.Erase(uintptr_t(observer.get()));
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

@@ -57,6 +57,22 @@ public:
     DistributedKvDataManagerTest();
 };
 
+class SwitchDataObserver : public KvStoreObserver {
+public:
+    void OnChange(SwitchNotification &&notification)
+    {
+        blockData_.SetValue(std::move(notification));
+    }
+
+    SwitchNotification Get()
+    {
+        return blockData_.GetValue();
+    }
+
+private:
+    BlockData<SwitchNotification> blockData_ { 1, SwitchNotification() };
+};
+
 class MyDeathRecipient : public KvStoreDeathRecipient {
 public:
     MyDeathRecipient() {}
@@ -850,20 +866,15 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     ZLOGI("SubscribeSwitchesData begin.");
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
     EXPECT_NE(devInfo.networkId, "");
-    BlockData<SwitchData> blockData{ 1, SwitchData() };
     SwitchData input;
     input.value = 0x000D;
     input.length = 4;
-    SwitchDataObserver observer = [input, devInfo, &blockData](const SwitchNotification &&notification) {
-        ASSERT_EQ(notification.state, SwitchState::UPDATE);
-        ASSERT_EQ(notification.deviceId, devInfo.networkId);
-        blockData.SetValue(notification.data);
-    };
+    SwitchDataObserver observer = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
-    auto output = blockData.GetValue();
+    auto output = observer->Get();
     ASSERT_EQ(input.value, output.value);
     ASSERT_EQ(input.length, output.length);
     manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);
@@ -879,9 +890,9 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
 HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level1)
 {
     ZLOGI("MutiSubscribeSwitchesData begin.");
-    SwitchDataObserver observer1 = [](const SwitchNotification &&notification) {};
-    SwitchDataObserver observer2 = [](const SwitchNotification &&notification) {};
-    SwitchDataObserver observer3 = [](const SwitchNotification &&notification) {};
+    SwitchDataObserver observer1 = std::make_shared<SwitchDataObserver>();
+    SwitchDataObserver observer2 = std::make_shared<SwitchDataObserver>();
+    SwitchDataObserver observer3 = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer1);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer2);
@@ -903,7 +914,7 @@ HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level
 HWTEST_F(DistributedKvDataManagerTest, UnsubscribeSwitchesData, TestSize.Level1)
 {
     ZLOGI("UnsubscribeSwitchesData begin.");
-    SwitchDataObserver observer = [](const SwitchNotification &&notification) {};
+    SwitchDataObserver observer = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);

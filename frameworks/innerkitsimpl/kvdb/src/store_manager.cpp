@@ -150,7 +150,7 @@ std::pair<Status, SwitchData> StoreManager::GetSwitch(const AppId &appId, const 
     return { status, std::move(data) };
 }
 
-Status StoreManager::SubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+Status StoreManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
     if (!appId.IsValid() || observer == nullptr) {
@@ -168,11 +168,11 @@ Status StoreManager::SubscribeSwitchData(const AppId &appId, const SwitchDataObs
     if (serviceAgent == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    serviceAgent->AddSwicthCallback(appId.appId, observer);
+    serviceAgent->AddSwitchCallback(appId.appId, observer);
     return SUCCESS;
 }
 
-Status StoreManager::UnsubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer)
+Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
     if (!appId.IsValid() || observer == nullptr) {
@@ -190,7 +190,7 @@ Status StoreManager::UnsubscribeSwitchData(const AppId &appId, const SwitchDataO
     if (serviceAgent == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    serviceAgent->DeleteSwicthCallback(appId.appId, observer);
+    serviceAgent->DeleteSwitchCallback(appId.appId, observer);
     return SUCCESS;
 }
 } // namespace OHOS::DistributedKv

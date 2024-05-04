@@ -32,22 +32,22 @@ public:
 
     void OnRemoteChange(const std::map<std::string, bool> &mask) override;
 
-    void OnSwicthChange(const SwitchNotification &notification) override;
+    void OnSwitchChange(const SwitchNotification &notification) override;
 
     void AddSyncCallback(const std::shared_ptr<KvStoreSyncCallback> callback, uint64_t sequenceId);
 
     void DeleteSyncCallback(uint64_t sequenceId);
 
-    void AddSwicthCallback(const std::string &appId, const SwitchDataObserver observer);
+    void AddSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer);
 
-    void DeleteSwicthCallback(const std::string &appId, const SwitchDataObserver observer);
+    void DeleteSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer);
 
     bool IsChanged(const std::string &deviceId);
 
 private:
     ConcurrentMap<uint64_t, std::shared_ptr<KvStoreSyncCallback>> syncCallbackInfo_;
     ConcurrentMap<std::string, bool> remotes_;
-    ConcurrentMap<std::string, std::list<SwitchDataObserver>> switchObservers_;
+    ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
 };
 } // namespace DistributedKv
 } // namespace OHOS

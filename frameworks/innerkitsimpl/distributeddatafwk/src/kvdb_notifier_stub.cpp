@@ -86,7 +86,7 @@ int32_t KVDBNotifierStub::OnOnSwitchChange(MessageParcel& data, MessageParcel& r
         ZLOGE("Unmarshal fail");
         return IPC_STUB_INVALID_DATA_ERR;
     }
-    OnSwicthChange(std::move(notification));
+    OnSwitchChange(std::move(notification));
     return ERR_NONE;
 }
 }  // namespace DistributedKv

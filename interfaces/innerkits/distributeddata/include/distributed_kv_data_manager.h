@@ -192,7 +192,7 @@ public:
      * @param observer Callback client provided, observer function will called, when data changed in store.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT Status SubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer);
+    API_EXPORT Status SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
 
     /**
      * @brief Unsubscribe swicth data to un-watch data change in the store.
@@ -205,7 +205,7 @@ public:
      * @param observer Callback client provided, observer function will called, when data changed in store.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status UnsubscribeSwitchData(const AppId &appId, const SwitchDataObserver observer);
+    API_EXPORT Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
 private:
     static bool isAlreadySet_;
     std::mutex mutex_;
