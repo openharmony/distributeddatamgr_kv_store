@@ -58,8 +58,8 @@ void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask)
 void KVDBNotifierClient::OnSwitchChange(const SwitchNotification &notification)
 {
     switchObservers_.ForEachCopies(
-        [notifier = std::move(notification)](auto &, std::shared_ptr<KvStoreObserver> &observer) {
-            observer->OnChange(std::move(notifier));
+        [&notification](auto &, std::shared_ptr<KvStoreObserver> &observer) {
+            observer->OnSwitchChange(notification);
             return false;
     });
 }

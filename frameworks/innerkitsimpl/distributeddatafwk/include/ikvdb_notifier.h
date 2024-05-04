@@ -20,6 +20,7 @@
 #include "iremote_broker.h"
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
+#include "kvstore_observer.h"
 #include "types.h"
 #include "visibility.h"
 
@@ -30,7 +31,7 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreSyncCallback");
     virtual void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) = 0;
     virtual void OnRemoteChange(const std::map<std::string, bool> &mask) = 0;
-    virtual void OnSwicthChange(const SwitchNotification &notification) = 0;
+    virtual void OnSwitchChange(const SwitchNotification &notification) = 0;
 };
 } // namespace DistributedKv
 } // namespace OHOS

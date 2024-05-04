@@ -59,9 +59,9 @@ public:
 
 class SwitchDataObserver : public KvStoreObserver {
 public:
-    void OnChange(SwitchNotification &&notification)
+    void OnSwitchChange(const SwitchNotification &notification) override
     {
-        blockData_.SetValue(std::move(notification));
+        blockData_.SetValue(notification);
     }
 
     SwitchNotification Get()
@@ -875,8 +875,8 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
     ASSERT_EQ(status, Status::SUCCESS);
     auto output = observer->Get();
-    ASSERT_EQ(input.value, output.value);
-    ASSERT_EQ(input.length, output.length);
+    ASSERT_EQ(input.value, output.data.value);
+    ASSERT_EQ(input.length, output.data.length);
     manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);
 }
 
