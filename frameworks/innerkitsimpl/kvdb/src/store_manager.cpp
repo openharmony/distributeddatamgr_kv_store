@@ -160,13 +160,13 @@ Status StoreManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvS
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    auto status = service->SubscribeSwitchData(appId);
-    if (status != SUCCESS) {
-        return status;
-    }
     auto serviceAgent = service->GetServiceAgent(appId);
     if (serviceAgent == nullptr) {
         return SERVER_UNAVAILABLE;
+    }
+    auto status = service->SubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
     }
     serviceAgent->AddSwitchCallback(appId.appId, observer);
     return SUCCESS;
@@ -182,13 +182,13 @@ Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<K
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    auto status = service->UnsubscribeSwitchData(appId);
-    if (status != SUCCESS) {
-        return status;
-    }
     auto serviceAgent = service->GetServiceAgent(appId);
     if (serviceAgent == nullptr) {
         return SERVER_UNAVAILABLE;
+    }
+    auto status = service->UnsubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
     }
     serviceAgent->DeleteSwitchCallback(appId.appId, observer);
     return SUCCESS;

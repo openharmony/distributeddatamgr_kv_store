@@ -869,7 +869,7 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
     SwitchData input;
     input.value = 0x000D;
     input.length = 4;
-    SwitchDataObserver observer = std::make_shared<SwitchDataObserver>();
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.PutSwitch({ "distributed_device_profile_service" }, input);
@@ -890,9 +890,9 @@ HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
 HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level1)
 {
     ZLOGI("MutiSubscribeSwitchesData begin.");
-    SwitchDataObserver observer1 = std::make_shared<SwitchDataObserver>();
-    SwitchDataObserver observer2 = std::make_shared<SwitchDataObserver>();
-    SwitchDataObserver observer3 = std::make_shared<SwitchDataObserver>();
+    std::shared_ptr<SwitchDataObserver> observer1 = std::make_shared<SwitchDataObserver>();
+    std::shared_ptr<SwitchDataObserver> observer2 = std::make_shared<SwitchDataObserver>();
+    std::shared_ptr<SwitchDataObserver> observer3 = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer1);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer2);
@@ -914,7 +914,7 @@ HWTEST_F(DistributedKvDataManagerTest, MutiSubscribeSwitchesData, TestSize.Level
 HWTEST_F(DistributedKvDataManagerTest, UnsubscribeSwitchesData, TestSize.Level1)
 {
     ZLOGI("UnsubscribeSwitchesData begin.");
-    SwitchDataObserver observer = std::make_shared<SwitchDataObserver>();
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
     auto status = manager.SubscribeSwitchData({ "distributed_device_profile_service" }, observer);
     ASSERT_EQ(status, Status::SUCCESS);
     status = manager.UnsubscribeSwitchData({ "distributed_device_profile_service" }, observer);
