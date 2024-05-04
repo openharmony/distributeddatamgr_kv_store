@@ -101,7 +101,7 @@ void KVDBNotifierClient::AddSwitchCallback(const std::string &appId, std::shared
     switchObservers_.Insert(uintptr_t(observer.get()), observer);
 }
 
-void KVDBNotifierClient::DeleteSwitchCallback(const std::string &appId, const SwitchDataObserver observer)
+void KVDBNotifierClient::DeleteSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer)
 {
     if (observer == nullptr) {
         return;
