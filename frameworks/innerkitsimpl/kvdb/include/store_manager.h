@@ -25,6 +25,10 @@ public:
     Status CloseAllKVStore(const AppId &appId);
     Status GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
+    Status PutSwitch(const AppId &appId, const SwitchData &data);
+    std::pair<Status, SwitchData> GetSwitch(const AppId &appId, const std::string &networkId);
+    Status SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
+    Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
 };
 }
 

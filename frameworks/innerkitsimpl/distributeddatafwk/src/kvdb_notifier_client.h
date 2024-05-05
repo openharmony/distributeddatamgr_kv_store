@@ -13,30 +13,43 @@
  * limitations under the License.
  */
 
-#ifndef KVSTORE_SYNC_CALLBACK_CLIENT_H
-#define KVSTORE_SYNC_CALLBACK_CLIENT_H
+#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_NOTIFIER_CLIENT_H
+#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_NOTIFIER_CLIENT_H
 
 #include <mutex>
 #include "concurrent_map.h"
-#include "ikvstore_sync_callback.h"
+#include "kvdb_notifier_stub.h"
 #include "kvstore_sync_callback.h"
 
 namespace OHOS {
 namespace DistributedKv {
-class KvStoreSyncCallbackClient : public KvStoreSyncCallbackStub {
+class KVDBNotifierClient : public KVDBNotifierStub {
 public:
-    KvStoreSyncCallbackClient() = default;
-    virtual ~KvStoreSyncCallbackClient();
+    KVDBNotifierClient() = default;
+    virtual ~KVDBNotifierClient();
 
     void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
+
+    void OnRemoteChange(const std::map<std::string, bool> &mask) override;
+
+    void OnSwitchChange(const SwitchNotification &notification) override;
 
     void AddSyncCallback(const std::shared_ptr<KvStoreSyncCallback> callback, uint64_t sequenceId);
 
     void DeleteSyncCallback(uint64_t sequenceId);
+
+    void AddSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer);
+
+    void DeleteSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer);
+
+    bool IsChanged(const std::string &deviceId);
+
 private:
     ConcurrentMap<uint64_t, std::shared_ptr<KvStoreSyncCallback>> syncCallbackInfo_;
+    ConcurrentMap<std::string, bool> remotes_;
+    ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
 };
-}  // namespace DistributedKv
-}  // namespace OHOS
+} // namespace DistributedKv
+} // namespace OHOS
 
-#endif  // KVSTORE_SYNC_CALLBACK_CLIENT_H
+#endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_NOTIFIER_CLIENT_H

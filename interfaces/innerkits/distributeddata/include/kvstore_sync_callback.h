@@ -42,6 +42,14 @@ public:
      * @param results sync results for devices set in sync function.
     */
     API_EXPORT virtual void SyncCompleted(const std::map<std::string, Status> &results) = 0;
+
+    /**
+     * @brief This virtual function will be called on sync callback.
+     *
+     * @param results sync results for devices set in sync function.
+     * @param sequenceId sequence Id of current synchronization.
+    */
+    API_EXPORT virtual void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) {}
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
