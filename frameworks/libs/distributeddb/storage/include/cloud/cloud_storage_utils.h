@@ -176,6 +176,12 @@ public:
     static int GetUInt64FromCloudData(const std::string &field, VBucket &data, uint64_t &number);
 
     static bool IsDataLocked(uint32_t status);
+
+    static std::pair<int, DataItem> GetDataItemFromCloudVersionData(VBucket &data);
+
+    static std::pair<int, DataItem> GetSystemRecordFromCloudData(VBucket &data);
+
+    static bool IsSystemRecord(const Key &key);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

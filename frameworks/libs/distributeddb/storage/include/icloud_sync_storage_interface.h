@@ -190,6 +190,11 @@ public:
     virtual void SetUser([[gnu::unused]] const std::string &user)
     {
     }
+
+    virtual std::pair<int, CloudSyncData> GetLocalCloudVersion()
+    {
+        return {E_OK, {}};
+    }
 };
 }
 

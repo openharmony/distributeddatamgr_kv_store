@@ -173,6 +173,10 @@ public:
     DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 
     int32_t GetTaskCount() override;
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
+
+    std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

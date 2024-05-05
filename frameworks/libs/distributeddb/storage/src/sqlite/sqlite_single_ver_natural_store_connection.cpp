@@ -1923,5 +1923,15 @@ int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &d
     }
     return naturalStore->RemoveDeviceData(device, user, mode);
 }
+
+int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &device,
+    std::map<std::string, std::string> &versionMap)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return naturalStore->GetCloudVersion(device, versionMap);
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

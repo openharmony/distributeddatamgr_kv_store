@@ -52,6 +52,7 @@ enum class LogInfoFlag : uint32_t {
     FLAG_KV_FORCE_PUSH_IGNORE = 0x40,
     FLAG_KV_LOGIC_DELETE = 0x80,
     FLAG_CLOUD_WRITE = 0x100,
+    FLAG_SYSTEM_RECORD = 0x200,
 };
 
 struct RowDataWithLog {

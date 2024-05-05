@@ -128,7 +128,7 @@ public:
 
     bool CheckCompatible(const std::string &schema, uint8_t type) const override;
 
-    Timestamp GetCurrentTimestamp();
+    Timestamp GetCurrentTimestamp() override;
 
     SchemaObject GetSchemaObject() const;
 
@@ -213,6 +213,8 @@ public:
     int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
 
     int UnRegisterObserverAction(const KvStoreObserver *observer);
+
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 

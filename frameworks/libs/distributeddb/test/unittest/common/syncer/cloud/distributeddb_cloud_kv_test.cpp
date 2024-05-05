@@ -228,6 +228,10 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
     Key key = {'k'};
     Value expectValue = {'v'};
     ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
     BlockSync(kvDelegatePtrS1_, OK);
     for (const auto &table : lastProcess_.tableProcess) {
         EXPECT_EQ(table.second.upLoadInfo.total, 1u);
@@ -236,6 +240,12 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
     Value actualValue;
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    auto result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "1");
+    }
 }
 
 /**

@@ -1398,23 +1398,6 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     return ret;
 }
 
-int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
-{
-    InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
-    static std::vector<CloudWaterType> waterTypes = {
-        CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT
-    };
-    int errCode = E_OK;
-    for (const auto &waterType: waterTypes) {
-        uploadParam.mode = waterType;
-        errCode = DoUploadByMode(tableName, uploadParam, info);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-    return errCode;
-}
-
 int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)
 {
     // type index of field in fields, true means mandatory filed
@@ -2124,5 +2107,10 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     info.tableStatus = ProcessStatus::PROCESSING;
     ReloadUploadInfoIfNeed(uploadParam.taskId, uploadParam, info);
     return info;
+}
+
+void CloudSyncer::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    cloudDB_.SetGenCloudVersionCallback(callback);
 }
 } // namespace DistributedDB

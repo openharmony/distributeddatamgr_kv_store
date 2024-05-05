@@ -256,6 +256,13 @@ public:
 
     // get all sync task count
     DB_API virtual int32_t GetTaskCount() = 0;
+
+    // set generate cloud version callback
+    DB_API virtual void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) = 0;
+
+    // get cloud version by device
+    DB_API virtual std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(
+        const std::string &device) = 0;
 };
 } // namespace DistributedDB
 

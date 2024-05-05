@@ -117,6 +117,10 @@ public:
     static std::string GetKvCloudQuerySql(bool countOnly, bool forcePush);
 
     static void AppendCloudQueryToGetDiffData(std::string &sql, const CloudWaterType mode, bool isKv = false);
+
+    static std::string GetKvCloudRecordSql();
+
+    static std::string GetCloudVersionRecordSql(bool isDeviceEmpty);
 private:
     int ToQuerySql();
     int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);

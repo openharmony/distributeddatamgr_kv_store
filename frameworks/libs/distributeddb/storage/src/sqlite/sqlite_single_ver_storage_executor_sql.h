@@ -130,22 +130,25 @@ namespace DistributedDB {
         "SELECT MIN(timestamp) FROM cache.sync_data WHERE flag&0x02=0x02;";
 
     const std::string SELECT_SYNC_ENTRIES_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_DELETED_ENTRIES_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_MODIFY_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_PREFIX_SQL =
         "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_KEY_PREFIX_SQL =
-        "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+        "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_ROWID_PREFIX_SQL =
-        "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+        "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_DATA_BY_ROWID_SQL =
         "SELECT key, value FROM sync_data WHERE rowid=?;";
@@ -311,13 +314,24 @@ namespace DistributedDB {
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_DETAIL = "FROM sync_data LEFT JOIN "
         "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
-        " AS log_table ON sync_data.hash_key = log_table.hash_key "
-        "WHERE modify_time > ? AND (cloud_gid is not null or (cloud_gid is null and flag&0x01=0))";
+        " AS log_table ON sync_data.hash_key = log_table.hash_key ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_CONDITION =
+        "WHERE modify_time > ? AND (cloud_gid is not null or (cloud_gid is null and flag&0x01=0)) AND flag&0x200=0";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_CONDITION = "WHERE key = ? AND flag & 0x200 != 0";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
         "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "
         "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
         "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key WHERE cloud_gid = ? ";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_HEAD = "SELECT key, value, flag, device, sync_data.hash_key "
+        "FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' ";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_DEVICE_CONDITION = "AND device = ? AND flag&0x200 != 0";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION = "AND flag&0x200 != 0";
 
     constexpr const char *INSERT_CLOUD_SYNC_DATA_LOG = "INSERT OR REPLACE INTO naturalbase_kv_aux_sync_data_log "
         "VALUES(?,?,?,?)";
@@ -409,6 +423,9 @@ namespace DistributedDB {
     constexpr int CLOUD_QUERY_ROW_ID_INDEX = 11;
 
     constexpr int CLOUD_QUERY_COUNT_INDEX = 0;
+
+    constexpr int BIND_CLOUD_VERSION_RECORD_USER_INDEX = 1;
+    constexpr int BIND_CLOUD_VERSION_RECORD_KEY_INDEX = 2;
 
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB

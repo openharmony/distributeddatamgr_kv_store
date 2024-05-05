@@ -641,6 +641,12 @@ int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const C
         LOGE("[SqliteCloudKvExecutorUtils] Fill log got nullptr db");
         return -E_INVALID_ARGS;
     }
+    if (data.isCloudVersionRecord) {
+        int errCode = FillCloudVersionRecord(db, opType, data);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
     switch (opType) {
         case OpType::INSERT:
             return FillCloudGid(db, data.insData, user, ignoreEmptyGid);
@@ -653,6 +659,9 @@ int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const C
 
 int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData)
 {
+    if (downloadData.existDataHashKey[index].empty()) {
+        return E_OK;
+    }
     sqlite3_stmt *logStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(OpType::INSERT), logStmt);
     if (errCode != E_OK) {
@@ -697,6 +706,9 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(sqlite3 *db, const CloudSyncBatch &
         }
     });
     for (size_t i = 0; i < data.hashKey.size(); ++i) {
+        if (DBCommon::IsRecordError(data.extend[i])) {
+            continue;
+        }
         DataItem dataItem;
         errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data.extend[i], dataItem.gid);
         if (dataItem.gid.empty() && ignoreEmptyGid) {
@@ -882,5 +894,205 @@ std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountAllCloudData(sqlite3 *d
         result.second += res.second;
     }
     return result;
+}
+
+int SqliteCloudKvExecutorUtils::FillCloudVersionRecord(sqlite3 *db, OpType opType, const CloudSyncData &data)
+{
+    if (opType != OpType::INSERT && opType != OpType::UPDATE) {
+        return E_OK;
+    }
+    bool isInsert = (opType == OpType::INSERT);
+    CloudSyncBatch syncBatch = isInsert ? data.insData : data.updData;
+    if (syncBatch.record.empty()) {
+        LOGW("[SqliteCloudKvExecutorUtils] Fill empty cloud version record");
+        return E_OK;
+    }
+    syncBatch.record[0].insert(syncBatch.extend[0].begin(), syncBatch.extend[0].end());
+    auto res = CloudStorageUtils::GetSystemRecordFromCloudData(syncBatch.record[0]); // only record first one
+    auto &[errCode, dataItem] = res;
+    sqlite3_stmt *dataStmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, GetOperateDataSql(opType), dataStmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get insert version record statement failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizerData([dataStmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *statement = dataStmt;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset version record stmt failed %d", ret);
+        }
+    });
+    errCode = BindDataStmt(dataStmt, dataItem, isInsert);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepNext(dataStmt, false);
+    if (errCode != -E_FINISHED) {
+        LOGE("[SqliteCloudKvExecutorUtils] Step insert version record stmt failed %d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersion(sqlite3 *db, bool isMemory,
+    const std::string &user)
+{
+    auto res = GetLocalCloudVersionInner(db, isMemory, user);
+    if (res.first != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get local cloud version failed %d", res.first);
+    }
+    return res;
+}
+
+std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersionInner(sqlite3 *db, bool isMemory,
+    const std::string &user)
+{
+    std::pair<int, CloudSyncData> res;
+    auto &[errCode, syncData] = res;
+    auto sql = SqliteQueryHelper::GetKvCloudRecordSql();
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return res;
+    }
+    ResFinalizer finalizerData([stmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *statement = stmt;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset local version record stmt failed %d", ret);
+        }
+    });
+    std::string hashDev;
+    (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
+    hashDev = DBCommon::TransferHashString(hashDev);
+    std::string key = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY + hashDev;
+    Key keyVec;
+    DBCommon::StringToVector(key, keyVec);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, BIND_CLOUD_VERSION_RECORD_KEY_INDEX, keyVec);
+    if (errCode != E_OK) {
+        return res;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_VERSION_RECORD_USER_INDEX, user);
+    if (errCode != E_OK) {
+        return res;
+    }
+    errCode = GetCloudVersionRecord(isMemory, stmt, syncData);
+    if (errCode == -E_NOT_FOUND) {
+        InitDefaultCloudVersionRecord(key, hashDev, syncData);
+        errCode = E_OK;
+    }
+    return res;
+}
+
+int SqliteCloudKvExecutorUtils::GetCloudVersionRecord(bool isMemory, sqlite3_stmt *stmt, CloudSyncData &syncData)
+{
+    int errCode = SQLiteUtils::StepNext(stmt, isMemory);
+    if (errCode == -E_FINISHED) {
+        LOGE("[SqliteCloudKvExecutorUtils] Not found local version record");
+        return -E_NOT_FOUND;
+    }
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get local version failed %d", errCode);
+        return errCode;
+    }
+    uint32_t stepNum = 0;
+    uint32_t totalSize = 0;
+    errCode = GetCloudDataForSync(stmt, syncData, stepNum, totalSize);
+    return errCode;
+}
+
+void SqliteCloudKvExecutorUtils::InitDefaultCloudVersionRecord(const std::string &key, const std::string &dev,
+    CloudSyncData &syncData)
+{
+    VBucket defaultRecord;
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_KEY] = key;
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_VALUE] = {};
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_DEVICE] = dev;
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE] = dev;
+    syncData.insData.record.push_back(std::move(defaultRecord));
+    VBucket defaultExtend;
+    defaultExtend[CloudDbConstant::HASH_KEY_FIELD] = key;
+    syncData.insData.extend.push_back(std::move(defaultExtend));
+    syncData.insData.assets.emplace_back();
+    Bytes bytesHashKey;
+    DBCommon::StringToVector(key, bytesHashKey);
+    syncData.insData.hashKey.push_back(bytesHashKey);
+}
+
+int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, const std::string &user,
+    sqlite3_stmt *dataStmt)
+{
+    std::string hashDevice;
+    (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDevice);
+    Bytes bytes;
+    if (device == hashDevice) {
+        DBCommon::StringToVector("", bytes);
+    } else {
+        DBCommon::StringToVector(device, bytes);
+    }
+    int index = 1;
+    int errCode = SQLiteUtils::BindBlobToStatement(dataStmt, index, bytes);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind device failed %d", errCode);
+    }
+    return errCode;
+}
+
+int SqliteCloudKvExecutorUtils::GetCloudVersionFromCloud(sqlite3 *db, bool isMemory, const std::string &user,
+    const std::string &device, std::vector<VBucket> &dataVector)
+{
+    sqlite3_stmt *dataStmt = nullptr;
+    bool isDeviceEmpty = device.empty();
+    std::string sql = SqliteQueryHelper::GetCloudVersionRecordSql(isDeviceEmpty);
+    int errCode = SQLiteUtils::GetStatement(db, sql, dataStmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get cloud version record statement failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizerData([dataStmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *statement = dataStmt;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset cloud version record stmt failed %d", ret);
+        }
+    });
+    if (!isDeviceEmpty) {
+        errCode = BindVersionStmt(device, user, dataStmt);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    uint32_t totalSize = 0;
+    do {
+        errCode = SQLiteUtils::StepWithRetry(dataStmt, isMemory);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[SqliteCloudKvExecutorUtils] Get cloud version from cloud failed. %d", errCode);
+            break;
+        }
+        VBucket data;
+        errCode = GetCloudVersionRecordData(dataStmt, data, totalSize);
+        dataVector.push_back(data);
+    } while (errCode == E_OK);
+    return errCode;
+}
+
+int SqliteCloudKvExecutorUtils::GetCloudVersionRecordData(sqlite3_stmt *stmt, VBucket &data, uint32_t &totalSize)
+{
+    int errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_KEY, CLOUD_QUERY_KEY_INDEX, stmt, data, totalSize);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, CLOUD_QUERY_VALUE_INDEX, stmt, data, totalSize);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, CLOUD_QUERY_DEV_INDEX, stmt, data, totalSize);
 }
 }

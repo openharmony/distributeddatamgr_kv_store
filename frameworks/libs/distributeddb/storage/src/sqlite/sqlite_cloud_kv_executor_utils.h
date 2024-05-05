@@ -40,6 +40,11 @@ public:
 
     static std::pair<int, int64_t> CountAllCloudData(sqlite3 *db, bool isMemory,
         const std::vector<Timestamp> &timestampVec, const std::string &user, bool forcePush);
+
+    static std::pair<int, CloudSyncData> GetLocalCloudVersion(sqlite3 *db, bool isMemory, const std::string &user);
+
+    static int GetCloudVersionFromCloud(sqlite3 *db, bool isMemory, const std::string &user,
+        const std::string &device, std::vector<VBucket> &dataVector);
 private:
     static int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
         uint32_t &totalSize);
@@ -111,6 +116,19 @@ private:
 
     static std::pair<int, int64_t> CountCloudDataInner(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
         const std::string &user, std::string &sql);
+
+    static int FillCloudVersionRecord(sqlite3 *db, OpType opType, const CloudSyncData &data);
+
+    static std::pair<int, CloudSyncData> GetLocalCloudVersionInner(sqlite3 *db, bool isMemory,
+        const std::string &user);
+
+    static int GetCloudVersionRecord(bool isMemory, sqlite3_stmt *stmt, CloudSyncData &syncData);
+
+    static void InitDefaultCloudVersionRecord(const std::string &key, const std::string &dev, CloudSyncData &syncData);
+
+    static int BindVersionStmt(const std::string &device, const std::string &user, sqlite3_stmt *dataStmt);
+
+    static int GetCloudVersionRecordData(sqlite3_stmt *stmt, VBucket &data, uint32_t &totalSize);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H

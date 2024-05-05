@@ -589,4 +589,14 @@ int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(const KvStoreObserver 
     sqliteCloudKvStore_->UnRegisterObserverAction(observer);
     return E_OK;
 }
+
+int SQLiteSingleVerNaturalStore::GetCloudVersion(const std::string &device,
+    std::map<std::string, std::string> &versionMap)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    return sqliteCloudKvStore_->GetCloudVersion(device, versionMap);
+}
 }

@@ -14,6 +14,8 @@
  */
 #include "sqlite_cloud_kv_store.h"
 
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "runtime_context.h"
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_single_ver_continue_token.h"
@@ -261,6 +263,27 @@ int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData 
     return errCode;
 }
 
+void SqliteCloudKvStore::FilterCloudVersionPrefixKey(std::vector<std::vector<Type>> &changeValList)
+{
+    changeValList.erase(std::remove_if(changeValList.begin(), changeValList.end(),
+        [&](const std::vector<Type> &existPkVal) {
+            bool isFilter = false;
+            for (auto type : existPkVal) {
+                std::string prefixKey;
+                int errCode = CloudStorageUtils::GetValueFromOneField(type, prefixKey);
+                if (errCode != E_OK) {
+                    LOGE("[SqliteCloudKvStore] can not get key from changedData, %d", errCode);
+                    break;
+                }
+                isFilter = !prefixKey.empty() && prefixKey.find(CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY) == 0;
+                if (isFilter) {
+                    break;
+                }
+            }
+            return isFilter;
+        }), changeValList.end());
+}
+
 void SqliteCloudKvStore::TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
     bool isChangedData)
 {
@@ -275,6 +298,9 @@ void SqliteCloudKvStore::TriggerObserverAction(const std::string &deviceName, Ch
     }
     if (triggerActions.empty()) {
         return;
+    }
+    for (auto &changeValList : changedData.primaryData) {
+        FilterCloudVersionPrefixKey(changeValList);
     }
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([triggerActions, deviceName,
         changedData, isChangedData]() {
@@ -345,5 +371,71 @@ void SqliteCloudKvStore::UnRegisterObserverAction(const KvStoreObserver *observe
 {
     std::lock_guard<std::mutex> autoLock(observerMapMutex_);
     cloudObserverMap_.erase(observer);
+}
+
+int SqliteCloudKvStore::GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap)
+{
+    auto[errCode, handle] = storageHandle_->GetStorageExecutor(false);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore] get handle failed %d", errCode);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    (void)handle->GetDbHandle(db);
+    std::vector<VBucket> dataVector = {};
+    errCode = SqliteCloudKvExecutorUtils::GetCloudVersionFromCloud(db, handle->IsMemory(), user_, device, dataVector);
+    storageHandle_->RecycleStorageExecutor(handle);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore] get cloud version record failed %d", errCode);
+        return errCode;
+    }
+    for (VBucket &data : dataVector) {
+        auto res = CloudStorageUtils::GetDataItemFromCloudVersionData(data);
+        auto &[errCodeNext, dataItem] = res;
+        if (errCodeNext != E_OK) {
+            LOGE("[SqliteCloudKvStore] get dataItem failed %d", errCodeNext);
+            return errCodeNext;
+        }
+        std::vector<uint8_t> blob = dataItem.value;
+        std::string version = std::string(blob.begin(), blob.end());
+        std::pair<std::string, std::string> versionPair = std::pair<std::string, std::string>(dataItem.dev, version);
+        versionMap.insert(versionPair);
+    }
+    return E_OK;
+}
+
+std::pair<int, CloudSyncData> SqliteCloudKvStore::GetLocalCloudVersion()
+{
+    std::pair<int, CloudSyncData> res;
+    auto &[errCode, data] = res;
+    Timestamp currentTime = storageHandle_->GetCurrentTimestamp();
+    TimeOffset timeOffset = storageHandle_->GetLocalTimeOffsetForCloud();
+    Timestamp rawSysTime = static_cast<Timestamp>(static_cast<TimeOffset>(currentTime) - timeOffset);
+    SQLiteSingleVerStorageExecutor *handle = nullptr;
+    std::tie(errCode, handle) = storageHandle_->GetStorageExecutor(false);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore] get handle failed %d when fill log", errCode);
+        return res;
+    }
+    sqlite3 *db = nullptr;
+    (void)handle->GetDbHandle(db);
+    std::tie(errCode, data) = SqliteCloudKvExecutorUtils::GetLocalCloudVersion(db, handle->IsMemory(), user_);
+    data.isCloudVersionRecord = true;
+    storageHandle_->RecycleStorageExecutor(handle);
+    FillTimestamp(rawSysTime, currentTime, data.insData);
+    FillTimestamp(rawSysTime, currentTime, data.updData);
+    data.tableName = CloudDbConstant::CLOUD_KV_TABLE_NAME;
+    return res;
+}
+
+void SqliteCloudKvStore::FillTimestamp(Timestamp rawSystemTime, Timestamp virtualTime, CloudSyncBatch &syncBatch)
+{
+    for (auto &item : syncBatch.extend) {
+        item[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(rawSystemTime);
+        if (item.find(CloudDbConstant::CREATE_FIELD) == item.end()) {
+            item[CloudDbConstant::CREATE_FIELD] = static_cast<int64_t>(rawSystemTime);
+            item[CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME] = static_cast<int64_t>(virtualTime);
+        }
+    }
 }
 }
