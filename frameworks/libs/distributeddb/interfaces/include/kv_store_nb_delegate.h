@@ -263,6 +263,10 @@ public:
     // get cloud version by device
     DB_API virtual std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(
         const std::string &device) = 0;
+
+    // This API is not recommended. Before using this API, you need to understand the API usage rules.
+    // The interceptor works when receive data.
+    DB_API virtual DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
 };
 } // namespace DistributedDB
 
