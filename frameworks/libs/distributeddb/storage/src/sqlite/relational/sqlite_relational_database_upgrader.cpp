@@ -32,7 +32,18 @@ SqliteRelationalDatabaseUpgrader::~SqliteRelationalDatabaseUpgrader() {}
 
 int SqliteRelationalDatabaseUpgrader::Upgrade()
 {
-    int errCode = BeginUpgrade();
+    // read version first, if not newest, start transaction
+    std::string logTableVersion;
+    int errCode = SQLiteUtils::GetLogTableVersion(db_, logTableVersion);
+    if (errCode != E_OK) {
+        LOGW("[Relational][Upgrade] Get log table version return. %d", errCode);
+        return (errCode == -E_NOT_FOUND) ? E_OK : errCode;
+    }
+    if (IsNewestVersion(logTableVersion)) {
+        return E_OK;
+    }
+
+    errCode = BeginUpgrade();
     if (errCode != E_OK) {
         LOGE("[Relational][Upgrade] Begin upgrade failed. err=%d", errCode);
         return errCode;
