@@ -38,6 +38,14 @@ public:
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    int32_t GetTaskCount() override;
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
 protected:
     int DisableManualSync();
 

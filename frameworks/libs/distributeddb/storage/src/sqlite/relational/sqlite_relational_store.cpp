@@ -1146,15 +1146,12 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
         return errCode;
     }
     std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(option.query);
-    if (!option.priorityTask && !object.empty()) {
+    bool isFromTable = object.empty();
+    if (!option.priorityTask && !isFromTable) {
         LOGE("[RelationalStore] not support normal sync with query");
         return -E_NOT_SUPPORT;
     }
     const auto tableNames = syncObject.GetRelationTableNames();
-    if (option.priorityTask && !tableNames.empty()) {
-        LOGE("[RelationalStore] not support priority sync with from tables");
-        return -E_NOT_SUPPORT;
-    }
     for (const auto &tableName : tableNames) {
         QuerySyncObject querySyncObject;
         querySyncObject.SetTableName(tableName);
@@ -1169,14 +1166,15 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
     if (errCode != E_OK) {
         return errCode;
     }
-    return CheckObjectValid(option.priorityTask, object);
+    return CheckObjectValid(option.priorityTask, object, isFromTable);
 }
 
-int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object)
+int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object,
+    bool isFromTable)
 {
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     for (const auto &item : object) {
-        if (priorityTask && !item.IsContainQueryNodes()) {
+        if (priorityTask && !item.IsContainQueryNodes() && !isFromTable) {
             LOGE("[RelationalStore] not support priority sync with full table");
             return -E_INVALID_ARGS;
         }
@@ -1184,7 +1182,7 @@ int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector
         if (errCode != E_OK) {
             return errCode;
         }
-        if (!priorityTask) {
+        if (!priorityTask || isFromTable) {
             continue;
         }
         if (!item.IsInValueOutOfLimit()) {
@@ -1244,6 +1242,9 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
     info.compensatedTask = option.compensatedSyncOnly;
+    info.users.push_back("");
+    info.lockAction = option.lockAction;
+    info.merge = option.merge;
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)

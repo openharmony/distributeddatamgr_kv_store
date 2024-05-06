@@ -129,8 +129,8 @@ bool ParamCheckUtils::CheckObserver(const Key &key, unsigned int mode)
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return false;
     }
-
-    if (mode > OBSERVER_CHANGES_LOCAL_ONLY || mode < OBSERVER_CHANGES_NATIVE) {
+    uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
+    if (rawMode > OBSERVER_CHANGES_CLOUD || rawMode < OBSERVER_CHANGES_NATIVE) {
         return false;
     }
     return true;

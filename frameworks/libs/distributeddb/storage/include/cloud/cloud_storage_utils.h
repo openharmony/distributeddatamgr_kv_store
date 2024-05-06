@@ -161,11 +161,27 @@ public:
     static int BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt);
 
+    static bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
+
     static int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 
     static bool IsAbnormalData(const VBucket &data);
 
+    static std::pair<int, DataItem> GetDataItemFromCloudData(VBucket &data);
+
+    static int GetBytesFromCloudData(const std::string &field, VBucket &data, Bytes &bytes);
+
+    static int GetStringFromCloudData(const std::string &field, VBucket &data, std::string &str);
+
+    static int GetUInt64FromCloudData(const std::string &field, VBucket &data, uint64_t &number);
+
     static bool IsDataLocked(uint32_t status);
+
+    static std::pair<int, DataItem> GetDataItemFromCloudVersionData(VBucket &data);
+
+    static std::pair<int, DataItem> GetSystemRecordFromCloudData(VBucket &data);
+
+    static bool IsSystemRecord(const Key &key);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

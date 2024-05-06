@@ -54,20 +54,20 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/distributed_kv_data_manager.cpp",
     "../src/ikvstore_client_death_observer.cpp",
     "../src/ikvstore_observer.cpp",
-    "../src/ikvstore_sync_callback.cpp",
     "../src/kv_utils.cpp",
+    "../src/kvdb_notifier_client.cpp",
+    "../src/kvdb_notifier_stub.cpp",
     "../src/kvstore_client_death_observer.cpp",
     "../src/kvstore_datashare_bridge.cpp",
     "../src/kvstore_observer_client.cpp",
     "../src/kvstore_service_death_notifier.cpp",
-    "../src/kvstore_sync_callback_client.cpp",
     "../src/sync_observer.cpp",
   ]
 
   kvdb_sources = [
-    "../../kvdb/src/auto_sync_timer.cpp",
     "../../kvdb/src/backup_manager.cpp",
     "../../kvdb/src/convertor.cpp",
+    "../../kvdb/src/data_change_notifier.cpp",
     "../../kvdb/src/dev_manager.cpp",
     "../../kvdb/src/device_convertor.cpp",
     "../../kvdb/src/kv_types_util.cpp",
@@ -234,6 +234,26 @@ ohos_unittest("SingleKvStoreClientTest") {
   ]
 }
 
+ohos_unittest("SingleKvStoreAsyncGetTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/single_kvstore_async_get_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":distributeddatafwk_src_file",
+    "//third_party/googletest:gtest_main",
+  ]
+}
+
 ohos_unittest("DeviceKvStoreTest") {
   module_out_path = module_output_path
 
@@ -395,6 +415,7 @@ group("unittest") {
     ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",
     ":LocalSubscribeStoreTest",
+    ":SingleKvStoreAsyncGetTest",
     ":SingleKvStoreClientQueryTest",
     ":SingleKvStoreClientTest",
     ":TypesUtilTest",

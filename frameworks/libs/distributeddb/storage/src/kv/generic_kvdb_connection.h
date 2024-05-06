@@ -82,6 +82,26 @@ public:
     int UpdateKey(const UpdateKeyCallback &callback) override;
 
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
+    int RemoveDeviceData(const std::string &device, ClearMode mode) override;
+
+    int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
+
+    int32_t GetTaskCount() override;
+
+    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
+
+    int UnRegisterObserverAction(const KvStoreObserver *observer) override;
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
+
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -41,7 +41,11 @@ public:
 
     int GetLocalWaterMark(const std::string &tableName, Timestamp &localMark);
 
+    int GetLocalWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode);
+
     int PutLocalWaterMark(const std::string &tableName, Timestamp &localMark);
+
+    int PutWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode);
 
     int GetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
 
@@ -55,6 +59,9 @@ public:
 
     int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
         int64_t &count);
+
+    int GetUploadCount(const QuerySyncObject &query, const bool isCloudForcePush, bool isCompensatedTask,
+        bool isPriorityTask, int64_t &count);
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count);
@@ -101,8 +108,6 @@ public:
 
     int CleanWaterMarkInMemory(const TableName &tableName);
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
-
     int CreateTempSyncTrigger(const std::string &tableName);
 
     int ClearAllTempSyncTrigger();
@@ -125,7 +130,19 @@ public:
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
+    void SetUser(const std::string &user);
+
     void OnSyncFinish();
+
+    void OnUploadStart();
+
+    void CleanAllWaterMark();
+
+    std::string AppendWithUserIfNeed(const std::string &source) const;
+
+    int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema);
+
+    std::pair<int, CloudSyncData> GetLocalCloudVersion();
 protected:
     void Init();
 
@@ -137,6 +154,7 @@ private:
     std::atomic<bool> transactionExeFlag_;
     std::shared_ptr<CloudMetaData> cloudMetaData_;
     std::atomic<bool> isWrite_;
+    std::string user_;
 };
 }
 

@@ -790,100 +790,6 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
 }
 
 /**
- * @tc.name: GetCloudData001
- * @tc.desc: Test GetCloudData,whether the result count and type of data are correct
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestSize.Level0)
-{
-    CreateLogTable();
-    int64_t insCount = 100;
-    int64_t updCount = 50;
-    int64_t delCount = 25;
-    int64_t photoSize = 10;
-    InitLogData(insCount, updCount, delCount, insCount);
-    CreateAndInitUserTable(3 * insCount, photoSize, g_localAsset); // 3 is insert,update and delete type data
-
-    ContinueToken token = nullptr;
-    CloudSyncData cloudSyncData(g_tableName);
-    SetDbSchema(g_tableSchema);
-
-    /**
-     * @tc.steps: There is currently no handle under the transaction
-     * @tc.expected: return -E_INVALID_DB.
-     */
-    int timeOffset = 10;
-    QuerySyncObject object;
-    EXPECT_EQ(g_cloudStore->GetCloudData(g_tableSchema, object, g_startTime + timeOffset, token, cloudSyncData),
-        -E_INVALID_DB);
-
-    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData), E_OK);
-    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
-    EXPECT_EQ(cloudSyncData.insData.record.size() + cloudSyncData.updData.record.size() +
-        cloudSyncData.delData.record.size(), static_cast<uint64_t>(insCount + updCount + delCount - timeOffset));
-    ASSERT_EQ(cloudSyncData.insData.record.size(), static_cast<uint64_t>(insCount - timeOffset));
-    ASSERT_EQ(cloudSyncData.updData.record.size(), static_cast<uint64_t>(updCount));
-    ASSERT_EQ(cloudSyncData.delData.record.size(), static_cast<uint64_t>(delCount));
-
-    EXPECT_EQ(cloudSyncData.insData.record[0].find(CloudDbConstant::GID_FIELD), cloudSyncData.insData.record[0].end());
-    EXPECT_NE(cloudSyncData.updData.record[0].find(CloudDbConstant::GID_FIELD), cloudSyncData.insData.record[0].end());
-    EXPECT_NE(cloudSyncData.delData.record[0].find(CloudDbConstant::GID_FIELD), cloudSyncData.insData.record[0].end());
-}
-
-/**
- * @tc.name: GetCloudData002
- * @tc.desc: The maximum return data size of GetCloudData is less than 8M
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestSize.Level0)
-{
-    CreateLogTable();
-    int64_t insCount = 1024;
-    int64_t photoSize = 512 * 3;
-    InitLogData(insCount, insCount, insCount, insCount);
-    CreateAndInitUserTable(3 * insCount, photoSize, g_localAsset); // 3 is insert,update and delete type data
-
-
-    /**
-     * @tc.steps: GetCloudData has not finished querying yet.
-     * @tc.expected: return -E_UNFINISHED.
-     */
-    SetDbSchema(g_tableSchema);
-    ContinueToken token = nullptr;
-    CloudSyncData cloudSyncData1(g_tableName);
-    int timeOffset = 10;
-    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData1),
-        -E_UNFINISHED);
-    EXPECT_LT(cloudSyncData1.insData.record.size() + cloudSyncData1.updData.record.size() +
-        cloudSyncData1.delData.record.size(), static_cast<uint64_t>(insCount));
-    EXPECT_EQ(cloudSyncData1.delData.record.size(), 0u);
-
-    CloudSyncData cloudSyncData2(g_tableName);
-    EXPECT_EQ(g_storageProxy->GetCloudDataNext(token, cloudSyncData2), -E_UNFINISHED);
-    EXPECT_LT(cloudSyncData2.insData.record.size() + cloudSyncData2.updData.record.size() +
-        cloudSyncData2.delData.record.size(), static_cast<uint64_t>(insCount));
-
-    CloudSyncData cloudSyncData3(g_tableName);
-    EXPECT_EQ(g_storageProxy->GetCloudDataNext(token, cloudSyncData3), E_OK);
-    EXPECT_GT(cloudSyncData3.insData.record.size() + cloudSyncData3.updData.record.size() +
-        cloudSyncData3.delData.record.size(), static_cast<uint64_t>(insCount));
-    EXPECT_EQ(cloudSyncData3.insData.record.size(), 0u);
-
-    /**
-     * @tc.steps: Finished querying, the token has been release.
-     * @tc.expected: return -E_INVALID_ARGS.
-     */
-    EXPECT_EQ(g_storageProxy->GetCloudDataNext(token, cloudSyncData3), -E_INVALID_ARGS);
-    EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
-}
-
-/**
  * @tc.name: GetCloudData003
  * @tc.desc: ReleaseContinueToken required when GetCloudDataNext interrupt
  * @tc.type: FUNC
@@ -1433,6 +1339,19 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, T
     syncData.updData.hashKey.push_back(hashKey);
     syncData.insData.hashKey.push_back(hashKey);
     EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step6. insert not contain version no effect update
+     * @tc.expected: OK.
+     */
+    syncData.insData.extend[0].erase(CloudDbConstant::VERSION_FIELD);
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step7. insert not contain version effect insert
+     * @tc.expected: OK.
+     */
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::INSERT_VERSION, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
@@ -1447,7 +1366,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
 {
     /**
      * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
-     * @tc.expected: -E_CLOUD_ERROR.
+     * @tc.expected: E_OK.
      */
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1458,7 +1377,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
         OpType::ONLY_UPDATE_GID, OpType::NOT_HANDLE };
     ConstructMultiDownloadData(insCount, downloadData, opTypes);
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), -E_CLOUD_ERROR);
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), E_OK);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 
     /**

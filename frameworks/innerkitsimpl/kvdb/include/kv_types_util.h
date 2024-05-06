@@ -34,6 +34,10 @@ using DevBrief = DistributedKv::KVDBService::DevBrief;
 using TableDetail = DistributedKv::TableDetail;
 using Statistic = DistributedKv::Statistic;
 using ProgressDetail = DistributedKv::ProgressDetail;
+using SwitchData = DistributedKv::SwitchData;
+using Status = OHOS::DistributedKv::Status;
+using Notification = OHOS::DistributedKv::SwitchNotification;
+using SwitchState = OHOS::DistributedKv::SwitchState;
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -75,9 +79,19 @@ template<>
 API_EXPORT bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
 template<>
-API_EXPORT bool Marshalling(const DevBrief &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const SwitchData &input, MessageParcel &data);
 template<>
-API_EXPORT bool Unmarshalling(DevBrief &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(SwitchData &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const Status &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(Status &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const Notification &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(Notification &output, MessageParcel &data);
 
 template<>
 API_EXPORT bool Marshalling(const ProgressDetail &input, MessageParcel &data);

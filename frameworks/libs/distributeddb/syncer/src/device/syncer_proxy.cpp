@@ -255,4 +255,30 @@ int SyncerProxy::UpgradeSchemaVerInMeta()
     }
     return syncer_->UpgradeSchemaVerInMeta();
 }
+
+void SyncerProxy::ResetSyncStatus()
+{
+    if (syncer_ == nullptr) {
+        return;
+    }
+    syncer_->ResetSyncStatus();
+}
+
+int64_t SyncerProxy::GetLocalTimeOffset()
+{
+    if (syncer_ == nullptr) {
+        LOGW("[SyncerProxy] get local time offset without syncer");
+        return 0;
+    }
+    return syncer_->GetLocalTimeOffset();
+}
+
+int32_t SyncerProxy::GetTaskCount()
+{
+    if (syncer_ == nullptr) {
+        LOGW("[SyncerProxy] get task count without syncer");
+        return 0;
+    }
+    return syncer_->GetTaskCount();
+}
 } // namespace DistributedDB

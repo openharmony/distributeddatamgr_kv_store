@@ -65,6 +65,9 @@ void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &proces
         syncProcess_.tableProcess[process.tableName].upLoadInfo.failCount = process.upLoadInfo.failCount;
         syncProcess_.tableProcess[process.tableName].upLoadInfo.successCount = process.upLoadInfo.successCount;
     }
+    if (!user_.empty()) {
+        multiSyncProcess_[user_] = syncProcess_;
+    }
 }
 
 void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
@@ -80,9 +83,15 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
         }
         syncProcess_.errCode = TransferDBErrno(taskInfo.errCode);
         syncProcess_.process = taskInfo.status;
-        for (const auto &device : devices_) {
-            // make sure only one device
-            currentProcess[device] = syncProcess_;
+        multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode);
+        multiSyncProcess_[user_].process = taskInfo.status;
+        if (user_.empty()) {
+            for (const auto &device : devices_) {
+                // make sure only one device
+                currentProcess[device] = syncProcess_;
+            }
+        } else {
+            currentProcess = multiSyncProcess_;
         }
     }
     SyncProcessCallback callback = taskInfo.callback;
@@ -99,7 +108,7 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     auto id = syncer->GetIdentify();
     int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(id, [callback, currentProcess, syncer]() {
         LOGD("[ProcessNotifier] begin notify process");
-        if (syncer->IsKilled()) {
+        if (syncer->IsClosed()) {
             LOGI("[ProcessNotifier] db has closed, process return");
             RefObject::DecObjRef(syncer);
             return;
@@ -145,5 +154,10 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
     if (syncProcess_.tableProcess.find(process.tableName) == syncProcess_.tableProcess.end()) {
         process.downLoadInfo = syncProcess_.tableProcess[process.tableName].downLoadInfo;
     }
+}
+
+void ProcessNotifier::SetUser(const std::string &user)
+{
+    user_ = user;
 }
 }

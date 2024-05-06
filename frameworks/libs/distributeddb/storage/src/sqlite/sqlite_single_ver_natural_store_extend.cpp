@@ -503,6 +503,33 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
     return errCode;
 }
 
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        return errCode;
+    }
+    errCode = handle->RemoveDeviceData(hashDev, mode);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, const std::string &user,
+    ClearMode mode)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        return errCode;
+    }
+    errCode = handle->RemoveDeviceData(hashDev, user, mode);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
 void SQLiteSingleVerNaturalStore::AbortHandle()
 {
     std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
@@ -524,5 +551,52 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
         return -E_BUSY;
     }
     return E_OK;
+}
+
+std::pair<int, SQLiteSingleVerStorageExecutor*> SQLiteSingleVerNaturalStore::GetStorageExecutor(bool isWrite)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(isWrite, errCode);
+    return {errCode, handle};
+}
+
+void SQLiteSingleVerNaturalStore::RecycleStorageExecutor(SQLiteSingleVerStorageExecutor *executor)
+{
+    ReleaseHandle(executor);
+}
+
+TimeOffset SQLiteSingleVerNaturalStore::GetLocalTimeOffsetForCloud()
+{
+    return GetLocalTimeOffset();
+}
+
+int SQLiteSingleVerNaturalStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    sqliteCloudKvStore_->RegisterObserverAction(observer, action);
+    return E_OK;
+}
+
+int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(const KvStoreObserver *observer)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    sqliteCloudKvStore_->UnRegisterObserverAction(observer);
+    return E_OK;
+}
+
+int SQLiteSingleVerNaturalStore::GetCloudVersion(const std::string &device,
+    std::map<std::string, std::string> &versionMap)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        return -E_INTERNAL_ERROR;
+    }
+    return sqliteCloudKvStore_->GetCloudVersion(device, versionMap);
 }
 }

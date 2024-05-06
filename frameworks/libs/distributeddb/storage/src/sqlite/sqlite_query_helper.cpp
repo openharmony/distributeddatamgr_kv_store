@@ -16,13 +16,14 @@
 
 #include <iomanip>
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "macro_utils.h"
 #include "sqlite_utils.h"
-#include "cloud/cloud_storage_utils.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
 using namespace TriggerMode;
@@ -1145,10 +1146,11 @@ int SqliteQueryHelper::BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&
 }
 
 std::string SqliteQueryHelper::GetRelationalCloudQuerySql(const std::vector<Field> &fields,
-    const bool &isCloudForcePush, bool isCompensatedTask)
+    const bool &isCloudForcePush, bool isCompensatedTask, CloudWaterType mode)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
     AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql);
+    AppendCloudQueryToGetDiffData(sql, mode);
     return sql;
 }
 
@@ -1180,6 +1182,26 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
         " b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+}
+
+void SqliteQueryHelper::AppendCloudQueryToGetDiffData(std::string &sql, const CloudWaterType mode, bool isKv)
+{
+    switch (mode) {
+        case DistributedDB::CloudWaterType::DELETE:
+            sql += isKv ? " AND (flag & 0x01 == 0x01) " :
+                " AND (b.flag & 0x01 == 0x01) ";
+            break;
+        case DistributedDB::CloudWaterType::UPDATE:
+            sql += isKv ? " AND (flag & 0x01 == 0 AND cloud_gid != '' AND cloud_gid IS NOT NULL) " :
+                " AND (b.flag & 0x01 == 0 AND b.cloud_gid != '') ";
+            break;
+        case DistributedDB::CloudWaterType::INSERT:
+            sql += isKv ? " AND (flag & 0x01 == 0 AND (cloud_gid == '' OR cloud_gid IS NULL)) " :
+                " AND (b.flag & 0x01 == 0 AND b.cloud_gid == '') ";
+            break;
+        default:
+            break;
+    }
 }
 
 void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql)
@@ -1229,5 +1251,53 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
         }
     }
     return errCode;
+}
+
+std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *db, bool forcePush,
+    const CloudWaterType mode)
+{
+    std::pair<int, sqlite3_stmt *> res;
+    sqlite3_stmt *&stmt = res.second;
+    int &errCode = res.first;
+    std::string sql = GetKvCloudQuerySql(false, forcePush);
+    AppendCloudQueryToGetDiffData(sql, mode, true);
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    return res;
+}
+
+std::string SqliteQueryHelper::GetKvCloudQuerySql(bool countOnly, bool forcePush)
+{
+    std::string sql;
+    if (countOnly) {
+        sql = QUERY_COUNT_HEAD;
+    } else {
+        sql = QUERY_CLOUD_SYNC_DATA_HEAD;
+    }
+    sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    sql += QUERY_CLOUD_SYNC_DATA_CONDITION;
+    sql += " AND flag & 0x02 != 0 "; // get all data which is local
+    if (forcePush) {
+        sql += " AND flag & 0x04 != 0x04 "; // get all data which hasn't pushed
+    }
+    return sql;
+}
+
+std::string SqliteQueryHelper::GetKvCloudRecordSql()
+{
+    std::string sql = QUERY_CLOUD_SYNC_DATA_HEAD;
+    sql += QUERY_CLOUD_SYNC_DATA_DETAIL;
+    sql += QUERY_CLOUD_VERSION_RECORD_CONDITION;
+    return sql;
+}
+
+std::string SqliteQueryHelper::GetCloudVersionRecordSql(bool isDeviceEmpty)
+{
+    std::string sql = QUERY_CLOUD_VERSION_RECORD_SQL_HEAD;
+    if (!isDeviceEmpty) {
+        sql += QUERY_CLOUD_VERSION_RECORD_SQL_DEVICE_CONDITION;
+    } else {
+        sql += QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION;
+    }
+    return sql;
 }
 }

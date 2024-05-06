@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_db_types.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
 #include "types_export.h"
@@ -33,23 +34,34 @@ public:
     ~CloudMetaData() = default;
 
     int GetLocalWaterMark(const TableName &tableName, Timestamp &localMark);
+    int GetLocalWaterMarkByType(const TableName &tableName, CloudWaterType type, Timestamp &localMark);
     int GetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
     int SetLocalWaterMark(const TableName &tableName, Timestamp localMark);
+    int SetLocalWaterMarkByType(const TableName &tableName, CloudWaterType type, Timestamp localMark);
     int SetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
     int CleanWaterMark(const TableName &tableName);
 
+    void CleanAllWaterMark();
+
     void CleanWaterMarkInMemory(const TableName &tableName);
+
 private:
     typedef struct CloudMetaValue {
         Timestamp localMark = 0u;
+        Timestamp insertLocalMark = 0u;
+        Timestamp updateLocalMark = 0u;
+        Timestamp deleteLocalMark = 0u;
         std::string cloudMark;
     } CloudMetaValue;
 
     int ReadMarkFromMeta(const TableName &tableName);
     int WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark);
+    int WriteTypeMarkToMeta(const TableName &tableName, CloudMetaValue &cloudMetaValue);
+    int SerializeWaterMark(CloudMetaValue &cloudMetaValue, Value &blobMetaVal);
     int DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue);
+    uint64_t GetParcelCurrentLength(CloudMetaValue &cloudMetaValue);
 
     mutable std::mutex cloudMetaMutex_;
     std::unordered_map<TableName, CloudMetaValue> cloudMetaVals_;

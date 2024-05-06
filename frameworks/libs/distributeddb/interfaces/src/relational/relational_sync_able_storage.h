@@ -142,6 +142,9 @@ public:
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) override;
 
+    int GetAllUploadCount(const QuerySyncObject &query, const std::vector<Timestamp> &timestampVec,
+        bool isCloudForcePush, bool isCompensatedTask, int64_t &count) override;
+
     int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
@@ -182,8 +185,6 @@ public:
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid) override;
-
     int CheckQueryValid(const QuerySyncObject &query) override;
 
     int CreateTempSyncTrigger(const std::string &tableName) override;
@@ -214,6 +215,10 @@ public:
     void SyncFinishHook() override;
 
     int SetSyncFinishHook(const std::function<void (void)> &func) override;
+
+    void SetDoUploadHook(const std::function<void (void)> &) override;
+
+    void DoUploadHook() override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -312,6 +317,7 @@ private:
     std::atomic<bool> allowLogicDelete_ = false;
 
     std::function<void (void)> syncFinishFunc_;
+    std::function<void (void)> uploadStartFunc_;
 };
 }  // namespace DistributedDB
 #endif

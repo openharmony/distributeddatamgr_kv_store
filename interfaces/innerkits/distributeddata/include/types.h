@@ -383,6 +383,22 @@ enum IndexType : uint32_t {
 };
 
 /**
+ * @brief Data type, that determined the way and timing of data synchronization.
+*/
+enum DataType : uint32_t {
+    /**
+      * TYPE_STATICS: means synchronize on link establishment or device online.
+    */
+    TYPE_STATICS = 0,
+
+    /**
+      * TYPE_DYNAMICAL: means synchronize on link establishment.
+      * synchronize can also triggered by the sync and async get interface.
+    */
+    TYPE_DYNAMICAL,
+};
+
+/**
  * @brief Provide configuration information for database creation.
 */
 struct Options {
@@ -409,6 +425,7 @@ struct Options {
      * Set whether the database file is automatically synchronized.
      * It is not automatically synchronized by default.
      * 'ohos.permission.DISTRIBUTED_DATASYNC' permission is necessary.
+     * AutoSync do not guarantee real-time consistency, sync interface is suggested if necessary.
     */
     bool autoSync = false;
     /**
@@ -458,8 +475,9 @@ struct Options {
     */
     inline bool IsValidType() const
     {
-        return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION ||
-               kvStoreType == KvStoreType::LOCAL_ONLY;
+        bool isValid = kvStoreType == KvStoreType::DEVICE_COLLABORATION ||
+            kvStoreType == KvStoreType::SINGLE_VERSION || kvStoreType == KvStoreType::LOCAL_ONLY;
+        return isValid && (dataType == DataType::TYPE_STATICS || dataType == DataType::TYPE_DYNAMICAL);
     }
     /**
      * Get the databaseDir.
@@ -494,6 +512,11 @@ struct Options {
      * Whether the sync need compress.
     */
     bool isNeedCompress = true;
+    /**
+     * Indicates data type.
+     * Only dynamic data support auto sync.
+    */
+    DataType dataType = DataType::TYPE_DYNAMICAL;
     /**
      * config database details.
     */
@@ -550,6 +573,61 @@ struct ProgressDetail {
 };
 
 using AsyncDetail = std::function<void(ProgressDetail &&)>;
+
+/**
+ * @brief Provide the switch data.
+*/
+struct SwitchData {
+    /**
+     * The value of switch data, one bit represents a switch state.
+    */
+    uint32_t value;
+
+    /**
+     * The effective bit count from low bit to high bit, must be 8, 16 or 24, max is 24.
+    */
+    uint16_t length;
+};
+
+/**
+ * @brief Switch data opertaion.
+*/
+enum SwitchState: uint32_t {
+    /**
+     * INSERT: means insert data.
+    */
+    INSERT = 0,
+
+    /**
+     * UPDATE: means update data.
+    */
+    UPDATE,
+
+    /**
+     * DELETE: means delete data.
+    */
+    DELETE,
+};
+
+/**
+ * @brief Switch data notification for change.
+*/
+struct SwitchNotification {
+    /**
+     * Switch data.
+    */
+    SwitchData data;
+
+    /**
+     * The device networkId.
+    */
+    std::string deviceId;
+
+    /**
+     * Switch state.
+    */
+    SwitchState state = SwitchState::INSERT;
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

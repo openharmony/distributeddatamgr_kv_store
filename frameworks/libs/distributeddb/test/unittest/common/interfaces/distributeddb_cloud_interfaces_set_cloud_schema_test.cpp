@@ -1203,7 +1203,7 @@ namespace {
             extend.erase(CloudDbConstant::VERSION_FIELD);
         });
         Query query = Query::Select().FromTable({ g_sharedTableName1 });
-        BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
+        BlockSync(query, g_delegate, DBStatus::OK);
 
         g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
             if (extend.find(CloudDbConstant::VERSION_FIELD) != extend.end()) {
@@ -1211,7 +1211,7 @@ namespace {
             }
         });
         query = Query::Select().FromTable({ g_sharedTableName1 });
-        BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
+        BlockSync(query, g_delegate, DBStatus::OK);
     }
 
     /**
@@ -1306,43 +1306,6 @@ namespace {
         Query query = Query::Select().FromTable({ g_sharedTableName5 });
         BlockSync(query, g_delegate);
         CheckCloudTableCount(g_sharedTableName5, 10);
-    }
-
-    /**
-     * @tc.name: SharedTableSync005
-     * @tc.desc: Test sharedtable sync when version is empty
-     * @tc.type: FUNC
-     * @tc.require:
-     * @tc.author: chenchaohao
-    */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync005, TestSize.Level0)
-    {
-        /**
-         * @tc.steps:step1. use set shared table
-         * @tc.expected: step1. return OK
-         */
-        DataBaseSchema dataBaseSchema;
-        TableSchema tableSchema = {
-            .name = g_tableName1,
-            .sharedTableName = g_sharedTableName1,
-            .fields = g_cloudField1
-        };
-        dataBaseSchema.tables.push_back(tableSchema);
-        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
-
-        /**
-         * @tc.steps:step2. insert cloud shared table records and version is empty
-         * @tc.expected: step2. return OK
-         */
-        g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
-            if (extend.find(CloudDbConstant::VERSION_FIELD) != extend.end()) {
-                extend[CloudDbConstant::VERSION_FIELD] = "";
-            }
-        });
-        int cloudCount = 10;
-        InsertCloudTableRecord(0, cloudCount);
-        Query query = Query::Select().FromTable({ g_sharedTableName1 });
-        BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
     }
 
     /**

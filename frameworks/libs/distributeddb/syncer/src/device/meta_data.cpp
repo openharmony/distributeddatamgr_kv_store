@@ -30,9 +30,7 @@
 
 namespace DistributedDB {
 namespace {
-    constexpr const int STR_TO_LL_BY_DEVALUE = 10;
     // store local timeoffset;this is a special key;
-    constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
     constexpr const char *CLIENT_ID_PREFIX_KEY = "clientId";
     constexpr const char *LOCAL_META_DATA_KEY = "localMetaData";
 }
@@ -54,7 +52,7 @@ int Metadata::Initialize(ISyncInterface* storage)
     naturalStoragePtr_ = storage;
     std::vector<uint8_t> key;
     std::vector<uint8_t> timeOffset;
-    DBCommon::StringToVector(std::string(LOCALTIME_OFFSET_KEY), key);
+    DBCommon::StringToVector(std::string(DBConstant::LOCALTIME_OFFSET_KEY), key);
 
     int errCode = GetMetadataFromDb(key, timeOffset);
     if (errCode == -E_NOT_FOUND) {
@@ -136,7 +134,7 @@ int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset)
 {
     std::string timeOffsetString = std::to_string(timeOffset);
     std::vector<uint8_t> timeOffsetValue(timeOffsetString.begin(), timeOffsetString.end());
-    std::string keyStr(LOCALTIME_OFFSET_KEY);
+    std::string keyStr(DBConstant::LOCALTIME_OFFSET_KEY);
     std::vector<uint8_t> localTimeOffsetValue(keyStr.begin(), keyStr.end());
 
     std::lock_guard<std::mutex> lockGuard(localTimeOffsetLock_);
@@ -281,7 +279,7 @@ void Metadata::GetMetadataFromMap(const DeviceID &deviceId, MetaDataValue &outVa
 int64_t Metadata::StringToLong(const std::vector<uint8_t> &value) const
 {
     std::string valueString(value.begin(), value.end());
-    int64_t longData = std::strtoll(valueString.c_str(), nullptr, STR_TO_LL_BY_DEVALUE);
+    int64_t longData = std::strtoll(valueString.c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
     LOGD("Metadata::StringToLong longData = %" PRId64, longData);
     return longData;
 }

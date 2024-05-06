@@ -37,6 +37,7 @@ enum class OpType : uint8_t {
     UPDATE_TIMESTAMP,
     CLEAR_GID,
     UPDATE_VERSION,
+    INSERT_VERSION,
     SET_UPLOADING,
     LOCKED_NOT_HANDLE,
     NOT_HANDLE
@@ -46,6 +47,9 @@ typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
     std::vector<int64_t> existDataKey;
+    std::vector<Key> existDataHashKey;
+    std::string user;
+    TimeOffset timeOffset = 0;
 } DownloadData;
 
 class ICloudSyncStorageHook {
@@ -59,6 +63,14 @@ public:
     }
 
     virtual void SyncFinishHook()
+    {
+    }
+
+    virtual void SetDoUploadHook(const std::function<void (void)> &)
+    {
+    }
+
+    virtual void DoUploadHook()
     {
     }
 };
@@ -89,6 +101,9 @@ public:
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) = 0;
 
+    virtual int GetAllUploadCount(const QuerySyncObject &query, const std::vector<Timestamp> &timestampVec,
+        bool isCloudForcePush, bool isCompensatedTask, int64_t &count) = 0;
+
     virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
 
@@ -105,7 +120,10 @@ public:
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
 
     virtual int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
-        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) = 0;
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets)
+    {
+        return E_OK;
+    }
 
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
@@ -117,9 +135,6 @@ public:
     virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
-
-    virtual int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
-        std::vector<std::string> &gid) = 0;
 
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
 
@@ -170,6 +185,15 @@ public:
         [[gnu::unused]] const DownloadData &downloadData, [[gnu::unused]] const std::set<std::string> &gidFilters)
     {
         return E_OK;
+    }
+
+    virtual void SetUser([[gnu::unused]] const std::string &user)
+    {
+    }
+
+    virtual std::pair<int, CloudSyncData> GetLocalCloudVersion()
+    {
+        return {E_OK, {}};
     }
 };
 }

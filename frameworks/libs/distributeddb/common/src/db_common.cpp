@@ -621,6 +621,18 @@ bool DBCommon::IsRecordIgnored(const VBucket &record)
     return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
 }
 
+bool DBCommon::IsRecordVersionConflict(const VBucket &record)
+{
+    if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {
+        return false;
+    }
+    if (record.at(CloudDbConstant::ERROR_FIELD).index() != TYPE_INDEX<int64_t>) {
+        return false;
+    }
+    auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
+    return status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+}
+
 std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
 {
     if (dbInfo.syncDualTupleMode) {

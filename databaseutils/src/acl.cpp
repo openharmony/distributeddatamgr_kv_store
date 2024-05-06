@@ -94,7 +94,7 @@ int Acl::InsertEntry(const AclXattrEntry &entry)
 std::unique_ptr<char[]> Acl::Serialize(uint32_t &bufSize)
 {
     bufSize = sizeof(AclXattrHeader) + sizeof(AclXattrEntry) * entries_.size();
-    if (bufSize > static_cast<int32_t>(BUF_MAX_SIZE)) {
+    if (bufSize > BUF_MAX_SIZE) {
         bufSize = 0;
         return nullptr;
     }

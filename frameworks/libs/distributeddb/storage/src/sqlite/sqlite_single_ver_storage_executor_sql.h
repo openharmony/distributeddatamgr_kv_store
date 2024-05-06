@@ -43,10 +43,11 @@ namespace DistributedDB {
         "INSERT OR REPLACE INTO meta.meta_data VALUES(?,?);";
 
     const std::string INSERT_SYNC_SQL =
-        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
 
     const std::string UPDATE_SYNC_SQL =
-        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
+        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?," \
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string INSERT_CACHE_SYNC_SQL =
         "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?);";
@@ -129,22 +130,25 @@ namespace DistributedDB {
         "SELECT MIN(timestamp) FROM cache.sync_data WHERE flag&0x02=0x02;";
 
     const std::string SELECT_SYNC_ENTRIES_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_DELETED_ENTRIES_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_MODIFY_SQL =
-        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) ORDER BY timestamp ASC;";
+        "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) AND (flag&0x200=0) "
+        "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_PREFIX_SQL =
         "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_KEY_PREFIX_SQL =
-        "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+        "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_ROWID_PREFIX_SQL =
-        "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+        "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_DATA_BY_ROWID_SQL =
         "SELECT key, value FROM sync_data WHERE rowid=?;";
@@ -156,10 +160,10 @@ namespace DistributedDB {
         "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0);";
 
     const std::string REMOVE_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0);";
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 
     const std::string REMOVE_ALL_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE (flag&0x02=0);";
+        "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
 
     const std::string REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
@@ -193,15 +197,16 @@ namespace DistributedDB {
         "select version from cache.sync_data order by version DESC limit 1;";
 
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_CACHEHANDLE =
-        "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE =
-        "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? "
-        "WHERE hash_key=?;";
+        "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_MAINHANDLE =
-        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?);";
+        "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
     const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_MAINHANDLE =
-        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
+        "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
+        "modify_time=?,create_time=? WHERE hash_key=?;";
 
     const std::string MIGRATE_DEL_DATA_BY_VERSION_FROM_CACHEHANDLE =
         "DELETE FROM sync_data WHERE version=?;";
@@ -230,12 +235,115 @@ namespace DistributedDB {
     const std::string GET_SYNC_DATA_TIRGGER_SQL =
         "SELECT name FROM SQLITE_MASTER WHERE TYPE = 'trigger' AND TBL_NAME = 'sync_data' AND name like ?;";
 
+    const std::string REMOVE_CLOUD_ALL_LOG_DATA_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log;";
+
+    const std::string REMOVE_CLOUD_ALL_DEV_DATA_SQL =
+        "DELETE FROM sync_data WHERE (flag&0x100!=0);";
+
+    const std::string UPDATE_CLOUD_ALL_DEV_DATA_SQL =
+        "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+        "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "DELETE FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0) AND hash_key NOT IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
+
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+        "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0) AND hash_key NOT IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =?;";
+
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+        "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+
+    const std::string SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+
+    // Check whether the hashKey is the same but the userId is different
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL =
+        "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid !=?);";
+
+    const std::string SELECT_CLOUD_DEV_DATA_BY_USERID_SQL =
+        "SELECT * FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
+            "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+
+    const std::string REMOVE_CLOUD_ALL_HWM_DATA_SQL =
+        "DELETE FROM meta_data WHERE KEY LIKE 'naturalbase_cloud_meta_sync_data_%';";
+
+    const std::string REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL =
+        "DELETE FROM meta_data WHERE KEY =?;";
+
     constexpr const char *UPDATE_SYNC_DATA_KEY_SQL =
         "UPDATE sync_data SET key=translate_key(key), hash_key=cal_hash_key(key) WHERE flag&0x01=0";
 
     constexpr const char *FUNC_NAME_TRANSLATE_KEY = "translate_key";
 
     constexpr const char *FUNC_NAME_CAL_HASH_KEY = "cal_hash_key";
+
+    constexpr const char *QUERY_COUNT_HEAD = "SELECT count(1) ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_HEAD = "SELECT key, value, flag, device, ori_device, "
+        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_DETAIL = "FROM sync_data LEFT JOIN "
+        "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
+        " AS log_table ON sync_data.hash_key = log_table.hash_key ";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_CONDITION =
+        "WHERE modify_time > ? AND (cloud_gid is not null or (cloud_gid is null and flag&0x01=0)) AND flag&0x200=0";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_CONDITION = "WHERE key = ? AND flag & 0x200 != 0";
+
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
+        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "
+        "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
+        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key WHERE cloud_gid = ? ";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_HEAD = "SELECT key, value, flag, device, sync_data.hash_key "
+        "FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' ";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_DEVICE_CONDITION = "AND device = ? AND flag&0x200 != 0";
+
+    constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION = "AND flag&0x200 != 0";
+
+    constexpr const char *INSERT_CLOUD_SYNC_DATA_LOG = "INSERT OR REPLACE INTO naturalbase_kv_aux_sync_data_log "
+        "VALUES(?,?,?,?)";
+
+    constexpr const char *UPDATE_CLOUD_SYNC_DATA_LOG = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_gid=?, "
+        "version=? WHERE userid=? AND hash_key=?";
+
+    constexpr const char *SET_SYNC_DATA_NO_FORCE_PUSH = "UPDATE sync_data SET flag=flag|0x40 WHERE hash_key=?";
+
+    constexpr const char *SET_SYNC_DATA_FORCE_PUSH = "UPDATE sync_data SET flag=flag&(~0x40) WHERE hash_key=?";
+
+    constexpr const char *UPDATE_TIMESTAMP = "UPDATE sync_data SET timestamp=?, modify_time=? WHERE hash_key=?";
 
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
@@ -255,9 +363,13 @@ namespace DistributedDB {
     const int BIND_SYNC_ORI_DEV_INDEX = 6;
     const int BIND_SYNC_HASH_KEY_INDEX = 7;
     const int BIND_SYNC_W_TIME_INDEX = 8;
+    const int BIND_SYNC_MODIFY_TIME_INDEX = 9;
+    const int BIND_SYNC_CREATE_TIME_INDEX = 10;
 
     const int BIND_SYNC_UPDATE_W_TIME_INDEX = 7;
-    const int BIND_SYNC_UPDATE_HASH_KEY_INDEX = 8;
+    const int BIND_SYNC_UPDATE_MODIFY_TIME_INDEX = 8;
+    const int BIND_SYNC_UPDATE_CREATE_TIME_INDEX = 9;
+    const int BIND_SYNC_UPDATE_HASH_KEY_INDEX = 10;
 
     // cacheDB
     const int BIND_CACHE_LOCAL_KEY_INDEX = 1;
@@ -293,6 +405,27 @@ namespace DistributedDB {
 
     const int BIND_ORI_DEVICE_ID = 0;
     const int BIND_PRE_DEVICE_ID = 1;
+
+    constexpr int BIND_CLOUD_USER = 1;
+    constexpr int BIND_CLOUD_TIMESTAMP = 2;
+
+    constexpr int CLOUD_QUERY_KEY_INDEX = 0;
+    constexpr int CLOUD_QUERY_VALUE_INDEX = 1;
+    constexpr int CLOUD_QUERY_FLAG_INDEX = 2;
+    constexpr int CLOUD_QUERY_DEV_INDEX = 3;
+    constexpr int CLOUD_QUERY_ORI_DEV_INDEX = 4;
+    constexpr int CLOUD_QUERY_HASH_KEY_INDEX = 5;
+    constexpr int CLOUD_QUERY_DEV_CREATE_TIME_INDEX = 6;
+    constexpr int CLOUD_QUERY_MODIFY_TIME_INDEX = 7;
+    constexpr int CLOUD_QUERY_CREATE_TIME_INDEX = 8;
+    constexpr int CLOUD_QUERY_CLOUD_GID_INDEX = 9;
+    constexpr int CLOUD_QUERY_VERSION_INDEX = 10;
+    constexpr int CLOUD_QUERY_ROW_ID_INDEX = 11;
+
+    constexpr int CLOUD_QUERY_COUNT_INDEX = 0;
+
+    constexpr int BIND_CLOUD_VERSION_RECORD_USER_INDEX = 1;
+    constexpr int BIND_CLOUD_VERSION_RECORD_KEY_INDEX = 2;
 
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB

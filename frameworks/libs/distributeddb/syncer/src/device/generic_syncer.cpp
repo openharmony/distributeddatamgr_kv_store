@@ -1189,4 +1189,51 @@ void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &met
         RuntimeContext::GetInstance()->ResetDBTimeChangeStatus(storage.GetIdentifier());
     }
 }
+
+void GenericSyncer::ResetSyncStatus()
+{
+    std::shared_ptr <Metadata> metadata = nullptr;
+    {
+        std::lock_guard <std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr) {
+            return;
+        }
+        metadata = metadata_;
+    }
+    metadata->ClearAllAbilitySyncFinishMark();
+}
+
+int64_t GenericSyncer::GetLocalTimeOffset()
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr) {
+            return 0;
+        }
+        metadata = metadata_;
+    }
+    return metadata->GetLocalTimeOffset();
+}
+
+int32_t GenericSyncer::GetTaskCount()
+{
+    int32_t count = 0;
+    {
+        std::lock_guard<std::mutex> autoLock(operationMapLock_);
+        count += static_cast<int32_t>(syncOperationMap_.size());
+    }
+    ISyncEngine *syncEngine = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (syncEngine_ == nullptr) {
+            return count;
+        }
+        syncEngine = syncEngine_;
+        RefObject::IncObjRef(syncEngine);
+    }
+    count += syncEngine->GetResponseTaskCount();
+    RefObject::DecObjRef(syncEngine);
+    return count;
+}
 } // namespace DistributedDB

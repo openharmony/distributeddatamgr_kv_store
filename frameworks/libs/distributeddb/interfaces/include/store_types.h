@@ -84,6 +84,7 @@ enum DBStatus {
     REMOTE_ASSETS_FAIL, // remove local assets failed
     WITH_INVENTORY_DATA, // inventory data exists when setTracker for the first time
     WAIT_COMPENSATED_SYNC, // need to do compensated sync
+    CLOUD_SYNC_TASK_MERGED, // sync task is merged
 };
 
 struct KvStoreConfig {
@@ -121,6 +122,11 @@ enum ObserverMode {
     OBSERVER_CHANGES_NATIVE = 1,
     OBSERVER_CHANGES_FOREIGN = 2,
     OBSERVER_CHANGES_LOCAL_ONLY = 4,
+    OBSERVER_CHANGES_CLOUD = 8,
+    // bit mask
+    OBSERVER_CHANGES_BRIEF = 0x100,  // notify only device
+    OBSERVER_CHANGES_DETAIL = 0x200, // notify with key
+    OBSERVER_CHANGES_DATA = 0x400    // notify with entry
 };
 
 enum SyncMode {

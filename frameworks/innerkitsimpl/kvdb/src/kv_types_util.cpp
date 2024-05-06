@@ -122,6 +122,7 @@ bool Marshalling(const Options &input, MessageParcel &data)
     target->area = input.area;
     target->kvStoreType = input.kvStoreType;
     target->isNeedCompress = input.isNeedCompress;
+    target->dataType = input.dataType;
     target->isPublic = input.isPublic;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
@@ -148,6 +149,7 @@ bool Unmarshalling(Options &output, MessageParcel &data)
     output.kvStoreType = source->kvStoreType;
     output.syncable = source->syncable;
     output.isNeedCompress = source->isNeedCompress;
+    output.dataType = source->dataType;
     output.isPublic = source->isPublic;
     return true;
 }
@@ -165,15 +167,50 @@ bool Unmarshalling(SyncPolicy &output, MessageParcel &data)
 }
 
 template<>
-bool Marshalling(const DevBrief &input, MessageParcel &data)
+bool Marshalling(const SwitchData &input, MessageParcel &data)
 {
-    return ITypesUtil::Marshal(data, input.uuid, input.networkId);
+    return ITypesUtil::Marshal(data, input.value, input.length);
 }
 
 template<>
-bool Unmarshalling(DevBrief &output, MessageParcel &data)
+bool Unmarshalling(SwitchData &output, MessageParcel &data)
 {
-    return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
+    return ITypesUtil::Unmarshal(data, output.value, output.length);
+}
+
+template<>
+bool Marshalling(const Status &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(data, static_cast<int32_t>(input));
+}
+
+template<>
+bool Unmarshalling(Status &output, MessageParcel &data)
+{
+    int32_t status;
+    if (!ITypesUtil::Unmarshal(data, status)) {
+        return false;
+    }
+    output = static_cast<Status>(status);
+    return true;
+}
+
+template<>
+bool Marshalling(const Notification &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(
+        data, input.data.value, input.data.length, input.deviceId, static_cast<int32_t>(input.state));
+}
+
+template<>
+bool Unmarshalling(Notification &output, MessageParcel &data)
+{
+    int32_t state;
+    if (!ITypesUtil::Unmarshal(data, output.data.value, output.data.length, output.deviceId, state)) {
+        return false;
+    }
+    output.state = static_cast<SwitchState>(state);
+    return true;
 }
 
 template<>

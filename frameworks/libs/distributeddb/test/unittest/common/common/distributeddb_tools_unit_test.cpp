@@ -714,6 +714,27 @@ void KvStoreObserverUnitTest::OnChange(const KvStoreChangedData& data)
     LOGD("Onchange() called success!");
 }
 
+void KvStoreObserverUnitTest::OnChange(const DistributedDB::StoreChangedData &data)
+{
+    (void)data;
+    KvStoreObserver::OnChange(data);
+}
+
+void KvStoreObserverUnitTest::OnChange(DistributedDB::StoreObserver::StoreChangedInfo &&data)
+{
+    (void)data;
+    KvStoreObserver::OnChange(std::move(data));
+}
+
+void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::string &originalId,
+    DistributedDB::ChangedData &&data)
+{
+    (void)origin;
+    (void)originalId;
+    (void)data;
+    KvStoreObserver::OnChange(origin, originalId, std::move(data));
+}
+
 void KvStoreObserverUnitTest::ResetToZero()
 {
     callCount_ = 0;

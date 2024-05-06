@@ -15,6 +15,7 @@
 #define LOG_TAG "StoreManager"
 #include "store_manager.h"
 
+#include "dev_manager.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "security_manager.h"
@@ -35,6 +36,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area, path.c_str());
     status = ILLEGAL_STATE;
     if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()) {
+        ZLOGE("params invalid type");
         status = INVALID_ARGUMENT;
         return nullptr;
     }
@@ -61,6 +63,12 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             service->AfterCreate(appId, storeId, options, pwd);
         }
         pwd.assign(pwd.size(), 0);
+    }
+    if (status == SUCCESS && service != nullptr && options.dataType == DataType::TYPE_DYNAMICAL) {
+        auto serviceAgent = service->GetServiceAgent(appId);
+        if (serviceAgent == nullptr) {
+            ZLOGE("invalid agent app:%{public}s", appId.appId.c_str());
+        }
     }
     return kvStore;
 }
@@ -112,5 +120,77 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
         service->Delete(appId, storeId);
     }
     return StoreFactory::GetInstance().Delete(appId, storeId, path);
+}
+
+Status StoreManager::PutSwitch(const AppId &appId, const SwitchData &data)
+{
+    ZLOGD("appId:%{public}s, value len:%{public}u", appId.appId.c_str(), data.length);
+    if (!appId.IsValid()) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    return service->PutSwitch(appId, data);
+}
+
+std::pair<Status, SwitchData> StoreManager::GetSwitch(const AppId &appId, const std::string &networkId)
+{
+    ZLOGD("appId:%{public}s, networkId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(networkId).c_str());
+    if (!appId.IsValid() || DevManager::GetInstance().ToUUID(networkId).empty()) {
+        return { INVALID_ARGUMENT, SwitchData() };
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return { SERVER_UNAVAILABLE, SwitchData() };
+    }
+    SwitchData data;
+    auto status = service->GetSwitch(appId, networkId, data);
+    return { status, std::move(data) };
+}
+
+Status StoreManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
+{
+    ZLOGD("appId:%{public}s", appId.appId.c_str());
+    if (!appId.IsValid() || observer == nullptr) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto serviceAgent = service->GetServiceAgent(appId);
+    if (serviceAgent == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto status = service->SubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
+    }
+    serviceAgent->AddSwitchCallback(appId.appId, observer);
+    return SUCCESS;
+}
+
+Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
+{
+    ZLOGD("appId:%{public}s", appId.appId.c_str());
+    if (!appId.IsValid() || observer == nullptr) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto serviceAgent = service->GetServiceAgent(appId);
+    if (serviceAgent == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    auto status = service->UnsubscribeSwitchData(appId);
+    if (status != SUCCESS) {
+        return status;
+    }
+    serviceAgent->DeleteSwitchCallback(appId.appId, observer);
+    return SUCCESS;
 }
 } // namespace OHOS::DistributedKv

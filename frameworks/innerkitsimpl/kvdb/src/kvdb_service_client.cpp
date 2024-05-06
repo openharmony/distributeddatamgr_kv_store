@@ -196,22 +196,34 @@ Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, co
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::RegisterSyncCallback(const AppId &appId, sptr<IKvStoreSyncCallback> callback)
+Status KVDBServiceClient::NotifyDataChange(const AppId &appId, const StoreId &storeId)
 {
     MessageParcel reply;
-    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_REGISTER_CALLBACK), reply,
-                              appId, StoreId(), callback->AsObject().GetRefPtr());
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_NOTIFY_DATA_CHANGE), reply, appId, storeId);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x, appId:%{public}s, callback:0x%{public}x", status, appId.appId.c_str(),
-            StoreUtil::Anonymous(callback.GetRefPtr()));
+        ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s",
+            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::UnregisterSyncCallback(const AppId &appId)
+Status KVDBServiceClient::RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier)
 {
     MessageParcel reply;
-    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNREGISTER_CALLBACK),
+    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_REGISTER_NOTIFIER), reply,
+                              appId, StoreId(), notifier->AsObject().GetRefPtr());
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s, notifier:0x%{public}x", status, appId.appId.c_str(),
+            StoreUtil::Anonymous(notifier.GetRefPtr()));
+    }
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::UnregServiceNotifier(const AppId &appId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNREGISTER_NOTIFIER),
                               reply, appId, StoreId());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
@@ -348,18 +360,64 @@ Status KVDBServiceClient::GetBackupPassword(
     return static_cast<Status>(status);
 }
 
-sptr<KvStoreSyncCallbackClient> KVDBServiceClient::GetSyncAgent(const AppId &appId)
+sptr<KVDBNotifierClient> KVDBServiceClient::GetServiceAgent(const AppId &appId)
 {
     std::lock_guard<decltype(agentMtx_)> lockGuard(agentMtx_);
-    if (syncAgent_ != nullptr) {
-        return syncAgent_;
+    if (serviceAgent_ != nullptr) {
+        return serviceAgent_;
     }
 
-    sptr<KvStoreSyncCallbackClient> syncAgent = new (std::nothrow) KvStoreSyncCallbackClient();
-    auto status = RegisterSyncCallback(appId, syncAgent);
+    sptr<KVDBNotifierClient> serviceAgent = new (std::nothrow) KVDBNotifierClient();
+    auto status = RegServiceNotifier(appId, serviceAgent);
     if (status == SUCCESS) {
-        syncAgent_ = std::move(syncAgent);
+        serviceAgent_ = std::move(serviceAgent);
     }
-    return syncAgent_;
+    return serviceAgent_;
+}
+
+Status KVDBServiceClient::PutSwitch(const AppId &appId, const SwitchData &data)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_PUT_SWITCH), reply, appId, StoreId(), data);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+    }
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_GET_SWITCH), reply, appId, StoreId(), networkId);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s, networkId:%{public}s",
+            status, appId.appId.c_str(), StoreUtil::Anonymous(networkId).c_str());
+    }
+    ITypesUtil::Unmarshal(reply, data);
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::SubscribeSwitchData(const AppId &appId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SUBSCRIBE_SWITCH_DATA), reply, appId, StoreId());
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+    }
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::UnsubscribeSwitchData(const AppId &appId)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNSUBSCRIBE_SWITCH_DATA), reply, appId, StoreId());
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+    }
+    return static_cast<Status>(status);
 }
 } // namespace OHOS::DistributedKv

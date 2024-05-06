@@ -1091,11 +1091,12 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
             errCode = SQLiteUtils::BindInt64ToStatement(updateLogStmt, index, std::get<int64_t>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::VERSION_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
-                LOGE("cloud data doesn't contain version field when bind update log stmt.");
-                return -E_CLOUD_ERROR;
+                LOGW("cloud data doesn't contain version field when bind update log stmt.");
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
+            } else {
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
+                    std::get<std::string>(vBucket.at(colName)));
             }
-            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
-                std::get<std::string>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::SHARING_RESOURCE_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
                 errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
@@ -1194,6 +1195,23 @@ bool CloudStorageUtils::IsCloudGidMismatch(const std::string &downloadGid, const
     return !downloadGid.empty() && !curGid.empty() && downloadGid != curGid;
 }
 
+bool CloudStorageUtils::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize)
+{
+    if (curNum == 0) {
+        return true;
+    }
+#ifdef MAX_UPLOAD_COUNT
+    if (curSize < maxSize && curNum < MAX_UPLOAD_COUNT) {
+        return true;
+    }
+#else
+    if (curSize < maxSize) {
+        return true;
+    }
+#endif
+    return false;
+}
+
 int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
 {
     int64_t *rowid = std::get_if<int64_t>(&flags[CloudDbConstant::ROWID]);
@@ -1224,7 +1242,7 @@ int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &
             LOGE("The cloud data is empty, isInsert:%d", isInsert);
             return -E_INVALID_DATA;
         }
-        if (CloudStorageUtils::IsAbnormalData(data)) {
+        if (IsAbnormalData(data)) {
             LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
             cloudSyncData.ignoredCount++;
             return -E_IGNORE_DATA;
@@ -1236,6 +1254,9 @@ int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &
         CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
         opData.timestamp.push_back(*timeStamp);
         opData.assets.push_back(asset);
+        if (isInsert) {
+            log[CloudDbConstant::HASH_KEY_FIELD] = DBCommon::VectorToHexString(*hashKey);
+        }
         opData.extend.push_back(log);
         opData.hashKey.push_back(*hashKey);
     }
@@ -1267,14 +1288,80 @@ bool CloudStorageUtils::IsAbnormalData(const VBucket &data)
     return false;
 }
 
+std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &data)
+{
+    std::pair<int, DataItem> res;
+    auto &[errCode, dataItem] = res;
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_KEY, data, dataItem.key);
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, data, dataItem.value);
+    GetStringFromCloudData(CloudDbConstant::GID_FIELD, data, dataItem.gid);
+    GetStringFromCloudData(CloudDbConstant::VERSION_FIELD, data, dataItem.version);
+    GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
+    GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE, data, dataItem.origDev);
+    dataItem.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE);
+    GetUInt64FromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME, data, dataItem.writeTimestamp);
+    GetUInt64FromCloudData(CloudDbConstant::MODIFY_FIELD, data, dataItem.modifyTime);
+    errCode = GetUInt64FromCloudData(CloudDbConstant::CREATE_FIELD, data, dataItem.createTime);
+    bool isSystemRecord = IsSystemRecord(dataItem.key);
+    if (isSystemRecord) {
+        dataItem.hashKey = dataItem.key;
+        dataItem.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_SYSTEM_RECORD);
+    } else {
+        (void)DBCommon::CalcValueHash(dataItem.key, dataItem.hashKey);
+    }
+    return res;
+}
+
+std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudVersionData(VBucket &data)
+{
+    std::pair<int, DataItem> res;
+    auto &[errCode, dataItem] = res;
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_KEY, data, dataItem.key);
+    GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, data, dataItem.value);
+    GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
+    errCode = E_OK;
+    return res;
+}
+
+int CloudStorageUtils::GetBytesFromCloudData(const std::string &field, VBucket &data, Bytes &bytes)
+{
+    std::string blobStr;
+    int errCode = GetValueFromVBucket(field, data, blobStr);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
+        return errCode;
+    }
+    DBCommon::StringToVector(blobStr, bytes);
+    return errCode;
+}
+
+int CloudStorageUtils::GetStringFromCloudData(const std::string &field, VBucket &data, std::string &str)
+{
+    int errCode = GetValueFromVBucket(field, data, str);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
+        return errCode;
+    }
+    return errCode;
+}
+
+int CloudStorageUtils::GetUInt64FromCloudData(const std::string &field, VBucket &data, uint64_t &number)
+{
+    int64_t intNum;
+    int errCode = GetValueFromVBucket(field, data, intNum);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[CloudStorageUtils] Get %.3s failed %d", field.c_str(), errCode);
+        return errCode;
+    }
+    number = static_cast<uint64_t>(intNum);
+    return errCode;
+}
+
 void CloudStorageUtils::AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
     std::vector<std::string> &updateColName)
 {
-    // only share table need to set version
-    if (CloudStorageUtils::IsSharedTable(tableSchema)) {
-        updateLogSql += ", version = ?";
-        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
-    }
+    updateLogSql += ", version = ?";
+    updateColName.push_back(CloudDbConstant::VERSION_FIELD);
     updateLogSql += ", sharing_resource = ?";
     updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
 }
@@ -1283,5 +1370,28 @@ bool CloudStorageUtils::IsDataLocked(uint32_t status)
 {
     return status == static_cast<uint32_t>(LockStatus::LOCK) ||
         status == static_cast<uint32_t>(LockStatus::LOCK_CHANGE);
+}
+
+std::pair<int, DataItem> CloudStorageUtils::GetSystemRecordFromCloudData(VBucket &data)
+{
+    auto res = CloudStorageUtils::GetDataItemFromCloudData(data); // only record first one
+    auto &[errCode, dataItem] = res;
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get data item failed %d", errCode);
+        return res;
+    }
+    dataItem.dev = "";
+    dataItem.origDev = "";
+    return res;
+}
+
+bool CloudStorageUtils::IsSystemRecord(const Key &key)
+{
+    std::string prefixKey = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY;
+    if (key.size() < prefixKey.size()) {
+        return false;
+    }
+    std::string keyStr(key.begin(), key.end());
+    return keyStr.find(prefixKey) == 0;
 }
 }

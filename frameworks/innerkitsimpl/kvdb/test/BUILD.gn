@@ -54,20 +54,20 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
-    "../../distributeddatafwk/src/ikvstore_sync_callback.cpp",
     "../../distributeddatafwk/src/kv_utils.cpp",
+    "../../distributeddatafwk/src/kvdb_notifier_client.cpp",
+    "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
     "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/kvstore_datashare_bridge.cpp",
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
-    "../../distributeddatafwk/src/kvstore_sync_callback_client.cpp",
     "../../distributeddatafwk/src/sync_observer.cpp",
   ]
 
   kvdb_sources = [
-    "../src/auto_sync_timer.cpp",
     "../src/backup_manager.cpp",
     "../src/convertor.cpp",
+    "../src/data_change_notifier.cpp",
     "../src/dev_manager.cpp",
     "../src/device_convertor.cpp",
     "../src/kv_types_util.cpp",
@@ -176,10 +176,10 @@ ohos_unittest("BackupManagerTest") {
   ]
 }
 
-ohos_unittest("AutoSyncTimerTest") {
+ohos_unittest("DataChangeNotifierTest") {
   module_out_path = module_output_path
 
-  sources = [ "auto_sync_timer_test.cpp" ]
+  sources = [ "data_change_notifier_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
@@ -274,8 +274,8 @@ group("unittest") {
 
   deps = []
   deps += [
-    ":AutoSyncTimerTest",
     ":BackupManagerTest",
+    ":DataChangeNotifierTest",
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",

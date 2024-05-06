@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_sync_state_machine.h"
 #include "cloud/cloud_sync_strategy.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_syncer.h"
@@ -38,7 +39,9 @@ namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
 class CloudSyncer : public ICloudSyncer {
 public:
-    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy);
+    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy,
+        SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
+    void InitCloudSyncStateMachine();
     ~CloudSyncer() override = default;
     DISABLE_COPY_ASSIGN_MOVE(CloudSyncer);
 
@@ -62,8 +65,21 @@ public:
 
     std::string GetIdentify() const override;
 
+    bool IsClosed() const override;
+
     void GenerateCompensatedSync(CloudTaskInfo &taskInfo);
 
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    void CleanAllWaterMark();
+
+    CloudSyncEvent SyncMachineDoDownload();
+
+    CloudSyncEvent SyncMachineDoUpload();
+
+    CloudSyncEvent SyncMachineDoFinished();
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -78,12 +94,19 @@ protected:
         std::map<TableName, std::string> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
         bool isNeedUpload = false;  // whether the current task need do upload
+        CloudSyncState currentState = CloudSyncState::IDLE;
+        bool isRealNeedUpload = false;
+        bool isFirstDownload = false;
+        std::map<std::string, bool> isDownloadFinished;
+        int currentUserIndex = 0;
     };
     struct UploadParam {
         int64_t count = 0;
         TaskId taskId = 0u;
         Timestamp localMark = 0u;
         bool lastTable = false;
+        CloudWaterType mode = CloudWaterType::DELETE;
+        LockAction lockAction = LockAction::INSERT;
     };
     struct DownloadItem {
         std::string gid;
@@ -111,6 +134,8 @@ protected:
 
     int DoSync(TaskId taskId);
 
+    int PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index);
+
     int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
@@ -120,7 +145,7 @@ protected:
 
     int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
 
-    void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName, bool needNotify);
+    void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName, bool needNotify);
 
     virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
@@ -141,12 +166,12 @@ protected:
 
     int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
 
-    int PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
-        CloudSyncData &uploadData, Timestamp &localMark);
+    int PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
+        CloudSyncData &uploadData);
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);
 
-    virtual int DoUpload(CloudSyncer::TaskId taskId, bool lastTable);
+    virtual int DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction lockAction);
 
     void SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadData);
 
@@ -159,6 +184,8 @@ protected:
     bool IsCompensatedTask(TaskId taskId);
 
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
+
+    int DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info);
 
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
@@ -336,10 +363,36 @@ protected:
 
     int SaveCursorIfNeed(const std::string &tableName);
 
-    int PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
+    int PrepareAndDownload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
 
     int UpdateFlagForSavedRecord(const SyncParam &param);
 
+    bool IsNeedGetLocalWater(TaskId taskId);
+
+    void SetProxyUser(const std::string &user);
+
+    std::pair<int, Timestamp> GetLocalWater(const std::string &tableName, UploadParam &uploadParam);
+
+    int HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info, CloudSyncData &uploadData,
+        ContinueToken &continueStmtToken);
+
+    bool IsNeedLock(const UploadParam &param);
+
+    bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
+
+    std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
+
+    bool IsTaskCantMerge(TaskId taskId, TaskId tryTaskId);
+
+    bool MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId);
+
+    void AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema> &cloudSchema, CloudTaskInfo &taskInfo);
+
+    std::pair<TaskId, TaskId> SwapTwoTaskAndCopyTable(TaskId source, TaskId target);
+
+    bool IsQueryListEmpty(TaskId taskId);
+
+    int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
@@ -365,10 +418,13 @@ protected:
     std::atomic<int32_t> failedHeartBeatCount_;
 
     std::string id_;
+    std::atomic<SingleVerConflictResolvePolicy> policy_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;
     static constexpr const int MAX_HEARTBEAT_FAILED_LIMIT = 2;
     static constexpr const int HEARTBEAT_PERIOD = 3;
+
+    CloudSyncStateMachine cloudSyncStateMachine_;
 };
 }
 #endif // CLOUD_SYNCER_H

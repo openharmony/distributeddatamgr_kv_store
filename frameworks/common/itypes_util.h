@@ -58,6 +58,16 @@ static inline bool Unmarshalling(int16_t &output, MessageParcel &data)
     return data.ReadInt16(output);
 }
 
+static inline bool Marshalling(uint16_t input, MessageParcel &data)
+{
+    return data.WriteUint16(input);
+}
+
+static inline bool Unmarshalling(uint16_t &output, MessageParcel &data)
+{
+    return data.ReadUint16(output);
+}
+
 static inline bool Marshalling(uint32_t input, MessageParcel &data)
 {
     return data.WriteUint32(input);

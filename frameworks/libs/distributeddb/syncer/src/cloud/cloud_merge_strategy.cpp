@@ -43,10 +43,10 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
     // avoid local data insert to cloud success but return failed
     // we just fill back gid here
     bool isTimeSame = (localInfo.timestamp == cloudInfo.timestamp) && (localInfo.wTimestamp == cloudInfo.wTimestamp);
-    if (isTimeSame && (localInfo.cloudGid.empty() || IsSharingResourceChanged(cloudInfo, localInfo))) {
+    if (isTimeSame && (localInfo.cloudGid.empty() || IsLogNeedUpdate(cloudInfo, localInfo))) {
         return OpType::ONLY_UPDATE_GID;
     }
-    return OpType::UPDATE;
+    return TagUpdateLocal(cloudInfo, localInfo);
 }
 
 bool CloudMergeStrategy::JudgeUpdateCursor()
@@ -68,7 +68,7 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
     if (isCloudDelete) {
         return OpType::CLEAR_GID;
     }
-    if (IsSharingResourceChanged(cloudInfo, localInfo)) {
+    if (IsLogNeedUpdate(cloudInfo, localInfo)) {
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;

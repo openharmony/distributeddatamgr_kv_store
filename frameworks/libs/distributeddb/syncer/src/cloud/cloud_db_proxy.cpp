@@ -32,6 +32,22 @@ void CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
     }
 }
 
+int CloudDBProxy::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
+    cloudDbs_ = cloudDBs;
+    return E_OK;
+}
+
+void CloudDBProxy::SwitchCloudDB(const std::string &user)
+{
+    std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
+    if (cloudDbs_.find(user) == cloudDbs_.end()) {
+        return;
+    }
+    iCloudDb_ = cloudDbs_[user];
+}
+
 void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     std::unique_lock<std::shared_mutex> writeLock(assetLoaderMutex_);
@@ -133,6 +149,7 @@ int CloudDBProxy::UnLock()
 int CloudDBProxy::Close()
 {
     std::shared_ptr<ICloudDb> iCloudDb = nullptr;
+    std::vector<std::shared_ptr<ICloudDb>> waitForClose;
     {
         std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
         if (iCloudDb_ == nullptr) {
@@ -140,6 +157,13 @@ int CloudDBProxy::Close()
         }
         iCloudDb = iCloudDb_;
         iCloudDb_ = nullptr;
+        for (const auto &item : cloudDbs_) {
+            if (iCloudDb == item.second) {
+                iCloudDb = nullptr;
+            }
+            waitForClose.push_back(item.second);
+        }
+        cloudDbs_.clear();
     }
     {
         std::unique_lock<std::mutex> uniqueLock(asyncTaskMutex_);
@@ -150,7 +174,15 @@ int CloudDBProxy::Close()
         LOGD("[CloudDBProxy] wait for all asyncTask end");
     }
     LOGD("[CloudDBProxy] call cloudDb close begin");
-    DBStatus status = iCloudDb->Close();
+    DBStatus status;
+    if (iCloudDb != nullptr) {
+        status = iCloudDb->Close();
+    }
+    for (const auto &item : waitForClose) {
+        DBStatus ret = item->Close();
+        status = (status == OK ? ret : status);
+    }
+    waitForClose.clear();
     LOGD("[CloudDBProxy] call cloudDb close end");
     return status == OK ? E_OK : -E_CLOUD_ERROR;
 }
@@ -170,7 +202,7 @@ int CloudDBProxy::HeartBeat()
 bool CloudDBProxy::IsNotExistCloudDB() const
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
-    return iCloudDb_ == nullptr;
+    return iCloudDb_ == nullptr && cloudDbs_.empty();
 }
 
 int CloudDBProxy::Download(const std::string &tableName, const std::string &gid, const Type &prefix,
@@ -282,7 +314,11 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     if (status == OK) {
         context->SetInfo(dataSize, dataSize, 0u);
     } else {
-        LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
+        if (status == CLOUD_VERSION_CONFLICT) {
+            LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
+        } else {
+            LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
+        }
         context->SetInfo(dataSize, 0u, dataSize);
     }
     return status;
@@ -544,5 +580,34 @@ std::string CloudDBProxy::CloudActionContext::GetTableName()
 {
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     return tableName_;
+}
+
+void CloudDBProxy::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+    genVersionCallback_ = callback;
+    LOGI("[CloudDBProxy] Set generate cloud version callback ok");
+}
+
+bool CloudDBProxy::IsExistCloudVersionCallback() const
+{
+    std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+    return genVersionCallback_ != nullptr;
+}
+
+std::pair<int, std::string> CloudDBProxy::GetCloudVersion(const std::string &originVersion) const
+{
+    GenerateCloudVersionCallback genVersionCallback;
+    {
+        std::lock_guard<std::mutex> autoLock(genVersionMutex_);
+        if (genVersionCallback_ == nullptr) {
+            return {-E_NOT_SUPPORT, ""};
+        }
+        genVersionCallback = genVersionCallback_;
+    }
+    LOGI("[CloudDBProxy] Begin get cloud version");
+    std::string version = genVersionCallback(originVersion);
+    LOGI("[CloudDBProxy] End get cloud version");
+    return {E_OK, version};
 }
 }

@@ -524,6 +524,9 @@ int SQLiteSingleVerNaturalStoreConnection::Import(const std::string &filePath, c
     GenericKvDBConnection::ResetExclusiveStatus();
     kvDB_->ReEnableConnection(OperatePerm::IMPORT_MONOPOLIZE_PERM);
     EnableManualSync();
+    if (errCode == E_OK) {
+        kvDB_->ResetSyncStatus();
+    }
     return errCode;
 }
 
@@ -967,6 +970,11 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntry(const Entry &entry, bool is
         dataItem.writeTimestamp = dataItem.timestamp;
     }
 
+    auto offset = naturalStore->GetLocalTimeOffset();
+    if (offset != 0) {
+        dataItem.modifyTime = dataItem.timestamp - offset;
+        dataItem.createTime = dataItem.writeTimestamp - offset;
+    }
     if (IsExtendedCacheDBMode()) {
         uint64_t recordVersion = naturalStore->GetCacheRecordVersion();
         return SaveEntryInCacheMode(dataItem, recordVersion);
@@ -1843,6 +1851,87 @@ int SQLiteSingleVerNaturalStoreConnection::UpdateKey(const DistributedDB::Update
     errCode = handle->UpdateKey(callback);
     ReleaseExecutor(handle);
     return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[Connection]::[UpdateKey] Get executor failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+    errCode = handle->CreateCloudLogTable();
+    ReleaseExecutor(handle);
+
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->SetCloudDbSchema(schema);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(const KvStoreObserver *observer,
+    const ObserverAction &action)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->RegisterObserverAction(observer, action);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const KvStoreObserver *observer)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGW("[SingleVerConnection] unregister observer but store is null");
+        return E_OK;
+    }
+    return naturalStore->UnRegisterObserverAction(observer);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, ClearMode mode)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (device.length() > DBConstant::MAX_DEV_LENGTH) {
+        return -E_INVALID_ARGS;
+    }
+    if (mode == ClearMode::CLEAR_SHARED_TABLE) {
+        return -E_NOT_SUPPORT;
+    }
+    return naturalStore->RemoveDeviceData(device, mode);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, const std::string &user,
+    ClearMode mode)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (device.length() > DBConstant::MAX_DEV_LENGTH) {
+        return -E_INVALID_ARGS;
+    }
+    if (mode == ClearMode::CLEAR_SHARED_TABLE) {
+        return -E_NOT_SUPPORT;
+    }
+    return naturalStore->RemoveDeviceData(device, user, mode);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &device,
+    std::map<std::string, std::string> &versionMap)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return naturalStore->GetCloudVersion(device, versionMap);
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

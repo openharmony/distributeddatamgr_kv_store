@@ -56,14 +56,19 @@ enum class CallbackDetailsType : uint32_t {
     BRIEF = 0x02,
     DETAILED = DEFAULT | BRIEF
 };
+
 class StoreObserver {
 public:
     virtual ~StoreObserver() {}
+
+    using StoreChangedInfo = std::vector<ChangedData>;
 
     // Data change callback
     virtual void OnChange(const StoreChangedData &data) {};
 
     virtual void OnChange(Origin origin, const std::string &originalId, ChangedData &&data) {};
+
+    virtual void OnChange(StoreChangedInfo &&data) {};
 
     virtual uint32_t GetCallbackDetailsType() const
     {

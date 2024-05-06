@@ -18,16 +18,18 @@
 #include <mutex>
 
 #include "isyncer.h"
+#include "kv_storage_handle.h"
 #include "kv_store_nb_conflict_data_impl.h"
 #include "runtime_context.h"
 #include "single_ver_natural_store.h"
 #include "single_ver_natural_store_commit_notify_data.h"
+#include "sqlite_cloud_kv_store.h"
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_storage_engine.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
-class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore {
+class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore, public KvStorageHandle {
 public:
     SQLiteSingleVerNaturalStore();
     ~SQLiteSingleVerNaturalStore() override;
@@ -106,6 +108,11 @@ public:
     // In local procedure, call this function
     int RemoveDeviceData(const std::string &deviceName, bool isNeedNotify, bool isInSync);
 
+    // remove device data for cloud
+    int RemoveDeviceData(const std::string &deviceName, ClearMode mode);
+
+    // remove device data for cloud and user
+    int RemoveDeviceData(const std::string &deviceName, const std::string &user, ClearMode mode);
     SQLiteSingleVerStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
 
@@ -121,7 +128,7 @@ public:
 
     bool CheckCompatible(const std::string &schema, uint8_t type) const override;
 
-    Timestamp GetCurrentTimestamp();
+    Timestamp GetCurrentTimestamp() override;
 
     SchemaObject GetSchemaObject() const;
 
@@ -195,11 +202,25 @@ public:
 
     int TryHandle() const override;
 
+    std::pair<int, SQLiteSingleVerStorageExecutor*> GetStorageExecutor(bool isWrite) override;
+
+    void RecycleStorageExecutor(SQLiteSingleVerStorageExecutor *executor) override;
+
+    TimeOffset GetLocalTimeOffsetForCloud() override;
+
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
+
+    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
+
+    int UnRegisterObserverAction(const KvStoreObserver *observer);
+
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
     void ReleaseResources();
 
+    ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);
@@ -268,6 +289,10 @@ private:
 
     int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
 
+    int RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode);
+
+    int RemoveDeviceDataInner(const std::string &hashDev, const std::string &user, ClearMode mode);
+
     void GetAndResizeLocalIdentity(std::string &outTarget) const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
@@ -293,6 +318,9 @@ private:
 
     mutable std::shared_mutex abortHandleMutex_;
     OperatePerm abortPerm_;
+
+    mutable std::mutex cloudStoreMutex_;
+    SqliteCloudKvStore *sqliteCloudKvStore_;
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

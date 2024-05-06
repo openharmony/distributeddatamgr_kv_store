@@ -150,6 +150,7 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
         EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
         localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
         localLogInfo.sharingResource == cloudLogInfo.sharingResource &&
+        localLogInfo.version == cloudLogInfo.version &&
         (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
     return !isSame;
 }
@@ -187,6 +188,8 @@ LogInfo CloudSyncUtils::GetCloudLogInfo(DistributedDB::VBucket &datum)
     cloudLogInfo.cloudGid = std::get<std::string>(datum[CloudDbConstant::GID_FIELD]);
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
         datum, cloudLogInfo.sharingResource);
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD,
+        datum, cloudLogInfo.version);
     return cloudLogInfo;
 }
 
@@ -221,7 +224,8 @@ int CloudSyncUtils::CheckCloudSyncDataValid(const CloudSyncData &uploadData, con
     bool syncDataValid = (uploadData.tableName == tableName) &&
         ((insRecordLen > 0 && insExtendLen > 0 && insRecordLen == insExtendLen) ||
         (updRecordLen > 0 && updExtendLen > 0 && updRecordLen == updExtendLen) ||
-        (delRecordLen > 0 && delExtendLen > 0 && delRecordLen == delExtendLen));
+        (delRecordLen > 0 && delExtendLen > 0 && delRecordLen == delExtendLen) ||
+        (uploadData.lockData.extend.size() > 0));
     if (!syncDataValid) {
         LOGE("[CloudSyncUtils] upload data is empty but upload count is not zero or upload table name"
             " is not the same as table name of sync data.");
@@ -348,11 +352,9 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
         case OpType::INSERT :
         case OpType::UPDATE :
         case OpType::DELETE: {
-            updateLogInfo.timestamp = cloudInfo.timestamp;
-            updateLogInfo.wTimestamp = cloudInfo.wTimestamp;
+            updateLogInfo = cloudInfo;
             updateLogInfo.device = CloudDbConstant::DEFAULT_CLOUD_DEV;
-            updateLogInfo.hashKey = Key(hashKey.begin(), hashKey.end());
-            updateLogInfo.sharingResource = cloudInfo.sharingResource;
+            updateLogInfo.hashKey = localInfo.hashKey;
             if (opType == OpType::DELETE) {
                 updateLogInfo.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
             } else if (opType == OpType::INSERT) {
@@ -379,7 +381,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
 int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataIndex,
     const ICloudSyncer::DataInfo &dataInfo, std::vector<std::pair<Key, size_t>> &deletedList)
 {
-    OpType opType = param.downloadData.opType[dataIndex];
+    OpType opType = CalOpType(param, dataIndex);
     Key hashKey = dataInfo.localInfo.logInfo.hashKey;
     if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
         if (opType == OpType::INSERT) {
@@ -556,6 +558,36 @@ void CloudSyncUtils::InsertOrReplaceChangedDataByType(ChangeType type, std::vect
     changedData.primaryData[type].emplace_back(std::move(pkVal));
 }
 
+OpType CloudSyncUtils::CalOpType(ICloudSyncer::SyncParam &param, size_t dataIndex)
+{
+    OpType opType = param.downloadData.opType[dataIndex];
+    if (opType != OpType::INSERT && opType != OpType::UPDATE) {
+        return opType;
+    }
+
+    std::vector<Type> cloudPkVal;
+    // use dataIndex as dataKey avoid get same pk with no pk schema
+    int errCode = CloudSyncUtils::GetCloudPkVals(param.downloadData.data[dataIndex], param.changedData.field, dataIndex,
+        cloudPkVal);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncUtils] Get pk from download data failed %d", errCode);
+        // use origin opType
+        return opType;
+    }
+    auto iter = std::find_if(param.insertPk.begin(), param.insertPk.end(), [&cloudPkVal](const auto &item) {
+        return item == cloudPkVal;
+    });
+    if (opType == OpType::INSERT) {
+        // record all insert pk in one batch
+        if (iter == param.insertPk.end()) {
+            param.insertPk.push_back(cloudPkVal);
+        }
+        return OpType::INSERT;
+    }
+    // notify with insert because this data not exist in local before query
+    return (iter == param.insertPk.end()) ? OpType::UPDATE : OpType::INSERT;
+}
+
 CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
 {
     CloudSyncer::CloudTaskInfo taskInfo;
@@ -565,6 +597,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;
     taskInfo.compensatedTask = true;
+    taskInfo.users.push_back("");
     return taskInfo;
 }
 }

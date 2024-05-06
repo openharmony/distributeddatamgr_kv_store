@@ -60,7 +60,24 @@ int StorageProxy::GetLocalWaterMark(const std::string &tableName, Timestamp &loc
         LOGE("the write transaction has been started, can not get meta");
         return -E_BUSY;
     }
-    return cloudMetaData_->GetLocalWaterMark(tableName, localMark);
+    return cloudMetaData_->GetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
+}
+
+int StorageProxy::GetLocalWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (transactionExeFlag_.load() && isWrite_.load()) {
+        LOGE("the write transaction has been started, can not get meta");
+        return -E_BUSY;
+    }
+    if (user_.empty()) {
+        return cloudMetaData_->GetLocalWaterMarkByType(tableName, mode, localMark);
+    } else {
+        return cloudMetaData_->GetLocalWaterMarkByType(tableName + "_" + user_, mode, localMark);
+    }
 }
 
 int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &localMark)
@@ -73,7 +90,24 @@ int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &loc
         LOGE("the write transaction has been started, can not put meta");
         return -E_BUSY;
     }
-    return cloudMetaData_->SetLocalWaterMark(tableName, localMark);
+    return cloudMetaData_->SetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
+}
+
+int StorageProxy::PutWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (transactionExeFlag_.load() && isWrite_.load()) {
+        LOGE("the write transaction has been started, can not put meta");
+        return -E_BUSY;
+    }
+    if (user_.empty()) {
+        return cloudMetaData_->SetLocalWaterMarkByType(tableName, mode, localMark);
+    } else {
+        return cloudMetaData_->SetLocalWaterMarkByType(tableName + "_" + user_, mode, localMark);
+    }
 }
 
 int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
@@ -82,7 +116,7 @@ int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &c
     if (cloudMetaData_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->GetCloudWaterMark(tableName, cloudMark);
+    return cloudMetaData_->GetCloudWaterMark(AppendWithUserIfNeed(tableName), cloudMark);
 }
 
 int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
@@ -91,7 +125,7 @@ int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &c
     if (cloudMetaData_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->SetCloudWaterMark(tableName, cloudMark);
+    return cloudMetaData_->SetCloudWaterMark(AppendWithUserIfNeed(tableName), cloudMark);
 }
 
 int StorageProxy::StartTransaction(TransactType type)
@@ -132,6 +166,37 @@ int StorageProxy::Rollback()
         transactionExeFlag_.store(false);
     }
     return errCode;
+}
+
+int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isCloudForcePush,
+    bool isCompensatedTask, bool isPriorityTask, int64_t &count)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (!transactionExeFlag_.load()) {
+        LOGE("the transaction has not been started");
+        return -E_TRANSACT_STATE;
+    }
+    std::vector<Timestamp> timeStampVec;
+    std::vector<CloudWaterType> waterTypeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE,
+        CloudWaterType::INSERT};
+    for (size_t i = 0; i < waterTypeVec.size(); i++) {
+        Timestamp tmpMark = 0u;
+        if (!isPriorityTask && !isCompensatedTask && !isCloudForcePush) {
+            int errCode = cloudMetaData_->GetLocalWaterMarkByType(query.GetTableName(), waterTypeVec[i], tmpMark);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+        timeStampVec.push_back(tmpMark);
+    }
+    int errCode = store_->GetAllUploadCount(query, timeStampVec, isCloudForcePush, isCompensatedTask, count);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return E_OK;
 }
 
 int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &localMark,
@@ -252,7 +317,7 @@ int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &d
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-
+    downloadData.user = user_;
     return store_->PutCloudSyncData(tableName, downloadData);
 }
 
@@ -405,7 +470,7 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
         LOGW("[StorageProxy] meta is nullptr return default");
         return -E_INVALID_DB;
     }
-    return cloudMetaData_->CleanWaterMark(tableName);
+    return cloudMetaData_->CleanWaterMark(AppendWithUserIfNeed(tableName));
 }
 
 int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableName)
@@ -415,17 +480,17 @@ int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableNa
         LOGW("[StorageProxy] CleanWaterMarkInMemory is nullptr return default");
         return -E_INVALID_DB;
     }
-    cloudMetaData_->CleanWaterMarkInMemory(tableName);
+    cloudMetaData_->CleanWaterMarkInMemory(AppendWithUserIfNeed(tableName));
     return E_OK;
 }
 
-int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
+void StorageProxy::SetUser(const std::string &user)
 {
+    user_ = user;
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
+    if (store_ != nullptr) {
+        store_->SetUser(user);
     }
-    return store_->GetCloudDataGid(query, beginTime, gid);
 }
 
 int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
@@ -540,5 +605,45 @@ void StorageProxy::OnSyncFinish()
         return;
     }
     store_->SyncFinishHook();
+}
+
+void StorageProxy::OnUploadStart()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->DoUploadHook();
+}
+
+void StorageProxy::CleanAllWaterMark()
+{
+    cloudMetaData_->CleanAllWaterMark();
+}
+
+std::string StorageProxy::AppendWithUserIfNeed(const std::string &source) const
+{
+    if (user_.empty()) {
+        return source;
+    }
+    return source + "_" + user_;
+}
+
+int StorageProxy::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return E_INVALID_DB;
+    }
+    return store_->GetCloudDbSchema(cloudSchema);
+}
+
+std::pair<int, CloudSyncData> StorageProxy::GetLocalCloudVersion()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return {-E_INTERNAL_ERROR, {}};
+    }
+    return store_->GetLocalCloudVersion();
 }
 }

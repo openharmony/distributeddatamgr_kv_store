@@ -1055,6 +1055,23 @@ int RelationalSyncAbleStorage::Rollback()
     return errCode;
 }
 
+int RelationalSyncAbleStorage::GetAllUploadCount(const QuerySyncObject &query,
+    const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    errCode = handle->GetAllUploadCount(timestampVec, isCloudForcePush, isCompensatedTask, queryObj, count);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
     bool isCloudForcePush, bool isCompensatedTask, int64_t &count)
 {
@@ -1109,6 +1126,9 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
+    LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
+        cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
+        cloudDataResult.delData.extend.size(), cloudDataResult.lockData.extend.size());
     if (errCode != -E_UNFINISHED) {
         delete token;
         token = nullptr;
@@ -1345,12 +1365,6 @@ void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmt
     }
     delete token;
     continueStmtToken = nullptr;
-}
-
-int RelationalSyncAbleStorage::GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
-    std::vector<std::string> &gid)
-{
-    return E_OK;
 }
 
 int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
@@ -1780,9 +1794,14 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const CloudSyncBatch &updateData, bool isLock)
 {
+    if (updateData.timestamp.size() != updateData.extend.size()) {
+        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
+            updateData.extend.size(), updateData.timestamp.size());
+        return -E_INVALID_ARGS;
+    }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record) || isLock) {
+        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordVersionConflict(record) || isLock) {
             int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
                 updateData.hashKey[i]);
             if (errCode != E_OK) {
@@ -2023,6 +2042,18 @@ int RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)
 {
     syncFinishFunc_ = func;
     return E_OK;
+}
+
+void RelationalSyncAbleStorage::DoUploadHook()
+{
+    if (uploadStartFunc_) {
+        uploadStartFunc_();
+    }
+}
+
+void RelationalSyncAbleStorage::SetDoUploadHook(const std::function<void (void)> &func)
+{
+    uploadStartFunc_ = func;
 }
 }
 #endif

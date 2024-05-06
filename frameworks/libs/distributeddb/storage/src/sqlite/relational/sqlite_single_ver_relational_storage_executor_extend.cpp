@@ -103,6 +103,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.cloudGid); // 7 is cloud_gid
     (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.sharingResource); // 8 is sharing_resource
     logInfo.status = static_cast<uint64_t>(sqlite3_column_int64(statement, index++)); // 9 is status
+    (void)SQLiteUtils::GetColumnTextValue(statement, index++, logInfo.version); // 10 is version
     return index;
 }
 
@@ -236,7 +237,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         return -E_CLOUD_ERROR;
     }
     std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
-        " sharing_resource, status FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
+        " sharing_resource, status, version FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
     if (!cloudGid.empty()) {
         sql += "cloud_gid = ? OR ";
     }
@@ -412,6 +413,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
             assets.push_back(asset);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
+            Asset asset;
+            assets.push_back(asset);
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
@@ -665,14 +668,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
         return errCode;
     }
 
-    std::string version;
-    if (putDataMode_ == PutDataMode::SYNC && CloudStorageUtils::IsSharedTable(tableSchema)) {
-        errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
-        if (errCode != E_OK || version.empty()) {
-            LOGE("get version for insert log statement failed, %d", errCode);
-            return -E_CLOUD_ERROR;
-        }
-    }
     return BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
 }
 

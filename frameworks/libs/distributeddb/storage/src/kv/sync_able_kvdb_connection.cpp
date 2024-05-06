@@ -341,4 +341,50 @@ int SyncAbleKvDBConnection::GetWatermarkInfo(const std::string &device, Watermar
     }
     return kvDB->GetWatermarkInfo(device, info);
 }
+
+int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+
+    int securityLabel = INVALID_SEC_LABEL;
+    int securityFlag = INVALID_SEC_FLAG;
+    GetSecurityOption(securityLabel, securityFlag);
+    if (securityLabel == S4) {
+        LOGE("The current data does not support synchronization.");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    return kvDB->Sync(option, onProcess);
+}
+
+int SyncAbleKvDBConnection::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    return kvDB->SetCloudDB(cloudDBs);
+}
+
+int32_t SyncAbleKvDBConnection::GetTaskCount()
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        LOGW("[SyncAbleKvDBConnection] Get task count with null db");
+        return 0;
+    }
+    return kvDB->GetTaskCount();
+}
+
+void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    auto *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        LOGW("[SyncAbleKvDBConnection] Set generate cloud version callback with null db");
+        return;
+    }
+    kvDB->SetGenCloudVersionCallback(callback);
+}
 }

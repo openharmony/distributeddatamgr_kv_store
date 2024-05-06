@@ -30,6 +30,10 @@ public:
 
     void SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
 
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
+
+    void SwitchCloudDB(const std::string &user);
+
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
@@ -60,6 +64,11 @@ public:
 
     int RemoveLocalAssets(const std::vector<Asset> &assets);
 
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
+
+    bool IsExistCloudVersionCallback() const;
+
+    std::pair<int, std::string> GetCloudVersion(const std::string &originVersion) const;
 protected:
     class CloudActionContext {
     public:
@@ -153,12 +162,16 @@ protected:
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs_;
     std::shared_ptr<IAssetLoader> iAssetLoader_;
     std::atomic<int64_t> timeout_;
 
     std::mutex asyncTaskMutex_;
     std::condition_variable asyncTaskCv_;
     int32_t asyncTaskCount_;
+
+    mutable std::mutex genVersionMutex_;
+    GenerateCloudVersionCallback genVersionCallback_;
 };
 }
 #endif // CLOUD_DB_PROXY_H

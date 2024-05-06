@@ -54,6 +54,7 @@ enum AssetStatus : uint32_t {
     DELETE,
     UPDATE,
     // high 16 bit USE WITH BIT MASK
+    HIDDEN = 0x20000000,
     DOWNLOAD_WITH_NULL = 0x40000000,
     UPLOADING = 0x80000000,
 };
@@ -89,6 +90,7 @@ using Bytes = std::vector<uint8_t>;
 using Entries = std::map<std::string, std::string>;
 using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets, Entries>;
 using VBucket = std::map<std::string, Type>;
+using GenerateCloudVersionCallback = std::function<std::string(const std::string &originVersion)>;
 
 struct Field {
     std::string colName;
@@ -117,6 +119,27 @@ enum class CloudQueryType : int64_t {
     QUERY_FIELD = 1 // query with some fields
 };
 
+enum class LockAction : uint32_t {
+    NONE = 0,
+    INSERT = 1
+};
+
+enum CloudSyncState {
+    IDLE = 0,
+    DO_DOWNLOAD,
+    DO_UPLOAD,
+    DO_FINISHED
+};
+
+enum CloudSyncEvent {
+    UPLOAD_FINISHED_EVENT,
+    DOWNLOAD_FINISHED_EVENT,
+    ERROR_EVENT,
+    REPEAT_DOWNLOAD_EVENT,
+    START_SYNC_EVENT,
+    ALL_TASK_FINISHED_EVENT
+};
+
 struct CloudSyncOption {
     std::vector<std::string> devices;
     SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
@@ -124,6 +147,10 @@ struct CloudSyncOption {
     int64_t waitTime = 0;
     bool priorityTask = false;
     bool compensatedSyncOnly = false;
+    std::vector<std::string> users;
+    bool merge = false;
+    // default, upload insert need lock
+    LockAction lockAction = LockAction::INSERT;
 };
 
 enum class QueryNodeType : uint32_t {

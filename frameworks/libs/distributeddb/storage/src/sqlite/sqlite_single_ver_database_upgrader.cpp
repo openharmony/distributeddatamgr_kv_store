@@ -20,18 +20,20 @@
 #include "db_constant.h"
 #include "platform_specific.h"
 #include "param_check_utils.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
 namespace {
-    const std::string CREATE_LOCAL_TABLE_SQL =
+    const constexpr char *CREATE_LOCAL_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS local_data(" \
             "key BLOB PRIMARY KEY," \
             "value BLOB," \
             "timestamp INT," \
             "hash_key BLOB);";
 
-    const std::string CREATE_SYNC_TABLE_SQL =
+    const constexpr char *CREATE_SYNC_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS sync_data(" \
             "key         BLOB NOT NULL," \
             "value       BLOB," \
@@ -40,32 +42,35 @@ namespace {
             "device      BLOB," \
             "ori_device  BLOB," \
             "hash_key    BLOB PRIMARY KEY NOT NULL," \
-            "w_timestamp INT);";
+            "w_timestamp INT," \
+            "modify_time INT DEFAULT 0," \
+            "create_time INT DEFAULT 0" \
+            ");";
 
-    const std::string CREATE_META_TABLE_SQL =
+    const constexpr char *CREATE_META_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS meta_data("  \
             "key    BLOB PRIMARY KEY  NOT NULL," \
             "value  BLOB);";
 
-    const std::string CREATE_SINGLE_META_TABLE_SQL =
+    const constexpr char *CREATE_SINGLE_META_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS meta.meta_data("  \
             "key    BLOB PRIMARY KEY  NOT NULL," \
             "value  BLOB);";
 
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX =
+    const constexpr char *CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX =
         "CREATE INDEX IF NOT EXISTS key_index ON sync_data (key, flag);";
 
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX =
+    const constexpr char *CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX =
         "CREATE INDEX IF NOT EXISTS time_index ON sync_data (timestamp);";
 
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX =
+    const constexpr char *CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX =
         "CREATE INDEX IF NOT EXISTS dev_index ON sync_data (device);";
 
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX =
+    const constexpr char *CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX =
         "CREATE INDEX IF NOT EXISTS local_hashkey_index ON local_data (hash_key);";
 
-    const std::string DROP_META_TABLE_SQL = "DROP TABLE IF EXISTS main.meta_data;";
-    const std::string COPY_META_TABLE_SQL = "INSERT OR REPLACE INTO meta.meta_data SELECT * FROM meta_data "
+    const constexpr char *DROP_META_TABLE_SQL = "DROP TABLE IF EXISTS main.meta_data;";
+    const constexpr char *COPY_META_TABLE_SQL = "INSERT OR REPLACE INTO meta.meta_data SELECT * FROM meta_data "
         "where (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='main.meta_data') > 0;";
 }
 
@@ -187,11 +192,15 @@ void SQLiteSingleVerDatabaseUpgrader::SetUpgradeSqls(int version, std::vector<st
             };
         }
         if ((version <= SINGLE_VER_STORE_VERSION_V2 && ParamCheckUtils::IsS3SECEOpt(secOpt_)) ||
-            (version == SINGLE_VER_STORE_VERSION_CURRENT && isMetaUpgrade_ == true)) {
-            sqls.push_back(CREATE_SINGLE_META_TABLE_SQL);
-            sqls.push_back(COPY_META_TABLE_SQL);
-            sqls.push_back(DROP_META_TABLE_SQL);
+            (version >= SINGLE_VER_STORE_VERSION_V3 && isMetaUpgrade_ == true)) {
+            sqls.emplace_back(CREATE_SINGLE_META_TABLE_SQL);
+            sqls.emplace_back(COPY_META_TABLE_SQL);
+            sqls.emplace_back(DROP_META_TABLE_SQL);
             isCreateUpgradeFile = true;
+        }
+        if (version < SINGLE_VER_STORE_VERSION_V4) {
+            sqls.emplace_back("ALTER TABLE sync_data ADD modify_time INT DEFAULT 0");
+            sqls.emplace_back("ALTER TABLE sync_data ADD create_time INT DEFAULT 0");
         }
     }
 }
@@ -200,8 +209,8 @@ int SQLiteSingleVerDatabaseUpgrader::UpgradeFromDatabaseVersion(int version)
 {
     std::vector<std::string> sqls;
     bool isCreateUpgradeFile = false;
-    LOGI("[SqlSingleUp] metaSplit[%d], secLabel[%d], secFlag[%d]",
-        isMetaUpgrade_, secOpt_.securityLabel, secOpt_.securityFlag);
+    LOGI("[SqlSingleUp] metaSplit[%d], secLabel[%d], secFlag[%d], version[%d]",
+        isMetaUpgrade_, secOpt_.securityLabel, secOpt_.securityFlag, version);
     SetUpgradeSqls(version, sqls, isCreateUpgradeFile);
     for (const auto &item : sqls) {
         int errCode = SQLiteUtils::ExecuteRawSQL(db_, item);
@@ -210,6 +219,7 @@ int SQLiteSingleVerDatabaseUpgrader::UpgradeFromDatabaseVersion(int version)
             return errCode;
         }
     }
+    InitTimeForUpgrade(version);
     if (isCreateUpgradeFile) {
         std::string secOptUpgradeFile = subDir_ + "/" + DBConstant::SET_SECOPT_POSTFIX;
         if (!OS::CheckPathExistence(secOptUpgradeFile) && (OS::CreateFileByFileName(secOptUpgradeFile) != E_OK)) {
@@ -363,5 +373,77 @@ int SQLiteSingleVerDatabaseUpgrader::MoveDatabaseToNewDir(const std::string &par
 bool SQLiteSingleVerDatabaseUpgrader::IsValueNeedUpgrade() const
 {
     return valueNeedUpgrade_;
+}
+
+void SQLiteSingleVerDatabaseUpgrader::InitTimeForUpgrade(int version)
+{
+    if (version >= SINGLE_VER_STORE_VERSION_V4) {
+        return;
+    }
+    auto [errCode, offset] = GetLocalTimeOffset();
+    if (errCode != E_OK) {
+        // init time failed should not block upgrade
+        return;
+    }
+    UpgradeTime(offset);
+}
+
+std::pair<int, TimeOffset> SQLiteSingleVerDatabaseUpgrader::GetLocalTimeOffset()
+{
+    std::pair<int, TimeOffset> res;
+    auto &[errCode, offset] = res;
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db_, SELECT_META_VALUE_SQL, stmt);
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSinVerUp] Prepare get meta data failed %d", errCode);
+        return res;
+    }
+    ResFinalizer finalizer([stmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *sqlite3Stmt = stmt;
+        SQLiteUtils::ResetStatement(sqlite3Stmt, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SQLiteSinVerUp] Finalize select stmt failed %d", ret);
+        }
+    });
+    const std::string_view localTimeOffset = DBConstant::LOCALTIME_OFFSET_KEY;
+    Key key(localTimeOffset.begin(), localTimeOffset.end());
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key); // 1 is time offset
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSinVerUp] Bind localTimeOffset failed %d", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGW("[SQLiteSinVerUp] Get meta data failed %d", errCode);
+        return res;
+    }
+    Value value;
+    errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, value);
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSinVerUp] Get blob local offset failed %d", errCode);
+        return res;
+    }
+    offset = std::strtoll(std::string(value.begin(), value.end()).c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
+    return res;
+}
+
+void SQLiteSingleVerDatabaseUpgrader::UpgradeTime(TimeOffset offset)
+{
+    std::string addOffset;
+    if (offset < 0) {
+        addOffset = "+";
+    } else {
+        addOffset = "-";
+    }
+    addOffset += std::to_string(std::abs(offset));
+    std::string updateSQL = "UPDATE sync_data SET modify_time=timestamp" + addOffset + ", create_time=w_timestamp" +
+        addOffset + " WHERE modify_time = 0";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db_, updateSQL);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSinVerUp] Upgrade time failed %d", errCode);
+    }
 }
 } // namespace DistributedDB

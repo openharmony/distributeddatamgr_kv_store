@@ -145,6 +145,7 @@ constexpr int E_NEED_TIME_SYNC = (E_BASE + 124); // time sync has not done
 constexpr int E_CLOUD_GID_MISMATCH = (E_BASE + 125); // cloud gid cannot match in db
 constexpr int E_WITH_INVENTORY_DATA = (E_BASE + 126); // inventory data exists when setTracker for the first time
 constexpr int E_WAIT_COMPENSATED_SYNC = (E_BASE + 127); // need to do compensated sync
+constexpr int E_CLOUD_SYNC_TASK_MERGED = (E_BASE + 128); // sync task is merged
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

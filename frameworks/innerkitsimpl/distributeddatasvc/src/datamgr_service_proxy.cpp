@@ -79,6 +79,7 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
             return Status::IPC_ERROR;
         }
     } else {
+        ZLOGE("observer is null");
         return Status::INVALID_ARGUMENT;
     }
 

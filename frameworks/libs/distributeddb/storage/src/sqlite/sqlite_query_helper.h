@@ -28,6 +28,7 @@ namespace DistributedDB {
 namespace TriggerMode {
 enum class TriggerModeEnum;
 }
+enum class CloudWaterType;
 struct QueryObjInfo {
     SchemaObject schema_;
     std::list<QueryObjNode> queryObjNodes_;
@@ -101,7 +102,7 @@ public:
     int GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
         const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement);
     std::string GetRelationalCloudQuerySql(const std::vector<Field> &fields,
-        const bool &isCloudForcePush, bool isCompensatedTask);
+        const bool &isCloudForcePush, bool isCompensatedTask, CloudWaterType mode);
 
     std::string GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask);
 
@@ -111,6 +112,15 @@ public:
     int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
         sqlite3_stmt *&statement);
 
+    static std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush, const CloudWaterType mode);
+
+    static std::string GetKvCloudQuerySql(bool countOnly, bool forcePush);
+
+    static void AppendCloudQueryToGetDiffData(std::string &sql, const CloudWaterType mode, bool isKv = false);
+
+    static std::string GetKvCloudRecordSql();
+
+    static std::string GetCloudVersionRecordSql(bool isDeviceEmpty);
 private:
     int ToQuerySql();
     int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);
@@ -142,7 +152,6 @@ private:
     void AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
 
     void AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
-
     SchemaObject schema_;
     std::list<QueryObjNode> queryObjNodes_;
     std::vector<uint8_t> prefixKey_;

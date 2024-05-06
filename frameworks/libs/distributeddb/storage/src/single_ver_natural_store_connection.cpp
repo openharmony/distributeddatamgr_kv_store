@@ -118,5 +118,4 @@ int SingleVerNaturalStoreConnection::DeleteBatch(const IOption &option, const st
     }
     return DeleteBatchInner(option, keys);
 }
-
 } // namespace DistributedDB

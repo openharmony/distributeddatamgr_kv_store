@@ -19,6 +19,7 @@
 #include "cloud/cloud_db_data_utils.h"
 #include "cloud/cloud_db_types.h"
 #include "cloud/cloud_db_proxy.h"
+#include "cloud/cloud_sync_utils.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_errno.h"
 #include "mock_icloud_sync_storage_interface.h"
@@ -277,77 +278,6 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
 }
 
 /**
- * @tc.name: CloudDBProxyTest004
- * @tc.desc: Verify cloud db heartbeat and lock function.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. set cloud db to proxy and sleep 5s when download
-     * @tc.expected: step1. E_OK
-     */
-    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
-    auto cloudSyncer = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
-    EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
-    ASSERT_NE(cloudSyncer, nullptr);
-    cloudSyncer->SetCloudDB(virtualCloudDb_);
-    cloudSyncer->SetSyncAction(true, true);
-    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer]() {
-        cloudSyncer->SetTaskNeedUpload();
-        return E_OK;
-    });
-    cloudSyncer->SetUploadFunc([]() {
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
-        return E_OK;
-    });
-    /**
-     * @tc.steps: step2. call sync and wait sync finish
-     * @tc.expected: step2. E_OK
-     */
-    std::mutex processMutex;
-    std::condition_variable cv;
-    SyncProcess syncProcess;
-    LOGI("[CloudDBProxyTest004] Call cloud sync");
-    const auto callback = [&syncProcess, &processMutex, &cv](const std::map<std::string, SyncProcess> &process) {
-        {
-            std::lock_guard<std::mutex> autoLock(processMutex);
-            if (process.size() >= 1u) {
-                syncProcess = std::move(process.begin()->second);
-            } else {
-                SyncProcess tmpProcess;
-                syncProcess = tmpProcess;
-            }
-        }
-        cv.notify_all();
-    };
-    EXPECT_EQ(cloudSyncer->Sync({ "cloud" }, SyncMode::SYNC_MODE_CLOUD_MERGE, { TABLE_NAME }, callback, 0), E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    EXPECT_TRUE(virtualCloudDb_->GetLockStatus());
-    {
-        LOGI("[CloudDBProxyTest004] begin to wait sync");
-        std::unique_lock<std::mutex> uniqueLock(processMutex);
-        cv.wait(uniqueLock, [&syncProcess]() {
-            return syncProcess.process == ProcessStatus::FINISHED;
-        });
-        LOGI("[CloudDBProxyTest004] end to wait sync");
-        EXPECT_EQ(syncProcess.errCode, OK);
-    }
-    /**
-     * @tc.steps: step3. get cloud lock status and heartbeat count
-     * @tc.expected: step3. cloud is unlock and more than twice heartbeat
-     */
-    EXPECT_FALSE(virtualCloudDb_->GetLockStatus());
-    EXPECT_GE(virtualCloudDb_->GetHeartbeatCount(), 2);
-    virtualCloudDb_->ClearHeartbeatCount();
-    cloudSyncer->Close();
-    RefObject::KillAndDecObjRef(cloudSyncer);
-}
-
-/**
  * @tc.name: CloudDBProxyTest005
  * @tc.desc: Verify sync failed after cloud error.
  * @tc.type: FUNC
@@ -380,61 +310,6 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest005, TestSize.Level0)
      */
     EXPECT_FALSE(virtualCloudDb_->GetLockStatus());
     EXPECT_GE(virtualCloudDb_->GetHeartbeatCount(), 0);
-    virtualCloudDb_->ClearHeartbeatCount();
-    cloudSyncer->Close();
-    RefObject::KillAndDecObjRef(cloudSyncer);
-}
-
-/**
- * @tc.name: CloudDBProxyTest006
- * @tc.desc: Verify sync failed by heartbeat failed.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. set cloud db to proxy and sleep 6s when the second download
-     * @tc.expected: step1. E_OK
-     */
-    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
-    auto cloudSyncer = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
-    EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback).WillRepeatedly(testing::Return(E_OK));
-    ASSERT_NE(cloudSyncer, nullptr);
-    cloudSyncer->SetCloudDB(virtualCloudDb_);
-    cloudSyncer->SetSyncAction(true, false);
-    int downloadCount = 0;
-    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer, &downloadCount]() {
-        downloadCount++;
-        if (downloadCount == 1) {
-            cloudSyncer->SetTaskNeedUpload();
-            return E_OK;
-        } else {
-            cloudSyncer->SetTaskNeedUpload();
-            std::this_thread::sleep_for(std::chrono::seconds(6)); // sleep 6s
-            cloudSyncer->Notify(false);
-            return E_OK;
-        }
-    });
-    virtualCloudDb_->SetHeartbeatError(true);
-    virtualCloudDb_->SetHeartbeatBlockTime(2 * 1000); // 2 * 1000ms
-    /**
-     * @tc.steps: step2. call sync and wait sync finish
-     * @tc.expected: step2. sync failed by heartbeat error
-     */
-    int callCount = 0;
-    EXPECT_EQ(Sync(cloudSyncer, callCount), CLOUD_ERROR);
-    RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(callCount, 1);
-    /**
-     * @tc.steps: step3. get cloud lock status and heartbeat count
-     * @tc.expected: step3. cloud is unlock and 3 times heartbeat
-     */
-    EXPECT_FALSE(virtualCloudDb_->GetLockStatus());
-    EXPECT_EQ(virtualCloudDb_->GetHeartbeatCount(), 3);
     virtualCloudDb_->ClearHeartbeatCount();
     cloudSyncer->Close();
     RefObject::KillAndDecObjRef(cloudSyncer);
@@ -661,5 +536,73 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncerTest001, TestSize.Level2)
     });
     cloudSyncer->Close();
     RefObject::KillAndDecObjRef(cloudSyncer);
+}
+
+/**
+ * @tc.name: SameBatchTest001
+ * @tc.desc: Verify update cache in same batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest001, TestSize.Level0)
+{
+    std::map<std::string, LogInfo> localLogInfoCache;
+    LogInfo cloudInfo;
+    LogInfo localInfo;
+    localInfo.hashKey = {'k'};
+    cloudInfo.cloudGid = "gid";
+    /**
+     * @tc.steps: step1. insert cloud into local
+     * @tc.expected: step1. local cache has gid
+     */
+    CloudSyncUtils::UpdateLocalCache(OpType::INSERT, cloudInfo, localInfo, localLogInfoCache);
+    std::string hashKey(localInfo.hashKey.begin(), localInfo.hashKey.end());
+    EXPECT_EQ(localLogInfoCache[hashKey].cloudGid, cloudInfo.cloudGid);
+    /**
+     * @tc.steps: step2. delete local
+     * @tc.expected: step2. local flag is delete
+     */
+    CloudSyncUtils::UpdateLocalCache(OpType::DELETE, cloudInfo, localInfo, localLogInfoCache);
+    EXPECT_EQ(localLogInfoCache[hashKey].flag, static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE));
+}
+
+/**
+ * @tc.name: SameBatchTest002
+ * @tc.desc: Verify cal opType in same batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare two data with same pk
+     */
+    ICloudSyncer::SyncParam param;
+    param.downloadData.opType.push_back(OpType::INSERT);
+    param.downloadData.opType.push_back(OpType::UPDATE);
+    const std::string pkField = "pk";
+    param.changedData.field.push_back(pkField);
+    VBucket oneRow;
+    oneRow[pkField] = static_cast<int64_t>(1); // 1 is pk
+    param.downloadData.data.push_back(oneRow);
+    param.downloadData.data.push_back(oneRow);
+    /**
+     * @tc.steps: step2. cal opType by utils
+     * @tc.expected: step2. all type should be INSERT
+     */
+    for (size_t i = 0; i < param.downloadData.data.size(); ++i) {
+        EXPECT_EQ(CloudSyncUtils::CalOpType(param, i), OpType::INSERT);
+    }
+    /**
+     * @tc.steps: step3. cal opType by utils
+     * @tc.expected: step3. should be UPDATE because diff pk
+     */
+    oneRow[pkField] = static_cast<int64_t>(2); // 2 is pk
+    param.downloadData.data.push_back(oneRow);
+    param.downloadData.opType.push_back(OpType::UPDATE);
+    // index start with zero
+    EXPECT_EQ(CloudSyncUtils::CalOpType(param, param.downloadData.data.size() - 1), OpType::UPDATE);
 }
 }

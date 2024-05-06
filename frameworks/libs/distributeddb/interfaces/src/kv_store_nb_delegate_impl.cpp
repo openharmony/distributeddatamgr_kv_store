@@ -374,7 +374,15 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return INVALID_ARGS;
     }
+    uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
+    if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
+        return RegisterCloudObserver(key, mode, observer);
+    }
+    return RegisterDeviceObserver(key, rawMode, observer);
+}
 
+DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
+{
     if (!ParamCheckUtils::CheckObserver(key, mode)) {
         LOGE("Register nb observer by illegal mode or key size!");
         return INVALID_ARGS;
@@ -416,7 +424,38 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     }
 
     observerMap_.insert(std::pair<const KvStoreObserver *, const KvDBObserverHandle *>(observer, observerHandle));
-    LOGI("[KvStoreNbDelegate] RegisterObserver ok mode:%u", mode);
+    LOGI("[KvStoreNbDelegate] RegisterDeviceObserver ok mode:%u", mode);
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode,
+    KvStoreObserver *observer)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
+    if (cloudObserverMap_.find(observer) != cloudObserverMap_.end() && cloudObserverMap_[observer] == mode) {
+        LOGE("[KvStoreNbDelegate] Cloud observer has been already registered!");
+        return ALREADY_SET;
+    }
+
+    ObserverAction action = [observer](const std::string &device, ChangedData &&changedData, bool isChangedData) {
+        if (isChangedData) {
+            LOGI("[KvStoreNbDelegate] Begin trigger on change");
+            observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
+            LOGI("[KvStoreNbDelegate] End trigger on change");
+        }
+    };
+    int errCode = conn_->RegisterObserverAction(observer, action);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] RegisterCloudObserver failed:%d!", errCode);
+        return DB_ERROR;
+    }
+    cloudObserverMap_[observer] = mode;
+    LOGI("[KvStoreNbDelegate] RegisterCloudObserver ok mode:%u", mode);
     return OK;
 }
 
@@ -431,6 +470,16 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
         return DB_ERROR;
     }
 
+    DBStatus cloudRet = UnRegisterCloudObserver(observer);
+    DBStatus devRet = UnRegisterDeviceObserver(observer);
+    if (cloudRet == OK || devRet == OK) {
+        return OK;
+    }
+    return devRet;
+}
+
+DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const KvStoreObserver *observer)
+{
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
     if (iter == observerMap_.end()) {
@@ -445,6 +494,23 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
         return DB_ERROR;
     }
     observerMap_.erase(iter);
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const KvStoreObserver *observer)
+{
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
+    auto iter = cloudObserverMap_.find(observer);
+    if (iter == cloudObserverMap_.end()) {
+        LOGW("[KvStoreNbDelegate] [%s] CloudObserver has not been registered!", storeId_.c_str());
+        return NOT_FOUND;
+    }
+    int errCode = conn_->UnRegisterObserverAction(observer);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] UnRegisterCloudObserver failed:%d!", errCode);
+        return DB_ERROR;
+    }
+    cloudObserverMap_.erase(iter);
     return OK;
 }
 
@@ -1024,6 +1090,107 @@ std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const
         LOGI("[KvStoreNbDelegate] get watermark info success");
     } else {
         LOGE("[KvStoreNbDelegate] get watermark info failed:%d", errCode);
+    }
+    res.first = TransferDBErrno(errCode);
+    return res;
+}
+
+DBStatus KvStoreNbDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->Sync(option, onProcess));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (cloudDBs.empty()) {
+        LOGE("[KvStoreNbDelegateImpl] no cloud db");
+        return INVALID_ARGS;
+    }
+    return TransferDBErrno(conn_->SetCloudDB(cloudDBs));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetCloudDbSchema(schema));
+}
+
+DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, ClearMode mode)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (mode == ClearMode::DEFAULT) {
+        return RemoveDeviceData(device);
+    }
+    int errCode = conn_->RemoveDeviceData(device, mode);
+    LOGI("[KvStoreNbDelegateImpl] remove device data res %d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, const std::string &user,
+    ClearMode mode)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (mode == ClearMode::DEFAULT) {
+        return RemoveDeviceData(device);
+    }
+    int errCode = conn_->RemoveDeviceData(device, user, mode);
+    LOGI("[KvStoreNbDelegateImpl] remove device data with user res %d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+int32_t KvStoreNbDelegateImpl::GetTaskCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return conn_->GetTaskCount();
+}
+
+void KvStoreNbDelegateImpl::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    if (conn_ == nullptr || callback == nullptr) {
+        return;
+    }
+    conn_->SetGenCloudVersionCallback(callback);
+}
+
+std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::GetCloudVersion(
+    const std::string &device)
+{
+    std::pair<DBStatus, std::map<std::string, std::string>> res;
+    if (device.size() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[KvStoreNbDelegate] device invalid length %zu", device.size());
+        res.first = INVALID_ARGS;
+        return res;
+    }
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        res.first = DB_ERROR;
+        return res;
+    }
+    int errCode = conn_->GetCloudVersion(device, res.second);
+    if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate] get cloudVersion success");
+    } else {
+        LOGE("[KvStoreNbDelegate] get cloudVersion failed:%d", errCode);
     }
     res.first = TransferDBErrno(errCode);
     return res;

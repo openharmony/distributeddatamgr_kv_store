@@ -145,7 +145,7 @@ private:
 
     int CheckQueryValid(const CloudSyncOption &option);
 
-    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object);
+    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object, bool isFromTable);
 
     int CheckTableName(const std::vector<std::string> &tableNames);
 

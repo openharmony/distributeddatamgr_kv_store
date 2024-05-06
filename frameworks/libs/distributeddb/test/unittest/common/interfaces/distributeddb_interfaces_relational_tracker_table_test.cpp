@@ -552,7 +552,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
         EXPECT_EQ(extendVal, "Local" + std::to_string(index % num));
         std::string cursorVal;
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
-        EXPECT_EQ(cursorVal, std::to_string(++index + num));
+        EXPECT_EQ(cursorVal, std::to_string(++index));
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -563,6 +563,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
      */
     BatchUpdateTableName2Data(updateNum, LOCAL_TABLE_TRACKER_NAME_SET2);
     stmt = nullptr;
+    index = 0;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::string extendVal;

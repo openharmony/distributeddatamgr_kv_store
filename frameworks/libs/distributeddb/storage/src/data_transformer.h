@@ -37,16 +37,22 @@ struct LogInfo {
     Key hashKey; // primary key hash value
     std::string cloudGid; // use for sync with cloud
     std::string sharingResource; // use for cloud share data
+    std::string version; // use for conflict check
     uint32_t status = static_cast<uint32_t>(LockStatus::UNLOCK); // record lock status
 };
 
 enum class LogInfoFlag : uint32_t {
-    FLAG_CLOUD = 0x0,
+    FLAG_CLOUD = 0x0, // same as device sync
     FLAG_DELETE = 0x1,
     FLAG_LOCAL = 0x2,
-    FLAG_LOGIC_DELETE = 0x8,
+    FLAG_FORCE_PUSH_IGNORE = 0x4, // use in RDB
+    FLAG_LOGIC_DELETE = 0x8, // use in RDB
     FLAG_WAIT_COMPENSATED_SYNC = 0x10,
     FLAG_DEVICE_CLOUD_CONSISTENCY = 0x20,
+    FLAG_KV_FORCE_PUSH_IGNORE = 0x40,
+    FLAG_KV_LOGIC_DELETE = 0x80,
+    FLAG_CLOUD_WRITE = 0x100,
+    FLAG_SYSTEM_RECORD = 0x200,
 };
 
 struct RowDataWithLog {

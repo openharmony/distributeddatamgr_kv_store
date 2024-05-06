@@ -94,6 +94,8 @@ public:
 
     static void UpdateAssetsFlag(CloudSyncData &uploadData);
 
+    static OpType CalOpType(ICloudSyncer::SyncParam &param, size_t dataIndex);
+
     static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo();
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,

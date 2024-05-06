@@ -654,6 +654,12 @@ distributeddb_unittest("DistributedDBCloudSyncerDownloadAssetsTest") {
   sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_download_assets_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudSyncerLockTest") {
+  sources = [
+    "unittest/common/syncer/cloud/distributeddb_cloud_syncer_lock_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBCloudSyncerUploadTest") {
   sources = [
     "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp",
@@ -714,6 +720,12 @@ distributeddb_unittest("DistributedDBCloudAssetsOperationSyncTest") {
   sources = [ "unittest/common/storage/cloud/distributeddb_cloud_assets_operation_sync_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudTaskMergeTest") {
+  sources = [
+    "unittest/common/storage/cloud/distributeddb_cloud_task_merge_test.cpp",
+  ]
+}
+
 ###############################################################################
 # testcase using rd kernel
 
@@ -770,6 +782,10 @@ distributeddb_unittest("DistributedDBMetaDataTest") {
   sources = [ "unittest/common/syncer/distributeddb_meta_data_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudKvTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_kv_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -787,11 +803,13 @@ group("unittest") {
     ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",
     ":DistributedDBCloudInterfacesSetCloudSchemaTest",
+    ":DistributedDBCloudKvTest",
     ":DistributedDBCloudReferenceSyncTest",
     ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedDBCloudSchemaMgrTest",
     ":DistributedDBCloudStrategyTest",
     ":DistributedDBCloudSyncerDownloadTest",
+    ":DistributedDBCloudSyncerLockTest",
     ":DistributedDBCloudSyncerProgressManagerTest",
     ":DistributedDBCloudSyncerUploadTest",
     ":DistributedDBCloudTableCompoundPrimaryKeySyncTest",

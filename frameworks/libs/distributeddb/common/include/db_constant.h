@@ -168,6 +168,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_3 = "5.03"; // add sharing_resource field
     static constexpr const char *LOG_TABLE_VERSION_5_4 = "5.04"; // new flag bit 0x20 added, upgrade trigger
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
+    static constexpr const char *LOG_TABLE_VERSION_5_6 = "5.06"; // upgrade trigger for simple tracker log table
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;
@@ -186,6 +187,11 @@ public:
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr int32_t DEFAULT_ROW_ID = -1;
+    static constexpr int STR_TO_LL_BY_DEVALUE = 10;
+    // key in meta_data
+    static constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
+
+    static constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

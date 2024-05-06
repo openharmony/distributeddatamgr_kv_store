@@ -55,6 +55,13 @@ public:
      * client should override this function to receive change notification.
     */
     API_EXPORT virtual void OnChange(const DataOrigin &origin, Keys &&keys) {}
+
+    /**
+     * @brief Would called when switch data change.
+     *
+     * client should override this function to receive change notification.
+     */
+    API_EXPORT virtual void OnSwitchChange(const SwitchNotification &notification) {}
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
