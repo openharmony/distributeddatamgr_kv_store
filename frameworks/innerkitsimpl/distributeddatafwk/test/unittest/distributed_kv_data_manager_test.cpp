@@ -822,4 +822,36 @@ HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidAppId, TestSize.Level
     auto [status, data] = manager.GetSwitch({ "switches_test_appId" }, devInfo.networkId);
     ASSERT_EQ(status, Status::PERMISSION_DENIED);
 }
+
+/**
+* @tc.name: SubscribeSwitchesData
+* @tc.desc: subscribe switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, SubscribeSwitchesData, TestSize.Level1)
+{
+    ZLOGI("SubscribeSwitchesData begin.");
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
+    auto status = manager.SubscribeSwitchData({ "switches_test_appId" }, observer);
+    ASSERT_EQ(status, Status::PERMISSION_DENIED);
+}
+
+/**
+* @tc.name: UnsubscribeSwitchesData
+* @tc.desc: unsubscribe switch data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, UnsubscribeSwitchesData, TestSize.Level1)
+{
+    ZLOGI("UnsubscribeSwitchesData begin.");
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
+    auto status = manager.SubscribeSwitchData({ "switches_test_appId" }, observer);
+    ASSERT_EQ(status, Status::PERMISSION_DENIED);
+    status = manager.UnsubscribeSwitchData({ "switches_test_appId" }, observer);
+    ASSERT_EQ(status, Status::PERMISSION_DENIED);
+}
 } // namespace OHOS::Test
