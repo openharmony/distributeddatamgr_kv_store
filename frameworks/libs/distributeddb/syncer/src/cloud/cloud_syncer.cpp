@@ -1388,6 +1388,7 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
+    info.upLoadInfo.total -= uploadData.ignoredCount;
     ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused

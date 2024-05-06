@@ -1091,7 +1091,7 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     if (errCode != E_OK) {
         return errCode;
     }
-    LOGI("sync mode:%d, pri:%d，comp:%d", option.mode, option.priorityTask, option.compensatedSyncOnly);
+    LOGI("sync mode:%d, pri:%d, comp:%d", option.mode, option.priorityTask, option.compensatedSyncOnly);
     if (option.compensatedSyncOnly) {
         CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo();
         info.callback = onProcess;

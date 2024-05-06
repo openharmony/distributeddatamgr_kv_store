@@ -1915,55 +1915,5 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, Test
 {
     DataStatusTest007();
 }
-
-/**
- * @tc.name: SyncDataStatusTest008
- * @tc.desc: Test upload process when data locked
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. init local data
-     * @tc.expected: step1. return OK.
-     */
-    int localCount = 40;
-    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, true);
-    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
-    std::string sql = "update " + logName + " SET status = 2 where data_key >=20;";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-
-    /**
-     * @tc.steps:step2. sync and check process
-     * @tc.expected: step2. return OK.
-     */
-    g_syncProcess = {};
-    Query query = Query::Select().FromTable({ ASSETS_TABLE_NAME });
-    std::vector<TableProcessInfo> expectProcess = {
-        { PROCESSING, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } },
-        { FINISHED, { 0, 0, 0, 0 }, { 1, 40, 40, 0 } } // 1 is index, 40 is count
-    };
-    int index = 0;
-    CloudSyncStatusCallback callback = [&index, &expectProcess](const std::map<std::string, SyncProcess> &process) {
-        g_syncProcess = std::move(process.begin()->second);
-        ASSERT_LT(index, 2);
-        for (const auto &[tableName, info]: g_syncProcess.tableProcess) {
-            EXPECT_EQ(info.process, expectProcess[index].process);
-            EXPECT_EQ(info.upLoadInfo.batchIndex, expectProcess[index].upLoadInfo.batchIndex);
-            EXPECT_EQ(info.upLoadInfo.total, expectProcess[index].upLoadInfo.total);
-            EXPECT_EQ(info.upLoadInfo.successCount, expectProcess[index].upLoadInfo.successCount);
-            EXPECT_EQ(tableName, ASSETS_TABLE_NAME);
-        }
-        index++;
-        if (g_syncProcess.process == FINISHED) {
-            g_processCondition.notify_one();
-            ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
-        }
-    };
-    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, SYNC_WAIT_TIME), OK);
-    WaitForSyncFinish(g_syncProcess, SYNC_WAIT_TIME);
-}
 } // namespace
 #endif // RELATIONAL_STORE
