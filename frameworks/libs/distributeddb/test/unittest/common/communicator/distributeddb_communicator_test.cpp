@@ -22,6 +22,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "endian_convert.h"
 #include "log_print.h"
+#include "runtime_config.h"
 #include "thread_pool_test_stub.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -937,6 +938,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization001, TestSize.L
      * @tc.steps: step5. both notify
      * @tc.expected: step5. both has callback;
      */
+    RuntimeConfig::NotifyDBInfos({ deviceB }, { dbInfo });
     adapterA->NotifyDBInfos({ deviceB }, { dbInfo });
     adapterB->NotifyDBInfos({ deviceA }, { dbInfo });
     std::this_thread::sleep_for(std::chrono::seconds(1));
