@@ -34,7 +34,6 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
   ]
@@ -97,6 +96,7 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
   external_deps = [
     "c_utils:utils",
+    "file_api:securitylabel",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",

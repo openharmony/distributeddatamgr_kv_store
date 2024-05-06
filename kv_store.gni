@@ -17,8 +17,6 @@ kv_store_native_path = "${kv_store_base_path}/frameworks/native"
 
 kv_store_api_path = "${kv_store_base_path}/interfaces/inner_api"
 
-distributedfilejs_path = "//foundation/distributeddatamgr/distributedfile"
-
 third_party_path = "//third_party"
 
 use_platform_win = "${current_os}_${current_cpu}" == "mingw_x86_64"

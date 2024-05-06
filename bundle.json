@@ -74,7 +74,8 @@
         "ipc",
         "napi",
         "safwk",
-        "samgr"
+        "samgr",
+        "file_api"
       ]
     },
     "build": {

@@ -23,7 +23,7 @@
 namespace OHOS::DistributedKv {
 using Label = DistributedDB::SecurityLabel;
 using Flag = DistributedDB::SecurityFlag;
-using SecurityLabel = DistributedFS::ModuleSecurityLabel::SecurityLabel;
+using SecurityLabel = OHOS::FileManagement::ModuleSecurityLabel::SecurityLabel;
 constexpr int32_t HEAD_SIZE = 3;
 constexpr int32_t END_SIZE = 3;
 constexpr const char *REPLACE_CHAIN = "***";
