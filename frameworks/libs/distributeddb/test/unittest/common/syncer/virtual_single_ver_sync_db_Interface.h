@@ -119,7 +119,7 @@ public:
     int CheckAndInitQueryCondition(QueryObject &query) const override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID) const override;
+        const std::string &targetID, bool isPush) const override;
 
     int AddSubscribe(const std::string &subscribeId, const QueryObject &query, bool needCacheSubscribe) override;
 

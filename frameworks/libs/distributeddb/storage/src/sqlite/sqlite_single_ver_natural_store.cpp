@@ -171,10 +171,11 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       lifeTimerId_(0),
       autoLifeTime_(DBConstant::DEF_LIFE_CYCLE_TIME),
       createDBTime_(0),
-      dataInterceptor_(nullptr),
+      pushDataInterceptor_(nullptr),
       maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
       abortPerm_(OperatePerm::NORMAL_PERM),
-      sqliteCloudKvStore_(nullptr)
+      sqliteCloudKvStore_(nullptr),
+      receiveDataInterceptor_(nullptr)
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()

@@ -178,9 +178,9 @@ public:
     int CheckAndInitQueryCondition(QueryObject &query) const override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID) const override;
+        const std::string &targetID, bool isPush) const override;
 
-    void SetDataInterceptor(const PushDataInterceptor &interceptor) override;
+    void SetSendDataInterceptor(const PushDataInterceptor &interceptor) override;
 
     int AddSubscribe(const std::string &subscribeId, const QueryObject &query, bool needCacheSubscribe) override;
 
@@ -215,6 +215,8 @@ public:
     int UnRegisterObserverAction(const KvStoreObserver *observer);
 
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
+
+    void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
@@ -313,7 +315,9 @@ private:
     mutable std::mutex createDBTimeMutex_;
 
     mutable std::shared_mutex dataInterceptorMutex_;
-    PushDataInterceptor dataInterceptor_;
+    PushDataInterceptor pushDataInterceptor_;
+    DataInterceptor receiveDataInterceptor_;
+
     std::atomic<uint64_t> maxLogSize_;
 
     mutable std::shared_mutex abortHandleMutex_;

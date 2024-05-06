@@ -424,4 +424,9 @@ int GenericKvDBConnection::GetCloudVersion(const std::string &device, std::map<s
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    return -E_NOT_SUPPORT;
+}
 }

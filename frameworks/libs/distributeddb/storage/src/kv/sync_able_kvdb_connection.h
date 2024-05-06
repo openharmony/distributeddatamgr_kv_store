@@ -46,6 +46,8 @@ public:
     int32_t GetTaskCount() override;
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
+
+    int SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 protected:
     int DisableManualSync();
 

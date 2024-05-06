@@ -320,7 +320,7 @@ int SyncAbleKvDBConnection::SetPushDataInterceptor(const PushDataInterceptor &in
     if (kvDB == nullptr) {
         return -E_INVALID_CONNECTION;
     }
-    kvDB->SetDataInterceptor(interceptor);
+    kvDB->SetSendDataInterceptor(interceptor);
     return E_OK;
 }
 
@@ -386,5 +386,15 @@ void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersi
         return;
     }
     kvDB->SetGenCloudVersionCallback(callback);
+}
+
+int SyncAbleKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    auto kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    kvDB->SetReceiveDataInterceptor(interceptor);
+    return E_OK;
 }
 }

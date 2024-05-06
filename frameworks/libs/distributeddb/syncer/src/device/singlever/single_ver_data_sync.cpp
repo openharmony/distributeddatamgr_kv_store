@@ -411,11 +411,17 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SAVE_DATA);
     }
-
-    const std::string localHashName = DBCommon::TransferHashString(GetLocalDeviceName());
+    const auto localDeviceName = GetLocalDeviceName();
+    const std::string localHashName = DBCommon::TransferHashString(localDeviceName);
     SingleVerDataSyncUtils::TransSendDataItemToLocal(context, localHashName, inData);
+    std::vector<SendDataItem> copyData = inData;
+    int errCode = storage_->InterceptData(copyData, GetDeviceId(), localDeviceName, false);
+    if (errCode != E_OK) {
+        LOGE("[DataSync][SaveData] intercept data failed,errCode=%d", errCode);
+        return errCode;
+    }
     // query only support prefix key and don't have query in packet in 104 version
-    int errCode = storage_->PutSyncDataWithQuery(query, inData, context->GetDeviceId());
+    errCode = storage_->PutSyncDataWithQuery(query, copyData, context->GetDeviceId());
     if (performance != nullptr) {
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SAVE_DATA);
     }
@@ -1752,7 +1758,7 @@ int SingleVerDataSync::InterceptData(SyncEntry &syncEntry)
     // GetLocalDeviceName get local device ID.
     // GetDeviceId get remote device ID.
     // If intercept data fail, entries will be released.
-    return storage_->InterceptData(syncEntry.entries, GetLocalDeviceName(), GetDeviceId());
+    return storage_->InterceptData(syncEntry.entries, GetLocalDeviceName(), GetDeviceId(), true);
 }
 
 int SingleVerDataSync::ControlCmdStart(SingleVerSyncTaskContext *context)

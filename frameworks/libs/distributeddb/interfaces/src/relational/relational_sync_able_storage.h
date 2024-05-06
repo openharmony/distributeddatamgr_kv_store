@@ -101,7 +101,7 @@ public:
     int LocalDataChanged(int notifyEvent, std::vector<QuerySyncObject> &queryObj) override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID) const override;
+        const std::string &targetID, bool isPush) const override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
     int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,

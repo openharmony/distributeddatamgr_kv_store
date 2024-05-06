@@ -23,6 +23,7 @@
 #include "cloud/icloud_db.h"
 #include "db_types.h"
 #include "iconnection.h"
+#include "intercepted_data.h"
 #include "kv_store_observer.h"
 #include "macro_utils.h"
 #include "query.h"
@@ -158,6 +159,8 @@ public:
     virtual void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) = 0;
 
     virtual int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) = 0;
+
+    virtual int SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
 };
 } // namespace DistributedDB
 

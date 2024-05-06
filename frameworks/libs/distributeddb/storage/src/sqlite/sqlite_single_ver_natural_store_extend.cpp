@@ -350,22 +350,22 @@ int SQLiteSingleVerNaturalStore::CheckAndInitQueryCondition(QueryObject &query) 
     return errCode;
 }
 
-void SQLiteSingleVerNaturalStore::SetDataInterceptor(const PushDataInterceptor &interceptor)
+void SQLiteSingleVerNaturalStore::SetSendDataInterceptor(const PushDataInterceptor &interceptor)
 {
     std::unique_lock<std::shared_mutex> lock(dataInterceptorMutex_);
-    dataInterceptor_ = interceptor;
+    pushDataInterceptor_ = interceptor;
 }
 
 int SQLiteSingleVerNaturalStore::InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-    const std::string &targetID) const
+    const std::string &targetID, bool isPush) const
 {
     PushDataInterceptor interceptor = nullptr;
     {
         std::shared_lock<std::shared_mutex> lock(dataInterceptorMutex_);
-        if (dataInterceptor_ == nullptr) {
+        interceptor = isPush ? pushDataInterceptor_ : receiveDataInterceptor_;
+        if (interceptor == nullptr) {
             return E_OK;
         }
-        interceptor = dataInterceptor_;
     }
 
     InterceptedDataImpl data(entries, [this](const Value &newValue) -> int {
@@ -598,5 +598,11 @@ int SQLiteSingleVerNaturalStore::GetCloudVersion(const std::string &device,
         return -E_INTERNAL_ERROR;
     }
     return sqliteCloudKvStore_->GetCloudVersion(device, versionMap);
+}
+
+void SQLiteSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    std::unique_lock<std::shared_mutex> lock(dataInterceptorMutex_);
+    receiveDataInterceptor_ = interceptor;
 }
 }
