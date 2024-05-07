@@ -21,17 +21,19 @@
 #include "convertor.h"
 #include "dev_manager.h"
 #include "kv_store_nb_delegate.h"
+#include "kvdb_notifier_client.h"
 #include "kvdb_service.h"
 #include "kvstore_death_recipient.h"
 #include "observer_bridge.h"
 #include "single_kvstore.h"
 #include "sync_observer.h"
 #include "task_executor.h"
-#include "kvstore_sync_callback_client.h"
 
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,
-                        public KvStoreDeathRecipient {
+                        public KvStoreDeathRecipient,
+                        public KvStoreSyncCallback,
+                        public std::enable_shared_from_this<SingleStoreImpl> {
 public:
     using Observer = KvStoreObserver;
     using SyncCallback = KvStoreSyncCallback;
@@ -57,7 +59,10 @@ public:
     Status SubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer) override;
     Status UnSubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer) override;
     Status Get(const Key &key, Value &value) override;
-    Status Get(const Key &key, const std::string &networkId, Value &value) override;
+    void Get(const Key &key, const std::string &networkId,
+        const std::function<void(Status, Value &&)> &onResult) override;
+    void GetEntries(const Key &prefix, const std::string &networkId,
+        const std::function<void(Status, std::vector<Entry> &&)> &onResult) override;
     Status GetEntries(const Key &prefix, std::vector<Entry> &entries) const override;
     Status GetEntries(const DataQuery &query, std::vector<Entry> &entries) const override;
     Status GetResultSet(const Key &prefix, std::shared_ptr<ResultSet> &resultSet) const override;
@@ -71,6 +76,8 @@ public:
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     void OnRemoteDied() override;
+    void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
+    void SyncCompleted(const std::map<std::string, Status> &results) override;
 
     // normal function
     int32_t Close(bool isForce = false);
@@ -98,11 +105,17 @@ protected:
 private:
     using Time = ExecutorPool::Time;
     using Duration = ExecutorPool::Duration;
+    struct AsyncFunc {
+        Key key;
+        std::function<void(Status, Value &&)> toGet;
+        std::function<void(Status, std::vector<Entry> &&)> toGetEntries;
+    };
 
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
     static constexpr Duration SYNC_DURATION = std::chrono::seconds(60);
     static constexpr int32_t INTERVAL = 500; // ms
+    static constexpr uint64_t INVALID_SEQ_ID = 0;
     Status GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const;
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
@@ -110,7 +123,9 @@ private:
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    void DoAutoSync();
+    Status SyncExt(const std::string &networkId, uint64_t sequenceId);
+    bool IsRemoteChanged(const std::string &deviceId);
+    void DoNotifyChange();
     void Register();
 
     bool autoSync_ = false;
@@ -120,12 +135,13 @@ private:
     std::string appId_;
     std::string storeId_;
     int32_t ref_ = 1;
+    int32_t dataType_ = DataType::TYPE_DYNAMICAL;
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;
-    ConcurrentMap<std::string, std::pair<uint64_t, Time>> timePoints_;
+    ConcurrentMap<uint64_t, AsyncFunc> asyncFuncs_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H

@@ -162,6 +162,50 @@ public:
      * @return Return SUCCESS for success, others for failure.
      */
     API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
+
+    /**
+     * @brief Put switch data to database.
+     *
+     * @param appId The name of the application.
+     * @param SwitchData The value of switch data.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    API_EXPORT Status PutSwitch(const AppId &appId, const SwitchData &data);
+
+    /**
+     * @brief Get switch data by networkId.
+     *
+     * @param appId The name of the application.
+     * @param networkId The networkId of device.
+     * @return Return Status and SwitchData, Status is SUCCESS for success, others for failure.
+     */
+    API_EXPORT std::pair<Status, SwitchData> GetSwitch(const AppId &appId, const std::string &networkId);
+
+    /**
+     * @brief Subscribe swicth data to watch data change in the store.
+     *
+     * Oobserver will be called when data changed, with all the changed contents.
+     * client is responsible for free observer after and only after call UnsubscribeSwitchData.
+     * otherwise, codes in sdk may use a freed memory and cause unexpected result.
+     *
+     * @param appId The name of the application.
+     * @param observer Callback client provided, observer function will called, when data changed in store.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    API_EXPORT Status SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
+
+    /**
+     * @brief Unsubscribe swicth data to un-watch data change in the store.
+     *
+     * after this call, no message will be received even data change in the store.
+     * client is responsible for free observer after and only after call UnsubscribeSwitchData.
+     * otherwise, codes in sdk may use a freed memory and cause unexpected result.
+     *
+     * @param appId The name of the application.
+     * @param observer Callback client provided, observer function will called, when data changed in store.
+     * @return Return SUCCESS for success, others for failure.
+    */
+    API_EXPORT Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
 private:
     static bool isAlreadySet_;
     std::mutex mutex_;

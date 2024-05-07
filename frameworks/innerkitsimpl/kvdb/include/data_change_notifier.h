@@ -21,27 +21,23 @@
 #include "kvdb_service.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
-class AutoSyncTimer {
+class DataChangeNotifier {
 public:
-    static constexpr uint32_t FORCE_SYNC_INTERVAL = 200;
-    static constexpr uint32_t AUTO_SYNC_INTERVAL = 50;
-    static AutoSyncTimer &GetInstance();
-    void DoAutoSync(const std::string &appId, std::set<StoreId> storeIds);
+    static DataChangeNotifier &GetInstance();
+    void DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds, bool now = false);
 
 private:
-    static constexpr size_t TIME_TASK_NUM = 5;
-    static constexpr size_t SYNC_STORE_NUM = 10;
-    AutoSyncTimer() = default;
-    ~AutoSyncTimer() = default;
+    static constexpr uint32_t NOTIFY_DELAY = 1; // s
+    DataChangeNotifier() = default;
+    ~DataChangeNotifier() = default;
     std::map<std::string, std::vector<StoreId>> GetStoreIds();
-    std::function<void()> ProcessTask() __attribute__((no_sanitize("cfi")));
+    std::function<void()> GenTask() __attribute__((no_sanitize("cfi")));
     void StartTimer();
-    void StopTimer();
-    void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
-    bool HasSyncStores();
+    void AddStores(const std::string &appId, std::set<StoreId> storeIds);
+    void DoNotify(const std::string& appId, const std::vector<StoreId> &stores);
+    bool HasStores();
     ConcurrentMap<std::string, std::vector<StoreId>> stores_;
-    TaskExecutor::TaskId delaySyncTaskId_;
-    TaskExecutor::TaskId forceSyncTaskId_;
+    TaskExecutor::TaskId taskId_;
     std::mutex mutex_;
 };
 } // namespace OHOS::DistributedKv

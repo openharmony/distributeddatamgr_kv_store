@@ -23,7 +23,7 @@
 namespace OHOS::DistributedKv {
 using Label = DistributedDB::SecurityLabel;
 using Flag = DistributedDB::SecurityFlag;
-using SecurityLabel = DistributedFS::ModuleSecurityLabel::SecurityLabel;
+using SecurityLabel = OHOS::FileManagement::ModuleSecurityLabel::SecurityLabel;
 SystemApi::SystemApi()
 {
 }

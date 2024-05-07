@@ -155,11 +155,6 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
     status = kvStore_->Get({ "Put Test" }, value);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(value.ToString(), "Put2 Value");
-    Value value1;
-    status = kvStore_->Get({ "Put Test" }, "networkId", value1);
-    ASSERT_EQ(status, INVALID_ARGUMENT);
-    status = kvStore_->Get({ "Put Test" }, "", value1);
-    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
 /**
@@ -1555,6 +1550,185 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetStaticStore
+ * @tc.desc: get static store
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangijang
+ */
+HWTEST_F(SingleStoreImplTest, GetStaticStore, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: StaticStoreAsyncGet
+ * @tc.desc: static store async get
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangijang
+ */
+HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreAsyncGetTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    BlockData<bool> blockData{ 1, false };
+    std::function<void(Status, Value&&)> result = [&blockData](Status status, Value&& value) {
+        ASSERT_EQ(status, Status::NOT_SUPPORT);
+        blockData.SetValue(true);
+    };
+    kvStore->Get({"key"}, "networkId", result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: StaticStoreAsyncGetEntries
+ * @tc.desc: static store async get entries
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangijang
+ */
+HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreAsyncGetEntriesTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    BlockData<bool> blockData{ 1, false };
+    std::function<void(Status, std::vector<Entry>&&)> result =
+        [&blockData](Status status, std::vector<Entry>&& value) {
+            ASSERT_EQ(status, Status::NOT_SUPPORT);
+            blockData.SetValue(true);
+    };
+    kvStore->GetEntries({"key"}, "networkId", result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DynamicStoreAsyncGet
+ * @tc.desc: dynamic store async get
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangijang
+ */
+HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGet, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DynamicStoreAsyncGetTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    BlockData<bool> blockData{ 1, false };
+    std::function<void(Status, Value&&)> result = [&blockData](Status status, Value&& value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        ASSERT_EQ(value.ToString(), "Put Value");
+        blockData.SetValue(true);
+    };
+    kvStore->Get({"Put Test"}, networkId, result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DynamicStoreAsyncGetEntries
+ * @tc.desc: dynamic store async get entries
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangijang
+ */
+HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DynamicStoreAsyncGetEntriesTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    std::vector<Entry> entries;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "key_" + std::to_string(i);
+        entry.value = std::to_string(i);
+        entries.push_back(entry);
+    }
+    status = kvStore->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    BlockData<bool> blockData{ 1, false };
+    std::function<void(Status, std::vector<Entry>&&)> result =
+        [entries, &blockData](Status status, std::vector<Entry>&& value) {
+            ASSERT_EQ(status, Status::SUCCESS);
+            ASSERT_EQ(value.size(), entries.size());
+            blockData.SetValue(true);
+    };
+    kvStore->GetEntries({"key_"}, networkId, result);
+    blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 }
