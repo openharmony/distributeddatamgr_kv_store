@@ -1886,6 +1886,13 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
         if (errorCode == -E_NOT_SET) {
             return -E_NOT_SET;
         }
+    } else {
+        // share table will not download asset, need to reset the status
+        for (auto &entry: downloadItem.assets) {
+            for (auto &asset: entry.second) {
+                asset.status = AssetStatus::NORMAL;
+            }
+        }
     }
     if (errorCode != E_OK) {
         info.downLoadInfo.failCount += 1;
