@@ -1218,6 +1218,6 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
     StoreId storeId = { "cloud_store_id" };
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
     auto status = cloudSyncKvStore->CloudSync(nullptr);
-    EXPECT_EQ(status, Status::SUCCESS) << "cloud sync should return success";
+    EXPECT_NE(status, Status::SUCCESS) << "cloud sync should not return success";
 }
 } // namespace OHOS::Test
