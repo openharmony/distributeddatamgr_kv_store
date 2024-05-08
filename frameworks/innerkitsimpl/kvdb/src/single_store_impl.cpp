@@ -621,17 +621,15 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
               StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
-    serviceAgent->AddCloudSyncCallback(async);
     KVDBService::SyncInfo syncInfo;
     syncInfo.seqId = StoreUtil::GenSequenceId();
+    serviceAgent->AddCloudSyncCallback(syncInfo.seqId, async);
     auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
-    if (status == SUCCESS) {
-        return SUCCESS;
-    } else {
+    if (status != SUCCESS) {
         ZLOGE("sync failed!: %{public}d", status);
-        serviceAgent->DeleteCloudSyncCallback(async);
-        return ERROR;
+        serviceAgent->DeleteCloudSyncCallback(syncInfo.seqId);
     }
+    return status;
 }
 
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)

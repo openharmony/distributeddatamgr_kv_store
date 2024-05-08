@@ -30,7 +30,6 @@ using DeviceInfo = DistributedKv::DeviceInfo;
 using ChangeNotification = DistributedKv::ChangeNotification;
 using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
-using DevBrief = DistributedKv::KVDBService::DevBrief;
 using TableDetail = DistributedKv::TableDetail;
 using Statistic = DistributedKv::Statistic;
 using ProgressDetail = DistributedKv::ProgressDetail;

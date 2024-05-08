@@ -92,11 +92,6 @@ void KvStoreObserverProxy::OnChange(const DataOrigin &origin, Keys &&keys)
         ZLOGE("write descriptor failed");
         return;
     }
-    int64_t insertSize = keys[OP_INSERT].size();
-    int64_t updateSize = keys[OP_UPDATE].size();
-    int64_t deleteSize = keys[OP_DELETE].size();
-    ZLOGD("I(%" PRId64 ") U(%" PRId64 ") D(%" PRId64 ")", insertSize, updateSize, deleteSize);
-
     if (!ITypesUtil::Marshal(data, origin.store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
         ZLOGE("WriteChangeInfo to Parcel failed.");
         return;

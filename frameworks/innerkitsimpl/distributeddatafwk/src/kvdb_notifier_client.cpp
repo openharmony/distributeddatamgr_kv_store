@@ -43,14 +43,17 @@ void KVDBNotifierClient::SyncCompleted(const std::map<std::string, Status> &resu
     }
 }
 
-int32_t KVDBNotifierClient::SyncCompleted(uint32_t seqNum, ProgressDetail &&detail)
+void KVDBNotifierClient::SyncCompleted(uint64_t seqNum, ProgressDetail &&detail)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
-    auto finded = cloudSyncCallbacks_.Find(sequenceId);
-    if (finded.first) {
-        finded.second->SyncCompleted(sequenceId, detail);
-        DeleteCloudSyncCallback(sequenceId);
-    }
+    cloudSyncCallbacks_.ComputeIfPresent(seqNum, [&detail](const auto &key, const AsyncDetail &callback) {
+        auto finished = (detail.progress == SYNC_FINISH);
+        ZLOGD("Sync complete, seqNum%{public}" PRIu64, key);
+        if (callback != nullptr) {
+            callback(std::move(detail));
+        }
+        return !finished;
+    });
 }
 
 void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask)

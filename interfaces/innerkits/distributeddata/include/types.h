@@ -543,6 +543,15 @@ struct UserInfo {
 };
 
 /**
+ * @brief Cloud sync progress status.
+*/
+enum Progress {
+    SYNC_BEGIN = 0,
+    SYNC_IN_PROGRESS,
+    SYNC_FINISH,
+};
+
+/**
  * @brief Cloud sync statistic.
 */
 struct Statistic {
