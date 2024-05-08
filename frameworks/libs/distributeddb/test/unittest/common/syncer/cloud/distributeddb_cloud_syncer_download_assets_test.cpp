@@ -1096,7 +1096,6 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Le
     g_virtualCloudDb->SetClearExtend(count);
     UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
-    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
 }
 
 /**

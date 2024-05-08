@@ -936,4 +936,28 @@ int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
     CloudSyncUtils::ModifyCloudDataTime(batchData.extend[0]);
     return storageProxy_->FillCloudLogAndAsset(isInsert ? OpType::INSERT : OpType::UPDATE, uploadData);
 }
+
+int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
+{
+    if (!IsDataContainAssets()) {
+        return E_OK;
+    }
+    std::vector<Field> assetFields;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        assetFields = currentContext_.assetFields[currentContext_.tableName];
+    }
+
+    for (size_t i = 0; i < uploadData.insData.extend.size(); i++) {
+        for (const Field &assetField : assetFields) {
+            (void)TagAssetsInSingleCol(assetField, uploadData.insData.record[i], true);
+        }
+    }
+    for (size_t i = 0; i < uploadData.updData.extend.size(); i++) {
+        for (const Field &assetField : assetFields) {
+            (void)TagAssetsInSingleCol(assetField, uploadData.updData.record[i], false);
+        }
+    }
+    return E_OK;
+}
 }

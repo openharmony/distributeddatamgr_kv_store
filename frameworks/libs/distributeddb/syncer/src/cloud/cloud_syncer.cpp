@@ -713,14 +713,9 @@ int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &pa
         case OpType::NOT_HANDLE:
         case OpType::ONLY_UPDATE_GID:
         case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO: { // means upload need this data
-            // Save the asset info into context
-            std::map<std::string, Assets> assetsMap = GetAssetsFromVBucket(param.downloadData.data[idx]);
-            {
-                std::lock_guard<std::mutex> autoLock(dataLock_);
-                if (currentContext_.assetsInfo.find(param.tableName) == currentContext_.assetsInfo.end()) {
-                    currentContext_.assetsInfo[param.tableName] = {};
-                }
-                currentContext_.assetsInfo[param.tableName][dataInfo.cloudLogInfo.cloudGid] = assetsMap;
+            (void)TagAssetsInSingleRecord(localAssetInfo, param.downloadData.data[idx], true, ret);
+            for (const auto &[col, value]: localAssetInfo) {
+                param.downloadData.data[idx].insert_or_assign(col, value);
             }
             break;
         }
@@ -1236,62 +1231,6 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
     param.taskId = taskId;
     param.lockAction = lockAction;
     return DoUploadInner(tableName, param);
-}
-
-int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
-{
-    int errCode = E_OK;
-    if (!IsDataContainAssets()) {
-        return E_OK;
-    }
-    std::map<std::string, std::map<std::string, Assets>> cloudAssets;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        cloudAssets = currentContext_.assetsInfo[currentContext_.tableName];
-    }
-    // for delete scenario, assets should not appear in the records. Thereby we needn't tag the assests.
-    // for insert scenario, gid does not exist. Thereby, we needn't compare with cloud asset get in download procedure
-    for (size_t i = 0; i < uploadData.insData.extend.size(); i++) {
-        VBucket cloudAsset; // cloudAsset must be empty
-        (void)TagAssetsInSingleRecord(uploadData.insData.record[i], cloudAsset, true, errCode);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] TagAssetsInSingleRecord report ERROR in DELETE/INSERT option");
-            return errCode;
-        }
-    }
-    // for update scenario, assets shoulb be compared with asset get in download procedure.
-    for (size_t i = 0; i < uploadData.updData.extend.size(); i++) {
-        VBucket cloudAsset;
-        // gid must exist in UPDATE scenario, cause we have re-fill gid during download procedure
-        // But we need to check for safety
-        auto gidIter = uploadData.updData.extend[i].find(CloudDbConstant::GID_FIELD);
-        if (gidIter == uploadData.updData.extend[i].end()) {
-            LOGE("[CloudSyncer] Datum to be upload must contain gid");
-            return -E_INVALID_DATA;
-        }
-        // update data must contain gid, however, we could only pull data after water mark
-        // Therefore, we need to check whether we contain the data
-        std::string &gid = std::get<std::string>(gidIter->second);
-        if (cloudAssets.find(gid) == cloudAssets.end()) {
-            // In this case, we directly upload data without compartion and tagging
-            std::vector<Field> assetFields;
-            {
-                std::lock_guard<std::mutex> autoLock(dataLock_);
-                assetFields = currentContext_.assetFields[currentContext_.tableName];
-            }
-            CloudSyncUtils::StatusToFlagForAssetsInRecord(assetFields, uploadData.updData.record[i]);
-            continue;
-        }
-        for (const auto &it : cloudAssets[gid]) {
-            cloudAsset[it.first] = it.second;
-        }
-        (void)TagAssetsInSingleRecord(uploadData.updData.record[i], cloudAsset, true, errCode);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] TagAssetsInSingleRecord report ERROR in UPDATE option");
-            return errCode;
-        }
-    }
-    return E_OK;
 }
 
 int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
