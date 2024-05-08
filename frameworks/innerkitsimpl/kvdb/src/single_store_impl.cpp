@@ -615,11 +615,21 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    auto status = service->CloudSync({ appId_ }, { storeId_ }, async);
+    auto serviceAgent = service->GetServiceAgent({ appId_ });
+    if (serviceAgent == nullptr) {
+        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
+              StoreUtil::Anonymous(storeId_).c_str());
+        return ILLEGAL_STATE;
+    }
+    serviceAgent->AddCloudSyncCallback(async);
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.seqId = StoreUtil::GenSequenceId();
+    auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
     if (status == SUCCESS) {
         return SUCCESS;
     } else {
         ZLOGE("sync failed!: %{public}d", status);
+        serviceAgent->DeleteCloudSyncCallback(async);
         return ERROR;
     }
 }
