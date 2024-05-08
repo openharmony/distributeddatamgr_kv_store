@@ -863,22 +863,20 @@ void CloudSyncer::AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema>
     }
 }
 
-std::pair<TaskId, TaskId> CloudSyncer::SwapTwoTaskAndCopyTable(TaskId target, TaskId source)
+std::pair<TaskId, TaskId> CloudSyncer::SwapTwoTaskAndCopyTable(TaskId source, TaskId target)
 {
-    cloudTaskInfos_[target].table = cloudTaskInfos_[source].table;
-    cloudTaskInfos_[target].queryList = cloudTaskInfos_[source].queryList;
-    return {source, target};
+    cloudTaskInfos_[source].table = cloudTaskInfos_[target].table;
+    cloudTaskInfos_[source].queryList = cloudTaskInfos_[target].queryList;
+    return {target, source};
 }
 
 bool CloudSyncer::IsQueryListEmpty(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    for (const auto &item : cloudTaskInfos_[taskId].queryList) {
-        if (item.IsContainQueryNodes()) {
-            return false;
-        }
-    }
-    return true;
+    return !std::any_of(cloudTaskInfos_[taskId].queryList.begin(), cloudTaskInfos_[taskId].queryList.end(),
+        [](const auto &item) {
+            return item.IsContainQueryNodes();
+    });
 }
 
 int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &uploadParam)
