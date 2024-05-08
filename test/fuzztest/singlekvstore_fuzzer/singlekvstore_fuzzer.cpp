@@ -481,7 +481,7 @@ void UnSubscribeWithQueryFuzz(const uint8_t *data, size_t size)
     singleKvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
 }
 
-void AsyncGetFuzz(data, size)
+void AsyncGetFuzz(const uint8_t *data, size_t size)
 {
     std::string strKey(data, data + size);
     std::string strValue(data, data + size);
@@ -495,7 +495,7 @@ void AsyncGetFuzz(data, size)
     singleKvStore_->Delete(key);
 }
 
-void AsyncGetEntriesFuzz(data, size)
+void AsyncGetEntriesFuzz(const uint8_t *data, size_t size)
 {
     std::string prefix(data, data + size);
     std::string keys = "test_";

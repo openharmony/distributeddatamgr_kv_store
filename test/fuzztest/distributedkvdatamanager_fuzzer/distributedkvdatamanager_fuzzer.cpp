@@ -19,6 +19,7 @@
 
 #include "distributed_kv_data_manager.h"
 #include "kvstore_death_recipient.h"
+#include "kvstore_observer.h"
 #include "types.h"
 
 using namespace OHOS;
@@ -217,10 +218,10 @@ void UnRegisterKvStoreServiceDeathRecipientFuzz()
 void PutSwitchFuzz(const uint8_t *data, size_t size)
 {
     std::string appId(data, data + size);
-    uint32_t data = static_cast<uint32_t>(size);
+    uint32_t input = static_cast<uint32_t>(size);
     SwitchData switchData;
-    switchData.value = data;
-    switchData.length = data & 0xFFFF;
+    switchData.value = input;
+    switchData.length = input & 0xFFFF;
     manager.PutSwitch({ appId }, switchData);
     manager.PutSwitch({ "distributed_device_profile_service" }, switchData);
 }
