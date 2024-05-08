@@ -51,6 +51,21 @@ public:
     }
 };
 
+class SwitchDataObserver : public KvStoreObserver {
+public:
+    SwitchDataObserver();
+    ~SwitchDataObserver()
+    {}
+    SwitchDataObserver(const SwitchDataObserver &) = delete;
+    SwitchDataObserver &operator=(const SwitchDataObserver &) = delete;
+    SwitchDataObserver(SwitchDataObserver &&) = delete;
+    SwitchDataObserver &operator=(SwitchDataObserver &&) = delete;
+
+    void OnSwitchChange(const SwitchNotification &notification) override
+    {
+    }
+};
+
 void SetUpTestCase(void)
 {
     userId.userId = "account";
@@ -198,6 +213,40 @@ void UnRegisterKvStoreServiceDeathRecipientFuzz()
     manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
     kvStoreDeathRecipient->OnRemoteDied();
 }
+
+void PutSwitchFuzz(const uint8_t *data, size_t size)
+{
+    std::string appId(data, data + size);
+    uint32_t data = static_cast<uint32_t>(size);
+    SwitchData switchData;
+    switchData.value = data;
+    switchData.length = data & 0xFFFF;
+    manager.PutSwitch({ appId }, switchData);
+    manager.PutSwitch({ "distributed_device_profile_service" }, switchData);
+}
+
+void GetSwitchFuzz(const uint8_t *data, size_t size)
+{
+    std::string appId(data, data + size);
+    std::string networkId(data, data + size);
+    manager.GetSwitch({ appId }, networkId);
+    manager.GetSwitch({ "distributed_device_profile_service" }, networkId);
+}
+
+void SubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
+{
+    std::string appId(data, data + size);
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
+    manager.SubscribeSwitchData({ appId }, observer);
+}
+
+void UnsubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
+{
+    std::string appId(data, data + size);
+    std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
+    manager.SubscribeSwitchData({ appId }, observer);
+    manager.UnsubscribeSwitchData({ appId }, observer);
+}
 } // namespace OHOS
 
 /* Fuzzer entry point */
@@ -214,6 +263,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::DeleteAllKvStoreFuzz3(data, size);
     OHOS::RegisterKvStoreServiceDeathRecipientFuzz();
     OHOS::UnRegisterKvStoreServiceDeathRecipientFuzz();
+    OHOS::PutSwitchFuzz(data, size);
+    OHOS::GetSwitchFuzz(data, size);
+    OHOS::SubscribeSwitchDataFuzz(data, size);
+    OHOS::UnsubscribeSwitchDataFuzz(data, size);
     OHOS::TearDown();
     return 0;
 }

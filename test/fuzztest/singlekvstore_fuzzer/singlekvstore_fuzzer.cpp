@@ -480,6 +480,37 @@ void UnSubscribeWithQueryFuzz(const uint8_t *data, size_t size)
     dataQuery.KeyPrefix("name");
     singleKvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
 }
+
+void AsyncGetFuzz(data, size)
+{
+    std::string strKey(data, data + size);
+    std::string strValue(data, data + size);
+    Key key = { strKey };
+    Value val = { strValue };
+    singleKvStore_->Put(key, val);
+    Value out;
+    std::function<void(Status, Value &&)> call = [](Status status, Value &&value) {};
+    std::string networkId(data, data + size);
+    singleKvStore_->Get(key, networkId, call);
+    singleKvStore_->Delete(key);
+}
+
+void AsyncGetEntriesFuzz(data, size)
+{
+    std::string prefix(data, data + size);
+    std::string keys = "test_";
+    size_t sum = 10;
+    std::vector<Entry> results;
+    for (size_t i = 0; i < sum; i++) {
+        singleKvStore_->Put(prefix + keys + std::to_string(i), { keys + std::to_string(i) });
+    }
+    std::function<void(Status, std::vector<Entry> &&)> call = [](Status status, std::vector<Entry> &&entry) {};
+    std::string networkId(data, data + size);
+    singleKvStore_->GetEntries(prefix, networkId, call);
+    for (size_t i = 0; i < sum; i++) {
+        singleKvStore_->Delete(prefix + keys + std::to_string(i));
+    }
+}
 } // namespace OHOS
 
 /* Fuzzer entry point */
@@ -508,6 +539,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::SetCapabilityRangeFuzz(data, size);
     OHOS::SubscribeWithQueryFuzz(data, size);
     OHOS::UnSubscribeWithQueryFuzz(data, size);
+    OHOS::AsyncGetFuzz(data, size);
+    OHOS::AsyncGetEntriesFuzz(data, size);
     OHOS::TearDown();
     return 0;
 }
