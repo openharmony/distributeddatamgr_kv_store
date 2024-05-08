@@ -54,9 +54,8 @@ public:
 
 class SwitchDataObserver : public KvStoreObserver {
 public:
-    SwitchDataObserver();
-    ~SwitchDataObserver()
-    {}
+    SwitchDataObserver() {}
+    ~SwitchDataObserver() {}
     SwitchDataObserver(const SwitchDataObserver &) = delete;
     SwitchDataObserver &operator=(const SwitchDataObserver &) = delete;
     SwitchDataObserver(SwitchDataObserver &&) = delete;
