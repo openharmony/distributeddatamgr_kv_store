@@ -1129,6 +1129,9 @@ HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
         void SyncCompleted(const map<std::string, Status> &results) override
         {
         }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
+        {
+        }
     };
     auto callback = std::make_shared<TestSyncCallback>();
     auto status = kvStore_->RegisterSyncCallback(callback);
@@ -1148,6 +1151,9 @@ HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
     class TestSyncCallback : public KvStoreSyncCallback {
     public:
         void SyncCompleted(const map<std::string, Status> &results) override
+        {
+        }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
         {
         }
     };
