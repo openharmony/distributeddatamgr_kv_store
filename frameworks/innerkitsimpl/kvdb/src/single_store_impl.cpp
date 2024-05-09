@@ -387,6 +387,7 @@ Status SingleStoreImpl::SyncExt(const std::string &networkId, uint64_t sequenceI
         return INVALID_ARGUMENT;
     }
     KVDBService::SyncInfo syncInfo;
+    syncInfo.mode = SyncMode::PULL;
     syncInfo.seqId = sequenceId;
     syncInfo.devices = { networkId };
     auto status = DoSyncExt(syncInfo, shared_from_this());
