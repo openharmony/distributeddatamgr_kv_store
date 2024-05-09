@@ -88,6 +88,7 @@
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
+        "//foundation/distributeddatamgr/kv_store/interfaces/cj:cj_distributed_kv_store_ffi",
         "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils"
       ],
       "inner_kits": [
