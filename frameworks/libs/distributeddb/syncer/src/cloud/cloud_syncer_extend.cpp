@@ -110,6 +110,7 @@ int CloudSyncer::GetCloudGid(TaskId taskId, const std::string &tableName, QueryS
     } else if (!cloudGid.empty()) {
         obj.SetCloudGid(cloudGid);
     }
+    LOGI("[CloudSyncer] get cloud gid size:%zu", cloudGid.size());
     return errCode;
 }
 
@@ -377,7 +378,7 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
         taskInfo.queryList.push_back(query);
     }
     Sync(taskInfo);
-    LOGD("[CloudSyncer] Generate compensated sync finished");
+    LOGI("[CloudSyncer] Generate compensated sync finished");
 }
 
 void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam)
@@ -572,15 +573,6 @@ int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &coun
         LOGE("[CloudSyncer] Invalid table name for get local water mark: %d", ret);
         return ret;
     }
-    Timestamp localMark = 0u;
-    if (!IsModeForcePush(taskId) && !IsPriorityTask(taskId)) {
-        ret = storageProxy_->GetLocalWaterMark(tableName, localMark);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to get local water mark when upload, %d.", ret);
-            return ret;
-        }
-    }
-    ReloadWaterMarkIfNeed(taskId, localMark);
 
     ret = storageProxy_->StartTransaction();
     if (ret != E_OK) {
@@ -588,8 +580,8 @@ int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &coun
         return ret;
     }
 
-    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId),
-        IsCompensatedTask(taskId), count);
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), IsModeForcePush(taskId),
+        IsCompensatedTask(taskId), IsNeedGetLocalWater(taskId), count);
     if (ret != E_OK) {
         // GetUploadCount will return E_OK when upload count is zero.
         LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
@@ -669,7 +661,8 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
 
 bool CloudSyncer::IsNeedGetLocalWater(TaskId taskId)
 {
-    return !IsModeForcePush(taskId) && !IsPriorityTask(taskId) && !IsCompensatedTask(taskId);
+    return !IsModeForcePush(taskId) && (!IsPriorityTask(taskId) || IsQueryListEmpty(taskId)) &&
+        !IsCompensatedTask(taskId);
 }
 
 bool CloudSyncer::IsNeedLock(const UploadParam &param)

@@ -1569,7 +1569,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &ti
         return errCode;
     }
     std::string tableName = query.GetRelationTableName();
-    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
+    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask,
+        CloudWaterType::DELETE);
     return GetUploadCountInner(timestamp, helper, sql, count);
 }
 
@@ -1588,7 +1589,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vecto
     count = 0;
     std::vector<CloudWaterType> typeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
     for (size_t i = 0; i < typeVec.size(); i++) {
-        std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask);
+        std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask, typeVec[i]);
         int64_t tempCount = 0;
         helper.AppendCloudQueryToGetDiffData(sql, typeVec[i]);
         errCode = GetUploadCountInner(timestampVec[i], helper, sql, tempCount);
@@ -1644,8 +1645,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         isStepNext = true;
         errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize, maxSize);
     } while (errCode == E_OK);
-    LOGD("Get cloud sync data, insData:%u, upData:%u, delLog:%u", cloudDataResult.insData.record.size(),
-        cloudDataResult.updData.record.size(), cloudDataResult.delData.extend.size());
     if (errCode != -E_UNFINISHED) {
         (void)token.ReleaseCloudStatement();
     }
@@ -1858,7 +1857,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "cloud_gid = '', version = '', sharing_resource = '', flag = flag & " +
             std::to_string(SET_FLAG_ZERO_MASK);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
-        updateLogSql += CloudDbConstant::TO_LOCAL_CHANGE;
+        updateLogSql += std::string(CloudDbConstant::TO_LOCAL_CHANGE) + ", cloud_gid = ?";
+        updateColName.push_back(CloudDbConstant::GID_FIELD);
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));

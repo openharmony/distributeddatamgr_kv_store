@@ -1835,9 +1835,10 @@ void DistributedDBCloudCheckSyncTest::SyncDataStatusTest(bool isCompensatedSyncO
         int unSyncCount = 14; // 14 is the num of unSync data with status 0
         CloudDBSyncUtilsTest::CheckCount(db_, querySql, unSyncCount);
     } else {
-        querySql = preSql + " where status=3 and data_key in (2,12) and cloud_gid ='';";
+        // gid 12、13 are upload insert, lock to lock_change
+        querySql = preSql + " where status=3 and data_key in (2,12) and cloud_gid !='';";
         CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
-        querySql = preSql + " where status=3 and data_key in (3,13) and cloud_gid ='';";
+        querySql = preSql + " where status=3 and data_key in (3,13) and cloud_gid !='';";
         CloudDBSyncUtilsTest::CheckCount(db_, querySql, syncCount);
         querySql = preSql + " where status=0 and cloud_gid !='';";
         int unSyncCount = 16; // 16 is the num of sync finish

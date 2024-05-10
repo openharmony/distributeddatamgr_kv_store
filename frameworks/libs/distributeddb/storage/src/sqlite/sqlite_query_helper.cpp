@@ -1149,15 +1149,16 @@ std::string SqliteQueryHelper::GetRelationalCloudQuerySql(const std::vector<Fiel
     const bool &isCloudForcePush, bool isCompensatedTask, CloudWaterType mode)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
-    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql);
+    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql, mode);
     AppendCloudQueryToGetDiffData(sql, mode);
     return sql;
 }
 
-std::string SqliteQueryHelper::GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask)
+std::string SqliteQueryHelper::GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask,
+    CloudWaterType mode)
 {
     std::string sql = "SELECT COUNT(*) ";
-    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql);
+    AppendCloudQuery(isCloudForcePush, isCompensatedTask, sql, mode);
     return sql;
 }
 
@@ -1169,13 +1170,14 @@ std::string SqliteQueryHelper::GetGidRelationalCloudQuerySql(const std::vector<F
     return sql;
 }
 
-void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql)
+void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql,
+    CloudWaterType mode)
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
     if (isCompensatedTask) {
         sql += "(b.status = 1) OR ";
-    } else if (queryObjNodes_.empty()) { // means unPriorityTask
+    } else if (queryObjNodes_.empty() && mode != CloudWaterType::INSERT) { // means unPriorityTask and not insert
         sql += "(b.status != 1) AND ";
     }
     sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
@@ -1209,7 +1211,8 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
     if (isCompensatedTask) {
-        sql += " b.status=1 AND ";
+        // deleted data does not have primary key, requires gid to compensate sync
+        sql += " (b.status=1) OR ";
     }
     sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
         " b.timestamp > ?";

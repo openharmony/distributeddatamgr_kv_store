@@ -285,6 +285,8 @@ private:
 
     int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName);
 
+    bool CheckTableSupportCompensatedSync(const TableSchema &table);
+
     void ExecuteDataChangeCallback(
         const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item, int &observerCnt,
         const std::string &deviceName, const ChangedData &changedData, bool isChangedData);

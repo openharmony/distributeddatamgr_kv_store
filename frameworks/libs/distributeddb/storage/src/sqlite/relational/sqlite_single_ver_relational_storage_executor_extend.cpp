@@ -505,15 +505,14 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
     if (ret != E_OK) {
         LOGE("Fail to set log trigger on, %d", ret);
     }
-    LOGD("save cloud data: %d, insert cnt = %d, update cnt = %d, delete cnt = %d, only update gid cnt = %d, "
-         "set LCC flag zero cnt = %d, set LCC flag one cnt = %d, update timestamp cnt = %d, clear gid count = %d,"
-         " not handle cnt = %d",
+    LOGI("save cloud data:%d, ins:%d, upd:%d, del:%d, only gid:%d, flag zero:%d, flag one:%d, upd timestamp:%d,"
+         "clear gid:%d, not handle:%d, lock:%d",
          errCode, statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
          statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)], statisticMap[static_cast<int>(OpType::CLEAR_GID)],
-         statisticMap[static_cast<int>(OpType::NOT_HANDLE)]);
+         statisticMap[static_cast<int>(OpType::NOT_HANDLE)], statisticMap[static_cast<int>(OpType::LOCKED_NOT_HANDLE)]);
     return errCode == E_OK ? ret : errCode;
 }
 
