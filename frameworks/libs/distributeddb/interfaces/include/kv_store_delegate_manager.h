@@ -32,6 +32,8 @@ namespace DistributedDB {
 class KvStoreDelegateManager final {
 public:
     DB_API KvStoreDelegateManager(const std::string &appId, const std::string &userId, int32_t instanceId = 0);
+    DB_API KvStoreDelegateManager(const std::string &appId, const std::string &userId, const std::string &account,
+        int32_t instanceId = 0);
     DB_API ~KvStoreDelegateManager();
 
     KvStoreDelegateManager(const KvStoreDelegateManager &) = delete;
@@ -123,6 +125,7 @@ private:
     KvStoreConfig kvStoreConfig_;
     std::string appId_;
     std::string userId_;
+    std::string account_;
     int32_t instanceId_;
 
     mutable std::mutex mutex_;

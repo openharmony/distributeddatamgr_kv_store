@@ -198,7 +198,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
         ZLOGW("Endpoint already set");
         return SUCCESS;
     }
-    
+
     auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -229,7 +229,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
         };
         return endpoint->HasDataSyncPermission(params, flag);
     };
-    
+
     dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);
     status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {

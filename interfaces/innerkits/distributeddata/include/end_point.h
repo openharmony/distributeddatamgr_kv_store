@@ -83,13 +83,13 @@ public:
      * @return Data size.
      */
     virtual uint32_t GetMtuSize(const std::string &identifier) = 0;
-    
+
     /**
      * @brief Obtains the ID of the loacl device info.
      * @return loacl device info.
      */
     virtual std::string GetLocalDeviceInfos() = 0;
-    
+
     /**
      * @brief Determines whether the device has the capability of data of this level.
      * @param devId Target device ID.

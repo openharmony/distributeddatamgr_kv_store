@@ -285,11 +285,14 @@ int DBCommon::RemoveAllFilesOfDirectory(const std::string &dir, bool isNeedRemov
 }
 
 std::string DBCommon::GenerateIdentifierId(const std::string &storeId,
-    const std::string &appId, const std::string &userId, int32_t instanceId)
+    const std::string &appId, const std::string &userId, const std::string &account, int32_t instanceId)
 {
     std::string id = userId + "-" + appId + "-" + storeId;
     if (instanceId != 0) {
         id += "-" + std::to_string(instanceId);
+    }
+    if (!account.empty()) {
+        id += "-" + account;
     }
     return id;
 }
@@ -299,15 +302,15 @@ std::string DBCommon::GenerateDualTupleIdentifierId(const std::string &storeId, 
     return appId + "-" + storeId;
 }
 
-void DBCommon::SetDatabaseIds(KvDBProperties &properties, const std::string &appId, const std::string &userId,
-    const std::string &storeId, int32_t instanceId)
+void DBCommon::SetDatabaseIds(KvDBProperties &properties, const DbIdParam &dbIdParam)
 {
-    properties.SetIdentifier(userId, appId, storeId, instanceId);
+    properties.SetIdentifier(dbIdParam.userId, dbIdParam.appId, dbIdParam.storeId,
+        dbIdParam.account, dbIdParam.instanceId);
     std::string oriStoreDir;
-    // IDENTIFIER_DIR no need cal with instanceId
-    std::string identifier = GenerateIdentifierId(storeId, appId, userId);
+    // IDENTIFIER_DIR no need cal with instanceId and account
+    std::string identifier = GenerateIdentifierId(dbIdParam.storeId, dbIdParam.appId, dbIdParam.userId);
     if (properties.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false)) {
-        oriStoreDir = storeId;
+        oriStoreDir = dbIdParam.storeId;
     } else {
         oriStoreDir = identifier;
     }

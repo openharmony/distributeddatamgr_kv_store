@@ -243,5 +243,13 @@ struct WatermarkInfo {
     uint64_t sendMark = 0; // data will be sent which timestamp greater than sendMark
     uint64_t receiveMark = 0; // data will be sent in remote which timestamp greater than receiveMark
 };
+
+struct DbIdParam {
+    std::string appId;
+    std::string userId;
+    std::string storeId;
+    std::string account = "";
+    int32_t instanceId = 0;
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

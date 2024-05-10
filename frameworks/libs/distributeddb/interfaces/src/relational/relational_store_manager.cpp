@@ -46,6 +46,14 @@ RelationalStoreManager::RelationalStoreManager(const std::string &appId, const s
       instanceId_(instanceId)
 {}
 
+RelationalStoreManager::RelationalStoreManager(const std::string &appId, const std::string &userId,
+    const std::string &account, int32_t instanceId)
+    : appId_(appId),
+      userId_(userId),
+      account_(account),
+      instanceId_(instanceId)
+{}
+
 static RelationalStoreConnection *GetOneConnectionWithRetry(const RelationalDBProperties &properties, int &errCode)
 {
     for (int i = 0; i < GET_CONNECT_RETRY; i++) {
@@ -74,7 +82,7 @@ bool RelationalStoreManager::PreCheckOpenStore(const std::string &path, const st
         return false;
     }
 
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) || path.empty()) {
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, account_) || path.empty()) {
         return false;
     }
 
@@ -91,7 +99,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
 
     RelationalDBProperties properties;
     properties.SetStringProp(RelationalDBProperties::DATA_DIR, canonicalDir);
-    properties.SetIdentifier(userId_, appId_, storeId, instanceId_);
+    properties.SetIdentifier(userId_, appId_, storeId, account_, instanceId_);
     properties.SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
     if (option.isEncryptedDb) {
         if (!ParamCheckUtils::CheckEncryptedParameter(option.cipher, option.passwd) || option.iterateTimes == 0) {
