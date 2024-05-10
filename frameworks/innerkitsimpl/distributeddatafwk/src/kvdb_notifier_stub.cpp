@@ -33,6 +33,7 @@ namespace DistributedKv {
 const KVDBNotifierStub::Handler
     KVDBNotifierStub::HANDLERS[static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT)] = {
     &KVDBNotifierStub::OnSyncCompleted,
+    &KVDBNotifierStub::OnCloudSyncCompleted,
     &KVDBNotifierStub::OnOnRemoteChange,
     &KVDBNotifierStub::OnOnSwitchChange,
 };
@@ -65,6 +66,18 @@ int32_t KVDBNotifierStub::OnSyncCompleted(MessageParcel& data, MessageParcel& re
         return IPC_STUB_INVALID_DATA_ERR;
     }
     SyncCompleted(std::move(results), sequenceId);
+    return ERR_NONE;
+}
+
+int32_t KVDBNotifierStub::OnCloudSyncCompleted(MessageParcel& data, MessageParcel& reply)
+{
+    ProgressDetail detail;
+    uint64_t sequenceId;
+    if (!ITypesUtil::Unmarshal(data, sequenceId, detail)) {
+        ZLOGE("Unmarshal sequenceId:%{public}" PRIu64, sequenceId);
+        return IPC_STUB_INVALID_DATA_ERR;
+    }
+    SyncCompleted(sequenceId, std::move(detail));
     return ERR_NONE;
 }
 

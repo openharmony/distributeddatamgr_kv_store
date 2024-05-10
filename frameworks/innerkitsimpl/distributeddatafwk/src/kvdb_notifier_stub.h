@@ -31,6 +31,7 @@ public:
 private:
     using Handler = int32_t (KVDBNotifierStub::*)(MessageParcel &data, MessageParcel &reply);
     int32_t OnSyncCompleted(MessageParcel& data, MessageParcel& reply);
+    int32_t OnCloudSyncCompleted(MessageParcel& data, MessageParcel& reply);
     int32_t OnOnRemoteChange(MessageParcel& data, MessageParcel& reply);
     int32_t OnOnSwitchChange(MessageParcel& data, MessageParcel& reply);
     static const Handler HANDLERS[static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT)];

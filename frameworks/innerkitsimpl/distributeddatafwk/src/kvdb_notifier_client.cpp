@@ -43,6 +43,19 @@ void KVDBNotifierClient::SyncCompleted(const std::map<std::string, Status> &resu
     }
 }
 
+void KVDBNotifierClient::SyncCompleted(uint64_t seqNum, ProgressDetail &&detail)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
+    cloudSyncCallbacks_.ComputeIfPresent(seqNum, [&detail](const auto &key, const AsyncDetail &callback) {
+        auto finished = (detail.progress == SYNC_FINISH);
+        ZLOGD("Sync complete, seqNum%{public}" PRIu64, key);
+        if (callback != nullptr) {
+            callback(std::move(detail));
+        }
+        return !finished;
+    });
+}
+
 void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask)
 {
     ZLOGD("remote changed mask:%{public}zu", mask.size());
@@ -87,6 +100,20 @@ void KVDBNotifierClient::AddSyncCallback(
 void KVDBNotifierClient::DeleteSyncCallback(uint64_t sequenceId)
 {
     syncCallbackInfo_.Erase(sequenceId);
+}
+
+void KVDBNotifierClient::AddCloudSyncCallback(uint64_t sequenceId, const AsyncDetail &async)
+{
+    if (async == nullptr) {
+        ZLOGE("Cloud sync callback is nullptr");
+        return;
+    }
+    cloudSyncCallbacks_.Insert(sequenceId, async);
+}
+
+void KVDBNotifierClient::DeleteCloudSyncCallback(uint64_t sequenceId)
+{
+    cloudSyncCallbacks_.Erase(sequenceId);
 }
 
 void KVDBNotifierClient::AddSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer)

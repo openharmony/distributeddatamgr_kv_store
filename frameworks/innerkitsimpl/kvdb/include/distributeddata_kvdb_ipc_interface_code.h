@@ -52,6 +52,7 @@ enum class KVDBServiceInterfaceCode : uint32_t {
 enum class KVDBNotifierCode : uint32_t {
     TRANS_HEAD = 0,
     TRANS_SYNC_COMPLETED = TRANS_HEAD,
+    TRANS_CLOUD_SYNC_COMPLETED,
     TRANS_ON_REMOTE_CHANGED,
     TRANS_ON_SWITCH_CHANGED,
     TRANS_BUTT

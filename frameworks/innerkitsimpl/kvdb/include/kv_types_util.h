@@ -30,6 +30,9 @@ using DeviceInfo = DistributedKv::DeviceInfo;
 using ChangeNotification = DistributedKv::ChangeNotification;
 using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
+using TableDetail = DistributedKv::TableDetail;
+using Statistic = DistributedKv::Statistic;
+using ProgressDetail = DistributedKv::ProgressDetail;
 using SwitchData = DistributedKv::SwitchData;
 using Status = OHOS::DistributedKv::Status;
 using Notification = OHOS::DistributedKv::SwitchNotification;
@@ -88,6 +91,21 @@ template<>
 API_EXPORT bool Marshalling(const Notification &input, MessageParcel &data);
 template<>
 API_EXPORT bool Unmarshalling(Notification &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const ProgressDetail &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(ProgressDetail &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const TableDetail &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(TableDetail &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const Statistic &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(Statistic &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

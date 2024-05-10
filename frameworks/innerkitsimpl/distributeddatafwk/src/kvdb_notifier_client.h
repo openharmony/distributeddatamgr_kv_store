@@ -29,6 +29,7 @@ public:
     virtual ~KVDBNotifierClient();
 
     void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
+    void SyncCompleted(uint64_t seqNum, ProgressDetail &&detail) override;
 
     void OnRemoteChange(const std::map<std::string, bool> &mask) override;
 
@@ -42,12 +43,16 @@ public:
 
     void DeleteSwitchCallback(const std::string &appId, std::shared_ptr<KvStoreObserver> observer);
 
+    void AddCloudSyncCallback(uint64_t sequenceId, const AsyncDetail &async);
+    void DeleteCloudSyncCallback(uint64_t sequenceId);
+
     bool IsChanged(const std::string &deviceId);
 
 private:
     ConcurrentMap<uint64_t, std::shared_ptr<KvStoreSyncCallback>> syncCallbackInfo_;
     ConcurrentMap<std::string, bool> remotes_;
     ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
+    ConcurrentMap<uint64_t, AsyncDetail> cloudSyncCallbacks_;
 };
 } // namespace DistributedKv
 } // namespace OHOS
