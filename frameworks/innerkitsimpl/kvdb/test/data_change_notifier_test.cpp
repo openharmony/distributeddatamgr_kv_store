@@ -99,6 +99,10 @@ public:
         {
             ASSERT_TRUE(true);
         }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
+        {
+            ASSERT_TRUE(true);
+        }
     };
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
