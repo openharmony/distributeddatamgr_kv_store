@@ -2013,7 +2013,7 @@ bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSche
     for (const auto &field : table.fields) {
         if (field.primary && (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets> ||
             field.type == TYPE_INDEX<Bytes>)) {
-            LOGI("[RDBStorageEngine] Table contain support pk field type, ignored");
+            LOGI("[RDBStorageEngine] Table contain not support pk field type:%d, ignored", field.type);
             return false;
         }
     }
