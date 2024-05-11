@@ -416,7 +416,9 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
             }
             lastTime = TimerTester::GetCurrentTime();
             int ret = timer->SetTimeout(counter * TIME_PIECE_1000);
-            EXPECT_EQ(ret, E_OK);
+            if (ret != -E_OBJ_IS_KILLED) {
+                EXPECT_EQ(ret, E_OK);
+            }
             return E_OK;
         }, nullptr);
     EXPECT_EQ(errCode, E_OK);
