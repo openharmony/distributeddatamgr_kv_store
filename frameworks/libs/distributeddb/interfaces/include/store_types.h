@@ -248,7 +248,7 @@ struct DbIdParam {
     std::string appId;
     std::string userId;
     std::string storeId;
-    std::string account = "";
+    std::string subUser = "";
     int32_t instanceId = 0;
 };
 } // namespace DistributedDB

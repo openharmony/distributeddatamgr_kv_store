@@ -660,9 +660,9 @@ distributeddb_unittest("DistributedDBCloudSyncerLockTest") {
   ]
 }
 
-distributeddb_unittest("DistributedDBSingleVerMultiAccountTest") {
+distributeddb_unittest("DistributedDBSingleVerMultiSubUserTest") {
   sources = [
-    "unittest/common/syncer/distributeddb_single_ver_multi_account_test.cpp",
+    "unittest/common/syncer/distributeddb_single_ver_multi_sub_user_test.cpp",
   ]
 }
 
@@ -874,7 +874,7 @@ group("unittest") {
     ":DistributedDBSchemalTest",
     ":DistributedDBSingleVerDLPTest",
     ":DistributedDBSingleVerMsgScheduleTest",
-    ":DistributedDBSingleVerMultiAccountTest",
+    ":DistributedDBSingleVerMultiSubUserTest",
     ":DistributedDBSingleVerMultiUserTest",
     ":DistributedDBSingleVerP2PComplexSyncTest",
     ":DistributedDBSingleVerP2PPermissionSyncTest",

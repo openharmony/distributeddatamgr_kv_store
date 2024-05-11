@@ -285,14 +285,14 @@ int DBCommon::RemoveAllFilesOfDirectory(const std::string &dir, bool isNeedRemov
 }
 
 std::string DBCommon::GenerateIdentifierId(const std::string &storeId,
-    const std::string &appId, const std::string &userId, const std::string &account, int32_t instanceId)
+    const std::string &appId, const std::string &userId, const std::string &subUser, int32_t instanceId)
 {
     std::string id = userId + "-" + appId + "-" + storeId;
     if (instanceId != 0) {
         id += "-" + std::to_string(instanceId);
     }
-    if (!account.empty()) {
-        id += "-" + account;
+    if (!subUser.empty()) {
+        id += "-" + subUser;
     }
     return id;
 }
@@ -305,9 +305,9 @@ std::string DBCommon::GenerateDualTupleIdentifierId(const std::string &storeId, 
 void DBCommon::SetDatabaseIds(KvDBProperties &properties, const DbIdParam &dbIdParam)
 {
     properties.SetIdentifier(dbIdParam.userId, dbIdParam.appId, dbIdParam.storeId,
-        dbIdParam.account, dbIdParam.instanceId);
+        dbIdParam.subUser, dbIdParam.instanceId);
     std::string oriStoreDir;
-    // IDENTIFIER_DIR no need cal with instanceId and account
+    // IDENTIFIER_DIR no need cal with instanceId and subUser
     std::string identifier = GenerateIdentifierId(dbIdParam.storeId, dbIdParam.appId, dbIdParam.userId);
     if (properties.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false)) {
         oriStoreDir = dbIdParam.storeId;

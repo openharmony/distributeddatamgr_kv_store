@@ -40,7 +40,7 @@ namespace {
     const std::string DEVICE_A = "real_device";
     const std::string DEVICE_B = "deviceB";
     const std::string KEY_INSTANCE_ID = "INSTANCE_ID";
-    const std::string KEY_ACCOUNT = "ACCOUNT";
+    const std::string KEY_SUB_USER = "SUB_USER";
     KvVirtualDevice *g_deviceB = nullptr;
     DistributedDBToolsUnitTest g_tool;
     CloudSyncOption g_CloudSyncoption;
@@ -188,7 +188,7 @@ namespace {
         delegatePtr = nullptr;
     }
 
-class DistributedDBSingleVerMultiAccountTest : public testing::Test {
+class DistributedDBSingleVerMultiSubUserTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -205,7 +205,7 @@ protected:
     SyncProcess lastProcess_;
 };
 
-void DistributedDBSingleVerMultiAccountTest::SetUpTestCase(void)
+void DistributedDBSingleVerMultiSubUserTest::SetUpTestCase(void)
 {
     /**
      * @tc.setup: Init datadir and Virtual Communicator.
@@ -227,7 +227,7 @@ void DistributedDBSingleVerMultiAccountTest::SetUpTestCase(void)
     RuntimeConfig::SetCloudTranslate(g_virtualCloudDataTranslate);
 }
 
-void DistributedDBSingleVerMultiAccountTest::TearDownTestCase(void)
+void DistributedDBSingleVerMultiSubUserTest::TearDownTestCase(void)
 {
     /**
      * @tc.teardown: Release virtual Communicator and clear data dir.
@@ -238,7 +238,7 @@ void DistributedDBSingleVerMultiAccountTest::TearDownTestCase(void)
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
-void DistributedDBSingleVerMultiAccountTest::SetUp(void)
+void DistributedDBSingleVerMultiSubUserTest::SetUp(void)
 {
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
@@ -249,7 +249,7 @@ void DistributedDBSingleVerMultiAccountTest::SetUp(void)
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
 }
 
-void DistributedDBSingleVerMultiAccountTest::TearDown(void)
+void DistributedDBSingleVerMultiSubUserTest::TearDown(void)
 {
     virtualCloudDb_ = nullptr;
     if (g_deviceB != nullptr) {
@@ -266,7 +266,7 @@ void DistributedDBSingleVerMultiAccountTest::TearDown(void)
     }
 }
 
-void DistributedDBSingleVerMultiAccountTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
+void DistributedDBSingleVerMultiSubUserTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
     CloudSyncOption option, int expectSyncResult)
 {
     if (delegate == nullptr) {
@@ -306,7 +306,7 @@ void DistributedDBSingleVerMultiAccountTest::BlockSync(KvStoreNbDelegate *delega
     lastProcess_ = last;
 }
 
-void DistributedDBSingleVerMultiAccountTest::GenerateDataRecords(
+void DistributedDBSingleVerMultiSubUserTest::GenerateDataRecords(
     int64_t begin, int64_t count, int64_t gidStart, std::vector<VBucket> &record, std::vector<VBucket> &extend)
 {
     for (int64_t i = begin; i < begin + count; i++) {
@@ -332,7 +332,7 @@ void DistributedDBSingleVerMultiAccountTest::GenerateDataRecords(
     }
 }
 
-void DistributedDBSingleVerMultiAccountTest::InsertLocalData(int64_t begin, int64_t count,
+void DistributedDBSingleVerMultiSubUserTest::InsertLocalData(int64_t begin, int64_t count,
     const std::string &tableName, bool isAssetNull, sqlite3 *&db)
 {
     int errCode;
@@ -359,7 +359,7 @@ void DistributedDBSingleVerMultiAccountTest::InsertLocalData(int64_t begin, int6
     }
 }
 
-CloudSyncOption DistributedDBSingleVerMultiAccountTest::PrepareOption(const Query &query, LockAction action)
+CloudSyncOption DistributedDBSingleVerMultiSubUserTest::PrepareOption(const Query &query, LockAction action)
 {
     CloudSyncOption option;
     option.devices = { "CLOUD" };
@@ -372,7 +372,7 @@ CloudSyncOption DistributedDBSingleVerMultiAccountTest::PrepareOption(const Quer
     return option;
 }
 
-void DistributedDBSingleVerMultiAccountTest::CallSync(RelationalStoreDelegate *delegate, const CloudSyncOption &option,
+void DistributedDBSingleVerMultiSubUserTest::CallSync(RelationalStoreDelegate *delegate, const CloudSyncOption &option,
     DBStatus expectResult)
 {
     std::mutex dataMutex;
@@ -400,29 +400,29 @@ void DistributedDBSingleVerMultiAccountTest::CallSync(RelationalStoreDelegate *d
 
 /**
  * @tc.name: KvDelegateInvalidParamTest001
- * @tc.desc: Test kv delegate open with invalid account.
+ * @tc.desc: Test kv delegate open with invalid subUser.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, KvDelegateInvalidParamTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, KvDelegateInvalidParamTest001, TestSize.Level1)
 {
-    std::string account1 = std::string(129, 'a');
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, account1, INSTANCE_ID_1);
+    std::string subUser1 = std::string(129, 'a');
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, subUser1, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), INVALID_ARGS);
     ASSERT_EQ(delegatePtr1, nullptr);
 
-    std::string account2 = "account-1";
-    KvStoreDelegateManager mgr2(APP_ID, USER_ID, account2, INSTANCE_ID_1);
+    std::string subUser2 = "subUser-1";
+    KvStoreDelegateManager mgr2(APP_ID, USER_ID, subUser2, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr2, mgr2), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr2, mgr2), INVALID_ARGS);
     ASSERT_EQ(delegatePtr2, nullptr);
 
-    std::string account3 = std::string(128, 'a');
-    KvStoreDelegateManager mgr3(APP_ID, USER_ID, account3, INSTANCE_ID_1);
+    std::string subUser3 = std::string(128, 'a');
+    KvStoreDelegateManager mgr3(APP_ID, USER_ID, subUser3, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr3 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr3, mgr3), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr3, mgr3), OK);
     ASSERT_NE(delegatePtr3, nullptr);
 
     CloseDelegate(delegatePtr3, mgr3, STORE_ID_1);
@@ -430,32 +430,32 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, KvDelegateInvalidParamTest001, 
 
 /**
  * @tc.name: RDBDelegateInvalidParamTest001
- * @tc.desc: Test rdb delegate open with invalid account.
+ * @tc.desc: Test rdb delegate open with invalid subUser.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, RDBDelegateInvalidParamTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, RDBDelegateInvalidParamTest001, TestSize.Level1)
 {
-    std::string account1 = std::string(129, 'a');
-    RelationalStoreManager mgr1(APP_ID, USER_ID, account1, INSTANCE_ID_1);
+    std::string subUser1 = std::string(129, 'a');
+    RelationalStoreManager mgr1(APP_ID, USER_ID, subUser1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr1, mgr1, db1), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr1, nullptr);
 
-    std::string account2 = "account-1";
-    RelationalStoreManager mgr2(APP_ID, USER_ID, account2, INSTANCE_ID_1);
+    std::string subUser2 = "subUser-1";
+    RelationalStoreManager mgr2(APP_ID, USER_ID, subUser2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr2, mgr2, db2), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr2, mgr2, db2), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr2, nullptr);
 
-    std::string account3 = std::string(128, 'a');
-    RelationalStoreManager mgr3(APP_ID, USER_ID, account3, INSTANCE_ID_1);
+    std::string subUser3 = std::string(128, 'a');
+    RelationalStoreManager mgr3(APP_ID, USER_ID, subUser3, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr3 = nullptr;
     sqlite3 *db3;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr3, mgr3, db3), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr3, mgr3, db3), OK);
     ASSERT_NE(rdbDelegatePtr3, nullptr);
 
     CloseDelegate(rdbDelegatePtr3, mgr3, db3);
@@ -463,21 +463,21 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, RDBDelegateInvalidParamTest001,
 
 /**
  * @tc.name: SameDelegateTest001
- * @tc.desc: Test kv delegate open with diff account.
+ * @tc.desc: Test kv delegate open with diff subUser.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, SameDelegateTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SameDelegateTest001, TestSize.Level1)
 {
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
 
-    KvStoreDelegateManager mgr2(APP_ID, USER_ID, ACCOUNT_2, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account2", delegatePtr2, mgr2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", delegatePtr2, mgr2), OK);
     ASSERT_NE(delegatePtr2, nullptr);
 
     Key key1 = {'k', '1'};
@@ -502,23 +502,23 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, SameDelegateTest001, TestSize.L
 
 /**
  * @tc.name: SameDelegateTest002
- * @tc.desc: Test rdb delegate open with diff account.
+ * @tc.desc: Test rdb delegate open with diff subUser.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, SameDelegateTest002, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SameDelegateTest002, TestSize.Level1)
 {
-    RelationalStoreManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
 
-    RelationalStoreManager mgr2(APP_ID, USER_ID, ACCOUNT_2, INSTANCE_ID_1);
+    RelationalStoreManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    EXPECT_EQ(OpenDelegate("/account2", rdbDelegatePtr2, mgr2, db2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, mgr2, db2), OK);
     ASSERT_NE(rdbDelegatePtr2, nullptr);
 
     int localCount = 10;
@@ -543,18 +543,18 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, SameDelegateTest002, TestSize.L
 }
 
 /**
- * @tc.name: AccountDelegateCRUDTest001
- * @tc.desc: Test account rdb delegate crud function.
+ * @tc.name: SubUserDelegateCRUDTest001
+ * @tc.desc: Test subUser rdb delegate crud function.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCRUDTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest001, TestSize.Level1)
 {
-    RelationalStoreManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
 
     int localCount = 10;
@@ -577,17 +577,17 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCRUDTest001, Tes
 }
 
 /**
- * @tc.name: AccountDelegateCRUDTest002
- * @tc.desc: Test account kv delegate crud function.
+ * @tc.name: SubUserDelegateCRUDTest002
+ * @tc.desc: Test subUser kv delegate crud function.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCRUDTest002, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest002, TestSize.Level1)
 {
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
 
     Key key1 = {'k', '1'};
@@ -610,23 +610,23 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCRUDTest002, Tes
 }
 
 /**
- * @tc.name: AccountDelegateCloudSyncTest001
- * @tc.desc: Test account kv delegate cloud sync function.
+ * @tc.name: SubUserDelegateCloudSyncTest001
+ * @tc.desc: Test subUser kv delegate cloud sync function.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest001, TestSize.Level0)
 {
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
     EXPECT_EQ(SetCloudDB(delegatePtr1), OK);
 
-    KvStoreDelegateManager mgr2(APP_ID, USER_ID, ACCOUNT_2, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account2", delegatePtr2, mgr2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", delegatePtr2, mgr2), OK);
     ASSERT_NE(delegatePtr2, nullptr);
     EXPECT_EQ(SetCloudDB(delegatePtr2), OK);
 
@@ -650,25 +650,25 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCloudSyncTest001
 }
 
 /**
- * @tc.name: AccountDelegateCloudSyncTest002
- * @tc.desc: Test account rdb delegate cloud sync function.
+ * @tc.name: SubUserDelegateCloudSyncTest002
+ * @tc.desc: Test subUser rdb delegate cloud sync function.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002, TestSize.Level0)
 {
-    RelationalStoreManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
     EXPECT_EQ(SetCloudDB(rdbDelegatePtr1), OK);
 
-    RelationalStoreManager mgr2(APP_ID, USER_ID, ACCOUNT_2, INSTANCE_ID_1);
+    RelationalStoreManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    EXPECT_EQ(OpenDelegate("/account2", rdbDelegatePtr2, mgr2, db2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, mgr2, db2), OK);
     ASSERT_NE(rdbDelegatePtr2, nullptr);
     EXPECT_EQ(SetCloudDB(rdbDelegatePtr2), OK);
 
@@ -687,20 +687,20 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, AccountDelegateCloudSyncTest002
 }
 
 /**
- * @tc.name: MultiAccountDelegateSync001
- * @tc.desc: Test account delegate sync function.
+ * @tc.name: MultiSubUserDelegateSync001
+ * @tc.desc: Test subUser delegate sync function.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, MultiAccountDelegateSync001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync001, TestSize.Level1)
 {
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RuntimeConfig::SetPermissionCheckCallback([](const PermissionCheckParam &param, uint8_t flag) {
         if ((flag & PermissionCheckFlag::CHECK_FLAG_RECEIVE) != 0) {
             bool res = false;
-            if (param.extraConditions.find(KEY_ACCOUNT) != param.extraConditions.end()) {
-                res = param.extraConditions.at(KEY_ACCOUNT) == ACCOUNT_1;
+            if (param.extraConditions.find(KEY_SUB_USER) != param.extraConditions.end()) {
+                res = param.extraConditions.at(KEY_SUB_USER) == SUB_USER_1;
             }
             return res;
         }
@@ -712,12 +712,12 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, MultiAccountDelegateSync001, Te
     });
     RuntimeConfig::SetPermissionConditionCallback([](const PermissionConditionParam &param) {
         std::map<std::string, std::string> res;
-        res.emplace(KEY_ACCOUNT, ACCOUNT_1);
+        res.emplace(KEY_SUB_USER, SUB_USER_1);
         return res;
     });
 
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
 
     Key key1 = {'k', '1'};
@@ -733,15 +733,15 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, MultiAccountDelegateSync001, Te
 }
 
 /**
- * @tc.name: MultiAccountDelegateSync002
- * @tc.desc: Test account delegate sync active if callback return true.
+ * @tc.name: MultiSubUserDelegateSync002
+ * @tc.desc: Test subUser delegate sync active if callback return true.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiAccountTest, MultiAccountDelegateSync002, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, TestSize.Level1)
 {
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, ACCOUNT_1, INSTANCE_ID_1);
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RuntimeConfig::SetSyncActivationCheckCallback([](const ActivationCheckParam &param) {
         if (param.userId == USER_ID && param.appId == APP_ID && param.storeId == STORE_ID_1 &&
             param.instanceId == INSTANCE_ID_1) {
@@ -751,7 +751,7 @@ HWTEST_F(DistributedDBSingleVerMultiAccountTest, MultiAccountDelegateSync002, Te
     });
 
     KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1, true), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1, true), OK);
     ASSERT_NE(delegatePtr1, nullptr);
 
     std::map<std::string, DBStatus> result;

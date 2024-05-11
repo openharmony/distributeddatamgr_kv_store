@@ -23,7 +23,7 @@ const std::string DBProperties::USER_ID = "userId";
 const std::string DBProperties::APP_ID = "appId";
 const std::string DBProperties::STORE_ID = "storeId";
 const std::string DBProperties::INSTANCE_ID = "instanceId";
-const std::string DBProperties::ACCOUNT = "account";
+const std::string DBProperties::SUB_USER = "subUser";
 const std::string DBProperties::IDENTIFIER_DATA = "identifier";
 const std::string DBProperties::IDENTIFIER_DIR = "identifierDir";
 const std::string DBProperties::DUAL_TUPLE_IDENTIFIER_DATA = "dualTupleIdentifier";
@@ -75,15 +75,15 @@ void DBProperties::SetIntProp(const std::string &name, int value)
 }
 
 void DBProperties::SetIdentifier(const std::string &userId, const std::string &appId, const std::string &storeId,
-    const std::string &account, int32_t instanceId)
+    const std::string &subUser, int32_t instanceId)
 {
     SetStringProp(DBProperties::APP_ID, appId);
     SetStringProp(DBProperties::USER_ID, userId);
     SetStringProp(DBProperties::STORE_ID, storeId);
-    SetStringProp(DBProperties::ACCOUNT, account);
+    SetStringProp(DBProperties::SUB_USER, subUser);
     SetIntProp(DBProperties::INSTANCE_ID, instanceId);
     std::string hashIdentifier = DBCommon::TransferHashString(
-        DBCommon::GenerateIdentifierId(storeId, appId, userId, account, instanceId));
+        DBCommon::GenerateIdentifierId(storeId, appId, userId, subUser, instanceId));
     SetStringProp(DBProperties::IDENTIFIER_DATA, hashIdentifier);
     std::string dualIdentifier = DBCommon::TransferHashString(DBCommon::GenerateDualTupleIdentifierId(storeId, appId));
     SetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, dualIdentifier);

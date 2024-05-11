@@ -54,7 +54,7 @@ public:
     static int RemoveAllFilesOfDirectory(const std::string &dir, bool isNeedRemoveDir = true);
 
     static std::string GenerateIdentifierId(const std::string &storeId,
-        const std::string &appId, const std::string &userId, const std::string &account = "", int32_t instanceId = 0);
+        const std::string &appId, const std::string &userId, const std::string &subUser = "", int32_t instanceId = 0);
 
     static std::string GenerateDualTupleIdentifierId(const std::string &storeId, const std::string &appId);
 

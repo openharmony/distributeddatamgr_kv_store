@@ -160,10 +160,10 @@ KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const s
 {}
 
 KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const std::string &userId,
-    const std::string &account, int32_t instanceId)
+    const std::string &subUser, int32_t instanceId)
     : appId_(appId),
       userId_(userId),
-      account_(account),
+      subUser_(subUser),
       instanceId_(instanceId)
 {}
 
@@ -196,7 +196,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     }
 #ifndef OMIT_MULTI_VER
     // Multi version and local database mode not allow the creation of a memory database
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, account_) || GetKvStorePath().empty()) {
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, subUser_) || GetKvStorePath().empty()) {
         callback(INVALID_ARGS, nullptr);
         return;
     }
@@ -271,7 +271,7 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
         LOGE("[KvStoreMgr] Unsupport option for RD mode");
         return false;
     }
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, account_) ||
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, subUser_) ||
         (GetKvStorePath().empty() && !option.isMemoryDb)) {
         LOGE("[KvStoreMgr] Invalid id or path info for the store");
         callback(INVALID_ARGS, nullptr);
@@ -327,7 +327,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     }
     KvDBProperties properties;
     InitPropWithNbOption(properties, GetKvStorePath(), schema, option);
-    DbIdParam dbIdParam = { appId_, userId_, storeId, account_, instanceId_ };
+    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_, instanceId_ };
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
     int errCode;
