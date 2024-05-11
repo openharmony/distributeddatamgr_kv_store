@@ -399,6 +399,69 @@ void DistributedDBSingleVerMultiAccountTest::CallSync(RelationalStoreDelegate *d
 }
 
 /**
+ * @tc.name: KvDelegateInvalidParamTest001
+ * @tc.desc: Test kv delegate open with invalid account.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhaoliang
+ */
+HWTEST_F(DistributedDBSingleVerMultiAccountTest, KvDelegateInvalidParamTest001, TestSize.Level1)
+{
+    std::string account1 = std::string(129, 'a');
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, account1, INSTANCE_ID_1);
+    KvStoreNbDelegate *delegatePtr1 = nullptr;
+    EXPECT_EQ(OpenDelegate("/account1", delegatePtr1, mgr1), INVALID_ARGS);
+    ASSERT_EQ(delegatePtr1, nullptr);
+
+    std::string account2 = "account-1";
+    KvStoreDelegateManager mgr2(APP_ID, USER_ID, account2, INSTANCE_ID_1);
+    KvStoreNbDelegate *delegatePtr2 = nullptr;
+    EXPECT_EQ(OpenDelegate("/account1", delegatePtr2, mgr2), INVALID_ARGS);
+    ASSERT_EQ(delegatePtr2, nullptr);
+
+    std::string account3 = std::string(128, 'a');
+    KvStoreDelegateManager mgr3(APP_ID, USER_ID, account3, INSTANCE_ID_1);
+    KvStoreNbDelegate *delegatePtr3 = nullptr;
+    EXPECT_EQ(OpenDelegate("/account1", delegatePtr3, mgr3), OK);
+    ASSERT_NE(delegatePtr3, nullptr);
+
+    CloseDelegate(delegatePtr3, mgr3, STORE_ID_1);
+}
+
+/**
+ * @tc.name: RDBDelegateInvalidParamTest001
+ * @tc.desc: Test rdb delegate open with invalid account.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhaoliang
+ */
+HWTEST_F(DistributedDBSingleVerMultiAccountTest, RDBDelegateInvalidParamTest001, TestSize.Level1)
+{
+    std::string account1 = std::string(129, 'a');
+    RelationalStoreManager mgr1(APP_ID, USER_ID, account1, INSTANCE_ID_1);
+    RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
+    sqlite3 *db1;
+    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr1, mgr1, db1), INVALID_ARGS);
+    ASSERT_EQ(rdbDelegatePtr1, nullptr);
+
+    std::string account2 = "account-1";
+    RelationalStoreManager mgr2(APP_ID, USER_ID, account2, INSTANCE_ID_1);
+    RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
+    sqlite3 *db2;
+    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr2, mgr2, db2), INVALID_ARGS);
+    ASSERT_EQ(rdbDelegatePtr2, nullptr);
+
+    std::string account3 = std::string(128, 'a');
+    RelationalStoreManager mgr3(APP_ID, USER_ID, account3, INSTANCE_ID_1);
+    RelationalStoreDelegate *rdbDelegatePtr3 = nullptr;
+    sqlite3 *db3;
+    EXPECT_EQ(OpenDelegate("/account1", rdbDelegatePtr3, mgr3, db3), OK);
+    ASSERT_NE(rdbDelegatePtr3, nullptr);
+
+    CloseDelegate(rdbDelegatePtr3, mgr3, db3);
+}
+
+/**
  * @tc.name: SameDelegateTest001
  * @tc.desc: Test kv delegate open with diff account.
  * @tc.type: FUNC
