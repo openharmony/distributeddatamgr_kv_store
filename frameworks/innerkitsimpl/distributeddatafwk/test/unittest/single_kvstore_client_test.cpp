@@ -1214,10 +1214,37 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     options.schema = VALID_SCHEMA_STRICT_DEFINE;
     options.isPublic = true;
+    options.enableCloud = true;
     AppId appId = { "odmf" };
     StoreId storeId = { "cloud_store_id" };
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
     auto status = cloudSyncKvStore->CloudSync(nullptr);
     EXPECT_EQ(status, Status::SUCCESS) << "cloud sync should return success";
+}
+
+/**
+ * @tc.name: CloudSync002
+ * desc: create kv store which not supports cloud sync and execute CloudSync interface
+ * type: FUNC
+ * require:
+ * author:taoyuxin
+ */
+HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleKvStore> cloudSyncKvStore = nullptr;
+    DistributedKvDataManager manager{};
+    Options options;
+    options.encrypt = true;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.kvStoreType = KvStoreType::SINGLE_VERSION;
+    options.baseDir = "/data/service/el1/public/database/odmf";
+    options.schema = VALID_SCHEMA_STRICT_DEFINE;
+    options.enableCloud = false;
+    AppId appId = { "odmf" };
+    StoreId storeId = { "cloud_store_id" };
+    (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
+    auto status = cloudSyncKvStore->CloudSync(nullptr);
+    EXPECT_EQ(status, Status::NOT_SUPPORT);
 }
 } // namespace OHOS::Test

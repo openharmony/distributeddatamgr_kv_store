@@ -441,6 +441,10 @@ struct Options {
     */
     bool isPublic = false;
     /**
+     * Set Whether the database support cloud sync.
+    */
+    bool enableCloud = false;
+    /**
      * Set database security level.
     */
     int32_t securityLevel = INVALID_LABEL;
