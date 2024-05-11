@@ -30,5 +30,7 @@
 namespace DistributedDB {
 Assets TagAssetsInSingleCol(
     VBucket &coveredData, VBucket &beCoveredData, const Field &assetField, bool setNormalStatus, int &errCode);
+Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBucket);
+void TagAssetsInSingleCol(const Field &assetField, VBucket &coveredData, bool isInsert);
 } // namespace DistributedDB
 #endif // CLOUD_SYNC_TAG_ASSETS_H

@@ -228,6 +228,11 @@ void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     GenerateDataRecords(begin, count, gidStart, record, extend);
+    if (tableName == ASSETS_TABLE_NAME_SHARED) {
+        for (auto &vBucket: record) {
+            vBucket.insert_or_assign(CloudDbConstant::CLOUD_OWNER, std::string("cloudA"));
+        }
+    }
     ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(tableName, std::move(record), extend), DBStatus::OK);
 }
 
@@ -1096,7 +1101,6 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Le
     g_virtualCloudDb->SetClearExtend(count);
     UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
-    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
 }
 
 /**
@@ -1908,6 +1912,41 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest006, Test
 HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, TestSize.Level0)
 {
     DataStatusTest007();
+}
+
+/**
+ * @tc.name: DownloadAssetTest001
+ * @tc.desc: Test the asset status after the share table sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME_SHARED);
+    CallSync({ASSETS_TABLE_NAME_SHARED}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. check asset status
+     * @tc.expected: step2. return OK.
+     */
+    SqlCondition condition;
+    condition.sql = "select assets from " + ASSETS_TABLE_NAME_SHARED + " where _rowid_ = 1;";
+    condition.readOnly = true;
+    std::vector<VBucket> records;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    for (const auto &data: records) {
+        Assets assets;
+        CloudStorageUtils::GetValueFromVBucket(COL_ASSETS, data, assets);
+        for (const auto &asset: assets) {
+            EXPECT_EQ(asset.status, AssetStatus::NORMAL);
+        }
+    }
 }
 } // namespace
 #endif // RELATIONAL_STORE

@@ -18,26 +18,23 @@
 
 namespace DistributedDB {
 namespace {
-
-void TagSingleAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets &res, int &errCode)
+void TagSingleAssetForDownload(AssetOpType flag, Asset &asset, Assets &res, int &errCode)
 {
-    uint32_t newStatus = static_cast<uint32_t>(status);
-    if (flag == AssetOpType::DELETE && status == AssetStatus::DOWNLOADING &&
+    uint32_t newStatus = static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+    if (flag == AssetOpType::DELETE &&
         (AssetOperationUtils::EraseBitMask(asset.status) == AssetStatus::ABNORMAL ||
-        asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
+         asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
         asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
         res.push_back(asset);
         return;
     }
     if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
-        if (status == AssetStatus::DOWNLOADING) {
-            newStatus = AssetStatus::DELETE;
-        }
+        newStatus = AssetStatus::DELETE;
         asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
     } else {
         asset.flag = static_cast<uint32_t>(flag);
     }
-    if (flag == AssetOpType::INSERT && status == AssetStatus::DOWNLOADING) {
+    if (flag == AssetOpType::INSERT) {
         newStatus |= AssetStatus::DOWNLOAD_WITH_NULL;
     }
     asset.status = static_cast<uint32_t>(newStatus);
@@ -54,14 +51,46 @@ void TagSingleAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets &
     res.push_back(asset);
 }
 
+void TagSingleAssetForUpload(AssetOpType flag, Asset &asset, Assets &res, int &errCode)
+{
+    uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    if (lowBitStatus == static_cast<uint32_t>(AssetStatus::DELETE)) {
+        return;
+    }
+    switch (flag) {
+        case AssetOpType::INSERT: {
+            asset.assetId.clear();
+            asset.status = static_cast<uint32_t>(AssetStatus::INSERT);
+            break;
+        }
+        case AssetOpType::DELETE: {
+            if (lowBitStatus != static_cast<uint32_t>(AssetStatus::DELETE)) {
+                asset.status = static_cast<uint32_t>(AssetStatus::DELETE | AssetStatus::HIDDEN);
+            }
+            break;
+        }
+        case AssetOpType::UPDATE: {
+            asset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+            break;
+        }
+        case AssetOpType::NO_CHANGE: {
+            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+            break;
+        }
+        default:
+            break;
+    }
+    res.push_back(asset);
+}
+
 void TagAssetWithNormalStatus(const bool isNormalStatus, AssetOpType flag,
     Asset &asset, Assets &res, int &errCode)
 {
     if (isNormalStatus) {
-        TagSingleAsset(flag, AssetStatus::NORMAL, asset, res, errCode);
+        TagSingleAssetForUpload(flag, asset, res, errCode);
         return;
     }
-    TagSingleAsset(flag, AssetStatus::DOWNLOADING, asset, res, errCode);
+    TagSingleAssetForDownload(flag, asset, res, errCode);
 }
 
 void TagAssetsWithNormalStatus(const bool isNormalStatus, AssetOpType flag,
@@ -105,14 +134,28 @@ void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asse
         AssetOpType::INSERT : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
 }
 
-Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBucket)
+std::pair<bool, Assets> TagForNotContainsAsset(const std::string &assetFieldName, VBucket &coveredData,
+    VBucket &beCoveredData, bool setNormalStatus, int &errCode)
 {
-    for (auto &item : vBucket) {
-        if (DBCommon::CaseInsensitiveCompare(item.first, assetFieldName)) {
-            return item.second;
+    std::pair<bool, Assets> res = { true, {} };
+    bool beCoveredHasAssets = IsDataContainField<Assets>(assetFieldName, beCoveredData);
+    bool coveredHasAssets = IsDataContainField<Assets>(assetFieldName, coveredData);
+    if (!beCoveredHasAssets) {
+        if (coveredHasAssets) {
+            // all the element in assets will be set to INSERT
+            TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::INSERT,
+                std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData)), res.second, errCode);
         }
+        return res;
     }
-    return vBucket[assetFieldName];
+    if (!coveredHasAssets) {
+        // all the element in assets will be set to DELETE
+        TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
+            std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res.second, errCode);
+        GetAssetsCaseInsensitive(assetFieldName, coveredData) = res.second;
+        return res;
+    }
+    return { false, {} };
 }
 
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
@@ -120,24 +163,12 @@ Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBuck
 Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
     bool setNormalStatus, int &errCode)
 {
+    auto [isReturn, resAsset] = TagForNotContainsAsset(assetFieldName, coveredData, beCoveredData,
+        setNormalStatus, errCode);
+    if (isReturn) {
+        return resAsset;
+    }
     Assets res = {};
-    bool beCoveredHasAssets = IsDataContainField<Assets>(assetFieldName, beCoveredData);
-    bool coveredHasAssets = IsDataContainField<Assets>(assetFieldName, coveredData);
-    if (!beCoveredHasAssets) {
-        if (coveredHasAssets) {
-            // all the element in assets will be set to INSERT
-            TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::INSERT,
-                std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData)), res, errCode);
-        }
-        return res;
-    }
-    if (!coveredHasAssets) {
-        // all the element in assets will be set to DELETE
-        TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
-            std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
-        GetAssetsCaseInsensitive(assetFieldName, coveredData) = res;
-        return res;
-    }
     Assets &covered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData));
     Assets &beCovered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
     std::map<std::string, size_t> coveredAssetsIndexMap = CloudStorageUtils::GenAssetsIndexMap(covered);
@@ -149,6 +180,10 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
             continue;
         }
         Asset &coveredAsset = covered[it->second];
+        if (setNormalStatus) {
+            // fill asset id for upload data
+            coveredAsset.assetId = beCoveredAsset.assetId;
+        }
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
@@ -224,6 +259,53 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
     }
     return res;
 }
+
+void MarkAssetForUpload(Asset &asset, bool isInsert)
+{
+    uint32_t newStatus = static_cast<uint32_t>(AssetStatus::NORMAL);
+    uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    if (lowBitStatus == AssetStatus::DELETE) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
+    } else if (isInsert) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::INSERT);
+    } else if (asset.status == AssetStatus::NORMAL) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+    } else if (asset.assetId.empty()) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::INSERT);
+    } else if (!asset.assetId.empty()) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+    } else {
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+    }
+    asset.status = newStatus;
+    Timestamp timestamp;
+    int errCode = OS::GetCurrentSysTimeInMicrosecond(timestamp);
+    if (errCode != E_OK) {
+        LOGE("Can not get current timestamp. %d", errCode);
+        return;
+    }
+    asset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
+}
+
+void TagAssetsForUpload(const std::string &filedName, VBucket &coveredData, bool isInsert)
+{
+    if (!IsDataContainField<Assets>(filedName, coveredData)) {
+        return;
+    }
+    Assets &covered = std::get<Assets>(GetAssetsCaseInsensitive(filedName, coveredData));
+    for (auto &asset: covered) {
+        MarkAssetForUpload(asset, isInsert);
+    }
+}
+
+void TagAssetForUpload(const std::string &filedName, VBucket &coveredData, bool isInsert)
+{
+    if (!IsDataContainField<Asset>(filedName, coveredData)) {
+        return;
+    }
+    Asset &asset = std::get<Asset>(GetAssetsCaseInsensitive(filedName, coveredData));
+    MarkAssetForUpload(asset, isInsert);
+}
 } // namespace
 
 Assets TagAssetsInSingleCol(
@@ -245,5 +327,32 @@ Assets TagAssetsInSingleCol(
             break;
     }
     return assets;
+}
+
+Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBucket)
+{
+    for (auto &item : vBucket) {
+        if (DBCommon::CaseInsensitiveCompare(item.first, assetFieldName)) {
+            return item.second;
+        }
+    }
+    return vBucket[assetFieldName];
+}
+
+void TagAssetsInSingleCol(const Field &assetField, VBucket &coveredData, bool isInsert)
+{
+    switch (assetField.type) {
+        case TYPE_INDEX<Assets>: {
+            TagAssetsForUpload(assetField.colName, coveredData, isInsert);
+            break;
+        }
+        case TYPE_INDEX<Asset>: {
+            TagAssetForUpload(assetField.colName, coveredData, isInsert);
+            break;
+        }
+        default:
+            LOGW("[CloudSyncer] Meet an unexpected type %d", assetField.type);
+            break;
+    }
 }
 } // namespace DistributedDB

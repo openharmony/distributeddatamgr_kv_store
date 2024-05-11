@@ -1401,7 +1401,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAndBindFillUploadAssetStatement
 int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::string &tableName,
     const TableSchema &tableSchema, const VBucket &vBucket, int64_t dataKey, OpType opType)
 {
-    if (opType != OpType::ONLY_UPDATE_GID && opType != OpType::NOT_HANDLE) {
+    if (opType != OpType::ONLY_UPDATE_GID && opType != OpType::NOT_HANDLE &&
+        opType != OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO) {
         return E_OK;
     }
     if (CloudStorageUtils::IsSharedTable(tableSchema)) {
@@ -1420,10 +1421,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetId(const VBucket 
 {
     for (const auto &[col, value] : vBucket) {
         if (value.index() == TYPE_INDEX<Asset> && col == fieldName) {
-            Asset cloudAsset = std::get<Asset>(value);
-            if (cloudAsset.name == asset.name) {
-                asset.assetId = cloudAsset.assetId;
-            }
+            asset = std::get<Asset>(value);
         }
     }
 }
@@ -1433,8 +1431,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsId(const VBucket
 {
     for (const auto &[col, value] : vBucket) {
         if (value.index() == TYPE_INDEX<Assets> && col == fieldName) {
-            Assets cloudAssets = std::get<Assets>(value);
-            UpdateLocalAssetsIdInner(cloudAssets, assets);
+            assets = std::get<Assets>(value);
         }
     }
 }
@@ -1630,33 +1627,19 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetId(const TableSchema &t
     for (const auto &field : tableSchema.fields) {
         if (field.type == TYPE_INDEX<Asset>) {
             Asset asset;
-            errCode = GetAssetOnTable(tableSchema.name, field.colName, dataKey, asset);
-            if (errCode != E_OK) {
-                LOGE("[Storage Executor] failed to get asset on table, %d.", errCode);
-                return errCode;
-            }
-            if (asset.name.empty()) {
-                assetOfOneRecord.push_back(asset);
-                continue;
-            }
             UpdateLocalAssetId(vBucket, field.colName, asset);
             assetOfOneRecord.push_back(asset);
-            updateAssetIdSql += " " + field.colName + " = ?,";
+            if (!asset.name.empty()) {
+                updateAssetIdSql += " " + field.colName + " = ?,";
+            }
         }
         if (field.type == TYPE_INDEX<Assets>) {
             Assets assets;
-            errCode = GetAssetsOnTable(tableSchema.name, field.colName, dataKey, assets);
-            if (errCode != E_OK) {
-                LOGE("[Storage Executor] failed to get and save assets on table, %d.", errCode);
-                return errCode;
-            }
-            if (assets.empty()) {
-                assetsOfOneRecord.push_back(assets);
-                continue;
-            }
             UpdateLocalAssetsId(vBucket, field.colName, assets);
             assetsOfOneRecord.push_back(assets);
-            updateAssetIdSql += " " + field.colName + " = ?,";
+            if (!assets.empty()) {
+                updateAssetIdSql += " " + field.colName + " = ?,";
+            }
         }
     }
     if (updateAssetIdSql == "UPDATE " + tableSchema.name  + " SET") {
