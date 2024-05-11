@@ -1877,16 +1877,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         return errCode;
     }
     for (const auto &table : tables) {
-        // check whether reference exist
-        std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
-        errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
-        if (errCode != E_OK) {
-            LOGW("[RelationalSyncAbleStorage] Get table reference failed, continue next! errCode = %d", errCode);
-            errCode = E_OK;
-            continue;
-        }
-        if (!tableReference.empty()) {
-            LOGD("[RelationalSyncAbleStorage] current table exist reference property");
+        if (!CheckTableSupportCompensatedSync(table)) {
             continue;
         }
 
@@ -1953,7 +1944,7 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
             syncPk[col].push_back(value);
         }
     }
-    LOGD("[RDBStorageEngine] match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
+    LOGI("[RDBStorageEngine] match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
     Query query = Query::Select().From(tableName);
     for (const auto &[col, pkList] : syncPk) {
         FillQueryInKeys(col, pkList, dataIndex[col], query);
@@ -2015,6 +2006,29 @@ int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelatio
         trackerTable.SetTableName(tableName);
     }
     return handle->CreateTempSyncTrigger(trackerTable);
+}
+
+bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSchema &table)
+{
+    for (const auto &field : table.fields) {
+        if (field.primary && (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets> ||
+            field.type == TYPE_INDEX<Bytes>)) {
+            LOGI("[RDBStorageEngine] Table contain not support pk field type:%d, ignored", field.type);
+            return false;
+        }
+    }
+    // check whether reference exist
+    std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+    int errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
+    if (errCode != E_OK) {
+        LOGW("[RDBStorageEngine] Get table reference failed! errCode = %d", errCode);
+        return false;
+    }
+    if (!tableReference.empty()) {
+        LOGI("[RDBStorageEngine] current table exist reference property");
+        return false;
+    }
+    return true;
 }
 
 int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,

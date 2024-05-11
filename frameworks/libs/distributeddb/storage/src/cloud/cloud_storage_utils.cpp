@@ -1222,7 +1222,9 @@ int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &
     if (rowid == nullptr || flag == nullptr || timeStamp == nullptr || hashKey == nullptr) {
         return -E_INVALID_DATA;
     }
-    if (status != nullptr && CloudStorageUtils::IsDataLocked(*status)) {
+    bool isDelete = ((static_cast<uint64_t>(*flag) & DataItem::DELETE_FLAG) != 0);
+    bool isInsert = (!isDelete) && (log.find(CloudDbConstant::GID_FIELD) == log.end());
+    if (status != nullptr && !isInsert && (CloudStorageUtils::IsDataLocked(*status))) {
         cloudSyncData.ignoredCount++;
         cloudSyncData.lockData.extend.push_back(log);
         cloudSyncData.lockData.hashKey.push_back(*hashKey);
@@ -1230,14 +1232,13 @@ int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &
         cloudSyncData.lockData.rowid.push_back(*rowid);
         return -E_IGNORE_DATA;
     }
-    if ((static_cast<uint64_t>(*flag) & DataItem::DELETE_FLAG) != 0) {
+    if (isDelete) {
         cloudSyncData.delData.record.push_back(data);
         cloudSyncData.delData.extend.push_back(log);
         cloudSyncData.delData.hashKey.push_back(*hashKey);
         cloudSyncData.delData.timestamp.push_back(*timeStamp);
         cloudSyncData.delData.rowid.push_back(*rowid);
     } else {
-        bool isInsert = (log.find(CloudDbConstant::GID_FIELD) == log.end());
         if (data.empty()) {
             LOGE("The cloud data is empty, isInsert:%d", isInsert);
             return -E_INVALID_DATA;

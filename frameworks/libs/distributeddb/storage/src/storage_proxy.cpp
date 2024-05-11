@@ -169,7 +169,7 @@ int StorageProxy::Rollback()
 }
 
 int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isCloudForcePush,
-    bool isCompensatedTask, bool isPriorityTask, int64_t &count)
+    bool isCompensatedTask, bool isUseWaterMark, int64_t &count)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -184,8 +184,9 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isClou
         CloudWaterType::INSERT};
     for (size_t i = 0; i < waterTypeVec.size(); i++) {
         Timestamp tmpMark = 0u;
-        if (!isPriorityTask && !isCompensatedTask && !isCloudForcePush) {
-            int errCode = cloudMetaData_->GetLocalWaterMarkByType(query.GetTableName(), waterTypeVec[i], tmpMark);
+        if (isUseWaterMark) {
+            int errCode = cloudMetaData_->GetLocalWaterMarkByType(AppendWithUserIfNeed(query.GetTableName()),
+                waterTypeVec[i], tmpMark);
             if (errCode != E_OK) {
                 return errCode;
             }

@@ -61,7 +61,7 @@ public:
         int64_t &count);
 
     int GetUploadCount(const QuerySyncObject &query, const bool isCloudForcePush, bool isCompensatedTask,
-        bool isPriorityTask, int64_t &count);
+        bool isUseWaterMark, int64_t &count);
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count);

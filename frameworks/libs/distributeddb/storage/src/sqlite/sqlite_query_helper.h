@@ -104,7 +104,7 @@ public:
     std::string GetRelationalCloudQuerySql(const std::vector<Field> &fields,
         const bool &isCloudForcePush, bool isCompensatedTask, CloudWaterType mode);
 
-    std::string GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask);
+    std::string GetCountRelationalCloudQuerySql(bool isCloudForcePush, bool isCompensatedTask, CloudWaterType mode);
 
     std::string GetGidRelationalCloudQuerySql(const std::vector<Field> &fields, bool isCloudForcePush,
         bool isCompensatedTask);
@@ -149,7 +149,7 @@ private:
     // Return the left string of symbol in compare clause.
     std::string GetFieldShape(const QueryObjNode &queryNode, const std::string &accessStr = "");
 
-    void AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
+    void AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql, CloudWaterType mode);
 
     void AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
     SchemaObject schema_;

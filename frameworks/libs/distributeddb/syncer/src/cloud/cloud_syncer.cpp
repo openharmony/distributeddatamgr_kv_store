@@ -1215,7 +1215,8 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
 
     int64_t count = 0;
     ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), IsModeForcePush(taskId),
-        IsCompensatedTask(taskId), IsPriorityTask(taskId), count);
+        IsCompensatedTask(taskId), IsNeedGetLocalWater(taskId), count);
+    LOGI("get upload count:%zu", count);
     if (ret != E_OK) {
         // GetUploadCount will return E_OK when upload count is zero.
         LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
@@ -1326,6 +1327,7 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
+    info.upLoadInfo.total -= uploadData.ignoredCount;
     ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused
@@ -1945,8 +1947,8 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
+        ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     }
-    ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
 }

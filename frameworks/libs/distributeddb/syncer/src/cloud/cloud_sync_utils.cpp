@@ -430,7 +430,7 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
 int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
 {
     if (data.extend.size() != data.assets.size()) {
-        LOGE("[CloudSyncUtils][FillAssetIdToAssets] Extend size does not match the assets size.");
+        LOGE("[CloudSyncUtils] size not match, extend:%zu assets:%zu.", data.extend.size(), data.assets.size());
         return -E_CLOUD_ERROR;
     }
     int errCode = E_OK;
@@ -450,18 +450,19 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
             }
             auto extendIt = data.extend[i].find(col);
             if (extendIt == data.extend[i].end()) {
-                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field name can not find in extend.");
+                LOGE("[CloudSyncUtils] Asset field name can not find in extend.");
                 errCode = -E_CLOUD_ERROR;
                 continue;
             }
             if (extendIt->second.index() != value.index()) {
-                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field type and type in extend is not the same.");
+                LOGE("[CloudSyncUtils] Asset field type not same. extend:%zu, data:%zu",
+                    extendIt->second.index(), value.index());
                 errCode = -E_CLOUD_ERROR;
                 continue;
             }
             int ret = FillAssetIdToAssetData(extendIt->second, value);
             if (ret != E_OK) {
-                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Failed to fill assetId to Asset, %d.", ret);
+                LOGE("[CloudSyncUtils] fail to fill assetId, %d.", ret);
                 errCode = -E_CLOUD_ERROR;
             }
         }
