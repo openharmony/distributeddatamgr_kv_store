@@ -967,7 +967,7 @@ std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersionIn
     });
     std::string hashDev;
     (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
-    hashDev = DBCommon::TransferHashString(hashDev);
+    hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(hashDev));
     std::string key = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY + hashDev;
     Key keyVec;
     DBCommon::StringToVector(key, keyVec);
@@ -1014,7 +1014,7 @@ void SqliteCloudKvExecutorUtils::InitDefaultCloudVersionRecord(const std::string
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE] = dev;
     syncData.insData.record.push_back(std::move(defaultRecord));
     VBucket defaultExtend;
-    defaultExtend[CloudDbConstant::HASH_KEY_FIELD] = key;
+    defaultExtend[CloudDbConstant::HASH_KEY_FIELD] = DBCommon::TransferStringToHex(key);
     syncData.insData.extend.push_back(std::move(defaultExtend));
     syncData.insData.assets.emplace_back();
     Bytes bytesHashKey;
@@ -1031,7 +1031,8 @@ int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, const
     if (device == hashDevice) {
         DBCommon::StringToVector("", bytes);
     } else {
-        DBCommon::StringToVector(device, bytes);
+        hashDevice = DBCommon::TransferHashString(device);
+        DBCommon::StringToVector(hashDevice, bytes);
     }
     int index = 1;
     int errCode = SQLiteUtils::BindBlobToStatement(dataStmt, index, bytes);
