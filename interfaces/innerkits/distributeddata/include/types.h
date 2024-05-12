@@ -371,6 +371,20 @@ struct Group {
     std::string groupId = "";
 };
 
+/**
+ * @brief Cloud config
+*/
+struct CloudConfig {
+    /**
+     * @brief enable cloud
+    */
+    bool enableCloud = false;
+    /**
+     * @brief Set cloud sync is auto sync
+    */
+    bool autoSync = false;
+};
+
 enum IndexType : uint32_t {
     /**
       * use btree index type in database
@@ -440,10 +454,6 @@ struct Options {
      * Set Whether the database is public.
     */
     bool isPublic = false;
-    /**
-     * Set Whether the database support cloud sync.
-    */
-    bool enableCloud = false;
     /**
      * Set database security level.
     */
@@ -529,6 +539,10 @@ struct Options {
         uint32_t pageSize = 32u;
         uint32_t cacheSize = 2048u;
     } config;
+    /**
+     * Set cloud config of kv store.
+    */
+    CloudConfig cloudConfig;
 };
 
 /**

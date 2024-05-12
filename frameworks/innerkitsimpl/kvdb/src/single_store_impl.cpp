@@ -35,6 +35,7 @@ SingleStoreImpl::SingleStoreImpl(
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
+    cloudAutoSync_ = options.cloudConfig.autoSync;
     isClientSync_ = options.isClientSync;
     syncObserver_ = std::make_shared<SyncObserver>();
     roleType_ = options.role;
@@ -258,7 +259,7 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
             ((realType & SUBSCRIBE_TYPE_CLOUD) == SUBSCRIBE_TYPE_CLOUD)) &&
         status == SUCCESS) {
         realType &= ~SUBSCRIBE_TYPE_LOCAL;
-        status = bridge->RegisterRemoteObserver();
+        status = bridge->RegisterRemoteObserver(realType);
     }
 
     if (status != SUCCESS) {
@@ -296,9 +297,11 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
-    if (((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) && status == SUCCESS) {
+    if (((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE ||
+            (realType & SUBSCRIBE_TYPE_CLOUD) == SUBSCRIBE_TYPE_CLOUD) &&
+        status == SUCCESS) {
         realType &= ~SUBSCRIBE_TYPE_LOCAL;
-        status = bridge->UnregisterRemoteObserver();
+        status = bridge->UnregisterRemoteObserver(realType);
     }
 
     if (status != SUCCESS) {
@@ -813,7 +816,7 @@ std::function<void(ObserverBridge *)> SingleStoreImpl::BridgeReleaser()
             }
         }
 
-        Status remote = obj->UnregisterRemoteObserver();
+        Status remote = obj->UnregisterRemoteObserver(SUBSCRIBE_TYPE_ALL);
         if (status != SUCCESS || remote != SUCCESS) {
             ZLOGE("status:0x%{public}x remote:0x%{public}x observer:0x%{public}x", status, remote,
                 StoreUtil::Anonymous(obj));
@@ -990,7 +993,7 @@ Status SingleStoreImpl::DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<Sync
 
 void SingleStoreImpl::DoNotifyChange()
 {
-    if (!autoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {
+    if (!autoSync_ && !cloudAutoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {
         return;
     }
     ZLOGD("app:%{public}s store:%{public}s dataType:%{public}d!",
@@ -1024,8 +1027,9 @@ void SingleStoreImpl::Register()
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     Status status = SUCCESS;
     observers_.ForEach([&status](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
-        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) {
-            status = pair.second->RegisterRemoteObserver();
+        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE ||
+            (pair.first & SUBSCRIBE_TYPE_CLOUD) == SUBSCRIBE_TYPE_CLOUD) {
+            status = pair.second->RegisterRemoteObserver(pair.first);
             if (status != SUCCESS) {
                 return true;
             }

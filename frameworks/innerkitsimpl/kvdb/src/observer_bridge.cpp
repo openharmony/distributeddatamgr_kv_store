@@ -33,9 +33,10 @@ ObserverBridge::~ObserverBridge()
     service->Unsubscribe(appId_, storeId_, remote_);
 }
 
-Status ObserverBridge::RegisterRemoteObserver()
+Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
 {
     if (remote_ != nullptr) {
+        remote_->realType_ |= realType;
         return SUCCESS;
     }
 
@@ -49,10 +50,11 @@ Status ObserverBridge::RegisterRemoteObserver()
     if (status != SUCCESS) {
         remote_ = nullptr;
     }
+    remote_->realType_ = realType;
     return status;
 }
 
-Status ObserverBridge::UnregisterRemoteObserver()
+Status ObserverBridge::UnregisterRemoteObserver(uint32_t realType)
 {
     if (remote_ == nullptr) {
         return SUCCESS;
@@ -63,8 +65,13 @@ Status ObserverBridge::UnregisterRemoteObserver()
         return SERVER_UNAVAILABLE;
     }
 
-    auto status = service->Unsubscribe(appId_, storeId_, remote_);
-    remote_ = nullptr;
+    Status status = Status::SUCCESS;
+    remote_->realType_ &= ~SUBSCRIBE_TYPE_LOCAL;
+    remote_->realType_ &= ~realType;
+    if (remote_->realType_ == 0) {
+        status = service->Unsubscribe(appId_, storeId_, remote_);
+        remote_ = nullptr;
+    }
     return status;
 }
 
@@ -85,6 +92,9 @@ ObserverBridge::ObserverClient::ObserverClient(std::shared_ptr<Observer> observe
 
 void ObserverBridge::ObserverClient::OnChange(const ChangeNotification &data)
 {
+    if ((realType_ & SUBSCRIBE_TYPE_REMOTE) != SUBSCRIBE_TYPE_REMOTE) {
+        return;
+    }
     std::string deviceId;
     auto inserted = ObserverBridge::ConvertDB(data.GetInsertEntries(), deviceId, convert_);
     auto updated = ObserverBridge::ConvertDB(data.GetUpdateEntries(), deviceId, convert_);
@@ -95,6 +105,9 @@ void ObserverBridge::ObserverClient::OnChange(const ChangeNotification &data)
 
 void ObserverBridge::ObserverClient::OnChange(const DataOrigin &origin, Keys &&keys)
 {
+    if ((realType_ & SUBSCRIBE_TYPE_CLOUD) != SUBSCRIBE_TYPE_CLOUD) {
+        return;
+    }
     KvStoreObserverClient::OnChange(origin, std::move(keys));
 }
 
