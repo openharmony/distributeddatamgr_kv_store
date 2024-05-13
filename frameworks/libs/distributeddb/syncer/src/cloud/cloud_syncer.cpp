@@ -350,13 +350,16 @@ CloudSyncEvent CloudSyncer::SyncMachineDoDownload()
         needUpload = currentContext_.isRealNeedUpload;
         isFirstDownload = currentContext_.isFirstDownload;
     }
-    int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    int errCode = E_OK;
+    if (IsLockInDownload()) {
+        errCode = LockCloudIfNeed(taskInfo.taskId);
+    }
     if (errCode != E_OK) {
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
-        }
-        return CloudSyncEvent::ERROR_EVENT;
+        return SetCurrentTaskFailedInMachine(errCode);
+    }
+    errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    if (errCode != E_OK) {
+        return SetCurrentTaskFailedInMachine(errCode);
     }
     return CloudSyncEvent::DOWNLOAD_FINISHED_EVENT;
 }
@@ -387,6 +390,7 @@ CloudSyncEvent CloudSyncer::SyncMachineDoUpload()
 
 CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
 {
+    UnlockIfNeed();
     TaskId taskId;
     int errCode;
     int currentUserIndex;

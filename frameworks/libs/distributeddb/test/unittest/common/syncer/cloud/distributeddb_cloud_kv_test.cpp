@@ -503,6 +503,28 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync010, TestSize.Level0)
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
 }
 
+/**
+ * @tc.name: NormalSync015
+ * @tc.desc: Test sync in all process.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync015, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+    }
+    BlockSync(kvDelegatePtrS2_, OK);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;
