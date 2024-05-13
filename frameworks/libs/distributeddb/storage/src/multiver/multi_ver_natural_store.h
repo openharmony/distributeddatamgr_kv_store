@@ -156,7 +156,9 @@ public:
 
     int InitStorages(const KvDBProperties &kvDBProp, bool isChangeTag = false);
 
-    void SetDataInterceptor(const PushDataInterceptor &interceptor) override;
+    void SetSendDataInterceptor(const PushDataInterceptor &interceptor) override;
+
+    void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
 private:
 
