@@ -43,12 +43,6 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 }
 }
 
-#define CHECK_STORAGE_ENGINE do { \
-    if (storageEngine_ == nullptr) { \
-        return -E_INVALID_DB; \
-    } \
-} while (0)
-
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)
     : storageEngine_(std::move(engine)),
       reusedHandle_(nullptr),
@@ -184,7 +178,9 @@ void RelationalSyncAbleStorage::ReleaseHandle(SQLiteSingleVerRelationalStorageEx
 // Get meta data associated with the given key.
 int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
@@ -204,7 +200,9 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
 // Put meta data as a key-value entry.
 int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -222,7 +220,9 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
 
 int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     int errCode = E_OK;
     SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
     std::unique_lock<std::mutex> handLock(reusedHandleMutex_, std::defer_lock);
@@ -259,7 +259,9 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, b
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     for (const auto &key : keys) {
         if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE) {
             return -E_INVALID_ARGS;
@@ -287,7 +289,9 @@ int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 // Delete multiple meta data records with key prefix in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     if (keyPrefix.empty() || keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
@@ -310,7 +314,9 @@ int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) c
 // Get all meta data keys.
 int RelationalSyncAbleStorage::GetAllMetaKeys(std::vector<Key> &keys) const
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -1004,7 +1010,9 @@ StoreInfo RelationalSyncAbleStorage::GetStoreInfo() const
 
 int RelationalSyncAbleStorage::StartTransaction(TransactType type)
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     std::unique_lock<std::shared_mutex> lock(transactionMutex_);
     if (transactionHandle_ != nullptr) {
         LOGD("Transaction started already.");
@@ -1204,6 +1212,9 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
 int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
+    if (handle == nullptr) {
+        return -E_INVALID_DB;
+    }
     TableSchema tableSchema;
     int errCode = GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
@@ -1305,7 +1316,9 @@ int RelationalSyncAbleStorage::SetLogTriggerStatus(bool status)
 int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const CloudSyncData &data, bool fillAsset,
     bool ignoreEmptyGid)
 {
-    CHECK_STORAGE_ENGINE;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
@@ -2010,12 +2023,13 @@ int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelatio
 
 bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSchema &table)
 {
-    for (const auto &field : table.fields) {
-        if (field.primary && (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets> ||
-            field.type == TYPE_INDEX<Bytes>)) {
-            LOGI("[RDBStorageEngine] Table contain not support pk field type:%d, ignored", field.type);
-            return false;
-        }
+    auto it = std::find_if(table.fields.begin(), table.fields.end(), [](const auto &field) {
+        return field.primary && (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets> ||
+            field.type == TYPE_INDEX<Bytes>);
+    });
+    if (it != table.fields.end()) {
+        LOGI("[RDBStorageEngine] Table contain not support pk field type, ignored");
+        return false;
     }
     // check whether reference exist
     std::map<std::string, std::vector<TableReferenceProperty>> tableReference;

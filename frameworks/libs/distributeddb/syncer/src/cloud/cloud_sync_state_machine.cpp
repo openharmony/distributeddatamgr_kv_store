@@ -119,7 +119,7 @@ int CloudSyncStateMachine::SwitchMachineState(uint8_t event)
 {
     auto tableIter = std::find_if(stateSwitchTables_.begin(), stateSwitchTables_.end(),
         [](const CloudStateSwitchTable &table) {
-            return table.version <= 0;
+            return table.version == 0;
         });
     if (tableIter == stateSwitchTables_.end()) {
         LOGE("[CloudSyncStateMachine][SwitchState] Can't find a compatible state switch table.");

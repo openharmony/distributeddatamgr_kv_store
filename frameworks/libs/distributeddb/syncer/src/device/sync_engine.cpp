@@ -911,7 +911,7 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
 
     errCode = communicator->RegOnConnectCallback(
         std::bind(&DeviceManager::OnDeviceConnectCallback, deviceManager_,
-            std::placeholders::_1, std::placeholders::_2), nullptr);
+        std::placeholders::_1, std::placeholders::_2), nullptr);
     if (errCode != E_OK) {
         LOGE("[SyncEngine][RegConnCB] register failed in SetEqualIdentifier! err %d", errCode);
         communicator->RegOnMessageCallback(nullptr, nullptr);

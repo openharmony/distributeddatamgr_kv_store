@@ -39,7 +39,7 @@ public:
     ~CloudSyncStateMachine() = default;
 
     // Init the CloudSyncStateMachine
-    int Initialize();
+    static int Initialize();
 
     void SwitchStateAndStep(uint8_t event);
 

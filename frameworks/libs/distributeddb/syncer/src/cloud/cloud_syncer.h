@@ -177,7 +177,7 @@ protected:
 
     bool IsModeForcePush(const TaskId taskId);
 
-    bool IsModeForcePull(const TaskId taskId);
+    bool IsModeForcePull(TaskId taskId);
 
     bool IsPriorityTask(TaskId taskId);
 

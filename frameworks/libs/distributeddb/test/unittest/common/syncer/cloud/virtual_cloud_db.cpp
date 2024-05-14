@@ -646,8 +646,8 @@ void VirtualCloudDb::SetHeartbeatBlockTime(int32_t blockTime)
 }
 
 void VirtualCloudDb::ForkInsertConflict(const std::function<DBStatus(const std::string &, VBucket &, VBucket &,
-    std::vector<CloudData> &)> &func)
+    std::vector<CloudData> &)> &forkUploadFunc)
 {
-    forkUploadConflictFunc_ = func;
+    forkUploadConflictFunc_ = forkUploadFunc;
 }
 }

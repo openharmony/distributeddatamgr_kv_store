@@ -39,6 +39,7 @@ static int InitDocIdFromOid(DocKey &docKey)
     }
     char *idTemp = new char[GRD_DOC_OID_HEX_SIZE + 1];
     if (sprintf_s(idTemp, GRD_DOC_OID_HEX_SIZE + 1, "%08x%04x", now, iv) < 0) {
+        delete[] idTemp;
         GLOGE("get oid error");
         return -E_INNER_ERROR;
     }

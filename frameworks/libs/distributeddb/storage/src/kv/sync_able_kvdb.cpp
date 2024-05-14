@@ -510,6 +510,9 @@ void SyncAbleKvDB::StartCloudSyncer()
         }
         cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(cloudStorage),
             static_cast<SingleVerConflictResolvePolicy>(conflictType));
+        if (cloudSyncer_ == nullptr) {
+            LOGW("[SyncAbleKvDB][StartCloudSyncer] start cloud syncer and cloud syncer was not initialized");
+        }
     }
 }
 

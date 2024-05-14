@@ -579,7 +579,7 @@ int SQLiteMultiVerTransaction::GetPrePutValues(const Version &versionInfo, Times
     }
 
     // bind the clear timestamp
-    errCode = sqlite3_bind_int64(statement, 2, timestamp); // bind the second argument for timestamp;
+    errCode = sqlite3_bind_int64(statement, 2, timestamp); // 2 is timestamp; bind the second argument for timestamp;
     if (errCode != SQLITE_OK) {
         LOGE("bind the clear timestamp for delete ver data error:%d", errCode);
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
@@ -626,7 +626,7 @@ int SQLiteMultiVerTransaction::RemovePrePutEntries(const Version &versionInfo, T
     }
 
     // bind the clear timestamp
-    errCode = sqlite3_bind_int64(statement, 2, timestamp); // bind the second argument for timestamp;
+    errCode = sqlite3_bind_int64(statement, 2, timestamp); // 2 is timestamp; bind the 2nd argument for timestamp;
     if (errCode != SQLITE_OK) {
         LOGE("bind the clear timestamp for delete ver data error:%d", errCode);
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
@@ -884,7 +884,7 @@ int SQLiteMultiVerTransaction::GetOverwrittenClearTypeEntries(Version clearVersi
                 goto END;
             }
             trimedVerData.operFlag = operFlag & OPERATE_MASK;
-            trimedVerData.version = static_cast<uint64_t>(sqlite3_column_int64(statement, 2)); // get the 3rd for ver
+            trimedVerData.version = static_cast<uint64_t>(sqlite3_column_int64(statement, 2)); // 2 is ver for getting
             data.push_front(trimedVerData);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
@@ -930,7 +930,7 @@ int SQLiteMultiVerTransaction::GetOverwrittenNonClearTypeEntries(Version version
             }
 
             trimedVerData.operFlag = operFlag & OPERATE_MASK;  // get the meta flag
-            trimedVerData.version = static_cast<uint64_t>(sqlite3_column_int64(statement, 2));   // get the 3rd for ver
+            trimedVerData.version = static_cast<uint64_t>(sqlite3_column_int64(statement, 2)); // 2 is ver for getting
             data.push_front(trimedVerData);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
@@ -988,15 +988,15 @@ int SQLiteMultiVerTransaction::GetRawMultiVerEntry(sqlite3_stmt *statement, Mult
         return errCode;
     }
 
-    uint64_t flag = static_cast<uint64_t>(sqlite3_column_int64(statement, 2)); // oper flag index
+    uint64_t flag = static_cast<uint64_t>(sqlite3_column_int64(statement, 2)); // 2 is oper flag index
     keyEntry.auxData.operFlag = flag & OPERATE_MASK; // remove the local flag.
 
-    keyEntry.auxData.timestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 3)); // timestamp index
-    keyEntry.auxData.oriTimestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 4)); // ori timestamp index
+    keyEntry.auxData.timestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 3)); // 3 is timestamp index
+    keyEntry.auxData.oriTimestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 4)); // 4 is ori timestamp
 
     // if the data is deleted data, just use the hash key.
     if ((flag & OPERATE_MASK) != ADD_FLAG) {
-        errCode = SQLiteUtils::GetColumnBlobValue(statement, 5, keyEntry.key); // the hash key index.
+        errCode = SQLiteUtils::GetColumnBlobValue(statement, 5, keyEntry.key); // 5 is the hash key index.
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1186,13 +1186,13 @@ int SQLiteMultiVerTransaction::BindClearIdAndVersion(sqlite3_stmt *statement, in
         goto END;
     }
 
-    errCode = sqlite3_bind_int64(statement, index + 2, clearId_); // combination using with the clear time.
+    errCode = sqlite3_bind_int64(statement, index + 2, clearId_); // 2 is clearId combination using with the clear time.
     if (errCode != SQLITE_OK) {
         LOGE("Bind the clear id for query error:%d", errCode);
         goto END;
     }
 
-    errCode = sqlite3_bind_int64(statement, index + 3, version_); // version is after the clear rowid.
+    errCode = sqlite3_bind_int64(statement, index + 3, version_); // 3 is version after the clear rowid.
     if (errCode != SQLITE_OK) {
         LOGE("Bind the version for query error:%d", errCode);
         goto END;
@@ -1209,7 +1209,7 @@ int SQLiteMultiVerTransaction::BindQueryEntryArgs(sqlite3_stmt *statement,
         return errCode;
     }
 
-    return BindClearIdAndVersion(statement, 2); // the third argument is clear id.
+    return BindClearIdAndVersion(statement, 2); // 2 is clear id.
 }
 
 int SQLiteMultiVerTransaction::BindQueryEntriesArgs(sqlite3_stmt *statement,
@@ -1221,7 +1221,7 @@ int SQLiteMultiVerTransaction::BindQueryEntriesArgs(sqlite3_stmt *statement,
         return errCode;
     }
 
-    return BindClearIdAndVersion(statement, 3); // the third argument is clear id.
+    return BindClearIdAndVersion(statement, 3); // 3 is clear id.
 }
 
 int SQLiteMultiVerTransaction::BindAddRecordKeysToStatement(sqlite3_stmt *statement, const Key &key,
@@ -1317,12 +1317,12 @@ int SQLiteMultiVerTransaction::GetOneEntry(const GetEntriesStatements &statement
         return STEP_NEXTKEY;
     }
 
-    errCode = SQLiteUtils::GetColumnBlobValue(statements.getEntriesStatement, 2, entry.value); // 3rd is value
+    errCode = SQLiteUtils::GetColumnBlobValue(statements.getEntriesStatement, 2, entry.value); // 2 is value
     if (errCode != E_OK) {
         return STEP_ERROR;
     }
 
-    Version curVer = static_cast<uint64_t>(sqlite3_column_int64(statements.getEntriesStatement, 3)); // 4th  is ver
+    Version curVer = static_cast<uint64_t>(sqlite3_column_int64(statements.getEntriesStatement, 3)); // 3 is ver
     // select the version that is greater than the curEntryVer;
     Key hashKey;
     errCode = DBCommon::CalcValueHash(entry.key, hashKey);
@@ -1334,11 +1334,11 @@ int SQLiteMultiVerTransaction::GetOneEntry(const GetEntriesStatements &statement
         return STEP_ERROR;
     }
 
-    errCode = sqlite3_bind_int64(statements.hashFilterStatement, 2, static_cast<int64_t>(curVer));
+    errCode = sqlite3_bind_int64(statements.hashFilterStatement, 2, static_cast<int64_t>(curVer)); // 2 is curVer
     if (errCode != E_OK) {
         return STEP_ERROR;
     }
-    errCode = sqlite3_bind_int64(statements.hashFilterStatement, 3, static_cast<int64_t>(version_));
+    errCode = sqlite3_bind_int64(statements.hashFilterStatement, 3, static_cast<int64_t>(version_)); // 3 is version
     if (errCode != E_OK) {
         return STEP_ERROR;
     }
@@ -1399,8 +1399,8 @@ int SQLiteMultiVerTransaction::CheckIfNeedSaveRecord(sqlite3_stmt *statement, co
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         auto readTime = static_cast<Timestamp>(sqlite3_column_int64(statement, 0)); // the first for time
         auto readOriTime = static_cast<Timestamp>(sqlite3_column_int64(statement, 1)); // the second for orig time.
-        auto readVersion = static_cast<Version>(sqlite3_column_int64(statement, 2)); // the third for version.
-        errCode = SQLiteUtils::GetColumnBlobValue(statement, 3, origVal); // the fourth for origin value.
+        auto readVersion = static_cast<Version>(sqlite3_column_int64(statement, 2)); // 2 is version.
+        errCode = SQLiteUtils::GetColumnBlobValue(statement, 3, origVal); // 3 is origin value.
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1506,7 +1506,7 @@ int SQLiteMultiVerTransaction::GetKeyAndValueByHashKey(sqlite3_stmt *statement, 
         }
     }
 
-    return SQLiteUtils::GetColumnBlobValue(statement, 2, value); // 3rd column result is value.
+    return SQLiteUtils::GetColumnBlobValue(statement, 2, value); // 2 is value.
 }
 
 int SQLiteMultiVerTransaction::GetOriginKeyValueByHash(MultiVerEntryData &item, Value &value) const

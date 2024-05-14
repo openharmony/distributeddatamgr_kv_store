@@ -930,9 +930,7 @@ void StoreObserverCallback(sqlite3 *db, const std::string &hashFileName)
         std::lock_guard<std::mutex> storeObserverLock(g_storeObserverMutex);
         auto it = g_storeObserverMap.find(hashFileName);
         if (it != g_storeObserverMap.end() && !it->second.empty()) {
-            for (const auto &observer : it->second) {
-                storeObserver.push_back(observer);
-            }
+            std::copy(it->second.begin(), it->second.end(), std::back_inserter(storeObserver));
         } else {
             return;
         }
@@ -1675,9 +1673,9 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db, const std::s
     auto it = g_storeObserverMap.find(hashFileName);
     if (it != g_storeObserverMap.end()) {
         it->second.remove(storeObserver);
-    }
-    if (it->second.empty()) {
-        g_storeObserverMap.erase(it);
+        if (it->second.empty()) {
+            g_storeObserverMap.erase(it);
+        }
     }
 
     return DistributedDB::OK;

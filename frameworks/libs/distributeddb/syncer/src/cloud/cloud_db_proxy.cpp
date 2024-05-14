@@ -174,7 +174,7 @@ int CloudDBProxy::Close()
         LOGD("[CloudDBProxy] wait for all asyncTask end");
     }
     LOGD("[CloudDBProxy] call cloudDb close begin");
-    DBStatus status;
+    DBStatus status = OK;
     if (iCloudDb != nullptr) {
         status = iCloudDb->Close();
     }

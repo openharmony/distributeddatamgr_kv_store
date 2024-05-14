@@ -295,16 +295,11 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
         }
         case SQLITE_BLOB: {
             errCode = GetBlobByStatement(stmt, cid, typeVal);
-            if (errCode != E_OK) {
-                break;
-            }
+            break;
         }
         case SQLITE3_TEXT: {
             errCode = GetBlobByStatement(stmt, cid, typeVal);
-            if (errCode != E_OK) {
-                break;
-            }
-            if (typeVal.index() != TYPE_INDEX<Nil>) {
+            if (errCode != E_OK || typeVal.index() != TYPE_INDEX<Nil>) {
                 break;
             }
             std::string str;

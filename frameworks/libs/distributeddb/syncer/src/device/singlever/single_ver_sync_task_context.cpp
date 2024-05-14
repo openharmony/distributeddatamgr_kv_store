@@ -431,6 +431,9 @@ std::string SingleVerSyncTaskContext::GetRemoteCompressAlgoStr() const
             currentAlgoStr += algoMap[algo] + ",";
         }
     }
+    if (currentAlgoStr.empty()) {
+        return "";
+    }
     return currentAlgoStr.substr(0, currentAlgoStr.length() - 1);
 }
 

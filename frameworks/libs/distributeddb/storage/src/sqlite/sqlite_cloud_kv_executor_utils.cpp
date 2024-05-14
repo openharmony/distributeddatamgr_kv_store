@@ -226,7 +226,6 @@ std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3
     std::pair<int, sqlite3_stmt*> res;
     auto &[errCode, stmt] = res;
     std::string sql = QUERY_CLOUD_SYNC_DATA_LOG;
-    std::string hashKey;
     if (existKey) {
         sql += "OR key = ?";
     }
@@ -340,6 +339,7 @@ int SqliteCloudKvExecutorUtils::ExecutePutCloudData(sqlite3 *db, bool isMemory,
                 if (errCode != E_OK) {
                     break;
                 }
+                [[fallthrough]];
             case OpType::ONLY_UPDATE_GID:                // fallthrough
             case OpType::NOT_HANDLE:                     // fallthrough
                 errCode = OnlyUpdateLogTable(db, isMemory, index, downloadData);
@@ -826,7 +826,7 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     if (dataItem.origDev == dev) {
         dataItem.origDev = "";
     }
-    dataItem.timestamp = dataItem.modifyTime + downloadData.timeOffset;
+    dataItem.timestamp = static_cast<Timestamp>(static_cast<int64_t>(dataItem.modifyTime) + downloadData.timeOffset);
     return res;
 }
 

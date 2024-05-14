@@ -120,7 +120,7 @@ void NetworkAdapter::StopAdapter()
     // The async task is dependent on this Object. we have to wait until all async task finished.
     LOGI("[NAdapt][Stop] Wait all async task done.");
     std::unique_lock<std::mutex> asyncTaskDoneLock(asyncTaskDoneMutex_);
-    asyncTaskDoneCv_.wait(asyncTaskDoneLock, [this]{ return pendingAsyncTaskCount_ <= 0; });
+    asyncTaskDoneCv_.wait(asyncTaskDoneLock, [this] { return pendingAsyncTaskCount_ <= 0; });
     LOGI("[NAdapt][Stop] Exit.");
 }
 

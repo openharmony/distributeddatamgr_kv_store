@@ -117,14 +117,14 @@ int SchemaUtils::SplitSchemaAttribute(const std::string &inAttrString, std::vect
                     LOGE("default string size must be over 1.");
                     return -E_SCHEMA_PARSE_FAIL;
                 }
-                outAttrString[2] = inAttrString.substr(i - 1);
+                outAttrString[2] = inAttrString.substr(i - 1); // 2 is index
                 return E_OK;
             default:
                 break;
         }
     }
     // Only these states are legal, The meaning of the state can be seen in the matrix STATE_TRANSFER explanation
-    if (!(state == 1 || state == 3 || state == 7)) {
+    if (!(state == 1 || state == 3 || state == 7)) { // 1 is state; 3 is state; 7 is state;
         LOGD("Split Schema Attribute err, err state [%d]", state);
         return -E_SCHEMA_PARSE_FAIL;
     }
@@ -149,7 +149,7 @@ int SchemaUtils::TransToString(const std::string &defaultContent, SchemaAttribut
 {
     // Have been trim, Strip leading and trailing '
     if (defaultContent.size() > 1 && defaultContent.front() == '\'' && defaultContent.back() == '\'') {
-        outAttr.defaultValue.stringValue = defaultContent.substr(1, defaultContent.size() - 2);
+        outAttr.defaultValue.stringValue = defaultContent.substr(1, defaultContent.size() - 2); // 2: trim trailing
         if (outAttr.defaultValue.stringValue.size() > SchemaConstant::SCHEMA_DEFAULT_STRING_SIZE_LIMIT) {
             return -E_SCHEMA_PARSE_FAIL;
         }

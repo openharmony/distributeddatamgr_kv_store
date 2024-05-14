@@ -68,11 +68,12 @@ int SqliteCloudKvStore::GetCloudTableSchema(const TableName &tableName,
         LOGE("[SqliteCloudKvStore] not set cloud schema");
         return -E_NOT_FOUND;
     }
-    for (const auto &table : schema_[user_].tables) {
-        if (table.name == tableName) {
-            tableSchema = table;
-            return E_OK;
-        }
+    auto it = std::find_if(schema_[user_].tables.begin(), schema_[user_].tables.end(), [&](const auto &table) {
+        return table.name == tableName;
+    });
+    if (it != schema_[user_].tables.end()) {
+        tableSchema = *it;
+        return E_OK;
     }
     LOGW("[SqliteCloudKvStore] not found table schema");
     return -E_NOT_FOUND;

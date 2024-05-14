@@ -798,6 +798,9 @@ std::string GenericSyncer::GetSyncDevicesStr(const std::vector<std::string> &dev
         syncDevices += DBCommon::StringMasking(dev);
         syncDevices += ",";
     }
+    if (syncDevices.empty()) {
+        return "";
+    }
     return syncDevices.substr(0, syncDevices.size() - 1);
 }
 

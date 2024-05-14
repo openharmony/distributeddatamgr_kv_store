@@ -972,8 +972,8 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntry(const Entry &entry, bool is
 
     auto offset = naturalStore->GetLocalTimeOffset();
     if (offset != 0) {
-        dataItem.modifyTime = dataItem.timestamp - offset;
-        dataItem.createTime = dataItem.writeTimestamp - offset;
+        dataItem.modifyTime = static_cast<Timestamp>(static_cast<int64_t>(dataItem.timestamp) - offset);
+        dataItem.createTime = static_cast<Timestamp>(static_cast<int64_t>(dataItem.writeTimestamp) - offset);
     }
     if (IsExtendedCacheDBMode()) {
         uint64_t recordVersion = naturalStore->GetCacheRecordVersion();
