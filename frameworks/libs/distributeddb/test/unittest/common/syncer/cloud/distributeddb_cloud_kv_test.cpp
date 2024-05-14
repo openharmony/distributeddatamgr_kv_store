@@ -525,6 +525,38 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync015, TestSize.Level0)
     EXPECT_EQ(actualValue, expectValue);
 }
 
+/**
+ * @tc.name: NormalSync016
+ * @tc.desc: Device A and device B have the same key data,
+ *           and then devices B and A perform cloud synchronization sequentially.
+ *           Finally, device A updates the data and performs cloud synchronization.
+ *           Test if there is new data inserted into the cloud database.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level0)
+{
+    Key key = {'k', '1'};
+    Value value1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value1), OK);
+    Value value2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key, value2), OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+
+    Value value3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value3), OK);
+    virtualCloudDb_->SetInsertHook([](VBucket &record) {
+        for (auto &recordData : record) {
+            std::string insertKey = "key";
+            Type insertValue = "k1";
+            EXPECT_FALSE(recordData.first == insertKey && recordData.second == insertValue);
+        }
+    });
+    BlockSync(kvDelegatePtrS1_, OK);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;

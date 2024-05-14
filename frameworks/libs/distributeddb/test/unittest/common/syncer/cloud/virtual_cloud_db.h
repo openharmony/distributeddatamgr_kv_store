@@ -95,6 +95,8 @@ public:
     void SetConflictInUpload(bool conflict);
 
     void SetHeartbeatBlockTime(int32_t blockTime);
+
+    void SetInsertHook(const std::function<void(VBucket &)> &insertCheckFunc);
 private:
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
@@ -148,6 +150,7 @@ private:
     std::function<void(const std::string &, VBucket &)> forkUploadFunc_;
     std::function<DBStatus(const std::string &, VBucket &, VBucket &,
         std::vector<CloudData> &)> forkUploadConflictFunc_;
+    std::function<void(VBucket &)> insertCheckFunc_;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

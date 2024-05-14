@@ -71,6 +71,9 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
 {
     DBStatus res = OK;
     for (size_t i = 0; i < record.size(); ++i) {
+        if (insertCheckFunc_) {
+            insertCheckFunc_(record[i]);
+        }
         if (extend[i].find(g_gidField) != extend[i].end()) {
             LOGE("[VirtualCloudDb] Insert data should not have gid");
             return DB_ERROR;
@@ -523,6 +526,11 @@ bool VirtualCloudDb::GetLockStatus()
 void VirtualCloudDb::SetHeartbeatError(bool heartbeatError)
 {
     heartbeatError_ = heartbeatError;
+}
+
+void VirtualCloudDb::SetInsertHook(const std::function<void(VBucket &)> &insertCheckFunc)
+{
+    insertCheckFunc_ = insertCheckFunc;
 }
 
 void VirtualCloudDb::SetIncrementData(const std::string &tableName, const VBucket &record, const VBucket &extend)
