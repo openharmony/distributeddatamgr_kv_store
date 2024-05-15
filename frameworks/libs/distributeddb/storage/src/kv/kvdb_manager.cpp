@@ -16,6 +16,7 @@
 #include "kvdb_manager.h"
 #include "log_print.h"
 #include "db_common.h"
+#include "db_dfx_adapter.h"
 #include "runtime_context.h"
 #include "schema_object.h"
 #include "default_factory.h"
@@ -328,15 +329,21 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
     IKvDB *kvDB = manager->GetDataBase(properties, errCode, isNeedIfOpened);
     if (kvDB == nullptr) {
         if (isNeedIfOpened) {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::OPEN_CONN, State::END, Stage::GET_DB, StageResult::FAIL, errCode});
             LOGE("Failed to open the db:%d", errCode);
         }
     } else {
         if (!CheckOpenDBOptionWithCached(properties, kvDB)) {
             LOGE("Failed to check open db option");
             errCode = -E_INVALID_ARGS;
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::OPEN_CONN, State::END, Stage::CHECK_OPT, StageResult::FAIL, errCode});
         } else {
             connection = kvDB->GetDBConnection(errCode);
             if (connection == nullptr) { // not kill kvdb, Other operations like import may be used concurrently
+                DBDfxAdapter::ReportBehavior(
+                    {__func__, Scene::OPEN_CONN, State::END, Stage::GET_DB_CONN, StageResult::FAIL, errCode});
                 LOGE("Failed to get the db connect for delegate:%d", errCode);
             }
         }

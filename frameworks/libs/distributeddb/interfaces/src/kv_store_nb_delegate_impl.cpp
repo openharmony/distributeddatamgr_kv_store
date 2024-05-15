@@ -408,13 +408,13 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
     }
 
     int errCode = E_OK;
+    auto storeId = storeId_;
     KvDBObserverHandle *observerHandle = conn_->RegisterObserver(
         mode, key,
-        [observer](const KvDBCommitNotifyData &notifyData) {
+        [observer, storeId](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
-            LOGI("[KvStoreNbDelegate] Begin trigger on change");
+            LOGI("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(data);
-            LOGI("[KvStoreNbDelegate] End trigger on change");
         },
         errCode);
 
@@ -442,11 +442,12 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
         return ALREADY_SET;
     }
 
-    ObserverAction action = [observer](const std::string &device, ChangedData &&changedData, bool isChangedData) {
+    auto storeId = storeId_;
+    ObserverAction action = [observer, storeId](
+                                const std::string &device, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData) {
-            LOGI("[KvStoreNbDelegate] Begin trigger on change");
+            LOGI("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
-            LOGI("[KvStoreNbDelegate] End trigger on change");
         }
     };
     int errCode = conn_->RegisterObserverAction(observer, action);

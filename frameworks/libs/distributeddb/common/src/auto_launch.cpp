@@ -523,12 +523,6 @@ int AutoLaunch::OpenOneConnection(AutoLaunchItem &autoLaunchItem)
         default:
             errCode = -E_INVALID_ARGS;
     }
-    if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        std::string userId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::USER_ID, "");
-        std::string appId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::APP_ID, "");
-        std::string storeId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::STORE_ID, "");
-        DBDfxAdapter::ReportFault( { DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED, userId, appId, storeId, errCode } );
-    }
     return errCode;
 }
 

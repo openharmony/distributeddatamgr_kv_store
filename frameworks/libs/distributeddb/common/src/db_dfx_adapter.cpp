@@ -40,10 +40,15 @@ constexpr const char *DUMP_LONG_PARAM = "--database";
 constexpr const char *DUMP_SHORT_PARAM = "-d";
 }
 
-const std::string DBDfxAdapter::EVENT_CODE = "ERROR_CODE";
-const std::string DBDfxAdapter::APP_ID = "APP_ID";
-const std::string DBDfxAdapter::USER_ID = "USER_ID";
-const std::string DBDfxAdapter::STORE_ID = "STORE_ID";
+const std::string DBDfxAdapter::ORG_PKG = "ORG_PKG";
+const std::string DBDfxAdapter::FUNC = "FUNC";
+const std::string DBDfxAdapter::BIZ_SCENE = "BIZ_SCENE";
+const std::string DBDfxAdapter::BIZ_STATE = "BIZ_STATE";
+const std::string DBDfxAdapter::BIZ_STAGE = "BIZ_STAGE";
+const std::string DBDfxAdapter::STAGE_RES = "STAGE_RES";
+const std::string DBDfxAdapter::ERROR_CODE = "ERROR_CODE";
+const std::string DBDfxAdapter::ORG_PKG_NAME = "distributeddata";
+const std::string DBDfxAdapter::DISTRIBUTED_DB_BEHAVIOR = "DISTRIBUTED_DB_BEHAVIOR";
 const std::string DBDfxAdapter::SQLITE_EXECUTE = "SQLITE_EXECUTE";
 const std::string DBDfxAdapter::SYNC_ACTION = "SYNC_ACTION";
 const std::string DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED = "OPEN_DATABASE_FAILED";
@@ -72,16 +77,21 @@ void DBDfxAdapter::Dump(int fd, const std::vector<std::u16string> &args)
 }
 
 #ifdef USE_DFX_ABILITY
-void DBDfxAdapter::ReportFault(const ReportTask &reportTask)
+void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
 {
+    int dbDfxErrCode = -(reportTask.errCode - E_BASE) + E_DB_DFX_BASE;
     RuntimeContext::GetInstance()->ScheduleTask([=]() {
         // call hievent here
         HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::DISTRIBUTED_DATAMGR,
-            reportTask.eventName,
-            OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-            APP_ID, reportTask.appId,
-            STORE_ID, reportTask.storeId,
-            EVENT_CODE, std::to_string(reportTask.errCode));
+            DISTRIBUTED_DB_BEHAVIOR,
+            OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
+            ORG_PKG, ORG_PKG_NAME,
+            FUNC, reportTask.funcName,
+            BIZ_SCENE, std::to_string(static_cast<int>(reportTask.scene)),
+            BIZ_STATE, std::to_string(static_cast<int>(reportTask.state)),
+            BIZ_STAGE, std::to_string(static_cast<int>(reportTask.stage)),
+            STAGE_RES, std::to_string(static_cast<int>(reportTask.result)),
+            ERROR_CODE, std::to_string(dbDfxErrCode));
     });
 }
 
@@ -123,7 +133,7 @@ void DBDfxAdapter::FinishAsyncTrace(const std::string &action, int32_t taskId)
 }
 
 #else
-void DBDfxAdapter::ReportFault(const ReportTask &reportTask)
+void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
 {
     (void) reportTask;
 }

@@ -16,6 +16,7 @@
 #include "relational_store_instance.h"
 
 #include "db_common.h"
+#include "db_dfx_adapter.h"
 #include "db_errno.h"
 #include "sqlite_relational_store.h"
 #include "log_print.h"
@@ -197,17 +198,23 @@ RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const 
     RelationalStoreConnection *connection = nullptr;
     IRelationalStore *db = GetDataBase(properties, errCode);
     if (db == nullptr) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::OPEN_CONN, State::BEGIN, Stage::GET_DB, StageResult::FAIL, errCode});
         LOGE("Failed to open the db:%d", errCode);
         goto END;
     }
 
     errCode = CheckCompatibility(properties, db->GetProperties());
     if (errCode != E_OK) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::OPEN_CONN, State::BEGIN, Stage::CHECK_OPT, StageResult::FAIL, errCode});
         goto END;
     }
 
     connection = db->GetDBConnection(errCode);
     if (connection == nullptr) { // not kill db, Other operations like import may be used concurrently
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::OPEN_CONN, State::BEGIN, Stage::GET_DB_CONN, StageResult::FAIL, errCode});
         LOGE("Failed to get the db connect for delegate:%d", errCode);
     }
 
