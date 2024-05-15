@@ -184,10 +184,10 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
         dbOption.passwd = dbPassword.password;
     }
 
-    if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
-        dbOption.conflictResolvePolicy = DistributedDB::LAST_WIN;
-    } else if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
+    if (options.isPublic || options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
         dbOption.conflictResolvePolicy = DistributedDB::DEVICE_COLLABORATION;
+    } else if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
+        dbOption.conflictResolvePolicy = DistributedDB::LAST_WIN;
     } else if (options.kvStoreType == KvStoreType::LOCAL_ONLY) {
         dbOption.storageEngineType = DistributedDB::GAUSSDB_RD;
     }

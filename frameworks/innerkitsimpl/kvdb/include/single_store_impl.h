@@ -129,6 +129,7 @@ private:
     void Register();
 
     bool autoSync_ = false;
+    bool cloudAutoSync_ = false;
     bool isClientSync_ = false;
     mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;

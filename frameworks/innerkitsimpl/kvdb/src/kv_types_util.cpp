@@ -105,7 +105,8 @@ bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel)
 template<>
 bool Marshalling(const Options &input, MessageParcel &data)
 {
-    if (!ITypesUtil::Marshal(data, input.schema, input.hapName, input.policies)) {
+    if (!ITypesUtil::Marshal(data, input.schema, input.hapName, input.policies, input.cloudConfig.enableCloud,
+                             input.cloudConfig.autoSync)) {
         ZLOGE("write policies failed");
         return false;
     }
@@ -130,7 +131,8 @@ bool Marshalling(const Options &input, MessageParcel &data)
 template<>
 bool Unmarshalling(Options &output, MessageParcel &data)
 {
-    if (!ITypesUtil::Unmarshal(data, output.schema, output.hapName, output.policies)) {
+    if (!ITypesUtil::Unmarshal(data, output.schema, output.hapName, output.policies, output.cloudConfig.enableCloud,
+                               output.cloudConfig.autoSync)) {
         ZLOGE("read policies failed");
         return false;
     }

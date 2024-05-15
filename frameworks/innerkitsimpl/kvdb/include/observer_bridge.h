@@ -30,8 +30,8 @@ public:
 
     ObserverBridge(AppId appId, StoreId storeId, std::shared_ptr<Observer> observer, const Convertor &cvt);
     ~ObserverBridge();
-    Status RegisterRemoteObserver();
-    Status UnregisterRemoteObserver();
+    Status RegisterRemoteObserver(uint32_t realType);
+    Status UnregisterRemoteObserver(uint32_t realType);
     void OnChange(const DBChangedData &data) override;
     void OnServiceDeath();
 
@@ -43,7 +43,9 @@ private:
         void OnChange(const DataOrigin &origin, Keys &&keys) override __attribute__((no_sanitize("cfi")));
 
     private:
+        friend class ObserverBridge;
         const Convertor &convert_;
+        uint32_t realType_;
     };
 
     template<class T>
@@ -51,7 +53,7 @@ private:
     AppId appId_;
     StoreId storeId_;
     std::shared_ptr<DistributedKv::KvStoreObserver> observer_;
-    sptr<IKvStoreObserver> remote_;
+    sptr<ObserverClient> remote_;
     const Convertor &convert_;
 };
 } // namespace OHOS::DistributedKv
