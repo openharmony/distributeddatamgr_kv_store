@@ -262,16 +262,29 @@ std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const Inne
     return res;
 }
 
+std::map<std::string, Assets> CloudSyncer::BackFillAssetsAfterDownload(std::map<std::string, Assets> tmpAssets,
+    std::map<std::string, std::vector<uint32_t>> tmpFlags)
+{
+    for (auto &[col, assets] : tmpAssets) {
+        int i = 0;
+        for (auto &asset : assets) {
+            asset.flag = tmpFlags[col][i++];
+            if (asset.flag != static_cast<uint32_t>(AssetOpType::NO_CHANGE)) {
+                asset.status = (asset.status == NORMAL) ? NORMAL : ABNORMAL;
+            }
+        }
+    }
+    return tmpAssets;
+}
+
 int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
     DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
 {
     int errCode = E_OK;
+    std::map<std::string, Assets> tmpAssets;
+    std::map<std::string, std::vector<uint32_t>> tmpFlags;
     for (auto &[col, assets] : downloadAssets) {
-        Assets callDownloadAssets;
         for (auto &asset : assets) {
-            std::map<std::string, Assets> tmpAssets;
-            tmpAssets[col] = { asset };
-            uint32_t tmpFlag = asset.flag;
             VBucket dbAssets;
             auto [tmpCode, status] = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
             if (tmpCode == -E_CLOUD_GID_MISMATCH) {
@@ -290,28 +303,26 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
             }
             if (!isSharedTable && AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
                 AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
-                tmpCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssets);
+                tmpAssets[col].push_back(asset);
+                tmpFlags[col].push_back(asset.flag);
             } else {
                 LOGD("[CloudSyncer] skip download asset...");
                 continue;
             }
-            if (tmpCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
-                downloadItem.recordConflict = true;
-                continue;
-            }
-            errCode = (errCode != E_OK) ? errCode : tmpCode;
-            if (tmpCode == -E_NOT_SET) {
-                break;
-            }
-            asset = tmpAssets[col][0]; // copy asset back
-            asset.flag = tmpFlag;
-            if (asset.flag != static_cast<uint32_t>(AssetOpType::NO_CHANGE)) {
-                asset.status = (tmpCode == E_OK) ? NORMAL : ABNORMAL;
-            }
-            callDownloadAssets.push_back(asset);
         }
-        assets = callDownloadAssets;
     }
+    auto downloadCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssets);
+    if (downloadCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
+        downloadItem.recordConflict = true;
+        downloadCode = E_OK;
+    }
+    errCode = (errCode != E_OK) ? errCode : downloadCode;
+    if (downloadCode == -E_NOT_SET) {
+        return errCode;
+    }
+
+    // copy asset back
+    downloadAssets = BackFillAssetsAfterDownload(tmpAssets, tmpFlags);
     return errCode;
 }
 

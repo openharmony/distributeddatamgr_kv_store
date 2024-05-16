@@ -1068,7 +1068,7 @@ namespace {
                         EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status),
                             static_cast<uint32_t>(AssetStatus::DOWNLOADING));
                         LOGD("asset [name]:%s, [status]:%u, [flag]:%u", asset.name.c_str(), asset.status, asset.flag);
-                        asset.status = (index++) % 6u; // 6 is AssetStatus type num, include invalid type
+                        asset.status = (index++) % 5u + 1; // 5 is AssetStatus type num, include invalid type
                     }
                 }
                 return status;

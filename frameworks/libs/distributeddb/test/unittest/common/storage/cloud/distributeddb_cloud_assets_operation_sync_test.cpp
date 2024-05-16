@@ -346,7 +346,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, T
     ForkDownloadAndRemoveAsset(OK, downLoadCount, removeCount);
     UpdateCloudTableRecord(0, actualCount, false);
     RelationalTestUtils::CloudBlockSync(query, delegate_);
-    EXPECT_EQ(downLoadCount, 3); // local asset was removed should download 3 times
+    EXPECT_EQ(downLoadCount, 1); // local asset was removed should download 1 times
     EXPECT_EQ(removeCount, 1);
     virtualAssetLoader_->ForkDownload(nullptr);
     virtualAssetLoader_->ForkRemoveLocalAssets(nullptr);
@@ -418,7 +418,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, T
     ForkDownloadAndRemoveAsset(DB_ERROR, downLoadCount, removeCount);
     UpdateCloudTableRecord(0, actualCount, false);
     RelationalTestUtils::CloudBlockSync(query, delegate_, DBStatus::OK, DBStatus::REMOTE_ASSETS_FAIL);
-    EXPECT_EQ(downLoadCount, 15); // local asset was removed should download 5 * 3 = 15 times
+    EXPECT_EQ(downLoadCount, 5); // local asset was removed should download 5 times
     EXPECT_EQ(removeCount, 1);
     virtualAssetLoader_->ForkDownload(nullptr);
     virtualAssetLoader_->ForkRemoveLocalAssets(nullptr);
