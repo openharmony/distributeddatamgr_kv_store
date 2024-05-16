@@ -53,6 +53,7 @@ config("distributeddatafwk_public_config") {
   include_dirs = [
     "include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
+    "../../../frameworks/common",
   ]
 }
 
