@@ -405,7 +405,7 @@ Status SingleStoreImpl::SyncExt(const std::string &networkId, uint64_t sequenceI
 void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
 {
     AsyncFunc asyncFunc;
-    auto exist = asyncFuncs_.ComputeIfPresent(sequenceId, [&asyncFunc](const auto &key, auto &value) -> bool {
+    auto exist = asyncFuncs_.ComputeIfPresent(sequenceId, [&asyncFunc](const auto &key, const auto &value) -> bool {
         asyncFunc = value;
         return false;
     });
