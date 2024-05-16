@@ -145,4 +145,10 @@ void KvVirtualDevice::EraseWaterMark(const std::string &dev)
 {
     metadata_->EraseDeviceWaterMark(dev, true);
 }
+
+void KvVirtualDevice::SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier)
+{
+    auto *syncAble = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncAble->SetPushNotifier(pushNotifier);
+}
 } // namespace DistributedDB

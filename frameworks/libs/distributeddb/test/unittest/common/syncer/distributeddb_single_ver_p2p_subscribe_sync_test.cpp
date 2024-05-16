@@ -102,6 +102,8 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+protected:
+    static void WaitUntilNotify(KvVirtualDevice &virtualDevice);
 };
 
 void DistributedDBSingleVerP2PSubscribeSyncTest::SetUpTestCase(void)
@@ -177,6 +179,29 @@ void DistributedDBSingleVerP2PSubscribeSyncTest::TearDown(void)
     }
     PermissionCheckCallbackV2 nullCallback;
     EXPECT_EQ(g_schemaMgr.SetPermissionCheckCallback(nullCallback), OK);
+}
+
+void DistributedDBSingleVerP2PSubscribeSyncTest::WaitUntilNotify(KvVirtualDevice &virtualDevice)
+{
+    bool notify = false;
+    std::condition_variable cv;
+    std::mutex notifyMutex;
+    virtualDevice.SetPushNotifier([&notify, &cv, &notifyMutex](const std::string &) {
+        {
+            std::lock_guard<std::mutex> autoLock(notifyMutex);
+            notify = true;
+        }
+        cv.notify_all();
+    });
+    {
+        LOGI("Begin wait notify");
+        std::unique_lock<std::mutex> uniqueLock(notifyMutex);
+        (void)cv.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT), [&notify]() {
+            return notify;
+        });
+        LOGI("End wait notify");
+    }
+    virtualDevice.SetPushNotifier(nullptr);
 }
 
 void InitSubSchemaDb()
@@ -739,7 +764,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync001, TestSize.
     Key key = {'1'};
     status = g_schemaKvDelegatePtr->Put(key, value);
     EXPECT_EQ(status, OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    WaitUntilNotify(*g_deviceB);
     /**
      * @tc.steps: step4. deviceB has {key11, SCHEMA_VALUE1}
     */
@@ -761,7 +786,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync001, TestSize.
     Key key2 = {'2'};
     status = g_schemaKvDelegatePtr->Put(key2, value2);
     EXPECT_EQ(status, OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    WaitUntilNotify(*g_deviceB);
     /**
      * @tc.steps: step6. deviceB don't has {key2, SCHEMA_VALUE1}
     */
@@ -850,7 +875,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync003, TestSize.
         {KEY_4, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
         {KEY_5, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
     }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    WaitUntilNotify(*g_deviceB);
 
     /**
      * @tc.steps: step4. deviceB has k2k4, has no k1k3k5
@@ -873,7 +898,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync003, TestSize.
  * @tc.require: AR000GOHO7
  * @tc.author: lidongwei
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync004, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -899,7 +924,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync004, TestSize.
         {KEY_3, Value(SCHEMA_VALUE2.begin(), SCHEMA_VALUE2.end())},
         {KEY_5, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
     }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    WaitUntilNotify(*g_deviceB);
 
     /**
      * @tc.steps: step4. deviceB has k3, has no k1k5
@@ -919,7 +944,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync004, TestSize.
  * @tc.require: AR000GOHO7
  * @tc.author: lidongwei
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync005, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -945,7 +970,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync005, TestSize.
         {key6, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
         {KEY_1, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
     }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    WaitUntilNotify(*g_deviceB);
 
     /**
      * @tc.steps: step4. deviceB has key6, has no k1
@@ -1001,7 +1026,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync006, TestSize.
         {key6, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
         {KEY_1, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())},
     }));
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    WaitUntilNotify(*g_deviceB);
 
     /**
      * @tc.steps: step5. deviceB has key6, has no k1
@@ -1020,7 +1045,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync006, TestSize.
  * @tc.require: AR000H5VLO
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync007, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -1077,7 +1102,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync008, TestSize.
     g_schemaKvDelegatePtr = nullptr;
     InitSubSchemaDb();
     g_deviceB->Online();
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for auto sync
+    WaitUntilNotify(*g_deviceB);
 
     /**
      * @tc.steps: step4. deviceB has key6
@@ -1315,7 +1340,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.
         Key key = { i };
         dataKeys.push_back(key);
         EXPECT_EQ(g_schemaKvDelegatePtr->Put(key, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())), OK);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        WaitUntilNotify(*g_deviceB);
     }
     /**
      * @tc.steps: step5. deviceB has key6, has no k1
@@ -1439,7 +1464,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync014, TestSize.
  * @tc.require: DTS2023112110763
  * @tc.author: mazhao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync015, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync015, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb

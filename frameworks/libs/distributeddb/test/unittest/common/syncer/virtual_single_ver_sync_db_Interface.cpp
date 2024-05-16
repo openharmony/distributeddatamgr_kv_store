@@ -385,6 +385,11 @@ void VirtualSingleVerSyncDBInterface::SetSecurityOption(SecurityOption &option)
 
 void VirtualSingleVerSyncDBInterface::NotifyRemotePushFinished(const std::string &targetId) const
 {
+    std::lock_guard<std::mutex> autoLock(pushNotifierMutex_);
+    if (pushNotifier_) {
+        pushNotifier_(targetId);
+        LOGI("[VirtualSingleVerSyncDBInterface] Notify remote push finished");
+    }
 }
 
 int VirtualSingleVerSyncDBInterface::GetDatabaseCreateTimestamp(Timestamp &outTime) const
@@ -601,5 +606,11 @@ void VirtualSingleVerSyncDBInterface::SetSaveDataCallback(const std::function<vo
 void VirtualSingleVerSyncDBInterface::ForkGetSecurityOption(std::function<int(SecurityOption &)> callBack)
 {
     getSecurityOptionCallBack_ = callBack;
+}
+
+void VirtualSingleVerSyncDBInterface::SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier)
+{
+    std::lock_guard<std::mutex> autoLock(pushNotifierMutex_);
+    pushNotifier_ = pushNotifier;
 }
 }  // namespace DistributedDB
