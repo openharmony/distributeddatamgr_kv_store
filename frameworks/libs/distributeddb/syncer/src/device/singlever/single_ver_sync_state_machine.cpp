@@ -154,7 +154,7 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
 
     currentState_ = IDLE;
     context_ = static_cast<SingleVerSyncTaskContext *>(context);
-    syncInterface_ = static_cast<SingleVerKvDBSyncInterface *>(syncInterface);
+    syncInterface_ = static_cast<SyncGenericInterface *>(syncInterface);
 
     InitStateSwitchTables();
     InitStateMapping();

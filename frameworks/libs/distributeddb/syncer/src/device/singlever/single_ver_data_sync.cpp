@@ -1030,7 +1030,7 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
     return errCode;
 }
 
-int SingleVerDataSync::SendDataPacket(SyncType syncType, const DataRequestPacket *packet,
+int SingleVerDataSync::SendDataPacket(SyncType syncType, DataRequestPacket *packet,
     SingleVerSyncTaskContext *context)
 {
     Message *message = new (std::nothrow) Message(SingleVerDataSyncUtils::GetMessageId(syncType));
@@ -1411,7 +1411,7 @@ int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReS
     return errCode;
 }
 
-int SingleVerDataSync::SendReSendPacket(const DataRequestPacket *packet, SingleVerSyncTaskContext *context,
+int SingleVerDataSync::SendReSendPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     uint32_t sessionId, uint32_t sequenceId)
 {
     SyncType syncType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
@@ -1870,7 +1870,7 @@ int SingleVerDataSync::ControlCmdStartCheck(SingleVerSyncTaskContext *context)
     return E_OK;
 }
 
-int SingleVerDataSync::SendControlPacket(const ControlRequestPacket *packet, SingleVerSyncTaskContext *context)
+int SingleVerDataSync::SendControlPacket(ControlRequestPacket *packet, SingleVerSyncTaskContext *context)
 {
     Message *message = new (std::nothrow) Message(CONTROL_SYNC_MESSAGE);
     if (message == nullptr) {

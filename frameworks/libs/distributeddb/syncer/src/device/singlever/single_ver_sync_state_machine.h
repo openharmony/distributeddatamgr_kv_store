@@ -226,7 +226,7 @@ private:
     static bool isStateSwitchTableInited_;
     static std::vector<StateSwitchTable> stateSwitchTables_;
     SingleVerSyncTaskContext *context_;
-    SingleVerKvDBSyncInterface *syncInterface_;
+    SyncGenericInterface *syncInterface_;
     std::shared_ptr<TimeSync> timeSync_;
     std::unique_ptr<AbilitySync> abilitySync_;
     std::shared_ptr<SingleVerDataSync> dataSync_;
