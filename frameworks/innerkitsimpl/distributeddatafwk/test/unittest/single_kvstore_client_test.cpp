@@ -1221,6 +1221,7 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync001, TestSize.Level1)
     AppId appId = { "odmf" };
     StoreId storeId = { "cloud_store_id" };
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
+    ASSERT_NE(cloudSyncKvStore, nullptr);
     auto status = cloudSyncKvStore->CloudSync(nullptr);
     EXPECT_EQ(status, Status::SUCCESS) << "cloud sync should return success";
 }
@@ -1246,7 +1247,9 @@ HWTEST_F(SingleKvStoreClientTest, CloudSync002, TestSize.Level1)
     options.cloudConfig.enableCloud = false;
     AppId appId = { "odmf" };
     StoreId storeId = { "cloud_store_id" };
+    manager.DeleteKvStore(appId, storeId, options.baseDir);
     (void)manager.GetSingleKvStore(options, appId, storeId, cloudSyncKvStore);
+    ASSERT_NE(cloudSyncKvStore, nullptr);
     auto status = cloudSyncKvStore->CloudSync(nullptr);
     EXPECT_NE(status, Status::SUCCESS);
 }
