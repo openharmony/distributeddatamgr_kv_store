@@ -330,6 +330,10 @@ DBStatus RelationalResultSetImpl::GetRow(std::map<std::string, VariantData> &dat
 // This func is not API. Impossible concurrency. There is no need to hold mutex.
 int RelationalResultSetImpl::Put(const DeviceID &deviceName, uint32_t sequenceId, RelationalRowDataSet &&data)
 {
+    if (sequenceId == 0) {
+        LOGE("[RelationalResultSetImpl] Invalid sequenceId");
+        return -E_INVALID_ARGS;
+    }
     cacheDataSet_[sequenceId - 1] = std::move(data);
     for (auto iter = cacheDataSet_.begin(); iter != cacheDataSet_.end();) {
         if (iter->first != static_cast<uint32_t>(dataSetSize_)) {

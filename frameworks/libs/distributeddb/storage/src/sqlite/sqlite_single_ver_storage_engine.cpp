@@ -250,7 +250,7 @@ int SQLiteSingleVerStorageEngine::MigrateSyncData(SQLiteSingleVerStorageExecutor
         }
     }
 
-    LOGD("Begin migrate sync data, need migrate version[%" PRIu64 "]", GetCacheRecordVersion() - 1);
+    LOGD("Begin migrate sync data, need migrate version[%" PRIu64 "]", GetCacheRecordVersion());
     uint64_t curMigrateVer = 0; // The migration process is asynchronous and continuous
     NotifyMigrateSyncData syncData;
     auto kvdbManager = KvDBManager::GetInstance();

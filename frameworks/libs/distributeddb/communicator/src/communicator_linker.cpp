@@ -412,7 +412,7 @@ void CommunicatorLinker::SendLabelExchange(const std::string &toTarget, SerialBu
         SuspendByOnceTimer([this, toTarget, inBuff, inSequenceId, inRetransmitCount]() {
             // Note: toTarget and inBuff and inSequenceId should be captured by value (must not by reference)
             SendLabelExchange(toTarget, inBuff, inSequenceId, inRetransmitCount); // Just do retry send
-        }, TIME_LAPSE_FOR_RETRY_SEND);
+            }, TIME_LAPSE_FOR_RETRY_SEND);
         if (error == E_OK) {
             delete cloneBuffer;
             cloneBuffer = nullptr;
@@ -462,7 +462,7 @@ void CommunicatorLinker::SendLabelExchangeAck(const std::string &toTarget, Seria
         SuspendByOnceTimer([this, toTarget, inBuff, inSequenceId, inAckTriggerId]() {
             // Note: toTarget, inBuff, inSequenceId, inAckTriggerId should be captured by value (must not by reference)
             SendLabelExchangeAck(toTarget, inBuff, inSequenceId, inAckTriggerId);
-        }, TIME_LAPSE_FOR_RETRY_SEND);
+            }, TIME_LAPSE_FOR_RETRY_SEND);
     }
 }
 

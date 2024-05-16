@@ -1202,8 +1202,8 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
             return errCode;
         }
         if (offset != 0) {
-            item.modifyTime = item.timestamp - offset;
-            item.createTime = item.writeTimestamp - offset;
+            item.modifyTime = static_cast<Timestamp>(static_cast<int64_t>(item.timestamp) - offset);
+            item.createTime = static_cast<Timestamp>(static_cast<int64_t>(item.writeTimestamp) - offset);
         }
     }
     if (checkValueContent) {

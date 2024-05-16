@@ -219,7 +219,7 @@ void TimeSync::Finalize()
     }
     runtimeContext->RemoveTimer(timerId, true);
     std::unique_lock<std::mutex> lock(timeDriverLock_);
-    timeDriverCond_.wait(lock, [this](){ return this->timeDriverLockCount_ == 0; });
+    timeDriverCond_.wait(lock, [this]() { return this->timeDriverLockCount_ == 0; });
     LOGD("[TimeSync] Finalized!");
 }
 

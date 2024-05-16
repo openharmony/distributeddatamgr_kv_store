@@ -46,6 +46,7 @@ static int ParseSinglePathToTree(ProjectionNode *node, std::vector<std::string> 
     }
     return E_OK;
 }
+
 int ProjectionTree::ParseTree(std::vector<std::vector<std::string>> &path)
 {
     ProjectionNode *node = &node_;

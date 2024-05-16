@@ -1216,7 +1216,7 @@ std::pair<int, uint32_t> SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGi
             // Gid is different, there may be duplicate primary keys in the cloud
             errCode = -E_CLOUD_GID_MISMATCH;
         }
-        status = sqlite3_column_int(stmt, index++);
+        status = static_cast<uint32_t>(sqlite3_column_int(stmt, index++));
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = -E_NOT_FOUND;
     } else {

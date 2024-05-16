@@ -25,7 +25,7 @@ static const int COMBINER_SURVAIL_PERIOD_IN_MILLISECOND = 10000; // Period is 10
 void FrameCombiner::Initialize()
 {
     RuntimeContext *context = RuntimeContext::GetInstance();
-    TimerAction action = [this](TimerId inTimerId)->int{
+    TimerAction action = [this](TimerId inTimerId)->int {
         PeriodicalSurveillance();
         return E_OK;
     };

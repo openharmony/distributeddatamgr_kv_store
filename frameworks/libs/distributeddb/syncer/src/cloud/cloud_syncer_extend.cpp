@@ -778,7 +778,7 @@ bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSche
     TaskId checkTaskId = taskId;
     do {
         std::tie(isMerge, checkTaskId) = TryMergeTask(cloudSchema, checkTaskId);
-        mergeHappen |= isMerge;
+        mergeHappen = mergeHappen || isMerge;
     } while (isMerge);
     return mergeHappen;
 }

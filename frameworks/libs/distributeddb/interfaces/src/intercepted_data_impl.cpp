@@ -76,7 +76,7 @@ InterceptedDataImpl::InterceptedDataImpl(std::vector<SingleVerKvEntry *> dataIte
     // New packet cannot exceed both twice the MTU and twice the original size.
     // Besides, it cannot exceed 30 MB.
     maxPacketSize_ = std::min(DBConstant::MAX_SYNC_BLOCK_SIZE,
-        std::max(totalLength_, static_cast<size_t>(DBConstant::MAX_MTU_SIZE)) * 2);
+        std::max(totalLength_, static_cast<size_t>(DBConstant::MAX_MTU_SIZE)) * 2); // 2 times MAX_MTU size
 }
 
 InterceptedDataImpl::~InterceptedDataImpl()

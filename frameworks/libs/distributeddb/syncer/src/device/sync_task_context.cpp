@@ -313,7 +313,7 @@ int SyncTaskContext::StartTimer()
     TimerAction timeOutCallback = std::bind(&SyncTaskContext::TimeOut, this, std::placeholders::_1);
     int errCode = RuntimeContext::GetInstance()->SetTimer(timeout_, timeOutCallback,
         [this]() {
-            int ret = RuntimeContext::GetInstance()->ScheduleTask([this](){ RefObject::DecObjRef(this); });
+            int ret = RuntimeContext::GetInstance()->ScheduleTask([this]() { RefObject::DecObjRef(this); });
             if (ret != E_OK) {
                 LOGE("[SyncTaskContext] timer finalizer ScheduleTask, errCode %d", ret);
             }

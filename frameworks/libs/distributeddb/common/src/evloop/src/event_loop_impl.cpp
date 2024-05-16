@@ -101,7 +101,7 @@ EventLoopImpl::EventLoopImpl()
     : pollingSetChanged_(false),
       running_(true)
 {
-    OnKill([this](){ OnKillLoop(); });
+    OnKill([this]() { OnKillLoop(); });
 }
 
 EventLoopImpl::~EventLoopImpl()

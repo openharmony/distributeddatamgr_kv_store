@@ -288,6 +288,10 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
         LOGE("[CloudSyncer] task is invalid, abort sync");
         return errCode;
     }
+    if (taskInfo.table.empty()) {
+        LOGE("[CloudSyncer] Invalid taskInfo table");
+        return -E_INVALID_ARGS;
+    }
     errCode = DoUpload(taskInfo.taskId, index == (taskInfo.table.size() - 1u), taskInfo.lockAction);
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         {
@@ -401,7 +405,7 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
         errCode = cloudTaskInfos_[currentContext_.currentTaskId].errCode;
         cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
         currentUserIndex = currentContext_.currentUserIndex;
-        userListSize = cloudTaskInfos_[taskId].users.size();
+        userListSize = static_cast<int>(cloudTaskInfos_[taskId].users.size());
     }
     if (currentUserIndex >= userListSize) {
         DoFinished(taskId, errCode);
@@ -1298,7 +1302,7 @@ void CloudSyncer::SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadDa
     uploadData.isCompensatedTask = cloudTaskInfos_[taskId].compensatedTask;
 }
 
-bool CloudSyncer::IsModeForcePush(const TaskId taskId)
+bool CloudSyncer::IsModeForcePush(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     return cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
@@ -1331,7 +1335,7 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         return ret;
     }
     uploadParam.count -= uploadData.ignoredCount;
-    info.upLoadInfo.total -= uploadData.ignoredCount;
+    info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
     ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused
@@ -1902,7 +1906,11 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
     }
     if (errorCode != E_OK) {
         info.downLoadInfo.failCount += 1;
-        info.downLoadInfo.successCount -= 1;
+        if (info.downLoadInfo.successCount == 0) {
+            LOGW("[CloudSyncer] Invalid successCount");
+        } else {
+            info.downLoadInfo.successCount -= 1;
+        }
     }
     if (dupHashKeySet.find(downloadItem.hashKey) == dupHashKeySet.end()) {
         changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(

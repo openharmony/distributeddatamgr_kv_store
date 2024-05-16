@@ -553,7 +553,7 @@ void MultiVerSyncStateMachine::SyncResponseBegin(uint32_t sessionId)
         int errCode = RuntimeContext::GetInstance()->SetTimer(
             RESPONSE_TIME_OUT, timeOutCallback,
             [this]() {
-                int ret = RuntimeContext::GetInstance()->ScheduleTask([this](){ RefObject::DecObjRef(context_); });
+                int ret = RuntimeContext::GetInstance()->ScheduleTask([this]() { RefObject::DecObjRef(context_); });
                 if (ret != E_OK) {
                     LOGE("[MultiVerSyncStateMachine][SyncResponseEnd] timer finalizer ScheduleTask, errCode %d", ret);
                 }
