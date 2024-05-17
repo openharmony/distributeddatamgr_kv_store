@@ -102,7 +102,7 @@ private:
 
     static int StepStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, bool isMemory);
 
-    static int OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData);
+    static int OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, OpType op, DownloadData &downloadData);
 
     static int OnlyUpdateSyncData(sqlite3 *db, bool isMemory, int index, OpType opType, DownloadData &downloadData);
 
