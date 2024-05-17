@@ -419,9 +419,9 @@ std::string SqliteCloudKvExecutorUtils::GetOperateDataSql(OpType opType)
 std::string SqliteCloudKvExecutorUtils::GetOperateLogSql(OpType opType)
 {
     switch (opType) {
-        case OpType::INSERT:
+        case OpType::INSERT: // fallthrough
+        case OpType::UPDATE:
             return INSERT_CLOUD_SYNC_DATA_LOG;
-        case OpType::UPDATE: // fallthrough
         case OpType::DELETE:
             return UPDATE_CLOUD_SYNC_DATA_LOG;
         default:
@@ -452,7 +452,7 @@ int SqliteCloudKvExecutorUtils::BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *da
 int SqliteCloudKvExecutorUtils::BindInsertStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt,
     const std::string &user, const DataItem &dataItem)
 {
-    int errCode = BindInsertLogStmt(logStmt, user, dataItem);
+    int errCode = BindInsertLogStmt(logStmt, user, dataItem); // insert or replace LOG table for insert DATA table.
     if (errCode != E_OK) {
         return errCode;
     }
@@ -489,7 +489,7 @@ int SqliteCloudKvExecutorUtils::BindInsertLogStmt(sqlite3_stmt *logStmt, const s
 int SqliteCloudKvExecutorUtils::BindUpdateStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, const std::string &user,
     const DataItem &dataItem)
 {
-    int errCode = BindUpdateLogStmt(logStmt, user, dataItem);
+    int errCode = BindInsertLogStmt(logStmt, user, dataItem); // insert or replace LOG table for update DATA table.
     if (errCode != E_OK) {
         return errCode;
     }
@@ -532,7 +532,15 @@ int SqliteCloudKvExecutorUtils::BindDeleteStmt(sqlite3_stmt *logStmt, sqlite3_st
     dataItem.key = {};
     dataItem.value = {};
     dataItem.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
-    return BindUpdateStmt(logStmt, dataStmt, user, dataItem);
+    int errCode = BindUpdateLogStmt(logStmt, user, dataItem); // update LOG table for delete DATA table.
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = BindDataStmt(dataStmt, dataItem, false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return E_OK;
 }
 
 int SqliteCloudKvExecutorUtils::BindDataStmt(sqlite3_stmt *dataStmt, const DataItem &dataItem, bool isInsert)
