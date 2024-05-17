@@ -183,7 +183,7 @@ protected:
     int DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *context, WaterMark ackWaterMark,
         const std::vector<uint64_t> &reserved);
 
-    int SendDataPacket(SyncType syncType, const DataRequestPacket *packet, SingleVerSyncTaskContext *context);
+    int SendDataPacket(SyncType syncType, DataRequestPacket *packet, SingleVerSyncTaskContext *context);
 
     void UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId, const SyncTimeRange &dataTime,
         const SingleVerSyncTaskContext *context, UpdateWaterMark isUpdateWaterMark);
@@ -208,7 +208,7 @@ protected:
 
     void SendResetWatchDogPacket(SingleVerSyncTaskContext *context, uint32_t packetLen);
 
-    int SendReSendPacket(const DataRequestPacket *packet, SingleVerSyncTaskContext *context,
+    int SendReSendPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
         uint32_t sessionId, uint32_t sequenceId);
 
     int SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData, SingleVerSyncTaskContext *context);
@@ -238,7 +238,7 @@ protected:
 
     int ControlCmdStartCheck(SingleVerSyncTaskContext *context);
 
-    int SendControlPacket(const ControlRequestPacket *packet, SingleVerSyncTaskContext *context);
+    int SendControlPacket(ControlRequestPacket *packet, SingleVerSyncTaskContext *context);
 
     int ControlCmdRequestRecvPre(SingleVerSyncTaskContext *context, const Message *message);
     int SubscribeRequestRecvPre(SingleVerSyncTaskContext *context, const SubscribeRequest *packet,

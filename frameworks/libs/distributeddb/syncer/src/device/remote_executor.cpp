@@ -233,12 +233,13 @@ int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
         storage->DecRefCount();
         return errCode;
     }
-    const auto *requestPacket = inMsg->GetObject<RemoteExecutorRequestPacket>();
-    if (requestPacket == nullptr) {
+    const auto *packet = inMsg->GetObject<ISyncPacket>();
+    if (packet == nullptr) {
         LOGE("[RemoteExecutor] get packet object failed");
         storage->DecRefCount();
         return -E_INVALID_ARGS;
     }
+    const auto *requestPacket = static_cast<const RemoteExecutorRequestPacket *>(packet);
     errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel(), requestPacket->GetVersion());
     storage->DecRefCount();
     return errCode;
@@ -258,13 +259,13 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
     }
     RelationalDBSyncInterface *storage = static_cast<RelationalDBSyncInterface *>(syncInterface);
 
-    const RemoteExecutorRequestPacket *requestPacket = inMsg->GetObject<RemoteExecutorRequestPacket>();
-    if (requestPacket == nullptr) {
+    const auto *packet = inMsg->GetObject<ISyncPacket>();
+    if (packet == nullptr) {
         LOGE("[RemoteExecutor] get packet object failed");
         storage->DecRefCount();
         return -E_INVALID_ARGS;
     }
-
+    const RemoteExecutorRequestPacket *requestPacket = static_cast<const RemoteExecutorRequestPacket *>(packet);
     int errCode = ResponseRemoteQueryRequest(storage, requestPacket->GetPreparedStmt(), device, inMsg->GetSessionId());
     storage->DecRefCount();
     return errCode;
@@ -272,10 +273,11 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
 
 int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Message *inMsg)
 {
-    auto *packet = inMsg->GetObject<RemoteExecutorAckPacket>();
-    if (packet == nullptr) {
+    const auto *ack = inMsg->GetObject<ISyncPacket>();
+    if (ack == nullptr) {
         return -E_INVALID_ARGS;
     }
+    const auto *packet = static_cast<const RemoteExecutorAckPacket *>(ack);
     int errCode = packet->GetAckCode();
     uint32_t sessionId = inMsg->GetSessionId();
     uint32_t sequenceId = inMsg->GetSequenceId();
@@ -492,7 +494,8 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
         ReleaseMessageAndPacket(message, packet);
         return errCode;
     }
-    errCode = message->SetExternalObject(packet);
+    auto exObj = static_cast<ISyncPacket *>(packet);
+    errCode = message->SetExternalObject(exObj);
     if (errCode != E_OK) {
         ReleaseMessageAndPacket(message, packet);
         LOGE("[RemoteExecutor][RequestStart] set external object failed errCode=%d", errCode);
@@ -578,8 +581,8 @@ int RemoteExecutor::ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sess
         return -E_OUT_OF_MEMORY;
     }
     packet->SetVersion(RemoteExecutorAckPacket::RESPONSE_PACKET_VERSION_CURRENT);
-
-    int errCode = message->SetExternalObject(packet);
+    auto exObj = static_cast<ISyncPacket *>(packet);
+    int errCode = message->SetExternalObject(exObj);
     if (errCode != E_OK) {
         ReleaseMessageAndPacket(message, packet);
         storage->DecRefCount();
