@@ -24,6 +24,7 @@
 #include "cloud/icloud_db.h"
 #include "cloud_sync_tag_assets.h"
 #include "cloud_sync_utils.h"
+#include "db_dfx_adapter.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "runtime_context.h"
@@ -363,8 +364,17 @@ CloudSyncEvent CloudSyncer::SyncMachineDoDownload()
     }
     errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
     if (errCode != E_OK) {
+        if (errCode == -E_TASK_PAUSED) {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_DOWNLOAD, StageResult::CANCLE, errCode});
+        } else {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_DOWNLOAD, StageResult::FAIL, errCode});
+        }
         return SetCurrentTaskFailedInMachine(errCode);
     }
+    DBDfxAdapter::ReportBehavior(
+        {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_DOWNLOAD, StageResult::SUCC, errCode});
     return CloudSyncEvent::DOWNLOAD_FINISHED_EVENT;
 }
 
@@ -377,8 +387,12 @@ CloudSyncEvent CloudSyncer::SyncMachineDoUpload()
         taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
         needUpload = currentContext_.isRealNeedUpload;
     }
+    DBDfxAdapter::ReportBehavior(
+        {__func__, Scene::CLOUD_SYNC, State::BEGIN, Stage::CLOUD_UPLOAD, StageResult::SUCC, E_OK});
     int errCode = DoUploadInNeed(taskInfo, needUpload);
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_UPLOAD, StageResult::FAIL, errCode});
         return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
     }
     if (errCode != E_OK) {
@@ -386,9 +400,17 @@ CloudSyncEvent CloudSyncer::SyncMachineDoUpload()
             std::lock_guard<std::mutex> autoLock(dataLock_);
             cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
         }
+        if (errCode == -E_TASK_PAUSED) {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_UPLOAD, StageResult::CANCLE, errCode});
+        } else {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_UPLOAD, StageResult::FAIL, errCode});
+        }
         return CloudSyncEvent::ERROR_EVENT;
     }
-
+    DBDfxAdapter::ReportBehavior(
+        {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_UPLOAD, StageResult::SUCC, errCode});
     return CloudSyncEvent::UPLOAD_FINISHED_EVENT;
 }
 
@@ -416,6 +438,8 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
 int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     cloudSyncStateMachine_.SwitchStateAndStep(CloudSyncEvent::START_SYNC_EVENT);
+    DBDfxAdapter::ReportBehavior(
+        {__func__, Scene::CLOUD_SYNC, State::BEGIN, Stage::CLOUD_SYNC, StageResult::SUCC, E_OK});
     return E_OK;
 }
 
@@ -423,6 +447,8 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode)
 {
     storageProxy_->OnSyncFinish();
     if (errCode == -E_TASK_PAUSED) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_SYNC, StageResult::CANCLE, errCode});
         LOGD("[CloudSyncer] taskId %" PRIu64 " was paused, it won't be finished now", taskId);
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -910,6 +936,8 @@ int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         std::vector<std::string> devices = currentContext_.notifier->GetDevices();
         if (devices.empty()) {
+            DBDfxAdapter::ReportBehavior(
+                {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, -E_CLOUD_ERROR});
             LOGE("[CloudSyncer] CurrentContext do not contain device info");
             return -E_CLOUD_ERROR;
         }
@@ -918,8 +946,12 @@ int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
     }
     int ret = storageProxy_->NotifyChangedData(deviceName, std::move(changedData));
     if (ret != E_OK) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, ret});
         LOGE("[CloudSyncer] Cannot notify changed data while downloading, %d.", ret);
     }
+    DBDfxAdapter::ReportBehavior(
+        {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, ret});
     return ret;
 }
 

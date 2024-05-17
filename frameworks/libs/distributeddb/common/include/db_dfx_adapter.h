@@ -26,18 +26,54 @@ enum DBEventType {
     SECURITY = 3,
     BEHAVIOR = 4
 };
+
+enum class Scene {
+    OPEN_CONN = 1,
+    SEND_RECV_DATA,
+    CLOUD_SYNC,
+    DATA_ACCESS,
+    SEARCH_DATA,
+    DEVICE_SYNC
+};
+
+enum class State {
+    BEGIN = 0,
+    END
+};
+
+enum class Stage {
+    GET_DB = 0,
+    CHECK_OPT,
+    GET_DB_CONN,
+    CLOUD_SYNC,
+    CLOUD_DOWNLOAD,
+    CLOUD_UPLOAD,
+    CLOUD_NOTIFY,
+    DEVICE_SYNC,
+};
+
+enum class StageResult {
+    IDLE = 0,
+    SUCC,
+    FAIL,
+    CANCLE,
+    UNKNOWN
+};
+
 struct ReportTask {
-    std::string eventName;
-    std::string appId;
-    std::string userId;
-    std::string storeId;
+    std::string funcName;
+    Scene scene;
+    State state;
+    Stage stage;
+    StageResult result;
     int errCode = 0;
 };
+
 class DBDfxAdapter final {
 public:
     static void Dump(int fd, const std::vector<std::u16string> &args);
 
-    static void ReportFault(const ReportTask &reportTask);
+    static void ReportBehavior(const ReportTask &reportTask);
 
     static void StartTrace(const std::string &action);
     static void FinishTrace();
@@ -51,11 +87,18 @@ public:
     static const std::string SYNC_ACTION;
     static const std::string EVENT_OPEN_DATABASE_FAILED;
 private:
-    static const std::string EVENT_CODE;
-    static const std::string APP_ID;
-    static const std::string USER_ID;
-    static const std::string STORE_ID;
+    static const std::string ORG_PKG;
+    static const std::string FUNC;
+    static const std::string BIZ_SCENE;
+    static const std::string BIZ_STATE;
+    static const std::string BIZ_STAGE;
+    static const std::string STAGE_RES;
+    static const std::string ERROR_CODE;
+    static const std::string DISTRIBUTED_DB_BEHAVIOR;
+    static const std::string ORG_PKG_NAME;
     static const std::string SQLITE_EXECUTE;
+
+    static constexpr int E_DB_DFX_BASE = 27328512;
 };
 } // namespace DistributedDB
 

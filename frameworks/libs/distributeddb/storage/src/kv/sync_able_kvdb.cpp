@@ -180,8 +180,6 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
     int errCode = syncer_.Initialize(syncInterface, isNeedActive);
     if (errCode == E_OK) {
         started_ = true;
-    } else {
-        LOGW("KvDB start syncer failed, err:'%d'.", errCode);
     }
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
         false);
@@ -452,7 +450,6 @@ int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
 bool SyncAbleKvDB::NeedStartSyncer() const
 {
     if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
-        LOGW("KvDB communicator not ready!");
         return false;
     }
     // don't start when check callback got not active

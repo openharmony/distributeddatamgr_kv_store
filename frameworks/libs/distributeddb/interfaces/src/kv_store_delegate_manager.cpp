@@ -206,9 +206,6 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
 
     int errCode;
     IKvDBConnection *conn = GetOneConnectionWithRetry(properties, errCode);
-    if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        DBDfxAdapter::ReportFault( { DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED, userId_, appId_, storeId, errCode } );
-    }
     if (conn == nullptr) {
         DBStatus status = TransferDBErrno(errCode);
         callback(status, nullptr);
@@ -322,9 +319,6 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
 
     int errCode;
     IKvDBConnection *conn = GetOneConnectionWithRetry(properties, errCode);
-    if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        DBDfxAdapter::ReportFault( { DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED, userId_, appId_, storeId, errCode } );
-    }
     DBStatus status = TransferDBErrno(errCode);
     if (conn == nullptr) {
         callback(status, nullptr);

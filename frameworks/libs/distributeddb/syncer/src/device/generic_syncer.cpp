@@ -112,7 +112,6 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         }
 
         if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
-            LOGW("[Syncer] Communicator component not ready!");
             return -E_NOT_INIT;
         }
 

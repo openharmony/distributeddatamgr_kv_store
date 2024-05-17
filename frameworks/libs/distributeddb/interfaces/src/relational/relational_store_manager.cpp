@@ -102,9 +102,6 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
 
     int errCode = E_OK;
     auto *conn = GetOneConnectionWithRetry(properties, errCode);
-    if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        DBDfxAdapter::ReportFault( { DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED, userId_, appId_, storeId, errCode } );
-    }
     if (conn == nullptr) {
         return TransferDBErrno(errCode);
     }
