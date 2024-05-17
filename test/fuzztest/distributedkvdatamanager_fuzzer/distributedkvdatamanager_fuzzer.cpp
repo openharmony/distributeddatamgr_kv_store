@@ -216,36 +216,36 @@ void UnRegisterKvStoreServiceDeathRecipientFuzz()
 
 void PutSwitchFuzz(const uint8_t *data, size_t size)
 {
-    std::string appId(data, data + size);
+    std::string appIds(data, data + size);
     uint32_t input = static_cast<uint32_t>(size);
     SwitchData switchData;
     switchData.value = input;
     switchData.length = input & 0xFFFF;
-    manager.PutSwitch({ appId }, switchData);
+    manager.PutSwitch({ appIds }, switchData);
     manager.PutSwitch({ "distributed_device_profile_service" }, switchData);
 }
 
 void GetSwitchFuzz(const uint8_t *data, size_t size)
 {
-    std::string appId(data, data + size);
+    std::string appIds(data, data + size);
     std::string networkId(data, data + size);
-    manager.GetSwitch({ appId }, networkId);
+    manager.GetSwitch({ appIds }, networkId);
     manager.GetSwitch({ "distributed_device_profile_service" }, networkId);
 }
 
 void SubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
 {
-    std::string appId(data, data + size);
+    std::string appIds(data, data + size);
     std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
-    manager.SubscribeSwitchData({ appId }, observer);
+    manager.SubscribeSwitchData({ appIds }, observer);
 }
 
 void UnsubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
 {
-    std::string appId(data, data + size);
+    std::string appIds(data, data + size);
     std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
-    manager.SubscribeSwitchData({ appId }, observer);
-    manager.UnsubscribeSwitchData({ appId }, observer);
+    manager.SubscribeSwitchData({ appIds }, observer);
+    manager.UnsubscribeSwitchData({ appIds }, observer);
 }
 } // namespace OHOS
 
