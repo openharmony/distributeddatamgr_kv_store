@@ -49,8 +49,9 @@ Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
     auto status = service->Subscribe(appId_, storeId_, remote_);
     if (status != SUCCESS) {
         remote_ = nullptr;
+    } else {
+        remote_->realType_ = realType;
     }
-    remote_->realType_ = realType;
     return status;
 }
 
