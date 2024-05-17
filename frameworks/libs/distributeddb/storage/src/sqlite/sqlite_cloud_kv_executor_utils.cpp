@@ -342,9 +342,8 @@ int SqliteCloudKvExecutorUtils::ExecutePutCloudData(sqlite3 *db, bool isMemory,
                 [[fallthrough]];
             case OpType::ONLY_UPDATE_GID:                // fallthrough
             case OpType::NOT_HANDLE:                     // fallthrough
-                errCode = OnlyUpdateLogTable(db, isMemory, index, downloadData);
-                break;
             case OpType::CLEAR_GID:                      // fallthrough
+                errCode = OnlyUpdateLogTable(db, isMemory, index, op, downloadData);
                 break;
             default:
                 errCode = -E_CLOUD_ERROR;
@@ -665,7 +664,8 @@ int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const C
     }
 }
 
-int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData)
+int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, int index, OpType op,
+    DownloadData &downloadData)
 {
     if (downloadData.existDataHashKey[index].empty()) {
         return E_OK;
@@ -688,6 +688,15 @@ int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, i
     if (res.first != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Get data item failed %d", res.first);
         return res.first;
+    }
+    bool clearCloudInfo = (op == OpType::CLEAR_GID);
+    if (res.second.hashKey.empty()) {
+        res.second.hashKey = downloadData.existDataHashKey[index];
+        clearCloudInfo = true;
+    }
+    if (clearCloudInfo) {
+        res.second.gid.clear();
+        res.second.version.clear();
     }
     errCode = BindInsertLogStmt(logStmt, downloadData.user, res.second);
     if (errCode != E_OK) {

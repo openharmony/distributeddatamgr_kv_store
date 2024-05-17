@@ -1307,7 +1307,7 @@ std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &da
     if (isSystemRecord) {
         dataItem.hashKey = dataItem.key;
         dataItem.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_SYSTEM_RECORD);
-    } else {
+    } else if (!dataItem.key.empty()) {
         (void)DBCommon::CalcValueHash(dataItem.key, dataItem.hashKey);
     }
     return res;

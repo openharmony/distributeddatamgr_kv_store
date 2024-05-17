@@ -557,6 +557,24 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level0)
     BlockSync(kvDelegatePtrS1_, OK);
 }
 
+/**
+ * @tc.name: NormalSync017
+ * @tc.desc: Test duplicate addition, deletion, and sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync017, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(key), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;
