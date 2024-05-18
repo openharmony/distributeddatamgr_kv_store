@@ -41,6 +41,9 @@ const std::string STORE_ID_8 = "distributed_db_test8";
 constexpr int32_t INSTANCE_ID_1 = 1;
 constexpr int32_t INSTANCE_ID_2 = 2;
 
+const std::string SUB_USER_1 = "subUser1";
+const std::string SUB_USER_2 = "subUser2";
+
 const int NUM_LENGTH = 10;
 const int LETTER_LENGTH = 52;
 const uint8_t KEY_NUM[NUM_LENGTH] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };

@@ -159,6 +159,14 @@ KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const s
       instanceId_(instanceId)
 {}
 
+KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const std::string &userId,
+    const std::string &subUser, int32_t instanceId)
+    : appId_(appId),
+      userId_(userId),
+      subUser_(subUser),
+      instanceId_(instanceId)
+{}
+
 KvStoreDelegateManager::~KvStoreDelegateManager() {}
 
 DBStatus KvStoreDelegateManager::SetKvStoreConfig(const KvStoreConfig &kvStoreConfig)
@@ -188,7 +196,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     }
 #ifndef OMIT_MULTI_VER
     // Multi version and local database mode not allow the creation of a memory database
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) || GetKvStorePath().empty()) {
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, subUser_) || GetKvStorePath().empty()) {
         callback(INVALID_ARGS, nullptr);
         return;
     }
@@ -202,7 +210,8 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
 
     KvDBProperties properties;
     InitPropWithOption(properties, GetKvStorePath(), option);
-    DBCommon::SetDatabaseIds(properties, appId_, userId_, storeId);
+    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DBCommon::SetDatabaseIds(properties, dbIdParam);
 
     int errCode;
     IKvDBConnection *conn = GetOneConnectionWithRetry(properties, errCode);
@@ -259,7 +268,7 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
         LOGE("[KvStoreMgr] Unsupport option for RD mode");
         return false;
     }
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) ||
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, subUser_) ||
         (GetKvStorePath().empty() && !option.isMemoryDb)) {
         LOGE("[KvStoreMgr] Invalid id or path info for the store");
         callback(INVALID_ARGS, nullptr);
@@ -315,7 +324,8 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     }
     KvDBProperties properties;
     InitPropWithNbOption(properties, GetKvStorePath(), schema, option);
-    DBCommon::SetDatabaseIds(properties, appId_, userId_, storeId, instanceId_);
+    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_, instanceId_ };
+    DBCommon::SetDatabaseIds(properties, dbIdParam);
 
     int errCode;
     IKvDBConnection *conn = GetOneConnectionWithRetry(properties, errCode);
@@ -399,7 +409,8 @@ DBStatus KvStoreDelegateManager::DeleteKvStore(const std::string &storeId)
 
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, GetKvStorePath());
-    DBCommon::SetDatabaseIds(properties, appId_, userId_, storeId);
+    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::RemoveDatabase(properties);
     if (errCode == E_OK) {
         LOGI("Database deleted successfully!");
@@ -468,7 +479,8 @@ DBStatus KvStoreDelegateManager::GetKvStoreDiskSize(const std::string &storeId, 
     }
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, dataDir);
-    DBCommon::SetDatabaseIds(properties, appId_, userId_, storeId);
+    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::CalculateKvStoreSize(properties, size);
     if (errCode != E_OK) {
         if (errCode == -E_NOT_FOUND) {
@@ -575,7 +587,7 @@ DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(const std::string &use
         return DB_ERROR;
     }
 
-    std::string syncIdentifier = DBCommon::GenerateIdentifierId(storeId, appId, userId, 0);
+    std::string syncIdentifier = DBCommon::GenerateIdentifierId(storeId, appId, userId, "", 0);
     std::string hashIdentifier = DBCommon::TransferHashString(syncIdentifier);
     std::string dualIdentifier = DBCommon::TransferHashString(DBCommon::GenerateDualTupleIdentifierId(storeId, appId));
     int errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(hashIdentifier, dualIdentifier, userId);

@@ -53,7 +53,7 @@ bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId)
 }
 
 bool ParamCheckUtils::CheckStoreParameter(const std::string &storeId, const std::string &appId,
-    const std::string &userId, bool isIgnoreUserIdCheck)
+    const std::string &userId, bool isIgnoreUserIdCheck, const std::string &subUser)
 {
     if (!IsStoreIdSafe(storeId)) {
         return false;
@@ -72,9 +72,15 @@ bool ParamCheckUtils::CheckStoreParameter(const std::string &storeId, const std:
         LOGE("Invalid app info[%zu][%zu]", userId.length(), appId.length());
         return false;
     }
+    // subUser allow empty
+    if (subUser.length() > DBConstant::MAX_SUB_USER_LENGTH) {
+        LOGE("Invalid subUser info[%zu][%zu]", userId.length(), subUser.length());
+        return false;
+    }
 
     if ((appId.find(DBConstant::ID_CONNECTOR) != std::string::npos) ||
-        (storeId.find(DBConstant::ID_CONNECTOR) != std::string::npos)) {
+        (storeId.find(DBConstant::ID_CONNECTOR) != std::string::npos) ||
+        (subUser.find(DBConstant::ID_CONNECTOR) != std::string::npos)) {
         LOGE("Invalid character in the store para info.");
         return false;
     }

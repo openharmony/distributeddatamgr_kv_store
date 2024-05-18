@@ -44,7 +44,7 @@ public:
 
     // Set all indentifers
     void SetIdentifier(const std::string &userId, const std::string &appId, const std::string &storeId,
-        int32_t instanceId = 0);
+        const std::string &subUser = "", int32_t instanceId = 0);
 
     static const std::string CREATE_IF_NECESSARY;
     static const std::string DATABASE_TYPE;
@@ -53,6 +53,7 @@ public:
     static const std::string APP_ID;
     static const std::string STORE_ID;
     static const std::string INSTANCE_ID;
+    static const std::string SUB_USER;
     static const std::string IDENTIFIER_DATA;
     static const std::string IDENTIFIER_DIR;
     static const std::string DUAL_TUPLE_IDENTIFIER_DATA;

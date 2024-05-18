@@ -1019,7 +1019,8 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
     propertiesPtr->SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
     propertiesPtr->SetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
     propertiesPtr->SetBoolProp(KvDBProperties::SHARED_MODE, false);
-    DBCommon::SetDatabaseIds(*propertiesPtr, param.appId, param.userId, param.storeId);
+    DbIdParam dbIdParam = { param.appId, param.userId, param.storeId };
+    DBCommon::SetDatabaseIds(*propertiesPtr, dbIdParam);
     return E_OK;
 }
 

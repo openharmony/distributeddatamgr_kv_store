@@ -60,6 +60,7 @@ public:
     static constexpr uint64_t MAX_USER_ID_LENGTH = 128;
     static constexpr uint64_t MAX_APP_ID_LENGTH = 128;
     static constexpr uint64_t MAX_STORE_ID_LENGTH = 128;
+    static constexpr uint64_t MAX_SUB_USER_LENGTH = 128;
 
     static const std::string MULTI_SUB_DIR;
     static const std::string SINGLE_SUB_DIR;

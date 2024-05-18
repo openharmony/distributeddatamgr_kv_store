@@ -35,6 +35,8 @@ public:
         const std::map<std::string, CollateType> &collateTypeMap = {});
 
     DB_API RelationalStoreManager(const std::string &appId, const std::string &userId, int32_t instanceId = 0);
+    DB_API RelationalStoreManager(const std::string &appId, const std::string &userId, const std::string &subUser,
+        int32_t instanceId = 0);
     DB_API ~RelationalStoreManager() = default;
 
     RelationalStoreManager(const RelationalStoreManager &) = delete;
@@ -60,6 +62,7 @@ private:
         RelationalStoreDelegate *&delegate, std::string &canonicalDir);
     std::string appId_;
     std::string userId_;
+    std::string subUser_;
     int32_t instanceId_;
 };
 } // namespace DistributedDB

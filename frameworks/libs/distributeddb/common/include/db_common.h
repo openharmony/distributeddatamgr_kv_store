@@ -54,12 +54,11 @@ public:
     static int RemoveAllFilesOfDirectory(const std::string &dir, bool isNeedRemoveDir = true);
 
     static std::string GenerateIdentifierId(const std::string &storeId,
-        const std::string &appId, const std::string &userId, int32_t instanceId = 0);
+        const std::string &appId, const std::string &userId, const std::string &subUser = "", int32_t instanceId = 0);
 
     static std::string GenerateDualTupleIdentifierId(const std::string &storeId, const std::string &appId);
 
-    static void SetDatabaseIds(KvDBProperties &properties, const std::string &appId, const std::string &userId,
-        const std::string &storeId, int32_t instanceId = 0);
+    static void SetDatabaseIds(KvDBProperties &properties, const DbIdParam &dbIdParam);
 
     static std::string StringMasking(const std::string &oriStr, size_t remain = 3); // remain 3 unmask
 

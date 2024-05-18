@@ -31,9 +31,9 @@ public:
     // Check if the storeID is a safe arg.
     static bool IsStoreIdSafe(const std::string &storeId);
 
-    // check appId, userId, storeId.
+    // check appId, userId, storeId, subUser.
     static bool CheckStoreParameter(const std::string &storeId, const std::string &appId, const std::string &userId,
-        bool isIgnoreUserIdCheck = false);
+        bool isIgnoreUserIdCheck = false, const std::string &subUser = "");
 
     // check encrypted args for KvStore.
     static bool CheckEncryptedParameter(CipherType cipher, const CipherPassword &passwd);
