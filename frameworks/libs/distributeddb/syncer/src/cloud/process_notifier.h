@@ -22,7 +22,8 @@ public:
     explicit ProcessNotifier(ICloudSyncer *syncer);
     ~ProcessNotifier();
 
-    void Init(const std::vector<std::string> &tableName, const std::vector<std::string> &devices);
+    void Init(const std::vector<std::string> &tableName, const std::vector<std::string> &devices,
+        const std::vector<std::string> &users);
 
     void UpdateProcess(const ICloudSyncer::InnerProcessInfo &process);
 
@@ -45,6 +46,8 @@ protected:
     std::vector<std::string> devices_;
     ICloudSyncer *syncer_;
     std::string user_;
+private:
+    void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
 };
 }
 #endif // PROCESS_NOTIFIER_H

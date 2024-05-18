@@ -28,7 +28,7 @@ Collection::Collection(const std::string &name, KvStoreExecutor *executor) : exe
     std::transform(lowerCaseName.begin(), lowerCaseName.end(), lowerCaseName.begin(), [](unsigned char c) {
         return std::tolower(c);
     });
-    name_ = DBConstant::COLL_PREFIX + lowerCaseName;
+    name_ = RdDBConstant::COLL_PREFIX + lowerCaseName;
 }
 
 Collection::~Collection()

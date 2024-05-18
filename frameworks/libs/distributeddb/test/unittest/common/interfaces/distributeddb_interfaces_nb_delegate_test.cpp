@@ -3168,20 +3168,20 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
 }
 
 /**
-  * @tc.name: RdRangeQueryInSqlite001
+  * @tc.name: InvalidQueryTest001
   * @tc.desc: Test GetEntries with range query filter by sqlite
   * @tc.type: FUNC
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("RdRangeQueryInSqlite001", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("InvalidQueryTest001", option, g_kvNbDelegateCallback);
     std::vector<Entry> entries;
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);

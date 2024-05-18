@@ -63,7 +63,7 @@ int RemoteExecutor::Initialize(ISyncInterface *syncInterface, ICommunicator *com
     return E_OK;
 }
 
-int RemoteExecutor::RemoteQuery(const std::string device, const RemoteCondition &condition,
+int RemoteExecutor::RemoteQuery(const std::string &device, const RemoteCondition &condition,
     uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result)
 {
     if (closed_) {
@@ -768,7 +768,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     packet->SetSql(task.condition.sql);
     packet->SetBindArgs(task.condition.bindArgs);
     packet->SetNeedResponse();
-    packet->SetSecLabel(errCode == -E_NOT_SUPPORT ? NOT_SURPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
+    packet->SetSecLabel(errCode == -E_NOT_SUPPORT ? NOT_SUPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
     target = task.target;
     return E_OK;
 }
@@ -946,7 +946,7 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
     SecurityOption option;
     errCode = storage->GetSecurityOption(option);
     if (errCode == -E_NOT_SUPPORT) {
-        option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;
+        option.securityLabel = NOT_SUPPORT_SEC_CLASSIFICATION;
         errCode = E_OK;
     }
     if (errCode != E_OK) {
@@ -991,7 +991,7 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
-    if (remoteOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION || errCode == -E_NOT_SUPPORT) {
+    if (remoteOption.securityLabel == NOT_SUPPORT_SEC_CLASSIFICATION || errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }
     if (!CheckRemoteSecurityOption(device, remoteOption, localOption)) {
@@ -1009,7 +1009,7 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
     int errCode = storage->GetSecurityOption(localOption);
     LOGI("[RemoteExecutor] remote label:%d local l:%d, f:%d, errCode:%d, remote ver %" PRIu32, remoteSecLabel,
          localOption.securityLabel, localOption.securityFlag, errCode, remoteVersion);
-    if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
+    if (remoteSecLabel == NOT_SUPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }
     if (errCode != -E_NOT_SUPPORT && localOption.securityLabel == SecurityLabel::NOT_SET) {
@@ -1020,14 +1020,13 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
         LOGE("[RemoteExecutor] remote security label not set!");
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
-
     if (errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }
     if (errCode != E_OK) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
-    if (remoteSecLabel == UNKNOWN_SECURITY_LABEL || remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
+    if (remoteSecLabel == UNKNOWN_SECURITY_LABEL || remoteSecLabel == NOT_SUPPORT_SEC_CLASSIFICATION) {
         return E_OK;
     }
     if (RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(device, localOption)) {

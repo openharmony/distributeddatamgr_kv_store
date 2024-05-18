@@ -59,9 +59,9 @@ public:
 
     void ClearHeartbeatCount();
 
-    int32_t GetHeartbeatCount();
+    int32_t GetHeartbeatCount() const;
 
-    bool GetLockStatus();
+    bool GetLockStatus() const;
 
     void SetHeartbeatError(bool heartbeatError);
 

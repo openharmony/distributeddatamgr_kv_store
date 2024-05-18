@@ -16,11 +16,11 @@
 #ifndef CLOUD_STORE_TYPE_H
 #define CLOUD_STORE_TYPE_H
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <variant>
 #include <string>
-#include <stdint.h>
 
 #include "query.h"
 #include "store_types.h"

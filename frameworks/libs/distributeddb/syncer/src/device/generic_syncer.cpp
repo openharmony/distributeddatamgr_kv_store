@@ -1194,9 +1194,9 @@ void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &met
 
 void GenericSyncer::ResetSyncStatus()
 {
-    std::shared_ptr <Metadata> metadata = nullptr;
+    std::shared_ptr<Metadata> metadata = nullptr;
     {
-        std::lock_guard <std::mutex> lock(syncerLock_);
+        std::lock_guard<std::mutex> lock(syncerLock_);
         if (metadata_ == nullptr) {
             return;
         }

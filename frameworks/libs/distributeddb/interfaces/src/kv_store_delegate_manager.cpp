@@ -115,8 +115,8 @@ namespace {
         properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
         bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
         properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
-        properties.SetIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
-        properties.SetIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
+        properties.SetUIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
+        properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
         properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
     }
 
@@ -315,15 +315,22 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     if (!GetKvStoreParamCheck(storeId, option, callback)) {
         return;
     }
+    auto tmpOption = option;
+    if (tmpOption.storageEngineType == std::string(GAUSSDB_RD)) {
+        DBCommon::LoadGrdLib(tmpOption.rdconfig.type == HASH);
+        if (!DBCommon::IsGrdLibLoaded(tmpOption.rdconfig.type == HASH)) {
+            tmpOption.storageEngineType = std::string(SQLITE);
+        }
+    }
     // check if schema is supported and valid
     SchemaObject schema;
-    DBStatus retCode = CheckAndGetSchema(option.isMemoryDb, option.schema, schema);
+    DBStatus retCode = CheckAndGetSchema(tmpOption.isMemoryDb, tmpOption.schema, schema);
     if (retCode != OK) {
         callback(retCode, nullptr);
         return;
     }
     KvDBProperties properties;
-    InitPropWithNbOption(properties, GetKvStorePath(), schema, option);
+    InitPropWithNbOption(properties, GetKvStorePath(), schema, tmpOption);
     DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_, instanceId_ };
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
@@ -343,7 +350,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
         return;
     }
 
-    status = SetObserverNotifier(kvStore, option);
+    status = SetObserverNotifier(kvStore, tmpOption);
     if (status != OK) {
         CloseKvStore(kvStore);
         callback(status, nullptr);
@@ -353,7 +360,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     bool enAutoSync = false;
     (void)conn->Pragma(PRAGMA_AUTO_SYNC, static_cast<void *>(&enAutoSync));
 
-    SecurityOption secOption = option.secOption;
+    SecurityOption secOption = tmpOption.secOption;
     (void)conn->Pragma(PRAGMA_TRIGGER_TO_MIGRATE_DATA, &secOption);
 
     callback(OK, kvStore);

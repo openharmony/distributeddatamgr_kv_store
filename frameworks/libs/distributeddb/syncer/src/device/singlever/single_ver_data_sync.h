@@ -117,6 +117,8 @@ public:
 
     void ClearDataMsg();
 
+    static std::pair<TimeOffset, TimeOffset> GetTimeOffsetFromRequestMsg(const Message *message);
+
 protected:
     static const int SEND_FINISHED = 0xff;
     static const int LOCAL_WATER_MARK_NOT_INIT = 0xaa;
@@ -254,6 +256,8 @@ protected:
     void RecordClientId(const SingleVerSyncTaskContext *context);
 
     void SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet);
+
+    int SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);
 
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;

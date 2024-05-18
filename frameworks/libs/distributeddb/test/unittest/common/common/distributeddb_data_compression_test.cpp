@@ -90,7 +90,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression1, TestSize.Level1)
      * @tc.expected: step1. Compress successfully. Compressed data length is less than srcLen.
      */
 #ifndef OMIT_ZLIB
-    const int origLen = sizeof(g_srcStr);
+    const int origLen = static_cast<int>(sizeof(g_srcStr));
     vector<uint8_t> srcData(g_srcStr, g_srcStr + sizeof(g_srcStr));
 
     vector<uint8_t> compressedData;
@@ -122,7 +122,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression2, TestSize.Level1)
      * @tc.expected: step1. Compress successfully. Compressed data length is less than srcLen.
      */
 #ifndef OMIT_ZLIB
-    const int origLen = sizeof(g_srcStr);
+    const int origLen = static_cast<int>(sizeof(g_srcStr));
     vector<uint8_t> srcData(g_srcStr, g_srcStr + sizeof(g_srcStr));
 
     vector<uint8_t> compressedData;

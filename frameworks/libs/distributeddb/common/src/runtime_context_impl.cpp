@@ -324,7 +324,6 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
         }
         LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
-    LOGD("[RuntimeContext] call RegisterTimeChangedLister");
     return timeTickMonitor_->RegisterTimeChangedLister(action, finalize, errCode);
 }
 
@@ -787,7 +786,6 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
         LOGD("[RuntimeContext] TimeTickMonitor exist because no listener");
         timeTickMonitor_ = nullptr;
     }
-    LOGD("[RuntimeContext] TimeTickMonitor can not stop because listener is not empty");
 }
 
 void RuntimeContextImpl::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle)
@@ -1203,5 +1201,22 @@ bool RuntimeContextImpl::IsTimeTickMonitorValid() const
 {
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     return timeTickMonitor_ != nullptr;
+}
+
+bool RuntimeContextImpl::IsTimeChanged() const
+{
+    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+    return timeTickMonitor_ != nullptr && timeTickMonitor_->IsTimeChanged();
+}
+
+void RuntimeContextImpl::SetTimeChanged(bool timeChange)
+{
+    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+    if (timeTickMonitor_ == nullptr) {
+        timeTickMonitor_ = std::make_unique<TimeTickMonitor>();
+        (void)timeTickMonitor_->StartTimeTickMonitor();
+        LOGD("[RuntimeContext] TimeTickMonitor start success");
+    }
+    timeTickMonitor_->SetTimeChanged(timeChange);
 }
 } // namespace DistributedDB

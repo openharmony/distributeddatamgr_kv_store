@@ -16,6 +16,7 @@
 #include "auto_launch.h"
 
 #include "cloud/cloud_db_constant.h"
+#include "concurrent_adapter.h"
 #include "db_common.h"
 #include "db_dump_helper.h"
 #include "db_dfx_adapter.h"
@@ -31,7 +32,6 @@
 #include "runtime_context.h"
 #include "semaphore_utils.h"
 #include "sync_able_kvdb_connection.h"
-#include "concurrent_adapter.h"
 
 namespace DistributedDB {
 namespace {
@@ -585,41 +585,47 @@ void AutoLaunch::GetDoOpenMap(std::map<std::string, std::map<std::string, AutoLa
     }
 }
 
+void AutoLaunch::GetConnInDoOpenMapInner(std::pair<const std::string, std::map<std::string, AutoLaunchItem>> &items,
+    SemaphoreUtils &sema)
+{
+    for (auto &iter : items.second) {
+        int errCode = RuntimeContext::GetInstance()->ScheduleTask([&sema, &iter, &items, this] {
+            int ret = OpenOneConnection(iter.second);
+            LOGI("[AutoLaunch] GetConnInDoOpenMap GetOneConnection errCode:%d", ret);
+            if (iter.second.conn == nullptr) {
+                sema.SendSemaphore();
+                LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
+                return;
+            }
+            ret = RegisterObserverAndLifeCycleCallback(iter.second, items.first, false);
+            if (ret != E_OK) {
+                LOGE("[AutoLaunch] GetConnInDoOpenMap failed, we do CloseConnection");
+                TryCloseConnection(iter.second); // if here failed, do nothing
+                iter.second.conn = nullptr;
+            }
+            sema.SendSemaphore();
+            LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
+        });
+        if (errCode != E_OK) {
+            LOGE("[AutoLaunch] GetConnInDoOpenMap ScheduleTask failed, SendSemaphore");
+            sema.SendSemaphore();
+        }
+    }
+}
+
 void AutoLaunch::GetConnInDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap)
 {
     LOGI("[AutoLaunch] GetConnInDoOpenMap doOpenMap.size():%zu", doOpenMap.size());
     if (doOpenMap.empty()) {
         return;
     }
-    uint32_t totalSize = 0;
+    uint32_t totalSize = 0u;
     for (auto &items : doOpenMap) {
         totalSize += items.second.size();
     }
     SemaphoreUtils sema(1 - totalSize);
     for (auto &items : doOpenMap) {
-        for (auto &iter : items.second) {
-            int errCode = RuntimeContext::GetInstance()->ScheduleTask([&sema, &iter, &items, this] {
-                int ret = OpenOneConnection(iter.second);
-                LOGI("[AutoLaunch] GetConnInDoOpenMap GetOneConnection errCode:%d", ret);
-                if (iter.second.conn == nullptr) {
-                    sema.SendSemaphore();
-                    LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
-                    return;
-                }
-                ret = RegisterObserverAndLifeCycleCallback(iter.second, items.first, false);
-                if (ret != E_OK) {
-                    LOGE("[AutoLaunch] GetConnInDoOpenMap  failed, we do CloseConnection");
-                    TryCloseConnection(iter.second); // if here failed, do nothing
-                    iter.second.conn = nullptr;
-                }
-                sema.SendSemaphore();
-                LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
-            });
-            if (errCode != E_OK) {
-                LOGE("[AutoLaunch] GetConnInDoOpenMap ScheduleTask failed, SendSemaphore");
-                sema.SendSemaphore();
-            }
-        }
+        GetConnInDoOpenMapInner(items, sema);
     }
     LOGI("[AutoLaunch] GetConnInDoOpenMap WaitSemaphore");
     sema.WaitSemaphore();
@@ -804,7 +810,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId] () mutable {
             ADAPTER_AUTO_LOCK(autoLock, extLock_);
             extItemMap_[identifier].erase(userId);
-            if (extItemMap_[identifier].size() == 0) {
+            if (extItemMap_[identifier].empty()) {
                 extItemMap_.erase(identifier);
             }
         }, nullptr, &extItemMap_);
@@ -898,7 +904,7 @@ void AutoLaunch::ExtConnectionLifeCycleCallbackTask(const std::string &identifie
             }
             autoLaunchItem = extItemMap_[identifier][userId];
             extItemMap_[identifier].erase(userId);
-            if (extItemMap_[identifier].size() == 0) {
+            if (extItemMap_[identifier].empty()) {
                 extItemMap_.erase(identifier);
             }
         }, nullptr, &extItemMap_);

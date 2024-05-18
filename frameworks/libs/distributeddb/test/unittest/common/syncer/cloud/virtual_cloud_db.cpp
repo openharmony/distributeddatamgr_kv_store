@@ -513,12 +513,12 @@ void VirtualCloudDb::ClearHeartbeatCount()
     heartbeatCount_ = 0;
 }
 
-int32_t VirtualCloudDb::GetHeartbeatCount()
+int32_t VirtualCloudDb::GetHeartbeatCount() const
 {
     return heartbeatCount_;
 }
 
-bool VirtualCloudDb::GetLockStatus()
+bool VirtualCloudDb::GetLockStatus() const
 {
     return lockStatus_;
 }

@@ -120,7 +120,7 @@ bool SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(const std::string &dev
         return false;
     }
     SecurityOption localSecOption;
-    if (remoteSecOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
+    if (remoteSecOption.securityLabel == NOT_SUPPORT_SEC_CLASSIFICATION) {
         return true;
     }
     int errCode = storage->GetSecurityOption(localSecOption);
@@ -214,34 +214,53 @@ bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskConte
     const ICommunicator *communicator, const SyncGenericInterface *storage)
 {
     if (storage == nullptr) {
-        LOGE("[DataSync] storage is nullptr when check receive data");
+        LOGE("[SingleVerDataSyncUtils] storage is nullptr when check receive data");
         return false;
     }
     // check memory db here because remote maybe low version
     // it will send option with not set rather than not support when remote is memory db
     bool memory = storage->GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     if (memory) {
-        LOGI("[DataSync] skip check receive data because local is memory db");
+        LOGI("[SingleVerDataSyncUtils] skip check receive data because local is memory db");
         return true;
     }
     SecurityOption remoteSecOption = context->GetRemoteSeccurityOption();
     std::string localDeviceId;
-    if (communicator == nullptr || remoteSecOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
+    if (communicator == nullptr || remoteSecOption.securityLabel == NOT_SUPPORT_SEC_CLASSIFICATION) {
         return true;
     }
     communicator->GetLocalIdentity(localDeviceId);
     SecurityOption localOption;
-    (void)storage->GetSecurityOption(localOption);
+    int errCode = storage->GetSecurityOption(localOption);
+    if (errCode == -E_NOT_SUPPORT) {
+        LOGD("[SingleVerDataSyncUtils] local not support get security label");
+        return true;
+    }
+    if (errCode == E_OK && localOption.securityLabel == SecurityLabel::NOT_SET) {
+        LOGE("[SingleVerDataSyncUtils] local label is not set!");
+        return false;
+    }
     if (remoteSecOption.securityLabel == SecurityLabel::S0 && localOption.securityLabel == SecurityLabel::S1) {
         remoteSecOption.securityLabel = SecurityLabel::S1;
-        LOGI("[DataSync] Transform Remote SecLabel From S0 To S1 When Receive Data");
+        LOGI("[SingleVerDataSyncUtils] Transform Remote SecLabel From S0 To S1 When Receive Data");
+    }
+    if (remoteSecOption.securityLabel == FAILED_GET_SEC_CLASSIFICATION) {
+        LOGE("[SingleVerDataSyncUtils] remote label get failed!");
+        return false;
+    }
+    if (remoteSecOption.securityLabel != SecurityLabel::NOT_SET &&
+        remoteSecOption.securityLabel != localOption.securityLabel) {
+        LOGE("[SingleVerDataSyncUtils] label is not equal remote %d local %d", remoteSecOption.securityLabel,
+            localOption.securityLabel);
+        return false;
     }
     bool isPermitSync = SingleVerDataSyncUtils::IsPermitLocalDeviceRecvData(localDeviceId, remoteSecOption);
     if (isPermitSync) {
         return isPermitSync;
     }
-    LOGE("[DataSync][PermitReceiveData] check failed: permitReceive=%d, localDev=%s, seclabel=%d, secflag=%d",
-        isPermitSync, STR_MASK(localDeviceId), remoteSecOption.securityLabel, remoteSecOption.securityFlag);
+    LOGE("[SingleVerDataSyncUtils][PermitReceiveData] check failed: permitReceive=%d, localDev=%s, seclabel=%d,"
+        " secflag=%d", isPermitSync, STR_MASK(localDeviceId), remoteSecOption.securityLabel,
+        remoteSecOption.securityFlag);
     return isPermitSync;
 }
 
@@ -483,30 +502,5 @@ int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskConte
             STR_MASK(context->GetDeviceId()));
     }
     return errCode;
-}
-
-std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(const Message *message)
-{
-    std::pair<TimeOffset, TimeOffset> res;
-    auto &[systemOffset, senderLocalOffset] = res;
-    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
-    systemOffset = packet->GetSystemTimeOffset();
-    senderLocalOffset = packet->GetSenderTimeOffset();
-    return res;
-}
-
-int SingleVerDataSyncUtils::SchemaVersionMatchCheck(const std::string &deviceId, const DataRequestPacket &packet,
-    SingleVerSyncTaskContext &context, std::shared_ptr<Metadata> &metadata)
-{
-    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
-        return E_OK;
-    }
-    auto remoteSchemaVersion = metadata->GetRemoteSchemaVersion(deviceId);
-    if (remoteSchemaVersion != packet.GetSchemaVersion()) {
-        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
-                packet.GetSchemaVersion(), remoteSchemaVersion);
-        return -E_NEED_ABILITY_SYNC;
-    }
-    return E_OK;
 }
 }

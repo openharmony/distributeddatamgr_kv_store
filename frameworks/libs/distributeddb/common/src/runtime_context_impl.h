@@ -180,6 +180,8 @@ public:
     void ResetDBTimeChangeStatus(const std::vector<uint8_t> &dbId) override;
     bool CheckDBTimeChange(const std::vector<uint8_t> &dbId) override;
     bool IsTimeTickMonitorValid() const override;
+    bool IsTimeChanged() const override;
+    void SetTimeChanged(bool timeChange) override;
 private:
     static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.

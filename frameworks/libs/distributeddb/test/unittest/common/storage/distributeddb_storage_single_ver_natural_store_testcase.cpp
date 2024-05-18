@@ -515,7 +515,8 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData003(SQLiteSin
      * @tc.expected: step2. The Get interface returns OK. The value of key1 is value1,
      *  and the value of key2 is value2.
      */
-    Value valueRead1, valueRead2;
+    Value valueRead1;
+    Value valueRead2;
     EXPECT_EQ(connection->Get(option, dataItem1.key, valueRead1), E_OK);
     EXPECT_EQ(connection->Get(option, dataItem2.key, valueRead2), E_OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(valueRead1, dataItem1.value), true);
@@ -864,8 +865,6 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate006(S
 {
     IOption option;
     option.dataType = IOption::SYNC_DATA;
-    Key key1, key2, key3;
-    Value value1, value2, value3;
 
     /**
      * @tc.steps: step2/3/4. Set Ioption to synchronous data.
@@ -874,12 +873,17 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate006(S
      * Insert the data of key length=keyPrefix length - 1, value3.
      * @tc.expected: step2/3/4. Return E_NOT_FOUND.
      */
+    Key key1;
     DistributedDBToolsUnitTest::GetRandomKeyValue(key1, 30); // 30 as random size
-    key3 = key2 = key1;
+    Key key2 = key1;
     key2.push_back('C');
+    Key key3 = key1;
     key3.pop_back();
+    Value value1;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value1, 84); // 84 as random size
+    Value value2;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value2, 101); // 101 as random size
+    Value value3;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value3, 37); // 37 as random size
     EXPECT_EQ(connection->Put(option, key1, value1), E_OK);
     EXPECT_EQ(connection->Put(option, key2, value2), E_OK);
@@ -1535,7 +1539,7 @@ int DistributedDBStorageSingleVerNaturalStoreTestCase::GetRawSyncData(const std:
         }
 
         stuSyncData.timestamp = static_cast<uint64_t>(sqlite3_column_int64(statement, SYNC_RES_TIME_INDEX));
-        stuSyncData.flag = sqlite3_column_int64(statement, SYNC_RES_FLAG_INDEX);
+        stuSyncData.flag = static_cast<uint64_t>(sqlite3_column_int64(statement, SYNC_RES_FLAG_INDEX));
         vecSyncData.push_back(stuSyncData);
     }
 

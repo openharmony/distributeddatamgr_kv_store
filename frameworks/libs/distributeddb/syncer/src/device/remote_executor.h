@@ -58,7 +58,7 @@ public:
 
     int Initialize(ISyncInterface *syncInterface, ICommunicator *communicator);
 
-    int RemoteQuery(const std::string device, const RemoteCondition &condition,
+    int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
     // receive request and ack, and process in another thread

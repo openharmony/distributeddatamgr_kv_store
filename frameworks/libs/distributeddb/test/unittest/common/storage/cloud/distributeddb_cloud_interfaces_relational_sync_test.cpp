@@ -854,7 +854,7 @@ namespace {
             ASSERT_TRUE(isExisted);
             Assets assets = std::get<Assets>(entry);
             Asset baseAsset = j >= (size_t)(localCount / g_arrayHalfSub) ? g_localAsset : g_cloudAsset;
-            int index = j;
+            int index = static_cast<int>(j);
             for (const auto &asset: assets) {
                 EXPECT_EQ(asset.version, baseAsset.version);
                 EXPECT_EQ(asset.name, baseAsset.name + std::to_string(index++));

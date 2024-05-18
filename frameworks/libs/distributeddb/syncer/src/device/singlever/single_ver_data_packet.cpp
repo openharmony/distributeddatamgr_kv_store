@@ -194,6 +194,8 @@ uint32_t DataRequestPacket::CalculateLen(uint32_t messageId) const
         totalLen += Parcel::GetUInt64Len(); // schemaVersion
         totalLen += Parcel::GetInt64Len(); // systemTimeOffset
         totalLen += Parcel::GetInt64Len(); // senderTimeOffset
+        totalLen += Parcel::GetIntLen();   // security label
+        totalLen += Parcel::GetIntLen();   // security flag
     }
     if (totalLen > INT32_MAX) {
         return 0;
@@ -339,6 +341,16 @@ void DataRequestPacket::SetSenderTimeOffset(int64_t senderTimeOffset)
 int64_t DataRequestPacket::GetSenderTimeOffset() const
 {
     return senderTimeOffset_;
+}
+
+void DataRequestPacket::SetSecurityOption(const SecurityOption &option)
+{
+    securityOption_ = option;
+}
+
+SecurityOption DataRequestPacket::GetSecurityOption() const
+{
+    return securityOption_;
 }
 
 void DataAckPacket::SetData(uint64_t data)

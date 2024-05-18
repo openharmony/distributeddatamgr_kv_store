@@ -149,6 +149,27 @@ std::list<FrameInfo> FrameRetainer::FetchFramesForSpecificCommunicator(const Lab
     return outFrameList;
 }
 
+void FrameRetainer::DecreaseRemainTimeAndDiscard(const LabelType &label,
+    std::pair<const std::string, std::map<uint64_t, RetainWork>> &eachTarget, std::set<uint64_t> &frameToDiscard)
+{
+    for (auto &eachFrame : eachTarget.second) {
+        // Decrease remainTime and discard if need. The remainTime will not be zero before decrease.
+        eachFrame.second.remainTime--;
+        if (eachFrame.second.remainTime != 0) {
+            continue;
+        }
+        LogRetainInfo("[Retainer][Surveil] DISCARD", label, eachTarget.first, eachFrame.first,
+            eachFrame.second);
+        totalSizeByByte_ -= eachFrame.second.buffer->GetSize();
+        totalRetainFrames_--;
+        // Free this retain work first
+        delete eachFrame.second.buffer;
+        eachFrame.second.buffer = nullptr;
+        // Record this frame in discard list
+        frameToDiscard.insert(eachFrame.first);
+    }
+}
+
 void FrameRetainer::PeriodicalSurveillance()
 {
     std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
@@ -156,21 +177,7 @@ void FrameRetainer::PeriodicalSurveillance()
     for (auto &eachLabel : retainWorkPool_) {
         for (auto &eachTarget : eachLabel.second) {
             std::set<uint64_t> frameToDiscard;
-            for (auto &eachFrame : eachTarget.second) {
-                // Decrease remainTime and discard if need. The remainTime will not be zero before decrease.
-                eachFrame.second.remainTime--;
-                if (eachFrame.second.remainTime == 0) {
-                    LogRetainInfo("[Retainer][Surveil] DISCARD", eachLabel.first, eachTarget.first, eachFrame.first,
-                        eachFrame.second);
-                    totalSizeByByte_ -= eachFrame.second.buffer->GetSize();
-                    totalRetainFrames_--;
-                    // Free this retain work first
-                    delete eachFrame.second.buffer;
-                    eachFrame.second.buffer = nullptr;
-                    // Record this frame in discard list
-                    frameToDiscard.insert(eachFrame.first);
-                }
-            }
+            DecreaseRemainTimeAndDiscard(eachLabel.first, eachTarget, frameToDiscard);
             // Remove the retain work from frameMap.
             for (auto &entry : frameToDiscard) {
                 eachTarget.second.erase(entry);

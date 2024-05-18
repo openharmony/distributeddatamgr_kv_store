@@ -377,7 +377,10 @@ int SQLiteSingleVerNaturalStore::InterceptData(std::vector<SingleVerKvEntry *> &
 
     int errCode = interceptor(data, sourceID, targetID);
     if (data.IsError()) {
-        SingleVerKvEntry::Release(entries);
+        if (isPush) {
+            // receive data release by syncer
+            SingleVerKvEntry::Release(entries);
+        }
         LOGE("Intercept data failed:%d.", errCode);
         return -E_INTERCEPT_DATA_FAIL;
     }

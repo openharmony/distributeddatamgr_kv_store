@@ -174,6 +174,15 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
         inMsg = nullptr;
         return CallSendEnd(-E_PERIPHERAL_INTERFACE_FAIL, onEnd);
     }
+    if (beforeDispatch_) {
+        beforeDispatch_(dstTarget, inMsg);
+    }
+    DispatchMessageInner(srcTarget, dstTarget, inMsg, onEnd);
+}
+
+void VirtualCommunicatorAggregator::DispatchMessageInner(const std::string &srcTarget, const std::string &dstTarget,
+    const Message *inMsg, const OnSendEnd &onEnd)
+{
     std::lock_guard<std::mutex> lock(communicatorsLock_);
     auto iter = communicators_.find(dstTarget);
     if (iter != communicators_.end()) {
@@ -338,5 +347,11 @@ void VirtualCommunicatorAggregator::EnableCommunicator()
     for (const auto &communicator: communicators_) {
         communicator.second->Disable();
     }
+}
+
+void VirtualCommunicatorAggregator::RegBeforeDispatch(
+    const std::function<void(const std::string &, const Message *)> &beforeDispatch)
+{
+    beforeDispatch_ = beforeDispatch;
 }
 } // namespace DistributedDB

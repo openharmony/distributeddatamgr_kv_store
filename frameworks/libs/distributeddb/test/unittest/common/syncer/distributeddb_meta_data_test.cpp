@@ -308,4 +308,23 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest006, TestSize.Level0)
     EXPECT_EQ(metadata_->EraseDeviceWaterMark(DEVICE_A, true), E_OK);
     EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_A));
 }
+
+/**
+ * @tc.name: MetadataTest007
+ * @tc.desc: Test metadata init with time change if need.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMetaDataTest, MetadataTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Check time sync finish by meta.
+     * @tc.expected: step1. B is change because of time change.
+     */
+    RuntimeContext::GetInstance()->SetTimeChanged(true);
+    EXPECT_TRUE(metadata_->IsTimeChange(DEVICE_B));
+    RuntimeContext::GetInstance()->SetTimeChanged(false);
+    RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
+}
 }

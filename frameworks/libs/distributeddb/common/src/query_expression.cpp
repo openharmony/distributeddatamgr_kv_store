@@ -460,7 +460,7 @@ void QueryExpression::SetNotSupportIfNeed(QueryObjType type)
 
 int QueryExpression::RangeParamCheck() const
 {
-    if (queryInfo_.size() > 1) { // Only Support one query filter.
+    if (queryInfo_.size() != 1) { // the query filter must have 1 filter and only the Range query.
         return -E_INVALID_ARGS;
     }
     for (const auto &queryObjNode : queryInfo_) {

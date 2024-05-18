@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, PreparedStmtSerialize, TestSize
      * @tc.expected: OK.
      */
     PreparedStmt prepStmt1(PreparedStmt::QUERY, "SELECT * FROM test WHERE value=? or value=?", {"1", "2"});
-    int len = prepStmt1.CalcLength();
+    int len = static_cast<int>(prepStmt1.CalcLength());
 
     /**
      * @tc.steps: step2. Serialize the prepared stmt;
@@ -558,7 +558,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, LargeAmountOfData1, TestSize.Le
     do {
         RelationalRowDataSet rowDataSet {};
         EXPECT_EQ(store->ExecuteQuery(prepStmt, 1024, rowDataSet, token), E_OK);  // 1024 is min mtu.
-        totalCnt += rowDataSet.GetSize();
+        totalCnt += static_cast<size_t>(rowDataSet.GetSize());
         EXPECT_EQ(allRowDataSet.Merge(std::move(rowDataSet)), E_OK);
     } while (token != nullptr);
 

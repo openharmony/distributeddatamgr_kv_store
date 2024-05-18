@@ -101,7 +101,7 @@ public:
         DistributedDB::HostToNet(info.length);
         DistributedDB::HostToNet(info.version);
         for (uint8_t i = 0; i < BUFF_LEN; i++) {
-            info.userId[i] = localDbProperty_.userId[i];
+            info.userId[i] = static_cast<uint8_t>(localDbProperty_.userId[i]);
         }
         auto errCode = memcpy_s(data, totalLen, &info, sizeof(ExtendHeadInfo));
         if (errCode != EOK) {

@@ -1071,3 +1071,22 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RuntimeConfig001, TestSize.L
     EXPECT_EQ(RuntimeConfig::IsProcessSystemApiAdapterValid(),
         RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid());
 }
+
+/**
+  * @tc.name: RelationalSyncRangeTest001
+  * @tc.desc: Test with sync interface, range query is not support
+  * @tc.type: FUNC
+  * @tc.require: DTS2023112110763
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, TestSize.Level1)
+{
+    std::vector<std::string> devices = {DEVICE_A};
+    Query query = Query::Select("sync_data").Range({}, {});
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+
+    EXPECT_EQ(errCode, NOT_SUPPORT);
+}

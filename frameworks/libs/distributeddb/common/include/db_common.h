@@ -114,13 +114,15 @@ public:
 
     static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
 
-    static void LoadGrdLib(bool isHash = false);
+    static void LoadGrdLib(bool isHash);
 
-    static bool IsGrdLibLoaded(void);
+    static bool IsGrdLibLoaded(bool isHash);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,
         std::list<std::string> &insertTarget);
+    static void LoadGrdNbLib(void);
+    static void LoadGrdV5Lib(void);
 };
 
 // Define short macro substitute for original long expression for convenience of using

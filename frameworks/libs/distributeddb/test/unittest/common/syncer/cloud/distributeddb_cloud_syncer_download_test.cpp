@@ -59,6 +59,7 @@ void DistributedDBCloudSyncerDownloadTest::TearDownTestCase(void)
     g_cloudSyncer = nullptr;
     g_storageProxy = nullptr;
     delete g_iCloud;
+    g_iCloud = nullptr;
 }
 
 void DistributedDBCloudSyncerDownloadTest::SetUp(void)

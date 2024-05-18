@@ -43,6 +43,10 @@ public:
     void NotifyTimeChange(TimeOffset offset) const;
 
     bool EmptyListener() const;
+
+    bool IsTimeChanged() const;
+
+    void SetTimeChanged(bool timeChange);
 private:
     static constexpr  uint64_t MONITOR_INTERVAL = 1 * 1000; // 1s
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
@@ -69,6 +73,7 @@ private:
     Timestamp lastMonotonicTime_ = 0;
     Timestamp lastSystemTime_ = 0;
     bool isStarted_ = false;
+    std::atomic<bool> timeChanged_ = false;
 };
 } // namespace DistributedDB
 

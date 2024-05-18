@@ -20,13 +20,13 @@
 #include <mutex>
 #include <utility>
 
+#include "cloud/cloud_db_proxy.h"
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_sync_state_machine.h"
 #include "cloud/cloud_sync_strategy.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_syncer.h"
 #include "cloud/process_notifier.h"
-#include "cloud_db_proxy.h"
 #include "cloud_locker.h"
 #include "data_transformer.h"
 #include "db_common.h"
@@ -63,6 +63,8 @@ public:
 
     void Close();
 
+    void StopAllTasks();
+
     std::string GetIdentify() const override;
 
     bool IsClosed() const override;
@@ -91,13 +93,14 @@ protected:
         DownloadList assetDownloadList;
         // store GID and assets, using in upload procedure
         std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
-        std::map<TableName, std::string> cloudWaterMarks;
+        // struct: <currentUserIndex, <tableName, waterMark>>
+        std::map<int, std::map<TableName, std::string>> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
         bool isNeedUpload = false;  // whether the current task need do upload
         CloudSyncState currentState = CloudSyncState::IDLE;
         bool isRealNeedUpload = false;
         bool isFirstDownload = false;
-        std::map<std::string, bool> isDownloadFinished;
+        std::map<int, std::map<std::string, bool>> isDownloadFinished; // struct: <currentUserIndex, <tableName, value>>
         int currentUserIndex = 0;
     };
     struct UploadParam {
@@ -209,8 +212,6 @@ protected:
     int StartHeartBeatTimer(int period, TaskId taskId);
 
     void FinishHeartBeatTimer();
-
-    void WaitAllHeartBeatTaskExit();
 
     void HeartBeat(TimerId timerId, TaskId taskId);
 
@@ -329,7 +330,7 @@ protected:
 
     void ReloadWaterMarkIfNeed(TaskId taskId, WaterMark &waterMark);
 
-    void ReloadCloudWaterMarkIfNeed(const std::string tableName, std::string &cloudWaterMark);
+    void ReloadCloudWaterMarkIfNeed(const std::string &tableName, std::string &cloudWaterMark);
 
     void ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info);
 
@@ -374,13 +375,6 @@ protected:
 
     void SetProxyUser(const std::string &user);
 
-    std::pair<int, Timestamp> GetLocalWater(const std::string &tableName, UploadParam &uploadParam);
-
-    int HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info, CloudSyncData &uploadData,
-        ContinueToken &continueStmtToken);
-
-    bool IsNeedLock(const UploadParam &param);
-
     bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
 
     std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
@@ -395,7 +389,18 @@ protected:
 
     bool IsQueryListEmpty(TaskId taskId);
 
+    std::pair<int, Timestamp> GetLocalWater(const std::string &tableName, UploadParam &uploadParam);
+
+    int HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info, CloudSyncData &uploadData,
+        ContinueToken &continueStmtToken);
+
+    bool IsNeedLock(const UploadParam &param);
+
     int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
+
+    std::vector<CloudTaskInfo> CopyAndClearTaskInfos();
+
+    void WaitCurTaskFinished();
 
     bool IsLockInDownload();
 
@@ -421,8 +426,8 @@ protected:
     std::atomic<TimerId> timerId_;
     std::mutex heartbeatMutex_;
     std::condition_variable heartbeatCv_;
-    int32_t heartBeatCount_;
-    std::atomic<int32_t> failedHeartBeatCount_;
+    std::map<TaskId, int32_t> heartbeatCount_;
+    std::map<TaskId, int32_t> failedHeartbeatCount_;
 
     std::string id_;
     std::atomic<SingleVerConflictResolvePolicy> policy_;

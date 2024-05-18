@@ -31,7 +31,7 @@ public:
     std::string GetQuerySyncId() const override;
     std::string GetDeleteSyncId() const override;
 
-    void SetRelationalSyncStrategy(RelationalSyncStrategy &strategy, bool isSchemaSync);
+    void SetRelationalSyncStrategy(const RelationalSyncStrategy &strategy, bool isSchemaSync);
     std::pair<bool, bool> GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const override;
 
     void SchemaChange() override;

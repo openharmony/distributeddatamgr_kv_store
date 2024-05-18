@@ -152,11 +152,11 @@ public:
     static int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
         CollateType collateType, std::vector<uint8_t> &hashValue);
 
+    static bool CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema);
+
     static void TransferFieldToLower(VBucket &vBucket);
 
     static bool GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data);
-
-    static bool CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema);
 
     static int BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt);

@@ -223,11 +223,11 @@ struct ChangeProperties {
 
 enum IndexType : uint32_t {
     /**
-      * use btree index type in database
+     * use btree index type in database
     */
     BTREE = 0,
     /**
-      * use hash index type in database
+     * use hash index type in database
     */
     HASH,
 };
@@ -235,8 +235,8 @@ enum IndexType : uint32_t {
 struct Rdconfig {
     bool readOnly = false;
     IndexType type = BTREE;
-    int pageSize = 32u;
-    int cacheSize = 2048u;
+    uint32_t pageSize = 32u;
+    uint32_t cacheSize = 2048u;
 };
 
 struct WatermarkInfo {

@@ -371,6 +371,12 @@ int GenericKvDBConnection::GetWatermarkInfo([[gnu::unused]] const std::string &d
     return -E_NOT_SUPPORT;
 }
 
+bool GenericKvDBConnection::IsObserverEmpty()
+{
+    std::lock_guard<std::mutex> lockGuard(observerListLock_);
+    return observerList_.empty();
+}
+
 int GenericKvDBConnection::Sync([[gnu::unused]] const CloudSyncOption &option,
     [[gnu::unused]] const SyncProcessCallback &onProcess)
 {

@@ -646,7 +646,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryRequestPacketTest001, Test
     /**
      * @tc.steps: step3. Serialization the message to a buffer.
      */
-    int len = SingleVerSerializeManager::CalculateLen(&msg);
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
     vector<uint8_t> buffer(len);
     ASSERT_EQ(SingleVerSerializeManager::Serialization(buffer.data(), buffer.size(), &msg), E_OK);
 
@@ -739,7 +739,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryAckPacketTest001, TestSize
     /**
      * @tc.steps: step3. Serialization the message to a buffer.
      */
-    int len = SingleVerSerializeManager::CalculateLen(&msg);
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
     LOGE("test leng = %d", len);
     uint8_t *buffer = new (nothrow) uint8_t[len];
     ASSERT_TRUE(buffer != nullptr);
@@ -1444,7 +1444,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyLruMap001, TestSize.Level
     for (int i = startCount; i < maxCacheItems; i++) {
         std::string key = std::to_string(i);
         QueryWaterMark value;
-        value.recvWaterMark = i + 1;
+        value.recvWaterMark = static_cast<uint64_t>(i + 1);
         EXPECT_EQ(lruMap.Put(key, value), E_OK);
     }
 

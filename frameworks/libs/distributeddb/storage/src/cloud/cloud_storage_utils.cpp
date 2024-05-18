@@ -1024,34 +1024,6 @@ std::pair<int, std::vector<uint8_t>> CloudStorageUtils::GetHashValueWithPrimaryK
     return { errCode, hashValue };
 }
 
-void CloudStorageUtils::TransferFieldToLower(VBucket &vBucket)
-{
-    for (auto it = vBucket.begin(); it != vBucket.end();) {
-        std::string lowerField(it->first.length(), ' ');
-        std::transform(it->first.begin(), it->first.end(), lowerField.begin(), tolower);
-        if (lowerField != it->first) {
-            vBucket[lowerField] = std::move(vBucket[it->first]);
-            vBucket.erase(it++);
-        } else {
-            it++;
-        }
-    }
-}
-
-bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data)
-{
-    auto tmpFieldName = fieldName;
-    auto tmpVBucket = vBucket;
-    std::transform(tmpFieldName.begin(), tmpFieldName.end(), tmpFieldName.begin(), tolower);
-    TransferFieldToLower(tmpVBucket);
-    auto it = tmpVBucket.find(tmpFieldName);
-    if (it == tmpVBucket.end()) {
-        return false;
-    }
-    data = it->second;
-    return true;
-}
-
 bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
 {
     if (tableSchema.name != oldSchema.name) {
@@ -1066,6 +1038,34 @@ bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, c
             return false;
         }
     }
+    return true;
+}
+
+void CloudStorageUtils::TransferFieldToLower(VBucket &vBucket)
+{
+    for (auto it = vBucket.begin(); it != vBucket.end();) {
+        std::string lowerField(it->first.length(), ' ');
+        std::transform(it->first.begin(), it->first.end(), lowerField.begin(), ::tolower);
+        if (lowerField != it->first) {
+            vBucket[lowerField] = std::move(vBucket[it->first]);
+            vBucket.erase(it++);
+        } else {
+            it++;
+        }
+    }
+}
+
+bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data)
+{
+    auto tmpFieldName = fieldName;
+    auto tmpVBucket = vBucket;
+    std::transform(tmpFieldName.begin(), tmpFieldName.end(), tmpFieldName.begin(), ::tolower);
+    TransferFieldToLower(tmpVBucket);
+    auto it = tmpVBucket.find(tmpFieldName);
+    if (it == tmpVBucket.end()) {
+        return false;
+    }
+    data = it->second;
     return true;
 }
 

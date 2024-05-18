@@ -27,7 +27,7 @@
 namespace DistributedDB {
 namespace {
 constexpr int MAX_SEND_RETRY = 2;
-constexpr int RETRY_TIME_SPLITS = 4;
+constexpr int RETRY_TIME_SPLIT = 4;
 inline std::string GetThreadId()
 {
     std::stringstream stream;
@@ -1073,7 +1073,7 @@ int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, 
     if (adapterHandle_ != nullptr) {
         timeout = adapterHandle_->GetTimeout(target);
     }
-    return static_cast<int32_t>(timeout) * currentRetryCount / RETRY_TIME_SPLITS;
+    return static_cast<int32_t>(timeout) * currentRetryCount / RETRY_TIME_SPLIT;
 }
 
 uint64_t CommunicatorAggregator::GetSendSequenceId(const std::string &target)

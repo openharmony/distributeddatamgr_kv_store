@@ -49,8 +49,8 @@ private:
     static AssetOperationUtils::AssetOpType CheckAfterUpload(const Asset &cacheAsset, const Assets &dbAssets);
     static AssetOperationUtils::AssetOpType HandleIfExistAndSameStatus(const Asset &cacheAsset, const Assets &dbAssets);
     static Assets GetAssets(const std::string &colName, const VBucket &rowData);
-    static void MergeAssetsFlag(const Assets &from, Type &target);
     static void MergeAssetFlag(const Assets &from, Asset &target);
+    static void MergeAssetsFlag(const Assets &from, Type &target);
     static constexpr uint32_t BIT_MASK_COUNT = 16;
 };
 }

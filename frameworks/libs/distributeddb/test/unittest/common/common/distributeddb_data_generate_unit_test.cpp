@@ -69,7 +69,7 @@ void GenerateRecords(int recordNum, std::vector<Entry> &entries, std::vector<Key
     // start from index 1
     for (int recordIndex = 1; recordIndex <= recordNum; ++recordIndex) {
         std::string cntStr = std::to_string(recordIndex);
-        int len = cntStr.length();
+        int len = static_cast<int>(cntStr.length());
         if (keySize <= len) {
             break;
         }

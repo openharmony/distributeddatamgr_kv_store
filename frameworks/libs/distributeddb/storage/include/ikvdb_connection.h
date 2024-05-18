@@ -19,9 +19,9 @@
 #include <string>
 #include <functional>
 
-#include "cloud/cloud_store_types.h"
-#include "cloud/icloud_db.h"
+#include "cloud_store_types.h"
 #include "db_types.h"
+#include "icloud_db.h"
 #include "iconnection.h"
 #include "intercepted_data.h"
 #include "kv_store_observer.h"

@@ -102,7 +102,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString001, TestSize.Level1
      * @tc.expected: step1. return value = 12.
      */
     int errCode = E_OK;
-    int stepOne = JsonObject::CalculateNestDepth(JSON_STRING1, errCode);
+    int stepOne = static_cast<int>(JsonObject::CalculateNestDepth(JSON_STRING1, errCode));
     EXPECT_TRUE(errCode == E_OK);
     EXPECT_TRUE(stepOne == STRING1_DEPTH);
 
@@ -129,7 +129,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString002, TestSize.Level1
      * @tc.expected: step1. return value = 6.
      */
     int errCode = E_OK;
-    int stepOne = JsonObject::CalculateNestDepth(JSON_STRING3, errCode);
+    int stepOne = static_cast<int>(JsonObject::CalculateNestDepth(JSON_STRING3, errCode));
     EXPECT_TRUE(errCode == E_OK);
     EXPECT_TRUE(stepOne == STRING3_DEPTH);
 
@@ -192,7 +192,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString003, TestSize.Leve
      * @tc.expected: step1. return value > 10.
      */
     int errCode = E_OK;
-    int stepOne = JsonObject::CalculateNestDepth(JSON_STRING5, errCode);
+    int stepOne = static_cast<int>(JsonObject::CalculateNestDepth(JSON_STRING5, errCode));
     EXPECT_TRUE(errCode == E_OK);
     EXPECT_TRUE(stepOne > MAX_DEPTH_FOR_TEST);
 

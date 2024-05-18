@@ -232,6 +232,7 @@ void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
     }
     closed_ = isClosedOperation;
     if (!isClosedOperation && userChangeListener_ != nullptr) {
+        cloudSyncer_->StopAllTasks();
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }

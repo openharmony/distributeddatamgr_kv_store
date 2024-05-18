@@ -579,8 +579,8 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         return NOT_SUPPORT;
     }
     QuerySyncObject querySyncObj(query);
-    if (querySyncObj.GetSortType() != SortType::NONE) {
-        LOGE("not support order by timestamp");
+    if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
+        LOGE("not support order by timestamp and query by range");
         return NOT_SUPPORT;
     }
     PragmaSync pragmaData(devices, mode, querySyncObj, std::bind(&KvStoreNbDelegateImpl::OnSyncComplete,
@@ -967,7 +967,7 @@ DBStatus KvStoreNbDelegateImpl::SubscribeRemoteQuery(const std::vector<std::stri
 
     QuerySyncObject querySyncObj(query);
     if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
-        LOGE("not support order by timestamp");
+        LOGE("not support order by timestamp and query by range");
         return NOT_SUPPORT;
     }
     PragmaSync pragmaData(devices, SyncModeType::SUBSCRIBE_QUERY, querySyncObj,
@@ -991,7 +991,7 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
 
     QuerySyncObject querySyncObj(query);
     if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
-        LOGE("not support order by timestamp");
+        LOGE("not support order by timestamp and query by range");
         return NOT_SUPPORT;
     }
     PragmaSync pragmaData(devices, SyncModeType::UNSUBSCRIBE_QUERY, querySyncObj,

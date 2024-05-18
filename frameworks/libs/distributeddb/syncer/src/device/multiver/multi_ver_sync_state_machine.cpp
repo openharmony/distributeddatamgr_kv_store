@@ -425,10 +425,10 @@ int MultiVerSyncStateMachine::ValueSlicePktRecvCallback(MultiVerSyncTaskContext 
 void MultiVerSyncStateMachine::Finish()
 {
     MultiVerCommitNode commit;
-    std::vector<MultiVerCommitNode> commits;
     int commitsSize = context_->GetCommitsSize();
     if (commitsSize > 0) {
         context_->GetCommit(commitsSize - 1, commit);
+        std::vector<MultiVerCommitNode> commits;
         context_->GetCommits(commits);
         LOGD("MultiVerSyncStateMachine::Finish merge src=%s", STR_MASK(context_->GetDeviceId()));
         PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
@@ -451,8 +451,6 @@ void MultiVerSyncStateMachine::Finish()
 int MultiVerSyncStateMachine::OneCommitSyncFinish()
 {
     MultiVerCommitNode commit;
-    std::vector<MultiVerKvEntry *> entries;
-    std::string deviceName;
     TimeOffset outOffset = 0;
     int errCode = E_OK;
     int commitIndex = context_->GetCommitIndex();
@@ -461,7 +459,8 @@ int MultiVerSyncStateMachine::OneCommitSyncFinish()
         commitIndex);
     if (commitIndex > 0) {
         context_->GetCommit(commitIndex - 1, commit);
-        deviceName = context_->GetDeviceId();
+        std::string deviceName = context_->GetDeviceId();
+        std::vector<MultiVerKvEntry *> entries;
         context_->GetEntries(entries);
         LOGD("MultiVerSyncStateMachine::OneCommitSyncFinish src=%s, entries size = %lu",
             STR_MASK(context_->GetDeviceId()), entries.size());

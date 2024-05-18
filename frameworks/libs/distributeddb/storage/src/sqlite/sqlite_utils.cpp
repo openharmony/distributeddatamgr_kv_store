@@ -168,7 +168,6 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
             sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
-            LOGW("close look aside config");
             g_configLog = true;
         }
     }
@@ -663,7 +662,7 @@ int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 namespace { // anonymous namespace for schema analysis
 int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
-    std::string sql = "select type, sql from sqlite_master where tbl_name = ? ";
+    std::string sql = "SELECT type, sql FROM sqlite_master WHERE tbl_name = ? ";
     if (!caseSensitive) {
         sql += "COLLATE NOCASE";
     }

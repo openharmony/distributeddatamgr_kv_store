@@ -73,8 +73,7 @@ public:
     DBStatus UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp) override;
 
     // Observer interfaces
-    DBStatus RegisterObserver(const Key &key, unsigned int mode, KvStoreObserver *observer) override
-        __attribute__((no_sanitize("cfi")));
+    DBStatus RegisterObserver(const Key &key, unsigned int mode, KvStoreObserver *observer) override;
 
     DBStatus UnRegisterObserver(const KvStoreObserver *observer) override;
 

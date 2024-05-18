@@ -255,7 +255,7 @@ void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData, std::
         std::string name = "lisi" + std::to_string(i);
         vBucket["name"] = name;
         vBucket["age"] = (int64_t)i;
-        int64_t mTime = 12345679L + i;
+        int64_t mTime = static_cast<int64_t>(12345679L + i);
         vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
         vBucket[CloudDbConstant::CREATE_FIELD] = mTime;
         downloadData.data.push_back(vBucket);
@@ -311,13 +311,13 @@ void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isDownloadSu
     vBucket[CloudDbConstant::GID_FIELD] = std::to_string(1);
     for (int i = 0; i < 4; i ++) { // 4 is AssetStatus Num
         Asset asset = g_localAsset;
-        asset.flag = i;
+        asset.flag = static_cast<uint32_t>(i);
         asset.status = static_cast<uint32_t>(statusType);
         asset.timestamp = g_startTime;
         Assets assets;
         for (int j = 0; j < 4; j++) { // 4 is AssetStatus Num
             Asset temp = g_localAsset;
-            temp.flag = j;
+            temp.flag = static_cast<uint32_t>(j);
             temp.status = static_cast<uint32_t>(statusType);
             temp.timestamp = g_startTime + j;
             assets.push_back(temp);
@@ -1349,7 +1349,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, T
 
     /**
      * @tc.steps: step7. insert not contain version effect insert
-     * @tc.expected: OK.
+     * @tc.expected: E_OK.
      */
     EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::INSERT_VERSION, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);

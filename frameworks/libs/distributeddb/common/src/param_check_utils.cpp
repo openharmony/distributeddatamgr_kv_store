@@ -136,10 +136,12 @@ bool ParamCheckUtils::CheckObserver(const Key &key, unsigned int mode)
         return false;
     }
     uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
-    if (rawMode > OBSERVER_CHANGES_CLOUD || rawMode < OBSERVER_CHANGES_NATIVE) {
-        return false;
+    if (rawMode == OBSERVER_CHANGES_NATIVE || rawMode == OBSERVER_CHANGES_FOREIGN ||
+        rawMode == OBSERVER_CHANGES_LOCAL_ONLY || rawMode == OBSERVER_CHANGES_CLOUD ||
+        rawMode == (OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN)) {
+            return true;
     }
-    return true;
+    return false;
 }
 
 bool ParamCheckUtils::IsS3SECEOpt(const SecurityOption &secOpt)
@@ -293,11 +295,11 @@ bool ParamCheckUtils::CheckSharedTableName(const DataBaseSchema &schema)
 void ParamCheckUtils::TransferSchemaToLower(DataBaseSchema &schema)
 {
     for (auto &tableSchema : schema.tables) {
-        std::transform(tableSchema.name.begin(), tableSchema.name.end(), tableSchema.name.begin(), tolower);
+        std::transform(tableSchema.name.begin(), tableSchema.name.end(), tableSchema.name.begin(), ::tolower);
         std::transform(tableSchema.sharedTableName.begin(), tableSchema.sharedTableName.end(),
-            tableSchema.sharedTableName.begin(), tolower);
+            tableSchema.sharedTableName.begin(), ::tolower);
         for (auto &field : tableSchema.fields) {
-            std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
+            std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), ::tolower);
         }
     }
 }

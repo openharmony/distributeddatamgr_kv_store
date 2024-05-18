@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud/asset_operation_utils.h"
+#include "asset_operation_utils.h"
 
 #include <mutex>
 #include "cloud/cloud_db_types.h"
@@ -23,13 +23,13 @@ using CloudSyncAction = AssetOperationUtils::CloudSyncAction;
 namespace {
 std::once_flag g_init;
 using Reaction = std::function<AssetOperationUtils::AssetOpType (const Asset &, const Assets &)>;
-std::map<CloudSyncAction, Reaction> g_reactions;
+std::map<CloudSyncAction, Reaction> reactions;
 Reaction GetReaction(const CloudSyncAction &action)
 {
-    if (g_reactions.find(action) != g_reactions.end()) {
-        return g_reactions[action];
+    if (reactions.find(action) != reactions.end()) {
+        return reactions[action];
     } else {
-        return g_reactions[CloudSyncAction::DEFAULT_ACTION];
+        return reactions[CloudSyncAction::DEFAULT_ACTION];
     }
 }
 }
@@ -122,11 +122,11 @@ void AssetOperationUtils::FilterDeleteAsset(VBucket &record)
 
 void AssetOperationUtils::Init()
 {
-    g_reactions[CloudSyncAction::DEFAULT_ACTION] = DefaultOperation;
-    g_reactions[CloudSyncAction::START_DOWNLOAD] = CheckBeforeDownload;
-    g_reactions[CloudSyncAction::START_UPLOAD] = HandleIfExistAndSameStatus;
-    g_reactions[CloudSyncAction::END_DOWNLOAD] = CheckAfterDownload;
-    g_reactions[CloudSyncAction::END_UPLOAD] = CheckAfterUpload;
+    reactions[CloudSyncAction::DEFAULT_ACTION] = DefaultOperation;
+    reactions[CloudSyncAction::START_DOWNLOAD] = CheckBeforeDownload;
+    reactions[CloudSyncAction::START_UPLOAD] = HandleIfExistAndSameStatus;
+    reactions[CloudSyncAction::END_DOWNLOAD] = CheckAfterDownload;
+    reactions[CloudSyncAction::END_UPLOAD] = CheckAfterUpload;
 }
 
 AssetOperationUtils::AssetOpType AssetOperationUtils::DefaultOperation(const Asset &, const Assets &)
@@ -217,6 +217,15 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::HandleIfExistAndSameStatus
     return AssetOpType::NOT_HANDLE;
 }
 
+void AssetOperationUtils::MergeAssetFlag(const Assets &from, Asset &target)
+{
+    for (const auto &fromAsset : from) {
+        if (fromAsset.name == target.name) {
+            target.flag = fromAsset.flag;
+        }
+    }
+}
+
 void AssetOperationUtils::MergeAssetsFlag(const Assets &from, Type &target)
 {
     if (TYPE_INDEX<Asset> == target.index()) {
@@ -224,15 +233,6 @@ void AssetOperationUtils::MergeAssetsFlag(const Assets &from, Type &target)
     } else if (TYPE_INDEX<Assets> == target.index()) {
         for (auto &targetAsset : std::get<Assets>(target)) {
             MergeAssetFlag(from, targetAsset);
-        }
-    }
-}
-
-void AssetOperationUtils::MergeAssetFlag(const Assets &from, Asset &target)
-{
-    for (const auto &fromAsset : from) {
-        if (fromAsset.name == target.name) {
-            target.flag = fromAsset.flag;
         }
     }
 }

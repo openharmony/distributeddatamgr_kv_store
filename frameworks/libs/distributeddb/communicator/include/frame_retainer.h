@@ -58,6 +58,9 @@ public:
     std::list<FrameInfo> FetchFramesForSpecificCommunicator(const LabelType &inCommLabel);
 
 private:
+    void DecreaseRemainTimeAndDiscard(const LabelType &label,
+        std::pair<const std::string, std::map<uint64_t, RetainWork>> &eachTarget, std::set<uint64_t> &frameToDiscard);
+
     // This methed called from timer, it has overallMutex_ protect itself inside the method
     void PeriodicalSurveillance();
 

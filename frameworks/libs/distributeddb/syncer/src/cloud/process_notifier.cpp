@@ -30,18 +30,27 @@ ProcessNotifier::~ProcessNotifier()
 }
 
 void ProcessNotifier::Init(const std::vector<std::string> &tableName,
-    const std::vector<std::string> &devices)
+    const std::vector<std::string> &devices, const std::vector<std::string> &users)
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    syncProcess_.errCode = OK;
-    syncProcess_.process = ProcessStatus::PROCESSING;
-    for (const auto &table: tableName) {
-        TableProcessInfo tableInfo = {
-            .process = ProcessStatus::PREPARED
-        };
-        syncProcess_.tableProcess[table] = tableInfo;
+    InitSyncProcess(tableName, syncProcess_);
+    for (const auto &user : users) {
+        SyncProcess syncProcess;
+        InitSyncProcess(tableName, syncProcess);
+        multiSyncProcess_[user] = syncProcess;
     }
     devices_ = devices;
+}
+
+void ProcessNotifier::InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess)
+{
+    syncProcess.errCode = OK;
+    syncProcess.process = ProcessStatus::PROCESSING;
+    for (const auto &table: tableName) {
+        TableProcessInfo tableInfo;
+        tableInfo.process = ProcessStatus::PREPARED;
+        syncProcess.tableProcess[table] = tableInfo;
+    }
 }
 
 void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &process)
@@ -151,8 +160,15 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
         return;
     }
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    if (syncProcess_.tableProcess.find(process.tableName) == syncProcess_.tableProcess.end()) {
-        process.downLoadInfo = syncProcess_.tableProcess[process.tableName].downLoadInfo;
+    SyncProcess syncProcess;
+    if (user_.empty()) {
+        syncProcess = syncProcess_;
+    } else {
+        syncProcess = multiSyncProcess_[user_];
+    }
+    
+    if (syncProcess.tableProcess.find(process.tableName) == syncProcess.tableProcess.end()) {
+        process.downLoadInfo = syncProcess.tableProcess[process.tableName].downLoadInfo;
     }
 }
 

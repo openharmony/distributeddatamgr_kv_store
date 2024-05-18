@@ -139,6 +139,7 @@ void VirtualCommunicator::SetCommunicatorMtuSize(uint32_t mtuSize)
 
 uint32_t VirtualCommunicator::GetTimeout() const
 {
+    LOGD("[VirtualCommunicator] Get timeout %" PRIu32, timeout_);
     return timeout_;
 }
 

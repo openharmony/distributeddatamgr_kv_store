@@ -605,7 +605,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
     }
     if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
         || queryObj.IsQueryByRange()) {
-        LOGE("[GetEntries][query] timestamp sort only support prefixKey and not support Range search");
+        LOGE("[GetResultSet][query] timestamp sort only support prefixKey and not support range search");
         return -E_NOT_SUPPORT;
     }
     bool isMemDb = naturalStore->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);

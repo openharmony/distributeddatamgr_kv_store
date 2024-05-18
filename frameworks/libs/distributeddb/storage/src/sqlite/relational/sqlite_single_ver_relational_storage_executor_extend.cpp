@@ -108,7 +108,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *statement,
-    std::vector<Field> &assetFields, const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog,
+    const std::vector<Field> &assetFields, const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog,
     VBucket &assetInfo)
 {
     int index = GetLogInfoByStatement(statement, dataInfoWithLog.logInfo); // start index of assetInfo or primary key
@@ -223,7 +223,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &tableName, const VBucket &vBucket,
-    std::set<std::string> &pkSet, std::string &querySql)
+    const std::set<std::string> &pkSet, std::string &querySql)
 {
     std::string cloudGid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);

@@ -17,8 +17,8 @@
 #include <utility>
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_data_utils.h"
-#include "cloud/cloud_db_types.h"
 #include "cloud/cloud_db_proxy.h"
+#include "cloud/cloud_db_types.h"
 #include "cloud/cloud_sync_utils.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_errno.h"
@@ -460,6 +460,46 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest010, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CloudDBProxyTest008
+ * @tc.desc: Verify cloud db heartbeat with diff status.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest011, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    CloudDBProxy proxy;
+    proxy.SetCloudDB(virtualCloudDb_);
+    virtualCloudDb_->SetHeartbeatBlockTime(100); // block 100 ms
+    std::mutex waitMutex;
+    std::condition_variable waitCv;
+    const int scheduleCount = 12;
+    int currentCount = 0;
+    for (int i = 0; i < scheduleCount; ++i) {
+        RuntimeContext::GetInstance()->ScheduleTask([&proxy, &waitMutex, &waitCv, &currentCount]() {
+            proxy.HeartBeat();
+            {
+                std::lock_guard<std::mutex> autoLock(waitMutex);
+                currentCount++;
+                LOGI("[CloudDBProxyTest011] CurrentCount %d", currentCount);
+            }
+            waitCv.notify_all();
+        });
+    }
+    LOGI("[CloudDBProxyTest011] Begin wait all task finish");
+    std::unique_lock<std::mutex> uniqueLock(waitMutex);
+    waitCv.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MAX_TIMEOUT), [&currentCount, scheduleCount]() {
+        return currentCount >= scheduleCount;
+    });
+    LOGI("[CloudDBProxyTest011] End wait all task finish");
+    EXPECT_EQ(currentCount, scheduleCount);
+}
+
+/**
  * @tc.name: CloudSyncQueue001
  * @tc.desc: Verify sync task count decrease after sync finished.
  * @tc.type: FUNC
@@ -493,6 +533,46 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue001, TestSize.Level2)
     EXPECT_EQ(Sync(cloudSyncer, callCount), OK);
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 1);
+    RefObject::KillAndDecObjRef(cloudSyncer);
+}
+
+/**
+ * @tc.name: CloudSyncQueue002
+ * @tc.desc: Verify sync task abort after close.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue002, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy and sleep 2s when download
+     * @tc.expected: step1. E_OK
+     */
+    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
+    ASSERT_NE(iCloud, nullptr);
+    EXPECT_CALL(*iCloud, Rollback).WillRepeatedly(testing::Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
+    auto cloudSyncer = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
+    ASSERT_NE(cloudSyncer, nullptr);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
+    cloudSyncer->SetSyncAction(true, false);
+    std::atomic<bool> close = false;
+    cloudSyncer->SetDownloadFunc([cloudSyncer, &close]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+        cloudSyncer->PauseCurrentTask();
+        EXPECT_TRUE(close);
+        return -E_TASK_PAUSED;
+    });
+    /**
+     * @tc.steps: step2. call sync and wait sync finish
+     */
+    EXPECT_EQ(cloudSyncer->Sync({ "cloud" }, SyncMode::SYNC_MODE_CLOUD_MERGE, { TABLE_NAME }, nullptr, 0), E_OK);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    close = true;
+    cloudSyncer->Close();
+    RuntimeContext::GetInstance()->StopTaskPool();
     RefObject::KillAndDecObjRef(cloudSyncer);
 }
 

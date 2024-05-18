@@ -74,6 +74,20 @@ void DBProperties::SetIntProp(const std::string &name, int value)
     intProperties_[name] = value;
 }
 
+uint32_t DBProperties::GetUIntProp(const std::string &name, uint32_t defaultValue) const
+{
+    auto iter = uintProperties_.find(name);
+    if (iter != uintProperties_.end()) {
+        return iter->second;
+    }
+    return defaultValue;
+}
+
+void DBProperties::SetUIntProp(const std::string &name, uint32_t value)
+{
+    uintProperties_[name] = value;
+}
+
 void DBProperties::SetIdentifier(const std::string &userId, const std::string &appId, const std::string &storeId,
     const std::string &subUser, int32_t instanceId)
 {
