@@ -270,7 +270,7 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);
     }
     if (!outData.empty()) {
-        RecordClientId(context);
+        SingleVerDataSyncUtils::RecordClientId(*context, *storage_, metadata_);
     }
     return errCode;
 }
@@ -406,7 +406,7 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     if (inData.empty()) {
         return E_OK;
     }
-    RecordClientId(context);
+    SingleVerDataSyncUtils::RecordClientId(*context, *storage_, metadata_);
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SAVE_DATA);
@@ -660,7 +660,7 @@ void SingleVerDataSync::UpdateSendInfo(SyncTimeRange dataTimeRange, SingleVerSyn
 void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     SyncEntry &syncData, int sendCode, int mode)
 {
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark localMark = 0;
@@ -809,7 +809,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark endMark = context->GetEndMark();
     SyncTimeRange dataTime = {localMark, deleteMark, localMark, deleteMark};
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     packet->SetBasicInfo(E_OK, version, context->GetMode());
     packet->SetExtraConditions(RuntimeContext::GetInstance()->GetPermissionCheckParam(storage_->GetDbProperties()));
     packet->SetWaterMark(localMark, peerMark, deleteMark);
@@ -975,7 +975,7 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
         (void)SendDataAck(context, message, errCode, 0);
         return errCode;
     }
-    errCode = SchemaVersionMatchCheck(context, packet);
+    errCode = SingleVerDataSyncUtils::SchemaVersionMatchCheck(*context, *packet, metadata_);
     if (errCode != E_OK) {
         (void)SendDataAck(context, message, errCode, 0);
     }
@@ -1701,7 +1701,7 @@ void SingleVerDataSync::UpdateMtuSize()
 void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
     DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode)
 {
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     WaterMark peerMark = 0;
     GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(),
@@ -2130,71 +2130,5 @@ void SingleVerDataSync::RemoveSubscribeIfNeed(const std::string &queryId,
     if (!subscribeManager->IsQueryExistSubscribe(queryId)) {
         storage_->RemoveSubscribe(queryId);
     }
-}
-
-void SingleVerDataSync::RecordClientId(const SingleVerSyncTaskContext *context)
-{
-    StoreInfo info = {
-        storage_->GetDbProperties().GetStringProp(DBProperties::USER_ID, ""),
-        storage_->GetDbProperties().GetStringProp(DBProperties::APP_ID, ""),
-        storage_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
-    };
-    std::string clientId;
-    int errCode = E_OK;
-    if (RuntimeContext::GetInstance()->TranslateDeviceId(context->GetDeviceId(), info, clientId) == E_OK) {
-        errCode = metadata_->SaveClientId(context->GetDeviceId(), clientId);
-        if (errCode != E_OK) {
-            LOGW("[DataSync] record clientId failed %d", errCode);
-        }
-    }
-}
-
-void SingleVerDataSync::SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet)
-{
-    packet.SetSenderTimeOffset(metadata_->GetLocalTimeOffset());
-    packet.SetSystemTimeOffset(metadata_->GetSystemTimeOffset(deviceId_));
-    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
-        return;
-    }
-    auto [err, localSchemaVer] = metadata_->GetLocalSchemaVersion();
-    if (err != E_OK) {
-        LOGW("[DataSync] get local schema version failed:%d", err);
-        return;
-    }
-    packet.SetSchemaVersion(localSchemaVer);
-    SecurityOption localOption;
-    err = storage_->GetSecurityOption(localOption);
-    if (err == -E_NOT_SUPPORT) {
-        LOGW("[DataSync] local not support sec classification");
-        localOption.securityLabel = NOT_SUPPORT_SEC_CLASSIFICATION;
-    } else if (err != E_OK) {
-        LOGE("[DataSync] get local security option errCode:%d", err);
-        localOption.securityLabel = FAILED_GET_SEC_CLASSIFICATION;
-    }
-    packet.SetSecurityOption(localOption);
-}
-
-std::pair<TimeOffset, TimeOffset> SingleVerDataSync::GetTimeOffsetFromRequestMsg(const Message *message)
-{
-    std::pair<TimeOffset, TimeOffset> res;
-    auto &[systemOffset, senderLocalOffset] = res;
-    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
-    systemOffset = packet->GetSystemTimeOffset();
-    senderLocalOffset = packet->GetSenderTimeOffset();
-    return res;
-}
-
-int SingleVerDataSync::SchemaVersionMatchCheck(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
-{
-    if (context->GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
-        return E_OK;
-    }
-    auto remoteSchemaVersion = metadata_->GetRemoteSchemaVersion(deviceId_);
-    if (remoteSchemaVersion != packet->GetSchemaVersion()) {
-        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
-            packet->GetSchemaVersion(), remoteSchemaVersion);
-        return -E_NEED_ABILITY_SYNC;
-    }
-    return E_OK;
 }
 } // namespace DistributedDB

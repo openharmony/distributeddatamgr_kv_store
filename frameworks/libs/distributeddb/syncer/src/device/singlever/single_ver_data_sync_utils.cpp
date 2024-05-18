@@ -503,4 +503,73 @@ int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskConte
     }
     return errCode;
 }
+
+std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(const Message *message)
+{
+    std::pair<TimeOffset, TimeOffset> res;
+    auto &[systemOffset, senderLocalOffset] = res;
+    const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
+    systemOffset = packet->GetSystemTimeOffset();
+    senderLocalOffset = packet->GetSenderTimeOffset();
+    return res;
+}
+
+void SingleVerDataSyncUtils::RecordClientId(const SingleVerSyncTaskContext &context,
+    const SyncGenericInterface &storage, std::shared_ptr<Metadata> &metadata)
+{
+    StoreInfo info = {
+        storage.GetDbProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storage.GetDbProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storage.GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
+    std::string clientId;
+    int errCode = E_OK;
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(context.GetDeviceId(), info, clientId) == E_OK) {
+        errCode = metadata->SaveClientId(context.GetDeviceId(), clientId);
+        if (errCode != E_OK) {
+            LOGW("[DataSync] record clientId failed %d", errCode);
+        }
+    }
+}
+
+void SingleVerDataSyncUtils::SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context,
+    const SyncGenericInterface &storage, DataRequestPacket &packet, std::shared_ptr<Metadata> &metadata)
+{
+    packet.SetSenderTimeOffset(metadata->GetLocalTimeOffset());
+    packet.SetSystemTimeOffset(metadata->GetSystemTimeOffset(context.GetDeviceId()));
+    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
+        return;
+    }
+    auto [err, localSchemaVer] = metadata->GetLocalSchemaVersion();
+    if (err != E_OK) {
+        LOGW("[DataSync] get local schema version failed:%d", err);
+        return;
+    }
+    packet.SetSchemaVersion(localSchemaVer);
+    SecurityOption localOption;
+    err = storage.GetSecurityOption(localOption);
+    if (err == -E_NOT_SUPPORT) {
+        LOGW("[DataSync] local not support sec classification");
+        localOption.securityLabel = NOT_SUPPORT_SEC_CLASSIFICATION;
+    } else if (err != E_OK) {
+        LOGE("[DataSync] get local security option errCode:%d", err);
+        localOption.securityLabel = FAILED_GET_SEC_CLASSIFICATION;
+    }
+    packet.SetSecurityOption(localOption);
+}
+
+int SingleVerDataSyncUtils::SchemaVersionMatchCheck(const SingleVerSyncTaskContext &context,
+    const DataRequestPacket &packet, std::shared_ptr<Metadata> &metadata)
+{
+    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
+        return E_OK;
+    }
+    auto remoteSchemaVersion = metadata->GetRemoteSchemaVersion(context.GetDeviceId());
+    if (remoteSchemaVersion != packet.GetSchemaVersion()) {
+        LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
+             packet.GetSchemaVersion(), remoteSchemaVersion);
+        return -E_NEED_ABILITY_SYNC;
+    }
+    return E_OK;
+}
 }

@@ -626,7 +626,7 @@ int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
 int SingleVerSyncStateMachine::HandleDataRequestRecv(const Message *inMsg)
 {
     TimeOffset offset = 0;
-    auto [systemOffset, senderLocalOffset] = dataSync_->GetTimeOffsetFromRequestMsg(inMsg);
+    auto [systemOffset, senderLocalOffset] = SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(inMsg);
     int errCode = timeSync_->GenerateTimeOffsetIfNeed(systemOffset, senderLocalOffset);
     if (errCode != E_OK) {
         (void)dataSync_->SendDataAck(context_, inMsg, errCode, 0);

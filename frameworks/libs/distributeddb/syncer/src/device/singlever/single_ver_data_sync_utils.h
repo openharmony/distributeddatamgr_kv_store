@@ -94,8 +94,14 @@ public:
 
     static std::pair<TimeOffset, TimeOffset> GetTimeOffsetFromRequestMsg(const Message *message);
 
-    static int SchemaVersionMatchCheck(const std::string &deviceId, const DataRequestPacket &packet,
-        SingleVerSyncTaskContext &context, std::shared_ptr<Metadata> &metadata);
+    static void RecordClientId(const SingleVerSyncTaskContext &context, const SyncGenericInterface &storage,
+        std::shared_ptr<Metadata> &metadata);;
+
+    static void SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context,
+        const SyncGenericInterface &storage, DataRequestPacket &packet, std::shared_ptr<Metadata> &metadata);
+
+    static int SchemaVersionMatchCheck(const SingleVerSyncTaskContext &context, const DataRequestPacket &packet,
+        std::shared_ptr<Metadata> &metadata);
 private:
     static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet, int mode);
