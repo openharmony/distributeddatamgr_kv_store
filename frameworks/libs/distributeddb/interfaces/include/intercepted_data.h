@@ -44,5 +44,6 @@ public:
 // The callback function works on the send data from device "sourceID" to device "targetID".
 using PushDataInterceptor = std::function<int(InterceptedData &data, const std::string &sourceID,
     const std::string &targetID)>;
+using DataInterceptor = PushDataInterceptor;
 } // namespace DistributedDB
 #endif // INTERCEPTED_DATA_H

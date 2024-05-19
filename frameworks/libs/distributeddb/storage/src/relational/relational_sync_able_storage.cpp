@@ -645,7 +645,7 @@ int RelationalSyncAbleStorage::LocalDataChanged(int notifyEvent, std::vector<Que
 }
 
 int RelationalSyncAbleStorage::InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-    const std::string &targetID) const
+    const std::string &targetID, bool isPush) const
 {
     return E_OK;
 }

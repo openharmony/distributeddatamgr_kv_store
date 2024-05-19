@@ -129,7 +129,7 @@ public:
 
     int GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmSet) const override;
 
-    void SetDataInterceptor(const PushDataInterceptor &interceptor) override;
+    void SetSendDataInterceptor(const PushDataInterceptor &interceptor) override;
 
     int SetMaxLogSize(uint64_t limit);
 
@@ -141,6 +141,7 @@ public:
 
     void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data) override;
 
+    void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 private:
 
     int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);

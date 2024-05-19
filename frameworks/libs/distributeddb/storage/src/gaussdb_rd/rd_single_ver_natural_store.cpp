@@ -377,7 +377,7 @@ int RdSingleVerNaturalStore::GetCompressionAlgo(std::set<CompressAlgorithm> &alg
     return -E_NOT_SUPPORT;
 }
 
-void RdSingleVerNaturalStore::SetDataInterceptor(const PushDataInterceptor &interceptor)
+void RdSingleVerNaturalStore::SetSendDataInterceptor(const PushDataInterceptor &interceptor)
 {
     return;
 }
@@ -437,4 +437,7 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     option.rdConfig = config;
 }
 
+void RdSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+}
 } // namespace DistributedDB

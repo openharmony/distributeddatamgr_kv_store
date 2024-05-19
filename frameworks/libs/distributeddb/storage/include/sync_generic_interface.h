@@ -111,7 +111,7 @@ public:
     }
 
     virtual int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID) const
+        const std::string &targetID, bool isPush) const
     {
         return -E_NOT_SUPPORT;
     }

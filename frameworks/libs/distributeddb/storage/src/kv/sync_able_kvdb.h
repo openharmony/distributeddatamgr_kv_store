@@ -83,7 +83,7 @@ public:
     // Set an equal identifier for this database, After this called, send msg to the target will use this identifier
     int SetEqualIdentifier(const std::string &identifier, const std::vector<std::string> &targets);
 
-    virtual void SetDataInterceptor(const PushDataInterceptor &interceptor) = 0;
+    virtual void SetSendDataInterceptor(const PushDataInterceptor &interceptor) = 0;
 
     void Dump(int fd) override;
 
@@ -106,6 +106,8 @@ public:
     int32_t GetTaskCount();
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
+
+    virtual void SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

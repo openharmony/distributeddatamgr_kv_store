@@ -1939,6 +1939,57 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
 }
 
 /**
+  * @tc.name: InterceptData001
+  * @tc.desc: test intercept receive data when sync
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptData001, TestSize.Level0)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. device A set intercept data errCode and B put some data
+     * * @tc.expected: step1. interface return ok
+    */
+    g_kvDelegatePtr->SetReceiveDataInterceptor(
+        [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
+            int errCode = OK;
+            auto entries = data.GetEntries();
+            LOGD("====on receive,size=%d", entries.size());
+            for (size_t i = 0; i < entries.size(); i++) {
+                Key newKey = {'2'};
+                errCode = data.ModifyKey(i, newKey);
+                if (errCode != OK) {
+                    break;
+                }
+            }
+            return errCode;
+        }
+    );
+    Key key = {'1'};
+    Value value = {'1'};
+    g_deviceB->PutData(key, value, 1u, 0); // 1 is timestamp
+    /**
+     * @tc.steps: step2. device A sync to device B and check data
+     * * @tc.expected: step2. interface return ok
+    */
+    std::vector<std::string> devices = { g_deviceB->GetDeviceId() };
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_EQ(pair.second, OK);
+    }
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key, actualValue), NOT_FOUND);
+    key = {'2'};
+    EXPECT_EQ(g_kvDelegatePtr->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
   * @tc.name: UpdateKey001
   * @tc.desc: test update key can effect local data and sync data, without delete data
   * @tc.type: FUNC

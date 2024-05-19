@@ -1196,4 +1196,15 @@ std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::G
     res.first = TransferDBErrno(errCode);
     return res;
 }
+
+DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->SetReceiveDataInterceptor(interceptor);
+    LOGI("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

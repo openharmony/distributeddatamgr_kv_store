@@ -102,6 +102,8 @@ public:
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
 
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
+
+    int SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>
