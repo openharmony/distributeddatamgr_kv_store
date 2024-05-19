@@ -15,11 +15,8 @@
 
 #include "db_common.h"
 
-#include <atomic>
 #include <climits>
 #include <cstdio>
-#include <dlfcn.h>
-#include <mutex>
 #include <queue>
 
 #include "cloud/cloud_db_constant.h"
@@ -61,9 +58,6 @@ namespace {
     const std::string HEX_CHAR_MAP = "0123456789abcdef";
     const std::string CAP_HEX_CHAR_MAP = "0123456789ABCDEF";
 }
-
-static std::atomic_bool g_isGRDNbLoaded = false;
-static std::atomic_bool g_isGRDV5Loaded = false;
 
 int DBCommon::CreateDirectory(const std::string &directory)
 {
@@ -653,39 +647,5 @@ std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
 uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 {
     return origin & (~eraseBit);
-}
-
-void DBCommon::LoadGrdLib(bool isHash)
-{
-    if (!isHash) {
-        static std::once_flag nbOnceFlag;
-        std::call_once(nbOnceFlag, LoadGrdNbLib);
-    } else {
-        static std::once_flag v5OnceFlag;
-        std::call_once(v5OnceFlag, LoadGrdV5Lib);
-    }
-}
-
-bool DBCommon::IsGrdLibLoaded(bool isHash)
-{
-    return isHash ? g_isGRDV5Loaded : g_isGRDNbLoaded;
-}
-
-void DBCommon::LoadGrdNbLib(void)
-{
-    if (!g_isGRDNbLoaded) {
-        if (dlopen("libgaussdb_rd.z.so", RTLD_LAZY) != NULL) {
-            g_isGRDNbLoaded = true;
-        }
-    }
-}
-
-void DBCommon::LoadGrdV5Lib(void)
-{
-    if (!g_isGRDV5Loaded) {
-        if (dlopen("libgaussdb_rd_vector.z.so", RTLD_LAZY) != NULL) {
-            g_isGRDV5Loaded = true;
-        }
-    }
 }
 } // namespace DistributedDB

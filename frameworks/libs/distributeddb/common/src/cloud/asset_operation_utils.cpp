@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "asset_operation_utils.h"
+#include "cloud/asset_operation_utils.h"
 
 #include <mutex>
 #include "cloud/cloud_db_types.h"

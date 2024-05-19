@@ -324,13 +324,17 @@ void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
 
 void CheckConsistentCount(sqlite3 *db, int64_t expectCount)
 {
-    EXPECT_EQ(sqlite3_exec(db, QUERY_CONSISTENT_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+    " where flag&0x20=0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
 void CheckCompensatedCount(sqlite3 *db, int64_t expectCount)
 {
-    EXPECT_EQ(sqlite3_exec(db, QUERY_COMPENSATED_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+    " where flag&0x10!=0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
