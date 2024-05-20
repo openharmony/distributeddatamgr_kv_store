@@ -165,20 +165,20 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema()
 {
     DataBaseSchema schema;
     TableSchema tableSchema;
-    tableSchema.name = "sync_data";
+    tableSchema.name = CloudDbConstant::CLOUD_KV_TABLE_NAME;
     Field field;
-    field.colName = "key";
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
     field.type = TYPE_INDEX<std::string>;
     field.primary = true;
     tableSchema.fields.push_back(field);
-    field.colName = "device";
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE;
     field.primary = false;
     tableSchema.fields.push_back(field);
-    field.colName = "oridevice";
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE;
     tableSchema.fields.push_back(field);
-    field.colName = "value";
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_VALUE;
     tableSchema.fields.push_back(field);
-    field.colName = "device_create_time";
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME;
     field.type = TYPE_INDEX<int64_t>;
     tableSchema.fields.push_back(field);
     schema.tables.push_back(tableSchema);
