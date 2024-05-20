@@ -378,7 +378,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, SimpleData008, TestSize.Level1)
 {
     vector<Entry> entriesBatch, entryResults;
     vector<Key> allKeys;
-    GenerateRecords(BATCH_RECORDS + 1, DEFAULT_START, allKeys, entriesBatch);
+    GenerateFixedRecords(entriesBatch, allKeys, BATCH_RECORDS + 1, FOUR_M_LONG_STRING, ONE_M_LONG_STRING);
 
     /**
      * @tc.steps: step1. PutBatch 129 items to DB and GetEntries().
@@ -1582,7 +1582,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction012, TestSize.Level1)
 HWTEST_F(DistributeddbNbBatchCrudTest, Transaction013, TestSize.Level1)
 {
     std::vector<DistributedDB::Entry> entries, entriesGot;
-    EntrySize entrySize = {KEY_SIX_BYTE, VALUE_ONE_HUNDRED_BYTE};
+    EntrySize entrySize = {KEY_SIX_BYTE, FOUR_M_LONG_STRING - KEY_SIX_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries, entrySize, BATCH_RECORDS);
     /**
      * @tc.steps: step1. start transaction
@@ -1628,7 +1628,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction013, TestSize.Level1)
 HWTEST_F(DistributeddbNbBatchCrudTest, Transaction014, TestSize.Level1)
 {
     std::vector<DistributedDB::Entry> entries1, entries2, entries3, entries4, entriesGot;
-    EntrySize entrySize = {KEY_SIX_BYTE, VALUE_ONE_HUNDRED_BYTE};
+    EntrySize entrySize = {KEY_SIX_BYTE, FOUR_M_LONG_STRING - KEY_SIX_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries1, entrySize, ONE_HUNDRED_RECORDS, {'a'}, {'m'});
     GenerateAppointPrefixAndSizeRecords(entries2, entrySize, RECORDS_SMALL_CNT, {'b'}, {'n'});
     GenerateAppointPrefixAndSizeRecords(entries3, entrySize, THIRTYTWO_RECORDS, {'c'}, {'o'});
