@@ -202,7 +202,7 @@ Status SingleStoreImpl::Commit()
     auto dbStatus = dbStore_->Commit();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, dbStore_->GetStoreId().c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
 }

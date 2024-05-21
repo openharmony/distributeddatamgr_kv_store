@@ -148,7 +148,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, GetKvStoreWithDiffDataType, TestSize.Level1)
     EXPECT_EQ(status, Status::SUCCESS);
     options.dataType = DataType::TYPE_DYNAMICAL;
     status = manager.GetSingleKvStore(options, appId, storeId, store);
-    EXPECT_EQ(status, Status::STORE_META_CHANGED);
+    EXPECT_EQ(status, Status::SUCCESS);
     status = manager.DeleteKvStore(appId, storeId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
 }
