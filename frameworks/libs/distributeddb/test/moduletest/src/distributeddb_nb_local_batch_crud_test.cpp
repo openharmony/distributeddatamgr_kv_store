@@ -304,8 +304,8 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData006, TestSize.Level1)
      * @tc.steps: step1. call PutLocalBatch interface to insert 128 records to DB, and check the data from DB.
      * @tc.expected: step1. PutLocalBatch succeed and can find 129 records in DB.
      */
-    vector<Entry> entries1, entries2, gotValues;
-    vector<Key> allKeys1, allKeys2;
+    vector<Entry> entries1, entries2, entries3, gotValues;
+    vector<Key> allKeys1, allKeys2, allKeys3;
     GenerateFixedRecords(entries1, allKeys1, BATCH_RECORDS, KEY_SIX_BYTE, VALUE_ONE_HUNDRED_BYTE);
 
     EXPECT_EQ(DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries1), OK);
@@ -316,7 +316,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData006, TestSize.Level1)
      * @tc.steps: step2. call PutLocalBatch interface to insert 129 records to DB, and check the data from DB.
      * @tc.expected: step2. PutLocalBatch failed and can only find 129 records in DB.
      */
-    GenerateFixedRecords(entries2, allKeys2, BATCH_RECORDS + 1, KEY_EIGHT_BYTE, VALUE_ONE_HUNDRED_BYTE);
+    GenerateFixedRecords(entries2, allKeys2, BATCH_RECORDS + 1, KEY_EIGHT_BYTE, FOUR_M_LONG_STRING - KEY_EIGHT_BYTE);
     EXPECT_EQ(g_nbLocalBatchDelegate->PutLocalBatch(entries2), INVALID_ARGS);
     EXPECT_EQ(g_nbLocalBatchDelegate->GetLocalEntries(KEY_EMPTY, gotValues), OK);
     EXPECT_EQ(entries1.size() + 1, gotValues.size());
@@ -325,8 +325,9 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData006, TestSize.Level1)
      * @tc.steps: step3. call DeleteLocalBatch interface to Delete 129 records from DB which is already in DB.
      * @tc.expected: step3. DeleteLocalBatch failed and can still find the 129 records which was find upstairs in db.
      */
-    allKeys1.push_back(KEY_1);
-    EXPECT_EQ(g_nbLocalBatchDelegate->DeleteLocalBatch(allKeys1), INVALID_ARGS);
+    GenerateFixedRecords(entries3, allKeys3, BATCH_RECORDS, FOUR_M_LONG_STRING, VALUE_ONE_HUNDRED_BYTE);
+    allKeys3.push_back(KEY_1);
+    EXPECT_EQ(g_nbLocalBatchDelegate->DeleteLocalBatch(allKeys3), INVALID_ARGS);
     EXPECT_EQ(g_nbLocalBatchDelegate->GetLocalEntries(KEY_EMPTY, gotValues), OK);
     EXPECT_EQ(entries1.size() + 1, gotValues.size());
 }
@@ -346,7 +347,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData007, TestSize.Level3)
      * @tc.expected: step1. PutLocalBatch succeed.
      */
     vector<Entry> entries;
-    EntrySize entrySize = {KEY_ONE_K_BYTE, FOUR_M_LONG_STRING};
+    EntrySize entrySize = {KEY_ONE_K_BYTE, FOUR_M_LONG_STRING - KEY_ONE_K_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries, entrySize, BATCH_RECORDS);
 
     std::condition_variable batchCondition;
@@ -396,7 +397,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData008, TestSize.Level3)
      * @tc.expected: step1. PutLocalBatch succeed.
      */
     vector<Entry> entries;
-    EntrySize entrySize = {KEY_ONE_K_BYTE, FOUR_M_LONG_STRING};
+    EntrySize entrySize = {KEY_ONE_K_BYTE, FOUR_M_LONG_STRING - KEY_ONE_K_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries, entrySize, BATCH_RECORDS);
 
     std::condition_variable batchCondition;
@@ -595,7 +596,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Exception001, TestSize.Level1)
      * @tc.expected: step2. PutBatch succeed but PutLocalBatch will return OVER_MAX_LIMITS.
      */
     vector<Entry> entries1, entries2, gotValues;
-    EntrySize entrySize = {KEY_SIX_BYTE, ONE_K_LONG_STRING};
+    EntrySize entrySize = {KEY_SIX_BYTE, FOUR_M_LONG_STRING - KEY_SIX_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries1, entrySize, BATCH_RECORDS);
     entries2.push_back(ENTRY_1);
     entries2.push_back(ENTRY_2);
