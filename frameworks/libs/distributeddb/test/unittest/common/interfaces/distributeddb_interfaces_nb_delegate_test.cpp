@@ -3195,4 +3195,43 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSiz
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), NOT_SUPPORT);
 }
+
+/**
+  * @tc.name: OptionValidCheck001
+  * @tc.desc: test validation of option mode
+  * @tc.type: FUNC
+  * @tc.require: DTS2024042009796
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    KvStoreObserverUnitTest *observer = new KvStoreObserverUnitTest();
+    ASSERT_TRUE(observer != nullptr);
+    option.observer = observer;
+    std::vector<int> invalidModeVec = {0, 5, 6, 7, 9, 16};
+    std::string storeId = "distributed_nb_delegate_test";
+    for (size_t i = 0; i < invalidModeVec.size(); i++) {
+        option.mode = invalidModeVec.at(i);
+        g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+        ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+        EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
+    }
+
+    std::vector<int> validModeVec = {1, 2, 3, 4, 8};
+    for (size_t i = 0; i < validModeVec.size(); i++) {
+        option.mode = validModeVec.at(i);
+        g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+        ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+        EXPECT_EQ(g_kvDelegateStatus, OK);
+        EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+        g_kvNbDelegatePtr = nullptr;
+    }
+
+    delete observer;
+}
 }
