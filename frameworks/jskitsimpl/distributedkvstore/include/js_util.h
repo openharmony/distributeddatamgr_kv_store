@@ -120,7 +120,7 @@ public:
     static StatusMsg SetValue(napi_env env, const QueryVariant& in, napi_value& out);
 
     /* napi_value <-> std::vector<std::string> */
-    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<std::string>& out, bool checklength = true);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<std::string>& out, bool checkLength = true);
     static StatusMsg SetValue(napi_env env, const std::vector<std::string>& in, napi_value& out);
 
     /* napi_value <-> std::vector<uint8_t> */

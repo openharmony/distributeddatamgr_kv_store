@@ -135,7 +135,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::string& in, napi_value& ou
 }
 
 /* napi_value <-> std::vector<std::string> */
-napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<std::string>& out, bool checklength)
+napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<std::string>& out, bool checkLength)
 {
     ZLOGD("napi_value -> std::vector<std::string>");
     out.clear();
@@ -145,10 +145,9 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<std::strin
 
     uint32_t length = 0;
     napi_status status = napi_get_array_length(env, in, &length);
-    if (checklength == true) {
-        CHECK_RETURN((status == napi_ok) && (length > 0), "get_array failed!", napi_invalid_arg);
-    } else {
-        CHECK_RETURN(status == napi_ok, "get_indexes_array failed!", napi_invalid_arg);
+    CHECK_RETURN(status == napi_ok, "get_array length failed!", napi_invalid_arg);
+    if (checkLength) {
+        CHECK_RETURN(length > 0, "check array length failed!", napi_invalid_arg);
     }
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
