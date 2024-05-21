@@ -259,7 +259,7 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
     }
 
     // DistinctValue change detected !!! This must be caused by malfunctioning of underlayer communication component.
-    LOGE("[Linker][Detect] ######## DISTINCT VALUE CHANGE DETECTED : %" PRIu64 " VS %" PRIu64 " ########",
+    LOGE("[Linker][Detect] DISTINCT VALUE CHANGE DETECTED : %" PRIu64 " VS %" PRIu64 "",
         ULL(inDistinctValue), ULL(targetDistinctValue_[inTarget]));
     targetDistinctValue_[inTarget] = inDistinctValue;
     // The process of remote target must have undergone a quit and restart, the remote sequenceId will start from zero.

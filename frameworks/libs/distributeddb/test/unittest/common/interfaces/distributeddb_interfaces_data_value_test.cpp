@@ -167,7 +167,7 @@ HWTEST_F(DistributedDBInterfacesDataValueTest, DataValueCheck002, TestSize.Level
         DataValue dataValue;
         for (uint32_t i = 0; i < g_checkFuncList.size(); i++) {
             uint32_t index = static_cast<uint32_t>((lastWriteIndex + i + 1) %
-                             static_cast<uint32_t>(g_checkFuncList.size()));
+                static_cast<uint32_t>(g_checkFuncList.size()));
             g_checkFuncList[index](dataValue);
         }
     }

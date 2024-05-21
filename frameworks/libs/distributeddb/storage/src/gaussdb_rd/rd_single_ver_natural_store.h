@@ -142,6 +142,7 @@ public:
     void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data) override;
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
+
 private:
 
     int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);

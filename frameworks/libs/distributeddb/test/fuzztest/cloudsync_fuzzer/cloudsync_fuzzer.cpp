@@ -158,6 +158,9 @@ public:
 
     void InitDbAsset(const uint8_t* data, size_t size)
     {
+        if (data == nullptr || size == 0) {
+            return;
+        }
         sqlite3_stmt *stmt = nullptr;
         int errCode = SQLiteUtils::GetStatement(db_, g_insertLocalAssetSql, stmt);
         if (errCode != E_OK) {

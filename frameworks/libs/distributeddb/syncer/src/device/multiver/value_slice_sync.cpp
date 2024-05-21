@@ -204,12 +204,12 @@ int ValueSliceSync::SyncStart(MultiVerSyncTaskContext *context)
         }
         // move to next entry
         MultiVerKvEntry *entry = nullptr;
-        std::vector<ValueSliceHash> valueHashes;
         entriesIndex++;
         if (entriesIndex < entriesSize) {
             LOGD("ValueSliceSync::SyncStart begin entriesIndex = %d, entriesSize = %d", entriesIndex, entriesSize);
             context->SetEntriesIndex(entriesIndex);
             context->GetEntry(entriesIndex, entry);
+            std::vector<ValueSliceHash> valueHashes;
             errCode = entry->GetValueHash(valueHashes);
             if (errCode != E_OK) {
                 LOGE("ValueSliceSync::entry->GetValueHash %d", errCode);

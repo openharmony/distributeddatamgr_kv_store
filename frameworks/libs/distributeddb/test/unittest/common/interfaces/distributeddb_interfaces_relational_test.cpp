@@ -356,7 +356,7 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     const int tableCount = DBConstant::MAX_DISTRIBUTED_TABLE_COUNT + 10; // 10: additional size for test abnormal scene
-    for (int i=0; i<tableCount; i++) {
+    for (int i = 0; i < tableCount; i++) {
         std::string sql = "CREATE TABLE TEST_" + std::to_string(i) + "(id INT PRIMARY KEY, value TEXT);";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
     }
@@ -372,7 +372,7 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    for (int i=0; i<tableCount; i++) {
+    for (int i = 0; i < tableCount; i++) {
         if (i < DBConstant::MAX_DISTRIBUTED_TABLE_COUNT) {
             EXPECT_EQ(delegate->CreateDistributedTable("TEST_" + std::to_string(i), tableSyncTpe), OK);
         } else {

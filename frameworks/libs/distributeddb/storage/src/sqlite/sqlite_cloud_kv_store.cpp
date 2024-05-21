@@ -49,6 +49,9 @@ int SqliteCloudKvStore::SetCloudDbSchema(const DataBaseSchema &schema)
 int SqliteCloudKvStore::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
 {
     std::lock_guard<std::mutex> autoLock(schemaMutex_);
+    if (!CheckSchema(schema)) {
+        return -E_INVALID_SCHEMA;
+    }
     schema_ = schema;
     return E_OK;
 }
@@ -257,11 +260,26 @@ int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData 
         LOGE("[SqliteCloudKvStore] get handle failed %d when fill log", errCode);
         return errCode;
     }
+    if (handle->IsMemory()) {
+        errCode = Commit();
+        if (errCode != E_OK) {
+            LOGE("[SqliteCloudKvStore] commit failed %d before fill log", errCode);
+            storageHandle_->RecycleStorageExecutor(handle);
+            return errCode;
+        }
+    }
     sqlite3 *db = nullptr;
     (void)handle->GetDbHandle(db);
     errCode = SqliteCloudKvExecutorUtils::FillCloudLog(db, opType, data, user_, ignoreEmptyGid);
+    int ret = E_OK;
+    if (handle->IsMemory()) {
+        ret = StartTransaction(TransactType::DEFERRED);
+        if (ret != E_OK) {
+            LOGE("[SqliteCloudKvStore] restart transaction failed %d", ret);
+        }
+    }
     storageHandle_->RecycleStorageExecutor(handle);
-    return errCode;
+    return errCode == E_OK ? ret : errCode;
 }
 
 void SqliteCloudKvStore::FilterCloudVersionPrefixKey(std::vector<std::vector<Type>> &changeValList)
@@ -288,30 +306,29 @@ void SqliteCloudKvStore::FilterCloudVersionPrefixKey(std::vector<std::vector<Typ
 void SqliteCloudKvStore::TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
     bool isChangedData)
 {
-    std::vector<ObserverAction> triggerActions;
     {
         std::lock_guard<std::mutex> autoLock(observerMapMutex_);
-        for (const auto &item : cloudObserverMap_) {
-            if (item.second) {
-                triggerActions.push_back(item.second);
-            }
+        if (cloudObserverMap_.empty()) {
+            return;
         }
-    }
-    if (triggerActions.empty()) {
-        return;
     }
     for (auto &changeValList : changedData.primaryData) {
         FilterCloudVersionPrefixKey(changeValList);
     }
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([triggerActions, deviceName,
-        changedData, isChangedData]() {
-        for (const auto &item : triggerActions) {
-            ChangedData observerChangeData = changedData;
-            item(deviceName, std::move(observerChangeData), isChangedData);
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData]() {
+        {
+            std::lock_guard<std::mutex> autoLock(observerMapMutex_);
+            for (const auto &item : cloudObserverMap_) {
+                ChangedData observerChangeData = changedData;
+                item.second(deviceName, std::move(observerChangeData), isChangedData);
+            }
         }
+        RefObject::DecObjRef(this);
     });
     if (errCode != E_OK) {
         LOGW("[SqliteCloudKvStore] Trigger observer action failed %d", errCode);
+        RefObject::DecObjRef(this);
     }
 }
 
@@ -438,5 +455,44 @@ void SqliteCloudKvStore::FillTimestamp(Timestamp rawSystemTime, Timestamp virtua
             item[CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME] = static_cast<int64_t>(virtualTime);
         }
     }
+}
+
+bool SqliteCloudKvStore::CheckSchema(std::map<std::string, DataBaseSchema> schema)
+{
+    if (schema.size() == 0) {
+        LOGE("[SqliteCloudKvStore] empty schema.");
+        return false;
+    }
+    for (auto it = schema.begin(); it != schema.end(); it++) {
+        std::vector<TableSchema> tables = it->second.tables;
+        if (tables.size() != 1) {
+            LOGE("[SqliteCloudKvStore] invalid tables num: %zu", tables.size());
+            return false;
+        }
+        TableSchema actualTable = tables[0];
+        std::string expectTableName = CloudDbConstant::CLOUD_KV_TABLE_NAME;
+        std::string expectSharedTableName = "";
+        std::vector<Field> expectFields = {
+            {CloudDbConstant::CLOUD_KV_FIELD_KEY, TYPE_INDEX<std::string>, true, true},
+            {CloudDbConstant::CLOUD_KV_FIELD_DEVICE, TYPE_INDEX<std::string>, false, true},
+            {CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE, TYPE_INDEX<std::string>, false, true},
+            {CloudDbConstant::CLOUD_KV_FIELD_VALUE, TYPE_INDEX<std::string>, false, true},
+            {CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME, TYPE_INDEX<int64_t>, false, true}
+        };
+        if (actualTable.name != expectTableName || actualTable.sharedTableName != expectSharedTableName ||
+            actualTable.fields.size() != expectFields.size()) {
+            LOGE("[SqliteCloudKvStore] check table failed.");
+            return false;
+        }
+        for (uint32_t i = 0; i < actualTable.fields.size(); i++) {
+            Field actualField = actualTable.fields[i];
+            auto it = std::find(expectFields.begin(), expectFields.end(), actualField);
+            if (it == expectFields.end()) {
+                LOGE("[SqliteCloudKvStore] check fields failed.");
+                return false;
+            }
+        }
+    }
+    return true;
 }
 }

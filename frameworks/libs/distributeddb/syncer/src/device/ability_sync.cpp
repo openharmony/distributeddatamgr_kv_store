@@ -530,7 +530,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
     int32_t remoteSecLabel = TransformSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel);
     LOGI("[AbilitySync][RequestRecv] remote label:%d local l:%d, f:%d, errCode:%d", remoteSecLabel,
         option.securityLabel, option.securityFlag, errCode);
-    if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
+    if (remoteSecLabel == NOT_SUPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
         return true;
     }
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
@@ -542,7 +542,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
         LOGE("[AbilitySync][RequestRecv] remote security label not set!");
         return false;
     }
-    if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION || remoteSecLabel == SecurityLabel::NOT_SET) {
+    if (remoteSecLabel == NOT_SUPPORT_SEC_CLASSIFICATION || remoteSecLabel == SecurityLabel::NOT_SET) {
         return true;
     }
     if (errCode == -E_NOT_SUPPORT || (errCode == E_OK && option.securityLabel == SecurityLabel::NOT_SET)) {
@@ -599,7 +599,7 @@ void AbilitySync::GetPacketSecOption(const ISyncTaskContext *context, SecurityOp
         (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
     if (errCode == -E_NOT_SUPPORT) {
         LOGE("[AbilitySync][SyncStart] GetSecOpt not surpport sec classification");
-        option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;
+        option.securityLabel = NOT_SUPPORT_SEC_CLASSIFICATION;
     } else if (errCode != E_OK) {
         LOGE("[AbilitySync][SyncStart] GetSecOpt errCode:%d", errCode);
         option.securityLabel = FAILED_GET_SEC_CLASSIFICATION;

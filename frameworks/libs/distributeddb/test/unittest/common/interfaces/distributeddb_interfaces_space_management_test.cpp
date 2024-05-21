@@ -308,7 +308,7 @@ static void CreateFile(const std::string &fileUrl, uint64_t fileSize)
 static void DeleteFile(const std::string &fileUrl)
 {
     std::ifstream walFile(fileUrl);
-    if (walFile) {
+    if (walFile.good()) {
         int result = remove(fileUrl.c_str());
         if (result < 0) {
             LOGE("failed to delete the file[%s]:%d", fileUrl.c_str(), errno);

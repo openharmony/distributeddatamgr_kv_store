@@ -15,12 +15,10 @@
 #include "cloud_db_proxy.h"
 #include "db_errno.h"
 #include "log_print.h"
-#include "runtime_context.h"
 
 namespace DistributedDB {
 CloudDBProxy::CloudDBProxy()
-    : timeout_(0),
-      asyncTaskCount_(0)
+    : timeout_(0)
 {
 }
 
@@ -165,14 +163,6 @@ int CloudDBProxy::Close()
         }
         cloudDbs_.clear();
     }
-    {
-        std::unique_lock<std::mutex> uniqueLock(asyncTaskMutex_);
-        LOGD("[CloudDBProxy] wait for all asyncTask  begin");
-        asyncTaskCv_.wait(uniqueLock, [this]() {
-            return asyncTaskCount_ <= 0;
-        });
-        LOGD("[CloudDBProxy] wait for all asyncTask end");
-    }
     LOGD("[CloudDBProxy] call cloudDb close begin");
     DBStatus status = OK;
     if (iCloudDb != nullptr) {
@@ -257,28 +247,8 @@ int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context
     if (action >= InnerActionCode::INVALID_ACTION) {
         return -E_INVALID_ARGS;
     }
-    {
-        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
-        asyncTaskCount_++;
-    }
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([cloudDb, context, action, this]() {
-        InnerActionTask(context, cloudDb, action);
-    });
-    if (errCode != E_OK) {
-        {
-            std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
-            asyncTaskCount_--;
-        }
-        asyncTaskCv_.notify_all();
-        LOGW("[CloudDBProxy] Schedule async task error %d", errCode);
-        return errCode;
-    }
-    if (context->WaitForRes(timeout_)) {
-        errCode = context->GetActionRes();
-    } else {
-        errCode = -E_TIMEOUT;
-    }
-    return errCode;
+    InnerActionTask(context, cloudDb, action);
+    return context->GetActionRes();
 }
 
 DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &context,
@@ -365,7 +335,6 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
     }
 
     context->FinishAndNotify();
-    DecAsyncTaskCount();
 }
 
 DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
@@ -439,15 +408,6 @@ DBStatus CloudDBProxy::QueryAction(const std::shared_ptr<CloudActionContext> &co
     return status;
 }
 
-void CloudDBProxy::DecAsyncTaskCount()
-{
-    {
-        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
-        asyncTaskCount_--;
-    }
-    asyncTaskCv_.notify_all();
-}
-
 CloudDBProxy::CloudActionContext::CloudActionContext()
     : actionFinished_(false),
       actionRes_(OK),
@@ -515,20 +475,6 @@ void CloudDBProxy::CloudActionContext::MoveOutCursorStatus(std::pair<int, std::s
 {
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     cursorStatus = std::move(cursorStatus_);
-}
-
-bool CloudDBProxy::CloudActionContext::WaitForRes(int64_t timeout)
-{
-    std::unique_lock<std::mutex> uniqueLock(actionMutex_);
-    if (timeout == 0) {
-        actionCv_.wait(uniqueLock, [this]() {
-            return actionFinished_;
-        });
-        return true;
-    }
-    return actionCv_.wait_for(uniqueLock, std::chrono::milliseconds(timeout), [this]() {
-        return actionFinished_;
-    });
 }
 
 void CloudDBProxy::CloudActionContext::FinishAndNotify()

@@ -15,6 +15,7 @@
 
 #include "storage_proxy.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "cloud/schema_mgr.h"
 #include "store_types.h"
 
@@ -73,11 +74,7 @@ int StorageProxy::GetLocalWaterMarkByMode(const std::string &tableName, Timestam
         LOGE("the write transaction has been started, can not get meta");
         return -E_BUSY;
     }
-    if (user_.empty()) {
-        return cloudMetaData_->GetLocalWaterMarkByType(tableName, mode, localMark);
-    } else {
-        return cloudMetaData_->GetLocalWaterMarkByType(tableName + "_" + user_, mode, localMark);
-    }
+    return cloudMetaData_->GetLocalWaterMarkByType(AppendWithUserIfNeed(tableName), mode, localMark);
 }
 
 int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &localMark)
@@ -103,11 +100,7 @@ int StorageProxy::PutWaterMarkByMode(const std::string &tableName, Timestamp &lo
         LOGE("the write transaction has been started, can not put meta");
         return -E_BUSY;
     }
-    if (user_.empty()) {
-        return cloudMetaData_->SetLocalWaterMarkByType(tableName, mode, localMark);
-    } else {
-        return cloudMetaData_->SetLocalWaterMarkByType(tableName + "_" + user_, mode, localMark);
-    }
+    return cloudMetaData_->SetLocalWaterMarkByType(AppendWithUserIfNeed(tableName), mode, localMark);
 }
 
 int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &cloudMark)

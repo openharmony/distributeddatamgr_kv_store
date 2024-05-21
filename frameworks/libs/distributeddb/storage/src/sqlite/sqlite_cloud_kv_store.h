@@ -95,6 +95,8 @@ private:
 
     static void FilterCloudVersionPrefixKey(std::vector<std::vector<Type>> &changeValList);
 
+    bool CheckSchema(std::map<std::string, DataBaseSchema> schema);
+
     KvStorageHandle *storageHandle_;
 
     std::mutex schemaMutex_;

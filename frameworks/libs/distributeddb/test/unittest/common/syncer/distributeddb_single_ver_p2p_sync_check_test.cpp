@@ -424,15 +424,53 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Lev
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     std::map<std::string, DBStatus> result;
-    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result);
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     EXPECT_EQ(status, OK);
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
         EXPECT_TRUE(pair.second == OK);
     }
 
-    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(std::make_shared<ProcessSystemApiAdapterImpl>());
     g_syncInterfaceB->ForkGetSecurityOption(nullptr);
+}
+
+/**
+ * @tc.name: sec option check Sync 007
+ * @tc.desc: sync should send security option
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. fork check device security ability
+     * @tc.expected: step1. check param option should be S3 SECE.
+     */
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    adapter->ForkCheckDeviceSecurityAbility([](const std::string &, const SecurityOption &option) {
+        EXPECT_EQ(option.securityLabel, SecurityLabel::S3);
+        EXPECT_EQ(option.securityFlag, SecurityFlag::SECE);
+        return true;
+    });
+    /**
+     * @tc.steps: step2. sync twice
+     * @tc.expected: step2. sync success.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    auto status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_TRUE(status == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 #ifndef LOW_LEVEL_MEM_DEV
@@ -1632,6 +1670,48 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
 }
 
 /**
+ * @tc.name: DelaySync001
+ * @tc.desc: Test delay first packet will not effect data conflict
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, DelaySync001, TestSize.Level3)
+{
+    // B put (k, b) after A put (k, a)
+    Key key = {'k'};
+    Value aValue = {'a'};
+    g_kvDelegatePtr->Put(key, aValue);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for data conflict
+    Timestamp currentTime = TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET;
+    Value bValue = {'b'};
+    EXPECT_EQ(g_deviceB->PutData(key, bValue, currentTime, 0), OK);
+
+    // delay time sync message, delay time/2 should greater than put sleep time
+    g_communicatorAggregator->SetTimeout(DEVICE_B, DBConstant::MAX_TIMEOUT);
+    g_communicatorAggregator->SetTimeout("real_device", DBConstant::MAX_TIMEOUT);
+    g_communicatorAggregator->RegBeforeDispatch([](const std::string &dstTarget, const Message *msg) {
+        if (dstTarget == DEVICE_B && msg->GetMessageId() == MessageId::TIME_SYNC_MESSAGE) {
+            std::this_thread::sleep_for(std::chrono::seconds(3)); // sleep for 3s
+        }
+    });
+
+    // A call sync and (k, b) in A
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, true);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], OK);
+
+    Value actualValue;
+    g_kvDelegatePtr->Get(key, actualValue);
+    EXPECT_EQ(actualValue, bValue);
+    g_communicatorAggregator->RegBeforeDispatch(nullptr);
+}
+
+/**
  * @tc.name: KVAbilitySyncOpt001
  * @tc.desc: check ability sync 2 packet
  * @tc.type: FUNC
@@ -1991,4 +2071,4 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
     EXPECT_EQ(messageCount, 0);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
-} // namespace
+}

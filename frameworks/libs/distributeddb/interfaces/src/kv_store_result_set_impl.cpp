@@ -153,13 +153,11 @@ bool KvStoreResultSetImpl::IsClosed() const
 
 void KvStoreResultSetImpl::Close()
 {
-    return;
 }
 
 void KvStoreResultSetImpl::GetColumnNames(std::vector<std::string> &columnNames) const
 {
     (void)columnNames;
-    return;
 }
 
 DBStatus KvStoreResultSetImpl::GetColumnType(int columnIndex, ColumnType &columnType) const

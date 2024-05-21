@@ -15,6 +15,7 @@
 
 #include "storage_fuzzer.h"
 
+#include "cloud/cloud_db_types.h"
 #include "db_errno.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "relational_sync_able_storage.h"
@@ -22,7 +23,6 @@
 #include "sqlite_relational_store.h"
 #include "log_table_manager_factory.h"
 
-#include "cloud_db_types.h"
 #include "distributeddb_tools_test.h"
 #include "log_print.h"
 #include "fuzzer_data.h"

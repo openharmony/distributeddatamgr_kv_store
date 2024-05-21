@@ -454,7 +454,6 @@ int SingleVerSerializeManager::DataPacketSyncerPartDeSerialization(Parcel &parce
     int32_t sendCode;
     int32_t mode;
     uint32_t sessionId;
-    uint32_t flag = 0;
     std::vector<uint64_t> reserved;
 
     uint64_t totPacketLen = packLen;
@@ -466,6 +465,7 @@ int SingleVerSerializeManager::DataPacketSyncerPartDeSerialization(Parcel &parce
     totPacketLen += parcel.ReadUInt32(sessionId);
     totPacketLen += parcel.ReadVector<uint64_t>(reserved);
     if (version > SOFTWARE_VERSION_RELEASE_2_0) {
+        uint32_t flag = 0u;
         totPacketLen += parcel.ReadUInt32(flag);
         packet->SetFlag(flag);
     }
@@ -926,6 +926,13 @@ int SingleVerSerializeManager::DataPacketInnerDeSerialization(DataRequestPacket 
         packet->SetSchemaVersion(schemaVersion);
         packet->SetSystemTimeOffset(systemTimeOffset);
         packet->SetSenderTimeOffset(senderTimeOffset);
+        if (!parcel.IsContinueRead()) {
+            return errCode;
+        }
+        SecurityOption option;
+        parcel.ReadInt(option.securityLabel);
+        parcel.ReadInt(option.securityFlag);
+        packet->SetSecurityOption(option);
     }
     return errCode;
 }
@@ -949,6 +956,13 @@ int SingleVerSerializeManager::DataPacketInnerSerialization(const DataRequestPac
         parcel.WriteInt64(packet->GetSenderTimeOffset());
         if (parcel.IsError()) {
             LOGE("[SingleVerSerializeManager] Serialize schema version or time offset failed");
+            return -E_PARSE_FAIL;
+        }
+        auto option = packet->GetSecurityOption();
+        parcel.WriteInt(option.securityLabel);
+        parcel.WriteInt(option.securityFlag);
+        if (parcel.IsError()) {
+            LOGE("[SingleVerSerializeManager] Serialize security option failed");
             return -E_PARSE_FAIL;
         }
     }

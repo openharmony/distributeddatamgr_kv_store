@@ -251,10 +251,6 @@ protected:
 
     void RemoveSubscribeIfNeed(const std::string &queryId, const std::shared_ptr<SubscribeManager> &subscribeManager);
 
-    void RecordClientId(const SingleVerSyncTaskContext *context);
-
-    void SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet);
-
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;
     ICommunicator* communicateHandle_;

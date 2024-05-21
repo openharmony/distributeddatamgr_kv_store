@@ -17,6 +17,8 @@
 #include <queue>
 #include <random>
 
+#include "cloud_db_sync_utils_test.h"
+#include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
@@ -27,8 +29,6 @@
 #include "relational_virtual_device.h"
 #include "runtime_config.h"
 #include "virtual_relational_ver_sync_db_interface.h"
-#include "cloud_db_types.h"
-#include "cloud_db_sync_utils_test.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -148,6 +148,7 @@ namespace {
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::string extendVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
+            ASSERT_NE(num, 0u);
             EXPECT_EQ(extendVal, "Local" + std::to_string(index % num));
             std::string cursorVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);

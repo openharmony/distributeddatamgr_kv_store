@@ -170,7 +170,7 @@ int VirtualSingleVerSyncDBInterface::PutData(const Key &key, const Value &value,
     item.value = value;
     item.timestamp = time;
     item.writeTimestamp = time;
-    item.flag = flag;
+    item.flag = static_cast<uint64_t>(flag);
     item.isLocal = true;
     dbData_.push_back(item);
     return E_OK;

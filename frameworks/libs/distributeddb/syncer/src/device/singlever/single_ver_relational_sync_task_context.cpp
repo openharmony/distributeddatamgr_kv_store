@@ -51,9 +51,9 @@ void SingleVerRelationalSyncTaskContext::Clear()
     SingleVerSyncTaskContext::Clear();
 }
 
-void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &TaskParam)
+void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam)
 {
-    SingleVerSyncTaskContext::CopyTargetData(target, TaskParam);
+    SingleVerSyncTaskContext::CopyTargetData(target, taskParam);
     std::string hashTableName;
     std::string queryId;
     {
@@ -72,7 +72,8 @@ void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *targe
     }
 }
 
-void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy &strategy, bool isSchemaSync)
+void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(const RelationalSyncStrategy &strategy,
+    bool isSchemaSync)
 {
     std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     relationalSyncStrategy_ = strategy;

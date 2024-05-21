@@ -399,6 +399,7 @@ DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableRefere
         }
         return TransferDBErrno(errCode);
     }
+    LOGI("[RelationalStore Delegate] SetReference success");
     return OK;
 }
 
@@ -413,6 +414,7 @@ DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableN
         LOGE("[RelationalStore Delegate] clean tracker data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+    LOGI("[RelationalStore Delegate] CleanTrackerData success");
     return OK;
 }
 
@@ -430,6 +432,7 @@ DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaDa
         LOGE("[RelationalStore Delegate] Pragma failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+    LOGI("[RelationalStore Delegate] Pragma success");
     return OK;
 }
 

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud/cloud_sync_strategy.h"
+#include "cloud_sync_strategy.h"
 
 namespace DistributedDB {
 CloudSyncStrategy::CloudSyncStrategy() : policy_(SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN)

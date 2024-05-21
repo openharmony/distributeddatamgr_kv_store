@@ -103,7 +103,7 @@ int ResultSet::GetNextInner(bool isNeedCheckTable)
         std::transform(lowerCaseName.begin(), lowerCaseName.end(), lowerCaseName.begin(), [](unsigned char c) {
             return std::tolower(c);
         });
-        bool isCollectionExist = store_->IsCollectionExists(DBConstant::COLL_PREFIX + lowerCaseName, errCode);
+        bool isCollectionExist = store_->IsCollectionExists(RdDBConstant::COLL_PREFIX + lowerCaseName, errCode);
         if (errCode != E_OK) {
             return errCode;
         }

@@ -151,6 +151,7 @@ int TimeTickMonitor::TimeTick(TimerId timerId)
         if (ret != E_OK) {
             LOGE("TimeTickMonitor ScheduleTask failed %d", ret);
         }
+        timeChanged_ = true;
     }
     return E_OK;
 }
@@ -191,5 +192,15 @@ bool TimeTickMonitor::EmptyListener() const
 {
     std::lock_guard<std::mutex> lock(timeTickMonitorLock_);
     return timeChangedNotifier_->EmptyListener(TIME_CHANGE_EVENT);
+}
+
+bool TimeTickMonitor::IsTimeChanged() const
+{
+    return timeChanged_;
+}
+
+void TimeTickMonitor::SetTimeChanged(bool timeChange)
+{
+    timeChanged_ = timeChange;
 }
 } // namespace DistributedDB

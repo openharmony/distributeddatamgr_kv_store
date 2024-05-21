@@ -30,7 +30,6 @@
 #include "relational_store_client.h"
 #include "runtime_context.h"
 #include "sqlite_utils.h"
-#include "concurrent_adapter.h"
 
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
@@ -750,7 +749,7 @@ void DataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
         return;
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
-    auto columnNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[1])); // 1 is param index of column
+    auto columnNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[1])); // 1 is param index
     if (columnNameChar == nullptr) {
         return;
     }
@@ -764,15 +763,15 @@ void DataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
         return;
     }
     if (!isRowid && type == "TEXT") {
-        auto dataChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[2])); // 2 is param index of changed data
+        auto dataChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[2])); // 2 is param index
         if (dataChar == nullptr) {
             return;
         }
         data = static_cast<std::string>(dataChar);
     } else {
-        data = static_cast<int64_t>(sqlite3_value_int64(argv[2])); // 2 is param index of data
+        data = static_cast<int64_t>(sqlite3_value_int64(argv[2])); // 2 is param index
     }
-    ChangeType option = static_cast<ChangeType>(sqlite3_value_int64(argv[3])); // 3 is param index of option type
+    ChangeType option = static_cast<ChangeType>(sqlite3_value_int64(argv[3])); // 3 is param index
     SaveChangedData(hashFileName, tableName, columnName, data, option);
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1)); // 1 is result ok
 }
@@ -910,7 +909,7 @@ void ClientObserverCallback(const std::string &hashFileName)
     }
 }
 
-void TriggerObserver(std::vector<std::shared_ptr<StoreObserver>> storeObservers, const std::string &hashFileName)
+void TriggerObserver(std::vector<std::shared_ptr<StoreObserver>> &storeObservers, const std::string &hashFileName)
 {
     std::lock_guard<std::mutex> storeChangedDataLock(g_storeChangedDataMutex);
     for (const auto &storeObserver : storeObservers) {
@@ -1278,8 +1277,17 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         LOGE("delete logic deletedData failed. %d", errCode);
         return errCode;
     }
-    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01 WHERE flag&0x08=0x08" +
-        (cursor == 0 ? ";" : " AND cursor <= '" + std::to_string(cursor) + "';");
+    std::string logTableVersion;
+    errCode = SQLiteUtils::GetLogTableVersion(db, logTableVersion);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("get log table version failed. %d", errCode);
+        return errCode;
+    }
+    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01";
+    if (logTableVersion >= DBConstant::LOG_TABLE_VERSION_5_3) {
+        sql += ", sharing_resource = ''";
+    }
+    sql += " WHERE flag&0x08=0x08" + (cursor == 0 ? ";" : " AND cursor <= '" + std::to_string(cursor) + "';");
     errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("update logic deletedData failed. %d", errCode);
@@ -1374,7 +1382,10 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
         return false;
     }
 
-    bool isExists = ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0));
+    bool isExists = false;
+    if ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0)) {
+        isExists = true;
+    }
     (void)sqlite3_finalize(stmt);
     return isExists;
 }
@@ -1693,10 +1704,6 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
     int errCode = GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::DBStatus::OK) {
         LOGE("[UnregisterAllStoreObserver] Get db filename hash string failed.");
-        return DistributedDB::DB_ERROR;
-    }
-
-    if (errCode != DistributedDB::DBStatus::OK) {
         return DistributedDB::DB_ERROR;
     }
 

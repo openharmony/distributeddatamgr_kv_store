@@ -46,6 +46,8 @@ public:
 
     int CallTagStatusByStrategy(bool isExist, const DataInfoWithLog &localInfo, const LogInfo &cloudInfo,
         OpType &strategyOpResult);
+
+    void PauseCurrentTask();
 private:
     std::function<int (void)> downloadFunc_;
     std::function<int (void)> downloadInNeedFunc_;

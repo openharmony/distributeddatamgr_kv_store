@@ -270,7 +270,7 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);
     }
     if (!outData.empty()) {
-        RecordClientId(context);
+        SingleVerDataSyncUtils::RecordClientId(*context, *storage_, metadata_);
     }
     return errCode;
 }
@@ -406,7 +406,7 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     if (inData.empty()) {
         return E_OK;
     }
-    RecordClientId(context);
+    SingleVerDataSyncUtils::RecordClientId(*context, *storage_, metadata_);
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SAVE_DATA);
@@ -417,7 +417,7 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     std::vector<SendDataItem> copyData = inData;
     int errCode = storage_->InterceptData(copyData, GetDeviceId(), localDeviceName, false);
     if (errCode != E_OK) {
-        LOGE("[DataSync][SaveData] intercept data failed,errCode=%d", errCode);
+        LOGE("[DataSync][SaveData] intercept data failed, errCode=%d", errCode);
         return errCode;
     }
     // query only support prefix key and don't have query in packet in 104 version
@@ -426,7 +426,7 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SAVE_DATA);
     }
     if (errCode != E_OK) {
-        LOGE("[DataSync][SaveData] save sync data failed,errCode=%d", errCode);
+        LOGE("[DataSync][SaveData] save sync data failed, errCode=%d", errCode);
     }
     return errCode;
 }
@@ -660,7 +660,7 @@ void SingleVerDataSync::UpdateSendInfo(SyncTimeRange dataTimeRange, SingleVerSyn
 void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     SyncEntry &syncData, int sendCode, int mode)
 {
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark localMark = 0;
@@ -809,7 +809,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     WaterMark endMark = context->GetEndMark();
     SyncTimeRange dataTime = {localMark, deleteMark, localMark, deleteMark};
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     packet->SetBasicInfo(E_OK, version, context->GetMode());
     packet->SetExtraConditions(RuntimeContext::GetInstance()->GetPermissionCheckParam(storage_->GetDbProperties()));
     packet->SetWaterMark(localMark, peerMark, deleteMark);
@@ -956,7 +956,7 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
         return -E_WAIT_NEXT_MESSAGE;
     }
     // only deal with pull response packet errCode
-    if (sendCode != E_OK && sendCode != SEND_FINISHED &&
+    if (sendCode != E_OK && sendCode != SEND_FINISHED && sendCode != -E_UNFINISHED &&
         message->GetSessionId() == context->GetRequestSessionId()) {
         LOGE("[DataSync][DataRequestRecvPre] remote pullResponse getData sendCode=%d", sendCode);
         return sendCode;
@@ -975,7 +975,7 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
         (void)SendDataAck(context, message, errCode, 0);
         return errCode;
     }
-    errCode = SingleVerDataSyncUtils::SchemaVersionMatchCheck(deviceId_, *packet, *context, metadata_);
+    errCode = SingleVerDataSyncUtils::SchemaVersionMatchCheck(*context, *packet, metadata_);
     if (errCode != E_OK) {
         (void)SendDataAck(context, message, errCode, 0);
     }
@@ -1327,6 +1327,11 @@ int SingleVerDataSync::RunPermissionCheck(SingleVerSyncTaskContext *context, con
     const std::vector<SendDataItem> &data = packet->GetData();
     WaterMark maxSendDataTime = SingleVerDataSyncUtils::GetMaxSendDataTime(data);
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
+    auto securityOption = packet->GetSecurityOption();
+    if (context->GetRemoteSeccurityOption().securityLabel == SecurityLabel::NOT_SET &&
+        securityOption.securityLabel != SecurityLabel::NOT_SET) {
+        context->SetRemoteSeccurityOption(packet->GetSecurityOption());
+    }
     if (version > SOFTWARE_VERSION_RELEASE_2_0 && (mode != SyncModeType::PULL) &&
         !context->GetReceivcPermitCheck()) {
         bool permitReceive = SingleVerDataSyncUtils::CheckPermitReceiveData(context, communicateHandle_, storage_);
@@ -1400,6 +1405,10 @@ int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReS
     }
     FillRequestReSendPacket(context, packet, reSendInfo, syncData, errCode);
     errCode = SendReSendPacket(packet, context, reSendInfo.sessionId, reSendInfo.sequenceId);
+    if (curType == SyncType::QUERY_SYNC_TYPE && (context->GetQuery().HasLimit() || context->GetQuery().HasOrderBy())) {
+        LOGI("[DataSync][ReSend] query contain limit/offset/orderby, no need to update watermark.");
+        return errCode;
+    }
     if (errCode == E_OK && SyncOperation::TransferSyncMode(context->GetMode()) != SyncModeType::PULL) {
         // resend.end may not update in localwatermark while E_TIMEOUT occurred in send message last time.
         SyncTimeRange dataTime {reSendInfo.start, reSendInfo.deleteDataStart, reSendInfo.end, reSendInfo.deleteDataEnd};
@@ -1692,7 +1701,7 @@ void SingleVerDataSync::UpdateMtuSize()
 void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
     DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode)
 {
-    SetDataRequestCommonInfo(*context, *packet);
+    SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     WaterMark peerMark = 0;
     GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(),
@@ -2121,37 +2130,5 @@ void SingleVerDataSync::RemoveSubscribeIfNeed(const std::string &queryId,
     if (!subscribeManager->IsQueryExistSubscribe(queryId)) {
         storage_->RemoveSubscribe(queryId);
     }
-}
-
-void SingleVerDataSync::RecordClientId(const SingleVerSyncTaskContext *context)
-{
-    StoreInfo info = {
-        storage_->GetDbProperties().GetStringProp(DBProperties::USER_ID, ""),
-        storage_->GetDbProperties().GetStringProp(DBProperties::APP_ID, ""),
-        storage_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
-    };
-    std::string clientId;
-    int errCode = E_OK;
-    if (RuntimeContext::GetInstance()->TranslateDeviceId(context->GetDeviceId(), info, clientId) == E_OK) {
-        errCode = metadata_->SaveClientId(context->GetDeviceId(), clientId);
-        if (errCode != E_OK) {
-            LOGW("[DataSync] record clientId failed %d", errCode);
-        }
-    }
-}
-
-void SingleVerDataSync::SetDataRequestCommonInfo(const SingleVerSyncTaskContext &context, DataRequestPacket &packet)
-{
-    packet.SetSenderTimeOffset(metadata_->GetLocalTimeOffset());
-    packet.SetSystemTimeOffset(metadata_->GetSystemTimeOffset(deviceId_));
-    if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
-        return;
-    }
-    auto [err, localSchemaVer] = metadata_->GetLocalSchemaVersion();
-    if (err != E_OK) {
-        LOGW("[DataSync] get local schema version failed:%d", err);
-        return;
-    }
-    packet.SetSchemaVersion(localSchemaVer);
 }
 } // namespace DistributedDB

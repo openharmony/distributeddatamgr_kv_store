@@ -78,7 +78,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("Get fill asset statement failed, %d", errCode);
+        LOGE("Get fill asset statement failed, %d.", errCode);
         return errCode;
     }
     for (size_t i = 0; i < fields.size(); ++i) {
@@ -98,7 +98,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     std::string cloudGid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     if (errCode != E_OK) {
-        LOGE("Miss gid when fill Asset");
+        LOGE("Miss gid when fill Asset.");
         return errCode;
     }
     std::vector<Field> assetsField;
@@ -147,7 +147,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
     }
     errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
-        LOGE("Fail to set log trigger off, %d", errCode);
+        LOGE("Fail to set log trigger off, %d.", errCode);
         return errCode;
     }
     sqlite3_stmt *stmt = nullptr;
@@ -168,7 +168,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
         }
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
         if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            LOGE("Fill upload asset failed:%d", errCode);
+            LOGE("Fill upload asset failed:%d.", errCode);
             break;
         }
         errCode = E_OK;
@@ -182,7 +182,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
     SQLiteUtils::ResetStatement(stmt, true, ret);
     int endCode = SetLogTriggerStatus(true);
     if (endCode != E_OK) {
-        LOGE("Fail to set log trigger off, %d", endCode);
+        LOGE("Fail to set log trigger off, %d.", endCode);
         return endCode;
     }
     return errCode != E_OK ? errCode : ret;
@@ -211,7 +211,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const V
         LOGW("get version from vBucket failed.");
     }
     if (hashKey.empty()) {
-        LOGE("hash key is empty when update version");
+        LOGE("hash key is empty when update version.");
         return -E_CLOUD_ERROR;
     }
     errCode = SQLiteUtils::BindTextToStatement(stmt, 1, version);
@@ -227,7 +227,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const V
         errCode = E_OK;
         SQLiteUtils::ResetStatement(stmt, false, errCode);
     } else {
-        LOGE("step version stmt failed:%d", errCode);
+        LOGE("step version stmt failed: %d.", errCode);
     }
     return errCode;
 }
@@ -263,6 +263,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
 
     errCode = GetAndBindFillUploadAssetStatement(tableSchema.name, dbAssets, statement);
     if (errCode != E_OK) {
+        LOGE("get and bind asset failed %d.", errCode);
         return errCode;
     }
     int64_t rowid = data.rowid[index];
@@ -294,13 +295,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         if (isUpgrade) {
             errCode = CleanExtendAndCursorForDeleteData(dbHandle_, table.GetTableName());
             if (errCode != E_OK) {
-                LOGE("clean tracker log info for deleted data failed. %d", errCode);
+                LOGE("clean tracker log info for deleted data failed %d.", errCode);
                 return errCode;
             }
         }
         errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
         if (errCode != E_OK) {
-            LOGE("general tracker log info for existed data failed. %d", errCode);
+            LOGE("general tracker log info for existed data failed %d.", errCode);
             return errCode;
         }
     }
@@ -333,7 +334,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetOrInitTrackerSchemaFromMeta(Rel
     DBCommon::VectorToString(schemaVal, schemaStr);
     errCode = schema.ParseFromTrackerSchemaString(schemaStr);
     if (errCode != E_OK) {
-        LOGE("Parse from tracker schema string err");
+        LOGE("Parse from tracker schema string err.");
     }
     return errCode;
 }
@@ -343,12 +344,12 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, condition.sql, statement);
     if (errCode != E_OK) {
-        LOGE("Execute sql failed when prepare stmt");
+        LOGE("Execute sql failed when prepare stmt.");
         return errCode;
     }
     size_t bindCount = static_cast<size_t>(sqlite3_bind_parameter_count(statement));
     if (bindCount > condition.bindArgs.size() || bindCount < condition.bindArgs.size()) {
-        LOGE("sql bind args mismatch");
+        LOGE("Sql bind args mismatch.");
         SQLiteUtils::ResetStatement(statement, true, errCode);
         return -E_INVALID_ARGS;
     }
@@ -386,7 +387,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
         bool isExists = false;
         int errCode = SQLiteUtils::CheckTableExists(dbHandle_, logTableName, isExists);
         if (errCode != E_OK) {
-            LOGE("[GetClearWaterMarkTables] check table exists failed, errCode = %d", errCode);
+            LOGE("[GetClearWaterMarkTables] check table exists failed, errCode = %d.", errCode);
             return errCode;
         }
         if (!isExists) { // table maybe dropped after set reference
@@ -397,7 +398,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
         bool isEmpty = true;
         errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, logTableName, isEmpty);
         if (errCode != E_OK) {
-            LOGE("[GetClearWaterMarkTables] check table empty failed, errCode = %d", errCode);
+            LOGE("[GetClearWaterMarkTables] check table empty failed, errCode = %d.", errCode);
             clearWaterMarkTables.clear();
             return errCode;
         }
@@ -405,7 +406,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
             clearWaterMarkTables.insert(table);
         }
     }
-    LOGI("[GetClearWaterMarkTables] clearWaterMarkTables size = %zu", clearWaterMarkTables.size());
+    LOGI("[GetClearWaterMarkTables] clearWaterMarkTables size = %zu.", clearWaterMarkTables.size());
     return E_OK;
 }
 
@@ -455,23 +456,23 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const Tracke
     for (const auto &sql: dropSql) {
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] execute drop sql failed %d", errCode);
+            LOGE("[RDBExecutor] execute drop sql failed %d.", errCode);
             return errCode;
         }
     }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql());
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] create temp insert trigger failed %d", errCode);
+        LOGE("[RDBExecutor] create temp insert trigger failed %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql());
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] create temp update trigger failed %d", errCode);
+        LOGE("[RDBExecutor] create temp update trigger failed %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql());
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] create temp delete trigger failed %d", errCode);
+        LOGE("[RDBExecutor] create temp delete trigger failed %d.", errCode);
     }
     return errCode;
 }
@@ -494,7 +495,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
     static const std::string sql = "SELECT name FROM sqlite_temp_master WHERE type = 'trigger';";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("get clear all temp trigger stmt failed. %d", errCode);
+        LOGE("get clear all temp trigger stmt failed %d.", errCode);
         return errCode;
     }
     int ret = E_OK;
@@ -508,7 +509,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
         std::string dropSql = "DROP TRIGGER IF EXISTS '" + str + "';";
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, dropSql);
         if (errCode != E_OK) {
-            LOGE("drop temp trigger failed. %d", errCode);
+            LOGE("drop temp trigger failed %d.", errCode);
             SQLiteUtils::ResetStatement(stmt, true, ret);
             return errCode;
         }
@@ -524,13 +525,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
-        LOGE("get clean tracker data stmt failed. %d", errCode);
+        LOGE("get clean tracker data stmt failed %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, cursor);
     int ret = E_OK;
     if (errCode != E_OK) {
-        LOGE("bind clean tracker data stmt failed. %d", errCode);
+        LOGE("bind clean tracker data stmt failed %d.", errCode);
         SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
@@ -538,7 +539,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("clean tracker step failed:%d", errCode);
+        LOGE("clean tracker step failed: %d.", errCode);
     }
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode == E_OK ? ret : errCode;
@@ -579,7 +580,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchem
     createTableSql += ");";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, createTableSql);
     if (errCode != E_OK) {
-        LOGE("Create shared table failed, %d", errCode);
+        LOGE("Create shared table failed, %d.", errCode);
     }
     return errCode;
 }
@@ -590,7 +591,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteTable(const std::vector<std:
         std::string deleteTableSql = "DROP TABLE IF EXISTS " + tableName + ";";
         int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, deleteTableSql);
         if (errCode != E_OK) {
-            LOGE("Delete table failed, %d", errCode);
+            LOGE("Delete table failed, %d.", errCode);
             return errCode;
         }
     }
@@ -624,7 +625,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateSharedTable(
         }
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, addColumnSql);
         if (errCode != E_OK) {
-            LOGE("Shared table add column failed, %d", errCode);
+            LOGE("Shared table add column failed, %d.", errCode);
             return errCode;
         }
     }
@@ -637,7 +638,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AlterTableName(const std::map<std:
         std::string alterTableSql = "ALTER TABLE " + tableName.first + " RENAME TO " + tableName.second + ";";
         int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, alterTableSql);
         if (errCode != E_OK) {
-            LOGE("Alter table name failed, %d", errCode);
+            LOGE("Alter table name failed, %d.", errCode);
             return errCode;
         }
     }
@@ -650,7 +651,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AppendUpdateLogRecordWhereSqlCondi
     std::string gidStr;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gidStr);
     if (errCode != E_OK) {
-        LOGE("Get gid from cloud data fail when construct update log sql, errCode = %d", errCode);
+        LOGE("Get gid from cloud data fail when construct update log sql, errCode = %d.", errCode);
         return errCode;
     }
 
@@ -677,7 +678,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
         sqlite3_stmt *statement = nullptr;
         errCode = SQLiteUtils::GetStatement(dbHandle_, delDataSql, statement);
         if (errCode != E_OK) {
-            LOGE("get clean shared data stmt failed. %d", errCode);
+            LOGE("get clean shared data stmt failed %d.", errCode);
             return errCode;
         }
         errCode = SQLiteUtils::StepWithRetry(statement);
@@ -685,14 +686,14 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
         } else {
-            LOGE("clean shared data failed:%d", errCode);
+            LOGE("clean shared data failed: %d.", errCode);
             break;
         }
         statement = nullptr;
         std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
         errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
         if (errCode != E_OK) {
-            LOGE("get clean shared log stmt failed. %d", errCode);
+            LOGE("get clean shared log stmt failed %d.", errCode);
             return errCode;
         }
         errCode = SQLiteUtils::StepWithRetry(statement);
@@ -700,7 +701,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
         } else {
-            LOGE("clean shared log failed:%d", errCode);
+            LOGE("clean shared log failed: %d.", errCode);
             break;
         }
     }
@@ -715,7 +716,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGid(const std::string 
     for (const auto &[targetTable, targetReference] : tableReference) {
         errCode = GetReferenceGidInner(tableName, targetTable, syncBatch, targetReference, referenceGid);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] get reference gid inner failed %d", errCode);
+            LOGE("[RDBExecutor] get reference gid inner failed %d.", errCode);
             return errCode;
         }
     }
@@ -728,7 +729,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidInner(const std::st
 {
     auto [sourceFields, targetFields] = SplitReferenceByField(targetTableReference);
     if (sourceFields.empty()) {
-        LOGD("[RDBExecutor] source field is empty");
+        LOGD("[RDBExecutor] source field is empty.");
         return E_OK;
     }
     if (sourceFields.size() != targetFields.size()) {
@@ -796,7 +797,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidByStmt(sqlite3_stmt
 {
     int errCode = E_OK;
     if (syncBatch.rowid.size() != syncBatch.timestamp.size()) {
-        LOGE("[RDBExecutor] rowid size[%zu] not equal to timestamp size[%zu]", syncBatch.rowid.size(),
+        LOGE("[RDBExecutor] rowid size [%zu] not equal to timestamp size [%zu].", syncBatch.rowid.size(),
             syncBatch.timestamp.size());
         return -E_INVALID_ARGS;
     }
@@ -804,12 +805,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidByStmt(sqlite3_stmt
     for (size_t i = 0u; i < syncBatch.rowid.size(); i++) {
         errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, syncBatch.rowid[i]); // 1 is rowid index
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] bind rowid to stmt failed. %d", errCode);
+            LOGE("[RDBExecutor] bind rowid to stmt failed %d.", errCode);
             break;
         }
         errCode = SQLiteUtils::BindInt64ToStatement(statement, 2, syncBatch.timestamp[i]); // 2 is timestamp index
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] bind timestamp to stmt failed. %d", errCode);
+            LOGE("[RDBExecutor] bind timestamp to stmt failed %d.", errCode);
             break;
         }
         while ((errCode = SQLiteUtils::StepNext(statement, isMemDb_)) == E_OK) {
@@ -827,17 +828,17 @@ int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidByStmt(sqlite3_stmt
             errCode = E_OK;
         }
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] step stmt failed. %d", errCode);
+            LOGE("[RDBExecutor] step stmt failed %d.", errCode);
             break;
         }
         SQLiteUtils::ResetStatement(statement, false, errCode);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] reset stmt failed. %d", errCode);
+            LOGE("[RDBExecutor] reset stmt failed %d.", errCode);
             break;
         }
     }
     if (matchCount != 0) {
-        LOGD("[RDBExecutor] get reference gid match %d", matchCount);
+        LOGD("[RDBExecutor] get reference gid match %d.", matchCount);
     }
     return errCode;
 }
@@ -867,7 +868,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
                 continue;
             }
             errCode = -E_INVALID_ARGS;
-            LOGE("[RDBExecutor] Extend not contain gid");
+            LOGE("[RDBExecutor] Extend not contain gid.");
             break;
         }
         bool containError = DBCommon::IsRecordError(cloudDataResult.insData.extend[i]);
@@ -878,21 +879,21 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
         if (CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD,
             cloudDataResult.insData.extend[i], val) != E_OK) {
             errCode = -E_INVALID_DATA;
-            LOGE("[RDBExecutor] Can't get string gid from extend");
+            LOGE("[RDBExecutor] Can't get string gid from extend.");
             break;
         }
         if (val.empty()) {
             errCode = -E_CLOUD_ERROR;
-            LOGE("[RDBExecutor] Get empty gid from extend");
+            LOGE("[RDBExecutor] Get empty gid from extend.");
             break;
         }
         errCode = BindStmtWithCloudGidInner(val, cloudDataResult.insData.rowid[i], stmt, fillGidCount);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Bind stmt error %d", errCode);
+            LOGE("[RDBExecutor] Bind stmt error %d.", errCode);
             break;
         }
     }
-    LOGD("[RDBExecutor] Fill gid count %d", fillGidCount);
+    LOGD("[RDBExecutor] Fill gid count %d.", fillGidCount);
     return errCode;
 }
 
@@ -903,7 +904,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(
     std::string sql = "UPDATE " + logTable + " SET extend_field = NULL, cursor = NULL where flag&0x01=0x01;";
     int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     if (errCode != E_OK) {
-        LOGE("update extend field and cursor failed. %d", errCode);
+        LOGE("update extend field and cursor failed %d.", errCode);
     }
     return errCode;
 }
@@ -914,17 +915,17 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] Prepare the sql statement error:%d", errCode);
+        LOGE("[RDBExecutor] Prepare the sql statement error: %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableName);
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] Bind table name failed:%d", errCode);
+        LOGE("[RDBExecutor] Bind table name failed: %d.", errCode);
         SQLiteUtils::ResetStatement(statement, true, errCode);
         return errCode;
     }
     if (SQLiteUtils::StepWithRetry(statement) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        LOGE("[RDBExecutor] local exists user table which shared table name is same as");
+        LOGE("[RDBExecutor] local exists user table which shared table name is same as.");
         SQLiteUtils::ResetStatement(statement, true, errCode);
         return -E_INVALID_ARGS;
     }
@@ -972,7 +973,7 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetLocalDataKey(size_t index,
     const DownloadData &downloadData)
 {
     if (index >= downloadData.existDataKey.size()) {
-        LOGW("[RDBExecutor] index out of range when get local data key"); // should not happen
+        LOGW("[RDBExecutor] index out of range when get local data key."); // should not happen
         return -1; // -1 means not exist
     }
     return downloadData.existDataKey[index];
@@ -995,7 +996,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGidInner(const st
         fillGidCount++;
         SQLiteUtils::ResetStatement(stmt, false, errCode);
     } else {
-        LOGE("[RDBExecutor] Update cloud log failed:%d", errCode);
+        LOGE("[RDBExecutor] Update cloud log failed: %d.", errCode);
     }
     return errCode;
 }
@@ -1020,7 +1021,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanAssetId(const std::string &
     std::vector<FieldInfo> fieldInfos = localSchema.GetTable(tableName).GetFieldInfos();
     errCode = CleanAssetId(tableName, fieldInfos, dataKeys);
     if (errCode != E_OK) {
-        LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
+        LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d.", errCode);
     }
     return errCode;
 }
@@ -1112,13 +1113,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsAndUpdateAssetsId(const s
             "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
         if (errCode != E_OK) {
-            LOGE("Get select assets statement failed, %d", errCode);
+            LOGE("Get select assets statement failed, %d.", errCode);
             goto END;
         }
         Assets assets;
         errCode = GetAssetsByRowId(selectStmt, assets);
         if (errCode != E_OK) {
-            LOGE("Get assets by rowId failed, %d", errCode);
+            LOGE("Get assets by rowId failed, %d.", errCode);
             goto END;
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
@@ -1132,7 +1133,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsAndUpdateAssetsId(const s
         std::vector<uint8_t> assetsValue;
         errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsValue);
         if (errCode != E_OK) {
-            LOGE("[CleanAssetsIdOnUserTable] failed to transfer assets to blob, %d", errCode);
+            LOGE("[CleanAssetsIdOnUserTable] failed to transfer assets to blob, %d.", errCode);
             return errCode;
         }
         errCode = CleanAssetsIdOnUserTable(tableName, fieldName, rowId, assetsValue);
@@ -1148,7 +1149,7 @@ END:
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanAssetsIdOnUserTable(const std::string &tableName,
-    const std::string &fieldName, const int64_t rowId, const std::vector<uint8_t> assetsValue)
+    const std::string &fieldName, const int64_t rowId, const std::vector<uint8_t> &assetsValue)
 {
     std::string cleanAssetIdSql = "UPDATE " + tableName  + " SET " + fieldName + " = ? WHERE " +
         std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
@@ -1220,7 +1221,7 @@ std::pair<int, uint32_t> SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGi
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = -E_NOT_FOUND;
     } else {
-        LOGE("step get asset stmt failed. %d", errCode);
+        LOGE("step get asset stmt failed %d.", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return res;
@@ -1231,21 +1232,21 @@ int SQLiteSingleVerRelationalStorageExecutor::InitGetAssetStmt(const std::string
 {
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("Get asset statement failed, %d", errCode);
+        LOGE("Get asset statement failed, %d.", errCode);
         return errCode;
     }
     int index = 1;
     if (!gid.empty()) {
         errCode = SQLiteUtils::BindTextToStatement(stmt, index++, gid);
         if (errCode != E_OK) {
-            LOGE("bind gid failed. %d", errCode);
+            LOGE("bind gid failed %d.", errCode);
             SQLiteUtils::ResetStatement(stmt, true, errCode);
             return errCode;
         }
     }
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, hashKey);
     if (errCode != E_OK) {
-        LOGE("bind hash failed. %d", errCode);
+        LOGE("bind hash failed %d.", errCode);
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
     return errCode;
@@ -1310,18 +1311,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByRowId(sqlite3_stmt *&se
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
         if (errCode != E_OK) {
-            LOGE("Get column blob value failed. %d", errCode);
+            LOGE("Get column blob value failed %d.", errCode);
             return errCode;
         }
         errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
         if (errCode != E_OK) {
-            LOGE("Transfer blob to assets failed. %d", errCode);
+            LOGE("Transfer blob to assets failed %d", errCode);
         }
         return errCode;
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         return E_OK;
     } else {
-        LOGE("Step select statement failed. %d", errCode);
+        LOGE("Step select statement failed %d.", errCode);
         return errCode;
     }
 }
@@ -1336,7 +1337,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteFillDownloadAssetStatement(
 {
     int errCode = SQLiteUtils::BindTextToStatement(stmt, beginIndex, cloudGid);
     if (errCode != E_OK) {
-        LOGE("Bind cloud gid to statement failed. %d", errCode);
+        LOGE("Bind cloud gid to statement failed %d.", errCode);
         int ret = E_OK;
         SQLiteUtils::ResetStatement(stmt, true, ret);
         return errCode;
@@ -1345,7 +1346,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteFillDownloadAssetStatement(
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("Fill cloud asset failed:%d", errCode);
+        LOGE("Fill cloud asset failed: %d.", errCode);
     }
     int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
@@ -1366,7 +1367,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadChangedAssets(
     }
     int ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
     if (ret != OK) {
-        LOGE("remove local assets failed. %d", ret);
+        LOGE("remove local assets failed %d.", ret);
         return -E_REMOVE_ASSETS_FAILED;
     }
     return E_OK;
@@ -1453,12 +1454,12 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetToBlobStatement(const Ass
     std::vector<uint8_t> blobValue;
     int errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, blobValue);
     if (errCode != E_OK) {
-        LOGE("Transfer asset to blob failed, %d", errCode);
+        LOGE("Transfer asset to blob failed, %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, blobValue, false);
     if (errCode != E_OK) {
-        LOGE("Bind asset blob to statement failed, %d", errCode);
+        LOGE("Bind asset blob to statement failed, %d.", errCode);
     }
     return errCode;
 }
@@ -1469,12 +1470,12 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetsToBlobStatement(const As
     std::vector<uint8_t> blobValue;
     int errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, blobValue);
     if (errCode != E_OK) {
-        LOGE("Transfer asset to blob failed, %d", errCode);
+        LOGE("Transfer asset to blob failed, %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, blobValue, false);
     if (errCode != E_OK) {
-        LOGE("Bind asset blob to statement failed, %d", errCode);
+        LOGE("Bind asset blob to statement failed, %d.", errCode);
     }
     return errCode;
 }
@@ -1486,18 +1487,17 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTableInner(sqlite3_stmt 
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
+            LOGE("[RDBExecutor][GetAssetOnTableInner] Get column blob value failed, %d.", errCode);
             return errCode;
         }
         errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Transfer blob to asset failed, %d", errCode);
+            LOGE("[RDBExecutor] Transfer blob to asset failed, %d.", errCode);
         }
-        return errCode;
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        return E_OK;
+        errCode = E_OK;
     } else {
-        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d", errCode);
+        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d.", errCode);
     }
     return errCode;
 }
@@ -1510,7 +1510,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
         "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(dataKey) + ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetSql, selectStmt);
     if (errCode != E_OK) {
-        LOGE("Get select asset statement failed, %d", errCode);
+        LOGE("Get select asset statement failed, %d.", errCode);
         return errCode;
     }
     errCode = GetAssetOnTableInner(selectStmt, asset);
@@ -1526,18 +1526,17 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTableInner(sqlite3_stmt
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
+            LOGE("[RDBExecutor][GetAssetsOnTableInner] Get column blob value failed, %d.", errCode);
             return errCode;
         }
         errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Transfer blob to assets failed, %d", errCode);
+            LOGE("[RDBExecutor] Transfer blob to assets failed, %d.", errCode);
         }
-        return errCode;
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        return E_OK;
+        errCode = E_OK;
     } else {
-        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d", errCode);
+        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
     }
     return errCode;
 }
@@ -1550,7 +1549,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string
         "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(dataKey) + ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
     if (errCode != E_OK) {
-        LOGE("Get select assets statement failed, %d", errCode);
+        LOGE("Get select assets statement failed, %d.", errCode);
         return errCode;
     }
     errCode = GetAssetsOnTableInner(selectStmt, assets);
@@ -1571,7 +1570,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetFiledToBlobStatement(cons
             }
             int errCode = BindAssetToBlobStatement(assetOfOneRecord[assetIndex], assetIndex + assetsIndex + 1, stmt);
             if (errCode != E_OK) {
-                LOGE("Bind asset to blob statement failed, %d", errCode);
+                LOGE("Bind asset to blob statement failed, %d.", errCode);
                 return errCode;
             }
             assetIndex++;
@@ -1581,7 +1580,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetFiledToBlobStatement(cons
             }
             int errCode = BindAssetsToBlobStatement(assetsOfOneRecord[assetsIndex], assetIndex + assetsIndex + 1, stmt);
             if (errCode != E_OK) {
-                LOGE("Bind assets to blob statement failed, %d", errCode);
+                LOGE("Bind assets to blob statement failed, %d.", errCode);
                 return errCode;
             }
             assetsIndex++;
@@ -1598,12 +1597,12 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetsIdForOneRecord(const T
     sqlite3_stmt *stmt = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("Get update asset statement failed, %d", errCode);
+        LOGE("Get update asset statement failed, %d.", errCode);
         return errCode;
     }
     errCode = BindAssetFiledToBlobStatement(tableSchema, assetOfOneRecord, assetsOfOneRecord, stmt);
     if (errCode != E_OK) {
-        LOGE("Asset field Bind asset to blob statement failed, %d", errCode);
+        LOGE("Asset field Bind asset to blob statement failed, %d.", errCode);
         SQLiteUtils::ResetStatement(stmt, true, ret);
         return errCode != E_OK ? errCode : ret;
     }
@@ -1791,7 +1790,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("[RDBExecutor] Get stmt failed when get wait compensated sync pk! errCode = %d", errCode);
+        LOGE("[RDBExecutor] Get stmt failed when get wait compensated sync pk! errCode = %d..", errCode);
         return errCode;
     }
     do {
@@ -1800,7 +1799,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
             VBucket pkData;
             errCode = GetRecordFromStmt(stmt, pkFields, 0, pkData);
             if (errCode != E_OK) {
-                LOGE("[RDBExecutor] Get record failed when get wait compensated sync pk! errCode = %d", errCode);
+                LOGE("[RDBExecutor] Get record failed when get wait compensated sync pk! errCode = %d.", errCode);
                 break;
             }
             data.push_back(pkData);
@@ -1808,7 +1807,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
             errCode = E_OK;
             break;
         } else {
-            LOGE("[RDBExecutor] Step failed when get wait compensated sync pk! errCode = %d", errCode);
+            LOGE("[RDBExecutor] Step failed when get wait compensated sync pk! errCode = %d.", errCode);
             break;
         }
     } while (errCode == E_OK);
@@ -1817,7 +1816,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
     return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields,
+int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> &fields,
     int startIndex, VBucket &record)
 {
     int errCode = E_OK;
@@ -1904,22 +1903,6 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
     return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::QueryCount(const std::string &tableName, int64_t &count)
-{
-    return SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, count);
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::string &tableName)
-{
-    int64_t dataCount = 0;
-    int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
-    if (errCode != E_OK) {
-        LOGE("Query count failed.", errCode);
-        return errCode;
-    }
-    return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
     const CloudSyncBatch &batchData)
 {
@@ -1948,6 +1931,22 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const st
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return ret;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::QueryCount(const std::string &tableName, int64_t &count)
+{
+    return SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::string &tableName)
+{
+    int64_t dataCount = 0;
+    int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
+    if (errCode != E_OK) {
+        LOGE("Query count failed.", errCode);
+        return errCode;
+    }
+    return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
 }
 } // namespace DistributedDB
 #endif

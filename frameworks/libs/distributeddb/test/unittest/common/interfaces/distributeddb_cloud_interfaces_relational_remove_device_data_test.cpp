@@ -693,6 +693,18 @@ static void InitGetCloudSyncTaskCountTest001(sqlite3 *&db)
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     InsertCloudTableRecord(0, cloudCount, paddingSize, false);
 }
+
+static CloudSyncOption GetSyncOption()
+{
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    std::vector<std::string> pk = {"test"};
+    option.query = Query::Select().From(g_tableName1).In("name", pk);
+    option.priorityTask = true;
+    option.waitTime = g_syncWaitTime;
+    return option;
+}
+
 /*
  * @tc.name: GetCloudSyncTaskCountTest001
  * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData concurrently with Sync
@@ -741,7 +753,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyn
         }
         cv2.notify_one();
     };
-    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback2, g_syncWaitTime), DBStatus::OK);
+    ASSERT_EQ(g_delegate->Sync(GetSyncOption(), callback2), DBStatus::OK);
     /**
      * @tc.steps: step3. Call Get Cloud Sync Task Count
      * @tc.expected: OK.

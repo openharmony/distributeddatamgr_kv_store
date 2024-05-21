@@ -28,6 +28,7 @@
 #include "types_export.h"
 #include "relational_store_connection.h"
 #include "relationaldb_properties.h"
+#include "semaphore_utils.h"
 #include "store_observer.h"
 
 namespace DistributedDB {
@@ -132,6 +133,9 @@ protected:
     void OnlineCallBackTask();
 
     void GetDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap);
+
+    void GetConnInDoOpenMapInner(std::pair<const std::string, std::map<std::string, AutoLaunchItem>> &items,
+        SemaphoreUtils &sema);
 
     void GetConnInDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap);
 

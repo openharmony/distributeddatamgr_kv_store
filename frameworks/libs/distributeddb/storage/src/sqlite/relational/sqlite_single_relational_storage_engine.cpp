@@ -225,6 +225,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
 
     int errCode = CreateDistributedTable(tableName, isUpgraded, identity, schema, syncType);
     if (errCode != E_OK) {
+        LOGE("CreateDistributedTable failed. %d", errCode);
         return errCode;
     }
     if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
@@ -826,6 +827,7 @@ int SQLiteSingleRelationalStorageEngine::DoAlterSharedTableName(SQLiteSingleVerR
     for (const auto &tableName : alterTableNames) {
         errCode = handle->DeleteTableTrigger(tableName.first);
         if (errCode != E_OK) {
+            LOGE("[RelationalStorageEngine] delete shared table trigger failed. %d", errCode);
             return errCode;
         }
         std::string oldDistributedName = DBCommon::GetLogTableName(tableName.first);

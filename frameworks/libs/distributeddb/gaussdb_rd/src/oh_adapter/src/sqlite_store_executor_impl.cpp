@@ -322,7 +322,7 @@ int SqliteStoreExecutorImpl::CreateCollection(const std::string &name, const std
     if (dbHandle_ == nullptr) {
         return -E_ERROR;
     }
-    std::string collName = DBConstant::COLL_PREFIX + name;
+    std::string collName = RdDBConstant::COLL_PREFIX + name;
     int errCode = E_OK;
     bool isExists = IsCollectionExists(collName, errCode);
     if (errCode != E_OK) {
@@ -354,7 +354,7 @@ int SqliteStoreExecutorImpl::DropCollection(const std::string &name, bool ignore
         return -E_ERROR;
     }
 
-    std::string collName = DBConstant::COLL_PREFIX + name;
+    std::string collName = RdDBConstant::COLL_PREFIX + name;
     if (!ignoreNonExists) {
         int errCode = E_OK;
         bool isExists = IsCollectionExists(collName, errCode);

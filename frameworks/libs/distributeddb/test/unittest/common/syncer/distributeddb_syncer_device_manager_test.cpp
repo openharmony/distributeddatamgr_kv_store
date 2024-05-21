@@ -194,8 +194,7 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, GetDevices001, TestSize.Level0)
      * @tc.expected: step1, GetDevices return deviceB,C
      */
     g_deviceManager->GetOnlineDevices(deviceList);
-    int size = deviceList.size();
-    ASSERT_EQ(size, 2);
+    ASSERT_TRUE(deviceList.size() == 2);
     EXPECT_TRUE(deviceList[0] == g_deviceB->GetDeviceId());
     EXPECT_TRUE(deviceList[1] == g_deviceC->GetDeviceId());
     g_communicatorAggregator->OfflineDevice(g_deviceC->GetDeviceId());

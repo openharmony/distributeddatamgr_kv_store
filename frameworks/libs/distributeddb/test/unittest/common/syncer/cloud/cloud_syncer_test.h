@@ -57,7 +57,7 @@ public:
         currentContext_.currentTaskId = taskId;
         currentContext_.tableName = "TestTable" + std::to_string(taskId);
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" });
+        currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
         closed_ = false;
         cloudTaskInfos_[taskId].callback = [this, taskId](const std::map<std::string, SyncProcess> &process) {
@@ -250,7 +250,7 @@ public:
     void SetCloudWaterMarks(const TableName &tableName, const std::string &mark)
     {
         currentContext_.tableName = tableName;
-        currentContext_.cloudWaterMarks[tableName] = mark;
+        currentContext_.cloudWaterMarks[currentContext_.currentUserIndex][tableName] = mark;
     }
 
     int CallDownloadAssets()
@@ -330,6 +330,12 @@ public:
     bool IsResumeTaskUpload(TaskId taskId)
     {
         return resumeTaskInfos_[taskId].upload;
+    }
+
+    int CallHandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, size_t idx, SyncParam &param,
+        VBucket &localAssetInfo)
+    {
+        return CloudSyncer::HandleTagAssets(hashKey, dataInfo, idx, param, localAssetInfo);
     }
     CloudTaskInfo taskInfo_;
 private:

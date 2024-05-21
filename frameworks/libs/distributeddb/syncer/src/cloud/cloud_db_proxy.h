@@ -93,8 +93,6 @@ protected:
 
         void MoveOutCursorStatus(std::pair<int, std::string> &cursorStatus);
 
-        bool WaitForRes(int64_t timeout);
-
         void SetActionRes(int res);
 
         int GetActionRes();
@@ -157,18 +155,12 @@ protected:
     static DBStatus QueryAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
 
-    void DecAsyncTaskCount();
-
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
     std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs_;
     std::shared_ptr<IAssetLoader> iAssetLoader_;
     std::atomic<int64_t> timeout_;
-
-    std::mutex asyncTaskMutex_;
-    std::condition_variable asyncTaskCv_;
-    int32_t asyncTaskCount_;
 
     mutable std::mutex genVersionMutex_;
     GenerateCloudVersionCallback genVersionCallback_;

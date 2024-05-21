@@ -151,7 +151,7 @@ public:
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);
     int AlterTableName(const std::map<std::string, std::string> &tableNames);
-    int DeleteTableTrigger(const std::string &table) const;
+    int DeleteTableTrigger(const std::string &missTable) const;
 
     int GetReferenceGid(const std::string &tableName, const CloudSyncBatch &syncBatch,
         const std::map<std::string, std::vector<TableReferenceProperty>> &tableReference,
@@ -172,15 +172,15 @@ public:
 
     int CleanResourceForDroppedTable(const std::string &tableName);
 
+    void SetPutDataMode(PutDataMode mode);
+
+    void SetMarkFlagOption(MarkFlagOption option);
+
     int UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged);
 
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
 
     int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
-
-    void SetPutDataMode(PutDataMode mode);
-
-    void SetMarkFlagOption(MarkFlagOption option);
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
@@ -260,7 +260,7 @@ private:
     int GetQueryLogStatement(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &querySql,
         const Key &hashKey, sqlite3_stmt *&selectStmt);
 
-    int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
+    int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, const std::set<std::string> &pkSet,
         std::string &querySql);
 
     int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
@@ -274,7 +274,7 @@ private:
 
     int GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
-    int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
+    int GetInfoByStatement(sqlite3_stmt *statement, const std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema, const TrackerTable &trackerTable,
@@ -364,7 +364,7 @@ private:
         const std::vector<int64_t> &dataKeys);
 
     int CleanAssetsIdOnUserTable(const std::string &tableName, const std::string &fieldName, const int64_t rowId,
-        const std::vector<uint8_t> assetsValue);
+        const std::vector<uint8_t> &assetsValue);
 
     int InitGetAssetStmt(const std::string &sql, const std::string &gid, const Bytes &hashKey,
         sqlite3_stmt *&stmt);
@@ -417,13 +417,13 @@ private:
 
     std::vector<Field> GetUpdateField(const VBucket &vBucket, const TableSchema &tableSchema);
 
-    int GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields, int startIndex, VBucket &record);
+    int GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> &fields, int startIndex, VBucket &record);
+
+    int FillCloudVersionForUpload(const std::string &tableName, const CloudSyncBatch &batchData);
 
     int QueryCount(const std::string &tableName, int64_t &count);
 
     int GetUploadCountInner(const Timestamp &timestamp, SqliteQueryHelper &helper, std::string &sql, int64_t &count);
-
-    int FillCloudVersionForUpload(const std::string &tableName, const CloudSyncBatch &batchData);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";

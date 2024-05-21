@@ -115,8 +115,8 @@ namespace {
         properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
         bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
         properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
-        properties.SetIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
-        properties.SetIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
+        properties.SetUIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
+        properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
         properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
     }
 

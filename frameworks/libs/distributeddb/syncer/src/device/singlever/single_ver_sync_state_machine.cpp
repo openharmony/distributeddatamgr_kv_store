@@ -713,7 +713,6 @@ void SingleVerSyncStateMachine::NeedAbilitySyncHandle()
         currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
     }
     abilitySync_->SetAbilitySyncFinishedStatus(false, *context_);
-    dataSync_->ClearSyncStatus();
 }
 
 int SingleVerSyncStateMachine::HandleDataAckRecv(const Message *inMsg)

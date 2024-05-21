@@ -1939,6 +1939,53 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
 }
 
 /**
+  * @tc.name: InterceptDataFail002
+  * @tc.desc: test intercept data failed when sync
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail002, TestSize.Level0)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. device A set intercept data errCode and B put some data
+     * @tc.expected: step1. interface return ok
+     */
+    g_kvDelegatePtr->SetReceiveDataInterceptor(
+        [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
+            auto entries = data.GetEntries();
+            LOGD("====on receive,size=%d", entries.size());
+            for (size_t i = 0; i < entries.size(); i++) {
+                Key newKey;
+                int errCode = data.ModifyKey(i, newKey);
+                if (errCode != OK) {
+                    return errCode;
+                }
+            }
+            return E_OK;
+        }
+    );
+    Key key = {'1'};
+    Value value = {'1'};
+    g_deviceB->PutData(key, value, 1u, 0); // 1 is timestamp
+    /**
+     * @tc.steps: step2. device A sync to device B and check data
+     * @tc.expected: step2. interface return ok
+     */
+    std::vector<std::string> devices = { g_deviceB->GetDeviceId() };
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_EQ(pair.second, INTERCEPT_DATA_FAIL);
+    }
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key, actualValue), NOT_FOUND);
+}
+
+/**
   * @tc.name: InterceptData001
   * @tc.desc: test intercept receive data when sync
   * @tc.type: FUNC
@@ -1950,21 +1997,25 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptData001, TestSize.Le
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     /**
      * @tc.steps: step1. device A set intercept data errCode and B put some data
-     * * @tc.expected: step1. interface return ok
-    */
+     * @tc.expected: step1. interface return ok
+     */
     g_kvDelegatePtr->SetReceiveDataInterceptor(
         [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
-            int errCode = OK;
             auto entries = data.GetEntries();
             LOGD("====on receive,size=%d", entries.size());
             for (size_t i = 0; i < entries.size(); i++) {
                 Key newKey = {'2'};
-                errCode = data.ModifyKey(i, newKey);
+                int errCode = data.ModifyKey(i, newKey);
                 if (errCode != OK) {
-                    break;
+                    return errCode;
+                }
+                Value newValue = {'3'};
+                errCode = data.ModifyValue(i, newValue);
+                if (errCode != OK) {
+                    return errCode;
                 }
             }
-            return errCode;
+            return E_OK;
         }
     );
     Key key = {'1'};
@@ -1972,8 +2023,8 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptData001, TestSize.Le
     g_deviceB->PutData(key, value, 1u, 0); // 1 is timestamp
     /**
      * @tc.steps: step2. device A sync to device B and check data
-     * * @tc.expected: step2. interface return ok
-    */
+     * @tc.expected: step2. interface return ok
+     */
     std::vector<std::string> devices = { g_deviceB->GetDeviceId() };
     std::map<std::string, DBStatus> result;
     ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
@@ -1986,6 +2037,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptData001, TestSize.Le
     EXPECT_EQ(g_kvDelegatePtr->Get(key, actualValue), NOT_FOUND);
     key = {'2'};
     EXPECT_EQ(g_kvDelegatePtr->Get(key, actualValue), OK);
+    value = {'3'};
     EXPECT_EQ(actualValue, value);
 }
 

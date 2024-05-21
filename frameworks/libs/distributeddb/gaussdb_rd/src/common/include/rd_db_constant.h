@@ -19,7 +19,7 @@
 #include <string>
 
 namespace DocumentDB {
-class DBConstant final {
+class RdDBConstant final {
 public:
     static constexpr const char *COLL_PREFIX = "GRD_COLL_";
 };

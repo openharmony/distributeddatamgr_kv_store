@@ -287,7 +287,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeRequestTest001, Te
     /**
      * @tc.steps: step3. Serialization the message to a buffer.
      */
-    int len = SingleVerSerializeManager::CalculateLen(&msg);
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
     LOGE("test leng = %d", len);
     uint8_t *buffer = new (nothrow) uint8_t[len];
     ASSERT_TRUE(buffer != nullptr);
@@ -340,7 +340,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, ControlAckTest001, TestSize
     /**
      * @tc.steps: step3. Serialization the message to a buffer.
      */
-    int len = SingleVerSerializeManager::CalculateLen(&msg);
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
     LOGE("test leng = %d", len);
     uint8_t *buffer = new (nothrow) uint8_t[len];
     ASSERT_TRUE(buffer != nullptr);

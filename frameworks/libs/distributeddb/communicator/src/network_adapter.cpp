@@ -303,7 +303,7 @@ void NetworkAdapter::OnDeviceChangeHandler(const DeviceInfos &devInfo, bool isOn
     // The IProcessCommunicator implementation guarantee that no mistake offline will happen.
     if (isOnline) {
         if (!processCommunicator_->IsSameProcessLabelStartedOnPeerDevice(devInfo)) {
-            LOGI("[NAdapt][OnDeviceChange] ######## Detect Not Really Online ########.");
+            LOGI("[NAdapt][OnDeviceChange] Detect Not Really Online.");
             std::lock_guard<std::mutex> onlineRemoteDevLockGuard(onlineRemoteDevMutex_);
             onlineRemoteDev_.erase(devInfo.identifier);
             return;
@@ -327,31 +327,32 @@ void NetworkAdapter::SearchOnlineRemoteDeviceAtStartup()
 {
     std::vector<DeviceInfos> onlineDev = processCommunicator_->GetRemoteOnlineDeviceInfosList();
     LOGE("[NAdapt][SearchOnline] onlineDev count = %zu.", onlineDev.size());
-    if (!onlineDev.empty()) {
-        pendingAsyncTaskCount_.fetch_add(1);
-        // Note: onlineDev should be captured by value (must not by reference)
-        TaskAction callbackTask = [onlineDev, this]() {
-            LOGI("[NAdapt][SearchOnline] Begin Callback In Async Task.");
-            std::string localIdentity;
-            GetLocalIdentity(localIdentity); // It doesn't matter if getlocal fail and localIdentity be an empty string
-            for (auto &entry : onlineDev) {
-                if (entry.identifier == localIdentity) {
-                    LOGW("[NAdapt][SearchOnline] ######## Detect Local Device in Remote Device List ########.");
-                    continue;
-                }
-                OnDeviceChangeHandler(entry, true);
+    if (onlineDev.empty()) {
+        return;
+    }
+    pendingAsyncTaskCount_.fetch_add(1);
+    // Note: onlineDev should be captured by value (must not by reference)
+    TaskAction callbackTask = [onlineDev, this]() {
+        LOGI("[NAdapt][SearchOnline] Begin Callback In Async Task.");
+        std::string localIdentity;
+        GetLocalIdentity(localIdentity); // It doesn't matter if getlocal fail and localIdentity be an empty string
+        for (auto &entry : onlineDev) {
+            if (entry.identifier == localIdentity) {
+                LOGW("[NAdapt][SearchOnline] Detect Local Device in Remote Device List.");
+                continue;
             }
-            pendingAsyncTaskCount_.fetch_sub(1);
-            asyncTaskDoneCv_.notify_all();
-            LOGI("[NAdapt][SearchOnline] End Callback In Async Task.");
-        };
-        // Use ScheduleQueuedTask to keep order
-        int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(SCHEDULE_QUEUE_TAG, callbackTask);
-        if (errCode != E_OK) {
-            LOGE("[NAdapt][SearchOnline] ScheduleQueuedTask failed, errCode = %d.", errCode);
-            pendingAsyncTaskCount_.fetch_sub(1);
-            asyncTaskDoneCv_.notify_all();
+            OnDeviceChangeHandler(entry, true);
         }
+        pendingAsyncTaskCount_.fetch_sub(1);
+        asyncTaskDoneCv_.notify_all();
+        LOGI("[NAdapt][SearchOnline] End Callback In Async Task.");
+    };
+    // Use ScheduleQueuedTask to keep order
+    int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(SCHEDULE_QUEUE_TAG, callbackTask);
+    if (errCode != E_OK) {
+        LOGE("[NAdapt][SearchOnline] ScheduleQueuedTask failed, errCode = %d.", errCode);
+        pendingAsyncTaskCount_.fetch_sub(1);
+        asyncTaskDoneCv_.notify_all();
     }
 }
 
@@ -385,7 +386,7 @@ void NetworkAdapter::CheckDeviceOfflineAfterSendFail(const DeviceInfos &devInfo)
     // Seem online but send fail, we have to check whether still online
     if (!isAlreadyOffline) {
         if (!processCommunicator_->IsSameProcessLabelStartedOnPeerDevice(devInfo)) {
-            LOGW("[NAdapt][CheckAfterSend] ######## Missed Offline Detected ########.");
+            LOGW("[NAdapt][CheckAfterSend] Missed Offline Detected.");
             {
                 // Mark this device not online immediately to avoid repeatedly miss-offline detect when send continually
                 std::lock_guard<std::mutex> onlineRemoteDevLockGuard(onlineRemoteDevMutex_);

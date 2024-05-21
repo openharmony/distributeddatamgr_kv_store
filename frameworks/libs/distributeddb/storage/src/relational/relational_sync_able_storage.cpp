@@ -185,7 +185,7 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
-    auto handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+    auto handle = GetHandle(false, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
@@ -761,15 +761,16 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
             return;
         }
         auto action = it->second.find(observer);
-        if (action != it->second.end()) {
-            it->second.erase(action);
-            LOGI("unregister relational observer.");
-            if (it->second.empty()) {
-                dataChangeCallbackMap_.erase(it);
-                LOGI("observer for this delegate is zero now");
-            }
-            errCode = E_OK;
+        if (action == it->second.end()) {
+            return;
         }
+        it->second.erase(action);
+        LOGI("unregister relational observer.");
+        if (it->second.empty()) {
+            dataChangeCallbackMap_.erase(it);
+            LOGI("observer for this delegate is zero now");
+        }
+        errCode = E_OK;
     }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);
     return errCode;
@@ -1701,6 +1702,7 @@ int RelationalSyncAbleStorage::UpsertDataInner(SQLiteSingleVerRelationalStorageE
     int errCode = E_OK;
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
+        LOGE("[RDBStorageEngine] start transaction failed %d when upsert data", errCode);
         return errCode;
     }
     errCode = CreateTempSyncTriggerInner(handle, tableName);
@@ -1897,7 +1899,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         std::vector<VBucket> syncDataPk;
         errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
         if (errCode != E_OK) {
-            LOGW("[GetWaitCompensatedSyncDataPk] Get wait compensated sync date failed, continue! errCode=%d", errCode);
+            LOGW("[RDBStorageEngine] Get wait compensated sync date failed, continue! errCode=%d", errCode);
             errCode = E_OK;
             continue;
         }

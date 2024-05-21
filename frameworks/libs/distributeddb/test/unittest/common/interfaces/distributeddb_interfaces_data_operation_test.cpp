@@ -2381,7 +2381,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
     EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
         Query::Select().InKeys(keys).OrderByWriteTime(true).Limit(limitNum, 0), resultSet2), OK);
     ASSERT_NE(resultSet2, nullptr);
-    int expectedSize = (keys.size() >= limitNum) ? limitNum : keys.size();
+    int expectedSize = (keys.size() >= limitNum) ? static_cast<int>(limitNum) : static_cast<int>(keys.size());
     ASSERT_EQ(resultSet2->GetCount(), static_cast<int>(expectedSize));
     CheckResultSize(resultSet2, expectedKeys, expectedSize);
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);

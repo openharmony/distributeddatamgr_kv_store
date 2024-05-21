@@ -267,7 +267,6 @@ private:
     std::shared_ptr<Metadata> metadata_;
     std::string deviceId_;
     bool syncFinished_;
-    static const int FAILED_GET_SEC_CLASSIFICATION = 0x55;
 };
 } // namespace DistributedDB
 #endif // ABILITY_SYNC_H

@@ -555,14 +555,15 @@ int SchemaObject::ParseCheckSchemaDefine(const JsonObject& inJsonObject)
             // If everything ok, insert this schema item into schema define
             // Remember to remove SCHEMA_DEFINE in the front of the fieldpath
             schemaDefine_[depth][FieldPath(++(subField.first.begin()), subField.first.end())] = attribute;
-            // Deal with the nestpath and check depth limitation
-            if (subField.second == FieldType::INTERNAL_FIELD_OBJECT) {
-                if (depth == SchemaConstant::SCHEMA_FEILD_PATH_DEPTH_MAX - 1) { // Minus 1 to be the boundary
-                    LOGE("[Schema][ParseDefine] node is INTERNAL_FIELD_OBJECT but reach schema depth limitation.");
-                    return -E_SCHEMA_PARSE_FAIL;
-                }
-                nestPathCurDepth.insert(subField.first);
+            if (subField.second != FieldType::INTERNAL_FIELD_OBJECT) {
+                continue;
             }
+            // Deal with the nestpath and check depth limitation
+            if (depth == (SchemaConstant::SCHEMA_FEILD_PATH_DEPTH_MAX - 1)) { // Minus 1 to be the boundary
+                LOGE("[Schema][ParseDefine] node is INTERNAL_FIELD_OBJECT but reach schema depth limitation.");
+                return -E_SCHEMA_PARSE_FAIL;
+            }
+            nestPathCurDepth.insert(subField.first);
         }
         // If no deeper schema define, quit loop in advance
         if (nestPathCurDepth.empty()) {

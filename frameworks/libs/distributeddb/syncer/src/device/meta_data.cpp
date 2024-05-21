@@ -273,6 +273,9 @@ void Metadata::PutMetadataToMap(const DeviceID &deviceId, const MetaDataValue &v
 
 void Metadata::GetMetadataFromMap(const DeviceID &deviceId, MetaDataValue &outValue)
 {
+    if (metadataMap_.find(deviceId) == metadataMap_.end() && RuntimeContext::GetInstance()->IsTimeChanged()) {
+        metadataMap_[deviceId].syncMark = static_cast<int64_t>(SyncMark::SYNC_MARK_TIME_CHANGE);
+    }
     outValue = metadataMap_[deviceId];
 }
 

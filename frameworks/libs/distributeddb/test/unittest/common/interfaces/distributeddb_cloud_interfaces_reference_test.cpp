@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cloud_db_types.h"
+#include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"

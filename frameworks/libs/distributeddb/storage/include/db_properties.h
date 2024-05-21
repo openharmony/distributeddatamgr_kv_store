@@ -36,11 +36,17 @@ public:
     // Set the bool property for the name
     void SetBoolProp(const std::string &name, bool value);
 
-    // Get the bool property according the name
+    // Get the integer property according the name
     int GetIntProp(const std::string &name, int defaultValue) const;
 
     // Set the integer property for the name
     void SetIntProp(const std::string &name, int value);
+
+    // Get the unsigned integer property according the name
+    uint32_t GetUIntProp(const std::string &name, uint32_t defaultValue) const;
+
+    // Set the unsigned integer property for the name
+    void SetUIntProp(const std::string &name, uint32_t value);
 
     // Set all indentifers
     void SetIdentifier(const std::string &userId, const std::string &appId, const std::string &storeId,
@@ -65,6 +71,7 @@ protected:
     std::map<std::string, std::string> stringProperties_;
     std::map<std::string, bool> boolProperties_;
     std::map<std::string, int> intProperties_;
+    std::map<std::string, uint32_t> uintProperties_;
 };
 }
 #endif

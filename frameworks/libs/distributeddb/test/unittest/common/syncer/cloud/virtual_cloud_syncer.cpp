@@ -116,4 +116,14 @@ int VirtualCloudSyncer::CallTagStatusByStrategy(bool isExist, const DataInfoWith
     dataInfo.cloudLogInfo = cloudInfo;
     return CloudSyncer::TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
 }
+
+void VirtualCloudSyncer::PauseCurrentTask()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (currentContext_.currentTaskId == INVALID_TASK_ID) {
+        return;
+    }
+    cloudTaskInfos_[currentContext_.currentTaskId].pause = true;
+    LOGD("[CloudSyncer] Mark taskId %" PRIu64 " paused success", currentContext_.currentTaskId);
+}
 }

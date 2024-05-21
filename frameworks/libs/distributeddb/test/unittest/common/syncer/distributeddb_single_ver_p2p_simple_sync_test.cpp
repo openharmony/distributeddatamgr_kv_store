@@ -1716,4 +1716,4 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, GetWaterMarkInfo001, TestSize.
     EXPECT_EQ(res.second.sendMark, 0u);
     EXPECT_EQ(res.second.receiveMark, 0u);
 }
-} // namespace
+}

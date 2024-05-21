@@ -87,12 +87,16 @@ public:
 
     void EnableCommunicator();
 
-    ~VirtualCommunicatorAggregator() {};
-    VirtualCommunicatorAggregator() {};
+    void RegBeforeDispatch(const std::function<void(const std::string &, const Message *)> &beforeDispatch);
+
+    ~VirtualCommunicatorAggregator() override = default;
+    VirtualCommunicatorAggregator() = default;
 
 private:
     void CallSendEnd(int errCode, const OnSendEnd &onEnd);
     void DelayTimeHandle(uint32_t messageId, const std::string &dstTarget);
+    void DispatchMessageInner(const std::string &srcTarget, const std::string &dstTarget, const Message *inMsg,
+        const OnSendEnd &onEnd);
 
     mutable std::mutex communicatorsLock_;
     std::map<std::string, VirtualCommunicator *> communicators_;
@@ -104,6 +108,7 @@ private:
     CommunicatorLackCallback onCommLack_;
     OnConnectCallback onConnect_;
     std::function<void(const std::string &target, Message *inMsg)> onDispatch_;
+    std::function<void(const std::string &target, const Message *inMsg)> beforeDispatch_;
     std::string userId_;
 
     uint32_t sendDelayTime_ = 0;

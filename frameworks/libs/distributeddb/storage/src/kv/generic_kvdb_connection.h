@@ -120,6 +120,8 @@ protected:
 
     void ResetExclusiveStatus();
 
+    bool IsObserverEmpty();
+
     // Called in Close(), overriding of Close() is forbidden.
     virtual int PreClose();
 

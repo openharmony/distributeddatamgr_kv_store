@@ -40,7 +40,7 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
     }
     outTime = static_cast<uint64_t>(rawTime.tv_sec) * MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS +
         static_cast<uint64_t>(rawTime.tv_usec);
-    outTime = outTime + g_timeOffset.load();
+    outTime = outTime + static_cast<uint64_t>(g_timeOffset.load());
     return 0;
 }
 #endif // DB_DEBUG_ENV

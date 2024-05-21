@@ -1012,4 +1012,43 @@ namespace {
             AssetOperationUtils::CloudSyncAction::END_UPLOAD);
         EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
     }
+
+    /**
+     * @tc.name: SameAssetNotify001
+     * @tc.desc: Test same asset notify in one batch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, SameAssetNotify001, TestSize.Level0)
+    {
+        /**
+         * @tc.steps: step1. prepare two data with same pk
+         */
+        ICloudSyncer::SyncParam param;
+        param.downloadData.opType.push_back(OpType::INSERT);
+        param.downloadData.opType.push_back(OpType::UPDATE);
+        const std::string pkField = "pk_asset";
+        param.changedData.field.push_back(pkField);
+        VBucket oneRow;
+        oneRow[pkField] = static_cast<int64_t>(1); // 1 is pk
+        param.downloadData.data.push_back(oneRow);
+        param.downloadData.data.push_back(oneRow);
+        ICloudSyncer::DataInfo dataInfo;
+        dataInfo.localInfo.logInfo.dataKey = 1;
+        param.isSinglePrimaryKey = true;
+        param.pkColNames.push_back(pkField);
+        /**
+         * @tc.steps: step2. handle tag assets
+         * @tc.expected: step2. all type should be INSERT
+         */
+        VBucket localAsset;
+        Key hashKey;
+        for (size_t i = 0; i < param.downloadData.opType.size(); ++i) {
+            int errCode = g_cloudSyncer->CallHandleTagAssets(hashKey, dataInfo, i, param, localAsset);
+            ASSERT_EQ(errCode, E_OK);
+            auto strategy = std::get<CloudSyncUtils::STRATEGY_INDEX>(param.assetsDownloadList[i]);
+            EXPECT_EQ(strategy, OpType::INSERT);
+        }
+    }
 }

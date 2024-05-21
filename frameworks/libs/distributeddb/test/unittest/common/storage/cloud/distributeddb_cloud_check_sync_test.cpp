@@ -1664,6 +1664,80 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
     CheckCloudTableCount(tableName_, actualCount);
 }
 
+/**
+ * @tc.name: RangeQuerySyncTest001
+ * @tc.desc: Test sync that has option parameter with range query.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RangeQuerySyncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert user table record.
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.waitTime = g_syncWaitTime;
+    Query query = Query::Select().From(tableName_).Range({}, {});
+    option.query = query;
+
+    /**
+     * @tc.steps:step2. test normal sync with range query.
+     * @tc.expected: step2. not support.
+     */
+    option.priorityTask = false;
+    ASSERT_EQ(delegate_->Sync(option, nullptr), NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. test Priority sync with range query.
+     * @tc.expected: step3. not support.
+     */
+    option.priorityTask = true;
+    ASSERT_EQ(delegate_->Sync(option, nullptr), NOT_SUPPORT);
+}
+
+/*
+ * @tc.name: RangeQuerySyncTest002
+ * @tc.desc: Test sync that has not option parameter with range query.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RangeQuerySyncTest002, TestSize.Level1)
+{
+    Query query = Query::Select().FromTable({ tableName_ }).Range({}, {});
+    ASSERT_EQ(delegate_->Sync({"CLOUD"}, SYNC_MODE_CLOUD_FORCE_PULL, query, nullptr, g_syncWaitTime),
+        DBStatus::NOT_SUPPORT);
+}
+
+/*
+ * @tc.name: SameDataSync001
+ * @tc.desc: Test query same data in one batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert cloud records, cloud has two batch id:0-4
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 5;
+    InsertCloudTableRecord(0, actualCount, 0, false);
+    InsertCloudTableRecord(0, actualCount, 0, false);
+    /**
+     * @tc.steps:step2. call sync, local has one batch id:0-4
+     * @tc.expected: step2. OK
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    CheckLocalCount(actualCount);
+}
+
 /*
  * @tc.name: CreateDistributedTable001
  * @tc.desc: Test create distributed table when table not empty.
