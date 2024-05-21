@@ -153,7 +153,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::string& in, napi_val
 }
 
 /* napi_value <-> std::vector<std::string> */
-JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<std::string>& out)
+JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<std::string>& out, bool checkLength)
 {
     ZLOGD("napi_value -> std::vector<std::string>");
     out.clear();
@@ -163,7 +163,10 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<std:
 
     uint32_t length = 0;
     JSUtil::StatusMsg statusMsg = napi_get_array_length(env, in, &length);
-    ASSERT((statusMsg.status == napi_ok) && (length > 0), "get_array failed!", napi_invalid_arg);
+    ASSERT(statusMsg.status == napi_ok, "get_array length failed!", napi_invalid_arg);
+    if (checkLength) {
+        ASSERT(length > 0, "check array length failed!", napi_invalid_arg);
+    }
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
         statusMsg.status = napi_get_element(env, in, i, &item);
