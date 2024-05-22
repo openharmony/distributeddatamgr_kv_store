@@ -903,6 +903,7 @@ int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 
     LOGD("Finish upgrade single ver database!");
     isUpdated_ = true; // Identification to avoid repeated upgrades
+    std::unique_lock<std::shared_mutex> lock(schemaChangedMutex_);
     isSchemaChanged_ = upgrader->IsValueNeedUpgrade();
     return errCode;
 }
@@ -1096,11 +1097,16 @@ bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &e
 
 int SQLiteSingleVerStorageEngine::UpgradeLocalMetaData()
 {
-    std::shared_lock<std::shared_mutex> lock(schemaChangedMutex_);
-    if (isSchemaChanged_) {
-        int errCode = schemaChangedFunc_();
-        isSchemaChanged_ = false;
-        return errCode;
+    std::function<int(void)> schemaChangedFunc = nullptr;
+    {
+        std::unique_lock<std::shared_mutex> lock(schemaChangedMutex_);
+        if (isSchemaChanged_) {
+            schemaChangedFunc = schemaChangedFunc_;
+            isSchemaChanged_ = false;
+        }
+    }
+    if (schemaChangedFunc) {
+        return schemaChangedFunc();
     }
     return E_OK;
 }
