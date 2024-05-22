@@ -439,8 +439,8 @@ void SQLiteSingleVerDatabaseUpgrader::UpgradeTime(TimeOffset offset)
         addOffset = "-";
     }
     addOffset += std::to_string(std::abs(offset));
-    std::string updateSQL = "UPDATE sync_data SET modify_time=timestamp" + addOffset + ", create_time=w_timestamp"
-        + addOffset + " WHERE modify_time = 0";
+    std::string updateSQL = "UPDATE sync_data SET modify_time=timestamp" + addOffset + ", create_time=w_timestamp" +
+        addOffset + " WHERE modify_time = 0";
     int errCode = SQLiteUtils::ExecuteRawSQL(db_, updateSQL);
     if (errCode != E_OK) {
         LOGE("[SQLiteSinVerUp] Upgrade time failed %d", errCode);

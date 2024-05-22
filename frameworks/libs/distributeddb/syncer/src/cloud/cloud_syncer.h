@@ -143,10 +143,10 @@ protected:
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
-    void DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
+    void DoNotifyInNeed(const CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
         const bool isFirstDownload);
 
-    int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
+    int GetUploadCountByTable(const CloudSyncer::TaskId taskId, int64_t &count);
 
     void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName, bool needNotify);
 
@@ -178,9 +178,9 @@ protected:
 
     void SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadData);
 
-    bool IsModeForcePush(const TaskId taskId);
+    bool IsModeForcePush(TaskId taskId);
 
-    bool IsModeForcePull(TaskId taskId);
+    bool IsModeForcePull(const TaskId taskId);
 
     bool IsPriorityTask(TaskId taskId);
 
