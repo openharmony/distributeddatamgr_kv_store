@@ -43,7 +43,11 @@ namespace {
         // In DO_UPLOAD state
         {State::DO_UPLOAD, Event::UPLOAD_FINISHED_EVENT, State::DO_FINISHED},
         {State::DO_UPLOAD, Event::ERROR_EVENT, State::DO_FINISHED},
-        {State::DO_UPLOAD, Event::REPEAT_DOWNLOAD_EVENT, State::DO_DOWNLOAD},
+        {State::DO_UPLOAD, Event::REPEAT_CHECK_EVENT, State::DO_REPEAT_CHECK},
+
+        // Repeat download check state
+        {State::DO_REPEAT_CHECK, Event::REPEAT_DOWNLOAD_EVENT, State::DO_DOWNLOAD},
+        {State::DO_REPEAT_CHECK, Event::ERROR_EVENT, State::DO_FINISHED},
 
         // In DO_FINISHED state
         {State::DO_FINISHED, Event::ALL_TASK_FINISHED_EVENT, State::IDLE},

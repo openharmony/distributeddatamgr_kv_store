@@ -48,20 +48,6 @@ CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerCo
     InitCloudSyncStateMachine();
 }
 
-void CloudSyncer::InitCloudSyncStateMachine()
-{
-    cloudSyncStateMachine_.Initialize();
-    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_DOWNLOAD, [this]() {
-        return SyncMachineDoDownload();
-    });
-    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_UPLOAD, [this]() {
-        return SyncMachineDoUpload();
-    });
-    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_FINISHED, [this]() {
-        return SyncMachineDoFinished();
-    });
-}
-
 int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
     const std::vector<std::string> &tables, const SyncProcessCallback &callback, int64_t waitTime)
 {
@@ -393,7 +379,7 @@ CloudSyncEvent CloudSyncer::SyncMachineDoUpload()
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         DBDfxAdapter::ReportBehavior(
             {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_UPLOAD, StageResult::FAIL, errCode});
-        return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
+        return CloudSyncEvent::REPEAT_CHECK_EVENT;
     }
     if (errCode != E_OK) {
         {
@@ -1524,7 +1510,7 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
     }
-    LOGI("[CloudSyncer] exec taskId %" PRIu64, taskId);
+    LOGI("[CloudSyncer] exec storeId %s taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(), taskId);
     return E_OK;
 }
 
@@ -1891,6 +1877,7 @@ void CloudSyncer::ClearCurrentContextWithoutLock()
     currentContext_.isDownloadFinished.clear();
     currentContext_.currentState = CloudSyncState::IDLE;
     currentContext_.currentUserIndex = 0;
+    currentContext_.repeatCount = 0;
 }
 
 void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
@@ -1915,7 +1902,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     if (info.errCode == E_OK) {
         info.errCode = errCode;
     }
-    LOGI("[CloudSyncer] finished taskId %" PRIu64 " errCode %d", taskId, info.errCode);
+    LOGI("[CloudSyncer] finished storeId %s taskId %" PRIu64 " errCode %d", info.storeId.c_str(), taskId, info.errCode);
     info.status = ProcessStatus::FINISHED;
     if (notifier != nullptr) {
         notifier->NotifyProcess(info, {}, true);

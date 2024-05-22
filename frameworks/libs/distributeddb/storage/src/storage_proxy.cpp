@@ -640,4 +640,13 @@ std::pair<int, CloudSyncData> StorageProxy::GetLocalCloudVersion()
     }
     return store_->GetLocalCloudVersion();
 }
+
+CloudSyncConfig StorageProxy::GetCloudSyncConfig() const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return {};
+    }
+    return store_->GetCloudSyncConfig();
+}
 }

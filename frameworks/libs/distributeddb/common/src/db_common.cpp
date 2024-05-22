@@ -648,4 +648,23 @@ uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 {
     return origin & (~eraseBit);
 }
+
+bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
+{
+    if (config.maxUploadCount < CloudDbConstant::MIN_UPLOAD_COUNT ||
+        config.maxUploadCount > CloudDbConstant::MAX_UPLOAD_COUNT) {
+        LOGE("[DBCommon] invalid upload count %" PRId32, config.maxUploadCount);
+        return false;
+    }
+    if (config.maxUploadSize < CloudDbConstant::MIN_UPLOAD_SIZE ||
+        config.maxUploadSize > CloudDbConstant::MAX_UPLOAD_SIZE) {
+        LOGE("[DBCommon] invalid upload size %" PRId32, config.maxUploadSize);
+        return false;
+    }
+    if (config.maxRetryConflictTimes < CloudDbConstant::MIN_RETRY_CONFLICT_COUNTS) {
+        LOGE("[DBCommon] invalid retry conflict count %" PRId32, config.maxRetryConflictTimes);
+        return false;
+    }
+    return true;
+}
 } // namespace DistributedDB

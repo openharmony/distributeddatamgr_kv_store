@@ -143,6 +143,8 @@ public:
     int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema);
 
     std::pair<int, CloudSyncData> GetLocalCloudVersion();
+
+    CloudSyncConfig GetCloudSyncConfig() const;
 protected:
     void Init();
 

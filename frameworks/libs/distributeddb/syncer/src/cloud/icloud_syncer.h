@@ -43,6 +43,7 @@ public:
         std::vector<std::string> users;
         LockAction lockAction = LockAction::INSERT;
         bool merge = false;
+        std::string storeId;
     };
 
     struct InnerProcessInfo {

@@ -451,5 +451,23 @@ DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, c
     LOGI("[RelationalStore Delegate] Upsert data success");
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for SetCloudSyncConfig!");
+        return DB_ERROR;
+    }
+    if (!DBCommon::CheckCloudSyncConfigValid(config)) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetCloudSyncConfig(config);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] SetCloudSyncConfig failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    LOGI("[RelationalStore Delegate] SetCloudSyncConfig success");
+    return OK;
+}
 } // namespace DistributedDB
 #endif

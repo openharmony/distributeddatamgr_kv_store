@@ -1195,20 +1195,14 @@ bool CloudStorageUtils::IsCloudGidMismatch(const std::string &downloadGid, const
     return !downloadGid.empty() && !curGid.empty() && downloadGid != curGid;
 }
 
-bool CloudStorageUtils::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize)
+bool CloudStorageUtils::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize, uint32_t maxCount)
 {
     if (curNum == 0) {
         return true;
     }
-#ifdef MAX_UPLOAD_COUNT
-    if (curSize < maxSize && curNum < MAX_UPLOAD_COUNT) {
+    if (curSize < maxSize && curNum < maxCount) {
         return true;
     }
-#else
-    if (curSize < maxSize) {
-        return true;
-    }
-#endif
     return false;
 }
 

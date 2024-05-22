@@ -161,6 +161,8 @@ public:
     virtual int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) = 0;
 
     virtual int SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
+
+    virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 };
 } // namespace DistributedDB
 

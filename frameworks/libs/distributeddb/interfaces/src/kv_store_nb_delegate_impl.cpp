@@ -1207,4 +1207,18 @@ DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor 
     LOGI("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
     return TransferDBErrno(errCode);
 }
+
+DBStatus KvStoreNbDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (!DBCommon::CheckCloudSyncConfigValid(config)) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetCloudSyncConfig(config);
+    LOGI("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

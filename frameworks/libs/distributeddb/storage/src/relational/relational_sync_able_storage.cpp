@@ -1134,7 +1134,9 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
         return -E_INVALID_DB;
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
-    int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
+    auto config = GetCloudSyncConfig();
+    transactionHandle_->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
+    int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, *token);
     LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
         cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
         cloudDataResult.delData.extend.size(), cloudDataResult.lockData.extend.size());
@@ -2084,6 +2086,18 @@ void RelationalSyncAbleStorage::DoUploadHook()
 void RelationalSyncAbleStorage::SetDoUploadHook(const std::function<void (void)> &func)
 {
     uploadStartFunc_ = func;
+}
+
+CloudSyncConfig RelationalSyncAbleStorage::GetCloudSyncConfig() const
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    return cloudSyncConfig_;
+}
+
+void RelationalSyncAbleStorage::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    cloudSyncConfig_ = config;
 }
 }
 #endif

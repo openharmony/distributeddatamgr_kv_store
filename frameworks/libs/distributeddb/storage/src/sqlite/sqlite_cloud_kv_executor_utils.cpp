@@ -22,8 +22,8 @@
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
-int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteSingleVerContinueToken &token,
-    CloudSyncData &data)
+int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, sqlite3 *db, bool isMemory,
+    SQLiteSingleVerContinueToken &token, CloudSyncData &data)
 {
     bool stepNext = false;
     auto [errCode, stmt] = token.GetCloudQueryStmt(db, data.isCloudForcePushStrategy, stepNext, data.mode);
@@ -42,7 +42,8 @@ int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteS
             }
         }
         stepNext = true;
-        errCode = GetCloudDataForSync(stmt, data, ++stepNum, totalSize);
+        errCode = GetCloudDataForSync(config, stmt, data, stepNum, totalSize);
+        stepNum++;
     } while (errCode == E_OK);
     LOGI("[SqliteCloudKvExecutorUtils] Get cloud sync data, insData:%u, upData:%u, delLog:%u errCode:%d",
          data.insData.record.size(), data.updData.record.size(), data.delData.extend.size(), errCode);
@@ -52,8 +53,8 @@ int SqliteCloudKvExecutorUtils::GetCloudData(sqlite3 *db, bool isMemory, SQLiteS
     return errCode;
 }
 
-int SqliteCloudKvExecutorUtils::GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult,
-    uint32_t &stepNum, uint32_t &totalSize)
+int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, sqlite3_stmt *statement,
+    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize)
 {
     VBucket log;
     VBucket extraLog;
@@ -75,13 +76,13 @@ int SqliteCloudKvExecutorUtils::GetCloudDataForSync(sqlite3_stmt *statement, Clo
         }
     }
 
-    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, CloudDbConstant::MAX_UPLOAD_SIZE)) {
+    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, config.maxUploadSize, config.maxUploadCount)) {
         errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
     }
     if (errCode == E_OK) {
-        errCode = CheckIgnoreData(data, extraLog);
+        errCode = CheckIgnoreData(config, data, extraLog);
     }
     if (errCode == -E_IGNORE_DATA) {
         errCode = E_OK;
@@ -171,14 +172,14 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     return E_OK;
 }
 
-int SqliteCloudKvExecutorUtils::CheckIgnoreData(VBucket &data, VBucket &flags)
+int SqliteCloudKvExecutorUtils::CheckIgnoreData(const CloudSyncConfig &config, VBucket &data, VBucket &flags)
 {
     auto iter = data.find(CloudDbConstant::CLOUD_KV_FIELD_VALUE);
     if (iter == data.end()) {
         return E_OK;
     }
     auto &valueStr = std::get<std::string>(iter->second);
-    if (valueStr.size() <= CloudDbConstant::MAX_UPLOAD_SIZE) {
+    if (valueStr.size() <= static_cast<size_t>(config.maxUploadSize)) {
         return E_OK;
     }
     Bytes *hashKey = std::get_if<Bytes>(&flags[CloudDbConstant::HASH_KEY]);
@@ -1017,7 +1018,10 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecord(bool isMemory, sqlite3_stm
     }
     uint32_t stepNum = 0;
     uint32_t totalSize = 0;
-    errCode = GetCloudDataForSync(stmt, syncData, stepNum, totalSize);
+    CloudSyncConfig config;
+    config.maxUploadSize = CloudDbConstant::MAX_UPLOAD_SIZE;
+    config.maxUploadCount = 1;
+    errCode = GetCloudDataForSync(config, stmt, syncData, stepNum, totalSize);
     return errCode;
 }
 

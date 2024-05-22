@@ -88,6 +88,10 @@ public:
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 
     std::pair<int, CloudSyncData> GetLocalCloudVersion() override;
+
+    void SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    CloudSyncConfig GetCloudSyncConfig() const override;
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 
@@ -109,6 +113,9 @@ private:
 
     std::mutex observerMapMutex_;
     std::map<const KvStoreObserver *, ObserverAction> cloudObserverMap_;
+
+    mutable std::mutex configMutex_;
+    CloudSyncConfig config_;
 };
 }
 #endif // SQLITE_CLOUD_STORE_H

@@ -440,5 +440,15 @@ int SQLiteRelationalStoreConnection::UpsertData(RecordStatus status, const std::
     }
     return store->UpsertData(status, tableName, records);
 }
+
+int SQLiteRelationalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, set cloud sync config failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetCloudSyncConfig(config);
+}
 }
 #endif

@@ -65,7 +65,8 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
 SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable,
     DistributedTableMode mode)
     : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false),
-      assetLoader_(nullptr), putDataMode_(PutDataMode::SYNC), markFlagOption_(MarkFlagOption::DEFAULT)
+      assetLoader_(nullptr), putDataMode_(PutDataMode::SYNC), markFlagOption_(MarkFlagOption::DEFAULT),
+      maxUploadCount_(0), maxUploadSize_(0)
 {
     bindCloudFieldFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::BindInt64;
     bindCloudFieldFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BindBool;
@@ -1622,7 +1623,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncD
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cloudDataResult,
-    const uint32_t &maxSize, SQLiteSingleVerRelationalContinueToken &token)
+    SQLiteSingleVerRelationalContinueToken &token)
 {
     token.GetCloudTableSchema(tableSchema_);
     sqlite3_stmt *queryStmt = nullptr;
@@ -1643,7 +1644,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
             }
         }
         isStepNext = true;
-        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize, maxSize);
+        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize);
     } while (errCode == E_OK);
     if (errCode != -E_UNFINISHED) {
         (void)token.ReleaseCloudStatement();
@@ -1682,7 +1683,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize, const uint32_t &maxSize)
+    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize)
 {
     VBucket log;
     VBucket extraLog;
@@ -1712,7 +1713,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         }
     }
 
-    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, maxSize)) {
+    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, maxUploadSize_, maxUploadCount_)) {
         errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;

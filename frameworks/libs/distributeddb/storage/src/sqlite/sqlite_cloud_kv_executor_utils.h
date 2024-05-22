@@ -26,7 +26,8 @@
 namespace DistributedDB {
 class SqliteCloudKvExecutorUtils {
 public:
-    static int GetCloudData(sqlite3 *db, bool isMemory, SQLiteSingleVerContinueToken &token, CloudSyncData &data);
+    static int GetCloudData(const CloudSyncConfig &config, sqlite3 *db, bool isMemory,
+        SQLiteSingleVerContinueToken &token, CloudSyncData &data);
 
     static std::pair<int, DataInfoWithLog> GetLogInfo(sqlite3 *db, bool isMemory, const VBucket &cloudData);
 
@@ -46,8 +47,8 @@ public:
     static int GetCloudVersionFromCloud(sqlite3 *db, bool isMemory, const std::string &user,
         const std::string &device, std::vector<VBucket> &dataVector);
 private:
-    static int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
-        uint32_t &totalSize);
+    static int GetCloudDataForSync(const CloudSyncConfig &config, sqlite3_stmt *statement,
+        CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
 
     static void GetCloudLog(sqlite3_stmt *stmt, VBucket &logInfo, uint32_t &totalSize);
 
@@ -58,7 +59,7 @@ private:
     static int GetCloudKvBlobData(const std::string &keyStr, int index, sqlite3_stmt *stmt,
         VBucket &data, uint32_t &totalSize);
 
-    static int CheckIgnoreData(VBucket &data, VBucket &flags);
+    static int CheckIgnoreData(const CloudSyncConfig &config, VBucket &data, VBucket &flags);
 
     static std::pair<int, sqlite3_stmt*> GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData, bool existKey);
 

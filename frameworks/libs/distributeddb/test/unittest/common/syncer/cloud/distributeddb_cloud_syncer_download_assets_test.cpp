@@ -921,6 +921,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Le
  */
 HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Level0)
 {
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
@@ -1954,6 +1957,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, Test
         { FINISHED, { 0, 0, 0, 0 }, { 1, 40, 40, 0 } } // 1 is index, 40 is count
     };
     int index = 0;
+    CloudSyncConfig config;
+    config.maxUploadCount = 100; // max upload 100
+    g_delegate->SetCloudSyncConfig(config);
     CloudSyncStatusCallback callback = [&index, &expectProcess](const std::map<std::string, SyncProcess> &process) {
         g_syncProcess = std::move(process.begin()->second);
         ASSERT_LT(index, 2);

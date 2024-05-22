@@ -195,6 +195,8 @@ public:
     {
         return {E_OK, {}};
     }
+
+    virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
 };
 }
 
