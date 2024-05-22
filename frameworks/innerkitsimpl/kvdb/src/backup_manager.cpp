@@ -165,11 +165,9 @@ StoreUtil::FileInfo BackupManager::GetBackupFileInfo(
             backupFile = std::move(file);
             break;
         }
-        if ((file.modifyTime > modifyTime) && (file.size != 0)) {
+        if (name.empty() && (file.modifyTime > modifyTime) && (file.size != 0)) {
             modifyTime = file.modifyTime;
-            if (name.empty()) {
-                backupFile = std::move(file);
-            }
+            backupFile = std::move(file);
         }
     }
     return backupFile;
