@@ -848,6 +848,7 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
         dataItem.origDev = "";
     }
     dataItem.timestamp = static_cast<Timestamp>(static_cast<int64_t>(dataItem.modifyTime) + downloadData.timeOffset);
+    dataItem.writeTimestamp = dataItem.timestamp; // writeTimestamp is process conflict time
     return res;
 }
 

@@ -575,6 +575,25 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync017, TestSize.Level0)
     ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
 }
 
+/**
+ * @tc.name: NormalSync019
+ * @tc.desc: Test dataItem has same time.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync019, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(k1, v1), OK);
+    deviceB_->Sync(SyncMode::SYNC_MODE_PULL_ONLY, true);
+
+    VirtualDataItem dataItem;
+    deviceB_->GetData(k1, dataItem);
+    EXPECT_EQ(dataItem.timestamp, dataItem.writeTimestamp);
+}
+
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)
 {
     sqlite3 *db_;

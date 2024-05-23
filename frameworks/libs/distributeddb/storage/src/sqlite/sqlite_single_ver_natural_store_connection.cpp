@@ -27,6 +27,7 @@
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_result_set.h"
 #include "store_types.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 namespace {
@@ -958,23 +959,7 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntry(const Entry &entry, bool is
             return errCode;
         }
     }
-
-    dataItem.timestamp = naturalStore->GetCurrentTimestamp();
-    if (currentMaxTimestamp_ > dataItem.timestamp) {
-        dataItem.timestamp = currentMaxTimestamp_;
-    }
-
-    if (timestamp != 0) {
-        dataItem.writeTimestamp = timestamp;
-    } else {
-        dataItem.writeTimestamp = dataItem.timestamp;
-    }
-
-    auto offset = naturalStore->GetLocalTimeOffset();
-    if (offset != 0) {
-        dataItem.modifyTime = static_cast<Timestamp>(static_cast<int64_t>(dataItem.timestamp) - offset);
-        dataItem.createTime = static_cast<Timestamp>(static_cast<int64_t>(dataItem.writeTimestamp) - offset);
-    }
+    RecordTimeIntoDataItem(timestamp, dataItem, *naturalStore);
     if (IsExtendedCacheDBMode()) {
         uint64_t recordVersion = naturalStore->GetCacheRecordVersion();
         return SaveEntryInCacheMode(dataItem, recordVersion);
@@ -1942,6 +1927,24 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncCon
         return -E_INVALID_DB;
     }
     return naturalStore->SetCloudSyncConfig(config);
+}
+
+void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
+    SQLiteSingleVerNaturalStore &naturalStore)
+{
+    dataItem.timestamp = naturalStore.GetCurrentTimestamp();
+    if (currentMaxTimestamp_ > dataItem.timestamp) {
+        dataItem.timestamp = currentMaxTimestamp_;
+    }
+
+    auto currentRawTime = TimeHelper::GetSysCurrentTime();
+    if (existCreateTime != 0) {
+        dataItem.writeTimestamp = existCreateTime;
+    } else {
+        dataItem.writeTimestamp = dataItem.timestamp;
+    }
+    dataItem.createTime = currentRawTime;
+    dataItem.modifyTime = currentRawTime;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }
