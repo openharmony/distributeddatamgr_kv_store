@@ -76,8 +76,8 @@ public:
     static constexpr uint32_t TEN_THOUSAND = 10000;
     static constexpr int64_t CLOUD_DEFAULT_TIMEOUT = -1;
 
-    static constexpr int32_t MAX_UPLOAD_COUNT = 2000;
-    static constexpr int32_t MIN_UPLOAD_COUNT = 1;
+    static constexpr int32_t MAX_UPLOAD_BATCH_COUNT = 2000;
+    static constexpr int32_t MIN_UPLOAD_BATCH_COUNT = 1;
     static constexpr int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
     static constexpr int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
     static constexpr int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited

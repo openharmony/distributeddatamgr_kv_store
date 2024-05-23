@@ -651,8 +651,8 @@ uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 
 bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
 {
-    if (config.maxUploadCount < CloudDbConstant::MIN_UPLOAD_COUNT ||
-        config.maxUploadCount > CloudDbConstant::MAX_UPLOAD_COUNT) {
+    if (config.maxUploadCount < CloudDbConstant::MIN_UPLOAD_BATCH_COUNT ||
+        config.maxUploadCount > CloudDbConstant::MAX_UPLOAD_BATCH_COUNT) {
         LOGE("[DBCommon] invalid upload count %" PRId32, config.maxUploadCount);
         return false;
     }
