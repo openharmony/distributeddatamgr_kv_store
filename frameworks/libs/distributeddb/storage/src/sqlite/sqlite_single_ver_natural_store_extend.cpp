@@ -613,6 +613,7 @@ int SQLiteSingleVerNaturalStore::SetCloudSyncConfig(const CloudSyncConfig &confi
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     if (sqliteCloudKvStore_ == nullptr) {
+        LOGE("[SingleVerNStore] DB is null when set config");
         return -E_INTERNAL_ERROR;
     }
     sqliteCloudKvStore_->SetCloudSyncConfig(config);

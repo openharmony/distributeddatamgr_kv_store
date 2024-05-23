@@ -1938,6 +1938,7 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncCon
 {
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] DB is null when set config");
         return -E_INVALID_DB;
     }
     return naturalStore->SetCloudSyncConfig(config);
