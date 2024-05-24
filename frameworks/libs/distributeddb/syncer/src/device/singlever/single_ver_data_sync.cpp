@@ -1733,7 +1733,7 @@ void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *
         std::vector<uint64_t> reserved {reSendInfo.packetId};
         packet->SetReserved(reserved);
     }
-    if (reSendMode == SyncModeType::PULL) {
+    if (reSendMode == SyncModeType::PULL || reSendMode == SyncModeType::QUERY_PULL) {
         // resend pull packet dont set compress type
         return;
     }
