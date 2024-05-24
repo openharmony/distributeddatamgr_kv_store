@@ -16,14 +16,15 @@
 #include "cloudsync_fuzzer.h"
 #include "cloud/cloud_db_types.h"
 #include "cloud/cloud_db_constant.h"
-#include "time_helper.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
-#include "log_print.h"
 #include "fuzzer_data.h"
+#include "kv_store_nb_delegate.h"
+#include "log_print.h"
 #include "relational_store_delegate.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
+#include "time_helper.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
@@ -36,6 +37,7 @@ static const char *g_deviceCloud = "cloud_dev";
 static const char *g_storeId = "STORE_ID";
 static const char *g_dbSuffix = ".db";
 static const char *g_table = "worker1";
+KvStoreDelegateManager g_mgr(DistributedDBUnitTest::APP_ID, DistributedDBUnitTest::USER_ID);
 static const char *g_createLocalTableSql =
     "CREATE TABLE IF NOT EXISTS worker1(" \
     "name TEXT PRIMARY KEY," \
@@ -248,7 +250,12 @@ public:
         mgr_ = std::make_shared<RelationalStoreManager>("APP_ID", "USER_ID");
         RelationalStoreDelegate::Option option;
         mgr_->OpenStore(storePath_, "STORE_ID", option, delegate_);
+        config_.dataDir = testDir_;
+        g_mgr.SetKvStoreConfig(config_);
+        GetKvStore(kvDelegatePtrS1_, DistributedDBUnitTest::STORE_ID_1);
+        GetKvStore(kvDelegatePtrS2_, DistributedDBUnitTest::STORE_ID_2);
         virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
+        virtualCloudDb1_ = std::make_shared<VirtualCloudDb>();
         virtualAssetLoader_ = std::make_shared<VirtualAssetLoader>();
         delegate_->SetCloudDB(virtualCloudDb_);
         delegate_->SetIAssetLoader(virtualAssetLoader_);
@@ -266,9 +273,103 @@ public:
             LOGI("sqlite close with errCode %d", errCode);
         }
         virtualCloudDb_ = nullptr;
+        CloseKvStore(kvDelegatePtrS1_, DistributedDBUnitTest::STORE_ID_1);
+        CloseKvStore(kvDelegatePtrS2_, DistributedDBUnitTest::STORE_ID_2);
+        virtualCloudDb1_ = nullptr;
         virtualAssetLoader_ = nullptr;
         if (DistributedDBToolsTest::RemoveTestDbFiles(testDir_) != 0) {
             LOGE("rm test db files error.");
+        }
+    }
+
+    void KvBlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
+        SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE, int expectSyncResult = OK)
+    {
+        if (delegate == nullptr) {
+            return;
+        }
+        std::mutex dataMutex;
+        std::condition_variable cv;
+        bool finish = false;
+        SyncProcess last;
+        auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish](
+            const std::map<std::string, SyncProcess> &process) {
+            for (const auto &item: process) {
+                if (item.second.process == DistributedDB::FINISHED) {
+                    {
+                        std::lock_guard<std::mutex> autoLock(dataMutex);
+                        finish = true;
+                        last = item.second;
+                    }
+                    cv.notify_one();
+                }
+            }
+        };
+        CloudSyncOption option;
+        option.mode = mode;
+        option.users.push_back(DistributedDBUnitTest::USER_ID);
+        option.devices.push_back("cloud");
+        delegate->Sync(option, callback);
+        if (expectSyncResult == OK) {
+            std::unique_lock<std::mutex> uniqueLock(dataMutex);
+            cv.wait(uniqueLock, [&finish]() {
+                return finish;
+            });
+        }
+        lastProcess_ = last;
+    }
+
+    DataBaseSchema GetDataBaseSchema()
+    {
+        DataBaseSchema schema;
+        TableSchema tableSchema;
+        tableSchema.name = CloudDbConstant::CLOUD_KV_TABLE_NAME;
+        Field field;
+        field.colName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
+        field.type = TYPE_INDEX<std::string>;
+        field.primary = true;
+        tableSchema.fields.push_back(field);
+        field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE;
+        field.primary = false;
+        tableSchema.fields.push_back(field);
+        field.colName = CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE;
+        tableSchema.fields.push_back(field);
+        field.colName = CloudDbConstant::CLOUD_KV_FIELD_VALUE;
+        tableSchema.fields.push_back(field);
+        field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME;
+        field.type = TYPE_INDEX<int64_t>;
+        tableSchema.fields.push_back(field);
+        schema.tables.push_back(tableSchema);
+        return schema;
+    }
+
+    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId, int securityLabel = NOT_SET)
+    {
+        KvStoreNbDelegate::Option option;
+        DBStatus openRet = OK;
+        option.secOption.securityLabel = securityLabel;
+        g_mgr.GetKvStore(storeId, option, [&openRet, &delegate](DBStatus status, KvStoreNbDelegate *openDelegate) {
+            openRet = status;
+            delegate = openDelegate;
+        });
+        if (delegate == nullptr) {
+            return;
+        }
+        std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+        cloudDbs[DistributedDBUnitTest::USER_ID] = virtualCloudDb1_;
+        delegate->SetCloudDB(cloudDbs);
+        std::map<std::string, DataBaseSchema> schemas;
+        schemas[DistributedDBUnitTest::USER_ID] = GetDataBaseSchema();
+        delegate->SetCloudDbSchema(schemas);
+    }
+
+    void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
+    {
+        if (delegate != nullptr) {
+            g_mgr.CloseKvStore(delegate);
+            delegate = nullptr;
+            DBStatus status = g_mgr.DeleteKvStore(storeId);
+            LOGD("delete kv store status %d store %s", status, storeId.c_str());
         }
     }
 
@@ -295,6 +396,17 @@ public:
         BlockSync();
         SetCloudDbSchema(delegate_);
         BlockSync();
+    }
+
+    void KvNormalSync()
+    {
+        Key key = {'k'};
+        Value expectValue = {'v'};
+        kvDelegatePtrS1_->Put(key, expectValue);
+        KvBlockSync(kvDelegatePtrS1_, OK);
+        KvBlockSync(kvDelegatePtrS2_, OK);
+        Value actualValue;
+        kvDelegatePtrS2_->Get(key, actualValue);
     }
 
     void RandomModeSync(const uint8_t* data, size_t size)
@@ -362,9 +474,14 @@ private:
     std::string storePath_;
     sqlite3 *db_ = nullptr;
     RelationalStoreDelegate *delegate_ = nullptr;
+    KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
+    KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb1_ = nullptr;
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_;
     std::shared_ptr<RelationalStoreManager> mgr_;
+    KvStoreConfig config_;
+    SyncProcess lastProcess_;
     Assets localAssets_;
 };
 CloudSyncTest *g_cloudSyncTest = nullptr;
@@ -395,6 +512,7 @@ void CombineTest(const uint8_t* data, size_t size)
         return;
     }
     g_cloudSyncTest->NormalSync();
+    g_cloudSyncTest->KvNormalSync();
     g_cloudSyncTest->RandomModeSync(data, size);
     g_cloudSyncTest->DataChangeSync(data, size);
     g_cloudSyncTest->AssetChangeSync(data, size);
