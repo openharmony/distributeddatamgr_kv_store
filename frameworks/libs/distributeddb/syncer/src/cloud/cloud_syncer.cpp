@@ -531,7 +531,6 @@ bool CloudSyncer::IsDataContainAssets()
             return false;
     }
     if (currentContext_.assetFields[currentContext_.tableName].empty()) {
-        LOGI("[CloudSyncer] Current table do not contain assets, thereby we needn't download assets");
         return false;
     }
     return true;

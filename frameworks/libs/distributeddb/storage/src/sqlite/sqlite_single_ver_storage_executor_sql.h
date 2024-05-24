@@ -324,7 +324,7 @@ namespace DistributedDB {
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
         "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "
         "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
-        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key WHERE cloud_gid = ? ";
+        "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key ";
 
     constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_HEAD = "SELECT key, value, flag, device, sync_data.hash_key "
         "FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' ";

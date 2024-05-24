@@ -227,8 +227,11 @@ std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3
     std::pair<int, sqlite3_stmt*> res;
     auto &[errCode, stmt] = res;
     std::string sql = QUERY_CLOUD_SYNC_DATA_LOG;
+    sql += " WHERE cloud_gid = ?";
     if (existKey) {
-        sql += "OR key = ?";
+        sql += " UNION ";
+        sql += QUERY_CLOUD_SYNC_DATA_LOG;
+        sql += " WHERE key = ?";
     }
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     return res;
