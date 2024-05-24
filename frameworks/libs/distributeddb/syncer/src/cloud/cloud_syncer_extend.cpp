@@ -523,7 +523,7 @@ void CloudSyncer::GetDownloadItem(const DownloadList &downloadList, size_t i, Do
     downloadItem.timestamp = std::get<CloudSyncUtils::TIMESTAMP_INDEX>(downloadList[i]);
 }
 
-void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
+void CloudSyncer::DoNotifyInNeed(const CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
     const bool isFirstDownload)
 {
     bool isNeedNotify = false;
@@ -541,7 +541,7 @@ void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<s
     }
 }
 
-int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count)
+int CloudSyncer::GetUploadCountByTable(const CloudSyncer::TaskId taskId, int64_t &count)
 {
     std::string tableName;
     int ret = GetCurrentTableName(tableName);
