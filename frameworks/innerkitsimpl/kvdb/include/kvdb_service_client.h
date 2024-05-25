@@ -36,8 +36,8 @@ public:
         const std::vector<uint8_t> &password) override;
     Status Delete(const AppId &appId, const StoreId &storeId) override;
     Status Close(const AppId &appId, const StoreId &storeId) override;
-    Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
-    Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
+    Status Sync(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo) override;
+    Status SyncExt(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo) override;
     Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) override;
     Status UnregServiceNotifier(const AppId &appIdd) override;
     Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) override;

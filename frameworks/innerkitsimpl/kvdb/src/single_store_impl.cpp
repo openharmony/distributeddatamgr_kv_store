@@ -919,7 +919,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
     return status;
 }
 
-Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
     auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
         if (observer == nullptr) {
@@ -931,7 +931,7 @@ Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<S
         }
         observer->SyncCompleted(result);
     };
-        
+
     auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
     Status status = StoreUtil::ConvertStatus(dbStatus);
     if (status != Status::SUCCESS) {
@@ -940,7 +940,7 @@ Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<S
     return status;
 }
 
-Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
     Status cStatus = Status::SUCCESS;
     if (isClientSync_) {
@@ -976,7 +976,7 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 }
 
-Status SingleStoreImpl::DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+Status SingleStoreImpl::DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {

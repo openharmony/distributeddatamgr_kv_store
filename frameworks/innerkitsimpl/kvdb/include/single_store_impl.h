@@ -120,9 +120,9 @@ private:
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
-    Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    Status DoSyncExt(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    Status DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    Status DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    Status DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    Status DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status SyncExt(const std::string &networkId, uint64_t sequenceId);
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();

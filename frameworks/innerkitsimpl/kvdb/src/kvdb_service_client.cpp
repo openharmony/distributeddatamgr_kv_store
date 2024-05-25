@@ -83,7 +83,7 @@ std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
     if (client == nullptr) {
         client = new (std::nothrow) KVDBServiceClient(service);
     }
-    
+
     if (client == nullptr) {
         return nullptr;
     }
@@ -164,7 +164,7 @@ Status KVDBServiceClient::Close(const AppId &appId, const StoreId &storeId)
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SYNC), reply, appId, storeId,
@@ -188,7 +188,7 @@ Status KVDBServiceClient::CloudSync(const AppId &appId, const StoreId &storeId, 
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SYNC_EXT), reply, appId,
