@@ -62,7 +62,7 @@ config("distrdb_config") {
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "USE_DFX_ABILITY",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
-    "OPENSSL_SUPPRESS_DEPRECATED"
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
