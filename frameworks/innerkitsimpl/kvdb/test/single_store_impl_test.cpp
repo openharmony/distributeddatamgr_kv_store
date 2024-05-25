@@ -1648,7 +1648,7 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
     BlockData<bool> blockData{ 1, false };
     std::function<void(Status, std::vector<Entry>&&)> result =
         [&blockData](Status status, std::vector<Entry>&& value) {
-            ASSERT_EQ(status, Status::NOT_FOUND);
+            ASSERT_EQ(status, Status::SUCCESS);
             blockData.SetValue(true);
     };
     auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
