@@ -65,6 +65,7 @@ void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask,
         if (clientUuid.empty()) {
             continue;
         }
+        remotes_.Insert(clientUuid, { true, true });
         remotes_.Compute(clientUuid, [changed, type](const auto &key, auto &value) -> bool {
             switch (type) {
                 case DataType::TYPE_STATICS:
