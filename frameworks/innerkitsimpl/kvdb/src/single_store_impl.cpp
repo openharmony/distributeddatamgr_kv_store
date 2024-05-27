@@ -340,7 +340,7 @@ void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
     const std::function<void(Status, Value &&)> &onResult)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId) {
+    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
         Value value;
         auto status = Get(key, value);
         onResult(status, std::move(value));
@@ -359,7 +359,7 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
     const std::function<void(Status, std::vector<Entry> &&)> &onResult)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId) {
+    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
         std::vector<Entry> entries;
         auto status = GetEntries(prefix, entries);
         onResult(status, std::move(entries));
@@ -435,7 +435,7 @@ bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
     if (serviceAgent == nullptr) {
         return true;
     }
-    return serviceAgent->IsChanged(clientUuid);
+    return serviceAgent->IsChanged(clientUuid, dataType_);
 }
 
 void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results)
