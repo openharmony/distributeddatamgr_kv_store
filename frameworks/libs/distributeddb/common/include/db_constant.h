@@ -170,6 +170,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_4 = "5.04"; // new flag bit 0x20 added, upgrade trigger
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
     static constexpr const char *LOG_TABLE_VERSION_5_6 = "5.06"; // upgrade trigger for simple tracker log table
+    static constexpr const char *LOG_TABLE_VERSION_5_7 = "5.07"; // trigger slow sql optimization
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;
