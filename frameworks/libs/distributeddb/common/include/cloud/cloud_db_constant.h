@@ -71,11 +71,16 @@ public:
 
     static constexpr const char *CLOUD_VERSION_RECORD_PREFIX_KEY = "naturalbase_cloud_version_";
 
-    static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
     static constexpr uint32_t TEN_THOUSAND = 10000;
     static constexpr int64_t CLOUD_DEFAULT_TIMEOUT = -1;
+
+    static constexpr int32_t MAX_UPLOAD_BATCH_COUNT = 2000;
+    static constexpr int32_t MIN_UPLOAD_BATCH_COUNT = 1;
+    static constexpr int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
+    static constexpr int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
+    static constexpr int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

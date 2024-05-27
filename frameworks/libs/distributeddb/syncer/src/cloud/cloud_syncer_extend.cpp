@@ -669,7 +669,8 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     } else {
         if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
             taskQueue_.push_back(lastTaskId_);
-            LOGI("[CloudSyncer] Add task ok, taskId %" PRIu64, cloudTaskInfos_[lastTaskId_].taskId);
+            LOGI("[CloudSyncer] Add task ok, storeId %s, taskId %" PRIu64, cloudTaskInfos_[lastTaskId_].storeId.c_str(),
+                cloudTaskInfos_[lastTaskId_].taskId);
         }
     }
     return E_OK;
@@ -946,5 +947,43 @@ CloudSyncEvent CloudSyncer::SetCurrentTaskFailedInMachine(int errCode)
     std::lock_guard<std::mutex> autoLock(dataLock_);
     cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
     return CloudSyncEvent::ERROR_EVENT;
+}
+
+void CloudSyncer::InitCloudSyncStateMachine()
+{
+    CloudSyncStateMachine::Initialize();
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_DOWNLOAD, [this]() {
+        return SyncMachineDoDownload();
+    });
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_UPLOAD, [this]() {
+        return SyncMachineDoUpload();
+    });
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_FINISHED, [this]() {
+        return SyncMachineDoFinished();
+    });
+    cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_REPEAT_CHECK, [this]() {
+        return SyncMachineDoRepeatCheck();
+    });
+}
+
+CloudSyncEvent CloudSyncer::SyncMachineDoRepeatCheck()
+{
+    auto config = storageProxy_->GetCloudSyncConfig();
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (config.maxRetryConflictTimes < 0) { // unlimited repeat counts
+            return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
+        }
+        currentContext_.repeatCount++;
+        if (currentContext_.repeatCount > config.maxRetryConflictTimes) {
+            LOGD("[CloudSyncer] Repeat too much times current %d limit %" PRId32, currentContext_.repeatCount,
+                config.maxRetryConflictTimes);
+            SetCurrentTaskFailedWithoutLock(-E_CLOUD_VERSION_CONFLICT);
+            return CloudSyncEvent::ERROR_EVENT;
+        }
+        LOGD("[CloudSyncer] Repeat taskId %" PRIu64 " download current %d", currentContext_.currentTaskId,
+            currentContext_.repeatCount);
+    }
+    return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
 }
 }

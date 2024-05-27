@@ -1243,6 +1243,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.users.push_back("");
     info.lockAction = option.lockAction;
     info.merge = option.merge;
+    info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
@@ -1554,6 +1555,16 @@ int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
             }
         }
     }
+    return E_OK;
+}
+
+int SQLiteRelationalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][SetCloudSyncConfig] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    storageEngine_->SetCloudSyncConfig(config);
     return E_OK;
 }
 } //namespace DistributedDB

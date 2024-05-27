@@ -92,7 +92,12 @@ int SqliteLogTableManager::CreateKvSyncLogTable(sqlite3 *db)
         LOGE("[LogTableManager] execute create cloud log table schema failed, errCode=%d", errCode);
         return errCode;
     }
-    return E_OK;
+    std::string createIndexSql = "CREATE INDEX IF NOT EXISTS gid_hash_key ON " + tableName + "(cloud_gid, hash_key)";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, createIndexSql);
+    if (errCode != E_OK) {
+        LOGE("[LogTableManager] execute create gid index failed, errCode=%d", errCode);
+    }
+    return errCode;
 }
 
 void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)

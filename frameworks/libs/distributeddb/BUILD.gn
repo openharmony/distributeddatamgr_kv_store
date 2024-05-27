@@ -63,7 +63,6 @@ config("distrdb_config") {
     "USE_DFX_ABILITY",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
-    "MAX_UPLOAD_COUNT=30",
   ]
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]

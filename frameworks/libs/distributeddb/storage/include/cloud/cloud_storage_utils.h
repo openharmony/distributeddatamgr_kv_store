@@ -161,7 +161,7 @@ public:
     static int BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt);
 
-    static bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
+    static bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize, uint32_t maxCount);
 
     static int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 

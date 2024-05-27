@@ -80,6 +80,8 @@ public:
     virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
 
     virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
+
+    virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

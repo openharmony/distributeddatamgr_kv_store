@@ -608,4 +608,15 @@ void SQLiteSingleVerNaturalStore::SetReceiveDataInterceptor(const DataIntercepto
     std::unique_lock<std::shared_mutex> lock(dataInterceptorMutex_);
     receiveDataInterceptor_ = interceptor;
 }
+
+int SQLiteSingleVerNaturalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        LOGE("[SingleVerNStore] DB is null when set config");
+        return -E_INTERNAL_ERROR;
+    }
+    sqliteCloudKvStore_->SetCloudSyncConfig(config);
+    return E_OK;
+}
 }

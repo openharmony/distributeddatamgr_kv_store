@@ -204,7 +204,7 @@ int SqliteCloudKvStore::GetCloudDataNext(ContinueToken &continueStmtToken, Cloud
         ReleaseCloudDataToken(continueStmtToken);
         return -E_INTERNAL_ERROR;
     }
-    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(db, isMemory, *token, cloudDataResult);
+    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(GetCloudSyncConfig(), db, isMemory, *token, cloudDataResult);
     if (errCode != -E_UNFINISHED) {
         ReleaseCloudDataToken(continueStmtToken);
     } else {
@@ -494,5 +494,17 @@ bool SqliteCloudKvStore::CheckSchema(std::map<std::string, DataBaseSchema> schem
         }
     }
     return true;
+}
+
+void SqliteCloudKvStore::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    config_ = config;
+}
+
+CloudSyncConfig SqliteCloudKvStore::GetCloudSyncConfig() const
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    return config_;
 }
 }

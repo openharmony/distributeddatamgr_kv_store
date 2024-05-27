@@ -102,6 +102,7 @@ protected:
         bool isFirstDownload = false;
         std::map<int, std::map<std::string, bool>> isDownloadFinished; // struct: <currentUserIndex, <tableName, value>>
         int currentUserIndex = 0;
+        int repeatCount = 0;
     };
     struct UploadParam {
         int64_t count = 0;
@@ -405,6 +406,8 @@ protected:
     bool IsLockInDownload();
 
     CloudSyncEvent SetCurrentTaskFailedInMachine(int errCode);
+
+    CloudSyncEvent SyncMachineDoRepeatCheck();
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

@@ -219,6 +219,10 @@ public:
     void SetDoUploadHook(const std::function<void (void)> &) override;
 
     void DoUploadHook() override;
+
+    CloudSyncConfig GetCloudSyncConfig() const override;
+
+    void SetCloudSyncConfig(const CloudSyncConfig &config);
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -320,6 +324,9 @@ private:
 
     std::function<void (void)> syncFinishFunc_;
     std::function<void (void)> uploadStartFunc_;
+
+    mutable std::mutex configMutex_;
+    CloudSyncConfig cloudSyncConfig_;
 };
 }  // namespace DistributedDB
 #endif

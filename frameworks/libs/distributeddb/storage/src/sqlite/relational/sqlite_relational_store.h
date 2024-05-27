@@ -104,6 +104,8 @@ public:
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
+
+    int SetCloudSyncConfig(const CloudSyncConfig &config);
 private:
     void ReleaseResources();
 

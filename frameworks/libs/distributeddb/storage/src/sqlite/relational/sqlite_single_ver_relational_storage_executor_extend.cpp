@@ -1032,5 +1032,10 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordStatus(const std::stri
     return errCode == E_OK ? ret : errCode;
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::SetUploadConfig(int32_t maxUploadCount, int32_t maxUploadSize)
+{
+    maxUploadCount_ = maxUploadCount;
+    maxUploadSize_ = maxUploadSize;
+}
 } // namespace DistributedDB
 #endif

@@ -1933,5 +1933,15 @@ int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &de
     }
     return naturalStore->GetCloudVersion(device, versionMap);
 }
+
+int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] DB is null when set config");
+        return -E_INVALID_DB;
+    }
+    return naturalStore->SetCloudSyncConfig(config);
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

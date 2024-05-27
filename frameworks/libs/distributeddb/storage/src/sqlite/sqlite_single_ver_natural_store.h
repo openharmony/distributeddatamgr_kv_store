@@ -217,6 +217,8 @@ public:
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
+
+    int SetCloudSyncConfig(const CloudSyncConfig &config);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 

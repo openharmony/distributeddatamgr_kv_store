@@ -97,6 +97,9 @@ public:
 
     DB_API virtual DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
         RecordStatus status = RecordStatus::WAIT_COMPENSATED_SYNC) = 0;
+
+    // set the config for cloud sync task
+    DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

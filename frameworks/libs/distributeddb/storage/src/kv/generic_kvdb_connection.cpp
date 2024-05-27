@@ -435,4 +435,9 @@ int GenericKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &inte
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    return -E_NOT_SUPPORT;
+}
 }

@@ -79,6 +79,8 @@ public:
 
     DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
         RecordStatus status) override;
+
+    DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

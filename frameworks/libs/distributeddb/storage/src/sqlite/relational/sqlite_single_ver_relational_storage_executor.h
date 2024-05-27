@@ -113,8 +113,7 @@ public:
 
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid);
 
-    int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
-        SQLiteSingleVerRelationalContinueToken &token);
+    int GetSyncCloudData(CloudSyncData &cloudDataResult, SQLiteSingleVerRelationalContinueToken &token);
 
     int GetSyncCloudGid(QuerySyncObject &query, const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
         bool isCompensatedTask, std::vector<std::string> &cloudGid);
@@ -188,6 +187,8 @@ public:
     int CheckInventoryData(const std::string &tableName);
 
     int UpdateRecordStatus(const std::string &tableName, const std::string &status, const Key &hashKey);
+
+    void SetUploadConfig(int32_t maxUploadCount, int32_t maxUploadSize);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -245,7 +246,7 @@ private:
     int CleanExtendAndCursorForDeleteData(sqlite3 *db, const std::string &tableName);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
-        uint32_t &totalSize, const uint32_t &maxSize);
+        uint32_t &totalSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 
@@ -446,6 +447,9 @@ private:
 
     PutDataMode putDataMode_;
     MarkFlagOption markFlagOption_;
+
+    std::atomic<int32_t> maxUploadCount_;
+    std::atomic<int32_t> maxUploadSize_;
 };
 } // namespace DistributedDB
 #endif

@@ -267,6 +267,9 @@ public:
     // This API is not recommended. Before using this API, you need to understand the API usage rules.
     // The interceptor works when receive data.
     DB_API virtual DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
+
+    // set the config for cloud sync task
+    DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 };
 } // namespace DistributedDB
 
