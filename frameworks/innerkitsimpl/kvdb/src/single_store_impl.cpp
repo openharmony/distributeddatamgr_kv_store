@@ -435,7 +435,7 @@ bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
     if (serviceAgent == nullptr) {
         return true;
     }
-    return serviceAgent->IsChanged(clientUuid, dataType_);
+    return serviceAgent->IsChanged(clientUuid, static_cast<DataType>(dataType_));
 }
 
 void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results)

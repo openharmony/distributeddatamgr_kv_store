@@ -66,15 +66,15 @@ void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask,
             continue;
         }
         if (!remotes_.Contains(clientUuid)) {
-            remotes_.InsertOrAssign(clientUuid, { true, true });
+            remotes_.InsertOrAssign(clientUuid, std::make_pair<bool, bool>(true, true));
         }
-        remotes_.Compute(clientUuid, [changed, type](const auto &key, auto &value) -> bool {
+        remotes_.Compute(clientUuid, [isChange = changed, type](const auto &key, auto &value) -> bool {
             switch (type) {
                 case DataType::TYPE_STATICS:
-                    value.first = changed;
+                    value.first = isChange;
                     break;
                 case DataType::TYPE_DYNAMICAL:
-                    value.second = changed;
+                    value.second = isChange;
                     break;
                 default:
                     break;
