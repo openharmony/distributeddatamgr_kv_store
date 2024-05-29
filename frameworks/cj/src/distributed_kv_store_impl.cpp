@@ -260,7 +260,7 @@ int32_t CJKVManager::DeleteKVStore(const char* appId, const char* storeId)
 static CArrStr VectorAppIdToCArr(const std::vector<StoreId> storeIdList)
 {
     CArrStr strArray;
-    strArray.size = storeIdList.size();
+    strArray.size = static_cast<int64_t>(storeIdList.size());
     strArray.head = static_cast<char**>(malloc(strArray.size * sizeof(char*)));
     if (strArray.head == nullptr) {
         return CArrStr{0};
