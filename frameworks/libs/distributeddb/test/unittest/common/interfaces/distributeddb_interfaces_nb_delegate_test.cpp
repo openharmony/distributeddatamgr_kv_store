@@ -3214,7 +3214,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
     ASSERT_TRUE(observer != nullptr);
     option.observer = observer;
     std::vector<int> invalidModeVec = {0, 5, 6, 7, 9, 16};
-    std::string storeId = "distributed_nb_delegate_test";
+    std::string storeId = "OptionModeValidCheck001";
     for (size_t i = 0; i < invalidModeVec.size(); i++) {
         option.mode = invalidModeVec.at(i);
         g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
@@ -3229,6 +3229,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
         ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
         EXPECT_EQ(g_kvDelegateStatus, OK);
         EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+        EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
         g_kvNbDelegatePtr = nullptr;
     }
 
