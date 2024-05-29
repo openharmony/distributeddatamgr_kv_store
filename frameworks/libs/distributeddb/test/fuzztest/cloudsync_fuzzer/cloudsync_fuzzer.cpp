@@ -319,7 +319,7 @@ public:
         lastProcess_ = last;
     }
 
-    DataBaseSchema GetDataBaseSchema()
+    static DataBaseSchema GetDataBaseSchema()
     {
         DataBaseSchema schema;
         TableSchema tableSchema;
@@ -363,7 +363,7 @@ public:
         delegate->SetCloudDbSchema(schemas);
     }
 
-    void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
+    static void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId)
     {
         if (delegate != nullptr) {
             g_mgr.CloseKvStore(delegate);
