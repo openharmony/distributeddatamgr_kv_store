@@ -87,11 +87,11 @@ void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
             OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
             ORG_PKG, ORG_PKG_NAME,
             FUNC, reportTask.funcName,
-            BIZ_SCENE, std::to_string(static_cast<int>(reportTask.scene)),
-            BIZ_STATE, std::to_string(static_cast<int>(reportTask.state)),
-            BIZ_STAGE, std::to_string(static_cast<int>(reportTask.stage)),
-            STAGE_RES, std::to_string(static_cast<int>(reportTask.result)),
-            ERROR_CODE, std::to_string(dbDfxErrCode));
+            BIZ_SCENE, static_cast<int>(reportTask.scene),
+            BIZ_STATE, static_cast<int>(reportTask.state),
+            BIZ_STAGE, static_cast<int>(reportTask.stage),
+            STAGE_RES, static_cast<int>(reportTask.result),
+            ERROR_CODE, dbDfxErrCode);
     });
 }
 
