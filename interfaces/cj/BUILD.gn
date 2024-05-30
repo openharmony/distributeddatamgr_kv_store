@@ -57,6 +57,7 @@ ohos_shared_library("cj_distributed_kv_store_ffi") {
     sources =
         [ "../../kvstoremock/frameworks/cj/distributed_kv_store_mock.cpp" ]
   }
+  innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
