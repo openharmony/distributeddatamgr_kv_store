@@ -486,6 +486,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
      * @tc.expected: step4. success.
      */
     EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(observer->GetCallCount() == 1); // only A
     /**
      * @tc.steps: step5. deviceA have {k1,v1}
