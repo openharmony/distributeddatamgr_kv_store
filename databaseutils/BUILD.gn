@@ -31,7 +31,6 @@ base_sources = [ "src/acl.cpp" ]
 ohos_shared_library("database_utils") {
   branch_protector_ret = "pac_ret"
   sanitize = {
-    integer_overflow = true
     ubsan = true
     boundary_sanitize = true
     cfi = true
