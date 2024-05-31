@@ -53,6 +53,8 @@ group("build_module") {
 ohos_static_library("gaussdb_rd") {
   branch_protector_ret = "pac_ret"
   sanitize = {
+    ubsan = true
+    boundary_sanitize = true
     cfi = true
     cfi_cross_dso = true
     debug = false

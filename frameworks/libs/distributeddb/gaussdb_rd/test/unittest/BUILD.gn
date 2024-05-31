@@ -107,6 +107,16 @@ template("gaussdb_rd_unittest") {
       external_deps = []
     }
     configs = [ ":module_private_config" ]
+
+    branch_protector_ret = "pac_ret"
+    sanitize = {
+      ubsan = true
+      boundary_sanitize = true
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+
     deps += [
       ":src_file",
       "//third_party/googletest:gmock_main",
