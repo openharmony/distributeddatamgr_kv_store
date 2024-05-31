@@ -1612,10 +1612,11 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
     ASSERT_NE(kvStore, nullptr);
     BlockData<bool> blockData{ 1, false };
     std::function<void(Status, Value&&)> result = [&blockData](Status status, Value&& value) {
-        ASSERT_EQ(status, Status::NOT_SUPPORT);
+        ASSERT_EQ(status, Status::NOT_FOUND);
         blockData.SetValue(true);
     };
-    kvStore->Get({"key"}, "networkId", result);
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    kvStore->Get({"key"}, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
@@ -1647,10 +1648,11 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
     BlockData<bool> blockData{ 1, false };
     std::function<void(Status, std::vector<Entry>&&)> result =
         [&blockData](Status status, std::vector<Entry>&& value) {
-            ASSERT_EQ(status, Status::NOT_SUPPORT);
+            ASSERT_EQ(status, Status::SUCCESS);
             blockData.SetValue(true);
     };
-    kvStore->GetEntries({"key"}, "networkId", result);
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    kvStore->GetEntries({"key"}, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);

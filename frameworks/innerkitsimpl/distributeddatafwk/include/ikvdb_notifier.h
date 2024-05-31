@@ -31,7 +31,7 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreSyncCallback");
     virtual void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) = 0;
     virtual void SyncCompleted(uint64_t seqNum, ProgressDetail &&detail) = 0;
-    virtual void OnRemoteChange(const std::map<std::string, bool> &mask) = 0;
+    virtual void OnRemoteChange(const std::map<std::string, bool> &mask, int32_t dataType) = 0;
     virtual void OnSwitchChange(const SwitchNotification &notification) = 0;
 };
 } // namespace DistributedKv

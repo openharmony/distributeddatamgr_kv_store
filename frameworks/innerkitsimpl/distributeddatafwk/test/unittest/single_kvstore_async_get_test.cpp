@@ -181,8 +181,9 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValue, TestSize.Level1)
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(value.ToString(), "test_value");
     auto blockData = std::make_shared<BlockData<bool>>(1, false);
-    std::function<void(Status, Value&&)> call = [blockData](Status status, Value &&value) {
-        EXPECT_EQ(status, Status::NOT_SUPPORT);
+    std::function<void(Status, Value&&)> call = [blockData, value](Status status, Value &&out) {
+        EXPECT_EQ(status, Status::SUCCESS);
+        EXPECT_EQ(out.ToString(), value.ToString());
         blockData->SetValue(true);
     };
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
