@@ -429,7 +429,9 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
 
     std::string config = "{";
     config += InitRdConfig() + R"(, )";
-    config += R"("pageSize":)" + std::to_string(pageSize) + R"(, )";
+    config += option.isHashTable ?
+        R"("bufferPoolPolicy": "BUF_PRIORITY_NORMAL")" : R"("bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
+    config += R"(, "pageSize":)" + std::to_string(pageSize) + R"(, )";
     config += R"("bufferPoolSize":)" + std::to_string(cacheSize) + R"(, )";
     config += R"("redoPubBufSize":)" + std::to_string(cacheSize) + R"(, )";
     config += isSharedMode ? R"("sharedModeEnable": 1)" : R"("sharedModeEnable": 0)";
