@@ -101,18 +101,8 @@ ohos_shared_library("distributeddb") {
   configs = [ ":distrdb_config" ]
   public_configs = [ ":distrdb_public_config" ]
 
-  deps = [
-    "//third_party/sqlite:sqlite",
-    "//third_party/zlib:shared_libz",
-  ]
-
-  configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   cflags_cc = [ "-fvisibility=hidden" ]
-  deps += [
-    "gaussdb_rd:gaussdb_rd",
-    "//third_party/jsoncpp:jsoncpp",
-    "//third_party/openssl:libcrypto_shared",
-  ]
+  deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
     "c_utils:utils",
@@ -120,6 +110,13 @@ ohos_shared_library("distributeddb") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+  ]
+
+  public_external_deps = [
+    "jsoncpp:jsoncpp",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
+    "zlib:shared_libz",
   ]
 
   subsystem_name = "distributeddatamgr"

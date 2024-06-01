@@ -13,7 +13,6 @@
 
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
-import("//foundation/distributeddatamgr/data_share/datashare.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 base_output_path = get_label_info(":distributed_kvstore_js", "target_out_dir")
@@ -52,8 +51,6 @@ ohos_shared_library("distributedkvstore") {
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
-    "${datashare_innerapi_path}/common/include",
-    "${datashare_innerapi_path}/provider/include",
   ]
 
   sources = [
@@ -87,6 +84,11 @@ ohos_shared_library("distributedkvstore") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+  ]
+
+  public_external_deps = [
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
 
   subsystem_name = "distributeddatamgr"

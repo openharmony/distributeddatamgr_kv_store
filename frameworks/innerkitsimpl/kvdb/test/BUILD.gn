@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
-import("//foundation/distributeddatamgr/data_share/datashare.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
@@ -24,8 +23,6 @@ config("module_private_config") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
     "../../../../interfaces/innerkits/distributeddatamgr/include/",
     "//commonlibrary/c_utils/base/include",
-    "${datashare_innerapi_path}/common/include",
-    "${datashare_innerapi_path}/provider/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
@@ -102,6 +99,11 @@ ohos_source_set("kvdb_src_file") {
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+  ]
+
+  public_external_deps = [
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
 
   part_name = "kv_store"
