@@ -227,7 +227,13 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
     if (errCode != 0) {
         return 0;
     }
-    auto nativeKVStore = FFIData::Create<CJSingleKVStore>(sStoreId);
+    if (cjOptions.kvStoreType == 1) {
+        auto nativeKVStore = FFIData::Create<CJSingleKVStore>(sStoreId);
+        nativeKVStore->SetKvStorePtr(kvStore);
+        nativeKVStore->SetContextParam(param_);
+        return nativeKVStore->GetID();
+    }
+    auto nativeKVStore = FFIData::Create<CJDeviceKVStore>(sStoreId);
     nativeKVStore->SetKvStorePtr(kvStore);
     nativeKVStore->SetContextParam(param_);
     return nativeKVStore->GetID();
@@ -257,7 +263,7 @@ int32_t CJKVManager::DeleteKVStore(const char* appId, const char* storeId)
     return ConvertCJErrCode(status);
 }
 
-static CArrStr VectorAppIdToCArr(const std::vector<StoreId> storeIdList)
+static CArrStr VectorAppIdToCArr(const std::vector<StoreId>& storeIdList)
 {
     CArrStr strArray;
     strArray.size = static_cast<int64_t>(storeIdList.size());
@@ -429,7 +435,7 @@ CJDeviceKVStore::CJDeviceKVStore(const std::string& storeId)
 ValueType CJDeviceKVStore::Get(const std::string &deviceId, const std::string &key, int32_t& errCode)
 {
     std::string deviceKey = GetDeviceKey(deviceId, key);
-    auto s_key = DistributedKv::Key(key);
+    auto s_key = DistributedKv::Key(deviceKey);
     OHOS::DistributedKv::Value value;
     Status status = GetKvStorePtr()->Get(key, value);
     errCode = ConvertCJErrCode(status);
