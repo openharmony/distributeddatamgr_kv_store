@@ -1907,7 +1907,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         notifier->NotifyProcess(info, {}, true);
     }
     // generate compensated sync
-    if (!info.priorityTask) {
+    if (!info.compensatedTask) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo();
         GenerateCompensatedSync(taskInfo);
     }
