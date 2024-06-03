@@ -413,7 +413,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
         mode, key,
         [observer, storeId](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
-            LOGI("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(data);
         },
         errCode);
@@ -446,7 +446,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
     ObserverAction action = [observer, storeId](
                                 const std::string &device, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData) {
-            LOGI("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
         }
     };
