@@ -393,6 +393,10 @@ protected:
     bool IsQueryListEmpty(TaskId taskId);
 
     int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
+
+    bool IsLockInDownload();
+
+    CloudSyncEvent SetCurrentTaskFailedInMachine(int errCode);
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

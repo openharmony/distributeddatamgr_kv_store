@@ -121,7 +121,10 @@ enum class CloudQueryType : int64_t {
 
 enum class LockAction : uint32_t {
     NONE = 0,
-    INSERT = 1
+    INSERT = 0x1,
+    UPDATE = 0x2,
+    DELETE = 0x4,
+    DOWNLOAD = 0x8
 };
 
 enum CloudSyncState {
