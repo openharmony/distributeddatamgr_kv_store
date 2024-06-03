@@ -953,4 +953,21 @@ int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
     }
     return E_OK;
 }
+
+bool CloudSyncer::IsLockInDownload()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
+        return false;
+    }
+    auto currentLockAction = static_cast<uint32_t>(cloudTaskInfos_[currentContext_.currentTaskId].lockAction);
+    return (currentLockAction & static_cast<uint32_t>(LockAction::DOWNLOAD)) != 0;
+}
+
+CloudSyncEvent CloudSyncer::SetCurrentTaskFailedInMachine(int errCode)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+    return CloudSyncEvent::ERROR_EVENT;
+}
 }
