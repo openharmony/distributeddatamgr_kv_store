@@ -44,6 +44,7 @@ public:
     virtual Status AfterCreate(
         const AppId &appId, const StoreId &storeId, const Options &options, const std::vector<uint8_t> &password) = 0;
     virtual Status Delete(const AppId &appId, const StoreId &storeId) = 0;
+    virtual Status Close(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status SyncExt(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;

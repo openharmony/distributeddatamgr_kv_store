@@ -777,6 +777,10 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
 Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto service = KVDBServiceClient::GetInstance();
+    if (service != nullptr) {
+        service->Close({ appId_ }, { storeId_ });
+    }
     auto status = BackupManager::GetInstance().Restore(file, baseDir, appId_, storeId_, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
