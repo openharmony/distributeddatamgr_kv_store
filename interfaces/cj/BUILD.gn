@@ -41,6 +41,7 @@ ohos_shared_library("cj_distributed_kv_store_ffi") {
 
     external_deps = [
       "ability_base:want",
+      "ability_runtime:ability_connect_callback_stub",
       "ability_runtime:ability_manager",
       "ability_runtime:abilitykit_native",
       "ability_runtime:napi_base_context",
