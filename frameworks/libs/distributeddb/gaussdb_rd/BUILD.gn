@@ -92,21 +92,22 @@ ohos_static_library("gaussdb_rd") {
   configs = [ ":gaussdb_rd_config" ]
   public_configs = [ ":gaussdb_rd_public_config" ]
 
-  deps = [ "//third_party/sqlite:sqlite" ]
-
-  configs += [ "//third_party/cJSON:cJSON_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [
     "-fvisibility=hidden",
     "-std=c++17",
   ]
-  deps += [ "//third_party/cJSON:cjson" ]
 
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+  ]
+
+  public_external_deps = [
+    "cJSON:cjson",
+    "sqlite:sqlite",
   ]
 
   subsystem_name = "distributeddatamgr"
