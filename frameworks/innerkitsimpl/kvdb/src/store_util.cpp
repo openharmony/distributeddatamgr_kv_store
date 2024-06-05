@@ -168,9 +168,9 @@ bool StoreUtil::InitPath(const std::string &path)
 {
     umask(DEFAULT_UMASK);
     if (access(path.c_str(), F_OK) == 0) {
-        return true;
+        return RemoveRWXForOthers(path);
     }
-    if (mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0 && errno != EEXIST) {
+    if (mkdir(path.c_str(), (S_IRWXU | S_IRWXG)) != 0 && errno != EEXIST) {
         ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
         return false;
     }
@@ -184,7 +184,7 @@ bool StoreUtil::CreateFile(const std::string &name)
 {
     umask(DEFAULT_UMASK);
     if (access(name.c_str(), F_OK) == 0) {
-        return true;
+        return RemoveRWXForOthers(name);
     }
     int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP));
     if (fp < 0) {
@@ -288,5 +288,39 @@ uint64_t StoreUtil::GenSequenceId()
         return ++sequenceId_;
     }
     return seqId;
+}
+
+bool StoreUtil::RemoveRWXForOthers(const std::string &path)
+{
+    struct stat buf;
+    if (stat(path.c_str(), &buf) < 0) {
+        ZLOGI("stat error:%{public}d, path:%{public}s", errno, path.c_str());
+        return true;
+    }
+
+    if ((buf.st_mode & S_IRWXO) == 0) {
+        return true;
+    }
+
+    if (S_ISDIR(buf.st_mode)) {
+        DIR *dirp = opendir(path.c_str());
+        struct dirent *dp = nullptr;
+        while ((dp = readdir(dirp)) != nullptr) {
+            if ((std::string(dp->d_name) == ".") || (std::string(dp->d_name) == "..")) {
+                continue;
+            }
+            if (!RemoveRWXForOthers(path + "/" + dp->d_name)) {
+                closedir(dirp);
+                return false;
+            }
+        }
+        closedir(dirp);
+    }
+
+    if (chmod(path.c_str(), (buf.st_mode & ~S_IRWXO)) < 0) {
+        ZLOGE("chmod error:%{public}d, path:%{public}s", errno, path.c_str());
+        return false;
+    }
+    return true;
 }
 } // namespace OHOS::DistributedKv

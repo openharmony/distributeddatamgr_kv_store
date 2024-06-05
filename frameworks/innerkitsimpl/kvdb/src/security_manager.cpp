@@ -125,6 +125,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     if (!FileExists(keyPath)) {
         return {};
     }
+    StoreUtil::RemoveRWXForOthers(path);
 
     std::vector<char> content;
     auto loaded = LoadBufferFromFile(keyPath, content);
@@ -168,6 +169,9 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     content.insert(content.end(), secretKey.begin(), secretKey.end());
     auto keyFullPath = keyPath + "/" + name + ".key";
     auto ret = SaveBufferToFile(keyFullPath, content);
+    if (access(keyFullPath.c_str(), F_OK) == 0) {
+        StoreUtil::RemoveRWXForOthers(keyFullPath);
+    }
     content.assign(content.size(), 0);
     if (!ret) {
         ZLOGE("client SaveSecretKey failed!");
