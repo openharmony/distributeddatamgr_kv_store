@@ -194,6 +194,8 @@ public:
     static constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
 
     static constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
+
+    static constexpr const char *STORAGE_TYPE_LONG = "long";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

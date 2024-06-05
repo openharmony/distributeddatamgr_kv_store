@@ -670,4 +670,18 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest014, TestSize.Level0)
     EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_1, localSchema), E_OK);
     EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), E_OK);
 }
+
+/**
+ * @tc.name: FieldInfo001
+ * @tc.desc: Test Relational field info.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSchemaMgrTest, FieldInfo001, TestSize.Level0)
+{
+    FieldInfo fieldInfo;
+    fieldInfo.SetDataType("long");
+    EXPECT_EQ(fieldInfo.GetStorageType(), StorageType::STORAGE_TYPE_INTEGER);
+}
 }
