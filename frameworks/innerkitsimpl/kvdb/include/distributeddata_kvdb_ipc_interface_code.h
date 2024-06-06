@@ -46,6 +46,7 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_GET_SWITCH,
     TRANS_SUBSCRIBE_SWITCH_DATA,
     TRANS_UNSUBSCRIBE_SWITCH_DATA,
+    TRANS_CLOSE,
     TRANS_BUTT
 };
 
