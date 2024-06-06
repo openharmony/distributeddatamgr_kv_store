@@ -102,6 +102,8 @@ void FieldInfo::SetDataType(const std::string &dataType)
     std::transform(dataType_.begin(), dataType_.end(), dataType_.begin(), ::tolower);
     if (IsAssetType() || IsAssetsType()) {
         storageType_ = StorageType::STORAGE_TYPE_BLOB; // use for cloud sync
+    } else if (dataType_ == DBConstant::STORAGE_TYPE_LONG) {
+        storageType_ = StorageType::STORAGE_TYPE_INTEGER;
     } else {
         storageType_ = AffinityType(dataType_);
     }
