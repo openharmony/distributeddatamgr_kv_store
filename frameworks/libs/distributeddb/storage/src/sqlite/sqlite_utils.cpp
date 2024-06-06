@@ -49,6 +49,11 @@ namespace {
     const int USING_STR_LEN = -1;
     const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
     const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+    const int HEAD_SIZE = 3;
+    const int END_SIZE = 3;
+    constexpr int MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    const std::string REPLACE_CHAIN = "***";
+    const std::string DEFAULT_ANONYMOUS = "******";
     const std::string WAL_MODE_SQL = "PRAGMA journal_mode=WAL;";
     const std::string SYNC_MODE_FULL_SQL = "PRAGMA synchronous=FULL;";
     const std::string USER_VERSION_SQL = "PRAGMA user_version;";
@@ -96,10 +101,24 @@ std::string GetTriggerModeString(TriggerModeEnum mode)
 }
 }
 
+std::string SQLiteUtils::Anonymous(const std::string &name)
+{
+    if (name.length() <= HEAD_SIZE) {
+        return DEFAULT_ANONYMOUS;
+    }
+
+    if (name.length() < MIN_SIZE) {
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+    }
+
+    return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
+}
+
 void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
 {
     bool verboseLog = (data != nullptr);
     auto errType = static_cast<unsigned int>(err);
+    std::string logMsg = msg == nullptr ? "NULL" : msg;
     errType &= 0xFF;
     if (errType == 0 || errType == SQLITE_CONSTRAINT || errType == SQLITE_SCHEMA ||
         errType == SQLITE_NOTICE || err == SQLITE_WARNING_AUTOINDEX) {
@@ -108,9 +127,10 @@ void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
         }
     } else if (errType == SQLITE_WARNING || errType == SQLITE_IOERR ||
         errType == SQLITE_CORRUPT || errType == SQLITE_CANTOPEN) {
-        LOGI("[SQLite] Error[%d], sys[%d], %s", err, errno, sqlite3_errstr(err));
+        LOGI("[SQLite] Error[%d], sys[%d], %s, msg: %s ", err, errno,
+            sqlite3_errstr(err), SQLiteUtils::Anonymous(logMsg).c_str());
     } else {
-        LOGE("[SQLite] Error[%d], sys[%d]", err, errno);
+        LOGE("[SQLite] Error[%d], sys[%d], msg: %s ", err, errno, logMsg.c_str());
         return;
     }
 
