@@ -64,7 +64,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         }
         pwd.assign(pwd.size(), 0);
     }
-    if (status == SUCCESS && service != nullptr && options.dataType == DataType::TYPE_DYNAMICAL) {
+    if (status == SUCCESS && service != nullptr) {
         auto serviceAgent = service->GetServiceAgent(appId);
         if (serviceAgent == nullptr) {
             ZLOGE("invalid agent app:%{public}s", appId.appId.c_str());
