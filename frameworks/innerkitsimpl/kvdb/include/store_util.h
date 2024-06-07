@@ -49,6 +49,7 @@ public:
     static bool Remove(const std::string &path);
     static void Flush();
     static uint64_t GenSequenceId();
+    static bool RemoveRWXForOthers(const std::string &path);
 private:
     static std::atomic<uint64_t> sequenceId_;
 };

@@ -15,7 +15,9 @@
 
 #include "store_util.h"
 
+#include <fcntl.h>
 #include <gtest/gtest.h>
+#include <sys/stat.h>
 #include <vector>
 
 #include "store_manager.h"
@@ -128,5 +130,74 @@ HWTEST_F(StoreUtilTest, GetObserverMode, TestSize.Level1)
 
     mode = storeUtil_.GetObserverMode(SUBSCRIBE_TYPE_ALL);
     ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_FOREIGN | DistributedDB::OBSERVER_CHANGES_NATIVE);
+}
+/**
+* @tc.name: CheckPermissions001
+* @tc.desc: Check if the permissions for the first file creation are normal
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: Shao Yuanzhao
+*/
+HWTEST_F(StoreUtilTest, CheckPermissions001, TestSize.Level1)
+{
+    StoreUtil storeUtil_;
+    std::string path = "/data/store_utils_test1";
+    bool success = storeUtil_.InitPath(path);
+    ASSERT_TRUE(success);
+
+    struct stat buf;
+    int ret = stat(path.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_FALSE(buf.st_mode & S_IRWXO);
+
+    std::string fileName = path + "/test1.txt";
+    success = storeUtil_.CreateFile(fileName);
+    ASSERT_TRUE(success);
+    ret = stat(fileName.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_FALSE(buf.st_mode & S_IRWXO);
+
+    remove(fileName.c_str());
+    rmdir(path.c_str());
+}
+/**
+* @tc.name: CheckPermissions002
+* @tc.desc: Check if updating existing file permissions is correct
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: Shao Yuanzhao
+*/
+HWTEST_F(StoreUtilTest, CheckPermissions002, TestSize.Level1)
+{
+    std::string path = "/data/store_utils_test2";
+    int ret = mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+    struct stat buf;
+    ret = stat(path.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_TRUE(buf.st_mode & S_IRWXO);
+
+    StoreUtil storeUtil_;
+    bool success = storeUtil_.InitPath(path);
+    ASSERT_TRUE(success);
+    ret = stat(path.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_FALSE(buf.st_mode & S_IRWXO);
+
+    std::string fileName = path + "/test2.txt";
+    int fp = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
+    ASSERT_GE(fp, 0);
+    close(fp);
+    ret = stat(fileName.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_TRUE(buf.st_mode & S_IRWXO);
+
+    success = storeUtil_.CreateFile(fileName);
+    ASSERT_TRUE(success);
+    ret = stat(fileName.c_str(), &buf);
+    ASSERT_GE(ret, 0);
+    ASSERT_FALSE(buf.st_mode & S_IRWXO);
+
+    remove(fileName.c_str());
+    rmdir(path.c_str());
 }
 } // namespace OHOS::Test
