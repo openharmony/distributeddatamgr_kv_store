@@ -125,7 +125,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     if (!FileExists(keyPath)) {
         return {};
     }
-    StoreUtil::RemoveRWXForOthers(path);
+    StoreUtil::RemoveRWXForOthers(path + "/key");
 
     std::vector<char> content;
     auto loaded = LoadBufferFromFile(keyPath, content);
