@@ -315,7 +315,7 @@ public:
      * @param entries Entries will be returned in this parameter.
      * @return Return SUCCESS for success, others for failure.
     */
-    virtual Status GetDeviceEntries(const std::string &device, std::vector<Entry> &entries)
+    virtual Status GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
     {
         return Status::SUCCESS;
     }
