@@ -217,6 +217,9 @@ private:
     int GetEntriesInner(bool isGetValue, const IOption &option,
         const Key &keyPrefix, std::vector<Entry> &entries) const;
 
+    void RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
+        SQLiteSingleVerNaturalStore &naturalStore);
+
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 
     // ResultSet Related Info
