@@ -73,7 +73,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
-    insertTrigger += ", case when (SELECT count(1)<>0 FROM " + logTblName + ") then ";
+    insertTrigger += ", case when (SELECT MIN(_rowid_) IS NOT NULL FROM " + logTblName + ") then ";
     insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
     insertTrigger += " FROM " +  logTblName + ")";
     insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '', 0);\n";
