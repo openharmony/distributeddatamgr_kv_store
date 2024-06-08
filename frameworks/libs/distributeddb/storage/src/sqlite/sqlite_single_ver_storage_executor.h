@@ -188,6 +188,8 @@ public:
     int UpdateKey(const UpdateKeyCallback &callback);
 
     int CreateCloudLogTable();
+
+    int GetEntries(const std::string &device, std::vector<Entry> &entries) const;
 protected:
     virtual int SaveKvData(SingleVerDataType type, const Key &key, const Value &value, Timestamp timestamp);
 

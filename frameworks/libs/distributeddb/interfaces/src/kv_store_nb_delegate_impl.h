@@ -180,6 +180,8 @@ public:
     DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

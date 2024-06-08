@@ -1221,4 +1221,18 @@ DBStatus KvStoreNbDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config
     LOGI("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
     return TransferDBErrno(errCode);
 }
+
+DBStatus KvStoreNbDelegateImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->GetEntries(device, entries);
+    if (errCode == E_OK) {
+        return OK;
+    }
+    LOGE("[KvStoreNbDelegate] Get the entries failed:%d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

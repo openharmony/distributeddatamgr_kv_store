@@ -1934,6 +1934,40 @@ int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &de
     return naturalStore->GetCloudVersion(device, versionMap);
 }
 
+int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    int errCode = CheckReadDataControlled();
+    if (errCode != E_OK) {
+        LOGE("[GetEntries] Existed cache database can not read data, errCode = [%d]!", errCode);
+        return errCode;
+    }
+    std::string localId;
+    errCode = RuntimeContext::GetInstance()->GetLocalIdentity(localId);
+    std::string getDevice;
+    // if device is local, just search with empty string
+    if (errCode != E_OK || localId != device) {
+        getDevice = device;
+    }
+    {
+        std::lock_guard<std::mutex> lock(transactionMutex_);
+        if (writeHandle_ != nullptr) {
+            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
+            errCode = writeHandle_->GetEntries(device, entries);
+            return errCode;
+        }
+    }
+
+    SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[SQLiteSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+
+    errCode = handle->GetEntries(device, entries);
+    ReleaseExecutor(handle);
+    return errCode;
+}
+
 int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();

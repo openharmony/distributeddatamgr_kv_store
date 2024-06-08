@@ -163,6 +163,8 @@ public:
     virtual int SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
 
     virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
+
+    virtual int GetEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
 };
 } // namespace DistributedDB
 

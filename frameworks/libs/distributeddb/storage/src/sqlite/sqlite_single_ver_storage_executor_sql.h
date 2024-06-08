@@ -345,6 +345,9 @@ namespace DistributedDB {
 
     constexpr const char *UPDATE_TIMESTAMP = "UPDATE sync_data SET timestamp=?, modify_time=? WHERE hash_key=?";
 
+    constexpr const char *SELECT_SYNC_ENTRIES_BY_DEVICE_SQL =
+        "SELECT key,value FROM sync_data WHERE device=? AND flag&0x200=0";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;
@@ -426,7 +429,8 @@ namespace DistributedDB {
 
     constexpr int BIND_CLOUD_VERSION_RECORD_USER_INDEX = 1;
     constexpr int BIND_CLOUD_VERSION_RECORD_KEY_INDEX = 2;
-
+    
+    constexpr int BIND_GET_ENTRIES_DEVICE_INDEX = 1;
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB
 

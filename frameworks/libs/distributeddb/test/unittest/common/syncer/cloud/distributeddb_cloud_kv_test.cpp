@@ -261,6 +261,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
      * @tc.steps: step1. store1 put (k1,v1) store2 put (k2,v2)
      * @tc.expected: step1. both put ok
      */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
     Key key1 = {'k', '1'};
     Value expectValue1 = {'v', '1'};
     Key key2 = {'k', '2'};
@@ -273,10 +274,15 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
      */
     BlockSync(kvDelegatePtrS1_, OK);
     LOGW("Store1 sync end");
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
     BlockSync(kvDelegatePtrS2_, OK);
     LOGW("Store2 sync end");
     Value actualValue;
     EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue), OK);
+    std::vector<Entry> entries;
+    EXPECT_EQ(kvDelegatePtrS2_->GetDeviceEntries(std::string("DEVICES_A"), entries), OK);
+    EXPECT_EQ(entries.size(), 1u); // 1 record
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
     EXPECT_EQ(actualValue, expectValue1);
     EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
     /**
