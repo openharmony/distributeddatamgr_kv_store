@@ -429,7 +429,6 @@ namespace DistributedDB {
 
     constexpr int BIND_CLOUD_VERSION_RECORD_USER_INDEX = 1;
     constexpr int BIND_CLOUD_VERSION_RECORD_KEY_INDEX = 2;
-    
     constexpr int BIND_GET_ENTRIES_DEVICE_INDEX = 1;
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB
