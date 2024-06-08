@@ -315,7 +315,10 @@ public:
      * @param entries Entries will be returned in this parameter.
      * @return Return SUCCESS for success, others for failure.
     */
-    virtual Status GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
+    virtual Status GetDeviceEntries(const std::string &device, std::vector<Entry> &entries)
+    {
+        return Status::SUCCESS;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
