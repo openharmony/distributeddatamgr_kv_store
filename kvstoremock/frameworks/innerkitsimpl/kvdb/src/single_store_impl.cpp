@@ -442,6 +442,12 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
 {
     return SERVER_UNAVAILABLE;
 }
+
+Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    return SUCCESS;
+}
+
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)
 {
     return SERVER_UNAVAILABLE;

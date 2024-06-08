@@ -490,6 +490,36 @@ Status SingleStoreImpl::GetResultSet(const Key &prefix, std::shared_ptr<ResultSe
     return status;
 }
 
+Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
+    if (device.empty()) {
+        ZLOGE("no devices");
+        return INVALID_ARGUMENT;
+    }
+    std::vector<DBEntry> dbEntries;
+    std::string devId;
+    auto dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
+    entries.resize(dbEntries.size());
+    auto it = entries.begin();
+    for (auto &dbEntry : dbEntries) {
+        auto &entry = *it;
+        entry.key = convertor_.ToKey(std::move(dbEntry.key), devId);
+        entry.value = std::move(dbEntry.value);
+        ++it;
+    }
+
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status == NOT_FOUND) {
+        status = SUCCESS;
+    }
+    return status;
+}
+
 Status SingleStoreImpl::GetResultSet(const DataQuery &query, std::shared_ptr<ResultSet> &resultSet) const
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));

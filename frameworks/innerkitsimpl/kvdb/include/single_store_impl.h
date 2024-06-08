@@ -65,6 +65,7 @@ public:
         const std::function<void(Status, std::vector<Entry> &&)> &onResult) override;
     Status GetEntries(const Key &prefix, std::vector<Entry> &entries) const override;
     Status GetEntries(const DataQuery &query, std::vector<Entry> &entries) const override;
+    Status GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const override;
     Status GetResultSet(const Key &prefix, std::shared_ptr<ResultSet> &resultSet) const override;
     Status GetResultSet(const DataQuery &query, std::shared_ptr<ResultSet> &resultSet) const override;
     Status CloseResultSet(std::shared_ptr<ResultSet> &resultSet) override;
