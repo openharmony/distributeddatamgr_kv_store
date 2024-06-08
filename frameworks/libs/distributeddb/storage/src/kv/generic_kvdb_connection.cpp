@@ -440,4 +440,9 @@ int GenericKvDBConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::GetEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    return -E_NOT_SUPPORT;
+}
 }

@@ -117,6 +117,8 @@ public:
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    int GetEntries(const std::string &device, std::vector<Entry> &entries) const override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

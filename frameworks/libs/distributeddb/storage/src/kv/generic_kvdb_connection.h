@@ -106,6 +106,8 @@ public:
     int SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    int GetEntries(const std::string &device, std::vector<Entry> &entries) const override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

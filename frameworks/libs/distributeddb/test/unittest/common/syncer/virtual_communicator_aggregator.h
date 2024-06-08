@@ -89,6 +89,8 @@ public:
 
     void RegBeforeDispatch(const std::function<void(const std::string &, const Message *)> &beforeDispatch);
 
+    void SetLocalDeviceId(const std::string &deviceId);
+
     ~VirtualCommunicatorAggregator() override = default;
     VirtualCommunicatorAggregator() = default;
 
@@ -116,6 +118,9 @@ private:
     uint32_t delayTimes_ = 0; // ms
     uint32_t skipTimes_ = 0;
     std::set<std::string> delayDevices_;
+
+    mutable std::mutex localDeviceIdMutex_;
+    std::string localDeviceId_;
 };
 } // namespace DistributedDB
 

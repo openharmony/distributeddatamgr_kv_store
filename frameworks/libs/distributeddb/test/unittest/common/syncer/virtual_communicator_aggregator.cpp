@@ -100,8 +100,19 @@ void VirtualCommunicatorAggregator::RunOnConnectCallback(const std::string &targ
 
 int VirtualCommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
 {
-    outTarget = "DEVICES_A";
+    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
+    if (localDeviceId_.empty()) {
+        outTarget = "DEVICES_A";
+    } else {
+        outTarget = localDeviceId_;
+    }
     return E_OK;
+}
+
+void VirtualCommunicatorAggregator::SetLocalDeviceId(const std::string &deviceId)
+{
+    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
+    localDeviceId_ = deviceId;
 }
 
 void VirtualCommunicatorAggregator::OnlineDevice(const std::string &deviceId) const

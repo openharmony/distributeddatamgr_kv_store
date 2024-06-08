@@ -21,6 +21,7 @@
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "res_finalizer.h"
 #include "parcel.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
@@ -247,5 +248,38 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
         return CheckCorruptedStatus(errCode);
     }
     return CheckCorruptedStatus(RemoveDeviceDataWithUserInner(deviceName, user, mode));
+}
+
+int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    const std::string sql = SELECT_SYNC_ENTRIES_BY_DEVICE_SQL;
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageExecutor] Get entries by device statement failed:%d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SQLiteSingleVerStorageExecutor] Reset get entries statement failed:%d", ret);
+        }
+    });
+    auto hashDev = DBCommon::TransferHashString(device);
+    Value blobDev;
+    DBCommon::StringToVector(hashDev, blobDev);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, BIND_GET_ENTRIES_DEVICE_INDEX, blobDev);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageExecutor] Bind hash device to statement failed:%d", errCode);
+        return errCode;
+    }
+    errCode = StepForResultEntries(true, stmt, entries);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    LOGD("[SQLiteSingleVerStorageExecutor] Get %zu entries by device", entries.size());
+    return errCode;
 }
 } // namespace DistributedDB
