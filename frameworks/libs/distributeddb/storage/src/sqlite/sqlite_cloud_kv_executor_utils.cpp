@@ -16,6 +16,7 @@
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
+#include "db_base64_utils.h"
 #include "db_common.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
@@ -163,9 +164,12 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     }
     std::string tmp = std::string(blob.begin(), blob.end());
     if ((keyStr == CloudDbConstant::CLOUD_KV_FIELD_DEVICE ||
-        keyStr == CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE) && tmp.empty()) {
-        (void)RuntimeContext::GetInstance()->GetLocalIdentity(tmp);
-        tmp = DBCommon::TransferHashString(tmp);
+        keyStr == CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE)) {
+        if (tmp.empty()) {
+            (void)RuntimeContext::GetInstance()->GetLocalIdentity(tmp);
+            tmp = DBCommon::TransferHashString(tmp);
+        }
+        tmp = DBBase64Utils::Encode(std::vector<uint8_t>(tmp.begin(), tmp.end()));
     }
     totalSize += tmp.size();
     data.insert_or_assign(keyStr, tmp);
@@ -841,8 +845,16 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     std::string dev;
     (void)RuntimeContext::GetInstance()->GetLocalIdentity(dev);
     dev = DBCommon::TransferHashString(dev);
+    auto decodeDevice = DBBase64Utils::Decode(dataItem.dev);
+    if (!decodeDevice.empty()) {
+        dataItem.dev = std::string(decodeDevice.begin(), decodeDevice.end());
+    }
     if (dataItem.dev == dev) {
         dataItem.dev = "";
+    }
+    decodeDevice = DBBase64Utils::Decode(dataItem.origDev);
+    if (!decodeDevice.empty()) {
+        dataItem.origDev = std::string(decodeDevice.begin(), decodeDevice.end());
     }
     if (dataItem.origDev == dev) {
         dataItem.origDev = "";

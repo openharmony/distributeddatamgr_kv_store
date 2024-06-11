@@ -21,6 +21,7 @@ distributeddb_src = [
   "${distributeddb_path}/common/src/data_compression.cpp",
   "${distributeddb_path}/common/src/data_value.cpp",
   "${distributeddb_path}/common/src/db_common.cpp",
+  "${distributeddb_path}/common/src/db_base64_utils.cpp",
   "${distributeddb_path}/common/src/db_constant.cpp",
   "${distributeddb_path}/common/src/db_dfx_adapter.cpp",
   "${distributeddb_path}/common/src/db_dump_helper.cpp",
