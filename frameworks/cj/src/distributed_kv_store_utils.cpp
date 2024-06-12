@@ -23,7 +23,7 @@ namespace DistributedKVStore {
             return nullptr;
         }
         auto len = origin.length() + 1;
-        char* res = (char*)malloc(sizeof(char) * len);
+        char* res = static_cast<char*>(malloc(sizeof(char) * len));
         if (res == nullptr) {
             return nullptr;
         }
