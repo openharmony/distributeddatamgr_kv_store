@@ -450,6 +450,8 @@ int SqliteCloudKvExecutorUtils::BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *da
             return BindUpdateStmt(logStmt, dataStmt, downloadData.user, dataItem);
         case OpType::DELETE:
             dataItem.hashKey = downloadData.existDataHashKey[index];
+            dataItem.gid.clear();
+            dataItem.version.clear();
             return BindDeleteStmt(logStmt, dataStmt, downloadData.user, dataItem);
         default:
             return E_OK;
@@ -698,7 +700,7 @@ int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, i
         return res.first;
     }
     bool clearCloudInfo = (op == OpType::CLEAR_GID);
-    if (res.second.hashKey.empty()) {
+    if (res.second.hashKey.empty() || DBCommon::IsRecordDelete(downloadData.data[index])) {
         res.second.hashKey = downloadData.existDataHashKey[index];
         clearCloudInfo = true;
     }

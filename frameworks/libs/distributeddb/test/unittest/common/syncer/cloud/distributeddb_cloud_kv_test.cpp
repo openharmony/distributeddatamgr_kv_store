@@ -561,6 +561,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level0)
         }
     });
     BlockSync(kvDelegatePtrS1_, OK);
+    virtualCloudDb_->SetInsertHook(nullptr);
 }
 
 /**
@@ -598,6 +599,67 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync019, TestSize.Level0)
     VirtualDataItem dataItem;
     deviceB_->GetData(k1, dataItem);
     EXPECT_EQ(dataItem.timestamp, dataItem.writeTimestamp);
+}
+
+/**
+ * @tc.name: NormalSync023
+ * @tc.desc: Test normal local delete before cloud delete.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync023, TestSize.Level0)
+{
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    ASSERT_EQ(kvDelegatePtrS2_->Delete(k1), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(k1), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+}
+
+/**
+ * @tc.name: NormalSync024
+ * @tc.desc: Test duplicate addition, deletion, and sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync024, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Device A inserts data and synchronizes, then Device B synchronizes.
+     * @tc.expected: step1 OK.
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    /**
+     * @tc.steps:step2. Device A deletes data and synchronizes, then Device B synchronizes.
+     * @tc.expected: step2 OK.
+     */
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(key), OK);
+    BlockSync(kvDelegatePtrS1_, OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    /**
+     * @tc.steps:step3. Device B inserts data and synchronizes it.
+     * @tc.expected: step3 OK.
+     */
+    int insertNum = 0;
+    virtualCloudDb_->SetInsertHook([&insertNum](VBucket &record) {
+        insertNum++;
+    });
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS2_, OK);
+    EXPECT_TRUE(insertNum > 0);
+    virtualCloudDb_->SetInsertHook(nullptr);
 }
 
 void DistributedDBCloudKvTest::SetFlag(const Key &key, bool isCloudFlag)

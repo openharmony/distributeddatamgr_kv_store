@@ -317,7 +317,8 @@ namespace DistributedDB {
         " AS log_table ON sync_data.hash_key = log_table.hash_key ";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_CONDITION =
-        "WHERE modify_time > ? AND (cloud_gid is not null or (cloud_gid is null and flag&0x01=0)) AND flag&0x200=0";
+        "WHERE modify_time > ? AND ((cloud_gid is not null and cloud_gid != '') OR "
+        "((cloud_gid is null OR cloud_gid = '') and flag&0x01=0)) AND flag&0x200=0";
 
     constexpr const char *QUERY_CLOUD_VERSION_RECORD_CONDITION = "WHERE key = ? AND flag & 0x200 != 0";
 

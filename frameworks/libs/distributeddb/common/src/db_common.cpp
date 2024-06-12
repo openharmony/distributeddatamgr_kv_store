@@ -636,6 +636,17 @@ bool DBCommon::IsRecordVersionConflict(const VBucket &record)
     return status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
 }
 
+bool DBCommon::IsRecordDelete(const VBucket &record)
+{
+    if (record.find(CloudDbConstant::DELETE_FIELD) == record.end()) {
+        return false;
+    }
+    if (record.at(CloudDbConstant::DELETE_FIELD).index() != TYPE_INDEX<bool>) {
+        return false;
+    }
+    return std::get<bool>(record.at(CloudDbConstant::DELETE_FIELD));
+}
+
 std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
 {
     if (dbInfo.syncDualTupleMode) {
