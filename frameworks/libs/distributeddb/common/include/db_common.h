@@ -110,6 +110,8 @@ public:
 
     static bool IsRecordVersionConflict(const VBucket &record);
 
+    static bool IsRecordDelete(const VBucket &record);
+
     static std::string GenerateHashLabel(const DBInfo &dbInfo);
 
     static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
