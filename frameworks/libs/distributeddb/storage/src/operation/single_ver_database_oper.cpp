@@ -181,7 +181,7 @@ int SingleVerDatabaseOper::ExportMainDB(const std::string &currentDir, const Cip
     CipherType cipherType;
     CipherPassword currPasswd;
     singleVerNaturalStore_->GetDbProperties().GetPassword(cipherType, currPasswd);
-    LOGI("Begin the sqlite main database export!");
+    LOGD("Begin the sqlite main database export!");
     int errCode = SQLiteUtils::ExportDatabase(currentDb, cipherType, currPasswd, backupDbName, passwd);
     if (errCode != E_OK) {
         LOGE("Export the database failed:%d", errCode);

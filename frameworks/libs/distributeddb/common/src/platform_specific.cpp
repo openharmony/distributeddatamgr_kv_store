@@ -78,7 +78,7 @@ int RemoveFile(const std::string &filePath)
         LOGE("[RemoveFile] Remove file fail %s %d err = %d", filePath.c_str(), errCode, errno);
         return -E_SYSTEM_API_FAIL;
     }
-    LOGI("Remove file successfully!");
+    LOGD("Remove file successfully!");
     return E_OK;
 }
 
@@ -398,7 +398,7 @@ int RemoveFile(const std::string &filePath)
         LOGE("[RemoveFile] Remove file fail. err = %d", errno);
         return -E_SYSTEM_API_FAIL;
     }
-    LOGI("Remove file successfully!");
+    LOGD("Remove file successfully!");
     return E_OK;
 }
 

@@ -708,7 +708,7 @@ int Metadata::ClearAllMetaDataValue(uint32_t innerClearAction)
         }
     }
     if (errCode == E_OK) {
-        LOGI("[Metadata][ClearAllMetaDataValue] success clear action %" PRIu32, innerClearAction);
+        LOGD("[Metadata][ClearAllMetaDataValue] success clear action %" PRIu32, innerClearAction);
     }
     return errCode;
 }
