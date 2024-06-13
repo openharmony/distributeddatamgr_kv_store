@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <thread>
 
+#include "data_compression.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "generic_single_ver_kv_entry.h"
@@ -452,11 +453,18 @@ int VirtualSingleVerSyncDBInterface::DeleteMetaDataByPrefixKey(const Key &keyPre
 
 int VirtualSingleVerSyncDBInterface::GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const
 {
+    if (compressSync_) {
+        needCompressOnSync = true;
+        compressionRate = 100; // compress rate 100
+    }
     return E_OK;
 }
 
 int VirtualSingleVerSyncDBInterface::GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmSet) const
 {
+    if (compressSync_) {
+        DataCompression::GetCompressionAlgo(algorithmSet);
+    }
     return E_OK;
 }
 
@@ -612,5 +620,10 @@ void VirtualSingleVerSyncDBInterface::SetPushNotifier(const std::function<void(c
 {
     std::lock_guard<std::mutex> autoLock(pushNotifierMutex_);
     pushNotifier_ = pushNotifier;
+}
+
+void VirtualSingleVerSyncDBInterface::SetCompressSync(bool compressSync)
+{
+    compressSync_ = compressSync;
 }
 }  // namespace DistributedDB

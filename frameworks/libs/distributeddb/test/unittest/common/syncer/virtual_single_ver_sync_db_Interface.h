@@ -147,6 +147,8 @@ public:
     void ForkGetSecurityOption(std::function<int(SecurityOption &)> callBack);
 
     void SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier);
+
+    void SetCompressSync(bool compressSync);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
         std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const;
@@ -190,6 +192,8 @@ private:
 
     mutable std::mutex pushNotifierMutex_;
     std::function<void(const std::string &)> pushNotifier_;
+
+    bool compressSync_ = false;
 };
 }  // namespace DistributedDB
 
