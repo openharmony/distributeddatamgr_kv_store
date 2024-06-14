@@ -1039,7 +1039,8 @@ void SingleStoreImpl::OnRemoteDied()
         return;
     }
     observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
-        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) {
+        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE ||
+            (pair.first & SUBSCRIBE_TYPE_CLOUD) == SUBSCRIBE_TYPE_CLOUD) {
             pair.second->OnServiceDeath();
         }
         return false;
