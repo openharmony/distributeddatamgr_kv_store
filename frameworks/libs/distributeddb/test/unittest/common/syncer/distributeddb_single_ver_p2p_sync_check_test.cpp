@@ -473,6 +473,45 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck007, TestSize.Lev
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
+/**
+ * @tc.name: SecOptionCheck008
+ * @tc.desc: pull compress sync when check device ability fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck008, TestSize.Level0)
+{
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    auto deviceB = g_deviceB->GetDeviceId();
+    adapter->ForkCheckDeviceSecurityAbility([deviceB](const std::string &dev, const SecurityOption &) {
+        if (dev != "real_device") {
+            return true;
+        }
+        return false;
+    });
+    g_syncInterfaceB->ForkGetSecurityOption([](SecurityOption &option) {
+        option.securityLabel = SecurityLabel::S3;
+        option.securityFlag = SecurityFlag::SECE;
+        return E_OK;
+    });
+    g_syncInterfaceB->SetCompressSync(true);
+    std::vector<std::string> devices;
+    devices.push_back(deviceB);
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+    EXPECT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_EQ(pair.second, SECURITY_OPTION_CHECK_ERROR);
+    }
+
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(std::make_shared<ProcessSystemApiAdapterImpl>());
+    g_syncInterfaceB->ForkGetSecurityOption(nullptr);
+    g_syncInterfaceB->SetCompressSync(false);
+}
+
 #ifndef LOW_LEVEL_MEM_DEV
 /**
  * @tc.name: BigDataSync001

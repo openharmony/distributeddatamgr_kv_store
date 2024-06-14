@@ -693,7 +693,8 @@ void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleV
     packet->SetQuery(context->GetQuery());
     packet->SetQueryId(context->GetQuerySyncId());
     CompressAlgorithm curAlgo = context->ChooseCompressAlgo();
-    if (needCompressOnSync && curAlgo != CompressAlgorithm::NONE) {
+    // empty compress data should not mark compress
+    if (!syncData.compressedEntries.empty() && needCompressOnSync && curAlgo != CompressAlgorithm::NONE) {
         packet->SetCompressDataMark();
         packet->SetCompressAlgo(curAlgo);
     }
