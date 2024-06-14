@@ -851,7 +851,10 @@ DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, 
     if (errCode == E_OK) {
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
+
+    if (errCode != -E_NOT_FOUND) {
+        LOGW("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
+    }
     return TransferDBErrno(errCode);
 }
 

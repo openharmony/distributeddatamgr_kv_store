@@ -1452,7 +1452,7 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
         ReleaseHandle(handle);
         return errCode;
     }
-    LOGI("Begin export the kv store");
+    LOGD("Begin export the kv store");
     errCode = operation->Export(filePath, passwd);
 
     ReEnableConnection(OperatePerm::NORMAL_WRITE);

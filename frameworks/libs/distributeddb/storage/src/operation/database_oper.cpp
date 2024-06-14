@@ -567,7 +567,7 @@ int DatabaseOper::ClearExportedTempFiles(const KvDBProperties &property) const
 int DatabaseOper::PackExportedDatabase(const std::string &fileDir, const std::string &packedFile,
     const KvDBProperties &property) const
 {
-    LOGI("Pack the exported database.");
+    LOGD("Pack the exported database.");
     int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     FileInfo fileInfo = {static_cast<uint32_t>(databaseType), deviceId_};
     int errCode = PackageFile::PackageFiles(fileDir, packedFile, fileInfo);
