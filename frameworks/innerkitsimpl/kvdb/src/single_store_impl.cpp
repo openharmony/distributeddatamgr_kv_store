@@ -340,38 +340,18 @@ void SingleStoreImpl::Get(const Key &key, const std::string &networkId,
     const std::function<void(Status, Value &&)> &onResult)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
-        Value value;
-        auto status = Get(key, value);
-        onResult(status, std::move(value));
-        return;
-    }
-    uint64_t sequenceId = StoreUtil::GenSequenceId();
-    asyncFuncs_.Insert(sequenceId, { .key = key, .toGet = onResult });
-    auto result = SyncExt(networkId, sequenceId);
-    if (result != SUCCESS) {
-        asyncFuncs_.Erase(sequenceId);
-        onResult(result, Value());
-    }
+    Value value;
+    auto status = Get(key, value);
+    onResult(status, std::move(value));
 }
 
 void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId,
     const std::function<void(Status, std::vector<Entry> &&)> &onResult)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (networkId == DevManager::GetInstance().GetLocalDevice().networkId || !IsRemoteChanged(networkId)) {
-        std::vector<Entry> entries;
-        auto status = GetEntries(prefix, entries);
-        onResult(status, std::move(entries));
-        return;
-    }
-    uint64_t sequenceId = StoreUtil::GenSequenceId();
-    asyncFuncs_.Insert(sequenceId, { .key = prefix, .toGetEntries = onResult });
-    auto result = SyncExt(networkId, sequenceId);
-    if (result != SUCCESS) {
-        asyncFuncs_.Erase(sequenceId);
-        onResult(result, {});
-    }
+    std::vector<Entry> entries;
+    auto status = GetEntries(prefix, entries);
+    onResult(status, std::move(entries));
 }
 
 Status SingleStoreImpl::SyncExt(const std::string &networkId, uint64_t sequenceId)
