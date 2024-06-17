@@ -998,6 +998,15 @@ Status SingleStoreImpl::DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallba
     return status;
 }
 
+Status SingleStoreImpl::SetOptions(const Options &options)
+{
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        return SERVER_UNAVAILABLE;
+    }
+    return service->SetOptions({ appId_ }, { storeId_ }, options);
+}
+
 void SingleStoreImpl::DoNotifyChange()
 {
     if (!autoSync_ && !cloudAutoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {

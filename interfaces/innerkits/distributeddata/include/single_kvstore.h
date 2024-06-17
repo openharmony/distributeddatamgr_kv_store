@@ -319,6 +319,18 @@ public:
     {
         return Status::SUCCESS;
     }
+
+    /**
+     * @brief set option of store.
+     *
+     * set option of store
+     *
+     * @return Return SUCCESS for success, others for failure.
+     */
+    virtual Status SetOptions(const Options &options)
+    {
+        return Status::SUCCESS;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
