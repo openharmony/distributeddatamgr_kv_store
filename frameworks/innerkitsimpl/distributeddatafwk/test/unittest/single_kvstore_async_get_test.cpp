@@ -312,5 +312,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetEntriesWithLocalNetworkId, TestSize.
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
     singleKvStore->GetEntries("prefix_of_", devInfo.networkId, call);
     EXPECT_EQ(blockData->GetValue(), true);
+    auto ret = singleKvStore->GetDeviceEntries("test_device_1", results);
+    EXPECT_EQ(ret, Status::SUCCESS);
 }
 } // namespace OHOS::Test
