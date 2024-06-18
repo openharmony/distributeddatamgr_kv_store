@@ -1740,4 +1740,33 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 }
+
+/**
+ * @tc.name: SetConfig
+ * @tc.desc: SetConfig
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
+HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SetConfigTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    options.cloudConfig.enableCloud = false;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    StoreConfig storeConfig;
+    storeConfig.cloudConfig.enableCloud = true;
+    ASSERT_EQ(kvStore->SetConfig(storeConfig), Status::SUCCESS);
+}
 } // namespace OHOS::Test

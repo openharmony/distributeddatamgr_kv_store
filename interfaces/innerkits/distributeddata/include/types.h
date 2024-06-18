@@ -655,6 +655,16 @@ struct SwitchNotification {
     */
     SwitchState state = SwitchState::INSERT;
 };
+
+/**
+ * @brief Set config of kv store.
+ */
+struct StoreConfig {
+    /**
+     * Set cloud config of kv store.
+     */
+    CloudConfig cloudConfig;
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H
