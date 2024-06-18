@@ -535,6 +535,7 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.users = option.users;
     info.lockAction = option.lockAction;
     info.storeId = MyProp().GetStringProp(DBProperties::STORE_ID, "");
+    info.merge = option.merge;
 }
 
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
