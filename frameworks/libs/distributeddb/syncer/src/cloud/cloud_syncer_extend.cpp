@@ -900,12 +900,10 @@ int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
     WaterMark waterMark;
     CloudSyncUtils::GetWaterMarkAndUpdateTime(batchData.extend, waterMark);
     errCode = isInsert ? BatchInsert(info, uploadData, processInfo) : BatchUpdate(info, uploadData, processInfo);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     batchData.record = copyRecord;
     CloudSyncUtils::ModifyCloudDataTime(batchData.extend[0]);
-    return storageProxy_->FillCloudLogAndAsset(isInsert ? OpType::INSERT : OpType::UPDATE, uploadData);
+    auto ret = storageProxy_->FillCloudLogAndAsset(isInsert ? OpType::INSERT : OpType::UPDATE, uploadData);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
