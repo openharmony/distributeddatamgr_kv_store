@@ -1742,17 +1742,17 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
 }
 
 /**
- * @tc.name: SetOptions
- * @tc.desc: SetOptions
+ * @tc.name: SetConfig
+ * @tc.desc: SetConfig
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: ht
  */
-HWTEST_F(SingleStoreImplTest, SetOptions, TestSize.Level0)
+HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
 {
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     AppId appId = { "SingleStoreImplTest" };
-    StoreId storeId = { "SetOptionsTest" };
+    StoreId storeId = { "SetConfigTest" };
     std::shared_ptr<SingleKvStore> kvStore;
     Options options;
     options.kvStoreType = SINGLE_VERSION;
@@ -1765,9 +1765,8 @@ HWTEST_F(SingleStoreImplTest, SetOptions, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    options.cloudConfig.enableCloud = true;
-    ASSERT_EQ(kvStore->SetOptions(options), Status::SUCCESS);
-    options.kvStoreType = DistributedKv::DEVICE_COLLABORATION;
-    ASSERT_EQ(kvStore->SetOptions(options), Status::STORE_META_CHANGED);
+    StoreConfig storeConfig;
+    storeConfig.cloudConfig.enableCloud = true;
+    ASSERT_EQ(kvStore->SetConfig(storeConfig), Status::SUCCESS);
 }
 } // namespace OHOS::Test

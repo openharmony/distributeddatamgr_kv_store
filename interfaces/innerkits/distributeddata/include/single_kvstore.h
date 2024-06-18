@@ -327,7 +327,7 @@ public:
      *
      * @return Return SUCCESS for success, others for failure.
      */
-    virtual Status SetOptions(const Options &options)
+    virtual Status SetConfig(const StoreConfig &storeConfig)
     {
         return Status::SUCCESS;
     }

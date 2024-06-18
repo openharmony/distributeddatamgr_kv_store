@@ -246,6 +246,28 @@ bool Unmarshalling(Statistic &output, MessageParcel &data)
     return Unmarshal(data, output.total, output.success, output.failed, output.untreated);
 }
 
+template<>
+bool Marshalling(const CloudConfig &input, MessageParcel &data)
+{
+    return Marshal(data, input.enableCloud, input.autoSync);
+}
+template<>
+bool Unmarshalling(CloudConfig &output, MessageParcel &data)
+{
+    return Unmarshal(data, output.enableCloud, output.autoSync);
+}
+
+template<>
+bool Marshalling(const StoreConfig &input, MessageParcel &data)
+{
+    return Marshal(data, input.cloudConfig);
+}
+template<>
+bool Unmarshalling(StoreConfig &output, MessageParcel &data)
+{
+    return Unmarshal(data, output.cloudConfig);
+}
+
 int64_t GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;

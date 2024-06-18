@@ -425,11 +425,11 @@ Status KVDBServiceClient::UnsubscribeSwitchData(const AppId &appId)
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::SetOptions(const AppId &appId, const StoreId &storeId, const Options &options)
+Status KVDBServiceClient::SetConfig(const AppId &appId, const StoreId &storeId, const StoreConfig &storeConfig)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(
-        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SET_OPTIONS), reply, appId, StoreId(), options);
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SET_CONFIG), reply, appId, storeId, storeConfig);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());

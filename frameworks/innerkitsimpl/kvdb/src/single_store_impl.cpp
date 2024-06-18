@@ -998,13 +998,13 @@ Status SingleStoreImpl::DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallba
     return status;
 }
 
-Status SingleStoreImpl::SetOptions(const Options &options)
+Status SingleStoreImpl::SetConfig(const StoreConfig &storeConfig)
 {
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    return service->SetOptions({ appId_ }, { storeId_ }, options);
+    return service->SetConfig({ appId_ }, { storeId_ }, storeConfig);
 }
 
 void SingleStoreImpl::DoNotifyChange()

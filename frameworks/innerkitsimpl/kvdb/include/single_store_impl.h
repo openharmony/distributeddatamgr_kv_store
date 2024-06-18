@@ -99,7 +99,7 @@ public:
     Status SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
     Status UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
     Status CloudSync(const AsyncDetail &async) override;
-    Status SetOptions(const Options &options) override;
+    Status SetConfig(const StoreConfig &storeConfig) override;
 protected:
     std::shared_ptr<ObserverBridge> PutIn(uint32_t &realType, std::shared_ptr<Observer> observer);
     std::shared_ptr<ObserverBridge> TakeOut(uint32_t &realType, std::shared_ptr<Observer> observer);
