@@ -25,6 +25,7 @@
 #include "db_dfx_adapter.h"
 #include "generic_single_ver_kv_entry.h"
 #include "platform_specific.h"
+#include "query_utils.h"
 #include "relational_remote_query_continue_token.h"
 #include "relational_sync_data_inserter.h"
 #include "res_finalizer.h"
@@ -777,8 +778,8 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
 }
 
 void RelationalSyncAbleStorage::ExecuteDataChangeCallback(
-    const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item, int &observerCnt,
-    const std::string &deviceName, const ChangedData &changedData, bool isChangedData)
+    const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
+    const std::string &deviceName, const ChangedData &changedData, bool isChangedData, int &observerCnt)
 {
     for (auto &action : item.second) {
         if (action.second == nullptr) {
@@ -803,7 +804,7 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
             int observerCnt = 0;
             ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
             for (const auto &item : dataChangeCallbackMap_) {
-                ExecuteDataChangeCallback(item, observerCnt, deviceName, changedData, isChangedData);
+                ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, observerCnt);
             }
             LOGD("relational observer size = %d", observerCnt);
             DecObjRef(this);
@@ -1766,6 +1767,7 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
             recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(dataInfoWithLog.logInfo.timestamp);
             recordCopy[CloudDbConstant::CREATE_FIELD] = static_cast<int64_t>(dataInfoWithLog.logInfo.wTimestamp);
             recordCopy[CloudDbConstant::SHARING_RESOURCE_FIELD] = dataInfoWithLog.logInfo.sharingResource;
+            recordCopy[CloudDbConstant::VERSION_FIELD] = dataInfoWithLog.logInfo.version;
         }
         downloadData.existDataKey.push_back(dataInfoWithLog.logInfo.dataKey);
         downloadData.data.push_back(std::move(recordCopy));
@@ -1964,7 +1966,7 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
     LOGI("[RDBStorageEngine] match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
     Query query = Query::Select().From(tableName);
     for (const auto &[col, pkList] : syncPk) {
-        FillQueryInKeys(col, pkList, dataIndex[col], query);
+        QueryUtils::FillQueryInKeys(col, pkList, dataIndex[col], query);
     }
     auto objectList = QuerySyncObject::GetQuerySyncObject(query);
     if (objectList.size() != 1u) {
@@ -1972,47 +1974,6 @@ int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
     }
     querySyncObject = objectList[0];
     return E_OK;
-}
-
-void RelationalSyncAbleStorage::FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType,
-    Query &query)
-{
-    switch (valueType) {
-        case TYPE_INDEX<int64_t>: {
-            std::vector<int64_t> pkList;
-            for (const auto &pk : data) {
-                pkList.push_back(std::get<int64_t>(pk));
-            }
-            query.In(col, pkList);
-            break;
-        }
-        case TYPE_INDEX<std::string>: {
-            std::vector<std::string> pkList;
-            for (const auto &pk : data) {
-                pkList.push_back(std::get<std::string>(pk));
-            }
-            query.In(col, pkList);
-            break;
-        }
-        case TYPE_INDEX<double>: {
-            std::vector<double> pkList;
-            for (const auto &pk : data) {
-                pkList.push_back(std::get<double>(pk));
-            }
-            query.In(col, pkList);
-            break;
-        }
-        case TYPE_INDEX<bool>: {
-            std::vector<bool> pkList;
-            for (const auto &pk : data) {
-                pkList.push_back(std::get<bool>(pk));
-            }
-            query.In(col, pkList);
-            break;
-        }
-        default:
-            break;
-    }
 }
 
 int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -2070,10 +2031,9 @@ void RelationalSyncAbleStorage::SyncFinishHook()
     }
 }
 
-int RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)> &func)
+void RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)> &func)
 {
     syncFinishFunc_ = func;
-    return E_OK;
 }
 
 void RelationalSyncAbleStorage::DoUploadHook()
@@ -2098,6 +2058,18 @@ void RelationalSyncAbleStorage::SetCloudSyncConfig(const CloudSyncConfig &config
 {
     std::lock_guard<std::mutex> autoLock(configMutex_);
     cloudSyncConfig_ = config;
+}
+
+bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
+{
+    // check whether reference exist
+    std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+    int errCode = RelationalSyncAbleStorage::GetTableReference(table, tableReference);
+    if (errCode != E_OK) {
+        LOGW("[RDBStorageEngine] Get table reference failed! errCode = %d", errCode);
+        return false;
+    }
+    return !tableReference.empty();
 }
 }
 #endif

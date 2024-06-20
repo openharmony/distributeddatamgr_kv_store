@@ -49,13 +49,10 @@ bool DBStatusAdapter::IsSupport(const std::string &devInfo)
     if (IsSendLabelExchange()) {
         return false;
     }
-    {
-        std::lock_guard<std::mutex> autoLock(supportMutex_);
-        if (remoteOptimizeInfo_.find(devInfo) != remoteOptimizeInfo_.end()) {
-            return remoteOptimizeInfo_[devInfo];
-        }
-    }
     std::lock_guard<std::mutex> autoLock(supportMutex_);
+    if (remoteOptimizeInfo_.find(devInfo) != remoteOptimizeInfo_.end()) {
+        return remoteOptimizeInfo_[devInfo];
+    }
     remoteOptimizeInfo_[devInfo] = true;
     return true;
 }
@@ -89,6 +86,7 @@ void DBStatusAdapter::SetDBStatusChangeCallback(const RemoteDBChangeCallback &re
         supportCallback_ = supportCallback;
     }
     if (remote == nullptr || local == nullptr) {
+        LOGD("[DBStatusAdapter][SetDBStatusChangeCallback] remote or local DB change callback is NULL.");
         return;
     }
     // avoid notify before set callback
@@ -151,6 +149,7 @@ void DBStatusAdapter::TargetOffline(const std::string &device)
 {
     std::shared_ptr<DBInfoHandle> dbInfoHandle = GetDBInfoHandle();
     if (dbInfoHandle == nullptr) {
+        LOGD("[DBStatusAdapter][TargetOffline] handle not set");
         return;
     }
     {
@@ -176,6 +175,7 @@ void DBStatusAdapter::SetRemoteOptimizeCommunication(const std::string &dev, boo
 {
     std::shared_ptr<DBInfoHandle> dbInfoHandle = GetDBInfoHandle();
     if (dbInfoHandle == nullptr) {
+        LOGD("[DBStatusAdapter][SetRemoteOptimizeCommunication] handle not set");
         return;
     }
     bool triggerLocalCallback = false;
@@ -188,7 +188,7 @@ void DBStatusAdapter::SetRemoteOptimizeCommunication(const std::string &dev, boo
         if (remoteOptimizeInfo_[dev] == optimize) {
             return;
         }
-        if (remoteOptimizeInfo_[dev] && !optimize) {
+        if (remoteOptimizeInfo_[dev]) {
             triggerLocalCallback = true;
         }
         remoteOptimizeInfo_[dev] = optimize;
@@ -216,6 +216,7 @@ bool DBStatusAdapter::IsSendLabelExchange()
 {
     std::shared_ptr<DBInfoHandle> dbInfoHandle = GetDBInfoHandle();
     if (dbInfoHandle == nullptr) {
+        LOGD("[DBStatusAdapter][IsSendLabelExchange] handle not set");
         return true;
     }
     {
@@ -325,6 +326,7 @@ int DBStatusAdapter::GetLocalDeviceId(std::string &deviceId)
     ICommunicatorAggregator *communicatorAggregator = nullptr;
     int errCode = RuntimeContext::GetInstance()->GetCommunicatorAggregator(communicatorAggregator);
     if (errCode != E_OK) {
+        LOGE("[DBStatusAdapter][GetLocalDeviceId] Get ICommunicatorAggregator error: %d", errCode);
         return errCode;
     }
     return communicatorAggregator->GetLocalIdentity(deviceId);
@@ -334,6 +336,7 @@ bool DBStatusAdapter::IsLocalDeviceId(const std::string &deviceId)
 {
     std::string localId;
     if (GetLocalDeviceId(localId) != E_OK) {
+        LOGE("[DBStatusAdapter][IsLocalDeviceId] Get local device ID failed.");
         return false;
     }
     return deviceId == localId;

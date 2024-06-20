@@ -507,4 +507,10 @@ CloudSyncConfig SqliteCloudKvStore::GetCloudSyncConfig() const
     std::lock_guard<std::mutex> autoLock(configMutex_);
     return config_;
 }
+
+std::map<std::string, DataBaseSchema> SqliteCloudKvStore::GetDataBaseSchemas()
+{
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
+    return schema_;
+}
 }

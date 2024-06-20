@@ -43,6 +43,7 @@ distributeddb_src = [
   "${distributeddb_path}/common/src/platform_specific.cpp",
   "${distributeddb_path}/common/src/query.cpp",
   "${distributeddb_path}/common/src/query_expression.cpp",
+  "${distributeddb_path}/common/src/query_utils.cpp",
   "${distributeddb_path}/common/src/ref_object.cpp",
   "${distributeddb_path}/common/src/relational/prepared_stmt.cpp",
   "${distributeddb_path}/common/src/relational/relational_result_set_impl.cpp",

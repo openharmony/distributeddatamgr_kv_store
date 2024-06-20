@@ -294,6 +294,9 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
     } else {
         cursor = cursor.empty() ? "0" : cursor;
         GetCloudData(cursor, isIncreCursor, cloudData_[tableName], data, extend);
+        if (data.empty()) {
+            extend[g_cursorField] = std::to_string(currentCursor_ - 1);
+        }
     }
     if (!isIncreCursor && data.empty() && isSetCrementCloudData_) {
         extend[g_cursorField] = increPrefix_;
@@ -324,6 +327,9 @@ void VirtualCloudDb::GetCloudData(const std::string &cursor, bool isIncreCursor,
                 bucket.insert(ex);
             }
             data.push_back(std::move(bucket));
+            if (!isIncreCursor) {
+                extend[g_cursorField] = srcCursor;
+            }
         }
         if (data.size() >= static_cast<size_t>(queryLimit_)) {
             return;

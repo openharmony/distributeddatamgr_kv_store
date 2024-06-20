@@ -145,6 +145,16 @@ uint32_t ProcessNotifier::GetUploadBatchIndex(const std::string &tableName) cons
     return syncProcess_.tableProcess.at(tableName).upLoadInfo.batchIndex;
 }
 
+void ProcessNotifier::ResetUploadBatchIndex(const std::string &tableName)
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+        LOGW("[ProcessNotifier] The specified table was not found when reset UploadBatchIndex");
+        return;
+    }
+    syncProcess_.tableProcess[tableName].upLoadInfo.batchIndex = 0;
+}
+
 uint32_t ProcessNotifier::GetLastUploadSuccessCount(const std::string &tableName) const
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
@@ -175,5 +185,18 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
 void ProcessNotifier::SetUser(const std::string &user)
 {
     user_ = user;
+}
+
+void ProcessNotifier::SetAllTableFinish()
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    for (auto &item : syncProcess_.tableProcess) {
+        item.second.process = ProcessStatus::FINISHED;
+    }
+    for (auto &syncProcess : multiSyncProcess_) {
+        for (auto &item : syncProcess.second.tableProcess) {
+            item.second.process = ProcessStatus::FINISHED;
+        }
+    }
 }
 }

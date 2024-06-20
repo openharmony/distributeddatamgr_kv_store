@@ -541,8 +541,8 @@ namespace {
     void CheckCloudTotalCount(std::vector<int64_t> expectCounts)
     {
         VBucket extend;
-        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
         for (size_t i = 0; i < g_tables.size(); ++i) {
+            extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
             int64_t realCount = 0;
             std::vector<VBucket> data;
             g_virtualCloudDb->Query(g_tables[i], extend, data);
@@ -847,6 +847,7 @@ namespace {
         }
 
         std::vector<VBucket> data2;
+        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
         g_virtualCloudDb->Query(g_tables[1], extend, data2);
         for (size_t j = 0; j < data2.size(); ++j) {
             Type entry;

@@ -97,6 +97,11 @@ void CloudSyncer::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
     LOGI("[CloudSyncer] SetCloudDB finish");
 }
 
+const std::map<std::string, std::shared_ptr<ICloudDb>> CloudSyncer::GetCloudDB() const
+{
+    return cloudDB_.GetCloudDB();
+}
+
 void CloudSyncer::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     storageProxy_->SetIAssetLoader(loader);
@@ -217,6 +222,7 @@ void CloudSyncer::DoSyncIfNeed()
 int CloudSyncer::DoSync(TaskId taskId)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);
+    ResetCurrentTableUploadBatchIndex();
     CloudTaskInfo taskInfo;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -823,7 +829,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
     return ret;
 }
 
-int CloudSyncer::SaveData(SyncParam &param)
+int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
 {
     if (!CloudSyncUtils::IsChangeDataEmpty(param.changedData)) {
         LOGE("[CloudSyncer] changedData.primaryData should have no member inside.");
@@ -871,7 +877,12 @@ int CloudSyncer::SaveData(SyncParam &param)
     param.info.downLoadInfo.successCount += param.downloadData.data.size();
     // Get latest cloudWaterMark
     VBucket &lastData = param.downloadData.data.back();
-    param.cloudWaterMark = std::get<std::string>(lastData[CloudDbConstant::CURSOR_FIELD]);
+    if (!IsQueryListEmpty(taskId) && param.isLastBatch) {
+        // the last batch of cursor in the conditional query is useless
+        param.cloudWaterMark = {};
+    } else {
+        param.cloudWaterMark = std::get<std::string>(lastData[CloudDbConstant::CURSOR_FIELD]);
+    }
     return UpdateFlagForSavedRecord(param);
 }
 
@@ -981,7 +992,7 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData.field = param.pkColNames;
         param.changedData.type = ChangedDataType::DATA;
     }
-    ret = SaveData(param);
+    ret = SaveData(taskId, param);
     param.insertPk.clear();
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
@@ -1421,11 +1432,7 @@ int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std
         return ret;
     }
     ret = cloudDB_.Query(tableName, extend, downloadData.data);
-    if (ret == -E_QUERY_END) {
-        LOGD("[CloudSyncer] Download data from cloud database success and no more data need to be downloaded");
-        return -E_QUERY_END;
-    }
-    if (ret == E_OK && downloadData.data.empty()) {
+    if ((ret == E_OK || ret == -E_QUERY_END) && downloadData.data.empty()) {
         if (extend[CloudDbConstant::CURSOR_FIELD].index() != TYPE_INDEX<std::string>) {
             LOGE("[CloudSyncer] cursor type is not valid=%d", extend[CloudDbConstant::CURSOR_FIELD].index());
             return -E_CLOUD_ERROR;
@@ -1433,6 +1440,10 @@ int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std
         cloudWaterMark = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
         LOGD("[CloudSyncer] Download data is empty, try to use other cursor=%s", cloudWaterMark.c_str());
         return ret;
+    }
+    if (ret == -E_QUERY_END) {
+        LOGD("[CloudSyncer] Download data from cloud database success and no more data need to be downloaded");
+        return -E_QUERY_END;
     }
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Download data from cloud database unsuccess %d", ret);
@@ -1509,7 +1520,7 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
     }
-    LOGI("[CloudSyncer] exec storeId %s taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(), taskId);
+    LOGI("[CloudSyncer] exec storeId %.3s taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(), taskId);
     return E_OK;
 }
 
@@ -1901,7 +1912,8 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     if (info.errCode == E_OK) {
         info.errCode = errCode;
     }
-    LOGI("[CloudSyncer] finished storeId %s taskId %" PRIu64 " errCode %d", info.storeId.c_str(), taskId, info.errCode);
+    LOGI("[CloudSyncer] finished storeId %.3s taskId %" PRIu64 " errCode %d", info.storeId.c_str(), taskId,
+        info.errCode);
     info.status = ProcessStatus::FINISHED;
     if (notifier != nullptr) {
         notifier->NotifyProcess(info, {}, true);
@@ -1909,6 +1921,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     // generate compensated sync
     if (!info.compensatedTask) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo();
+        taskInfo.lockAction = info.lockAction;
         GenerateCompensatedSync(taskInfo);
     }
 }
@@ -2020,8 +2033,8 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
-        ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     }
+    ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
 }
@@ -2066,6 +2079,8 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         if (ret == E_OK || isFirstDownload) {
             LOGD("[CloudSyncer] try to query cloud data use increment water mark");
             UpdateCloudWaterMark(taskId, param);
+            // Cloud water may change on the cloud, it needs to be saved here
+            SaveCloudWaterMark(param.tableName, taskId);
         }
         if (isFirstDownload) {
             NotifyInEmptyDownload(taskId, param.info);
@@ -2107,6 +2122,12 @@ uint32_t CloudSyncer::GetCurrentTableUploadBatchIndex()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     return currentContext_.notifier->GetUploadBatchIndex(currentContext_.tableName);
+}
+
+void CloudSyncer::ResetCurrentTableUploadBatchIndex()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.notifier->ResetUploadBatchIndex(currentContext_.tableName);
 }
 
 void CloudSyncer::RecordWaterMark(TaskId taskId, Timestamp waterMark)

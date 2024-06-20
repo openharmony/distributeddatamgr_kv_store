@@ -145,6 +145,8 @@ public:
     std::pair<int, CloudSyncData> GetLocalCloudVersion();
 
     CloudSyncConfig GetCloudSyncConfig() const;
+
+    bool IsTableExistReference(const std::string &table);
 protected:
     void Init();
 

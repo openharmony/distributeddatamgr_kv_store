@@ -17,6 +17,7 @@
 
 #include "cloud/cloud_storage_utils.h"
 #include "cloud/schema_mgr.h"
+#include "db_common.h"
 #include "store_types.h"
 
 namespace DistributedDB {
@@ -173,8 +174,7 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isClou
         return -E_TRANSACT_STATE;
     }
     std::vector<Timestamp> timeStampVec;
-    std::vector<CloudWaterType> waterTypeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE,
-        CloudWaterType::INSERT};
+    std::vector<CloudWaterType> waterTypeVec = DBCommon::GetWaterTypeVec();
     for (size_t i = 0; i < waterTypeVec.size(); i++) {
         Timestamp tmpMark = 0u;
         if (isUseWaterMark) {
@@ -648,5 +648,14 @@ CloudSyncConfig StorageProxy::GetCloudSyncConfig() const
         return {};
     }
     return store_->GetCloudSyncConfig();
+}
+
+bool StorageProxy::IsTableExistReference(const std::string &table)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return false;
+    }
+    return store_->IsTableExistReference(table);
 }
 }

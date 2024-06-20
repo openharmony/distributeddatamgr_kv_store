@@ -105,6 +105,9 @@ int RuntimeContextImpl::GetCommunicatorAggregator(ICommunicatorAggregator *&outA
 {
     outAggregator = nullptr;
     const std::shared_ptr<DBStatusAdapter> statusAdapter = GetDBStatusAdapter();
+    if (statusAdapter == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
     std::lock_guard<std::mutex> lock(communicatorLock_);
     if (communicatorAggregator_ != nullptr) {
         outAggregator = communicatorAggregator_;

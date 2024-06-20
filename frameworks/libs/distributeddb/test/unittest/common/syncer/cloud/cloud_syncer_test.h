@@ -54,8 +54,9 @@ public:
         cloudTaskInfos_.insert(std::pair<TaskId, CloudTaskInfo>{taskId, CloudTaskInfo()});
         cloudTaskInfos_[taskId].mode = mode;
         cloudTaskInfos_[taskId].taskId = taskId;
-        currentContext_.currentTaskId = taskId;
         currentContext_.tableName = "TestTable" + std::to_string(taskId);
+        cloudTaskInfos_[taskId].table.push_back(currentContext_.tableName);
+        currentContext_.currentTaskId = taskId;
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
@@ -336,6 +337,22 @@ public:
         VBucket &localAssetInfo)
     {
         return CloudSyncer::HandleTagAssets(hashKey, dataInfo, idx, param, localAssetInfo);
+    }
+
+    std::map<int, std::map<std::string, bool>> GetDownloadFinishedStatus()
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        return currentContext_.isDownloadFinished;
+    }
+
+    int CallDoDownloadInNeed(bool needUpload, bool isFirstDownload)
+    {
+        CloudTaskInfo taskInfo;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
+        }
+        return DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
     }
     CloudTaskInfo taskInfo_;
 private:

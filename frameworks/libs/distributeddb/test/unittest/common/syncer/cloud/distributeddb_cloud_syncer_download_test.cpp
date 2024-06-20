@@ -712,7 +712,11 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly([](const QuerySyncObject &,
+        const Timestamp &, bool, bool, int64_t &count) {
+        count = 1;
+        return E_OK;
+    });
     EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
@@ -728,8 +732,18 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     ExpectQueryCall();
     ExpectGetInfoByPrimaryKeyOrGidCall();
-    int errCode = g_cloudSyncer->CallDoDownload(taskId);
+    EXPECT_CALL(*g_idb, GetEmptyCursor(_)).WillRepeatedly([](const std::string &) {
+        return std::pair<DBStatus, std::string>(OK, std::string("test"));
+    });
+    int errCode = g_cloudSyncer->CallDoDownloadInNeed(true, true);
     EXPECT_EQ(errCode, E_OK);
+    auto downloadStatus = g_cloudSyncer->GetDownloadFinishedStatus();
+    for (const auto &item : downloadStatus) {
+        for (const auto &[table, finish] : item.second) {
+            LOGI("check table %s", table.c_str());
+            EXPECT_TRUE(finish);
+        }
+    }
 }
 
 /**

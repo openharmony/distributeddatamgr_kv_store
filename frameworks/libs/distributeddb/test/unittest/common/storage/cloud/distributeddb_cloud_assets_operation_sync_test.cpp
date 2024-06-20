@@ -531,6 +531,51 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Leve
 }
 
 /**
+ * @tc.name: UpsertData002
+ * @tc.desc: Test sync after Upsert.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 5 records and sync.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 5;
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false); // 10 is photo size
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+
+    /**
+     * @tc.steps:step2. UpsertData and sync.
+     * @tc.expected: step2. ok.
+     */
+    vector<VBucket> records;
+    for (int i = 0; i < actualCount; i++) {
+        VBucket record;
+        record["id"] = std::to_string(i);
+        record["name"] = std::string("UpsertName");
+        records.push_back(record);
+    }
+    EXPECT_EQ(delegate_->UpsertData(tableName_, records), OK);
+    BlockSync(query, delegate_);
+
+    /**
+     * @tc.steps:step3. Check local data.
+     * @tc.expected: step3. All local data has been merged by the cloud.
+     */
+    std::vector<VBucket> allData;
+    auto dbSchema = GetSchema();
+    ASSERT_GT(dbSchema.tables.size(), 0u);
+    ASSERT_EQ(RelationalTestUtils::SelectData(db_, dbSchema.tables[0], allData), E_OK);
+    for (const auto &data : allData) {
+        ASSERT_EQ(std::get<std::string>(data.at("name")), "local");
+    }
+}
+
+/**
  * @tc.name: SyncWithAssetConflict001
  * @tc.desc: Upload with asset no change
  * @tc.type: FUNC

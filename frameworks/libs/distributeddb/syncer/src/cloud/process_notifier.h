@@ -34,11 +34,15 @@ public:
 
     uint32_t GetUploadBatchIndex(const std::string &tableName) const;
 
+    void ResetUploadBatchIndex(const std::string &tableName);
+
     uint32_t GetLastUploadSuccessCount(const std::string &tableName) const;
 
     void GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process);
 
     void SetUser(const std::string &user);
+
+    void SetAllTableFinish();
 protected:
     mutable std::mutex processMutex_;
     SyncProcess syncProcess_;

@@ -130,6 +130,10 @@ private:
     static int BindVersionStmt(const std::string &device, const std::string &user, sqlite3_stmt *dataStmt);
 
     static int GetCloudVersionRecordData(sqlite3_stmt *stmt, VBucket &data, uint32_t &totalSize);
+
+    static Timestamp GetMaxTimeStamp(std::vector<VBucket> &dataExtend);
+
+    static bool UpdateBeginTimeForMemoryDB(SQLiteSingleVerContinueToken &token, CloudSyncData &data);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H

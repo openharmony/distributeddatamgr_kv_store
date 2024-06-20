@@ -251,6 +251,10 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE, beCovered, res, errCode);
         return res;
     }
+    if (setNormalStatus) {
+        // fill asset id for upload data
+        covered.assetId = beCovered.assetId;
+    }
     if (covered.hash != beCovered.hash) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
     } else {

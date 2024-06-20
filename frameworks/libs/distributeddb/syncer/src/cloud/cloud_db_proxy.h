@@ -32,6 +32,8 @@ public:
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
+    const std::map<std::string, std::shared_ptr<ICloudDb>> GetCloudDB() const;
+
     void SwitchCloudDB(const std::string &user);
 
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);

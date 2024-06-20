@@ -294,8 +294,8 @@ namespace {
     void CheckCloudTotalCount(const std::vector<std::string> &tableNames, std::vector<int64_t> expectCounts)
     {
         VBucket extend;
-        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
         for (size_t i = 0; i < tableNames.size(); ++i) {
+            extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
             int64_t realCount = 0;
             std::vector<VBucket> data;
             g_virtualCloudDb->Query(tableNames[i], extend, data);
@@ -1044,6 +1044,46 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     std::string device;
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
     CheckLocalLogCount(db, { g_tableName1 }, { deleteCount });
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest011
+ * @tc.desc: Test if the version in the log table has been cleared after RemoveDeviceData.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest011, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 10 records on local
+     */
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    std::string device;
+    /**
+     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 10 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    LOGW("check 10-10");
+    CheckCloudTotalCount(g_tables, {10, 10}); // 10 is cloud data num in table2
+    /**
+     * @tc.steps: step3. remove device data
+     * @tc.expected: OK.
+     */
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    /**
+     * @tc.steps: step4. Check if the version in the log table has been cleared.
+     * @tc.expected: OK.
+     */
+    for (auto tableName : g_tables) {
+        std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+            " where ((flag & 0x08 != 0) or cloud_gid is null or cloud_gid == '') and version != '';";
+        EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+                    reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+    }
     CloseDb();
 }
 }

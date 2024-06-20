@@ -57,9 +57,8 @@ public:
     ICloudSyncStorageHook() = default;
     virtual ~ICloudSyncStorageHook() = default;
 
-    virtual int SetSyncFinishHook(const std::function<void (void)> &)
+    virtual void SetSyncFinishHook(const std::function<void (void)> &)
     {
-        return E_OK;
     }
 
     virtual void SyncFinishHook()
@@ -197,6 +196,11 @@ public:
     }
 
     virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
+
+    virtual bool IsTableExistReference(const std::string &table)
+    {
+        return false;
+    }
 };
 }
 

@@ -537,6 +537,39 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.storeId = MyProp().GetStringProp(DBProperties::STORE_ID, "");
 }
 
+int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSyncer &syncer)
+{
+    if (option.users.empty()) {
+        LOGE("[SyncAbleKvDB][Sync] no user in sync option");
+        return -E_INVALID_ARGS;
+    }
+    const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs = syncer.GetCloudDB();
+    if (cloudDBs.empty()) {
+        LOGE("[SyncAbleKvDB][Sync] not set cloud db");
+        return -E_CLOUD_ERROR;
+    }
+    auto schemas = GetDataBaseSchemas();
+    if (schemas.empty()) {
+        LOGE("[SyncAbleKvDB][Sync] not set cloud schema");
+        return -E_CLOUD_ERROR;
+    }
+    for (const auto &user : option.users) {
+        if (cloudDBs.find(user) == cloudDBs.end()) {
+            LOGE("[SyncAbleKvDB][Sync] cloud db with invalid user: %s", user.c_str());
+            return -E_INVALID_ARGS;
+        }
+        if (schemas.find(user) == schemas.end()) {
+            LOGE("[SyncAbleKvDB][Sync] cloud schema with invalid user: %s", user.c_str());
+            return -E_SCHEMA_MISMATCH;
+        }
+    }
+    if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
+        LOGE("[SyncAbleKvDB][Sync] invalid wait time of sync option: %lld", option.waitTime);
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
 int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     auto syncer = GetAndIncCloudSyncer();
@@ -544,9 +577,14 @@ int SyncAbleKvDB::Sync(const CloudSyncOption &option, const SyncProcessCallback 
         LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
+    int errCode = CheckSyncOption(option, *syncer);
+    if (errCode != E_OK) {
+        RefObject::DecObjRef(syncer);
+        return errCode;
+    }
     CloudSyncer::CloudTaskInfo info;
     FillSyncInfo(option, onProcess, info);
-    int errCode = syncer->Sync(info);
+    errCode = syncer->Sync(info);
     RefObject::DecObjRef(syncer);
     return errCode;
 }
@@ -555,7 +593,7 @@ int SyncAbleKvDB::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudD
 {
     auto syncer = GetAndIncCloudSyncer();
     if (syncer == nullptr) {
-        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        LOGE("[SyncAbleKvDB][SetCloudDB] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
     int errCode = syncer->SetCloudDB(cloudDBs);
@@ -567,7 +605,7 @@ int SyncAbleKvDB::CleanAllWaterMark()
 {
     auto syncer = GetAndIncCloudSyncer();
     if (syncer == nullptr) {
-        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        LOGE("[SyncAbleKvDB][CleanAllWaterMark] cloud syncer was not initialized");
         return -E_INVALID_DB;
     }
     syncer->CleanAllWaterMark();
@@ -604,10 +642,15 @@ void SyncAbleKvDB::SetGenCloudVersionCallback(const GenerateCloudVersionCallback
 {
     auto cloudSyncer = GetAndIncCloudSyncer();
     if (cloudSyncer == nullptr) {
-        LOGE("[SyncAbleKvDB][Sync] cloud syncer was not initialized");
+        LOGE("[SyncAbleKvDB][SetGenCloudVersionCallback] cloud syncer was not initialized");
         return;
     }
     cloudSyncer->SetGenCloudVersionCallback(callback);
     RefObject::DecObjRef(cloudSyncer);
+}
+
+std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
+{
+    return {};
 }
 }

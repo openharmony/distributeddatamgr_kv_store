@@ -35,6 +35,7 @@ namespace {
 static constexpr const char *DATAKEY = "DATA_KEY";
 static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
+static constexpr const char *VERSION = "VERSION";
 static constexpr const char *SHARING_RESOURCE = "SHARING_RESOURCE";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 // set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
@@ -161,8 +162,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
-        timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x02|0x20, " +
-        calPrimaryKeyHash + ", '', ";
+        timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) +  ", " +
+        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
+            static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY)) +
+        ", " + calPrimaryKeyHash + ", '', ";
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         sql += "'', ''";
     } else {
@@ -536,7 +539,7 @@ static int GetLogData(sqlite3_stmt *logStatement, LogInfo &logInfo)
 }
 
 namespace {
-void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize, bool isShared)
+void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize)
 {
     logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
@@ -1543,9 +1546,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::
 int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestamp &timestamp,
     SqliteQueryHelper &helper, std::string &sql, int64_t &count)
 {
-    int errCode = E_OK;
     sqlite3_stmt *stmt = nullptr;
-    errCode = helper.GetCloudQueryStatement(false, dbHandle_, timestamp, sql, stmt);
+    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, timestamp, sql, stmt);
     if (errCode != E_OK) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;
@@ -1569,7 +1571,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &ti
     if (errCode != E_OK) {
         return errCode;
     }
-    std::string tableName = query.GetRelationTableName();
     std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask,
         CloudWaterType::DELETE);
     return GetUploadCountInner(timestamp, helper, sql, count);
@@ -1578,7 +1579,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &ti
 int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vector<Timestamp> &timestampVec,
     bool isCloudForcePush, bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
 {
-    if (timestampVec.size() != 3) { // 3 is the number of three mode.
+    std::vector<CloudWaterType> typeVec = DBCommon::GetWaterTypeVec();
+    if (timestampVec.size() != typeVec.size()) {
         return -E_INVALID_ARGS;
     }
     int errCode;
@@ -1586,9 +1588,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vecto
     if (errCode != E_OK) {
         return errCode;
     }
-    std::string tableName = query.GetRelationTableName();
     count = 0;
-    std::vector<CloudWaterType> typeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
     for (size_t i = 0; i < typeVec.size(); i++) {
         std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask, typeVec[i]);
         int64_t tempCount = 0;
@@ -1688,7 +1688,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
     VBucket log;
     VBucket extraLog;
     uint32_t preSize = totalSize;
-    GetCloudLog(statement, log, totalSize, cloudDataResult.isShared);
+    GetCloudLog(statement, log, totalSize);
     GetCloudExtraLog(statement, extraLog);
 
     VBucket data;
@@ -1765,7 +1765,7 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSc
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " +
-        SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
+        SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " + VERSION + " = '', " +
         DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '' " +
         "WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";

@@ -300,6 +300,7 @@ int SqliteQueryHelper::GetQuerySql(std::string &sql, bool onlyRowid)
     sql = AssembleSqlForSuggestIndex(querySqlForUse, FILTER_NATIVE_DATA_SQL);
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
+    sql += " AND (flag&0x200=0) ";
     if (sortType_ != SortType::NONE) {
         sql += (sortType_ == SortType::TIMESTAMP_ASC) ? "ORDER BY timestamp asc " : "ORDER BY timestamp desc ";
     }
@@ -389,6 +390,7 @@ int SqliteQueryHelper::GetCountQuerySql(std::string &sql)
     sql = AssembleSqlForSuggestIndex(PRE_GET_COUNT_SQL, FILTER_NATIVE_DATA_SQL);
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
+    sql += " AND (flag&0x200=0) ";
     sql += countSql_;
     return E_OK;
 }
@@ -527,6 +529,7 @@ int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery)
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
     sql = hasSubQuery ? sql : (sql + " AND (timestamp>=? AND timestamp<?) ");
+    sql += " AND (flag&0x200=0) ";
 
     querySql_.clear(); // clear local query sql format
     int errCode = ToQuerySyncSql(hasSubQuery);
@@ -1175,8 +1178,9 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
-    if (isCompensatedTask) {
-        sql += "(b.status = 1) OR ";
+    if (isCompensatedTask && mode == CloudWaterType::DELETE) {
+        // deleted data does not have primary key, requires gid to compensate sync
+        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01)) OR ";
     } else if (queryObjNodes_.empty() && mode != CloudWaterType::INSERT) { // means unPriorityTask and not insert
         sql += "(b.status != 1) AND ";
     }
@@ -1212,7 +1216,7 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
     sql += " WHERE ";
     if (isCompensatedTask) {
         // deleted data does not have primary key, requires gid to compensate sync
-        sql += " (b.status=1) OR ";
+        sql += " (b.status = 1 AND (b.flag & 0x01 = 0x01)) OR ";
     }
     sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
         " b.timestamp > ?";
@@ -1264,6 +1268,7 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
     int &errCode = res.first;
     std::string sql = GetKvCloudQuerySql(false, forcePush);
     AppendCloudQueryToGetDiffData(sql, mode, true);
+    sql += "order by modify_time asc";
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     return res;
 }

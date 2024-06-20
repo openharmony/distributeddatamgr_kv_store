@@ -683,5 +683,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, FieldInfo001, TestSize.Level0)
     FieldInfo fieldInfo;
     fieldInfo.SetDataType("long");
     EXPECT_EQ(fieldInfo.GetStorageType(), StorageType::STORAGE_TYPE_INTEGER);
+    fieldInfo.SetDataType("LONG");
+    EXPECT_EQ(fieldInfo.GetStorageType(), StorageType::STORAGE_TYPE_INTEGER);
 }
 }

@@ -350,7 +350,8 @@ private:
 
     static int BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate);
 
-    int CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName, const std::string &user);
+    int CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName, const std::string &user,
+        bool isUserBlobType = false);
 
     int CloudCheckDataExist(const std::string &sql, const std::string &deviceName, const std::string &user,
         bool &isExist);

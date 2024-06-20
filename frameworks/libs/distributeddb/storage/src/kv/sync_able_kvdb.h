@@ -140,6 +140,8 @@ protected:
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
+
+    virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 private:
     int RegisterEventType(EventType type);
 
@@ -149,6 +151,8 @@ private:
 
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
+
+    int CheckSyncOption(const CloudSyncOption &option, const CloudSyncer &syncer);
 
     CloudSyncer *GetAndIncCloudSyncer();
 

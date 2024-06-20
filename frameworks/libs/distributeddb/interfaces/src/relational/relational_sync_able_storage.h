@@ -214,7 +214,7 @@ public:
 
     void SyncFinishHook() override;
 
-    int SetSyncFinishHook(const std::function<void (void)> &func) override;
+    void SetSyncFinishHook(const std::function<void (void)> &func) override;
 
     void SetDoUploadHook(const std::function<void (void)> &) override;
 
@@ -223,6 +223,8 @@ public:
     CloudSyncConfig GetCloudSyncConfig() const override;
 
     void SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    bool IsTableExistReference(const std::string &table) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -285,15 +287,13 @@ private:
     int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data,
         QuerySyncObject &querySyncObject);
 
-    void FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType, Query &query);
-
     int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName);
 
     bool CheckTableSupportCompensatedSync(const TableSchema &table);
 
     void ExecuteDataChangeCallback(
-        const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item, int &observerCnt,
-        const std::string &deviceName, const ChangedData &changedData, bool isChangedData);
+        const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
+        const std::string &deviceName, const ChangedData &changedData, bool isChangedData, int &observerCnt);
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
