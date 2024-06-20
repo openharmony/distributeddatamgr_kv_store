@@ -33,14 +33,14 @@ public:
     const std::string GetAssignValSql(bool isDelete = false) const;
     const std::string GetExtendAssignValSql(bool isDelete = false) const;
     const std::string GetDiffTrackerValSql() const;
-    const std::string GetDiffIncCursorSql(const std::string &tableName) const;
     const std::string GetExtendName() const;
     std::string ToString() const;
     const std::vector<std::string> GetDropTempTriggerSql() const;
-    const std::string GetTempInsertTriggerSql() const;
-    const std::string GetTempUpdateTriggerSql() const;
+    const std::string GetTempInsertTriggerSql(bool isEachRow = false) const;
+    const std::string GetDropTempInsertTriggerSql() const;
+    const std::string GetDropTempUpdateTriggerSql() const;
+    const std::string GetTempUpdateTriggerSql(bool isEachRow = false) const;
     const std::string GetTempDeleteTriggerSql() const;
-    const std::string GetUpgradedExtendValSql() const;
     void SetTableName(const std::string &tableName);
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);

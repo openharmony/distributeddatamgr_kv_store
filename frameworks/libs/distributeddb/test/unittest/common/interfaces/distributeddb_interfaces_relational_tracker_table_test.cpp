@@ -1185,7 +1185,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
      */
     string querySql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log";
     sqlite3_stmt *stmt = nullptr;
-    int index = 0;
+    int index = 20;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::string cursorVal;

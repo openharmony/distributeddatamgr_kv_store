@@ -1388,4 +1388,23 @@ bool CloudStorageUtils::IsSystemRecord(const Key &key)
     std::string keyStr(key.begin(), key.end());
     return keyStr.find(prefixKey) == 0;
 }
+
+std::string CloudStorageUtils::GetSelectIncCursorSql(const std::string &tableName)
+{
+    return "(SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "')";
+}
+
+std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName)
+{
+    return "UPDATE " + DBCommon::GetMetaTableName() + " SET value=value+1 WHERE key=x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
+}
+
+std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
+{
+    return "INSERT OR REPLACE INTO " + DBCommon::GetMetaTableName() + "(key,value) VALUES (x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "', (SELECT CASE WHEN MAX(cursor) IS" +
+        " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
+}
 }

@@ -942,12 +942,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string 
     const TableSchema &tableSchema, const TrackerTable &trackerTable)
 {
     if (isLogicDelete_) {
-        LOGD("[RDBExecutor] logic delete skip delete data");
-        int errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
-        if (errCode == E_OK && !trackerTable.IsEmpty()) {
-            return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
-        }
-        return errCode;
+        return LogicDeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
     }
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;
@@ -1036,6 +1031,44 @@ void SQLiteSingleVerRelationalStorageExecutor::SetUploadConfig(int32_t maxUpload
 {
     maxUploadCount_ = maxUploadCount;
     maxUploadSize_ = maxUploadSize;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::LogicDeleteCloudData(const std::string &tableName, const VBucket &vBucket,
+    const TableSchema &tableSchema, const TrackerTable &trackerTable)
+{
+    LOGD("[RDBExecutor] logic delete skip delete data");
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, CloudStorageUtils::GetCursorIncSql(tableName));
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!trackerTable.IsEmpty()) {
+        return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string &tableName)
+{
+    Value key;
+    Value cursor;
+    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
+    int errCode = GetKvData(key, cursor);
+    if (errCode == -E_NOT_FOUND) {
+        DBCommon::StringToVector(std::string("0"), cursor);
+        errCode = PutKvData(key, cursor);
+        if (errCode != E_OK) {
+            LOGE("Init cursor to meta table failed. %d", errCode);
+        }
+        return errCode;
+    }
+    if (errCode != E_OK) {
+        LOGE("Get cursor from meta table failed. %d", errCode);
+    }
+    return errCode;
 }
 } // namespace DistributedDB
 #endif

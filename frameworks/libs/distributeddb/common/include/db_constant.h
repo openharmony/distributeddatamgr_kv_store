@@ -158,6 +158,7 @@ public:
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;
     static const std::string LOG_POSTFIX;
+    static constexpr const char *META_TABLE_POSTFIX = "metadata";
 
     static const std::string LOG_TABLE_VERSION_1;
     static const std::string LOG_TABLE_VERSION_2;
@@ -171,6 +172,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
     static constexpr const char *LOG_TABLE_VERSION_5_6 = "5.06"; // upgrade trigger for simple tracker log table
     static constexpr const char *LOG_TABLE_VERSION_5_7 = "5.07"; // trigger slow sql optimization
+    static constexpr const char *LOG_TABLE_VERSION_5_8 = "5.08"; // migrate cursor to meta table
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;

@@ -95,9 +95,10 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + tableName + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + tableName + "'\n";
-    insertTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    insertTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
+    insertTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
     insertTrigger += " extend_field, cursor, version, sharing_resource, status)";
@@ -108,10 +109,8 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
-    insertTrigger += ", case when (SELECT MIN(_rowid_) IS NOT NULL FROM " + logTblName + ") then ";
-    insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
-    insertTrigger += " FROM " +  logTblName + ")";
-    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '', 0);\n";
+    insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName);
+    insertTrigger += ", '', '', 0);\n";
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";
@@ -129,20 +128,20 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    updateTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
+    updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02|0x20";
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
-    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
-    updateTrigger += " from " + logTblName + "), ";
+    updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
     updateTrigger += CloudStorageUtils::GetUpdateLockChangedSql();
     updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::UPDATE);
-    updateTrigger += "select client_observer('" + tableName + "', OLD.";
+    updateTrigger += "SELECT client_observer('" + tableName + "', OLD.";
     updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ", 1, ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
@@ -159,18 +158,21 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + tableName + "_ON_DELETE BEFORE DELETE \n";
     deleteTrigger += "ON '" + tableName + "'\n";
-    deleteTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    deleteTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";
+    deleteTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,";
-    deleteTrigger += "flag=(CASE WHEN cloud_gid='' then 0x03 else 0x03|0x20 END),";
+    uint32_t localDeleteFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
+    deleteTrigger += "flag=(CASE WHEN cloud_gid='' THEN " + std::to_string(localDeleteFlag) + " ELSE " +
+        std::to_string(localDeleteFlag | static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY)) + " END),";
     deleteTrigger += "timestamp=get_raw_sys_time()";
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
     }
-    deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
-    deleteTrigger += " FROM " +  logTblName + "), ";
+    deleteTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
     deleteTrigger += CloudStorageUtils::GetDeleteLockChangedSql();
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     deleteTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::DELETE);

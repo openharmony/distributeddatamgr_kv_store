@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "cloud/cloud_storage_utils.h"
 #include "simple_tracker_log_table_manager.h"
 
 namespace DistributedDB {
@@ -66,6 +67,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += "ON '" + tableName + "'\n";
     insertTrigger += " FOR EACH ROW \n";
     insertTrigger += "BEGIN\n";
+    insertTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid";
     insertTrigger += ", extend_field, cursor, version, sharing_resource, status)";
@@ -73,10 +75,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
-    insertTrigger += ", case when (SELECT MIN(_rowid_) IS NOT NULL FROM " + logTblName + ") then ";
-    insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
-    insertTrigger += " FROM " +  logTblName + ")";
-    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end, '', '', 0);\n";
+    insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", '', '', 0);\n";
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, ";
     insertTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
     insertTrigger += ");\n";
@@ -95,17 +94,16 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += " FOR EACH ROW ";
+    updateTrigger += " WHEN " + table.GetTrackerTable().GetDiffTrackerValSql() + " \n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
+    updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName);
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    updateTrigger += table.GetTrackerTable().GetDiffIncCursorSql(logTblName);
-    updateTrigger += " where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    updateTrigger += "select client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
-    updateTrigger += ", 1, ";
-    updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
-    updateTrigger += ");";
+    updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + "";
+    updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    updateTrigger += "SELECT client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += ", 1, 1);";
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -122,11 +120,11 @@ std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += "ON '" + tableName + "'\n";
     deleteTrigger += " FOR EACH ROW \n";
     deleteTrigger += "BEGIN\n";
+    deleteTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
     deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
-    deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
-    deleteTrigger += " FROM " + GetLogTableName(table) + ")";
+    deleteTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + "";
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";

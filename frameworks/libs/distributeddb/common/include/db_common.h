@@ -42,6 +42,11 @@ public:
         return {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
     }
 
+    static inline std::string GetMetaTableName()
+    {
+        return DBConstant::RELATIONAL_PREFIX + DBConstant::META_TABLE_POSTFIX;
+    }
+
     static std::string VectorToHexString(const std::vector<uint8_t> &inVec, const std::string &separator = "");
 
     static void PrintHexVector(const std::vector<uint8_t> &data, int line = 0, const std::string &tag = "");
@@ -123,6 +128,8 @@ public:
     static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
 
     static bool CheckCloudSyncConfigValid(const CloudSyncConfig &config);
+
+    static std::string GetCursorKey(const std::string &tableName);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

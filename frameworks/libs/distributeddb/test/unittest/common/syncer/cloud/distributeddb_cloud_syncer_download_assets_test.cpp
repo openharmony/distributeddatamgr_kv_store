@@ -1313,14 +1313,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Le
     int localCount = 20;
     InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    CheckCursorData(ASSETS_TABLE_NAME, 0);
+    CheckCursorData(ASSETS_TABLE_NAME, 1);
 
     /**
      * @tc.steps:step2. sync again and optype is not change, check cursor.
      * @tc.expected: step2. return OK.
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    CheckCursorData(ASSETS_TABLE_NAME, localCount);
+    CheckCursorData(ASSETS_TABLE_NAME, localCount + 1);
 }
 
 /**

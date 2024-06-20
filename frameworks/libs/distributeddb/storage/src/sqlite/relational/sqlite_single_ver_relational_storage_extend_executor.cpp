@@ -285,31 +285,39 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         return errCode;
     }
     auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
-    if (!trackerTable.GetTrackerColNames().empty()) {
-        // create log table
-        errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
+    if (trackerTable.GetTrackerColNames().empty()) {
+        // drop trigger
+        return tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
+    }
+
+    // create log table
+    errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    // init cursor
+    errCode = InitCursorToMeta(table.GetTableName());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
+    if (isUpgrade) {
+        errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
         if (errCode != E_OK) {
+            LOGE("clean tracker log info for deleted data failed %d.", errCode);
             return errCode;
         }
-        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
-        if (isUpgrade) {
-            errCode = CleanExtendAndCursorForDeleteData(dbHandle_, table.GetTableName());
-            if (errCode != E_OK) {
-                LOGE("clean tracker log info for deleted data failed %d.", errCode);
-                return errCode;
-            }
-        }
-        errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
-        if (errCode != E_OK) {
-            LOGE("general tracker log info for existed data failed %d.", errCode);
-            return errCode;
-        }
+    }
+    errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
+    if (errCode != E_OK) {
+        LOGE("general tracker log info for existed data failed %d.", errCode);
+        return errCode;
     }
     errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
     if (errCode != E_OK) {
         return errCode;
     }
-    if (!trackerTable.GetTrackerColNames().empty() && !isUpgrade) {
+    if (!isUpgrade) {
         return CheckInventoryData(DBCommon::GetLogTableName(table.GetTableName()));
     }
     return E_OK;
@@ -429,24 +437,27 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInf
         return E_OK;
     }
     LOGI("Upgrade tracker table log, schemaChanged:%d.", schemaChanged);
-    int64_t timeOffset = 0;
-    std::string timeOffsetStr = std::to_string(timeOffset);
-    std::string sql = "UPDATE " + logTable + " SET extend_field = " +
-        tableInfo.GetTrackerTable().GetUpgradedExtendValSql();
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, tableInfo.GetTrackerTable().GetTempUpdateTriggerSql(true));
+    if (errCode != E_OK) {
+        LOGE("Create temp trigger failed when upgraded.");
+        return errCode;
+    }
+    errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string sql = "UPDATE " + tableInfo.GetTableName() + " SET _rowid_=_rowid_";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Upgrade log for extend field failed.");
         return errCode;
     }
-    sql = "UPDATE " + logTable + " SET cursor = (SELECT (SELECT CASE WHEN MAX(cursor) IS NULL THEN 0 ELSE"
-        " MAX(cursor) END from " + logTable + ") + " + std::string(DBConstant::SQLITE_INNER_ROWID) +
-        " FROM " + tableInfo.GetTableName() + " WHERE " + tableInfo.GetTableName() + "." +
-        std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + logTable + ".data_key);";
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, tableInfo.GetTrackerTable().GetDropTempUpdateTriggerSql());
     if (errCode != E_OK) {
-        LOGE("Upgrade log for cursor failed.");
+        LOGE("Drop temp trigger failed when upgraded.");
+        return errCode;
     }
-    return errCode;
+    return SetLogTriggerStatus(true);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable)
@@ -897,12 +908,11 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(sqlite3 *db,
-    const std::string &tableName)
+int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(const std::string &tableName)
 {
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "UPDATE " + logTable + " SET extend_field = NULL, cursor = NULL where flag&0x01=0x01;";
-    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("update extend field and cursor failed %d.", errCode);
     }
@@ -936,16 +946,16 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
 std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &logTable)
 {
     std::string sql;
+    sql += " cloud_gid = '', version = '', ";
     if (isLogicDelete_) {
         // 1001 which is logicDelete|cloudForcePush|local|delete
-        sql += "flag = flag&" + std::string(CONSISTENT_FLAG) + "|0x09, cursor = (SELECT case when "
-            "(MAX(cursor) is null) then 1 else MAX(cursor) + 1 END FROM " + logTable + ")";
+        sql += "flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
+            std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
+            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = (SELECT CASE WHEN (MAX(cursor) is "
+            "null) THEN 1 ELSE MAX(cursor) + 1 END FROM " + logTable + ")";
     } else {
-        sql += "data_key = -1,  flag = flag&" + std::string(CONSISTENT_FLAG) + "|0x01";
-    }
-    sql += ", cloud_gid = '', version = ''";
-    if (!isLogicDelete_) {
-        sql += ", sharing_resource = ''";
+        sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
+            std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
     }
     return sql;
 }
@@ -1866,7 +1876,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
     errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 11, shareUri); // 11 is sharing_resource
     if (errCode != E_OK) {
         LOGE("Bind shareUri to insert log statement failed, %d", errCode);
-        return errCode;
     }
     return errCode;
 }

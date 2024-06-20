@@ -101,6 +101,9 @@ public:
     static std::string GetDeleteLockChangedSql();
     static void AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
         std::vector<std::string> &updateColName);
+    static std::string GetSelectIncCursorSql(const std::string &tableName);
+    static std::string GetCursorIncSql(const std::string &tableName);
+    static std::string GetCursorUpgradeSql(const std::string &tableName);
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
