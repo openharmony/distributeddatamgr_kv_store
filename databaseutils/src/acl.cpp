@@ -64,8 +64,10 @@ void Acl::CompareInsertEntry(const AclXattrEntry &entry)
         auto it = entries_.find(entry);
         entries_.erase(it);
     }
-    if (entry.perm_.IsReadable() || entry.perm_.IsWritable() ||
-        entry.perm_.IsExecutable()) {
+    bool isNecessary = (entry.tag_ == ACL_TAG::USER_OBJ ||
+                        entry.tag_ == ACL_TAG::GROUP_OBJ ||
+                        entry.tag_ == ACL_TAG::OTHER);
+    if (isNecessary || entry.perm_.IsReadable() || entry.perm_.IsWritable() || entry.perm_.IsExecutable()) {
         entries_.insert(entry);
     }
 }
