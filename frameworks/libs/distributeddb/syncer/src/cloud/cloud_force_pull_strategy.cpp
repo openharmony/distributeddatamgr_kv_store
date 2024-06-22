@@ -23,6 +23,9 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInf
         return OpType::LOCKED_NOT_HANDLE;
     }
     if (existInLocal) {
+        if (IsIgnoreUpdate(localInfo)) {
+            return OpType::NOT_HANDLE;
+        }
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
             return OpType::DELETE;
         } else if (IsDelete(cloudInfo)) {

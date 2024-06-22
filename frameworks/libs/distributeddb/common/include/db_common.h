@@ -19,6 +19,7 @@
 #include <list>
 #include <string>
 
+#include "cloud/cloud_db_types.h"
 #include "db_types.h"
 #include "kvdb_properties.h"
 #include "store_types.h"
@@ -34,6 +35,11 @@ public:
     static inline std::string GetLogTableName(const std::string &tableName)
     {
         return DBConstant::RELATIONAL_PREFIX + tableName + DBConstant::LOG_POSTFIX;
+    }
+
+    static inline const std::vector<CloudWaterType> GetWaterTypeVec()
+    {
+        return {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
     }
 
     static std::string VectorToHexString(const std::vector<uint8_t> &inVec, const std::string &separator = "");

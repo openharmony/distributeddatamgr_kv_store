@@ -97,7 +97,7 @@ namespace DistributedDB {
         "SELECT * FROM sync_data WHERE key=?;";
 
     const std::string SELECT_SYNC_VALUE_WTIMESTAMP_SQL =
-        "SELECT value, w_timestamp FROM sync_data WHERE key=?;";
+        "SELECT value, w_timestamp FROM sync_data WHERE key=? AND (flag&0x200=0);";
 
     const std::string SELECT_SYNC_HASH_SQL =
         "SELECT * FROM sync_data WHERE hash_key=?;";
@@ -142,7 +142,8 @@ namespace DistributedDB {
         "ORDER BY timestamp ASC;";
 
     const std::string SELECT_SYNC_PREFIX_SQL =
-        "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+        "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) "
+        "ORDER BY key ASC;";
 
     const std::string SELECT_SYNC_KEY_PREFIX_SQL =
         "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
@@ -157,7 +158,7 @@ namespace DistributedDB {
         "SELECT key, value FROM local_data WHERE key>=? AND key<=? ORDER BY key ASC;";
 
     const std::string SELECT_COUNT_SYNC_PREFIX_SQL =
-        "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0);";
+        "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0);";
 
     const std::string REMOVE_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
@@ -268,22 +269,22 @@ namespace DistributedDB {
 
     const std::string REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
-            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+            "(SELECT hash_key FROM sync_data WHERE device =?);";
 
     const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =?;";
 
     const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
-            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+            "(SELECT hash_key FROM sync_data WHERE device =?);";
 
     const std::string SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL =
         "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
-            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+            "(SELECT hash_key FROM sync_data WHERE device =?);";
 
     const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
         "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
-            "(SELECT hash_key FROM sync_data WHERE device =? AND (flag&0x100!=0));";
+            "(SELECT hash_key FROM sync_data WHERE device =?);";
 
     // Check whether the hashKey is the same but the userId is different
     const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL =
@@ -430,6 +431,9 @@ namespace DistributedDB {
 
     constexpr int BIND_CLOUD_VERSION_RECORD_USER_INDEX = 1;
     constexpr int BIND_CLOUD_VERSION_RECORD_KEY_INDEX = 2;
+
+    constexpr int BIND_CLOUD_VERSION_DEVICE_INDEX = 1;
+
     constexpr int BIND_GET_ENTRIES_DEVICE_INDEX = 1;
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB

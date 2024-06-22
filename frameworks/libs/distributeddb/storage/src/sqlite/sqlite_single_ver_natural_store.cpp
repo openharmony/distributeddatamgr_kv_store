@@ -1953,5 +1953,10 @@ int SQLiteSingleVerNaturalStore::SetCloudDbSchema(const std::map<std::string, Da
     return sqliteCloudKvStore_->SetCloudDbSchema(schema);
 }
 
+std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSchemas()
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudKvStore_->GetDataBaseSchemas();
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

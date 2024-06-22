@@ -73,6 +73,8 @@ public:
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
+    const std::map<std::string, std::shared_ptr<ICloudDb>> GetCloudDB() const;
+
     void CleanAllWaterMark();
 
     CloudSyncEvent SyncMachineDoDownload();
@@ -223,7 +225,7 @@ protected:
     int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
         std::map<std::string, LogInfo> &localLogInfoCache);
 
-    int SaveData(SyncParam &param);
+    int SaveData(CloudSyncer::TaskId taskId, SyncParam &param);
 
     void NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload);
 
@@ -325,6 +327,8 @@ protected:
 
     uint32_t GetCurrentTableUploadBatchIndex();
 
+    void ResetCurrentTableUploadBatchIndex();
+
     void RecordWaterMark(TaskId taskId, Timestamp waterMark);
 
     Timestamp GetResumeWaterMark(TaskId taskId);
@@ -356,7 +360,7 @@ protected:
         const DownloadItem &downloadItem, VBucket &dbAssets);
 
     std::map<std::string, Assets> BackFillAssetsAfterDownload(std::map<std::string, Assets> tmpAssets,
-        std::map<std::string, std::vector<uint32_t>> tmpFlags);
+        std::map<std::string, std::vector<uint32_t>> tmpFlags, int downloadCode);
 
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
@@ -380,7 +384,9 @@ protected:
 
     std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
 
-    bool IsTaskCantMerge(TaskId taskId, TaskId tryTaskId);
+    bool IsTaskCanMerge(const CloudTaskInfo &taskInfo);
+
+    bool IsTasksCanMerge(TaskId taskId, TaskId tryMergeTaskId);
 
     bool MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId);
 
@@ -408,6 +414,9 @@ protected:
     CloudSyncEvent SetCurrentTaskFailedInMachine(int errCode);
 
     CloudSyncEvent SyncMachineDoRepeatCheck();
+
+    void MarkDownloadFinishIfNeed(const std::string &downloadTable);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

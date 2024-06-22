@@ -849,7 +849,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(VBucket &vBucket, 
 static inline bool IsAllowWithPrimaryKey(OpType opType)
 {
     return (opType == OpType::DELETE || opType == OpType::UPDATE_TIMESTAMP || opType == OpType::CLEAR_GID ||
-        opType == OpType::ONLY_UPDATE_GID);
+        opType == OpType::ONLY_UPDATE_GID || opType == OpType::LOCKED_NOT_HANDLE);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema,

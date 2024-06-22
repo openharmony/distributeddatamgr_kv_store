@@ -2875,7 +2875,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest001, TestSize.Le
   * @tc.name: OptionValidCheck001
   * @tc.desc: test validation of option mode
   * @tc.type: FUNC
-  * @tc.require: DTS2024042009796
+  * @tc.require:
   * @tc.author: zhangshijie
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSize.Level0)

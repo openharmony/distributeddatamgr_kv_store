@@ -1313,8 +1313,7 @@ std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudVersionData(VBuc
     auto &[errCode, dataItem] = res;
     GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_KEY, data, dataItem.key);
     GetBytesFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, data, dataItem.value);
-    GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
-    errCode = E_OK;
+    errCode = GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, data, dataItem.dev);
     return res;
 }
 

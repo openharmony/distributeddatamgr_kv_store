@@ -92,6 +92,8 @@ public:
     void SetCloudSyncConfig(const CloudSyncConfig &config);
 
     CloudSyncConfig GetCloudSyncConfig() const override;
+
+    std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 

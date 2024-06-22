@@ -37,6 +37,12 @@ int CloudDBProxy::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudD
     return E_OK;
 }
 
+const std::map<std::string, std::shared_ptr<ICloudDb>> CloudDBProxy::GetCloudDB() const
+{
+    std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
+    return cloudDbs_;
+}
+
 void CloudDBProxy::SwitchCloudDB(const std::string &user)
 {
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
@@ -202,6 +208,9 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
     if (iAssetLoader_ == nullptr) {
         LOGE("Asset loader has not been set %d", -E_NOT_SET);
         return -E_NOT_SET;
+    }
+    if (assets.empty()) {
+        return E_OK;
     }
     DBStatus status = iAssetLoader_->Download(tableName, gid, prefix, assets);
     if (status != OK) {

@@ -272,7 +272,7 @@ public:
     DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 
     // Get Entries by the device(uuid) in sync_data.
-    // If device is empty, It would return all the entries which was written by local device.
+    // If device is empty, it would return all the entries which was written by local device.
     DB_API virtual DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
 };
 } // namespace DistributedDB

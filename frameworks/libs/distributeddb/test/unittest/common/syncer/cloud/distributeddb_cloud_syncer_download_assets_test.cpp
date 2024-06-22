@@ -258,7 +258,13 @@ void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatu
             ASSERT_EQ(g_syncProcess.errCode, errCode);
         }
     };
-    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, mode, query, callback, SYNC_WAIT_TIME), dbStatus);
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.mode = mode;
+    option.query = query;
+    option.waitTime = SYNC_WAIT_TIME;
+    option.lockAction = static_cast<LockAction>(0xff); // lock all
+    ASSERT_EQ(g_delegate->Sync(option, callback), dbStatus);
 
     if (dbStatus == DBStatus::OK) {
         WaitForSyncFinish(g_syncProcess, SYNC_WAIT_TIME);
@@ -590,7 +596,7 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
         if (count == 2) { // 2 is compensated sync
             std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE "
                 " (status = 3 and data_key in (2,3,12,13)) or (status = 0)";
-            CloudDBSyncUtilsTest::CheckCount(db, sql, 20); // 20 is match count
+            CloudDBSyncUtilsTest::CheckCount(db, sql, 19); // 19 is match count
             g_processCondition.notify_one();
         }
     });
@@ -602,6 +608,15 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
             CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0 ", db, hashKey);
             EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
             std::string sql = "delete from " + ASSETS_TABLE_NAME + " WHERE id=0";
+            EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        }
+    });
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([this, &queryIdx](const std::string &, VBucket &) {
+        LOGD("query index:%d", ++queryIdx);
+        if (queryIdx == 4) { // 4 is compensated sync
+            std::string sql = "update " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+                " SET status = 1 where data_key=15;";
             EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         }
     });
@@ -724,7 +739,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
     int index = 1;
     EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
-        .Times(4)
+        .Times(2)
         .WillRepeatedly(
             [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s", gid.c_str());

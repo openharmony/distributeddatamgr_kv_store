@@ -36,7 +36,7 @@ constexpr const char *HWM_HEAD = "naturalbase_cloud_meta_sync_data_";
 }
 
 int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName,
-    const std::string &user)
+    const std::string &user, bool isUserBlobType)
 {
     int errCode = E_OK;
     sqlite3_stmt *statement = nullptr;
@@ -47,8 +47,12 @@ int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string 
     // device name always hash string.
     int bindIndex = 1; // 1 is the first index for blob to bind.
     if (!user.empty()) {
-        std::vector<uint8_t> useVect(user.begin(), user.end());
-        errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, useVect, true); // only one arg.
+        if (isUserBlobType) {
+            std::vector<uint8_t> useVect(user.begin(), user.end());
+            errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, useVect, true);
+        } else {
+            errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, user);
+        }
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
             SQLiteUtils::ResetStatement(statement, true, errCode);
@@ -86,8 +90,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
     }
     int bindIndex = 1; // 1 is the first index for blob to bind.
     if (!user.empty()) {
-        std::vector<uint8_t> useVect(user.begin(), user.end());
-        errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, useVect, true); // only one arg.
+        errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, user); // only one arg.
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
             SQLiteUtils::ResetStatement(statement, true, errCode);
@@ -95,7 +98,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
         }
         bindIndex++;
         if (sql == SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL) { // the second argument is also userid.
-            errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, useVect, true); // only one arg.
+            errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, user); // only one arg.
             if (errCode != E_OK) {
                 LOGE("Failed to bind the removed device:%d", errCode);
                 SQLiteUtils::ResetStatement(statement, true, errCode);
@@ -128,7 +131,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
 {
-    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "");
+    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -146,7 +149,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &deviceName, ClearMode mode)
 {
-    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "");
+    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -164,7 +167,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode)
 {
-    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL, "", std::string(HWM_HEAD) + user);
+    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL, "",
+        std::string(HWM_HEAD) + user, true);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -191,7 +195,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::str
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::string &deviceName,
     const std::string &user, ClearMode mode)
 {
-    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL, "", std::string(HWM_HEAD) + user);
+    int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL, "",
+        std::string(HWM_HEAD) + user, true);
     if (errCode != E_OK) {
         return errCode;
     }

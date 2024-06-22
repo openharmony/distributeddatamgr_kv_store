@@ -199,9 +199,10 @@ void DistributedDBCloudSyncerLockTest::GenerateDataRecords(
         Asset asset = ASSET_COPY;
         asset.name = ASSET_COPY.name + std::to_string(i);
         assets.emplace_back(asset);
+        VBucket data;
+        data.insert_or_assign(COL_ASSET, asset);
         asset.name = ASSET_COPY.name + std::to_string(i) + "_copy";
         assets.emplace_back(asset);
-        VBucket data;
         data.insert_or_assign(COL_ID, i);
         data.insert_or_assign(COL_NAME, "name" + std::to_string(g_nameId++));
         data.insert_or_assign(COL_ASSETS, assets);
@@ -288,12 +289,14 @@ void DistributedDBCloudSyncerLockTest::CallSync(const CloudSyncOption &option, D
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    SyncProcess last;
+    auto callback = [&last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
                     finish = true;
+                    last = item.second;
                 }
                 cv.notify_one();
             }
@@ -306,6 +309,7 @@ void DistributedDBCloudSyncerLockTest::CallSync(const CloudSyncOption &option, D
             return finish;
         });
     }
+    g_syncProcess = last;
 }
 
 void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
@@ -497,7 +501,120 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
     sql = "select count(*) from " + ASSETS_TABLE_NAME + " where name = 'name30' AND id = '20';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+    for (const auto &table : g_syncProcess.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+    }
 }
 
+/**
+ * @tc.name: QueryCursorTest001
+ * @tc.desc: Test cursor after querying no data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and Query with cursor tha exceeds range
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 20;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(30);
+    std::vector<VBucket> data;
+
+    /**
+     * @tc.steps:step2. check cursor output param
+     * @tc.expected: step2. return QUERY_END.
+     */
+    EXPECT_EQ(g_virtualCloudDb->Query(ASSETS_TABLE_NAME, extend, data), QUERY_END);
+    EXPECT_EQ(std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]), std::to_string(cloudCount));
+}
+
+/**
+ * @tc.name: QueryCursorTest002
+ * @tc.desc: Test cursor in conditional query sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return ok.
+     */
+    int count = 10;
+    InsertCloudDBData(0, count, 0, ASSETS_TABLE_NAME);
+    InsertLocalData(0, count, ASSETS_TABLE_NAME, true);
+    std::vector<int> idVec = {2, 3};
+    CloudSyncOption option = PrepareOption(Query::Select().From(ASSETS_TABLE_NAME).In("id", idVec),
+        LockAction::DOWNLOAD, true);
+    int index = 0;
+
+    /**
+     * @tc.steps:step2. sync and check cursor
+     * @tc.expected: step2. return ok.
+     */
+    g_virtualCloudDb->ForkQuery([&index](const std::string &, VBucket &extend) {
+        if (index == 1) {
+            std::string cursor;
+            CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::CURSOR_FIELD, extend, cursor);
+            EXPECT_EQ(cursor, std::string(""));
+        }
+        index++;
+    });
+    CallSync(option);
+}
+
+/**
+ * @tc.name: RecordConflictTest001
+ * @tc.desc: Test the asset input param after download return CLOUD_RECORD_EXIST_CONFLICT
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int count = 10;
+    InsertCloudDBData(0, count, 0, ASSETS_TABLE_NAME);
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    int callCount = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&callCount]() {
+        callCount++;
+        g_processCondition.notify_all();
+    });
+    CallSync(option);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
+            [&callCount]() { return callCount == 2; }); // 2 is compensated sync
+        ASSERT_EQ(result, true);
+    }
+
+    /**
+     * @tc.steps:step2. sync again and check asset
+     * @tc.expected: step2. return ok.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
+    g_virtualAssetLoader->ForkDownload([](std::map<std::string, Assets> &assets) {
+        EXPECT_EQ(assets.find(COL_ASSET) != assets.end(), true);
+    });
+    CallSync(option);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
+            [&callCount]() { return callCount == 4; }); // 4 is compensated sync
+        ASSERT_EQ(result, true);
+    }
+    g_cloudStoreHook->SetSyncFinishHook(nullptr);
+}
 } // namespace
 #endif // RELATIONAL_STORE

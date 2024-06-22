@@ -1937,8 +1937,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device,
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
-            errCode = writeHandle_->GetEntries(device, entries);
-            return errCode;
+            return writeHandle_->GetEntries(getDevice, entries);
         }
     }
 
@@ -1948,7 +1947,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device,
         return errCode;
     }
 
-    errCode = handle->GetEntries(device, entries);
+    errCode = handle->GetEntries(getDevice, entries);
     ReleaseExecutor(handle);
     return errCode;
 }

@@ -50,8 +50,43 @@ int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, sqli
          data.insData.record.size(), data.updData.record.size(), data.delData.extend.size(), errCode);
     if (errCode != -E_UNFINISHED) {
         token.ReleaseCloudQueryStmt();
+    } else if (isMemory && UpdateBeginTimeForMemoryDB(token, data)) {
+        token.ReleaseCloudQueryStmt();
     }
     return errCode;
+}
+
+Timestamp SqliteCloudKvExecutorUtils::GetMaxTimeStamp(std::vector<VBucket> &dataExtend)
+{
+    Timestamp maxTimeStamp = 0;
+    VBucket lastRecord = dataExtend.back();
+    auto it = lastRecord.find(CloudDbConstant::MODIFY_FIELD);
+    if (it != lastRecord.end() && maxTimeStamp < static_cast<Timestamp>(std::get<int64_t>(it->second))) {
+        maxTimeStamp = static_cast<Timestamp>(std::get<int64_t>(it->second));
+    }
+    return maxTimeStamp;
+}
+
+bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerContinueToken &token, CloudSyncData &data)
+{
+    Timestamp maxTimeStamp = 0;
+    switch (data.mode) {
+        case DistributedDB::CloudWaterType::DELETE:
+            maxTimeStamp = GetMaxTimeStamp(data.delData.extend);
+            break;
+        case DistributedDB::CloudWaterType::UPDATE:
+            maxTimeStamp = GetMaxTimeStamp(data.updData.extend);
+            break;
+        case DistributedDB::CloudWaterType::INSERT:
+            maxTimeStamp = GetMaxTimeStamp(data.insData.extend);
+            break;
+    }
+    if (maxTimeStamp > token.GetQueryBeginTime()) {
+        token.SetNextBeginTime("", maxTimeStamp);
+        return true;
+    }
+    LOGW("[SqliteCloudKvExecutorUtils] The start time of the in memory database has not been updated.");
+    return false;
 }
 
 int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, sqlite3_stmt *statement,
@@ -918,7 +953,7 @@ std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountAllCloudData(sqlite3 *d
     if (timestampVec.size() != 3) { // 3 is the number of three mode.
         return std::pair(-E_INVALID_ARGS, 0);
     }
-    std::vector<CloudWaterType> typeVec = {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};
+    std::vector<CloudWaterType> typeVec = DBCommon::GetWaterTypeVec();
     std::pair<int, int64_t> result = std::pair(E_OK, 0);
     for (size_t i = 0; i < typeVec.size(); i++) {
         std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
@@ -1003,7 +1038,8 @@ std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersionIn
     });
     std::string hashDev;
     (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
-    hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(hashDev));
+    std::string tempDev = DBCommon::TransferHashString(hashDev);
+    hashDev = DBCommon::TransferStringToHex(tempDev);
     std::string key = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY + hashDev;
     Key keyVec;
     DBCommon::StringToVector(key, keyVec);
@@ -1017,7 +1053,7 @@ std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersionIn
     }
     errCode = GetCloudVersionRecord(isMemory, stmt, syncData);
     if (errCode == -E_NOT_FOUND) {
-        InitDefaultCloudVersionRecord(key, hashDev, syncData);
+        InitDefaultCloudVersionRecord(key, tempDev, syncData);
         errCode = E_OK;
     }
     return res;
@@ -1027,7 +1063,6 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecord(bool isMemory, sqlite3_stm
 {
     int errCode = SQLiteUtils::StepNext(stmt, isMemory);
     if (errCode == -E_FINISHED) {
-        LOGE("[SqliteCloudKvExecutorUtils] Not found local version record");
         return -E_NOT_FOUND;
     }
     if (errCode != E_OK) {
@@ -1046,9 +1081,10 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecord(bool isMemory, sqlite3_stm
 void SqliteCloudKvExecutorUtils::InitDefaultCloudVersionRecord(const std::string &key, const std::string &dev,
     CloudSyncData &syncData)
 {
+    LOGI("[SqliteCloudKvExecutorUtils] Not found local version record");
     VBucket defaultRecord;
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_KEY] = key;
-    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_VALUE] = {};
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_VALUE] = std::string("");
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_DEVICE] = dev;
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE] = dev;
     syncData.insData.record.push_back(std::move(defaultRecord));
@@ -1073,8 +1109,7 @@ int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, const
         hashDevice = DBCommon::TransferHashString(device);
         DBCommon::StringToVector(hashDevice, bytes);
     }
-    int index = 1;
-    int errCode = SQLiteUtils::BindBlobToStatement(dataStmt, index, bytes);
+    int errCode = SQLiteUtils::BindBlobToStatement(dataStmt, BIND_CLOUD_VERSION_DEVICE_INDEX, bytes);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind device failed %d", errCode);
     }

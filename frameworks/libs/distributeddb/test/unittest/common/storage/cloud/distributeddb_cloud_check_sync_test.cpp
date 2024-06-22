@@ -20,6 +20,7 @@
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "log_print.h"
+#include "relational_store_client.h"
 #include "relational_store_delegate.h"
 #include "relational_store_instance.h"
 #include "relational_store_manager.h"
@@ -55,6 +56,8 @@ const Asset g_cloudAsset = {
     .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
 };
 
+std::vector<DBStatus> g_actualDBStatus;
+
 void CreateUserDBAndTable(sqlite3 *&db)
 {
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
@@ -72,13 +75,14 @@ void PrepareOption(CloudSyncOption &option, const Query &query, bool isPriorityT
     option.compensatedSyncOnly = isCompensatedSyncOnly;
 }
 
-void BlockSync(const Query &query, RelationalStoreDelegate *delegate)
+void BlockSync(const Query &query, RelationalStoreDelegate *delegate, std::vector<DBStatus> &actualDBStatus)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    auto callback = [&actualDBStatus, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
+            actualDBStatus.push_back(item.second.errCode);
             if (item.second.process == DistributedDB::FINISHED) {
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
@@ -453,13 +457,13 @@ void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount)
     InsertUserTableRecord(tableName_, dataCount);
     // sync
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     // delete cloud data
     for (int i = 0; i < dataCount; ++i) {
         DeleteCloudTableRecord(i);
     }
     // sync again
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
 }
 
 void DistributedDBCloudCheckSyncTest::CheckLocalCount(int64_t expectCount)
@@ -504,8 +508,8 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest001, TestSize.Level0)
     InsertUserTableRecord(tableName_, actualCount);
     // sync twice
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
+    BlockSync(query, delegate_, g_actualDBStatus);
     // remove cloud data
     delegate_->RemoveDeviceData("CLOUD", ClearMode::FLAG_AND_DATA);
     // check local data
@@ -532,13 +536,13 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest002, TestSize.Level0)
     InsertUserTableRecord(tableName_, actualCount);
     // sync twice
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     // cloud delete id=0 and insert id=0 but its gid is 1
     // local delete id=0
     DeleteCloudTableRecord(0); // cloud gid is 0
     InsertCloudTableRecord(0, actualCount, 0, false); // 0 is id
     DeleteUserTableRecord(0); // 0 is id
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     bool deleteStatus = true;
     EXPECT_EQ(virtualCloudDb_->GetDataStatus("1", deleteStatus), OK);
     EXPECT_EQ(deleteStatus, false);
@@ -561,7 +565,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level0)
     // delete local data
     DeleteUserTableRecord(0);
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
 
     // check local data, cloud date will insert into local
     int dataCnt = -1;
@@ -589,12 +593,12 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
     Query query = Query::Select().FromTable({ tableName_ });
     LOGW("Block Sync");
     virtualCloudDb_->SetInsertFailed(1);
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     // delete local data
     DeleteUserTableRecord(0); // 0 is id
     LOGW("Block Sync");
     // sync again and this record with be synced to cloud
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     bool deleteStatus = true;
     EXPECT_EQ(virtualCloudDb_->GetDataStatus("0", deleteStatus), OK);
     EXPECT_EQ(deleteStatus, true);
@@ -638,7 +642,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
      */
     InsertCloudTableRecord(0, actualCount, actualCount, false);
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
 
     /**
      * @tc.steps:step3. check observer.
@@ -655,7 +659,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
     observer2->ResetCloudSyncToZero();
     int64_t begin = 11;
     InsertCloudTableRecord(begin, actualCount, actualCount, false);
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
 
     /**
      * @tc.steps:step5. check observer.
@@ -1006,6 +1010,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest007, TestSize.Lev
     Query priorytyQuery = Query::Select().From(tableName_).In("id", idValue);
     CloudSyncOption option;
     PrepareOption(option, priorytyQuery, true);
+    option.lockAction = static_cast<LockAction>(0xff); // lock all
     std::mutex callbackMutex;
     std::condition_variable callbackCv;
     size_t finishCount = 0u;
@@ -1067,6 +1072,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest008, TestSize.Lev
     std::vector<std::string> idValue = {"0"};
     Query priorytyQuery = Query::Select().From(tableName_).In("id", idValue);
     CloudSyncOption option;
+    option.lockAction = static_cast<LockAction>(0xff); // lock all
     PrepareOption(option, priorytyQuery, true);
     std::mutex callbackMutex;
     std::condition_variable callbackCv;
@@ -1153,7 +1159,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest010, TestSize.Lev
      * @tc.expected: step2. ok.
      */
     Query query = Query::Select().FromTable({tableName_});
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after sync
     DeleteCloudDBData(0, 3); // delete 0 1 2 record in cloud
     CheckCloudTableCount(tableName_, 7); // 7 is count of cloud records after delete
@@ -1479,11 +1485,11 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
     trackerSchema.trackerColNames = {};
     EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
     InsertUserTableRecord(tableName_, actualCount);
-    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_, g_actualDBStatus);
     for (int i = 0; i < actualCount + actualCount; ++i) {
         DeleteCloudTableRecord(i);
     }
-    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_, g_actualDBStatus);
     EXPECT_EQ(observer->IsAllChangedDataEq(), true);
 
     EXPECT_EQ(delegate_->UnRegisterObserver(observer), OK);
@@ -1540,6 +1546,53 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest005, TestSize.Level
 }
 
 /**
+ * @tc.name: LogicDeleteSyncTest006
+ * @tc.desc: sync with logic delete after lock table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set logic delete
+     * @tc.expected: step1. ok.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+    /**
+     * @tc.steps:step2. insert user table record and sync.
+     * @tc.expected: step2. ok.
+     */
+    int dataCount = 10;
+    InsertUserTableRecord(tableName_, dataCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+
+    /**
+     * @tc.steps:step3. Lock log table, and delete data from cloud table.
+     * @tc.expected: step3. ok.
+     */
+    std::vector<std::vector<uint8_t>> hashKey;
+    CloudDBSyncUtilsTest::GetHashKey(tableName_, " 1=1 ", db_, hashKey);
+    Lock(tableName_, hashKey, db_);
+    for (int i = 0; i < dataCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    /**
+     * @tc.steps:step4. sync.
+     * @tc.expected: step4. ok.
+     */
+    std::vector<DBStatus> actualDBStatus;
+    BlockSync(query, delegate_, actualDBStatus);
+    for (auto status : actualDBStatus) {
+        EXPECT_EQ(status, OK);
+    }
+}
+
+/**
  * @tc.name: LogicCreateRepeatedTableNameTest001
  * @tc.desc: test create repeated table name with different cases
  * @tc.type: FUNC
@@ -1582,7 +1635,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
         EXPECT_EQ(cursor, "0");
     });
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckLocalCount(actualCount);
 }
 
@@ -1621,7 +1674,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
         auto cursor = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
         EXPECT_EQ(cursor, "0");
     });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckLocalCount(actualCount);
 }
 
@@ -1660,7 +1713,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
         auto cursor = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
         EXPECT_EQ(cursor, "0");
     });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckCloudTableCount(tableName_, actualCount);
 }
 
@@ -1734,8 +1787,71 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync001, TestSize.Level0)
      * @tc.expected: step2. OK
      */
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckLocalCount(actualCount);
+}
+
+/*
+ * @tc.name: SameDataSync002
+ * @tc.desc: Test sync when there are two data with the same primary key on the cloud.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert local 1 record and sync to cloud.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+
+    /**
+     * @tc.steps:step2. insert 2 records with the same primary key.
+     * @tc.expected: step2. OK
+     */
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    VBucket data;
+    std::vector<uint8_t> photo(0, 'v');
+    data.insert_or_assign("id", "0");
+    data.insert_or_assign("name", "Cloud");
+    data.insert_or_assign("height", 166.0); // 166.0 is random double value
+    data.insert_or_assign("married", false);
+    data.insert_or_assign("photo", photo);
+    data.insert_or_assign("age", static_cast<int64_t>(13L)); // 13 is random age
+    record.push_back(data);
+    data.insert_or_assign("age", static_cast<int64_t>(14L)); // 14 is random age
+    record.push_back(data);
+    VBucket log;
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, "1");
+    extend.push_back(log);
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, "2");
+    extend.push_back(log);
+    ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName_, std::move(record), extend), DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. sync from cloud and check record.
+     * @tc.expected: step3. The record with age of 14 has been updated locally.
+     */
+    BlockSync(query, delegate_, g_actualDBStatus);
+    std::string sql = "SELECT age FROM " + tableName_ + " where id=0;";
+    int64_t actualAge = 0;
+    int64_t expectAge = 14L;
+    RelationalTestUtils::ExecSql(db_, sql, nullptr, [&actualAge](sqlite3_stmt *stmt) {
+        actualAge = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(actualAge, expectAge);
 }
 
 /*
@@ -1771,7 +1887,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CreateDistributedTable001, TestSize.Le
      * @tc.expected: step2. OK
      */
     Query query = Query::Select().FromTable({ table });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     CheckCloudTableCount(table, actualCount);
 }
 
@@ -1840,7 +1956,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, ConsistentFlagTest001, TestSize.Level1
     InsertUserTableRecord(tableName_, localCount);
     InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
     Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
 
     /**
      * @tc.steps:step2. check the 0x20 bit of flag after sync
@@ -1864,7 +1980,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, ConsistentFlagTest001, TestSize.Level1
      * @tc.steps:step4. check the 0x20 bit of flag after sync
      * @tc.expected: step4. ok.
      */
-    BlockSync(query, delegate_);
+    BlockSync(query, delegate_, g_actualDBStatus);
     EXPECT_EQ(sqlite3_exec(db_, querySql.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(localCount), nullptr), SQLITE_OK);
 }
