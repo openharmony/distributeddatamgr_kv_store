@@ -78,6 +78,7 @@ napi_value JsKVStoreResultSet::GetCount(napi_env env, napi_callback_info info) /
     ZLOGD("KVStoreResultSet::GetCount(status=%{public}d)", ctxt->status);
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     int count = resultSet->GetCount();
 
     napi_create_int32(env, count, &ctxt->output);
@@ -92,6 +93,7 @@ napi_value JsKVStoreResultSet::GetPosition(napi_env env, napi_callback_info info
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     int position = resultSet->GetPosition();
 
     napi_create_int32(env, position, &ctxt->output);
@@ -106,6 +108,7 @@ napi_value JsKVStoreResultSet::MoveToFirst(napi_env env, napi_callback_info info
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->MoveToFirst();
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -120,6 +123,7 @@ napi_value JsKVStoreResultSet::MoveToLast(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->MoveToLast();
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -134,6 +138,7 @@ napi_value JsKVStoreResultSet::MoveToNext(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->MoveToNext();
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -148,6 +153,7 @@ napi_value JsKVStoreResultSet::MoveToPrevious(napi_env env, napi_callback_info i
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->MoveToPrevious();
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -170,6 +176,7 @@ napi_value JsKVStoreResultSet::Move(napi_env env, napi_callback_info info) /* bo
     ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Parameter error:params offset must be number");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->Move(offset);
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -193,6 +200,7 @@ napi_value JsKVStoreResultSet::MoveToPosition(napi_env env, napi_callback_info i
     ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isMoved = resultSet->MoveToPosition(position);
 
     napi_get_boolean(env, isMoved, &ctxt->output);
@@ -207,6 +215,7 @@ napi_value JsKVStoreResultSet::IsFirst(napi_env env, napi_callback_info info) /*
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isFirst = resultSet->IsFirst();
 
     napi_get_boolean(env, isFirst, &ctxt->output);
@@ -221,6 +230,7 @@ napi_value JsKVStoreResultSet::IsLast(napi_env env, napi_callback_info info) /* 
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isLast = resultSet->IsLast();
 
     napi_get_boolean(env, isLast, &ctxt->output);
@@ -235,6 +245,7 @@ napi_value JsKVStoreResultSet::IsBeforeFirst(napi_env env, napi_callback_info in
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isBeforeFirst = resultSet->IsBeforeFirst();
 
     napi_get_boolean(env, isBeforeFirst, &ctxt->output);
@@ -249,6 +260,7 @@ napi_value JsKVStoreResultSet::IsAfterLast(napi_env env, napi_callback_info info
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isAfterLast = resultSet->IsAfterLast();
 
     napi_get_boolean(env, isAfterLast, &ctxt->output);
@@ -264,6 +276,7 @@ napi_value JsKVStoreResultSet::GetEntry(napi_env env, napi_callback_info info) /
 
     DistributedKv::Entry entry;
     auto resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->GetInstance();
+    NAPI_ASSERT(env, resultSet != nullptr, "kvResultSet is nullptr!");
     bool isSchema = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->isSchema_;
     auto status = resultSet->GetEntry(entry);
     if (status != Status::SUCCESS) {
@@ -277,7 +290,13 @@ napi_value JsKVStoreResultSet::GetEntry(napi_env env, napi_callback_info info) /
 
 std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::Create()
 {
-    return KvUtils::ToResultSetBridge(GetInstance());
+    auto instance = GetInstance();
+    if (instance == nullptr) {
+        ZLOGE("resultSet is null");
+        return nullptr;
+    }
+    SetInstance(nullptr);
+    return KvUtils::ToResultSetBridge(instance);
 }
 
 void JsKVStoreResultSet::SetSchema(bool isSchema)
