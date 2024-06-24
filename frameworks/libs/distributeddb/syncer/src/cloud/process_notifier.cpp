@@ -62,17 +62,11 @@ void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &proces
     syncProcess_.tableProcess[process.tableName].process = process.tableStatus;
     if (process.downLoadInfo.batchIndex != 0u) {
         LOGD("[ProcessNotifier] update download process index: %" PRIu32, process.downLoadInfo.batchIndex);
-        syncProcess_.tableProcess[process.tableName].downLoadInfo.batchIndex = process.downLoadInfo.batchIndex;
-        syncProcess_.tableProcess[process.tableName].downLoadInfo.total = process.downLoadInfo.total;
-        syncProcess_.tableProcess[process.tableName].downLoadInfo.failCount = process.downLoadInfo.failCount;
-        syncProcess_.tableProcess[process.tableName].downLoadInfo.successCount = process.downLoadInfo.successCount;
+        syncProcess_.tableProcess[process.tableName].downLoadInfo = process.downLoadInfo;
     }
     if (process.upLoadInfo.batchIndex != 0u) {
         LOGD("[ProcessNotifier] update upload process index: %" PRIu32, process.upLoadInfo.batchIndex);
-        syncProcess_.tableProcess[process.tableName].upLoadInfo.batchIndex = process.upLoadInfo.batchIndex;
-        syncProcess_.tableProcess[process.tableName].upLoadInfo.total = process.upLoadInfo.total;
-        syncProcess_.tableProcess[process.tableName].upLoadInfo.failCount = process.upLoadInfo.failCount;
-        syncProcess_.tableProcess[process.tableName].upLoadInfo.successCount = process.upLoadInfo.successCount;
+        syncProcess_.tableProcess[process.tableName].upLoadInfo = process.upLoadInfo;
     }
     if (!user_.empty()) {
         multiSyncProcess_[user_] = syncProcess_;
