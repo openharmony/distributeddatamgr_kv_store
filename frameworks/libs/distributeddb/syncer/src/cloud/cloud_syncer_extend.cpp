@@ -1005,13 +1005,13 @@ void CloudSyncer::MarkDownloadFinishIfNeed(const std::string &downloadTable)
 
 int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info)
 {
-    ContinueToken continueStmtToken = nullptr;
     CloudSyncData uploadData(tableName, uploadParam.mode);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
     auto [err, localWater] = GetLocalWater(tableName, uploadParam);
     if (err != E_OK) {
         return err;
     }
+    ContinueToken continueStmtToken = nullptr;
     int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), localWater, continueStmtToken, uploadData);
     if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
         LOGE("[CloudSyncer] Failed to get cloud data when upload, %d.", ret);
