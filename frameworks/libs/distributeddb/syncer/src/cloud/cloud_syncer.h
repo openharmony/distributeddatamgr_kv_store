@@ -172,7 +172,7 @@ protected:
 
     int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
 
-    int PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
+    int PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo,
         CloudSyncData &uploadData);
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);

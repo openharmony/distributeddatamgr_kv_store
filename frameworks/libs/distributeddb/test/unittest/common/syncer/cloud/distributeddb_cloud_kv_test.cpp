@@ -260,8 +260,8 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
     }
     BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
     for (const auto &table : lastProcess_.tableProcess) {
-        EXPECT_EQ(table.second.downLoadInfo.total, 2u);
-        EXPECT_EQ(table.second.downLoadInfo.insertCount, 2u);
+        EXPECT_EQ(table.second.downLoadInfo.total, 2u); // download 2 records
+        EXPECT_EQ(table.second.downLoadInfo.insertCount, 2u); // download 2 records
     }
     Value actualValue;
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
@@ -408,7 +408,13 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync005, TestSize.Level1)
         ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
     }
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    for (const auto &process : lastProcess_.tableProcess) {
+        EXPECT_EQ(process.second.upLoadInfo.insertCount, 60u); // sync 60 records
+    }
     BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    for (const auto &process : lastProcess_.tableProcess) {
+        EXPECT_EQ(process.second.downLoadInfo.insertCount, 60u); // sync 60 records
+    }
 }
 
 /**

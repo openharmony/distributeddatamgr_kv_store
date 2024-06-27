@@ -1019,17 +1019,6 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     }
     uploadParam.count -= uploadData.ignoredCount;
     info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
-    switch (uploadParam.mode) {
-        case CloudWaterType::INSERT:
-            info.upLoadInfo.insertCount += uploadData.insData.record.size();
-            break;
-        case CloudWaterType::UPDATE:
-            info.upLoadInfo.updateCount += uploadData.updData.record.size();
-            break;
-        case CloudWaterType::DELETE:
-            info.upLoadInfo.deleteCount += uploadData.delData.record.size();
-            break;
-    }
     ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused
