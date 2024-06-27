@@ -1303,6 +1303,7 @@ int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInf
         uploadParam.taskId, uploadParam.localMark);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Failed to get new local water mark in Cloud Sync Data, %d.", ret);
+        return ret;
     }
     switch (uploadParam.mode) {
         case CloudWaterType::INSERT:
@@ -1317,7 +1318,7 @@ int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInf
         default:
             break;
     }
-    return ret;
+    return E_OK;
 }
 
 int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId taskId)
