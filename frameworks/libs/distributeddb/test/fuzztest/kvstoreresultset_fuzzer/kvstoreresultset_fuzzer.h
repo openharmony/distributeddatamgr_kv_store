@@ -20,10 +20,12 @@
 
 #include <cstdint>
 
+namespace DistributedDB {
 static inline uint32_t U32_AT(const uint8_t * const &ptr)
 {
     // 24 - 16 - 8 - 0, the 3th one no need to shift left
     return (ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3];
 }
+} // namespace DistributedDB
 
 #endif // KVSTORERESULTSET_FUZZER_H
