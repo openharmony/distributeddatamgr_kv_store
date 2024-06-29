@@ -166,6 +166,9 @@ struct Info {
     uint32_t total = 0;
     uint32_t successCount = 0; // merge or upload success count
     uint32_t failCount = 0;
+    uint32_t insertCount = 0;
+    uint32_t updateCount = 0;
+    uint32_t deleteCount = 0;
 };
 
 struct TableProcessInfo {

@@ -1278,7 +1278,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
     return DoUploadInner(tableName, param);
 }
 
-int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
+int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo,
     CloudSyncData &uploadData)
 {
     // Precheck and calculate local water mark which would be updated if batch upload successed.
@@ -1303,8 +1303,22 @@ int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProc
         uploadParam.taskId, uploadParam.localMark);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Failed to get new local water mark in Cloud Sync Data, %d.", ret);
+        return ret;
     }
-    return ret;
+    switch (uploadParam.mode) {
+        case CloudWaterType::INSERT:
+            innerProcessInfo.upLoadInfo.insertCount += uploadData.insData.record.size();
+            break;
+        case CloudWaterType::UPDATE:
+            innerProcessInfo.upLoadInfo.updateCount += uploadData.updData.record.size();
+            break;
+        case CloudWaterType::DELETE:
+            innerProcessInfo.upLoadInfo.deleteCount += uploadData.delData.record.size();
+            break;
+        default:
+            break;
+    }
+    return E_OK;
 }
 
 int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId taskId)
@@ -1357,33 +1371,6 @@ bool CloudSyncer::IsPriorityTask(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     return cloudTaskInfos_[taskId].priorityTask;
-}
-
-int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info)
-{
-    ContinueToken continueStmtToken = nullptr;
-    CloudSyncData uploadData(tableName, uploadParam.mode);
-    SetUploadDataFlag(uploadParam.taskId, uploadData);
-    auto [err, localWater] = GetLocalWater(tableName, uploadParam);
-    if (err != E_OK) {
-        return err;
-    }
-    int ret = storageProxy_->GetCloudData(GetQuerySyncObject(tableName), localWater, continueStmtToken, uploadData);
-    if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
-        LOGE("[CloudSyncer] Failed to get cloud data when upload, %d.", ret);
-        return ret;
-    }
-    uploadParam.count -= uploadData.ignoredCount;
-    info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
-    ret = HandleBatchUpload(uploadParam, info, uploadData, continueStmtToken);
-    if (ret != -E_TASK_PAUSED) {
-        // reset watermark to zero when task no paused
-        RecordWaterMark(uploadParam.taskId, 0u);
-    }
-    if (continueStmtToken != nullptr) {
-        storageProxy_->ReleaseContinueToken(continueStmtToken);
-    }
-    return ret;
 }
 
 int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)
