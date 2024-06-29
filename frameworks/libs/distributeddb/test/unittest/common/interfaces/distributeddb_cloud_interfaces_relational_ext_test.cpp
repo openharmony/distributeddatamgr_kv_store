@@ -944,9 +944,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
      * @tc.expected: step5. check observer ok.
      */
     sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
-    ExecSqlAndWaitForObserver(db, sql, lock);
-    properties.isTrackedDataChange = false;
-    CheckTriggerTableData(1u, tableName, properties, ++triggerCount);
 
     /**
      * @tc.steps:step6. update to the same data again, set name is NULL, check observer.

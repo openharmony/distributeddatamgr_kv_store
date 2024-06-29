@@ -15,6 +15,7 @@
 
 #include "sqlite_relational_database_upgrader.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
@@ -163,8 +164,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
 {
     TableInfoMap trackerTables = trackerSchemaObj.GetTrackerTables();
     for (const auto &table : schemaObj.GetTables()) {
-        std::string logName = DBCommon::GetLogTableName(table.first);
-        int errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
+        int errCode = UpgradeLogBaseOnVersion(logTableVersion, table.first);
         if (errCode != E_OK) {
             LOGE("[Relational][UpgradeLogTable] upgrade distributed log table failed. err:%d", errCode);
             return errCode;
@@ -173,8 +173,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
     }
     // Need to upgrade non-distributed log table
     for (const auto &table: trackerTables) {
-        std::string logName = DBCommon::GetLogTableName(table.first);
-        int errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
+        int errCode = UpgradeLogBaseOnVersion(logTableVersion, table.first);
         if (errCode != E_OK) {
             LOGE("[Relational][UpgradeLogTable] upgrade tracker log table failed. err:%d", errCode);
             return errCode;
@@ -186,8 +185,9 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
 }
 
 int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string &oldVersion,
-    const std::string &logName)
+    const std::string &tableName)
 {
+    std::string logName = DBCommon::GetLogTableName(tableName);
     TableInfo tableInfo;
     tableInfo.SetTableName(logName);
     int errCode = SQLiteUtils::AnalysisSchemaFieldDefine(db_, logName, tableInfo);
@@ -211,6 +211,9 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string 
     }
     if (oldVersion < DBConstant::LOG_TABLE_VERSION_5_5) {
         SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "status", "int default 0" } }, addColSqlVec);
+    }
+    if (oldVersion < DBConstant::LOG_TABLE_VERSION_5_8) {
+        addColSqlVec.push_back(CloudStorageUtils::GetCursorUpgradeSql(tableName));
     }
     for (size_t i = 0; i < addColSqlVec.size(); ++i) {
         errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);

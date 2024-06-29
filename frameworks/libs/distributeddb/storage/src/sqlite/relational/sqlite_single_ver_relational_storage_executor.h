@@ -189,6 +189,8 @@ public:
     int UpdateRecordStatus(const std::string &tableName, const std::string &status, const Key &hashKey);
 
     void SetUploadConfig(int32_t maxUploadCount, int32_t maxUploadSize);
+
+    int InitCursorToMeta(const std::string &tableName);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -243,7 +245,7 @@ private:
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
         TableInfo &tableInfo);
-    int CleanExtendAndCursorForDeleteData(sqlite3 *db, const std::string &tableName);
+    int CleanExtendAndCursorForDeleteData(const std::string &tableName);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
         uint32_t &totalSize);
@@ -425,6 +427,9 @@ private:
     int QueryCount(const std::string &tableName, int64_t &count);
 
     int GetUploadCountInner(const Timestamp &timestamp, SqliteQueryHelper &helper, std::string &sql, int64_t &count);
+
+    int LogicDeleteCloudData(const std::string &tableName, const VBucket &vBucket,
+        const TableSchema &tableSchema, const TrackerTable &trackerTable);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";

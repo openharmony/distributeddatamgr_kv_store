@@ -160,24 +160,41 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     }
     std::string timeOffsetStr = std::to_string(timeOffset);
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
-        ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
-        timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) +  ", " +
-        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
-            static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY)) +
-        ", " + calPrimaryKeyHash + ", '', ";
+    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
+    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY));
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        sql += "'', ''";
-    } else {
-        sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
-        sql += ", case when (SELECT count(1)<>0 FROM " + logTable + ")" +
-            " then ((SELECT CASE WHEN MAX(cursor) IS NULL THEN 0 ELSE MAX(cursor) END FROM " + logTable + ") + " +
-            std::string(DBConstant::SQLITE_INNER_ROWID) +
-            ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
+        std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " + timeOffsetStr +
+            " + " + rowid + ", " + timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', " +
+            "'', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGE("Failed to initialize device type log data.%d", errCode);
+        }
+        return errCode;
     }
-    sql += ", '', '', 0";
-    sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
-    return SQLiteUtils::ExecuteRawSQL(db, sql);
+    TrackerTable trackerTable = tableInfo.GetTrackerTable();
+    trackerTable.SetTableName(tableName);
+    errCode = SQLiteUtils::ExecuteRawSQL(db, trackerTable.GetTempInsertTriggerSql(true));
+    if (errCode != E_OK) {
+        LOGE("Failed to create temp insert trigger.%d", errCode);
+        return errCode;
+    }
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
+        ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
+        timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
+        sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+        sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Failed to initialize cloud type log data.%d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(db, tableInfo.GetTrackerTable().GetDropTempInsertTriggerSql());
+    if (errCode != E_OK) {
+        LOGE("Failed to drop temp insert trigger.%d", errCode);
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
@@ -1861,6 +1878,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += std::string(CloudDbConstant::TO_LOCAL_CHANGE) + ", cloud_gid = ?";
         updateColName.push_back(CloudDbConstant::GID_FIELD);
     } else {
+        updateLogSql += " device = 'cloud', timestamp = ?,";
+        updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
         } else {
@@ -1868,8 +1887,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
             updateColName.push_back(CloudDbConstant::GID_FIELD);
             CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
         }
-        updateLogSql += ", device = 'cloud', timestamp = ?";
-        updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     }
 
     int errCode = AppendUpdateLogRecordWhereSqlCondition(tableSchema, vBucket, updateLogSql);

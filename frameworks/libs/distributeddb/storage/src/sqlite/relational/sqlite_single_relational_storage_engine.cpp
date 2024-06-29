@@ -192,8 +192,9 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
     errCode = handle->DeleteMetaData({ key });
     if (errCode != E_OK) {
         LOGE("Save table drop flag to meta table failed. %d", errCode);
+        return errCode;
     }
-    return errCode;
+    return handle->InitCursorToMeta(tableName);
 }
 }
 

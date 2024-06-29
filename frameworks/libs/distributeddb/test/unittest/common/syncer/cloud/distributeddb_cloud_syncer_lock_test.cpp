@@ -115,6 +115,7 @@ protected:
     void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName);
     void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t versionStart,
         const std::string &tableName);
+    void DeleteCloudDBData(int64_t beginGid, int64_t count, const std::string &tableName);
     void CallSync(const CloudSyncOption &option, DBStatus expectResult = OK);
 
     void TestConflictSync001(bool isUpdate);
@@ -268,6 +269,22 @@ void DistributedDBCloudSyncerLockTest::UpdateCloudDBData(int64_t begin, int64_t 
     }
     ASSERT_EQ(g_virtualCloudDb->BatchUpdate(tableName, std::move(record), extend), DBStatus::OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
+void DistributedDBCloudSyncerLockTest::DeleteCloudDBData(int64_t beginGid, int64_t count,
+    const std::string &tableName)
+{
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    std::vector<VBucket> extend;
+    for (int64_t i = 0; i < count; ++i) {
+        VBucket log;
+        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+        log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(beginGid + i));
+        extend.push_back(log);
+    }
+    ASSERT_EQ(g_virtualCloudDb->BatchDelete(tableName, extend), DBStatus::OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(count));
 }
 
 CloudSyncOption PrepareOption(const Query &query, LockAction action, bool isPriorityTask = false,
@@ -615,6 +632,49 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level
         ASSERT_EQ(result, true);
     }
     g_cloudStoreHook->SetSyncFinishHook(nullptr);
+}
+
+/**
+ * @tc.name: QueryCursorTest003
+ * @tc.desc: Test whether cursor fallback
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. delete cloud data and sync
+     * @tc.expected: step2. return ok.
+     */
+    DeleteCloudDBData(0, cloudCount, ASSETS_TABLE_NAME);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step3. remove data
+     * @tc.expected: step3. return ok.
+     */
+    std::string device = "";
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+
+    /**
+     * @tc.steps:step4. insert local and check cursor
+     * @tc.expected: step4. return ok.
+     */
+    InsertLocalData(0, 1, ASSETS_TABLE_NAME, true);
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where cursor='31';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }
 } // namespace
 #endif // RELATIONAL_STORE
