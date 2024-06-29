@@ -19,9 +19,14 @@
 #include "db_types.h"
 #include "db_errno.h"
 #include "json_object.h"
+#include "sqlite_import.h"
 
 #ifdef RELATIONAL_STORE
 namespace DistributedDB {
+using AfterBuildAction = std::function<int()>;
+namespace TriggerMode {
+enum class TriggerModeEnum;
+}
 class TrackerTable {
 public:
     TrackerTable() = default;
@@ -36,16 +41,18 @@ public:
     const std::string GetExtendName() const;
     std::string ToString() const;
     const std::vector<std::string> GetDropTempTriggerSql() const;
-    const std::string GetTempInsertTriggerSql(bool isEachRow = false) const;
-    const std::string GetDropTempInsertTriggerSql() const;
-    const std::string GetDropTempUpdateTriggerSql() const;
-    const std::string GetTempUpdateTriggerSql(bool isEachRow = false) const;
+    const std::string GetTempInsertTriggerSql() const;
+    const std::string GetDropTempTriggerSql(TriggerMode::TriggerModeEnum mode) const;
+    const std::string GetCreateTempTriggerSql(TriggerMode::TriggerModeEnum mode) const;
+    const std::string GetTempTriggerName(TriggerMode::TriggerModeEnum mode) const;
+    const std::string GetTempUpdateTriggerSql() const;
     const std::string GetTempDeleteTriggerSql() const;
     void SetTableName(const std::string &tableName);
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);
     bool IsEmpty() const;
     bool IsChanging(const TrackerSchema &schema);
+    int ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action);
 
 private:
     std::string tableName_;

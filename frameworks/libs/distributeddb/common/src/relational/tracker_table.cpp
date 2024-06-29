@@ -96,33 +96,43 @@ const std::vector<std::string> TrackerTable::GetDropTempTriggerSql() const
         return {};
     }
     std::vector<std::string> dropSql;
-    dropSql.push_back(GetDropTempInsertTriggerSql());
-    dropSql.push_back(GetDropTempUpdateTriggerSql());
-    dropSql.push_back("DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_DELETE_TEMP;");
+    dropSql.push_back(GetDropTempTriggerSql(TriggerMode::TriggerModeEnum::INSERT));
+    dropSql.push_back(GetDropTempTriggerSql(TriggerMode::TriggerModeEnum::UPDATE));
+    dropSql.push_back(GetDropTempTriggerSql(TriggerMode::TriggerModeEnum::DELETE));
     return dropSql;
 }
 
-const std::string TrackerTable::GetDropTempInsertTriggerSql() const
+const std::string TrackerTable::GetDropTempTriggerSql(TriggerMode::TriggerModeEnum mode) const
 {
-    return "DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_INSERT_TEMP;";
+    return "DROP TRIGGER IF EXISTS " + GetTempTriggerName(mode);
 }
 
-const std::string TrackerTable::GetDropTempUpdateTriggerSql() const
+const std::string TrackerTable::GetCreateTempTriggerSql(TriggerMode::TriggerModeEnum mode) const
 {
-    return "DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_UPDATE_TEMP;";
+    switch (mode) {
+        case TriggerMode::TriggerModeEnum::INSERT:
+            return GetTempInsertTriggerSql();
+        case TriggerMode::TriggerModeEnum::UPDATE:
+            return GetTempUpdateTriggerSql();
+        case TriggerMode::TriggerModeEnum::DELETE:
+            return GetTempDeleteTriggerSql();
+        default:
+            return {};
+    }
 }
 
-const std::string TrackerTable::GetTempInsertTriggerSql(bool isEachRow) const
+const std::string TrackerTable::GetTempTriggerName(TriggerMode::TriggerModeEnum mode) const
+{
+    return DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_" + TriggerMode::GetTriggerModeString(mode) + "_TEMP";
+}
+
+const std::string TrackerTable::GetTempInsertTriggerSql() const
 {
     // This trigger is built on the log table
     std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
     sql += "_ON_INSERT_TEMP AFTER INSERT ON " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
-    if (isEachRow) {
-        sql += " FOR EACH ROW ";
-    } else {
-        sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
-            " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
-    }
+    sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
@@ -135,16 +145,12 @@ const std::string TrackerTable::GetTempInsertTriggerSql(bool isEachRow) const
     return sql;
 }
 
-const std::string TrackerTable::GetTempUpdateTriggerSql(bool isEachRow) const
+const std::string TrackerTable::GetTempUpdateTriggerSql() const
 {
     std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
     sql += "_ON_UPDATE_TEMP AFTER UPDATE ON " + tableName_;
-    if (isEachRow) {
-        sql += " FOR EACH ROW ";
-    } else {
-        sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
-            " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
-    }
+    sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
@@ -215,6 +221,48 @@ bool TrackerTable::IsChanging(const TrackerSchema &schema)
         }
     }
     return false;
+}
+
+int TrackerTable::ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, "SELECT 1 FROM sqlite_temp_master where name='" +
+        GetTempTriggerName(mode) + "' and type='trigger' COLLATE NOCASE;", stmt);
+    if (errCode != E_OK) {
+        LOGE("Failed to select temp trigger mode:%d err:%d", mode, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    bool isExists = (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) ? true : false;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW) && errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("Select temp trigger step mode:%d err:%d", mode, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(db, GetDropTempTriggerSql(mode));
+    if (errCode != E_OK) {
+        LOGE("Failed to drop temp trigger mode:%d err:%d", mode, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(db, GetCreateTempTriggerSql(mode));
+    if (errCode != E_OK) {
+        LOGE("Failed to create temp trigger mode:%d err:%d", mode, errCode);
+        return errCode;
+    }
+    if (action != nullptr) {
+        errCode = action();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    if (!isExists) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, GetDropTempTriggerSql(mode));
+        if (errCode != E_OK) {
+            LOGE("Failed to clear temp trigger mode:%d err:%d", mode, errCode);
+        }
+    }
+    return errCode;
 }
 }
 #endif
