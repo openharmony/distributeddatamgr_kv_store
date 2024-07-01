@@ -424,7 +424,7 @@ enum AuthType : uint32_t {
     /**
       * IDENTICAL_ACCOUNT_CHECK: means verify the same account type.
     */
-    IDENTICAL_ACCOUNT_CHECK
+    IDENTICAL_ACCOUNT
 };
 
 /**
@@ -558,7 +558,9 @@ struct Options {
      * Set cloud config of kv store.
     */
     CloudConfig cloudConfig;
-
+    /**
+     * Set authType of kv store.
+    */
     AuthType authType = AuthType::DEFAULT;
 };
 
