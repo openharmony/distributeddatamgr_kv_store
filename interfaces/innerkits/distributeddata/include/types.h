@@ -559,7 +559,7 @@ struct Options {
     */
     CloudConfig cloudConfig;
 
-    AuthType authTypes = AuthType::DEFAULT;
+    AuthType authType = AuthType::DEFAULT;
 };
 
 /**
