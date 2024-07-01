@@ -413,6 +413,21 @@ enum DataType : uint32_t {
 };
 
 /**
+ * @brief Verify data synchronization based on the account type.
+*/
+enum AuthType : uint32_t {
+    /**
+      * DEFAULT: means all types of checks.
+    */
+    DEFAULT = 0,
+
+    /**
+      * IDENTICAL_ACCOUNT_CHECK: means verify the same account type.
+    */
+    IDENTICAL_ACCOUNT
+};
+
+/**
  * @brief Provide configuration information for database creation.
 */
 struct Options {
@@ -543,6 +558,10 @@ struct Options {
      * Set cloud config of kv store.
     */
     CloudConfig cloudConfig;
+    /**
+     * Set authType of kv store.
+    */
+    AuthType authType = AuthType::DEFAULT;
 };
 
 /**

@@ -39,6 +39,7 @@ using Notification = OHOS::DistributedKv::SwitchNotification;
 using SwitchState = OHOS::DistributedKv::SwitchState;
 using CloudConfig = OHOS::DistributedKv::CloudConfig;
 using StoreConfig = OHOS::DistributedKv::StoreConfig;
+using AuthType = OHOS::DistributedKv::AuthType;
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -118,6 +119,11 @@ template<>
 API_EXPORT bool Marshalling(const StoreConfig &input, MessageParcel &data);
 template<>
 API_EXPORT bool Unmarshalling(StoreConfig &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const AuthType &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(AuthType &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

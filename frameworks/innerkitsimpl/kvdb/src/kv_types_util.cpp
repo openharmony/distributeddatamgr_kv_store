@@ -157,6 +157,23 @@ bool Unmarshalling(Options &output, MessageParcel &data)
 }
 
 template<>
+bool Marshalling(const AuthType &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(data, static_cast<int32_t>(input));
+}
+
+template<>
+bool Unmarshalling(AuthType &output, MessageParcel &data)
+{
+    int32_t authType;
+    if (!ITypesUtil::Unmarshal(data, authType)) {
+        return false;
+    }
+    output = static_cast<AuthType>(authType);
+    return true;
+}
+
+template<>
 bool Marshalling(const SyncPolicy &input, MessageParcel &data)
 {
     return ITypesUtil::Marshal(data, input.type, input.value);
