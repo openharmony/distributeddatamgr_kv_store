@@ -1033,7 +1033,7 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
 int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     const std::shared_ptr<RelationalDBProperties> &propertiesPtr)
 {
-    if (!ParamCheckUtils::CheckStoreParameter(param.storeId, param.appId, param.userId)) {
+    if (!ParamCheckUtils::CheckStoreParameter({param.storeId, param.appId, param.userId}, false, "", true)) {
         LOGE("[AutoLaunch] CheckStoreParameter is invalid.");
         return -E_INVALID_ARGS;
     }

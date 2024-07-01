@@ -637,6 +637,51 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest007, TestSize.Level0)
     CheckSharedDataAfterUpdated({166.0, 166.0}); // 166.0 is the height col val on the cloud
 }
 
+/**
+ * @tc.name: CloudSyncTest008
+ * @tc.desc: sync with dot storeId
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open store with dot store id
+     * @tc.expected: open ok.
+     */
+    RelationalStoreDelegate::Option option;
+    RelationalStoreDelegate *delegate = nullptr;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1 + ".test", option, delegate), DBStatus::OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetCloudDB(virtualCloudDb_), DBStatus::OK);
+    EXPECT_EQ(delegate->SetIAssetLoader(std::make_shared<VirtualAssetLoader>()), DBStatus::OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(parentTableName_, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(childTableName_, CLOUD_COOPERATION), DBStatus::OK);
+    SetReference();
+    DataBaseSchema dataBaseSchema = GetSchema();
+    EXPECT_EQ(delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    /**
+     * @tc.steps: step2. call cloud sync
+     * @tc.expected: sync ok.
+     */
+    std::vector<std::string> tableNames = { parentTableName_, childTableName_ };
+    Query query = Query::Select().FromTable(tableNames);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    /**
+     * @tc.steps: step3. insert data and cloud sync again
+     * @tc.expected: sync ok.
+     */
+    InsertUserTableRecord(parentTableName_, 1);
+    InsertUserTableRecord(childTableName_, 1);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    /**
+     * @tc.steps: step4. close store
+     * @tc.expected: close ok.
+     */
+    EXPECT_EQ(mgr_->CloseStore(delegate), DBStatus::OK);
+}
+
 void ComplexReferenceCheck001SetReference(RelationalStoreDelegate *delegate)
 {
     // the reference like this
