@@ -63,7 +63,7 @@ void ResultSetFuzzer(const uint8_t* data, size_t size)
         if (size == 0) {
             return;
         }
-        auto pos = U32_AT(data) % size;
+        auto pos = KvStoreResultSetFuzzer::U32_AT(data) % size;
         readResultSet->MoveToPosition(pos++);
         readResultSet->Move(0 - pos);
         readResultSet->IsFirst();

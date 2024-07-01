@@ -39,7 +39,7 @@ void FuzzNotEqualTo(const uint8_t* data, size_t size)
 void FuzzGreaterThan(const uint8_t* data, size_t size)
 {
     std::string rawString(reinterpret_cast<const char *>(data), size);
-    Query query = Query::Select().GreaterThan(rawString, static_cast<int>(U32_AT(data)));
+    Query query = Query::Select().GreaterThan(rawString, static_cast<int>(QueryFuzzer::U32_AT(data)));
 }
 
 void FuzzLessThan(const uint8_t* data, size_t size)
@@ -69,7 +69,7 @@ void FuzzOrderBy(const uint8_t* data, size_t size)
 
 void FuzzLimit(const uint8_t* data, size_t size)
 {
-    Query query = Query::Select().Limit(static_cast<int>(size), static_cast<int>(U32_AT(data)));
+    Query query = Query::Select().Limit(static_cast<int>(size), static_cast<int>(QueryFuzzer::U32_AT(data)));
 }
 
 void FuzzLike(const uint8_t* data, size_t size)
@@ -89,7 +89,7 @@ void FuzzIn(const uint8_t* data, size_t size)
     std::string rawString(reinterpret_cast<const char *>(data), size);
     std::vector<std::string> values;
     // 512 max size
-    for (int i = 0; i < static_cast<int>(U32_AT(data) % 512); i++) {
+    for (int i = 0; i < static_cast<int>(QueryFuzzer::U32_AT(data) % 512); i++) {
         values.push_back(rawString);
     }
     Query query = Query::Select().In(TEST_FIELD_NAME, values);
