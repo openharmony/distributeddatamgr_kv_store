@@ -33,6 +33,7 @@ public:
         std::vector<std::string> devices;
         std::string query;
         uint64_t syncId = 0;
+        int32_t triggerMode = 0;
     };
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
