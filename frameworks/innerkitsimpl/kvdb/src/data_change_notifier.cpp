@@ -29,64 +29,38 @@ void DataChangeNotifier::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (taskId_ == TaskExecutor::INVALID_TASK_ID) {
-        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::seconds(NOTIFY_DELAY), GenTask());
+        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::seconds(RECOVER_INTERVAL), GarbageCollect());
         return;
     }
-    taskId_ = TaskExecutor::GetInstance().Reset(taskId_, std::chrono::seconds(NOTIFY_DELAY));
+    taskId_ = TaskExecutor::GetInstance().Reset(taskId_, std::chrono::seconds(RECOVER_INTERVAL));
 }
 
-void DataChangeNotifier::DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds, bool now)
+void DataChangeNotifier::DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds)
 {
-    if (now) {
-        DoNotify(appId, { storeIds.begin(), storeIds.end() });
-        return;
-    }
-    AddStores(appId, std::move(storeIds));
-    StartTimer();
-}
-
-void DataChangeNotifier::AddStores(const std::string &appId, std::set<StoreId> storeIds)
-{
-    stores_.Compute(appId, [&storeIds](const auto &key, std::vector<StoreId> &value) {
-        std::set<StoreId> tempStores(value.begin(), value.end());
-        for (auto it = storeIds.begin(); it != storeIds.end(); it++) {
-            if (tempStores.count(*it) == 0) {
-                value.push_back(*it);
-            }
-        }
-        return !value.empty();
+    TaskExecutor::GetInstance().Execute([&appId, stores = std::move(storeIds), this]() {
+        DoNotify(appId, { stores.begin(), stores.end() });
+        StartTimer();
     });
 }
 
-bool DataChangeNotifier::HasStores()
-{
-    return !stores_.Empty();
-}
-
-std::map<std::string, std::vector<StoreId>> DataChangeNotifier::GetStoreIds()
-{
-    std::map<std::string, std::vector<StoreId>> stores;
-    stores_.EraseIf([&stores](const std::string &key, std::vector<StoreId> &value) {
-        stores.insert({ key, std::move(value) });
-        return true;
-    });
-    return stores;
-}
-
-std::function<void()> DataChangeNotifier::GenTask()
+std::function<void()> DataChangeNotifier::GarbageCollect()
 {
     return [this]() {
-        {
+        stores_.EraseIf([](const auto &key, std::map<StoreId, uint64_t> &value) {
+            for (auto it = value.begin(); it != value.end();) {
+                if (it->second < GetTimeStamp()) {
+                    it = value.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            return value.empty();
+        });
+        stores_.DoActionIfEmpty([this]() {
             std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+            TaskExecutor::GetInstance().Remove(taskId_);
             taskId_ = TaskExecutor::INVALID_TASK_ID;
-        }
-        auto storeIds = GetStoreIds();
-        for (const auto &id : storeIds) {
-            DoNotify({ id.first }, id.second);
-        }
-        if (HasStores()) {
-            StartTimer();
-        }
+        });
     };
 }
 
@@ -96,9 +70,21 @@ void DataChangeNotifier::DoNotify(const std::string& appId, const std::vector<St
     if (service == nullptr) {
         return;
     }
-    for (const auto &store : stores) {
-        service->NotifyDataChange({ appId }, store);
-    }
+    stores_.Compute(appId, [service, &stores](const auto &key, std::map<StoreId, uint64_t> &value) {
+        for (const auto &store : stores) {
+            auto it = value.find(store);
+            if (it != value.end() && it->second > GetTimeStamp()) {
+                continue;
+            }
+            auto status = service->NotifyDataChange({ key }, store, NOTIFY_INTERVAL);
+            if (status != SUCCESS) {
+                continue;
+            }
+            value.insert_or_assign(store, GetTimeStamp(NOTIFY_INTERVAL));
+        }
+        return true;
+    });
+
     ZLOGD("Notify change appId:%{public}s store size:%{public}zu", appId.c_str(), stores.size());
 }
 } // namespace OHOS::DistributedKv

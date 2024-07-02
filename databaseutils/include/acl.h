@@ -16,11 +16,13 @@
 #ifndef OHOS_DISTRIBUTED_DATA_DATABASE_UTILS_ACL_H
 #define OHOS_DISTRIBUTED_DATA_DATABASE_UTILS_ACL_H
 
-#include "visibility.h"
+#include <memory>
 #include <set>
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
+
+#include "visibility.h"
 namespace OHOS {
 namespace DATABASE_UTILS {
 /*

@@ -1014,10 +1014,6 @@ void SingleStoreImpl::DoNotifyChange()
     }
     ZLOGD("app:%{public}s store:%{public}s dataType:%{public}d!",
         appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str(), dataType_);
-    if (dataType_ == DataType::TYPE_STATICS) {
-        DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } }, true);
-        return;
-    }
     DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } });
 }
 

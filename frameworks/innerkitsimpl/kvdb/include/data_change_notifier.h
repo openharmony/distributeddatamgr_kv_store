@@ -24,19 +24,23 @@ namespace OHOS::DistributedKv {
 class DataChangeNotifier {
 public:
     static DataChangeNotifier &GetInstance();
-    void DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds, bool now = false);
+    void DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds);
 
 private:
-    static constexpr uint32_t NOTIFY_DELAY = 1; // s
+    static inline uint64_t GetTimeStamp(uint32_t offset = 0)
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            (std::chrono::steady_clock::now() + std::chrono::milliseconds(offset)).time_since_epoch())
+            .count();
+    }
+    static constexpr uint32_t NOTIFY_INTERVAL = 200; // ms
+    static constexpr uint32_t RECOVER_INTERVAL = 60;  // s
     DataChangeNotifier() = default;
     ~DataChangeNotifier() = default;
-    std::map<std::string, std::vector<StoreId>> GetStoreIds();
-    std::function<void()> GenTask() __attribute__((no_sanitize("cfi")));
+    std::function<void()> GarbageCollect() __attribute__((no_sanitize("cfi")));
     void StartTimer();
-    void AddStores(const std::string &appId, std::set<StoreId> storeIds);
     void DoNotify(const std::string& appId, const std::vector<StoreId> &stores);
-    bool HasStores();
-    ConcurrentMap<std::string, std::vector<StoreId>> stores_;
+    ConcurrentMap<std::string, std::map<StoreId, uint64_t>> stores_;
     TaskExecutor::TaskId taskId_;
     std::mutex mutex_;
 };

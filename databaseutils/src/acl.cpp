@@ -18,6 +18,7 @@
 
 #include "securec.h"
 #include <cerrno>
+#include <cstring>
 #include <dlfcn.h>
 #include <functional>
 #include <iosfwd>
