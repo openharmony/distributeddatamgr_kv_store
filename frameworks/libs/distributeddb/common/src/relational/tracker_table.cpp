@@ -70,6 +70,25 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
     return sql;
 }
 
+const std::string TrackerTable::GetDiffIncCursorSql(const std::string &tableName) const
+{
+    if (trackerColNames_.empty()) {
+        return "";
+    }
+    std::string sql = ", cursor = CASE WHEN (";
+    size_t index = 0;
+    for (const auto &colName: trackerColNames_) {
+        sql += "(NEW." + colName + " IS NOT OLD." + colName + ")";
+        if (index < trackerColNames_.size() - 1) {
+            sql += " OR ";
+        }
+        index++;
+    }
+    sql += ") THEN " + CloudStorageUtils::GetSelectIncCursorSql(tableName);
+    sql += " ELSE cursor END ";
+    return sql;
+}
+
 const std::string TrackerTable::GetExtendName() const
 {
     return extendColName_;

@@ -513,6 +513,18 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest007,
      * @tc.expected: step3. Return OK.
      */
     CheckExtendAndCursor(num, 0);
+
+    /**
+     * @tc.steps:step4. update extend field and check
+     * @tc.expected: step4. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema3), OK);
+    std::string sql = "UPDATE " + TABLE_NAME2 + " SET age='666'";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where extend_field=666;";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
     CloseStore();
 }
 

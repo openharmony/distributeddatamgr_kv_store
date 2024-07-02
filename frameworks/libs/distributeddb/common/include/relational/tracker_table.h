@@ -38,6 +38,7 @@ public:
     const std::string GetAssignValSql(bool isDelete = false) const;
     const std::string GetExtendAssignValSql(bool isDelete = false) const;
     const std::string GetDiffTrackerValSql() const;
+    const std::string GetDiffIncCursorSql(const std::string &tableName) const;
     const std::string GetExtendName() const;
     std::string ToString() const;
     const std::vector<std::string> GetDropTempTriggerSql() const;
