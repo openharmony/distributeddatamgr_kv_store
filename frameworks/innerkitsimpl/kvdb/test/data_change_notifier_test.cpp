@@ -47,7 +47,7 @@ public:
             instance_ = nullptr;
         }
 
-        Status NotifyDataChange(const AppId &appId, const StoreId &storeId) override
+        Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) override
         {
             endTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
             values_[appId.appId].insert(storeId.storeId);
@@ -56,7 +56,7 @@ public:
                 ++callCount;
                 value_.SetValue(callCount);
             }
-            return KVDBServiceClient::NotifyDataChange(appId, storeId);
+            return KVDBServiceClient::NotifyDataChange(appId, storeId, delay);
         }
 
         uint32_t GetCallCount(uint32_t value)
@@ -79,11 +79,14 @@ public:
             return callTimes;
         }
 
-        void ResetToZero()
+        void Reset()
         {
             std::lock_guard<decltype(mutex_)> guard(mutex_);
             callCount = 0;
             value_.Clear(0);
+            startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+            endTime = 0;
+            values_.clear();
         }
 
         uint64_t startTime = 0;
@@ -133,156 +136,107 @@ void DataChangeNotifierTest::TearDown(void)
 }
 
 /**
-* @tc.name: SingleWriteAtOnce
-* @tc.desc: single write, and notify change at once
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: SingleWriteAtOnce
+ * @tc.desc: single write, and notify change at once
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(DataChangeNotifierTest, SingleWriteAtOnce, TestSize.Level0)
 {
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
-    DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { { "ut_test_store" } }, true);
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
-    auto it = instance->values_.find("ut_test");
-    ASSERT_NE(it, instance->values_.end());
-    ASSERT_EQ(it->second.count("ut_test_store"), 1);
-    ASSERT_LT(instance->endTime - instance->startTime, 50);
-}
-
-/**
-* @tc.name: SingleWriteOverFiveKvStoreAtOnce
-* @tc.desc: single write over five kvstore, and notify change at once
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DataChangeNotifierTest, SingleWriteOverFiveKvStoreAtOnce, TestSize.Level0)
-{
-    auto *instance = KVDBServiceMock::GetInstance();
-    ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
-    DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", {
-                                                                    { "ut_test_store_0" },
-                                                                    { "ut_test_store_1" },
-                                                                    { "ut_test_store_2" },
-                                                                    { "ut_test_store_3" },
-                                                                    { "ut_test_store_4" },
-                                                                    { "ut_test_store_5" },
-                                                                }, true);
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(6)), 6);
-    auto it = instance->values_.find("ut_test");
-    ASSERT_NE(it, instance->values_.end());
-    ASSERT_EQ(it->second.count("ut_test_store_0"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store_1"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store_2"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store_3"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store_4"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store_5"), 1);
-    ASSERT_LT(instance->endTime - instance->startTime, 50);
-}
-
-/**
-* @tc.name: SingleWrite
-* @tc.desc: single write
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DataChangeNotifierTest, SingleWrite, TestSize.Level0)
-{
-    auto *instance = KVDBServiceMock::GetInstance();
-    ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
+    instance->Reset();
     DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { { "ut_test_store" } });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
     auto it = instance->values_.find("ut_test");
     ASSERT_NE(it, instance->values_.end());
     ASSERT_EQ(it->second.count("ut_test_store"), 1);
-    ASSERT_GE(instance->endTime - instance->startTime, 1000);
+    ASSERT_LT(instance->endTime - instance->startTime, 50);
 }
 
 /**
-* @tc.name: MultiWrite
-* @tc.desc: write every 100 milliseconds reached 5 times
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
+ * @tc.name: SingleWriteOverFiveKvStoreAtOnce
+ * @tc.desc: single write over five kvstore, and notify change at once
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
+HWTEST_F(DataChangeNotifierTest, SingleWriteOverFiveKvStoreAtOnce, TestSize.Level0)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->Reset();
+    std::set<StoreId> storeIds;
+    const int NUM = 6;
+    for (int i = 0; i < NUM; i++) {
+        storeIds.insert({ "ut_test_store_" + std::to_string(i) });
+    }
+    DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", storeIds);
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
+    auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
+    ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
+    ASSERT_LT(instance->endTime - instance->startTime, 50);
+}
+
+/**
+ * @tc.name: MultiWrite
+ * @tc.desc: write every 10 milliseconds reached 5 times
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
  */
 HWTEST_F(DataChangeNotifierTest, MultiWrite, TestSize.Level1)
 {
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
+    instance->Reset();
     std::thread thread([] {
         int times = 0;
         while (times < 5) {
             DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { { "ut_test_store" } });
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             times++;
         }
     });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
-    ASSERT_GE(instance->endTime - instance->startTime, 1400);
-    thread.join();
+    ASSERT_LT(instance->endTime - instance->startTime, 50);
     auto it = instance->values_.find("ut_test");
     ASSERT_NE(it, instance->values_.end());
     ASSERT_EQ(it->second.count("ut_test_store"), 1);
+    thread.join();
 }
 
 /**
-* @tc.name: MultiWriteOverFiveKVStores
-* @tc.desc: write every 100 milliseconds reached 5 times
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: MultiWriteOverFiveKVStores
+ * @tc.desc: write every 100 milliseconds reached 5 times
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(DataChangeNotifierTest, MultiWriteOverFiveKVStores, TestSize.Level1)
 {
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
-    std::thread thread([] {
+    instance->Reset();
+    std::set<StoreId> storeIds;
+    const int NUM = 6;
+    for (int i = 0; i < NUM; i++) {
+        storeIds.insert({ "ut_test_store_" + std::to_string(i) });
+    }
+    std::thread thread([storeIds] {
         int times = 0;
         while (times < 5) {
-            DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", {
-                                                                   { "ut_test_store0" },
-                                                                   { "ut_test_store1" },
-                                                                   { "ut_test_store2" },
-                                                                   { "ut_test_store3" },
-                                                                   { "ut_test_store4" },
-                                                                   { "ut_test_store5" },
-                                                               });
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", storeIds);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             times++;
         }
     });
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(6)), 6);
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
     ASSERT_GE(instance->endTime - instance->startTime, 1400);
     auto it = instance->values_.find("ut_test");
-    ASSERT_EQ(it->second.count("ut_test_store0"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store1"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store2"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store3"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store4"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store5"), 1);
+    ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
     thread.join();
 }
 
@@ -297,40 +251,48 @@ HWTEST_F(DataChangeNotifierTest, DoubleWrite, TestSize.Level1)
 {
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
-    instance->ResetToZero();
-    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
-    instance->endTime = 0;
-    instance->values_.clear();
-    DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", {
-                                                           { "ut_test_store0" },
-                                                           { "ut_test_store1" },
-                                                           { "ut_test_store2" },
-                                                           { "ut_test_store3" },
-                                                           { "ut_test_store4" },
-                                                           { "ut_test_store5" },
-                                                       });
-    DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", {
-                                                           { "ut_test_store-0" },
-                                                           { "ut_test_store-1" },
-                                                           { "ut_test_store-2" },
-                                                           { "ut_test_store-3" },
-                                                           { "ut_test_store-4" },
-                                                           { "ut_test_store-5" },
-                                                       });
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(12)), 12);
-    ASSERT_GE(instance->endTime - instance->startTime, 1000);
+    instance->Reset();
+    const int NUM = 6;
+    for (int i = 0; i < NUM; i++) {
+        DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { { "ut_test_store" } });
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
+    ASSERT_GE(instance->endTime - instance->startTime, 500 * NUM);
     auto it = instance->values_.find("ut_test");
-    ASSERT_EQ(it->second.count("ut_test_store0"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store1"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store2"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store3"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store4"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store5"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-0"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-1"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-2"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-3"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-4"), 1);
-    ASSERT_EQ(it->second.count("ut_test_store-5"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store"), 1);
+}
+
+/**
+ * @tc.name: MultiWriteWithIncreasedStores
+ * @tc.desc: Write multi times within the interval of increasing the number of databases
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
+HWTEST_F(DataChangeNotifierTest, MultiWriteWithIncreasedStores, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->Reset();
+    std::set<StoreId> storeIds;
+    const int NUM = 6;
+    for (int i = 0; i < NUM; i++) {
+        storeIds.insert({ "ut_test_store_" + std::to_string(i) });
+    }
+    std::thread thread([storeIds] {
+        int times = 0;
+        while (times < 5) {
+            auto end = ++storeIds.begin();
+            DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { storeIds.begin(), end });
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            times++;
+        }
+    });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
+    ASSERT_LE(instance->endTime - instance->startTime, 100);
+    auto it = instance->values_.find("ut_test");
+    ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
+    thread.join();
 }
 } // namespace OHOS::Test
