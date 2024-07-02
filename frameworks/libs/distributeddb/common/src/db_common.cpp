@@ -681,6 +681,6 @@ bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
 
 std::string DBCommon::GetCursorKey(const std::string &tableName)
 {
-    return DBConstant::RELATIONAL_PREFIX + "cursor_" + tableName;
+    return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
 }
 } // namespace DistributedDB
