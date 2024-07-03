@@ -49,14 +49,12 @@ public:
 
         Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) override
         {
+            std::lock_guard<decltype(mutex_)> guard(mutex_);
             endTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
             values_[appId.appId].insert(storeId.storeId);
-            {
-                std::lock_guard<decltype(mutex_)> guard(mutex_);
-                ++callCount;
-                value_.SetValue(callCount);
-            }
-            return KVDBServiceClient::NotifyDataChange(appId, storeId, delay);
+            ++callCount;
+            value_.SetValue(callCount);
+            return DistributedKv::SUCCESS;
         }
 
         uint32_t GetCallCount(uint32_t value)
@@ -95,17 +93,6 @@ public:
         std::map<std::string, std::set<std::string>> values_;
         BlockData<uint32_t> value_{ 5, 0 };
         std::mutex mutex_;
-    };
-    class TestSyncCallback : public KvStoreSyncCallback {
-    public:
-        void SyncCompleted(const std::map<std::string, Status> &results) override
-        {
-            ASSERT_TRUE(true);
-        }
-        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
-        {
-            ASSERT_TRUE(true);
-        }
     };
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -168,14 +155,15 @@ HWTEST_F(DataChangeNotifierTest, SingleWriteOverFiveKvStoreAtOnce, TestSize.Leve
     ASSERT_NE(instance, nullptr);
     instance->Reset();
     std::set<StoreId> storeIds;
-    const int NUM = 6;
-    for (int i = 0; i < NUM; i++) {
+    const int num = 6;
+    for (int i = 0; i < num; i++) {
         storeIds.insert({ "ut_test_store_" + std::to_string(i) });
     }
     DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", storeIds);
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(num)), num);
     auto it = instance->values_.find("ut_test");
     ASSERT_NE(it, instance->values_.end());
+    ASSERT_EQ(it->second.size(), num);
     ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
     ASSERT_LT(instance->endTime - instance->startTime, 50);
 }
@@ -200,7 +188,7 @@ HWTEST_F(DataChangeNotifierTest, MultiWrite, TestSize.Level1)
             times++;
         }
     });
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    EXPECT_EQ(instance->GetCallCount(1), 1);
     ASSERT_LT(instance->endTime - instance->startTime, 50);
     auto it = instance->values_.find("ut_test");
     ASSERT_NE(it, instance->values_.end());
@@ -210,7 +198,7 @@ HWTEST_F(DataChangeNotifierTest, MultiWrite, TestSize.Level1)
 
 /**
  * @tc.name: MultiWriteOverFiveKVStores
- * @tc.desc: write every 100 milliseconds reached 5 times
+ * @tc.desc: write every 10 milliseconds reached 5 times, every store only notify once
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zuojiangjiang
@@ -221,21 +209,22 @@ HWTEST_F(DataChangeNotifierTest, MultiWriteOverFiveKVStores, TestSize.Level1)
     ASSERT_NE(instance, nullptr);
     instance->Reset();
     std::set<StoreId> storeIds;
-    const int NUM = 6;
-    for (int i = 0; i < NUM; i++) {
+    const int num = 5;
+    for (int i = 0; i < num; i++) {
         storeIds.insert({ "ut_test_store_" + std::to_string(i) });
     }
     std::thread thread([storeIds] {
         int times = 0;
-        while (times < 5) {
+        while (times < num) {
             DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", storeIds);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             times++;
         }
     });
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
-    ASSERT_GE(instance->endTime - instance->startTime, 1400);
+    EXPECT_EQ(instance->GetCallCount(num), num);
+    ASSERT_LE(instance->endTime - instance->startTime, 10);
     auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
     ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
     thread.join();
 }
@@ -252,14 +241,15 @@ HWTEST_F(DataChangeNotifierTest, DoubleWrite, TestSize.Level1)
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
     instance->Reset();
-    const int NUM = 6;
-    for (int i = 0; i < NUM; i++) {
+    const int num = 6;
+    for (int i = 0; i < num; i++) {
         DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { { "ut_test_store" } });
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
-    ASSERT_GE(instance->endTime - instance->startTime, 500 * NUM);
+    EXPECT_EQ(instance->GetCallCount(num), num);
+    ASSERT_GE(instance->endTime - instance->startTime, 500 * (num - 1));
     auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
     ASSERT_EQ(it->second.count("ut_test_store"), 1);
 }
 
@@ -276,22 +266,23 @@ HWTEST_F(DataChangeNotifierTest, MultiWriteWithIncreasedStores, TestSize.Level1)
     ASSERT_NE(instance, nullptr);
     instance->Reset();
     std::set<StoreId> storeIds;
-    const int NUM = 6;
-    for (int i = 0; i < NUM; i++) {
+    const int num = 6;
+    for (int i = 0; i < num; i++) {
         storeIds.insert({ "ut_test_store_" + std::to_string(i) });
     }
     std::thread thread([storeIds] {
         int times = 0;
-        while (times < 5) {
-            auto end = ++storeIds.begin();
-            DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { storeIds.begin(), end });
+        auto end = storeIds.begin();
+        while (times < num) {
+            DataChangeNotifier::GetInstance().DoNotifyChange("ut_test", { storeIds.begin(), ++end });
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             times++;
         }
     });
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(NUM)), NUM);
-    ASSERT_LE(instance->endTime - instance->startTime, 100);
+    EXPECT_EQ(instance->GetCallCount(num), num);
+    ASSERT_GE(instance->endTime - instance->startTime, 10 * (num - 1));
     auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
     ASSERT_EQ(it->second, std::set<std::string>(storeIds.begin(), storeIds.end()));
     thread.join();
 }

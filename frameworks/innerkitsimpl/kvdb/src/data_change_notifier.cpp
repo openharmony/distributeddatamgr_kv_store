@@ -37,10 +37,27 @@ void DataChangeNotifier::StartTimer()
 
 void DataChangeNotifier::DoNotifyChange(const std::string &appId, std::set<StoreId> storeIds)
 {
-    TaskExecutor::GetInstance().Execute([&appId, stores = std::move(storeIds), this]() {
-        DoNotify(appId, { stores.begin(), stores.end() });
-        StartTimer();
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        ZLOGI("service is null. appId:%{public}s store size:%{public}zu", appId.c_str(), storeIds.size());
+        return;
+    }
+    stores_.Compute(appId, [service, &storeIds, this](const auto &key, std::map<StoreId, uint64_t> &value) {
+        for (const auto &store : storeIds) {
+            auto it = value.find(store);
+            if (it != value.end() && it->second > GetTimeStamp()) {
+                continue;
+            }
+            TaskExecutor::GetInstance().Execute([key, store, service, this]() {
+                service->NotifyDataChange({ key }, store, NOTIFY_INTERVAL);
+                StartTimer();
+            });
+            value.insert_or_assign(store, GetTimeStamp(NOTIFY_INTERVAL));
+        }
+        return true;
     });
+
+    ZLOGD("Notify change appId:%{public}s store size:%{public}zu", appId.c_str(), storeIds.size());
 }
 
 std::function<void()> DataChangeNotifier::GarbageCollect()
@@ -62,29 +79,5 @@ std::function<void()> DataChangeNotifier::GarbageCollect()
             taskId_ = TaskExecutor::INVALID_TASK_ID;
         });
     };
-}
-
-void DataChangeNotifier::DoNotify(const std::string& appId, const std::vector<StoreId> &stores)
-{
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        return;
-    }
-    stores_.Compute(appId, [service, &stores](const auto &key, std::map<StoreId, uint64_t> &value) {
-        for (const auto &store : stores) {
-            auto it = value.find(store);
-            if (it != value.end() && it->second > GetTimeStamp()) {
-                continue;
-            }
-            auto status = service->NotifyDataChange({ key }, store, NOTIFY_INTERVAL);
-            if (status != SUCCESS) {
-                continue;
-            }
-            value.insert_or_assign(store, GetTimeStamp(NOTIFY_INTERVAL));
-        }
-        return true;
-    });
-
-    ZLOGD("Notify change appId:%{public}s store size:%{public}zu", appId.c_str(), stores.size());
 }
 } // namespace OHOS::DistributedKv
