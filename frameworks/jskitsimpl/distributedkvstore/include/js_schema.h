@@ -49,8 +49,8 @@ private:
     static JsSchema* GetSchema(napi_env env, napi_callback_info info, std::shared_ptr<ContextBase> &ctxt);
 
     enum {
-        SCHEMA_MODE_STRICT,
         SCHEMA_MODE_SLOPPY,
+        SCHEMA_MODE_STRICT,
     };
     JsFieldNode* rootNode_ = nullptr;
     napi_env env_ = nullptr;     // manage the root. set/get.
