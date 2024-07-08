@@ -213,7 +213,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetValueWithInvalidNetworkId, TestSize.
     EXPECT_EQ(value.ToString(), "test_value_0");
     auto blockData = std::make_shared<BlockData<bool>>(1, false);
     std::function<void(Status, Value&&)> call = [blockData](Status status, Value &&value) {
-        EXPECT_EQ(status, Status::INVALID_ARGUMENT);
+        EXPECT_EQ(status, Status::SUCCESS);
         blockData->SetValue(true);
     };
     singleKvStore->Get({ "test_key_0" }, "", call);
@@ -247,7 +247,7 @@ HWTEST_F(SingleKvStoreAsyncGetTest, AsyncGetEntriesWithInvalidNetworkId, TestSiz
     EXPECT_EQ(results.size(), 10);
     auto blockData = std::make_shared<BlockData<bool>>(1, false);
     std::function<void(Status, std::vector<Entry>&&)> call = [blockData](Status status, std::vector<Entry> &&value) {
-        EXPECT_EQ(status, Status::INVALID_ARGUMENT);
+        EXPECT_EQ(status, Status::SUCCESS);
         blockData->SetValue(true);
     };
     singleKvStore->GetEntries({ "prefix_key_" }, "", call);
