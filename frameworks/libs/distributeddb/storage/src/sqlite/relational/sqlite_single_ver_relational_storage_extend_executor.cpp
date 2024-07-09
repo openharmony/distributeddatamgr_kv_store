@@ -313,6 +313,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         LOGE("general tracker log info for existed data failed %d.", errCode);
         return errCode;
     }
+    errCode = SetLogTriggerStatus(true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
     if (errCode != E_OK) {
         return errCode;
@@ -437,26 +441,20 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInf
         return E_OK;
     }
     LOGI("Upgrade tracker table log, schemaChanged:%d.", schemaChanged);
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, tableInfo.GetTrackerTable().GetTempUpdateTriggerSql(true));
-    if (errCode != E_OK) {
-        LOGE("Create temp trigger failed when upgraded.");
-        return errCode;
-    }
-    errCode = SetLogTriggerStatus(false);
+    int errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
         return errCode;
     }
     std::string sql = "UPDATE " + tableInfo.GetTableName() + " SET _rowid_=_rowid_";
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
-    if (errCode != E_OK) {
-        LOGE("Upgrade log for extend field failed.");
-        return errCode;
-    }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, tableInfo.GetTrackerTable().GetDropTempUpdateTriggerSql());
-    if (errCode != E_OK) {
-        LOGE("Drop temp trigger failed when upgraded.");
-        return errCode;
-    }
+    TrackerTable trackerTable = tableInfo.GetTrackerTable();
+    errCode = trackerTable.ReBuildTempTrigger(dbHandle_, TriggerMode::TriggerModeEnum::UPDATE,
+        [this, &sql]() {
+        int ret = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+        if (ret != E_OK) {
+            LOGE("Upgrade log for extend field failed.");
+        }
+        return ret;
+    });
     return SetLogTriggerStatus(true);
 }
 

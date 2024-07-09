@@ -158,6 +158,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     if (errCode != E_OK) {
         return errCode;
     }
+    errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     std::string timeOffsetStr = std::to_string(timeOffset);
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
@@ -175,25 +179,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     }
     TrackerTable trackerTable = tableInfo.GetTrackerTable();
     trackerTable.SetTableName(tableName);
-    errCode = SQLiteUtils::ExecuteRawSQL(db, trackerTable.GetTempInsertTriggerSql(true));
-    if (errCode != E_OK) {
-        LOGE("Failed to create temp insert trigger.%d", errCode);
-        return errCode;
-    }
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
         ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
         timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
-        sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
-        sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
-    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
-    if (errCode != E_OK) {
-        LOGE("Failed to initialize cloud type log data.%d", errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::ExecuteRawSQL(db, tableInfo.GetTrackerTable().GetDropTempInsertTriggerSql());
-    if (errCode != E_OK) {
-        LOGE("Failed to drop temp insert trigger.%d", errCode);
-    }
+    sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+    sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+    errCode = trackerTable.ReBuildTempTrigger(db, TriggerMode::TriggerModeEnum::INSERT, [db, &sql]() {
+        int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (ret != E_OK) {
+            LOGE("Failed to initialize cloud type log data.%d", ret);
+        }
+        return ret;
+    });
     return errCode;
 }
 
@@ -242,9 +239,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
-    }
-    if (errCode != E_OK) {
-        return errCode;
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
 
     // add trigger

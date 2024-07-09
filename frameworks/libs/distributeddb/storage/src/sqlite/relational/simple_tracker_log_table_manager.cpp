@@ -94,16 +94,20 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += " WHEN " + table.GetTrackerTable().GetDiffTrackerValSql() + " \n";
+    updateTrigger += " FOR EACH ROW ";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName);
+    updateTrigger.pop_back();
+    updateTrigger += " AND " + table.GetTrackerTable().GetDiffTrackerValSql() + ";";
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + "";
+    updateTrigger += table.GetTrackerTable().GetDiffIncCursorSql(tableName);
     updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += "SELECT client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
-    updateTrigger += ", 1, 1);";
+    updateTrigger += ", 1, ";
+    updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
+    updateTrigger += ");";
     updateTrigger += "END;";
     return updateTrigger;
 }

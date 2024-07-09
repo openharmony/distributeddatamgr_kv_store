@@ -676,5 +676,45 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }
+
+/**
+ * @tc.name: QueryCursorTest004
+ * @tc.desc: Test temp trigger under concurrency
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. set tracker table before saving cloud data
+     * @tc.expected: step2. return ok.
+     */
+    g_virtualCloudDb->ForkQuery([](const std::string &table, VBucket &) {
+        TrackerSchema schema = {
+            .tableName = ASSETS_TABLE_NAME, .extendColName = COL_NAME, .trackerColNames = { COL_ID }
+        };
+        EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    });
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step3. check extend_field and cursor
+     * @tc.expected: step3. return ok.
+     */
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where data_key='0' and extend_field='name10' and cursor='31';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+}
 } // namespace
 #endif // RELATIONAL_STORE
