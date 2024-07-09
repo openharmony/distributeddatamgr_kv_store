@@ -303,7 +303,7 @@ bool DBStatusAdapter::MergeDBInfos(const std::vector<DBInfo> &srcDbInfos, std::v
 {
     bool isDbInfoChange = false;
     for (const auto &srcInfo: srcDbInfos) {
-        if (!ParamCheckUtils::CheckStoreParameter(srcInfo.storeId, srcInfo.appId, srcInfo.userId)) {
+        if (!ParamCheckUtils::CheckStoreParameter({srcInfo.storeId, srcInfo.appId, srcInfo.userId}, false, "", true)) {
             continue;
         }
         auto res = std::find_if(dstDbInfos.begin(), dstDbInfos.end(), [&srcInfo](const DBInfo &dstInfo) {

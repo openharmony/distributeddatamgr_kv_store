@@ -29,11 +29,14 @@ public:
     static bool CheckDataDir(const std::string &dir, std::string &canonicalDir);
 
     // Check if the storeID is a safe arg.
-    static bool IsStoreIdSafe(const std::string &storeId);
+    static bool IsStoreIdSafe(const std::string &storeId, bool allowStoreIdWithDot = false);
 
     // check appId, userId, storeId, subUser.
     static bool CheckStoreParameter(const std::string &storeId, const std::string &appId, const std::string &userId,
         bool isIgnoreUserIdCheck = false, const std::string &subUser = "");
+
+    static bool CheckStoreParameter(const StoreInfo &info, bool isIgnoreUserIdCheck = false,
+        const std::string &subUser = "", bool allowStoreIdWithDot = false);
 
     // check encrypted args for KvStore.
     static bool CheckEncryptedParameter(CipherType cipher, const CipherPassword &passwd);

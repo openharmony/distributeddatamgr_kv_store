@@ -82,7 +82,7 @@ bool RelationalStoreManager::PreCheckOpenStore(const std::string &path, const st
         return false;
     }
 
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_, false, subUser_) || path.empty()) {
+    if (!ParamCheckUtils::CheckStoreParameter({userId_, appId_, storeId}, false, subUser_, true) || path.empty()) {
         return false;
     }
 

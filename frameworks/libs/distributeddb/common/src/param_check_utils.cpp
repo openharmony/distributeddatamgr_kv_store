@@ -36,7 +36,7 @@ bool ParamCheckUtils::CheckDataDir(const std::string &dataDir, std::string &cano
     return (OS::GetRealPath(dataDir, canonicalDir) == E_OK);
 }
 
-bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId)
+bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId, bool allowStoreIdWithDot)
 {
     if (storeId.empty() || (storeId.length() > DBConstant::MAX_STORE_ID_LENGTH)) {
         LOGE("Invalid store id[%zu]", storeId.length());
@@ -44,7 +44,9 @@ bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId)
     }
 
     auto iter = std::find_if_not(storeId.begin(), storeId.end(),
-        [](char value) { return (std::isalnum(value) || value == '_'); });
+        [allowStoreIdWithDot](char value) {
+        return (std::isalnum(value) || value == '_') || (allowStoreIdWithDot && value == '.');
+    });
     if (iter != storeId.end()) {
         LOGE("Invalid store id format");
         return false;
@@ -55,7 +57,16 @@ bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId)
 bool ParamCheckUtils::CheckStoreParameter(const std::string &storeId, const std::string &appId,
     const std::string &userId, bool isIgnoreUserIdCheck, const std::string &subUser)
 {
-    if (!IsStoreIdSafe(storeId)) {
+    return CheckStoreParameter({userId, appId, storeId}, isIgnoreUserIdCheck, subUser);
+}
+
+bool ParamCheckUtils::CheckStoreParameter(const StoreInfo &info, bool isIgnoreUserIdCheck,
+    const std::string &subUser, bool allowStoreIdWithDot)
+{
+    const auto &storeId = info.storeId;
+    const auto &userId = info.userId;
+    const auto &appId = info.appId;
+    if (!IsStoreIdSafe(storeId, allowStoreIdWithDot)) {
         return false;
     }
     if (!isIgnoreUserIdCheck) {
