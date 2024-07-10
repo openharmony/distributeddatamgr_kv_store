@@ -117,7 +117,7 @@ GRD_APIInfo GetApiInfoInstance()
 {
     GRD_APIInfo GRD_TempApiStruct;
 #ifndef _WIN32
-    std::string libPath = g_isHashLib ? "libgaussdb_rd_vector.z.so" : "libgaussdb_rd.z.so";
+    std::string libPath = g_isHashLib ? "libarkdata_db_core.z.so" : "libgaussdb_rd.z.so";
     g_library = dlopen(libPath.c_str(), RTLD_LAZY);
     if (!g_library) {
         GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
