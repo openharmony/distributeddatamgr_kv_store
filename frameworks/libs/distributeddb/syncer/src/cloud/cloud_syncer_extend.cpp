@@ -148,6 +148,8 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
 {
     int errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
         uploadData.insData.extend, insertInfo);
+    innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
+    innerProcessInfo.upLoadInfo.insertCount += insertInfo.successCount;
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -170,7 +172,6 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     return E_OK;
 }
 
@@ -178,6 +179,8 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
 {
     int errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
         uploadData.updData.extend, updateInfo);
+    innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
+    innerProcessInfo.upLoadInfo.updateCount += updateInfo.successCount;
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -199,7 +202,6 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
-    innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     return E_OK;
 }
 
@@ -492,11 +494,12 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
 {
     int errCode = cloudDB_.BatchDelete(uploadData.tableName, uploadData.delData.record,
         uploadData.delData.extend, deleteInfo);
+    innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
+    innerProcessInfo.upLoadInfo.deleteCount += deleteInfo.successCount;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
         return errCode;
     }
-    innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
     errCode = storageProxy_->FillCloudLogAndAsset(OpType::DELETE, uploadData);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to fill back when doing upload delData, %d.", errCode);

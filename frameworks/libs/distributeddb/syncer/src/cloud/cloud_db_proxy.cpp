@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "cloud_db_proxy.h"
+#include "cloud/cloud_db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
 
@@ -267,7 +268,6 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     context->MoveOutRecordAndExtend(record, extend);
-    size_t dataSize = extend.size();
 
     switch (action) {
         case INSERT: {
@@ -290,15 +290,11 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
             return INVALID_ARGS;
         }
     }
-    if (status == OK) {
-        context->SetInfo(dataSize, dataSize, 0u);
-    } else {
-        if (status == CLOUD_VERSION_CONFLICT) {
-            LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
-        } else {
-            LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
-        }
-        context->SetInfo(dataSize, 0u, dataSize);
+    context->SetInfo();
+    if (status == CLOUD_VERSION_CONFLICT) {
+        LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
+    } else if (status != OK) {
+        LOGE("[CloudSyncer] Cloud BATCH UPLOAD failed.");
     }
     return status;
 }
@@ -517,12 +513,16 @@ Info CloudDBProxy::CloudActionContext::GetInfo()
     return info;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo(uint32_t totalCount,
-    uint32_t successCount, uint32_t failedCount)
+void CloudDBProxy::CloudActionContext::SetInfo()
 {
-    totalCount_ = totalCount;
-    successCount_ = successCount;
-    failedCount_ = failedCount;
+    totalCount_ = extend_.size();
+    for (auto extend : extend_) {
+        if (extend.find(CloudDbConstant::ERROR_FIELD) != extend.end()) {
+            failedCount_++;
+        } else {
+            successCount_++;
+        }
+    }
 }
 
 void CloudDBProxy::CloudActionContext::SetTableName(const std::string &tableName)

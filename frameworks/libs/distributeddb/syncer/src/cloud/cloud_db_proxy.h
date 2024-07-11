@@ -103,7 +103,7 @@ protected:
 
         Info GetInfo();
 
-        void SetInfo(uint32_t totalCount, uint32_t successCount, uint32_t failedCount);
+        void SetInfo();
 
         void SetTableName(const std::string &tableName);
 

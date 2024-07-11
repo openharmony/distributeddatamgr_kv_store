@@ -1278,7 +1278,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable, LockAction
     return DoUploadInner(tableName, param);
 }
 
-int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo,
+int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo,
     CloudSyncData &uploadData)
 {
     // Precheck and calculate local water mark which would be updated if batch upload successed.
@@ -1303,22 +1303,8 @@ int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, InnerProcessInf
         uploadParam.taskId, uploadParam.localMark);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Failed to get new local water mark in Cloud Sync Data, %d.", ret);
-        return ret;
     }
-    switch (uploadParam.mode) {
-        case CloudWaterType::INSERT:
-            innerProcessInfo.upLoadInfo.insertCount += uploadData.insData.record.size();
-            break;
-        case CloudWaterType::UPDATE:
-            innerProcessInfo.upLoadInfo.updateCount += uploadData.updData.record.size();
-            break;
-        case CloudWaterType::DELETE:
-            innerProcessInfo.upLoadInfo.deleteCount += uploadData.delData.record.size();
-            break;
-        default:
-            break;
-    }
-    return E_OK;
+    return ret;
 }
 
 int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId taskId)
