@@ -59,17 +59,15 @@ void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &proces
         return;
     }
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    syncProcess_.tableProcess[process.tableName].process = process.tableStatus;
+    auto &syncProcess = user_.empty() ? syncProcess_ : multiSyncProcess_[user_];
+    syncProcess.tableProcess[process.tableName].process = process.tableStatus;
     if (process.downLoadInfo.batchIndex != 0u) {
         LOGD("[ProcessNotifier] update download process index: %" PRIu32, process.downLoadInfo.batchIndex);
-        syncProcess_.tableProcess[process.tableName].downLoadInfo = process.downLoadInfo;
+        syncProcess.tableProcess[process.tableName].downLoadInfo = process.downLoadInfo;
     }
     if (process.upLoadInfo.batchIndex != 0u) {
         LOGD("[ProcessNotifier] update upload process index: %" PRIu32, process.upLoadInfo.batchIndex);
-        syncProcess_.tableProcess[process.tableName].upLoadInfo = process.upLoadInfo;
-    }
-    if (!user_.empty()) {
-        multiSyncProcess_[user_] = syncProcess_;
+        syncProcess.tableProcess[process.tableName].upLoadInfo = process.upLoadInfo;
     }
 }
 
@@ -133,29 +131,32 @@ std::vector<std::string> ProcessNotifier::GetDevices() const
 uint32_t ProcessNotifier::GetUploadBatchIndex(const std::string &tableName) const
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+    auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
+    if (syncProcess.tableProcess.find(tableName) == syncProcess.tableProcess.end()) {
         return 0u;
     }
-    return syncProcess_.tableProcess.at(tableName).upLoadInfo.batchIndex;
+    return syncProcess.tableProcess.at(tableName).upLoadInfo.batchIndex;
 }
 
 void ProcessNotifier::ResetUploadBatchIndex(const std::string &tableName)
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+    auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
+    if (syncProcess.tableProcess.find(tableName) == syncProcess.tableProcess.end()) {
         LOGW("[ProcessNotifier] The specified table was not found when reset UploadBatchIndex");
         return;
     }
-    syncProcess_.tableProcess[tableName].upLoadInfo.batchIndex = 0;
+    syncProcess.tableProcess[tableName].upLoadInfo.batchIndex = 0;
 }
 
 uint32_t ProcessNotifier::GetLastUploadSuccessCount(const std::string &tableName) const
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
-    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+    auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
+    if (syncProcess.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
         return 0u;
     }
-    return syncProcess_.tableProcess.at(tableName).upLoadInfo.successCount;
+    return syncProcess.tableProcess.at(tableName).upLoadInfo.successCount;
 }
 
 void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process)
@@ -192,5 +193,10 @@ void ProcessNotifier::SetAllTableFinish()
             item.second.process = ProcessStatus::FINISHED;
         }
     }
+}
+
+bool ProcessNotifier::IsMultiUser() const
+{
+    return !user_.empty() && multiSyncProcess_.find(user_) != multiSyncProcess_.end();
 }
 }

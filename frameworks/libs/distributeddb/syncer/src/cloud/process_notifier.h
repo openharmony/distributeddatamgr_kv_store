@@ -52,6 +52,7 @@ protected:
     std::string user_;
 private:
     void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
+    bool IsMultiUser() const;
 };
 }
 #endif // PROCESS_NOTIFIER_H

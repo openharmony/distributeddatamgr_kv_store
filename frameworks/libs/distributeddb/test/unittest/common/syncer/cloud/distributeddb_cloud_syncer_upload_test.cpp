@@ -869,6 +869,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1
         std::vector<VBucket> &&record, std::vector<VBucket> &extend) {
             record = uploadData2.updData.record;
             extend = uploadData2.updData.extend;
+            for (auto &item : extend) {
+                item[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+            }
             return DB_ERROR;
     });
     int errCode = cloudSyncer2->CallDoUpload(taskId);
@@ -884,6 +887,42 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1
     storageProxy.reset();
     delete iCloud;
     idb2 = nullptr;
+}
+
+void SetFuncs015(MockICloudSyncStorageInterface *iCloud, std::shared_ptr<MockICloudDB> &idb,
+    CloudSyncData &uploadData)
+{
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+        .WillRepeatedly([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
+        CloudSyncData &cloudDataResult) {
+            cloudDataResult = uploadData;
+            return E_OK;
+        });
+    EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
+        .WillOnce([](const QuerySyncObject &, const std::vector<Timestamp> &, bool, bool, int64_t & count) {
+            count = 3000; // 3000 is the upload count
+            return E_OK;
+        });
+    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly([&uploadData](const std::string &,
+        std::vector<VBucket> &extend) {
+            extend = uploadData.insData.extend;
+            for (auto &item : extend) {
+                item[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+            }
+        return DB_ERROR;
+    });
+    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly([&uploadData](const std::string &,
+        std::vector<VBucket> &&record, std::vector<VBucket> &extend) {
+            record = uploadData.updData.record;
+            extend = uploadData.updData.extend;
+            return OK;
+    });
+    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly([&uploadData](const std::string &,
+        std::vector<VBucket> &&record, std::vector<VBucket> &extend) {
+            record = uploadData.updData.record;
+            extend = uploadData.delData.extend;
+            return OK;
+    });
 }
 
 /**
@@ -908,34 +947,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck015, TestSize.Level1
     cloudSyncer3->InitCloudSyncer(9u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData3(cloudSyncer3->GetCurrentContextTableName());
     cloudSyncer3->initFullCloudSyncData(uploadData3, 1000);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
-        .WillRepeatedly([&uploadData3](const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
-        CloudSyncData &cloudDataResult) {
-        cloudDataResult = uploadData3;
-        return E_OK;
-    });
-    EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
-        .WillOnce([](const QuerySyncObject &, const std::vector<Timestamp> &, bool, bool, int64_t & count) {
-        count = 3000;
-        return E_OK;
-    });
-    EXPECT_CALL(*idb3, BatchDelete(_, _)).WillRepeatedly([&uploadData3](const std::string &,
-        std::vector<VBucket> &extend) {
-            extend = uploadData3.insData.extend;
-            return DB_ERROR;
-    });
-    EXPECT_CALL(*idb3, BatchInsert(_, _, _)).WillRepeatedly([&uploadData3](const std::string &,
-        std::vector<VBucket> &&record, std::vector<VBucket> &extend) {
-            record = uploadData3.updData.record;
-            extend = uploadData3.updData.extend;
-            return OK;
-    });
-    EXPECT_CALL(*idb3, BatchUpdate(_, _, _)).WillRepeatedly([&uploadData3](const std::string &,
-        std::vector<VBucket> &&record, std::vector<VBucket> &extend) {
-            record = uploadData3.updData.record;
-            extend = uploadData3.delData.extend;
-            return OK;
-    });
+    SetFuncs015(iCloud, idb3, uploadData3);
     EXPECT_EQ(cloudSyncer3->CallDoUpload(9u), -E_CLOUD_ERROR);
     cloudSyncer3->CallNotify();
 

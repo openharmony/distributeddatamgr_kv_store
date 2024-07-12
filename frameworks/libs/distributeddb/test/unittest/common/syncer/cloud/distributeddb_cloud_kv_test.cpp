@@ -1053,6 +1053,124 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync028
+ * @tc.desc: Test multi user sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync028, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 1 record and sync.
+     * @tc.expected: step1 OK.
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    auto option = g_CloudSyncoption;
+    option.users = {USER_ID, USER_ID_2};
+    BlockSync(kvDelegatePtrS1_, OK, option);
+    option.users = {USER_ID_2};
+    BlockSync(kvDelegatePtrS2_, OK, option);
+    option.users = {USER_ID, USER_ID_2};
+    BlockSync(kvDelegatePtrS2_, OK, option);
+    EXPECT_EQ(lastProcess_.tableProcess[USER_ID_2].downLoadInfo.total, 0u);
+}
+
+/**
+ * @tc.name: NormalSync032
+ * @tc.desc: Test some record upload fail in 1 batch.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync032, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 10 records.
+     * @tc.expected: step1 ok.
+     */
+    vector<Entry> entries;
+    int count = 10; // put 10 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    /**
+     * @tc.steps:step2. sync and set the last record upload fail.
+     * @tc.expected: step2 sync fail and upLoadInfo.failCount is 1.
+     */
+    int uploadFailId = 0;
+    virtualCloudDb_->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId == 10) { // 10 is the last record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+            return CLOUD_ERROR;
+        }
+        return OK;
+    });
+    BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 9u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 9u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 1u);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync033
+ * @tc.desc: test sync with different operation type and check upLoadInfo
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put local records {k1, v1} {k2, v2} and sync to cloud.
+     * @tc.expected: step1 ok.
+     */
+    Key key1 = {'k', '1'};
+    Value value1 = {'v', '1'};
+    kvDelegatePtrS1_->Put(key1, value1);
+    Key key2 = {'k', '2'};
+    Value value2 = {'v', '2'};
+    kvDelegatePtrS1_->Put(key2, value2);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. put {k3, v3}, delete {k1, v1}, and put {k2, v3}
+     * @tc.expected: step2 ok.
+     */
+    Key key3 = {'k', '3'};
+    Value value3 = {'v', '3'};
+    kvDelegatePtrS1_->Put(key3, value3);
+    kvDelegatePtrS1_->Delete(key1);
+    kvDelegatePtrS1_->Put(key2, value3);
+    /**
+     * @tc.steps:step3. sync and check upLoadInfo
+     * @tc.expected: step3 ok.
+     */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.batchIndex, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.deleteCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.updateCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+    }
+}
+
+/**
  * @tc.name: SyncOptionCheck001
  * @tc.desc: Test sync without user.
  * @tc.type: FUNC
