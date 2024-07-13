@@ -18,6 +18,7 @@
 #include "ability_sync.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "kv_store_nb_delegate_impl.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
@@ -1785,6 +1786,31 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.L
     for (const auto &pair : result) {
         EXPECT_EQ(pair.second, OK);
     }
+}
+
+/**
+ * @tc.name: KVAbilitySyncOpt002
+ * @tc.desc: check get task count while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet while conn is nullptr.
+     * @tc.expected: step1. sync should failed in source and get task count return DB_ERROR.
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    std::atomic<int> messageCount = 0;
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &dev, Message *msg) {
+        if (msg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+            return;
+        }
+        messageCount++;
+        EXPECT_EQ(g_kvDelegatePtr->GetTaskCount(), DB_ERROR);
+    });
 }
 
 /**

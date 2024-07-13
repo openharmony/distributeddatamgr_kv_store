@@ -30,6 +30,7 @@
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
 #endif // DB_DEBUG_ENV
+#include "kv_store_nb_delegate_impl.h"
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -714,6 +715,53 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutBatchVerify001, TestSize.Leve
 }
 
 /**
+  * @tc.name: PutBatchVerify002
+  * @tc.desc: This test case use to verify the putBatch interface function while conn is nullptr
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutBatchVerify002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get singleVer kvStore by GetKvStore.
+     * @tc.expected: step1. Get database success.
+     */
+    const KvStoreNbDelegate::Option option = {true, true};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("PutBatchVerify002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2. Insert 10 records into database while conn is nullptr.
+     * @tc.expected: step2. DB_ERROR.
+     */
+    vector<Entry> entries;
+    for (int i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
+        Entry entry;
+        entry.key.push_back(i);
+        entry.value.push_back(i);
+        entries.push_back(entry);
+    }
+
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entries), DB_ERROR);
+
+    for (int i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
+        Key key;
+        key.push_back(i);
+        Value value;
+        g_kvNbDelegatePtr->Get(key, value);
+        EXPECT_NE(key, value);
+    }
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
   * @tc.name: SingleVerPutBatch001
   * @tc.desc: Check for illegal parameters
   * @tc.type: FUNC
@@ -1177,6 +1225,44 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch002, TestSiz
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatch_002"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SingleVerDeleteBatch007
+  * @tc.desc: Check normal delete batch while conn is nullptr.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch007, TestSize.Level1)
+{
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("SingleVerDeleteBatch007", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step1. Create a group of vector <Entry>, containing a total of 10 data keys1 ~ 10, Value1 ~ 10,
+     *  call the Putbatch interface to insert data.
+     * @tc.expected: step1. Insert to database successfully.
+     */
+    vector<Entry> entries;
+    vector<Key> keysBase;
+    vector<Value> values;
+    CreatEntrys(BATCH_PRESET_SIZE_TEST, keysBase, values, entries);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entries), OK);
+    /**
+     * @tc.steps: step2. DeleteBatch operates on sets of data while conn is nullptr.
+     * @tc.expected: step2. return DB_ERROR.
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteBatch(keysBase), DB_ERROR);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerDeleteBatch007"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 
@@ -2869,6 +2955,56 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest001, TestSize.Le
     Query inValidQuery = Query::Select().Range({}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: InvalidQueryTest002
+  * @tc.desc: Test GetEntries with range query filter by sqlite while conn is nullptr.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. initialize result set.
+     * @tc.expected: step1. Success.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("InvalidQueryTest002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    InitResultSet();
+
+    /**
+     * @tc.steps: step2. get entries using result set while conn is nullptr.
+     * @tc.expected: step2. DB_ERROR.
+     */
+    KvStoreResultSet *readResultSet = nullptr;
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(g_keyPrefix, readResultSet), DB_ERROR);
+    ASSERT_TRUE(readResultSet == nullptr);
+
+    std::vector<Entry> entries;
+    Query query = Query::Select().PrefixKey({'a', 'c'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(query, entries), DB_ERROR);
+    EXPECT_EQ(entries.size(), 0UL);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(query, readResultSet), DB_ERROR);
+    ASSERT_TRUE(readResultSet == nullptr);
+
+    int count = -1;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetCount(query, count), DB_ERROR);
+    EXPECT_EQ(count, -1);
+
+    /**
+     * @tc.steps: step3. close kvStore.
+     * @tc.expected: step3. Success.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("InvalidQueryTest002"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**

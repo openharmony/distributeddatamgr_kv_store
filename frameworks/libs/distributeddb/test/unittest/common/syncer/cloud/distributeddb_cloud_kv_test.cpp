@@ -21,6 +21,7 @@
 #include "kv_virtual_device.h"
 #include "kv_store_nb_delegate.h"
 #include "platform_specific.h"
+#include "kv_store_nb_delegate_impl.h"
 #include "process_system_api_adapter_impl.h"
 #include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
@@ -1171,6 +1172,33 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync036
+ * @tc.desc: test sync data with SetCloudSyncConfig.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put data and SetCloudSyncConfig.
+     * @tc.expected: step1 ok.
+     */
+    CloudSyncConfig config;
+    int maxUploadCount = 40;
+    config.maxUploadCount = maxUploadCount;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    kvDelegatePtrS1_->Put(key, value);
+    /**
+     * @tc.steps:step2. sync.
+     * @tc.expected: step2 ok.
+     */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+}
+
+/**
  * @tc.name: SyncOptionCheck001
  * @tc.desc: Test sync without user.
  * @tc.type: FUNC
@@ -2152,5 +2180,310 @@ HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest010, TestSize.Level0)
     EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "", ClearMode::DEFAULT), OK);
     EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "", ClearMode::DEFAULT), OK);
     EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::DEFAULT), OK);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest011
+ * @tc.desc: remove record while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest011, TestSize.Level0)
+{
+    const KvStoreNbDelegate::Option option = {true, true};
+    KvStoreNbDelegate *kvDelegateInvalidPtrS1_ = nullptr;
+    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS1_, "RemoveDeviceTest011", option), OK);
+    ASSERT_NE(kvDelegateInvalidPtrS1_, nullptr);
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", ClearMode::FLAG_ONLY), DB_ERROR);
+    EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", "", ClearMode::FLAG_ONLY), DB_ERROR);
+    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS1_), OK);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid001
+ * @tc.desc: Test normal push not sync and get cloud version.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid001, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    auto result = kvDelegatePtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, NOT_FOUND);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid002
+ * @tc.desc: Test normal push sync and use invalidDevice to get cloud version.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid002, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
+    }
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.downLoadInfo.total, 2u); // download 2 records
+        EXPECT_EQ(table.second.downLoadInfo.insertCount, 2u); // download 2 records
+    }
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    std::string invalidDevice = std::string(DBConstant::MAX_DEV_LENGTH + 1, '0');
+    auto result = kvDelegatePtrS2_->GetCloudVersion(invalidDevice);
+    EXPECT_EQ(result.first, INVALID_ARGS);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid003
+ * @tc.desc: Test normal push sync for add data while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid003, TestSize.Level0)
+{
+    const KvStoreNbDelegate::Option option = {true, true};
+    KvStoreNbDelegate *kvDelegateInvalidPtrS1_ = nullptr;
+    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS1_, "NormalSyncInvalid003", option), OK);
+    ASSERT_NE(kvDelegateInvalidPtrS1_, nullptr);
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegateInvalidPtrS1_->Put(key, expectValue), OK);
+    kvDelegateInvalidPtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    BlockSync(kvDelegateInvalidPtrS1_, OK, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
+    }
+    Value actualValue;
+    EXPECT_EQ(kvDelegateInvalidPtrS1_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    kvDelegateInvalidPtrS1_->SetGenCloudVersionCallback(nullptr);
+    auto result = kvDelegateInvalidPtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, DB_ERROR);
+    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS1_), OK);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid004
+ * @tc.desc: Test normal push sync use GetDeviceEntries while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid004, TestSize.Level0)
+{
+    const KvStoreNbDelegate::Option option = {true, true};
+    KvStoreNbDelegate *kvDelegateInvalidPtrS2_ = nullptr;
+    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS2_, "NormalSyncInvalid004", option), OK);
+    ASSERT_NE(kvDelegateInvalidPtrS2_, nullptr);
+    /**
+     * @tc.steps: step1. store1 put (k1,v1) store2 put (k2,v2)
+     * @tc.expected: step1. both put ok
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    kvDelegateInvalidPtrS2_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    ASSERT_EQ(kvDelegateInvalidPtrS2_->Put(key2, expectValue2), OK);
+    /**
+     * @tc.steps: step2. both store1 and store2 sync while conn is nullptr
+     * @tc.expected: step2. both sync ok, and store2 got (k1,v1) store1 not exist (k2,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    LOGW("Store1 sync end");
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegateInvalidPtrS2_, OK, g_CloudSyncoption);
+    LOGW("Store2 sync end");
+    Value actualValue;
+    EXPECT_EQ(kvDelegateInvalidPtrS2_->Get(key1, actualValue), OK);
+
+    /**
+     * @tc.steps: step3. use GetDeviceEntries while conn is nullptr
+     * @tc.expected: step3. DB_ERROR
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS2_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    std::vector<Entry> entries;
+    EXPECT_EQ(kvDelegateInvalidPtrS2_->GetDeviceEntries(std::string("DEVICES_A"), entries), DB_ERROR);
+    EXPECT_EQ(entries.size(), 0u); // 1 record
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    EXPECT_EQ(actualValue, expectValue1);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
+
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    kvDelegateInvalidPtrS2_->SetGenCloudVersionCallback(nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS2_), OK);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid005
+ * @tc.desc: Test normal sync with invalid parm.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid005, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
+    auto devices = g_CloudSyncoption.devices;
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, SyncMode::SYNC_MODE_CLOUD_MERGE, nullptr), NOT_SUPPORT);
+    Query query = Query::Select().Range({}, {});
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, SyncMode::SYNC_MODE_CLOUD_MERGE, nullptr, query, true), NOT_SUPPORT);
+    auto mode = g_CloudSyncoption.mode;
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr, query, true), NOT_SUPPORT);
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption, DB_ERROR);
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr), DB_ERROR);
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr, query, true), DB_ERROR);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid006
+ * @tc.desc: Test normal sync set cloudDB while cloudDB is empty and conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set cloudDB while cloudDB is empty
+     * @tc.expected: step1. INVALID_ARGS
+     */
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDB(cloudDbs), INVALID_ARGS);
+    /**
+     * @tc.steps: step2. set cloudDB while conn is nullptr
+     * @tc.expected: step2. DB_ERROR
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    cloudDbs[USER_ID] = virtualCloudDb_;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDB(cloudDbs), DB_ERROR);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid007
+ * @tc.desc: Test normal sync set cloudDb schema while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set cloudDB schema while conn is nullptr
+     * @tc.expected: step1. DB_ERROR
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    std::map<std::string, DataBaseSchema> schemas;
+    schemas[USER_ID] = GetDataBaseSchema(true);
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDbSchema(schemas), DB_ERROR);
+}
+
+/**
+ * @tc.name: NormalSyncInvalid008
+ * @tc.desc: Test SetCloudSyncConfig with invalid parm.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. SetCloudSyncConfig with invalid maxUploadCount.
+     * @tc.expected: step1. INVALID_ARGS
+     */
+    CloudSyncConfig config;
+    int maxUploadCount = 0;
+    config.maxUploadCount = maxUploadCount;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
+    maxUploadCount = 2001;
+    config.maxUploadCount = maxUploadCount;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
+    maxUploadCount = 50;
+    config.maxUploadCount = maxUploadCount;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
+
+    /**
+     * @tc.steps: step2. SetCloudSyncConfig with invalid maxUploadSize.
+     * @tc.expected: step2. INVALID_ARGS
+     */
+    int maxUploadSize = 1023;
+    config.maxUploadSize = maxUploadSize;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
+    maxUploadSize = 128 * 1024 * 1024 + 1;
+    config.maxUploadSize = maxUploadSize;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
+    maxUploadSize = 10240;
+    config.maxUploadSize = maxUploadSize;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
+
+    /**
+     * @tc.steps: step3. SetCloudSyncConfig with invalid maxRetryConflictTimes.
+     * @tc.expected: step3. INVALID_ARGS
+     */
+    int maxRetryConflictTimes = -2;
+    config.maxRetryConflictTimes = maxRetryConflictTimes;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
+    maxRetryConflictTimes = 2;
+    config.maxRetryConflictTimes = maxRetryConflictTimes;
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
+
+    /**
+     * @tc.steps: step4. SetCloudSyncConfig while conn is nullptr
+     * @tc.expected: step4. DB_ERROR
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), DB_ERROR);
 }
 }

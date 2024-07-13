@@ -19,6 +19,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
+#include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
 #include "relational_virtual_device.h"
 #include "runtime_config.h"
@@ -1089,4 +1090,64 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, 
         }, true);
 
     EXPECT_EQ(errCode, NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: RelationalSyncTest011
+  * @tc.desc: Test sync with invalid parm
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest011, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "CREATE TABLE IF NOT EXISTS t2(a INT, b TEXT)"), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "t2");
+    RelationalStoreDelegate *delegate = nullptr;
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID,
+        { .observer = observer }, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable("t2"), OK);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("t2");
+    EXPECT_EQ(delegate->Sync(devices, SyncMode::SYNC_MODE_CLOUD_MERGE, query, nullptr, true), NOT_SUPPORT);
+
+    auto relationalStoreImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
+    EXPECT_EQ(relationalStoreImpl->Close(), OK);
+    EXPECT_EQ(delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, true), DB_ERROR);
+
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&cv, &dataMutex, &finish, &status](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    EXPECT_EQ(item.second.errCode, status);
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                cv.notify_one();
+            }
+        }
+    };
+    int64_t syncWaitTime = 60;
+    EXPECT_EQ(delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query, callback, syncWaitTime), DB_ERROR);
+
+    CloudSyncOption option;
+    option.devices = devices;
+    option.mode = SyncMode::SYNC_MODE_PULL_ONLY;
+    option.query = query;
+    option.waitTime = syncWaitTime;
+    EXPECT_EQ(delegate->Sync(option, callback), DB_ERROR);
+
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    delete observer;
 }

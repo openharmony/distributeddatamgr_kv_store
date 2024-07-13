@@ -790,3 +790,42 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey011, TestSize.
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey011"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: SingleVerPublishKey012
+  * @tc.desc: Publish empty and illegal key
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey012, TestSize.Level1)
+{
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.GetKvStore("distributed_nb_publish_SingleVerPublishKey012", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
+    /**
+     * @tc.steps:step1. PublishLocal empty and illegal key.
+     * @tc.expected: step1. return INVALID_ARGS.
+     */
+    Key key = {};
+    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(key, true, true, nullptr), INVALID_ARGS);
+    Key illegalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(illegalKey, DBConstant::MAX_KEY_SIZE + 1); // 1K + 1
+    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(illegalKey, true, true, nullptr), INVALID_ARGS);
+    /**
+     * @tc.steps:step2. Get value of key1 and key2 both from local and sync table
+     * @tc.expected: step2. value of key1 and key2 are correct
+     */
+    Value readValue;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, readValue), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(KEY_1, readValue), OK);
+    EXPECT_EQ(readValue, VALUE_1);
+
+    // finilize
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey012"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
