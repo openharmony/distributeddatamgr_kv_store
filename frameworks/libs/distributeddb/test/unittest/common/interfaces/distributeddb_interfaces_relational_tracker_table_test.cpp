@@ -132,8 +132,9 @@ namespace {
 
     void BatchOperatorTableName2Data(uint64_t num, const std::set<std::string> &colNames)
     {
-        BatchInsertTableName2Data(num);
-        BatchInsertTableName2Data(num);
+        for (int i = 0; i < HALF; i++) {
+            BatchInsertTableName2Data(num);
+        }
         BatchUpdateTableName2Data(num, colNames);
         BatchDeleteTableName2Data(num);
     }

@@ -909,7 +909,7 @@ void ClientObserverCallback(const std::string &hashFileName)
     }
 }
 
-void TriggerObserver(std::vector<std::shared_ptr<StoreObserver>> &storeObservers, const std::string &hashFileName)
+void TriggerObserver(const std::vector<std::shared_ptr<StoreObserver>> &storeObservers, const std::string &hashFileName)
 {
     std::lock_guard<std::mutex> storeChangedDataLock(g_storeChangedDataMutex);
     for (const auto &storeObserver : storeObservers) {

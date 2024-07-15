@@ -104,7 +104,7 @@ Timestamp TimeHelper::GetTime()
 {
     Timestamp currentSysTime = GetSysCurrentTime();
     TimeOffset localTimeOffset = GetLocalTimeOffset();
-    Timestamp currentLocalTime = currentSysTime + localTimeOffset;
+    Timestamp currentLocalTime = currentSysTime + static_cast<Timestamp>(localTimeOffset);
     Timestamp lastLocalTime = metadata_->GetLastLocalTime();
     Timestamp currentMonotonicTime = GetMonotonicTime();
     Timestamp deltaTime = 1UL;

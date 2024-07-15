@@ -42,7 +42,7 @@ public:
 protected:
     static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
-    bool IsIgnoreUpdate(const LogInfo &localInfo);
+    bool IsIgnoreUpdate(const LogInfo &localInfo) const;
 
     OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo);
 

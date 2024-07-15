@@ -143,7 +143,7 @@ protected:
     static DBStatus DMLActionTask(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
-    void InnerActionTask(const std::shared_ptr<CloudActionContext> &context,
+    static void InnerActionTask(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
     static DBStatus InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
