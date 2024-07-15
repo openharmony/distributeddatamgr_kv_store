@@ -20,6 +20,7 @@
 #include "db_errno.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "kv_store_nb_delegate_impl.h"
 #include "log_print.h"
 #include "sqlite_single_ver_natural_store.h"
 
@@ -164,6 +165,49 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, PutLocalBatch001, Test
         g_kvNbDelegatePtr->GetLocal(key, value);
         EXPECT_EQ(key, value);
     }
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: PutLocalBatch002
+  * @tc.desc: This testCase use to verify the PutLocalBatch and DeleteLocalBatch function while conn is nullptr
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, PutLocalBatch002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get singleVer kvStore by GetKvStore.
+     * @tc.expected: step1. Get database success.
+     */
+    const KvStoreNbDelegate::Option option = {true, true};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("distributed_PutLocalBatch_002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2. PutLocalBatch and DeleteLocalBatch 10 records into database while conn is nullptr.
+     * @tc.expected: step2. DB_ERROR.
+     */
+    vector<Entry> entries;
+    for (int i = 0; i < BATCH_PRESET_SIZE_TEST; i++) {
+        Entry entry;
+        entry.key.push_back(i);
+        entry.value.push_back(i);
+        entries.push_back(entry);
+    }
+
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entries), DB_ERROR);
+    vector<Key> keys;
+    vector<Value> values;
+    CreatEntrys(BATCH_PRESET_SIZE_TEST, keys, values, entries);
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteLocalBatch(keys), DB_ERROR);
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvNbDelegatePtr = nullptr;

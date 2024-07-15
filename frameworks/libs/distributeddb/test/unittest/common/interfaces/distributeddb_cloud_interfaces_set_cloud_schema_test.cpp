@@ -23,6 +23,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "relational_store_client.h"
+#include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
 #include "time_helper.h"
@@ -1852,5 +1853,30 @@ namespace {
         sql = "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(g_tableName2) + " where sharing_resource=''";
         EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SetCloudDbSchemaTest018
+     * @tc.desc: Check SetCloudDBSchema while conn is nullptr.
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: caihaoting
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest018, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use SetCloudDBSchema while conn is nullptr
+         * @tc.expected: step1. return DB_ERROR
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        auto relationalStoreImpl = static_cast<RelationalStoreDelegateImpl *>(g_delegate);
+        EXPECT_EQ(relationalStoreImpl->Close(), OK);
+        EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::DB_ERROR);
     }
 } // namespace
