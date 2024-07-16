@@ -59,7 +59,7 @@ bool CloudSyncStrategy::IsSameVersion(const LogInfo &cloudInfo, const LogInfo &l
     return (cloudInfo.version == localInfo.version);
 }
 
-bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo)
+bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
 {
     if (policy_ == SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN) {
         return false;

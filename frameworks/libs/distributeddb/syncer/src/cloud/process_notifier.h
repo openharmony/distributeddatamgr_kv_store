@@ -51,7 +51,7 @@ protected:
     ICloudSyncer *syncer_;
     std::string user_;
 private:
-    void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
+    static void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
     bool IsMultiUser() const;
 };
 }

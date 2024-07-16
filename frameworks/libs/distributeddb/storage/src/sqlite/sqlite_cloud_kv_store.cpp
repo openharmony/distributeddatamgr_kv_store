@@ -486,8 +486,7 @@ bool SqliteCloudKvStore::CheckSchema(std::map<std::string, DataBaseSchema> schem
         }
         for (uint32_t i = 0; i < actualTable.fields.size(); i++) {
             Field actualField = actualTable.fields[i];
-            auto it = std::find(expectFields.begin(), expectFields.end(), actualField);
-            if (it == expectFields.end()) {
+            if (std::find(expectFields.begin(), expectFields.end(), actualField) == expectFields.end()) {
                 LOGE("[SqliteCloudKvStore] check fields failed.");
                 return false;
             }

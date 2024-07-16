@@ -523,9 +523,8 @@ void SingleVerDataSyncUtils::RecordClientId(const SingleVerSyncTaskContext &cont
         storage.GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
     };
     std::string clientId;
-    int errCode = E_OK;
     if (RuntimeContext::GetInstance()->TranslateDeviceId(context.GetDeviceId(), info, clientId) == E_OK) {
-        errCode = metadata->SaveClientId(context.GetDeviceId(), clientId);
+        int errCode = metadata->SaveClientId(context.GetDeviceId(), clientId);
         if (errCode != E_OK) {
             LOGW("[DataSync] record clientId failed %d", errCode);
         }
