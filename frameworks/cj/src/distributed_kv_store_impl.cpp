@@ -229,11 +229,19 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
     }
     if (cjOptions.kvStoreType == 1) {
         auto nativeKVStore = FFIData::Create<CJSingleKVStore>(sStoreId);
+        if (nativeKVStore == nullptr) {
+            errCode = -1;
+            return -1;
+        }
         nativeKVStore->SetKvStorePtr(kvStore);
         nativeKVStore->SetContextParam(param_);
         return nativeKVStore->GetID();
     }
     auto nativeKVStore = FFIData::Create<CJDeviceKVStore>(sStoreId);
+    if (nativeKVStore == nullptr) {
+        errCode = -1;
+        return -1;
+    }
     nativeKVStore->SetKvStorePtr(kvStore);
     nativeKVStore->SetContextParam(param_);
     return nativeKVStore->GetID();
@@ -284,6 +292,9 @@ CArrStr CJKVManager::GetAllKVStoreId(const char* appId, int32_t& errCode)
     std::vector<StoreId> storeIdList;
     Status status = kvDataManager_.GetAllKvStoreId(appIdBox, storeIdList);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return CArrStr{0};
+    }
     return VectorAppIdToCArr(storeIdList);
 }
 
@@ -369,6 +380,9 @@ ValueType CJSingleKVStore::Get(const std::string &key, int32_t& errCode)
     OHOS::DistributedKv::Value value;
     Status status = kvStore_->Get(key, value);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return ValueType{0};
+    }
     return KVValueToValueType(value);
 }
 
@@ -439,6 +453,9 @@ ValueType CJDeviceKVStore::Get(const std::string &deviceId, const std::string &k
     OHOS::DistributedKv::Value value;
     Status status = GetKvStorePtr()->Get(key, value);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return ValueType{0};
+    }
     return KVValueToValueType(value);
 }
 
@@ -447,6 +464,9 @@ CArrEntry CJDeviceKVStore::GetEntriesByDataQuery(DistributedKVStore::DataQuery d
     std::vector<DistributedKVStore::Entry> entries;
     Status status = GetKvStorePtr()->GetEntries(dataQuery, entries);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return CArrEntry{};
+    }
     CEntry *cEntries = static_cast<CEntry*>(malloc(entries.size() * sizeof(CEntry)));
     if (cEntries == nullptr) {
         errCode = -1;
@@ -485,7 +505,14 @@ int64_t CJDeviceKVStore::GetResultSet(const std::string &deviceId, const std::st
     std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
     Status status = GetKvStorePtr()->GetResultSet(dataQuery, kvResultSet);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return -1;
+    }
     auto nativeCKvStoreResultSet = FFIData::Create<OHOS::DistributedKVStore::CKvStoreResultSet>(kvResultSet);
+    if (nativeCKvStoreResultSet == nullptr) {
+        errCode = -1;
+        return -1;
+    }
     return nativeCKvStoreResultSet->GetID();
 }
 
@@ -497,7 +524,14 @@ int64_t CJDeviceKVStore::GetResultSetQuery(const std::string &deviceId, OHOS::sp
     std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
     Status status = GetKvStorePtr()->GetResultSet(dataQuery, kvResultSet);
     errCode = ConvertCJErrCode(status);
+    if (errCode != 0) {
+        return -1;
+    }
     auto nativeCKvStoreResultSet = FFIData::Create<OHOS::DistributedKVStore::CKvStoreResultSet>(kvResultSet);
+    if (nativeCKvStoreResultSet == nullptr) {
+        errCode = -1;
+        return -1;
+    }
     return nativeCKvStoreResultSet->GetID();
 }
 
