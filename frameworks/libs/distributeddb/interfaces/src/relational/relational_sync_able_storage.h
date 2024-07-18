@@ -16,11 +16,12 @@
 #define RELATIONAL_SYNC_ABLE_STORAGE_H
 #ifdef RELATIONAL_STORE
 
-#include "lru_map.h"
+#include "cloud/cloud_upload_recorder.h"
+#include "cloud/schema_mgr.h"
 #include "icloud_sync_storage_interface.h"
+#include "lru_map.h"
 #include "relational_db_sync_interface.h"
 #include "relationaldb_properties.h"
-#include "cloud/schema_mgr.h"
 #include "sqlite_single_relational_storage_engine.h"
 #include "sqlite_single_ver_relational_continue_token.h"
 #include "sync_able_engine.h"
@@ -225,6 +226,8 @@ public:
     void SetCloudSyncConfig(const CloudSyncConfig &config);
 
     bool IsTableExistReference(const std::string &table) override;
+
+    void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -241,7 +244,7 @@ protected:
         const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid);
 
     int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
-        const CloudSyncBatch &updateData, bool isLock = false);
+        const CloudSyncBatch &updateData, const CloudWaterType &type, bool isLock = false);
 
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
@@ -327,6 +330,8 @@ private:
 
     mutable std::mutex configMutex_;
     CloudSyncConfig cloudSyncConfig_;
+
+    CloudUploadRecorder uploadRecorder_;
 };
 }  // namespace DistributedDB
 #endif

@@ -201,6 +201,11 @@ public:
     {
         return false;
     }
+
+    virtual void ReleaseUploadRecord([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] const CloudWaterType &type, Timestamp localMark)
+    {
+    }
 };
 }
 

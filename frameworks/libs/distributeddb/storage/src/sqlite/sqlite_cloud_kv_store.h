@@ -16,6 +16,7 @@
 #define SQLITE_CLOUD_STORE_H
 
 #include "icloud_sync_storage_interface.h"
+#include "cloud/cloud_upload_recorder.h"
 #include "kv_storage_handle.h"
 
 namespace DistributedDB {
@@ -94,6 +95,8 @@ public:
     CloudSyncConfig GetCloudSyncConfig() const override;
 
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
+
+    void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 
@@ -118,6 +121,8 @@ private:
 
     mutable std::mutex configMutex_;
     CloudSyncConfig config_;
+
+    CloudUploadRecorder recorder_;
 };
 }
 #endif // SQLITE_CLOUD_STORE_H

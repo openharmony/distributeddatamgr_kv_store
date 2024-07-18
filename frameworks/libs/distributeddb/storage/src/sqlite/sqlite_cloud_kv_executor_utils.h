@@ -18,6 +18,8 @@
 
 #include "cloud/cloud_db_types.h"
 
+#include "cloud/cloud_db_types.h"
+#include "cloud/cloud_upload_recorder.h"
 #include "data_transformer.h"
 #include "icloud_sync_storage_interface.h"
 #include "sqlite_single_ver_continue_token.h"
@@ -26,15 +28,17 @@
 namespace DistributedDB {
 class SqliteCloudKvExecutorUtils {
 public:
-    static int GetCloudData(const CloudSyncConfig &config, sqlite3 *db, bool isMemory,
+    using DBParam = std::pair<sqlite3 *, bool>;
+    using FillGidParam = std::pair<sqlite3 *, bool>;
+    static int GetCloudData(const CloudSyncConfig &config, const DBParam &param, const CloudUploadRecorder &recorder,
         SQLiteSingleVerContinueToken &token, CloudSyncData &data);
 
     static std::pair<int, DataInfoWithLog> GetLogInfo(sqlite3 *db, bool isMemory, const VBucket &cloudData);
 
     static int PutCloudData(sqlite3 *db, bool isMemory, DownloadData &downloadData);
 
-    static int FillCloudLog(sqlite3 *db, OpType opType, const CloudSyncData &data, const std::string &user,
-        bool ignoreEmptyGid);
+    static int FillCloudLog(const FillGidParam &param, OpType opType, const CloudSyncData &data,
+        const std::string &user, CloudUploadRecorder &recorder);
 
     static std::pair<int, int64_t> CountCloudData(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
         const std::string &user, bool forcePush);
@@ -47,8 +51,9 @@ public:
     static int GetCloudVersionFromCloud(sqlite3 *db, bool isMemory, const std::string &user,
         const std::string &device, std::vector<VBucket> &dataVector);
 private:
-    static int GetCloudDataForSync(const CloudSyncConfig &config, sqlite3_stmt *statement,
-        CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
+    using UploadDetail = std::pair<uint32_t, uint32_t>;
+    static int GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
+        sqlite3_stmt *statement, CloudSyncData &cloudDataResult, UploadDetail &detail);
 
     static void GetCloudLog(sqlite3_stmt *stmt, VBucket &logInfo, uint32_t &totalSize);
 
@@ -111,7 +116,8 @@ private:
 
     static int BindUpdateTimestampStmt(sqlite3_stmt *dataStmt, int index, DownloadData &downloadData);
 
-    static int FillCloudGid(sqlite3 *db, const CloudSyncBatch &data, const std::string &user, bool ignoreEmptyGid);
+    static int FillCloudGid(const FillGidParam &param, const CloudSyncBatch &data, const std::string &user,
+        const CloudWaterType &type, CloudUploadRecorder &recorder);
 
     static std::pair<int, DataItem> GetDataItem(int index, DownloadData &downloadData);
 

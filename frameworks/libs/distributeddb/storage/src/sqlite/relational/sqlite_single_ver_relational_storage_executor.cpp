@@ -1636,8 +1636,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncD
     return errCode == E_OK ? resetCode : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cloudDataResult,
-    SQLiteSingleVerRelationalContinueToken &token)
+int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUploadRecorder &uploadRecorder,
+    CloudSyncData &cloudDataResult, SQLiteSingleVerRelationalContinueToken &token)
 {
     token.GetCloudTableSchema(tableSchema_);
     sqlite3_stmt *queryStmt = nullptr;
@@ -1658,7 +1658,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
             }
         }
         isStepNext = true;
-        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize);
+        errCode = GetCloudDataForSync(uploadRecorder, queryStmt, cloudDataResult, ++stepNum, totalSize);
     } while (errCode == E_OK);
     if (errCode != -E_UNFINISHED) {
         (void)token.ReleaseCloudStatement();
@@ -1696,8 +1696,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     return (errCode == E_OK ? resetStatementErrCode : errCode);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize)
+int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder,
+    sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize)
 {
     VBucket log;
     VBucket extraLog;
@@ -1728,7 +1728,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
     }
 
     if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, maxUploadSize_, maxUploadCount_)) {
-        errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
+        errCode = CloudStorageUtils::IdentifyCloudType(uploadRecorder, cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
     }

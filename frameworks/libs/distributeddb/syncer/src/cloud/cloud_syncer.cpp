@@ -1227,6 +1227,7 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
 int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam)
 {
     int errCode = E_OK;
+    storageProxy_->ReleaseUploadRecord(tableName, uploadParam.mode, uploadParam.localMark);
     // if we use local cover cloud strategy, it won't update local water mark also.
     if (IsModeForcePush(uploadParam.taskId) || (IsPriorityTask(uploadParam.taskId) &&
         !IsQueryListEmpty(uploadParam.taskId))) {

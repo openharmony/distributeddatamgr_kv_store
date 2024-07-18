@@ -658,4 +658,13 @@ bool StorageProxy::IsTableExistReference(const std::string &table)
     }
     return store_->IsTableExistReference(table);
 }
+
+void StorageProxy::ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->ReleaseUploadRecord(table, type, localWaterMark);
+}
 }
