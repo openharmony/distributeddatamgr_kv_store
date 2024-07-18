@@ -44,7 +44,7 @@ protected:
 
     bool IsIgnoreUpdate(const LogInfo &localInfo) const;
 
-    OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo);
+    OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;
 
     SingleVerConflictResolvePolicy policy_;
 };

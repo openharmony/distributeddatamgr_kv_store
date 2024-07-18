@@ -137,7 +137,7 @@ protected:
         // add action code before INVALID_ACTION
         INVALID_ACTION
     };
-    int InnerAction(const std::shared_ptr<CloudActionContext> &context,
+    static int InnerAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
     static DBStatus DMLActionTask(const std::shared_ptr<CloudActionContext> &context,
