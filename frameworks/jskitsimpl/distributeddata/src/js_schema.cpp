@@ -213,7 +213,7 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
     auto input = [env, ctxt, &indexes](size_t argc, napi_value* argv) {
         // required 1 arguments :: <indexes>
         CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->status = JSUtil::GetValue(env, argv[0], indexes);
+        ctxt->status = JSUtil::GetValue(env, argv[0], indexes, false);
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid indexes!");
     };
     ctxt->GetCbInfoSync(env, info, input);
