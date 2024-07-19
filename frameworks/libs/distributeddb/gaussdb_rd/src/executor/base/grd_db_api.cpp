@@ -72,8 +72,3 @@ GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
     }
     return GRD_DBApiInfo.IndexPreloadApi(db, collectionName);
 }
-
-void GRD_SetLibType(bool isHash)
-{
-    SetLibType(isHash);
-}
