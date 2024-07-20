@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "cloud_sync_strategy.h"
+#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 CloudSyncStrategy::CloudSyncStrategy() : policy_(SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN)
@@ -74,5 +75,15 @@ bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
 OpType CloudSyncStrategy::TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const
 {
     return IsIgnoreUpdate(localInfo) ? OpType::NOT_HANDLE : OpType::UPDATE;
+}
+
+bool CloudSyncStrategy::IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo)
+{
+    // avoid compensated and unlock record miss update
+    return (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0 &&
+        localInfo.status == static_cast<uint32_t>(LockStatus::UNLOCK) &&
+        !localInfo.version.empty() && localInfo.version == cloudInfo.version &&
+        std::abs(static_cast<int64_t>(cloudInfo.timestamp - localInfo.timestamp)) <
+        static_cast<int64_t>(CloudDbConstant::ONE_SECOND);
 }
 }

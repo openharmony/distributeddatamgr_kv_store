@@ -46,6 +46,8 @@ protected:
 
     OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;
 
+    bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);
+
     SingleVerConflictResolvePolicy policy_;
 };
 }

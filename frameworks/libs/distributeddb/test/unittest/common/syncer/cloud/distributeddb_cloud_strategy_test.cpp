@@ -322,4 +322,40 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest005, TestSize.Level0)
     EXPECT_EQ(syncer->CallTagStatusByStrategy(true, localInfo, cloudInfo, result), -E_INTERNAL_ERROR);
     RefObject::KillAndDecObjRef(syncer);
 }
+
+/**
+ * @tc.name: TagOpTyeTest006
+ * @tc.desc: Verify cloud merge strategy for same record.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create merge strategy
+     * @tc.expected: step1. create ok
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE);
+    ASSERT_NE(strategy, nullptr);
+    /**
+     * @tc.steps: step2. build cloud and local info, both has same version and diff timestamp
+     * @tc.expected: step2. strategy res is NOT_HANDLE
+     */
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+    localInfo.cloudGid = "gid";
+    localInfo.version = "version";
+    localInfo.timestamp = 1;
+    cloudInfo.cloudGid = "gid";
+    cloudInfo.version = "version";
+    cloudInfo.timestamp = localInfo.timestamp + 1;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step3. make timestamp gap is more than 1s
+     * @tc.expected: step3. strategy res is UPDATE
+     */
+    cloudInfo.timestamp = cloudInfo.timestamp + CloudDbConstant::ONE_SECOND;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE);
+}
 }
