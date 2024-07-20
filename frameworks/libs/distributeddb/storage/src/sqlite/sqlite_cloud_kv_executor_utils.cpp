@@ -23,17 +23,18 @@
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
-int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, sqlite3 *db, bool isMemory,
-    SQLiteSingleVerContinueToken &token, CloudSyncData &data)
+int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, const DBParam &param,
+    const CloudUploadRecorder &recorder, SQLiteSingleVerContinueToken &token, CloudSyncData &data)
 {
+    auto [db, isMemory] = param;
     bool stepNext = false;
     auto [errCode, stmt] = token.GetCloudQueryStmt(db, data.isCloudForcePushStrategy, stepNext, data.mode);
     if (errCode != E_OK) {
         token.ReleaseCloudQueryStmt();
         return errCode;
     }
-    uint32_t totalSize = 0;
-    uint32_t stepNum = 0;
+    UploadDetail detail;
+    auto &[stepNum, totalSize] = detail;
     do {
         if (stepNext) {
             errCode = SQLiteUtils::StepNext(stmt, isMemory);
@@ -43,7 +44,7 @@ int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, sqli
             }
         }
         stepNext = true;
-        errCode = GetCloudDataForSync(config, stmt, data, stepNum, totalSize);
+        errCode = GetCloudDataForSync(config, recorder, stmt, data, detail);
         stepNum++;
     } while (errCode == E_OK);
     LOGI("[SqliteCloudKvExecutorUtils] Get cloud sync data, insData:%u, upData:%u, delLog:%u errCode:%d",
@@ -80,6 +81,9 @@ bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerConti
         case DistributedDB::CloudWaterType::INSERT:
             maxTimeStamp = GetMaxTimeStamp(data.insData.extend);
             break;
+        case DistributedDB::CloudWaterType::BUTT:
+        default:
+            break;
     }
     if (maxTimeStamp > token.GetQueryBeginTime()) {
         token.SetNextBeginTime("", maxTimeStamp);
@@ -89,9 +93,10 @@ bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerConti
     return false;
 }
 
-int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize)
+int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
+    sqlite3_stmt *statement, CloudSyncData &cloudDataResult, UploadDetail &detail)
 {
+    auto &[stepNum, totalSize] = detail;
     VBucket log;
     VBucket extraLog;
     uint32_t preSize = totalSize;
@@ -113,7 +118,7 @@ int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &confi
     }
 
     if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, config.maxUploadSize, config.maxUploadCount)) {
-        errCode = CloudStorageUtils::IdentifyCloudType(cloudDataResult, data, log, extraLog);
+        errCode = CloudStorageUtils::IdentifyCloudType(recorder, cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
     }
@@ -686,24 +691,24 @@ int SqliteCloudKvExecutorUtils::StepStmt(sqlite3_stmt *logStmt, sqlite3_stmt *da
     return E_OK;
 }
 
-int SqliteCloudKvExecutorUtils::FillCloudLog(sqlite3 *db, OpType opType, const CloudSyncData &data,
-    const std::string &user, bool ignoreEmptyGid)
+int SqliteCloudKvExecutorUtils::FillCloudLog(const FillGidParam &param, OpType opType, const CloudSyncData &data,
+    const std::string &user, CloudUploadRecorder &recorder)
 {
-    if (db == nullptr) {
+    if (param.first == nullptr) {
         LOGE("[SqliteCloudKvExecutorUtils] Fill log got nullptr db");
         return -E_INVALID_ARGS;
     }
     if (data.isCloudVersionRecord) {
-        int errCode = FillCloudVersionRecord(db, opType, data);
+        int errCode = FillCloudVersionRecord(param.first, opType, data);
         if (errCode != E_OK) {
             return errCode;
         }
     }
     switch (opType) {
         case OpType::INSERT:
-            return FillCloudGid(db, data.insData, user, ignoreEmptyGid);
+            return FillCloudGid(param, data.insData, user, CloudWaterType::INSERT, recorder);
         case OpType::UPDATE:
-            return FillCloudGid(db, data.updData, user, ignoreEmptyGid);
+            return FillCloudGid(param, data.updData, user, CloudWaterType::UPDATE, recorder);
         default:
             return E_OK;
     }
@@ -754,9 +759,10 @@ int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, i
     return errCode;
 }
 
-int SqliteCloudKvExecutorUtils::FillCloudGid(sqlite3 *db, const CloudSyncBatch &data, const std::string &user,
-    bool ignoreEmptyGid)
+int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const CloudSyncBatch &data,
+    const std::string &user, const CloudWaterType &type, CloudUploadRecorder &recorder)
 {
+    auto [db, ignoreEmptyGid] = param;
     sqlite3_stmt *logStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(OpType::INSERT), logStmt);
     ResFinalizer finalizerData([logStmt]() {
@@ -768,7 +774,7 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(sqlite3 *db, const CloudSyncBatch &
         }
     });
     for (size_t i = 0; i < data.hashKey.size(); ++i) {
-        if (DBCommon::IsRecordError(data.extend[i])) {
+        if (DBCommon::IsRecordError(data.extend[i]) || DBCommon::IsRecordVersionConflict(data.extend[i])) {
             continue;
         }
         DataItem dataItem;
@@ -794,6 +800,11 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(sqlite3 *db, const CloudSyncBatch &
             return errCode;
         }
         SQLiteUtils::ResetStatement(logStmt, false, errCode);
+        // ignored version record
+        if (i >= data.timestamp.size()) {
+            continue;
+        }
+        recorder.RecordUploadRecord(CloudDbConstant::CLOUD_KV_TABLE_NAME, data.hashKey[i], type, data.timestamp[i]);
     }
     return E_OK;
 }
@@ -1069,12 +1080,12 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecord(bool isMemory, sqlite3_stm
         LOGE("[SqliteCloudKvExecutorUtils] Get local version failed %d", errCode);
         return errCode;
     }
-    uint32_t stepNum = 0;
-    uint32_t totalSize = 0;
     CloudSyncConfig config;
     config.maxUploadSize = CloudDbConstant::MAX_UPLOAD_SIZE;
     config.maxUploadCount = 1;
-    errCode = GetCloudDataForSync(config, stmt, syncData, stepNum, totalSize);
+    CloudUploadRecorder recorder; // ignore last record
+    UploadDetail detail;
+    errCode = GetCloudDataForSync(config, recorder, stmt, syncData, detail);
     return errCode;
 }
 

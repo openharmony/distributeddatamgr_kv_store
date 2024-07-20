@@ -20,6 +20,7 @@
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_upload_recorder.h"
 #include "data_transformer.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
@@ -113,7 +114,8 @@ public:
 
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid);
 
-    int GetSyncCloudData(CloudSyncData &cloudDataResult, SQLiteSingleVerRelationalContinueToken &token);
+    int GetSyncCloudData(const CloudUploadRecorder &uploadRecorder, CloudSyncData &cloudDataResult,
+        SQLiteSingleVerRelationalContinueToken &token);
 
     int GetSyncCloudGid(QuerySyncObject &query, const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
         bool isCompensatedTask, std::vector<std::string> &cloudGid);
@@ -247,8 +249,8 @@ private:
         TableInfo &tableInfo);
     int CleanExtendAndCursorForDeleteData(const std::string &tableName);
 
-    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
-        uint32_t &totalSize);
+    int GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder, sqlite3_stmt *statement,
+        CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 

@@ -23,7 +23,8 @@ namespace DistributedDB {
 enum class CloudWaterType {
     INSERT,
     UPDATE,
-    DELETE
+    DELETE,
+    BUTT // invalid cloud water type
 };
 
 struct CloudSyncBatch {

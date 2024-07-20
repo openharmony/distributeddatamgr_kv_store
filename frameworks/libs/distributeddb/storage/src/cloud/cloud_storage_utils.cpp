@@ -1206,7 +1206,22 @@ bool CloudStorageUtils::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize
     return false;
 }
 
-int CloudStorageUtils::IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
+int CloudStorageUtils::IdentifyCloudType(const CloudUploadRecorder &recorder, CloudSyncData &cloudSyncData,
+    VBucket &data, VBucket &log, VBucket &flags)
+{
+    Bytes *hashKey = std::get_if<Bytes>(&flags[CloudDbConstant::HASH_KEY]);
+    int64_t *timeStamp = std::get_if<int64_t>(&flags[CloudDbConstant::TIMESTAMP]);
+    if (timeStamp == nullptr || hashKey == nullptr) {
+        return -E_INVALID_DATA;
+    }
+    if (recorder.IsIgnoreUploadRecord(cloudSyncData.tableName, *hashKey, cloudSyncData.mode, *timeStamp)) {
+        cloudSyncData.ignoredCount++;
+        return -E_IGNORE_DATA;
+    }
+    return IdentifyCloudTypeInner(cloudSyncData, data, log, flags);
+}
+
+int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
 {
     int64_t *rowid = std::get_if<int64_t>(&flags[CloudDbConstant::ROWID]);
     int64_t *flag = std::get_if<int64_t>(&flags[CloudDbConstant::FLAG]);

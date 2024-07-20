@@ -95,6 +95,7 @@ distributeddb_src = [
   "${distributeddb_path}/interfaces/src/runtime_config.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_meta_data.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_storage_utils.cpp",
+  "${distributeddb_path}/storage/src/cloud/cloud_upload_recorder.cpp",
   "${distributeddb_path}/storage/src/cloud/schema_mgr.cpp",
   "${distributeddb_path}/storage/src/data_transformer.cpp",
   "${distributeddb_path}/storage/src/db_properties.cpp",

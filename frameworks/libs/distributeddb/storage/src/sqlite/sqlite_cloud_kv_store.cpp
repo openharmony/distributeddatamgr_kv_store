@@ -183,6 +183,8 @@ int SqliteCloudKvStore::GetCloudData(const TableSchema &tableSchema, const Query
         return -E_OUT_OF_MEMORY;
     }
     token->SetUser(user_);
+    recorder_.SetUser(user_);
+    cloudDataResult.tableName = CloudDbConstant::CLOUD_KV_TABLE_NAME;
     continueStmtToken = static_cast<ContinueToken>(token);
     return GetCloudDataNext(continueStmtToken, cloudDataResult);
 }
@@ -204,7 +206,8 @@ int SqliteCloudKvStore::GetCloudDataNext(ContinueToken &continueStmtToken, Cloud
         ReleaseCloudDataToken(continueStmtToken);
         return -E_INTERNAL_ERROR;
     }
-    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(GetCloudSyncConfig(), db, isMemory, *token, cloudDataResult);
+    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(GetCloudSyncConfig(), {db, isMemory}, recorder_, *token,
+        cloudDataResult);
     if (errCode != -E_UNFINISHED) {
         ReleaseCloudDataToken(continueStmtToken);
     } else {
@@ -270,7 +273,7 @@ int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData 
     }
     sqlite3 *db = nullptr;
     (void)handle->GetDbHandle(db);
-    errCode = SqliteCloudKvExecutorUtils::FillCloudLog(db, opType, data, user_, ignoreEmptyGid);
+    errCode = SqliteCloudKvExecutorUtils::FillCloudLog({db, ignoreEmptyGid}, opType, data, user_, recorder_);
     int ret = E_OK;
     if (handle->IsMemory()) {
         ret = StartTransaction(TransactType::DEFERRED);
@@ -511,5 +514,11 @@ std::map<std::string, DataBaseSchema> SqliteCloudKvStore::GetDataBaseSchemas()
 {
     std::lock_guard<std::mutex> autoLock(schemaMutex_);
     return schema_;
+}
+
+void SqliteCloudKvStore::ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type,
+    Timestamp localMark)
+{
+    recorder_.ReleaseUploadRecord(tableName, type, localMark);
 }
 }

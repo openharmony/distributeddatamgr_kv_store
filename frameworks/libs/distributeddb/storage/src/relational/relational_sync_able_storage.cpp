@@ -1137,7 +1137,7 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     auto config = GetCloudSyncConfig();
     transactionHandle_->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
-    int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, *token);
+    int errCode = transactionHandle_->GetSyncCloudData(uploadRecorder_, cloudDataResult, *token);
     LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
         cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
         cloudDataResult.delData.extend.size(), cloudDataResult.lockData.extend.size());
@@ -1799,19 +1799,19 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         return errCode;
     }
     if (opType == OpType::INSERT) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.insData);
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.insData, CloudWaterType::INSERT);
     } else if (opType == OpType::UPDATE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData);
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData, CloudWaterType::UPDATE);
     } else if (opType == OpType::DELETE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData);
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData, CloudWaterType::DELETE);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.lockData, true);
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.lockData, CloudWaterType::BUTT, true);
     }
     return errCode;
 }
 
 int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName, const CloudSyncBatch &updateData, bool isLock)
+    const std::string &tableName, const CloudSyncBatch &updateData, const CloudWaterType &type, bool isLock)
 {
     if (updateData.timestamp.size() != updateData.extend.size()) {
         LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
@@ -1842,6 +1842,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
             LOGE("[RDBStorage] Update record flag failed in index %zu", i);
             return errCode;
         }
+        uploadRecorder_.RecordUploadRecord(tableName, logInfo.hashKey, type, updateData.timestamp[i]);
     }
     return E_OK;
 }
@@ -2070,6 +2071,12 @@ bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
         return false;
     }
     return !tableReference.empty();
+}
+
+void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type,
+    Timestamp localMark)
+{
+    uploadRecorder_.ReleaseUploadRecord(tableName, type, localMark);
 }
 }
 #endif

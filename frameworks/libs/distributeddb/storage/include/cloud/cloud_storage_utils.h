@@ -18,6 +18,7 @@
 
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_store_types.h"
+#include "cloud/cloud_upload_recorder.h"
 #include "icloud_sync_storage_interface.h"
 #include "sqlite_utils.h"
 
@@ -166,7 +167,8 @@ public:
 
     static bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize, uint32_t maxCount);
 
-    static int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
+    static int IdentifyCloudType(const CloudUploadRecorder &recorder, CloudSyncData &cloudSyncData, VBucket &data,
+        VBucket &log, VBucket &flags);
 
     static bool IsAbnormalData(const VBucket &data);
 
@@ -185,6 +187,8 @@ public:
     static std::pair<int, DataItem> GetSystemRecordFromCloudData(VBucket &data);
 
     static bool IsSystemRecord(const Key &key);
+private:
+    static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

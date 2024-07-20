@@ -147,6 +147,8 @@ public:
     CloudSyncConfig GetCloudSyncConfig() const;
 
     bool IsTableExistReference(const std::string &table);
+
+    void ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark);
 protected:
     void Init();
 
