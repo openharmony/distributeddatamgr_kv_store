@@ -112,7 +112,13 @@ private:
         std::function<void(Status, Value &&)> toGet;
         std::function<void(Status, std::vector<Entry> &&)> toGetEntries;
     };
-
+    static inline uint64_t GetTimeStamp(uint32_t offset = 0)
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            (std::chrono::steady_clock::now() + std::chrono::milliseconds(offset)).time_since_epoch())
+            .count();
+    }
+    static constexpr uint32_t NOTIFY_INTERVAL = 200; // ms
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
     static constexpr Duration SYNC_DURATION = std::chrono::seconds(60);
@@ -141,6 +147,9 @@ private:
     int32_t dataType_ = DataType::TYPE_DYNAMICAL;
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
+
+    std::mutex notifyMutex_;
+    uint64_t notifyExpiredTime_ = 0;
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;
