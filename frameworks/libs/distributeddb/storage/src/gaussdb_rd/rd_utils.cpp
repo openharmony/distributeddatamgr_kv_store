@@ -50,7 +50,7 @@ namespace DistributedDB {
 
 std::string InitRdConfig()
 {
-    return R"("redoFlushByTrx": 1, "maxConnNum": 100, "crcCheckEnable": 0)";
+    return R"("redoFlushByTrx": 1, "maxConnNum": 100, "crcCheckEnable": 0, "metaInfoBak": 1)";
 }
 
 struct GrdErrnoPair {
