@@ -122,9 +122,12 @@ ohos_unittest("SingleStoreImplTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -145,9 +148,12 @@ ohos_unittest("StoreUtilTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -168,9 +174,12 @@ ohos_unittest("BackupManagerTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -191,9 +200,12 @@ ohos_unittest("DataChangeNotifierTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -214,9 +226,12 @@ ohos_unittest("DevManagerTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -237,9 +252,12 @@ ohos_unittest("SingleStoreImplGetTopTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -260,9 +278,12 @@ ohos_unittest("StoreFactoryTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
@@ -273,14 +294,16 @@ group("unittest") {
   testonly = true
 
   deps = []
-  deps += [
-    ":BackupManagerTest",
-    ":DataChangeNotifierTest",
-    ":DevManagerTest",
-    ":SingleStoreImplGetTopTest",
-    ":SingleStoreImplTest",
-    ":StoreFactoryTest",
-    ":StoreUtilTest",
-  ]
+  if (pb_datamgr_service_part_enable) {
+    deps += [
+      ":DataChangeNotifierTest",
+      ":BackupManagerTest",
+      ":DevManagerTest",
+      ":SingleStoreImplGetTopTest",
+      ":SingleStoreImplTest",
+      ":StoreFactoryTest",
+      ":StoreUtilTest",
+    ]
+  }
 }
 ###############################################################################

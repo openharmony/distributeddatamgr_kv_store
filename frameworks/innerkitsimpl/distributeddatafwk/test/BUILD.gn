@@ -143,9 +143,12 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -164,9 +167,12 @@ ohos_unittest("LocalSubscribeStoreTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -185,9 +191,12 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -206,9 +215,12 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -227,9 +239,12 @@ ohos_unittest("SingleKvStoreClientTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -268,9 +283,12 @@ ohos_unittest("DeviceKvStoreTest") {
     "samgr:samgr_proxy",
   ]
 
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
+
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -284,7 +302,6 @@ ohos_unittest("BlobTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -293,6 +310,10 @@ ohos_unittest("BlobTest") {
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
+
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
 }
 
 ohos_unittest("TypesUtilTest") {
@@ -304,7 +325,6 @@ ohos_unittest("TypesUtilTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -313,6 +333,10 @@ ohos_unittest("TypesUtilTest") {
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
+
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
 }
 
 ohos_unittest("KvUtilTest") {
@@ -324,7 +348,6 @@ ohos_unittest("KvUtilTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -333,6 +356,9 @@ ohos_unittest("KvUtilTest") {
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
 }
 
 ohos_unittest("KvstoreDatashareBridgeTest") {
@@ -344,7 +370,6 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -353,6 +378,10 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
+
+  if (pb_datamgr_service_part_enable) {
+    external_deps += [ "datamgr_service:distributeddata_adapter" ]
+  }
 }
 
 ohos_unittest("DistributedDataMgrTest") {
@@ -404,20 +433,21 @@ group("unittest") {
 
   deps = []
 
-  deps += [
-    ":BlobTest",
-    ":DeviceKvStoreTest",
-    ":DistributedDataMgrTest",
-    ":DistributedKvDataManagerEncryptTest",
-    ":DistributedKvDataManagerTest",
-    ":EndPointTest",
-    ":KvUtilTest",
-    ":KvstoreDatashareBridgeTest",
-    ":LocalSubscribeDeviceStoreTest",
-    ":LocalSubscribeStoreTest",
-    ":SingleKvStoreAsyncGetTest",
-    ":SingleKvStoreClientQueryTest",
-    ":SingleKvStoreClientTest",
-    ":TypesUtilTest",
-  ]
+  if (pb_datamgr_service_part_enable) {
+    deps += [
+      ":BlobTest",
+      ":DeviceKvStoreTest",
+      ":DistributedDataMgrTest",
+      ":DistributedKvDataManagerEncryptTest",
+      ":DistributedKvDataManagerTest",
+      ":EndPointTest",
+      ":KvUtilTest",
+      ":KvstoreDatashareBridgeTest",
+      ":LocalSubscribeDeviceStoreTest",
+      ":LocalSubscribeStoreTest",
+      ":SingleKvStoreClientQueryTest",
+      ":SingleKvStoreClientTest",
+      ":TypesUtilTest",
+    ]
+  }
 }
