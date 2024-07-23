@@ -63,7 +63,6 @@ ohos_source_set("kvdb_src_file") {
   kvdb_sources = [
     "../src/backup_manager.cpp",
     "../src/convertor.cpp",
-    "../src/data_change_notifier.cpp",
     "../src/dev_manager.cpp",
     "../src/device_convertor.cpp",
     "../src/kv_types_util.cpp",
@@ -178,29 +177,6 @@ ohos_unittest("BackupManagerTest") {
   ]
 }
 
-ohos_unittest("DataChangeNotifierTest") {
-  module_out_path = module_output_path
-
-  sources = [ "data_change_notifier_test.cpp" ]
-
-  configs = [ ":module_private_config" ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
-
-  deps = [
-    ":kvdb_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
-  ]
-}
-
 ohos_unittest("DevManagerTest") {
   module_out_path = module_output_path
 
@@ -277,7 +253,6 @@ group("unittest") {
   deps = []
   deps += [
     ":BackupManagerTest",
-    ":DataChangeNotifierTest",
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",

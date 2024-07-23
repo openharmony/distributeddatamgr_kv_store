@@ -52,7 +52,7 @@ public:
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
     Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
-    Status NotifyDataChange(const AppId &appId, const StoreId &storeId) override;
+    Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) override;
     Status PutSwitch(const AppId &appId, const SwitchData &data) override;
     Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) override;
     Status SubscribeSwitchData(const AppId &appId) override;

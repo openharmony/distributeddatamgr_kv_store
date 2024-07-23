@@ -15,6 +15,7 @@
 
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
+#include <condition_variable>
 #include <map>
 #include <memory>
 #include <mutex>

@@ -16,7 +16,6 @@
 #include "single_store_impl.h"
 
 #include "backup_manager.h"
-#include "data_change_notifier.h"
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
@@ -1012,13 +1011,23 @@ void SingleStoreImpl::DoNotifyChange()
     if (!autoSync_ && !cloudAutoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {
         return;
     }
-    ZLOGD("app:%{public}s store:%{public}s dataType:%{public}d!",
-        appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str(), dataType_);
-    if (dataType_ == DataType::TYPE_STATICS) {
-        DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } }, true);
+    auto now = GetTimeStamp();
+    if (now < notifyExpiredTime_) {
         return;
     }
-    DataChangeNotifier::GetInstance().DoNotifyChange(appId_, { { storeId_ } });
+    std::lock_guard<decltype(notifyMutex_)> lock(notifyMutex_);
+    if (now < notifyExpiredTime_) {
+        return;
+    }
+    notifyExpiredTime_ = GetTimeStamp(NOTIFY_INTERVAL);
+    TaskExecutor::GetInstance().Execute([app = this->appId_, store = this->storeId_]() {
+        auto service = KVDBServiceClient::GetInstance();
+        if (service == nullptr) {
+            ZLOGD("app:%{public}s store:%{public}s!", app.c_str(), StoreUtil::Anonymous(store).c_str());
+            return;
+        }
+        service->NotifyDataChange({ app }, { store }, NOTIFY_INTERVAL);
+    });
 }
 
 void SingleStoreImpl::OnRemoteDied()

@@ -78,7 +78,6 @@ old_source_config = [
 kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
-  "../../../frameworks/innerkitsimpl/kvdb/src/data_change_notifier.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",

@@ -64,7 +64,7 @@ public:
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
     virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
-    virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId) = 0;
+    virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) = 0;
     virtual Status PutSwitch(const AppId &appId, const SwitchData &data) = 0;
     virtual Status GetSwitch(const AppId &appId, const std::string &networkId, SwitchData &data) = 0;
     virtual Status SubscribeSwitchData(const AppId &appId) = 0;

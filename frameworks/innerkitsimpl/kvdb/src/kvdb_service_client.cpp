@@ -200,11 +200,11 @@ Status KVDBServiceClient::SyncExt(const AppId &appId, const StoreId &storeId, Sy
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::NotifyDataChange(const AppId &appId, const StoreId &storeId)
+Status KVDBServiceClient::NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(
-        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_NOTIFY_DATA_CHANGE), reply, appId, storeId);
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_NOTIFY_DATA_CHANGE), reply, appId, storeId, delay);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s",
             status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());

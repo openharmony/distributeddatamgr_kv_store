@@ -64,7 +64,6 @@ ohos_source_set("distributeddatafwk_src_file") {
   kvdb_sources = [
     "../../kvdb/src/backup_manager.cpp",
     "../../kvdb/src/convertor.cpp",
-    "../../kvdb/src/data_change_notifier.cpp",
     "../../kvdb/src/dev_manager.cpp",
     "../../kvdb/src/device_convertor.cpp",
     "../../kvdb/src/kv_types_util.cpp",
