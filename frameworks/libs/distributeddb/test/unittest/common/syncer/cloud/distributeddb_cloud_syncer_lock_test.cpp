@@ -389,6 +389,17 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level
     InsertCloudDBData(0, localCount, 0, ASSETS_TABLE_NAME);
     CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::NONE);
     CallSync(option);
+
+    /**
+     * @tc.steps:step2. insert or replace, check version
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "INSERT OR REPLACE INTO " + ASSETS_TABLE_NAME + " VALUES('0', 'XX', '', '');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where version != '' and version is not null;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
 }
 
 /**
