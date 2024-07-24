@@ -120,6 +120,31 @@ void DevManager::UpdateBucket()
     }
 }
 
+std::string DevManager::GetLocalUuid()
+{
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+    if (!localUuid_.uuid.empty()) {
+        return localUuid_.uuid;
+    }
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
+        return "";
+    }
+    auto networkId = std::string(info.networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetUuidByNetworkId(PKG_NAME, networkId, uuid);
+    if (uuid.empty() || networkId.empty()) {
+        ZLOGE("get uuid by networkid fail");
+        return "";
+    }
+    localUuid_.uuid = std::move(uuid);
+    ZLOGI("[GetLocalUuid] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localUuid_.uuid).c_str(),
+        StoreUtil::Anonymous(networkId).c_str());
+    return uuid;
+}
+
 const DevManager::DetailInfo &DevManager::GetLocalDevice()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
