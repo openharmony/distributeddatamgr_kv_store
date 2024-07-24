@@ -487,7 +487,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     auto uuid = DevManager::GetInstance().GetLocalUuid();
     if (device == uuid) {
         dbStatus = dbStore_->GetDeviceEntries("", dbEntries);
-        ZLOGI("device equal loacluuid", StoreUtil::Anonymous(uuid).c_str());
+        ZLOGI("device equal loacluuid:%{public}s", StoreUtil::Anonymous(uuid).c_str());
     } else {
         dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
     }
