@@ -65,7 +65,6 @@
         "bundle_framework",
         "common_event_service",
         "c_utils",
-        "datamgr_service",
         "device_manager",
         "ffrt",
         "hilog",

@@ -122,10 +122,6 @@ ohos_unittest("SingleStoreImplTest") {
     "samgr:samgr_proxy",
   ]
 
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
-
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -147,10 +143,6 @@ ohos_unittest("StoreUtilTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
 
   deps = [
     ":kvdb_src_file",
@@ -174,10 +166,6 @@ ohos_unittest("BackupManagerTest") {
     "samgr:samgr_proxy",
   ]
 
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
-
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -199,10 +187,6 @@ ohos_unittest("DataChangeNotifierTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
 
   deps = [
     ":kvdb_src_file",
@@ -226,10 +210,6 @@ ohos_unittest("DevManagerTest") {
     "samgr:samgr_proxy",
   ]
 
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
-
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -251,10 +231,6 @@ ohos_unittest("SingleStoreImplGetTopTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
 
   deps = [
     ":kvdb_src_file",
@@ -278,10 +254,6 @@ ohos_unittest("StoreFactoryTest") {
     "samgr:samgr_proxy",
   ]
 
-  if (pb_datamgr_service_part_enable) {
-    external_deps += [ "datamgr_service:distributeddata_adapter" ]
-  }
-
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -294,16 +266,14 @@ group("unittest") {
   testonly = true
 
   deps = []
-  if (pb_datamgr_service_part_enable) {
-    deps += [
-      ":DataChangeNotifierTest",
-      ":BackupManagerTest",
-      ":DevManagerTest",
-      ":SingleStoreImplGetTopTest",
-      ":SingleStoreImplTest",
-      ":StoreFactoryTest",
-      ":StoreUtilTest",
-    ]
-  }
+  deps += [
+    ":BackupManagerTest",
+    ":DataChangeNotifierTest",
+    ":DevManagerTest",
+    ":SingleStoreImplGetTopTest",
+    ":SingleStoreImplTest",
+    ":StoreFactoryTest",
+    ":StoreUtilTest",
+  ]
 }
 ###############################################################################
