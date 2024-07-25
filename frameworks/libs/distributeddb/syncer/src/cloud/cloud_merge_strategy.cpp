@@ -49,7 +49,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
     if (isTimeSame && (localInfo.cloudGid.empty() || cloudInfo.sharingResource != localInfo.sharingResource)) {
         return OpType::ONLY_UPDATE_GID;
     }
-    if (IsSameRecord(cloudInfo, localInfo)) {
+    if (!localInfo.isNeedUpdateAsset && IsSameRecord(cloudInfo, localInfo)) {
         return OpType::NOT_HANDLE;
     }
     return TagUpdateLocal(cloudInfo, localInfo);

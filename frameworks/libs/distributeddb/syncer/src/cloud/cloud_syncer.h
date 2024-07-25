@@ -417,6 +417,8 @@ protected:
 
     void MarkDownloadFinishIfNeed(const std::string &downloadTable);
 
+    bool IsNeedUpdateAsset(const VBucket &data);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
