@@ -228,7 +228,6 @@ int CloudSyncer::DoSync(TaskId taskId)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskInfo = cloudTaskInfos_[taskId];
     }
-    storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
     bool needUpload = true;
     bool isNeedFirstDownload = false;
     {
