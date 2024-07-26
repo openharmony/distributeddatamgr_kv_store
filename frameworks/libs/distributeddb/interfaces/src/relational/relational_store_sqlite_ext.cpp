@@ -800,7 +800,7 @@ std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const s
     updateTrigger += "ON '" + tableName + "'\n";
     updateTrigger += "BEGIN\n";
     if (isRowid || primaryKey.empty()) {
-        updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 2);\n";
+        updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 1);\n";
     } else {
         updateTrigger += "SELECT data_change('" + tableName + "', ";
         updateTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";

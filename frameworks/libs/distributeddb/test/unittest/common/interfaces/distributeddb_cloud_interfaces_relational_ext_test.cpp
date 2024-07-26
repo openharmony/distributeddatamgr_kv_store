@@ -1517,7 +1517,7 @@ void CheckChangedData(int num, int times = 0, int offset = 0)
         }
         for (size_t i = 1; i <= g_changedData[num].primaryData[ChangeType::OP_DELETE].size(); i++) {
             EXPECT_EQ(std::get<int64_t>(g_changedData[num].primaryData[ChangeType::OP_DELETE][i - 1][0]),
-                static_cast<int64_t>(i + offset));
+                static_cast<int64_t>(i + offset + 5)); // 5 is offset
         }
         return;
     }
