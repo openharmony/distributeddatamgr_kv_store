@@ -32,9 +32,9 @@ static std::string CHILDREN = "CHILDREN";
 std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::STRING, std::string("STRING") },
     { JSUtil::INTEGER, std::string("INTEGER") },
-    { JSUtil::FLOAT, std::string("FLOAT") },
+    { JSUtil::FLOAT, std::string("DOUBLE") },
     { JSUtil::BYTE_ARRAY, std::string("BYTE_ARRAY") },
-    { JSUtil::BOOLEAN, std::string("BOOLEAN") },
+    { JSUtil::BOOLEAN, std::string("BOOL") },
     { JSUtil::DOUBLE, std::string("DOUBLE") }
 };
 
@@ -51,7 +51,12 @@ std::string JsFieldNode::GetFieldName()
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
-        return ToString(valueType_) + "," + (isNullable_ ? "NULL" : "NOT NULL");
+        if (valueType_ == JSUtil::STRING) {
+            return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
+                " DEFAULT '" + ToString(defaultValue_) + "'";
+        }
+        return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
+            " DEFAULT " + ToString(defaultValue_);
     }
 
     json jsFields;

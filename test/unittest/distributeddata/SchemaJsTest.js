@@ -227,7 +227,7 @@ describe('schemaTest', function() {
             let name = new ddm.FieldNode('name');
             name.type = ddm.ValueType.INTEGER;
             name.nullable = false;
-            name.default = 0;
+            name.default = '0';
 
             let schema = new ddm.Schema();
             schema.root.appendChild(name);
@@ -270,15 +270,37 @@ describe('schemaTest', function() {
      */
     it('SchemaToJsonStringTest004', 0, async function(done) {
         try {
-            let english = new ddm.FieldNode('english');
-            english.type = ddm.ValueType.STRING;
+            let name = new ddm.FieldNode('name');
+            name.type = ddm.ValueType.FLOAT;
+            name.nullable = true;
+            name.default = '3.14';
 
             let schema = new ddm.Schema();
-            schema.root.appendChild(english);
+            schema.root.appendChild(name);
             schema.indexes = [];
-            expect(null).assertFail();
+            schema.mode = 1; // COMPATIBLE
+            options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
+            options.schema = schema;
+            await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
+                console.info('SchemaToJsonStringTest005 getKVStore success' + JSON.stringify(options));
+                kvStore = store;
+                expect(store != null).assertTrue();
+                await kvStore.put("test_key_1", '{"name":1.5}');
+                await kvStore.put("test_key_2", '{"name":2.5}');
+                await kvStore.put("test_key_3", '{}');
+                console.info('SchemaToJsonStringTest005 Put success');
+            });
+            console.info('SchemaToJsonStringTest005 start Query ...');
+            await kvStore.getEntries('test_key_').then((entries) => {
+                console.info('SchemaToJsonStringTest005 get success : ' + JSON.stringify(entries));
+                expect(entries.length == 3).assertTrue();
+            }).catch((err) => {
+                console.info('SchemaToJsonStringTest005 get fail ' + err);
+                expect(null).assertFail();
+            });
         } catch (e) {
-            console.info("schema exception is: " + e);
+            console.info("SchemaToJsonStringTest005 fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })
