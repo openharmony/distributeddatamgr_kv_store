@@ -2029,5 +2029,56 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestS
         }
     }
 }
+
+/**
+ * @tc.name: DownloadAssetTest002
+ * @tc.desc: Test asset download failed and re download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. Set asset download status error and sync
+     * @tc.expected: step2. sync successful but download assets fail.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+
+    /**
+     * @tc.steps:step3. Set asset download status OK and sync
+     * @tc.expected: step3. return OK.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step4. Check assets status
+     * @tc.expected: step4. status is NORMAL.
+     */
+    std::string sql = "SELECT assets FROM " + ASSETS_TABLE_NAME + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        Assets assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(cloudValue));
+        for (const auto &asset : assets) {
+            EXPECT_EQ(asset.status, AssetStatus::NORMAL);
+        }
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+}
 } // namespace
 #endif // RELATIONAL_STORE

@@ -1736,6 +1736,33 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
+bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+            continue;
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
@@ -1766,6 +1793,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         }
         errCode = E_OK;
     }
+    logInfo.logInfo.isNeedUpdateAsset = IsNeedUpdateAsset(localAssetInfo);
     return errCode;
 }
 
