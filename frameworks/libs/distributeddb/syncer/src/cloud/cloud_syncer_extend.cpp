@@ -458,7 +458,7 @@ int CloudSyncer::PrepareAndDownload(const std::string &table, const CloudTaskInf
         return errCode;
     }
     // shared table not allow logic delete
-    storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
+    storageProxy_->SetCloudTaskConfig({ !isShared });
     errCode = CheckTaskIdValid(taskInfo.taskId);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] task is invalid, abort sync");

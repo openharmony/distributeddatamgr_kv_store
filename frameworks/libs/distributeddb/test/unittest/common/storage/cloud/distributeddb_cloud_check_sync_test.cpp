@@ -75,7 +75,8 @@ void PrepareOption(CloudSyncOption &option, const Query &query, bool isPriorityT
     option.compensatedSyncOnly = isCompensatedSyncOnly;
 }
 
-void BlockSync(const Query &query, RelationalStoreDelegate *delegate, std::vector<DBStatus> &actualDBStatus)
+void BlockSync(const Query &query, RelationalStoreDelegate *delegate, std::vector<DBStatus> &actualDBStatus,
+    bool prioritySync = false)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
@@ -92,7 +93,13 @@ void BlockSync(const Query &query, RelationalStoreDelegate *delegate, std::vecto
             }
         }
     };
-    ASSERT_EQ(delegate->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), OK);
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.query = query;
+    option.waitTime = g_syncWaitTime;
+    option.priorityTask = prioritySync;
+    ASSERT_EQ(delegate->Sync(option, callback), OK);
     std::unique_lock<std::mutex> uniqueLock(dataMutex);
     cv.wait(uniqueLock, [&finish]() {
         return finish;
@@ -166,7 +173,7 @@ protected:
     void DeleteCloudDBData(int64_t begin, int64_t count);
     void SetForkQueryForCloudPrioritySyncTest007(std::atomic<int> &count);
     void SetForkQueryForCloudPrioritySyncTest008(std::atomic<int> &count);
-    void InitLogicDeleteDataEnv(int64_t dataCount);
+    void InitLogicDeleteDataEnv(int64_t dataCount, bool prioritySync = false);
     void CheckLocalCount(int64_t expectCount);
     void CheckLogCleaned(int64_t expectCount);
     void SyncDataStatusTest(bool isCompensatedSyncOnly);
@@ -451,7 +458,7 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest008(st
     });
 }
 
-void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount)
+void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount, bool prioritySync)
 {
     // prepare data
     InsertUserTableRecord(tableName_, dataCount);
@@ -1401,7 +1408,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level
     auto data = static_cast<PragmaData>(&logicDelete);
     delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
     int actualCount = 10;
-    InitLogicDeleteDataEnv(actualCount);
+    InitLogicDeleteDataEnv(actualCount, true);
     CheckLocalCount(actualCount);
     std::string device = "";
     ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
