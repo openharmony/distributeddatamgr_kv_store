@@ -1275,6 +1275,10 @@ int32_t SyncEngine::GetResponseTaskCount()
         taskCount += iter->GetResponseTaskCount();
         RefObject::DecObjRef(iter);
     }
+    {
+        std::lock_guard<std::mutex> decLock(execTaskCountLock_);
+        taskCount += static_cast<int32_t>(execTaskCount_);
+    }
     return taskCount;
 }
 } // namespace DistributedDB
