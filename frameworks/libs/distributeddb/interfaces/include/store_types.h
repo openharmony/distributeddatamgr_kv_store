@@ -85,6 +85,8 @@ enum DBStatus {
     WITH_INVENTORY_DATA, // inventory data exists when setTracker for the first time
     WAIT_COMPENSATED_SYNC, // need to do compensated sync
     CLOUD_SYNC_TASK_MERGED, // sync task is merged
+    CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
+    CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
 };
 
 struct KvStoreConfig {

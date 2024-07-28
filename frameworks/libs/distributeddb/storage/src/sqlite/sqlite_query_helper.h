@@ -112,7 +112,15 @@ public:
     int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
         sqlite3_stmt *&statement);
 
-    static std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush, const CloudWaterType mode);
+    int GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush, const CloudWaterType mode, sqlite3_stmt *&stmt);
+
+    std::pair<int, int64_t> BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
+        const std::string &user, sqlite3_stmt *&stmt);
+
+    void AppendKvQueryObjectOnSql(std::string &sql);
+
+    std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush, const CloudWaterType mode,
+        int64_t timeStamp, const std::string &user);
 
     static std::string GetKvCloudQuerySql(bool countOnly, bool forcePush);
 

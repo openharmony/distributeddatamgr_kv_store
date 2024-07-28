@@ -86,6 +86,7 @@ int SqliteLogTableManager::CreateKvSyncLogTable(sqlite3 *db)
         "hash_key  BLOB NOT NULL," + \
         "cloud_gid TEXT," + \
         "version   TEXT," + \
+        "cloud_flag INT DEFAULT 0," + \
         primaryKey + ");";
     int errCode = SQLiteUtils::ExecuteRawSQL(db, createTableSql);
     if (errCode != E_OK) {
@@ -97,7 +98,7 @@ int SqliteLogTableManager::CreateKvSyncLogTable(sqlite3 *db)
     if (errCode != E_OK) {
         LOGE("[LogTableManager] execute create gid index failed, errCode=%d", errCode);
     }
-    return errCode;
+    return UpgradeKvSyncLogTable(tableName, db);
 }
 
 void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
@@ -116,5 +117,36 @@ void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std:
 std::string SqliteLogTableManager::GetLogTableName(const TableInfo &table) const
 {
     return DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+}
+
+int SqliteLogTableManager::UpgradeKvSyncLogTable(const std::string &tableName, sqlite3 *db)
+{
+    TableInfo tableInfo;
+    int errCode = SQLiteUtils::AnalysisSchemaFieldDefine(db, tableName, tableInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    auto fields = tableInfo.GetFields();
+    if (fields.find("cloud_flag") != fields.end()) {
+        return CreateKvCloudFlagIndex(tableName, db);
+    }
+    std::string addFlagSql = "ALTER TABLE " + tableName + " ADD COLUMN cloud_flag INT DEFAULT 0";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, addFlagSql);
+    if (errCode != E_OK) {
+        LOGE("[LogTableManager] add cloud_flag failed, errCode=%d", errCode);
+        return errCode;
+    }
+    return CreateKvCloudFlagIndex(tableName, db);
+}
+
+int SqliteLogTableManager::CreateKvCloudFlagIndex(const std::string &tableName, sqlite3 *db)
+{
+    std::string createIndexSql = "CREATE INDEX IF NOT EXISTS gid_hash_key_flag ON " + tableName +
+        "(cloud_gid, hash_key, cloud_flag)";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, createIndexSql);
+    if (errCode != E_OK) {
+        LOGE("[LogTableManager] add cloud_flag index failed, errCode=%d", errCode);
+    }
+    return errCode;
 }
 }

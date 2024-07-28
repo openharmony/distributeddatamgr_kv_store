@@ -157,7 +157,7 @@ int SqliteCloudKvStore::GetUploadCount([[gnu::unused]] const QuerySyncObject &qu
     return errCode;
 }
 
-int SqliteCloudKvStore::GetAllUploadCount([[gnu::unused]] const QuerySyncObject &query,
+int SqliteCloudKvStore::GetAllUploadCount(const QuerySyncObject &query,
     const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, [[gnu::unused]] bool isCompensatedTask,
     int64_t &count)
 {
@@ -167,8 +167,9 @@ int SqliteCloudKvStore::GetAllUploadCount([[gnu::unused]] const QuerySyncObject 
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
-    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountAllCloudData(db, isMemory, timestampVec, user_,
-        isCloudForcePush);
+    QuerySyncObject queryObj = query;
+    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountAllCloudData({ db, isMemory }, timestampVec, user_,
+        isCloudForcePush, queryObj);
     return errCode;
 }
 
@@ -176,7 +177,8 @@ int SqliteCloudKvStore::GetCloudData(const TableSchema &tableSchema, const Query
     const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
     SyncTimeRange timeRange;
-    timeRange.beginTime = beginTime;
+    // memory db use watermark
+    timeRange.beginTime = GetTransactionDbHandleAndMemoryStatus().second ? beginTime : 0;
     auto token = new (std::nothrow) SQLiteSingleVerContinueToken(timeRange, object);
     if (token == nullptr) {
         LOGE("[SqliteCloudKvStore] create token failed");

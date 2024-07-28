@@ -45,6 +45,9 @@ private:
     virtual std::vector<std::string> GetDropTriggers(const TableInfo &table) = 0;
 
     virtual std::string GetPrimaryKeySql(const TableInfo &table) = 0;
+
+    static int UpgradeKvSyncLogTable(const std::string &tableName, sqlite3 *db);
+    static int CreateKvCloudFlagIndex(const std::string &tableName, sqlite3 *db);
 };
 }
 #endif // SQLITE_LOG_TABLE_MANAGER_H

@@ -498,6 +498,7 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
     innerProcessInfo.upLoadInfo.deleteCount += deleteInfo.successCount;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
+        storageProxy_->FillCloudGidIfSuccess(OpType::DELETE, uploadData);
         return errCode;
     }
     errCode = storageProxy_->FillCloudLogAndAsset(OpType::DELETE, uploadData);

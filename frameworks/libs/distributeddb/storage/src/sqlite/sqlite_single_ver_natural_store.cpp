@@ -1360,6 +1360,9 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
     }
 
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ != nullptr) {
+        return E_OK;
+    }
     sqliteCloudKvStore_ = new(std::nothrow) SqliteCloudKvStore(this);
     if (sqliteCloudKvStore_ == nullptr) {
         return E_OUT_OF_MEMORY;

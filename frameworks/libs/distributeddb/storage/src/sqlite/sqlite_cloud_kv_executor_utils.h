@@ -43,8 +43,8 @@ public:
     static std::pair<int, int64_t> CountCloudData(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
         const std::string &user, bool forcePush);
 
-    static std::pair<int, int64_t> CountAllCloudData(sqlite3 *db, bool isMemory,
-        const std::vector<Timestamp> &timestampVec, const std::string &user, bool forcePush);
+    static std::pair<int, int64_t> CountAllCloudData(const DBParam &param, const std::vector<Timestamp> &timestampVec,
+        const std::string &user, bool forcePush, QuerySyncObject &querySyncObject);
 
     static std::pair<int, CloudSyncData> GetLocalCloudVersion(sqlite3 *db, bool isMemory, const std::string &user);
 
@@ -82,6 +82,10 @@ private:
     static std::string GetOperateDataSql(OpType opType);
 
     static std::string GetOperateLogSql(OpType opType);
+
+    static OpType TransToOpType(const CloudWaterType type);
+
+    static int BindOnlyUpdateLogStmt(sqlite3_stmt *logStmt, const std::string &user, const DataItem &dataItem);
 
     static int BindStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, int index, OpType opType,
         DownloadData &downloadData);
@@ -140,6 +144,9 @@ private:
     static Timestamp GetMaxTimeStamp(std::vector<VBucket> &dataExtend);
 
     static bool UpdateBeginTimeForMemoryDB(SQLiteSingleVerContinueToken &token, CloudSyncData &data);
+
+    static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
+        const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H

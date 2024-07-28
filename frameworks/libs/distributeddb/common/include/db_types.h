@@ -53,6 +53,7 @@ struct DataItem {
     Timestamp createTime = 0;
     std::string version; // use for cloud
     std::string gid; // use for cloud
+    uint32_t cloud_flag = 0; // use for cloud
     static constexpr uint64_t DELETE_FLAG = 0x01;
     static constexpr uint64_t LOCAL_FLAG = 0x02;
     static constexpr uint64_t REMOVE_DEVICE_DATA_FLAG = 0x04; // only use for cachedb

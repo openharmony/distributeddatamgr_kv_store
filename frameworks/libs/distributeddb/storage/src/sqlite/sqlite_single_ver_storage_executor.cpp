@@ -1220,6 +1220,9 @@ int SQLiteSingleVerStorageExecutor::SaveSyncDataToDatabase(const DataItem &dataI
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
+    if (errCode == E_OK) {
+        errCode = RemoveCloudUploadFlag(hashKey);
+    }
     return errCode;
 }
 
