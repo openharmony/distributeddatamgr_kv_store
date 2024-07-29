@@ -142,7 +142,7 @@ std::string DevManager::GetLocalUuid()
     localUuid_.uuid = std::move(uuid);
     ZLOGI("[GetLocalUuid] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localUuid_.uuid).c_str(),
         StoreUtil::Anonymous(networkId).c_str());
-    return uuid;
+    return localUuid_.uuid;
 }
 
 const DevManager::DetailInfo &DevManager::GetLocalDevice()
