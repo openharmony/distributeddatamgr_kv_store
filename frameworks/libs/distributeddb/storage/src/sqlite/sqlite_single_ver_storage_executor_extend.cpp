@@ -18,12 +18,13 @@
 #include <algorithm>
 
 #include "cloud/cloud_store_types.h"
+#include "data_transformer.h"
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
-#include "res_finalizer.h"
 #include "parcel.h"
 #include "platform_specific.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
@@ -286,5 +287,41 @@ int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::v
     }
     LOGD("[SQLiteSingleVerStorageExecutor] Get %zu entries by device", entries.size());
     return errCode;
+}
+
+int SQLiteSingleVerStorageExecutor::RemoveCloudUploadFlag(const std::vector<uint8_t> &hashKey)
+{
+    const std::string tableName = "naturalbase_kv_aux_sync_data_log";
+    bool isCreate = false;
+    int errCode = SQLiteUtils::CheckTableExists(dbHandle_, tableName, isCreate);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCreate) {
+        return E_OK;
+    }
+    std::string removeSql = "UPDATE " + tableName + " SET cloud_flag=cloud_flag&(~" +
+        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED)) + ") WHERE hash_key=?";
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, removeSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageExecutor] Remove cloud flag get stmt failed %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, BIND_HASH_KEY_INDEX, hashKey);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageExecutor] Remove cloud flag bind hashKey failed %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW) || errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGW("[SQLiteSingleVerStorageExecutor] Finalize stmt failed %d", ret);
+    }
+    return errCode == E_OK ? ret : errCode;
 }
 } // namespace DistributedDB

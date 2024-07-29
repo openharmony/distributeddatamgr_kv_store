@@ -40,6 +40,7 @@ struct LogInfo {
     std::string version; // use for conflict check
     uint32_t status = static_cast<uint32_t>(LockStatus::UNLOCK); // record lock status
     bool isNeedUpdateAsset = false;
+    uint64_t cloud_flag = 0; // use for kv cloud log table
 };
 
 enum class LogInfoFlag : uint32_t {
@@ -54,6 +55,7 @@ enum class LogInfoFlag : uint32_t {
     FLAG_KV_LOGIC_DELETE = 0x80,
     FLAG_CLOUD_WRITE = 0x100,
     FLAG_SYSTEM_RECORD = 0x200,
+    FLAG_UPLOAD_FINISHED = 0x400,
 };
 
 struct RowDataWithLog {

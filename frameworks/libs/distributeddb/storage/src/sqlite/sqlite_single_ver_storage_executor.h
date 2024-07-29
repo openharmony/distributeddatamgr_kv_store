@@ -363,6 +363,8 @@ private:
     int RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode);
 
     int RemoveDeviceDataWithUserInner(const std::string &deviceName, const std::string &user, ClearMode mode);
+
+    int RemoveCloudUploadFlag(const std::vector<uint8_t> &hashKey);
     sqlite3_stmt *getSyncStatement_;
     sqlite3_stmt *getResultRowIdStatement_;
     sqlite3_stmt *getResultEntryStatement_;

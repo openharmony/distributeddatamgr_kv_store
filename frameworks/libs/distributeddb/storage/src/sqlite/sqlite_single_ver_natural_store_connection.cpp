@@ -1846,8 +1846,24 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::
         LOGE("[Connection]::[UpdateKey] Get executor failed, errCode = [%d]", errCode);
         return errCode;
     }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
     errCode = handle->CreateCloudLogTable();
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        LOGE("[SingleVerConnection] create cloud log table failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+    errCode = handle->Commit();
     ReleaseExecutor(handle);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerConnection] commit create cloud log table failed, errCode = [%d]", errCode);
+        return errCode;
+    }
 
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {

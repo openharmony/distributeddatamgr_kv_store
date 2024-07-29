@@ -22,6 +22,7 @@
 #include "db_errno.h"
 #include "log_print.h"
 #include "macro_utils.h"
+#include "res_finalizer.h"
 #include "sqlite_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
 
@@ -1180,7 +1181,7 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
     sql += " WHERE ";
     if (isCompensatedTask && mode == CloudWaterType::DELETE) {
         // deleted data does not have primary key, requires gid to compensate sync
-        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01)) OR ";
+        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01) AND b.cloud_gid != '') OR ";
     } else if (queryObjNodes_.empty() && mode != CloudWaterType::INSERT) { // means unPriorityTask and not insert
         sql += "(b.status != 1) AND ";
     }
@@ -1261,7 +1262,7 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
 }
 
 std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *db, bool forcePush,
-    const CloudWaterType mode)
+    const CloudWaterType mode, int64_t timeStamp, const std::string &user)
 {
     std::pair<int, sqlite3_stmt *> res;
     sqlite3_stmt *&stmt = res.second;
@@ -1270,6 +1271,29 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
     AppendCloudQueryToGetDiffData(sql, mode, true);
     sql += "order by modify_time asc";
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Get kv cloud query stmt failed %d", errCode);
+        return res;
+    }
+    int ret = E_OK;
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SqliteQueryHelper] Bind user failed %d reset %d", errCode, ret);
+        return res;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, timeStamp);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SqliteQueryHelper] Bind begin time failed %d reset %d", errCode, ret);
+        return res;
+    }
+    int index = BIND_CLOUD_TIMESTAMP + 1;
+    errCode = BindKeysToStmt(keys_, stmt, index);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SqliteQueryHelper] Bind user failed %d reset %d", errCode, ret);
+    }
     return res;
 }
 
@@ -1286,6 +1310,9 @@ std::string SqliteQueryHelper::GetKvCloudQuerySql(bool countOnly, bool forcePush
     sql += " AND flag & 0x02 != 0 "; // get all data which is local
     if (forcePush) {
         sql += " AND flag & 0x04 != 0x04 "; // get all data which hasn't pushed
+    } else {
+        sql += " AND (cloud_flag is null OR cloud_flag & " +
+            std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED)) + " = 0) ";
     }
     return sql;
 }
@@ -1307,5 +1334,64 @@ std::string SqliteQueryHelper::GetCloudVersionRecordSql(bool isDeviceEmpty)
         sql += QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION;
     }
     return sql;
+}
+
+int SqliteQueryHelper::GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush, const CloudWaterType mode,
+    sqlite3_stmt *&stmt)
+{
+    std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
+    SqliteQueryHelper::AppendCloudQueryToGetDiffData(sql, mode, true);
+    AppendKvQueryObjectOnSql(sql);
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Count data stmt failed %d", errCode);
+    }
+    return errCode;
+}
+
+std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory,
+    const Timestamp &timestamp, const std::string &user, sqlite3_stmt *&stmt)
+{
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset log stmt failed %d when get upload count", ret);
+        }
+    });
+    std::pair<int, int64_t> res = { E_OK, 0 };
+    auto &[errCode, count] = res;
+    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind user failed %d when get upload count", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, static_cast<int64_t>(timestamp));
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind begin time failed %d when get upload count", errCode);
+        return res;
+    }
+    int keysIndex = BIND_CLOUD_TIMESTAMP + 1;
+    errCode = BindKeysToStmt(keys_, stmt, keysIndex);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind keys failed %d when get upload count", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::StepNext(stmt, isMemory);
+    if (errCode == -E_FINISHED) {
+        count = 0;
+        return res;
+    }
+    count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
+    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
+    return res;
+}
+
+void SqliteQueryHelper::AppendKvQueryObjectOnSql(std::string &sql)
+{
+    if (!keys_.empty()) {
+        sql += " AND " + MapKeysInToSql(keys_.size());
+    }
 }
 }

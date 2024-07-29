@@ -311,10 +311,10 @@ namespace DistributedDB {
     constexpr const char *QUERY_COUNT_HEAD = "SELECT count(1) ";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_HEAD = "SELECT key, value, flag, device, ori_device, "
-        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid ";
+        "sync_data.hash_key, w_timestamp, modify_time, create_time, cloud_gid, version, sync_data.rowid, cloud_flag ";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_DETAIL = "FROM sync_data LEFT JOIN "
-        "(SELECT userid, cloud_gid, version, hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
+        "(SELECT userid, cloud_gid, version, hash_key, cloud_flag FROM naturalbase_kv_aux_sync_data_log WHERE userid=?)"
         " AS log_table ON sync_data.hash_key = log_table.hash_key ";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_CONDITION =
@@ -324,7 +324,7 @@ namespace DistributedDB {
     constexpr const char *QUERY_CLOUD_VERSION_RECORD_CONDITION = "WHERE key = ? AND flag & 0x200 != 0";
 
     constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG = "SELECT sync_data.rowid, flag, device, ori_device, "
-        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version FROM "
+        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version, cloud_flag FROM "
         "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
         "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key ";
 
@@ -336,10 +336,12 @@ namespace DistributedDB {
     constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_EMPTY_DEVICE_CONDITION = "AND flag&0x200 != 0";
 
     constexpr const char *INSERT_CLOUD_SYNC_DATA_LOG = "INSERT OR REPLACE INTO naturalbase_kv_aux_sync_data_log "
-        "VALUES(?,?,?,?)";
+        "VALUES(?,?,?,?,?)";
+    constexpr const char *UPSERT_CLOUD_SYNC_DATA_LOG = "INSERT INTO naturalbase_kv_aux_sync_data_log VALUES(?,?,?,?,0)"
+        "ON CONFLICT(userid, hash_key) DO UPDATE SET cloud_gid=?, version=?";
 
     constexpr const char *UPDATE_CLOUD_SYNC_DATA_LOG = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_gid=?, "
-        "version=? WHERE userid=? AND hash_key=?";
+        "version=?,cloud_flag=? WHERE userid=? AND hash_key=?";
 
     constexpr const char *SET_SYNC_DATA_NO_FORCE_PUSH = "UPDATE sync_data SET flag=flag|0x40 WHERE hash_key=?";
 
@@ -426,6 +428,7 @@ namespace DistributedDB {
     constexpr int CLOUD_QUERY_CLOUD_GID_INDEX = 9;
     constexpr int CLOUD_QUERY_VERSION_INDEX = 10;
     constexpr int CLOUD_QUERY_ROW_ID_INDEX = 11;
+    constexpr int CLOUD_QUERY_CLOUD_FLAG_INDEX = 12;
 
     constexpr int CLOUD_QUERY_COUNT_INDEX = 0;
 
@@ -434,7 +437,16 @@ namespace DistributedDB {
 
     constexpr int BIND_CLOUD_VERSION_DEVICE_INDEX = 1;
 
+    constexpr int BIND_INSERT_USER_INDEX = 1;
+    constexpr int BIND_INSERT_HASH_KEY_INDEX = 2;
+    constexpr int BIND_INSERT_CLOUD_GID_INDEX = 3;
+    constexpr int BIND_INSERT_VERSION_INDEX = 4;
+    constexpr int BIND_INSERT_CLOUD_FLAG_INDEX = 5;
+
+    // use in get entries by device sql
     constexpr int BIND_GET_ENTRIES_DEVICE_INDEX = 1;
+    // use in remove cloud flag
+    constexpr int BIND_HASH_KEY_INDEX = 1;
     const Key REMOVE_DEVICE_DATA_KEY = {'r', 'e', 'm', 'o', 'v', 'e'};
 } // namespace DistributedDB
 

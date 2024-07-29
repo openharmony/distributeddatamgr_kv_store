@@ -49,6 +49,7 @@ public:
     static constexpr const char *TIMESTAMP = "timestamp";
     static constexpr const char *HASH_KEY = "hash_key";
     static constexpr const char *STATUS = "status";
+    static constexpr const char *CLOUD_FLAG = "cloud_flag";
 
     // kv cloud field
     static constexpr const char *CLOUD_KV_FIELD_KEY = "key";

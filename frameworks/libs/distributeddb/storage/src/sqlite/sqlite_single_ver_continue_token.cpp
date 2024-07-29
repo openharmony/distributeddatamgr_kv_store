@@ -150,23 +150,12 @@ std::pair<int, sqlite3_stmt *> SQLiteSingleVerContinueToken::GetCloudQueryStmt(s
     std::pair<int, sqlite3_stmt *> res;
     int &errCode = res.first;
     sqlite3_stmt *&stmt = res.second;
-    std::tie(errCode, stmt) = SqliteQueryHelper::GetKvCloudQueryStmt(db, forcePush, mode);
+    SqliteQueryHelper helper = GetQuery().GetQueryHelper(errCode);
     if (errCode != E_OK) {
-        LOGE("[SQLiteSingleVerContinueToken] Get kv cloud query stmt failed %d", errCode);
         return res;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, timeRanges_[""].first);
+    std::tie(errCode, stmt) = helper.GetKvCloudQueryStmt(db, forcePush, mode, timeRanges_[""].first, user_);
     if (errCode != E_OK) {
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(stmt, true, ret);
-        LOGE("[SQLiteSingleVerContinueToken] Bind begin time failed %d reset %d", errCode, ret);
-        return res;
-    }
-    errCode = SQLiteUtils::BindTextToStatement(stmt, BIND_CLOUD_USER, user_);
-    if (errCode != E_OK) {
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(stmt, true, ret);
-        LOGE("[SQLiteSingleVerContinueToken] Bind user failed %d reset %d", errCode, ret);
         return res;
     }
     queryDataStmt_ = stmt;
