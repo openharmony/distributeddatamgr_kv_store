@@ -1105,7 +1105,7 @@ int SQLiteSingleVerStorageEngine::UpgradeLocalMetaData()
             isSchemaChanged_ = false;
         }
     }
-    if (schemaChangedFunc) {
+    if (schemaChangedFunc != nullptr) {
         return schemaChangedFunc();
     }
     return E_OK;
