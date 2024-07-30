@@ -138,6 +138,8 @@ public:
     static bool CheckCloudSyncConfigValid(const CloudSyncConfig &config);
 
     static std::string GetCursorKey(const std::string &tableName);
+
+    static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,
