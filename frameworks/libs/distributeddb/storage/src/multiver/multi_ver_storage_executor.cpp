@@ -1298,7 +1298,7 @@ int MultiVerStorageExecutor::CommitTransaction(const MultiVerCommitNode &multiVe
 
     Version commitVersion;
     CommitID commitId;
-    UpdateVerTimestamp multiVerTimestamp = {0ull, false};
+    UpdateVerTimestamp multiVerTimestamp = {0ULL, false};
     bool isDataChanged = transaction_->IsDataChanged();
 
     int errCode = dataStorage_->CommitWritePhaseOne(transaction_, multiVerTimestamp);
