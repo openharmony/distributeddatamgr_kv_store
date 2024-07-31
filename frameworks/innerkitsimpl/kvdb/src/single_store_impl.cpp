@@ -15,9 +15,12 @@
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
 
+#include "accesstoken_kit.h"
+#include "auto_sync_timer.h"
 #include "backup_manager.h"
 #include "dds_trace.h"
 #include "dev_manager.h"
+#include "ipc_skeleton.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_result_set.h"
@@ -26,6 +29,7 @@
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;
+using namespace Security::AccessToken;
 SingleStoreImpl::SingleStoreImpl(
     std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
     : convertor_(cvt), dbStore_(std::move(dbStore))
@@ -41,6 +45,10 @@ SingleStoreImpl::SingleStoreImpl(
     dataType_ = options.dataType;
     if (options.backup) {
         BackupManager::GetInstance().Prepare(path, storeId_);
+    }
+    uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
+    if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
+        isApplication_ = true;
     }
 }
 
@@ -89,6 +97,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
     }
+    DoAutoSync();
     DoNotifyChange();
     return status;
 }
@@ -119,6 +128,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
+    DoAutoSync();
     DoNotifyChange();
     return status;
 }
@@ -142,6 +152,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
+    DoAutoSync();
     DoNotifyChange();
     return status;
 }
@@ -169,6 +180,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
+    DoAutoSync();
     DoNotifyChange();
     return status;
 }
@@ -1008,7 +1020,7 @@ Status SingleStoreImpl::SetConfig(const StoreConfig &storeConfig)
 
 void SingleStoreImpl::DoNotifyChange()
 {
-    if (!autoSync_ && !cloudAutoSync_ && dataType_ == DataType::TYPE_DYNAMICAL) {
+    if (!cloudAutoSync_) {
         return;
     }
     auto now = GetTimeStamp();
@@ -1028,6 +1040,15 @@ void SingleStoreImpl::DoNotifyChange()
         }
         service->NotifyDataChange({ app }, { store }, NOTIFY_INTERVAL);
     });
+}
+
+void SingleStoreImpl::DoAutoSync()
+{
+    if (!autoSync_ || !isApplication_) {
+        return;
+    }
+    ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
+    AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
 }
 
 void SingleStoreImpl::OnRemoteDied()

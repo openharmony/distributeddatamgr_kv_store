@@ -80,6 +80,11 @@ ohos_source_set("kvdb_src_file") {
   ]
 
   sources = old_sources + kvdb_sources
+  if (qemu_disable) {
+    sources += [ "../src/auto_sync_timer.cpp" ]
+  } else {
+    sources += [ "../src/auto_sync_timer_mock.cpp" ]
+  }
   configs = [ ":module_private_config" ]
 
   deps = [
@@ -89,6 +94,8 @@ ohos_source_set("kvdb_src_file") {
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]
   external_deps = [
+    "access_token:libaccesstoken_sdk",
+    "access_token:libtokenid_sdk",
     "c_utils:utils",
     "file_api:securitylabel",
     "hilog:libhilog",
@@ -99,6 +106,9 @@ ohos_source_set("kvdb_src_file") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
+  if (dms_service_enable && qemu_disable) {
+    external_deps += [ "dmsfwk:distributed_sdk" ]
+  }
 
   public_external_deps = [
     "data_share:datashare_common",
