@@ -147,7 +147,6 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -168,7 +167,6 @@ ohos_unittest("LocalSubscribeStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -189,7 +187,6 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -210,7 +207,6 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -231,7 +227,6 @@ ohos_unittest("SingleKvStoreClientTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -272,7 +267,6 @@ ohos_unittest("DeviceKvStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -286,7 +280,6 @@ ohos_unittest("BlobTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -306,7 +299,6 @@ ohos_unittest("TypesUtilTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -326,7 +318,6 @@ ohos_unittest("KvUtilTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -346,7 +337,6 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
