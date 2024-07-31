@@ -81,22 +81,22 @@ public:
 
     template<typename... _Args>
     typename std::enable_if<!std::is_convertible_v<decltype(First<_Args...>()), filter_type>, bool>::type
-    Emplace(_Args &&...__args) noexcept
+    Emplace(_Args &&...args) noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = entries_.emplace(std::forward<_Args>(__args)...);
+        auto it = entries_.emplace(std::forward<_Args>(args)...);
         return it.second;
     }
 
     template<typename _Filter, typename... _Args>
     typename std::enable_if<std::is_convertible_v<_Filter, filter_type>, bool>::type
-    Emplace(const _Filter &filter, _Args &&...__args) noexcept
+    Emplace(const _Filter &filter, _Args &&...args) noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         if (!filter(entries_)) {
             return false;
         }
-        auto it = entries_.emplace(std::forward<_Args>(__args)...);
+        auto it = entries_.emplace(std::forward<_Args>(args)...);
         return it.second;
     }
 
