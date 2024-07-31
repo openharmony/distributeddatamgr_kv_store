@@ -635,7 +635,7 @@ std::string TableInfo::ToTableInfoString(const std::string &schemaVersion) const
 {
     std::string attrStr;
     attrStr += "{";
-    attrStr += R"("NAME": ")" + tableName_ + "\",";
+    attrStr += R"("NAME": ")" + tableName_ + "\", ";
     AddFieldDefineString(attrStr);
     attrStr += R"("AUTOINCREMENT": )";
     if (autoInc_) {
