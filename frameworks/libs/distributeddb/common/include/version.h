@@ -30,7 +30,7 @@ namespace DistributedDB {
 // if now version of B is 105, and C is 101, thus version of A is 105; if now release version is 106 and we upgrade
 // submodule C, if we simply change version of C to 102 then version of A is still 105, but if we change version of C
 // to 106 then version of A is now 106, so we can know that something had changed for module A.
-const std::string SOFTWARE_VERSION_STRING = "1.1.5"; // DistributedDB current version string.
+constexpr const char *SOFTWARE_VERSION_STRING = "1.1.5"; // DistributedDB current version string.
 constexpr uint32_t SOFTWARE_VERSION_BASE = 100; // Software version base value, do not change it
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_1_0 = SOFTWARE_VERSION_BASE + 1; // 1 for first released version
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_2_0 = SOFTWARE_VERSION_BASE + 2; // 2 for second released version

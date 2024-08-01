@@ -52,19 +52,20 @@ public:
     void SetIdentifier(const std::string &userId, const std::string &appId, const std::string &storeId,
         const std::string &subUser = "", int32_t instanceId = 0);
 
-    static const std::string CREATE_IF_NECESSARY;
-    static const std::string DATABASE_TYPE;
-    static const std::string DATA_DIR;
-    static const std::string USER_ID;
-    static const std::string APP_ID;
-    static const std::string STORE_ID;
-    static const std::string INSTANCE_ID;
-    static const std::string SUB_USER;
-    static const std::string IDENTIFIER_DATA;
-    static const std::string IDENTIFIER_DIR;
-    static const std::string DUAL_TUPLE_IDENTIFIER_DATA;
-    static const std::string SYNC_DUAL_TUPLE_MODE;
-    static const std::string AUTO_LAUNCH_ID;
+    static constexpr const char *CREATE_IF_NECESSARY = "createIfNecessary";
+    static constexpr const char *DATA_DIR = "dataDir";
+    static constexpr const char *USER_ID = "userId";
+    static constexpr const char *APP_ID = "appId";
+    static constexpr const char *STORE_ID = "storeId";
+    static constexpr const char *INSTANCE_ID = "instanceId";
+    static constexpr const char *SUB_USER = "subUser";
+    static constexpr const char *IDENTIFIER_DATA = "identifier";
+    static constexpr const char *IDENTIFIER_DIR = "identifierDir";
+    static constexpr const char *DUAL_TUPLE_IDENTIFIER_DATA = "dualTupleIdentifier";
+    static constexpr const char *SYNC_DUAL_TUPLE_MODE = "syncDualTuple";
+    static constexpr const char *AUTO_LAUNCH_ID = "autoLaunchID";
+
+    static constexpr const char *DATABASE_TYPE = "databaseType";
 
 protected:
 

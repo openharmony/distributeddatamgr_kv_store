@@ -68,7 +68,7 @@ RdSingleVerStorageExecutor::~RdSingleVerStorageExecutor()
 
 int RdSingleVerStorageExecutor::OpenResultSet(const Key &key, GRD_KvScanModeE mode, GRD_ResultSet **resultSet)
 {
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, mode, resultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME, key, mode, resultSet);
     if (errCode != E_OK) {
         LOGE("Can not open rd result set.");
     }
@@ -77,7 +77,7 @@ int RdSingleVerStorageExecutor::OpenResultSet(const Key &key, GRD_KvScanModeE mo
 
 int RdSingleVerStorageExecutor::OpenResultSet(const Key &beginKey, const Key &endKey, GRD_ResultSet **resultSet)
 {
-    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME.c_str(), beginKey, endKey, resultSet);
+    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME, beginKey, endKey, resultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor][OpenResultSet] Can not open rd result set.");
     }
@@ -230,7 +230,7 @@ int RdSingleVerStorageExecutor::GetCount(const Key &key, int &count, GRD_KvScanM
 {
     count = 0;
     GRD_ResultSet *tmpResultSet = nullptr;
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, kvScanMode, &tmpResultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME, key, kvScanMode, &tmpResultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to get count for current key.");
         return errCode;
@@ -242,7 +242,7 @@ int RdSingleVerStorageExecutor::GetCount(const Key &beginKey, const Key &endKey,
 {
     count = 0;
     GRD_ResultSet *tmpResultSet = nullptr;
-    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME.c_str(), beginKey, endKey, &tmpResultSet);
+    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME, beginKey, endKey, &tmpResultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to get count for current key.");
         return errCode;
@@ -275,7 +275,7 @@ int RdSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key &key
         return -E_INVALID_ARGS;
     }
 
-    return RdKVGet(db_, SYNC_COLLECTION_NAME.c_str(), key, value);
+    return RdKVGet(db_, SYNC_COLLECTION_NAME, key, value);
 }
 
 int RdSingleVerStorageExecutor::Backup(const std::string &filePath, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
@@ -300,11 +300,11 @@ int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, const GRD_KvScanMo
     int ret = E_OK;
     switch (mode) {
         case KV_SCAN_PREFIX: {
-            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), pairKey.first, KV_SCAN_PREFIX, resultSet);
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME, pairKey.first, KV_SCAN_PREFIX, resultSet);
             break;
         }
         case KV_SCAN_RANGE: {
-            ret = RdKVRangeScan(db, SYNC_COLLECTION_NAME.c_str(), pairKey.first, pairKey.second, resultSet);
+            ret = RdKVRangeScan(db, SYNC_COLLECTION_NAME, pairKey.first, pairKey.second, resultSet);
             break;
         }
         default:
@@ -386,7 +386,7 @@ int RdSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key &ke
 
 int RdSingleVerStorageExecutor::DelKvData(const Key &key)
 {
-    return RdKVDel(db_, SYNC_COLLECTION_NAME.c_str(), key);
+    return RdKVDel(db_, SYNC_COLLECTION_NAME, key);
 }
 
 int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entries, bool isDelete,
@@ -413,9 +413,9 @@ int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entri
         return ret;
     }
     if (isDelete) {
-        ret = RdKVBatchDel(db_, SYNC_COLLECTION_NAME.c_str(), batch);
+        ret = RdKVBatchDel(db_, SYNC_COLLECTION_NAME, batch);
     } else {
-        ret = RdKVBatchPut(db_, SYNC_COLLECTION_NAME.c_str(), batch);
+        ret = RdKVBatchPut(db_, SYNC_COLLECTION_NAME, batch);
     }
     if (ret != E_OK) {
         (void)RdKVBatchDestroy(batch);
