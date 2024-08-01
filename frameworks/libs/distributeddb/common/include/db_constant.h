@@ -25,7 +25,6 @@ public:
     static constexpr size_t MAX_VALUE_SIZE = 4194304;
     static constexpr size_t MAX_BATCH_SIZE = 128;
     static constexpr size_t MAX_DEV_LENGTH = 128;
-    static constexpr size_t MAX_TRANSACTION_ENTRY_SIZE = 128;
     static constexpr size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
 
     static constexpr size_t MAX_DATA_DIR_LENGTH = 512;
@@ -70,59 +69,58 @@ public:
     static const std::string METADB_DIR;
     static const std::string CACHEDB_DIR;
 
-    static const std::string LOCAL_DATABASE_NAME;
-    static const std::string MULTI_VER_DATA_STORE;
-    static const std::string MULTI_VER_COMMIT_STORE;
-    static const std::string MULTI_VER_VALUE_STORE;
-    static const std::string MULTI_VER_META_STORE;
+    static constexpr const char *LOCAL_DATABASE_NAME = "local";
+    static constexpr const char *MULTI_VER_DATA_STORE = "multi_ver_data";
+    static constexpr const char *MULTI_VER_COMMIT_STORE = "commit_logs";
+    static constexpr const char *MULTI_VER_VALUE_STORE = "value_storage";
+    static constexpr const char *MULTI_VER_META_STORE = "meta_storage";
     static const std::string SINGLE_VER_DATA_STORE;
     static const std::string SINGLE_VER_META_STORE;
     static const std::string SINGLE_VER_CACHE_STORE;
 
-    static const std::string SQLITE_URL_PRE;
-    static const std::string DB_EXTENSION;
-    static const std::string SQLITE_MEMDB_IDENTIFY;
-    static const std::string SCHEMA_KEY;
+    static constexpr const char *SQLITE_URL_PRE = "file:";
+    static constexpr const char *DB_EXTENSION = ".db";
+    static constexpr const char *SQLITE_MEMDB_IDENTIFY = "?mode=memory&cache=shared";
+
+    static constexpr const char *SCHEMA_KEY = "schemaKey";
     static const std::string RELATIONAL_SCHEMA_KEY;
     static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
 
-    static const std::string RD_KV_COLLECTION_MODE;
-    static const std::string RD_KV_HASH_COLLECTION_MODE;
+    static constexpr const char *RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";
+    static constexpr const char *RD_KV_HASH_COLLECTION_MODE = "{\"mode\" : \"kv\",\"indextype\" : \"hash\"}";
 
-    static const std::string PATH_POSTFIX_UNPACKED;
-    static const std::string PATH_POSTFIX_IMPORT_BACKUP;
-    static const std::string PATH_POSTFIX_IMPORT_ORIGIN;
-    static const std::string PATH_POSTFIX_IMPORT_DUP;
-    static const std::string PATH_POSTFIX_EXPORT_BACKUP;
-    static const std::string PATH_POSTFIX_DB_INCOMPLETE; // use for make sure create datebase and set label complete
+    static constexpr const char *PATH_POSTFIX_UNPACKED = "_unpacked";
+    static constexpr const char *PATH_POSTFIX_IMPORT_BACKUP = "_import_bak";
+    static constexpr const char *PATH_POSTFIX_IMPORT_ORIGIN = "_import_ori";
+    static constexpr const char *PATH_POSTFIX_IMPORT_DUP = "_import_dup";
+    static constexpr const char *PATH_POSTFIX_EXPORT_BACKUP = "_export_bak";
+    // use for make sure create datebase and set label complete
+    static constexpr const char *PATH_POSTFIX_DB_INCOMPLETE = "_db_incomplete.lock";
 
-    static const std::string REKEY_FILENAME_POSTFIX_PRE;
-    static const std::string REKEY_FILENAME_POSTFIX_OK;
-    static const std::string UPGRADE_POSTFIX;
-    static const std::string SET_SECOPT_POSTFIX; // used for make sure meta split upgrade atomically
+    static constexpr const char *REKEY_FILENAME_POSTFIX_PRE = "_ctrl_pre";
+    static constexpr const char *REKEY_FILENAME_POSTFIX_OK = "_ctrl_ok";
+    static constexpr const char *UPGRADE_POSTFIX = "_upgrade.lock";
+    // used for make sure meta split upgrade atomically
+    static constexpr const char *SET_SECOPT_POSTFIX = "_secopt.lock";
+    static constexpr const char *PATH_BACKUP_POSTFIX = "_bak";
 
-    static const std::string PATH_BACKUP_POSTFIX;
+    static constexpr const char *ID_CONNECTOR = "-";
 
-    static const std::string ID_CONNECTOR;
+    static constexpr const char *DELETE_KVSTORE_REMOVING = "_removing";
+    static constexpr const char *DB_LOCK_POSTFIX = ".lock";
 
-    static const std::string DELETE_KVSTORE_REMOVING;
-    static const std::string DB_LOCK_POSTFIX;
+    static constexpr const char *SUBSCRIBE_QUERY_PREFIX = "subscribe_query_";
 
-    static const std::string SUBSCRIBE_QUERY_PREFIX;
-    static const std::string TRIGGER_REFERENCES_NEW;
-    static const std::string TRIGGER_REFERENCES_OLD;
+    static constexpr const char *TRIGGER_REFERENCES_NEW = "NEW.";
+    static constexpr const char *TRIGGER_REFERENCES_OLD = "OLD.";
 
     static const std::string UPDATE_META_FUNC;
-
     static const std::string SYSTEM_TABLE_PREFIX;
 
     // Prefix Key in meta db
-    static const std::string DEVICEID_PREFIX_KEY;
-    static const std::string QUERY_SYNC_PREFIX_KEY;
-    static const std::string DELETE_SYNC_PREFIX_KEY;
-
-    static constexpr uint32_t AUTO_SYNC_TIMEOUT = 5000; // 5s
-    static constexpr uint32_t MANUAL_SYNC_TIMEOUT = 5000; // 5s
+    static constexpr const char *DEVICEID_PREFIX_KEY = "deviceId";
+    static constexpr const char *QUERY_SYNC_PREFIX_KEY = "querySync";
+    static constexpr const char *DELETE_SYNC_PREFIX_KEY = "deleteSync";
 
     static const size_t MAX_NORMAL_PACK_ITEM_SIZE = 4000;
     static const size_t MAX_HPMODE_PACK_ITEM_SIZE = 2000; // slide window mode to reduce last ack transfer time
@@ -157,27 +155,19 @@ public:
     // For relational
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;
-    static const std::string LOG_POSTFIX;
+    static constexpr const char *LOG_POSTFIX = "_log";
     static constexpr const char *META_TABLE_POSTFIX = "metadata";
 
-    static const std::string LOG_TABLE_VERSION_1;
-    static const std::string LOG_TABLE_VERSION_2;
     static constexpr const char *LOG_TABLE_VERSION_3 = "3.0";
-    static constexpr const char *LOG_TABLE_VERSION_4 = "4.0";
-    static constexpr const char *LOG_TABLE_VERSION_5 = "5.0";
     static constexpr const char *LOG_TABLE_VERSION_5_1 = "5.01";
-    static constexpr const char *LOG_TABLE_VERSION_5_2 = "5.02"; // fix failure caused by comparing NULL using <>
     static constexpr const char *LOG_TABLE_VERSION_5_3 = "5.03"; // add sharing_resource field
-    static constexpr const char *LOG_TABLE_VERSION_5_4 = "5.04"; // new flag bit 0x20 added, upgrade trigger
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
-    static constexpr const char *LOG_TABLE_VERSION_5_6 = "5.06"; // upgrade trigger for simple tracker log table
-    static constexpr const char *LOG_TABLE_VERSION_5_7 = "5.07"; // trigger slow sql optimization
     static constexpr const char *LOG_TABLE_VERSION_5_8 = "5.08"; // migrate cursor to meta table
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;
 
-    static const std::string REMOTE_DEVICE_SCHEMA_KEY_PREFIX;
+    static constexpr const char *REMOTE_DEVICE_SCHEMA_KEY_PREFIX = "remote_device_schema_";
 
     static constexpr uint32_t MAX_CONDITION_KEY_LEN = 128;
     static constexpr uint32_t MAX_CONDITION_VALUE_LEN = 128;
