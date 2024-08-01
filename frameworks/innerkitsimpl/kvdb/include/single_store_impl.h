@@ -131,11 +131,13 @@ private:
     Status DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    void DoAutoSync();
     Status SyncExt(const std::string &networkId, uint64_t sequenceId);
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();
 
+    bool isApplication_ = false;
     bool autoSync_ = false;
     bool cloudAutoSync_ = false;
     bool isClientSync_ = false;
