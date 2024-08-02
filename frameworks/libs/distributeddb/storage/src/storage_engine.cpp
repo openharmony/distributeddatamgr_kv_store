@@ -44,6 +44,21 @@ StorageEngine::~StorageEngine()
     CloseExecutor();
 }
 
+void StorageEngine::CloseAllExecutor()
+{
+    CloseExecutor();
+}
+
+int StorageEngine::InitAllReadWriteExecutor()
+{
+    return InitReadWriteExecutors();
+}
+
+OpenDbProperties StorageEngine::GetOption()
+{
+    return option_;
+}
+
 int StorageEngine::InitReadWriteExecutors()
 {
     int errCode = E_OK;

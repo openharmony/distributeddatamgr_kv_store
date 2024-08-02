@@ -41,6 +41,10 @@ int RdKVPut(GRD_DB *db, const char *collectionName, const Key &key, const Value 
 
 int RdKVGet(GRD_DB *db, const char *collectionName, const Key &key, Value &value);
 
+int RdBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen);
+
+int RdRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey, uint32_t decryptedKeyLen);
+
 int RdKVDel(GRD_DB *db, const char *collectionName, const Key &key);
 
 int RdKVScan(GRD_DB *db, const char *collectionName, const Key &key, GRD_KvScanModeE mode,
