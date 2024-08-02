@@ -49,6 +49,31 @@ GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
     return GRD_DBApiInfo.DBCloseApi(db, flags);
 }
 
+GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
+{
+    if (GRD_DBApiInfo.DBBackupApi == nullptr) {
+        GRD_DBApiInfo = GetApiInfoInstance();
+    }
+    if (GRD_DBApiInfo.DBBackupApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
+    }
+    return GRD_DBApiInfo.DBBackupApi(db, backupDbFile, encryptedKey, encryptedKeyLen);
+}
+
+GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
+    uint32_t decryptedKeyLen)
+{
+    if (GRD_DBApiInfo.DBRestoreApi == nullptr) {
+        GRD_DBApiInfo = GetApiInfoInstance();
+    }
+    if (GRD_DBApiInfo.DBRestoreApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
+    }
+    return GRD_DBApiInfo.DBRestoreApi(dbFile, backupDbFile, decryptedKey, decryptedKeyLen);
+}
+
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo.FlushApi == nullptr) {

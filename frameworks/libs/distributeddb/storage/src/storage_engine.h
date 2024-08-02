@@ -89,6 +89,12 @@ public:
 
     virtual void SetSchemaChangedCallback(const std::function<int(void)> &callback);
 
+    void CloseAllExecutor();
+
+    int InitAllReadWriteExecutor();
+
+    OpenDbProperties GetOption();
+
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
 

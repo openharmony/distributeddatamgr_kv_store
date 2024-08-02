@@ -402,12 +402,81 @@ int RdSingleVerNaturalStoreConnection::Rekey(const CipherPassword &passwd)
 
 int RdSingleVerNaturalStoreConnection::Export(const std::string &filePath, const CipherPassword &passwd)
 {
-    return -E_NOT_SUPPORT;
+    if (kvDB_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+
+    // not support passwd
+    if (passwd.GetSize() != 0) {
+        LOGE("[RdSingleVerNaturalStoreConnection][Export]unsupport passwd.");
+        return -E_NOT_SUPPORT;
+    }
+
+    return kvDB_->Export(filePath, passwd);
 }
 
 int RdSingleVerNaturalStoreConnection::Import(const std::string &filePath, const CipherPassword &passwd)
 {
-    return -E_NOT_SUPPORT;
+    // not support passwd
+    if (passwd.GetSize() != 0) {
+        LOGE("[RdSingleVerNaturalStoreConnection][Export]unsupport passwd.");
+        return -E_NOT_SUPPORT;
+    }
+
+    std::lock_guard<std::mutex> lock(importMutex_);
+    int errCode = CheckRdMonoStatus(OperatePerm::IMPORT_MONOPOLIZE_PERM);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = kvDB_->Import(filePath, passwd);
+    if ((errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) || (errCode == -E_UNEXPECTED_DATA)) {
+        errCode = -E_INVALID_FILE; // import damaged file or txt file, return -E_INVALID_FILE
+    }
+    GenericKvDBConnection::ResetExclusiveStatus();
+    kvDB_->ReEnableConnection(OperatePerm::IMPORT_MONOPOLIZE_PERM);
+    if (errCode == E_OK) {
+        kvDB_->ResetSyncStatus();
+    }
+    return errCode;
+}
+
+int RdSingleVerNaturalStoreConnection::CheckRdMonoStatus(OperatePerm perm)
+{
+    if (kvDB_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+
+    // check if result set closed
+    {
+        std::lock_guard<std::mutex> kvDbResultLock(kvDbResultSetsMutex_);
+        if (kvDbResultSets_.size() > 0) {
+            LOGE("Active result set exist.");
+            return -E_BUSY;
+        }
+    }
+    // 1. Get the connection number, and get the right to do the rekey operation.
+    int errCode = kvDB_->TryToDisableConnection(perm);
+    if (errCode != E_OK) {
+        // If precheck failed, it means that there are more than one connection.
+        // No need reset the condition for the scene.
+        LOGE("More than one connection");
+        return errCode;
+    }
+    // 2. Check the observer list.
+    errCode = GenericKvDBConnection::PreCheckExclusiveStatus();
+    if (errCode != E_OK) {
+        kvDB_->ReEnableConnection(perm);
+        LOGE("Observer prevents.");
+        return errCode;
+    }
+
+    // 3. Check the conflict notifier.
+    {
+        GenericKvDBConnection::ResetExclusiveStatus();
+        kvDB_->ReEnableConnection(perm);
+        EnableManualSync();
+    }
+    return E_OK;
 }
 
 int RdSingleVerNaturalStoreConnection::RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier)
