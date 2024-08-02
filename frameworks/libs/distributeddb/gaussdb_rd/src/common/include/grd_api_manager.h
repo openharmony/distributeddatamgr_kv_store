@@ -21,6 +21,9 @@
 namespace DocumentDB {
 typedef int32_t (*DBOpen)(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db);
 typedef int32_t (*DBClose)(GRD_DB *db, uint32_t flags);
+typedef int32_t (*DBBackup)(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen);
+typedef int32_t (*DBRestore)(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
+    uint32_t decryptedKeyLen);
 typedef int32_t (*DBFlush)(GRD_DB *db, uint32_t flags);
 typedef int32_t (*IndexPreload)(GRD_DB *db, const char *collectionName);
 typedef int32_t (*CreateCollection)(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags);
@@ -58,6 +61,8 @@ typedef int32_t (*KVBatchDestory)(GRD_KVBatchT *batch);
 struct GRD_APIInfo {
     DBOpen DBOpenApi = nullptr;
     DBClose DBCloseApi = nullptr;
+    DBBackup DBBackupApi = nullptr;
+    DBRestore DBRestoreApi = nullptr;
     DBFlush FlushApi = nullptr;
     IndexPreload IndexPreloadApi = nullptr;
     CreateCollection CreateCollectionApi = nullptr;
