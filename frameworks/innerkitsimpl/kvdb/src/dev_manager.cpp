@@ -144,7 +144,8 @@ std::string DevManager::GetUnEncryptedUuid()
         return "";
     }
     UnEncryptedLocalInfo_.uuid = std::move(uuid);
-    ZLOGI("[GetUnEncryptedUuid] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(UnEncryptedLocalInfo_.uuid).c_str(),
+    ZLOGI("[GetUnEncryptedUuid] uuid:%{public}s, networkId:%{public}s",
+        StoreUtil::Anonymous(UnEncryptedLocalInfo_.uuid).c_str(),
         StoreUtil::Anonymous(networkId).c_str());
     return UnEncryptedLocalInfo_.uuid;
 }
