@@ -120,11 +120,11 @@ void DevManager::UpdateBucket()
     }
 }
 
-std::string DevManager::GetLocalUuid()
+std::string DevManager::GetUnEncryptedUuid()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (!localUuid_.uuid.empty()) {
-        return localUuid_.uuid;
+    if (!UnEncryptedLocalInfo_.uuid.empty()) {
+        return UnEncryptedLocalInfo_.uuid;
     }
     DevInfo info;
     auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
@@ -133,16 +133,20 @@ std::string DevManager::GetLocalUuid()
         return "";
     }
     auto networkId = std::string(info.networkId);
+    if (networkId.empty()) {
+        ZLOGE("networkid empty");
+        return "";
+    }
     std::string uuid;
     DeviceManager::GetInstance().GetUuidByNetworkId(PKG_NAME, networkId, uuid);
-    if (uuid.empty() || networkId.empty()) {
+    if (uuid.empty()) {
         ZLOGE("get uuid by networkid fail");
         return "";
     }
-    localUuid_.uuid = std::move(uuid);
-    ZLOGI("[GetLocalUuid] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localUuid_.uuid).c_str(),
+    UnEncryptedLocalInfo_.uuid = std::move(uuid);
+    ZLOGI("[GetUnEncryptedUuid] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(UnEncryptedLocalInfo_.uuid).c_str(),
         StoreUtil::Anonymous(networkId).c_str());
-    return localUuid_.uuid;
+    return UnEncryptedLocalInfo_.uuid;
 }
 
 const DevManager::DetailInfo &DevManager::GetLocalDevice()

@@ -33,7 +33,7 @@ public:
     std::string ToNetworkId(const std::string &uuid);
     const DetailInfo &GetLocalDevice();
     std::vector<DetailInfo> GetRemoteDevices();
-    std::string GetLocalUuid();
+    std::string GetUnEncryptedUuid();
 
 private:
     friend class DmDeathCallback;
@@ -48,7 +48,7 @@ private:
     const std::string PKG_NAME;
     const DetailInfo invalidDetail_ {};
     DetailInfo localInfo_ {};
-    DetailInfo localUuid_ {};
+    DetailInfo UnEncryptedLocalInfo_ {};
     mutable std::mutex mutex_ {};
     mutable LRUBucket<std::string, DetailInfo> deviceInfos_ {64};
 };
