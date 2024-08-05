@@ -155,7 +155,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
         }
     }
     LOGI("[Relational][UpgradeLogTable] recreate trigger success, ver:%s to ver:%s", logTableVersion.c_str(),
-        DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+        DBConstant::LOG_TABLE_VERSION_CURRENT);
     return E_OK;
 }
 
@@ -180,7 +180,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
         }
     }
     LOGI("[Relational][UpgradeLogTable] success, ver:%s to ver:%s", logTableVersion.c_str(),
-        DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+        DBConstant::LOG_TABLE_VERSION_CURRENT);
     return E_OK;
 }
 
@@ -219,7 +219,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string 
         errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);
         if (errCode != E_OK) {
             LOGE("[Relational][UpgradeLogTable] add column failed. err:%d, index:%zu, curVer:%s, maxVer:%s", errCode,
-                 i, oldVersion.c_str(), DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+                 i, oldVersion.c_str(), DBConstant::LOG_TABLE_VERSION_CURRENT);
             return errCode;
         }
     }
