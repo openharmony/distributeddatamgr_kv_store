@@ -764,4 +764,52 @@ std::string DBCommon::GetCursorKey(const std::string &tableName)
 {
     return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
 }
+
+void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
+{
+    std::unordered_map<std::string, size_t> indexMap;
+    size_t vectorSize = assets.size();
+    std::vector<size_t> arr(vectorSize, 0);
+    for (std::vector<DistributedDB::Asset>::size_type i = 0; i < assets.size(); ++i) {
+        DistributedDB::Asset asset = assets.at(i);
+        auto it = indexMap.find(asset.name);
+        if (it == indexMap.end()) {
+            indexMap[asset.name] = i;
+            continue;
+        }
+        size_t prevIndex = it->second;
+        Asset &prevAsset = assets.at(prevIndex);
+        if (prevAsset.assetId.empty()) {
+            arr[prevIndex] = 1;
+            indexMap[asset.name] = i;
+            continue;
+        }
+        if (asset.assetId.empty()) {
+            arr[i] = 1;
+            indexMap[asset.name] = prevIndex;
+            continue;
+        }
+        if (std::all_of(asset.modifyTime.begin(), asset.modifyTime.end(), ::isdigit) &&
+            std::all_of(prevAsset.modifyTime.begin(), prevAsset.modifyTime.end(), ::isdigit) &&
+            !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
+            auto modifyTime = std::stoll(asset.modifyTime);
+            auto prevModifyTime = std::stoll(prevAsset.modifyTime);
+            arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
+            indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
+            continue;
+        }
+        arr[i] = 1;
+        indexMap[asset.name] = prevIndex;
+    }
+    indexMap.clear();
+    size_t arrIndex = 0;
+    for (auto it = assets.begin(); it != assets.end();) {
+        if (arr[arrIndex] == 1) {
+            it = assets.erase(it);
+        } else {
+            it++;
+        }
+        arrIndex++;
+    }
+}
 } // namespace DistributedDB
