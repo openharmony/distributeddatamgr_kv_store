@@ -870,6 +870,7 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const Cl
             return errCode;
         }
         SQLiteUtils::ResetStatement(logStmt, false, errCode);
+        MarkUploadSuccess(param, data, user, i);
         // ignored version record
         if (i >= data.timestamp.size()) {
             continue;
@@ -1270,9 +1271,6 @@ int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const 
     if (DBCommon::IsNeedCompensatedForUpload(uploadExtend, type)) {
         wItem.cloud_flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
-    if (DBCommon::IsRecordSuccess(uploadExtend)) {
-        wItem.cloud_flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED);
-    }
     if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
         (type == CloudWaterType::UPDATE || type == CloudWaterType::DELETE)) {
         wItem.gid = {};
@@ -1290,5 +1288,85 @@ int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const 
         LOGE("[SqliteCloudKvExecutorUtils] fill cloud gid failed. %d", errCode);
     }
     return errCode;
+}
+
+void SqliteCloudKvExecutorUtils::MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data,
+    const std::string &user, size_t dataIndex)
+{
+    if (data.extend.size() <= dataIndex || data.hashKey.size() <= dataIndex || data.timestamp.size() <= dataIndex) {
+        LOGW("[SqliteCloudKvExecutorUtils] invalid index %zu when mark upload success", dataIndex);
+        return;
+    }
+    if (!DBCommon::IsRecordSuccess(data.extend[dataIndex])) {
+        return;
+    }
+    if (CheckDataChanged(param, data, dataIndex)) {
+        LOGW("[SqliteCloudKvExecutorUtils] %zu data changed when mark upload success", dataIndex);
+        return;
+    }
+    MarkUploadSuccessInner(param, data, user, dataIndex);
+}
+
+bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
+    const CloudSyncBatch &data, size_t dataIndex)
+{
+    sqlite3_stmt *checkStmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(param.first, CHECK_DATA_CHANGED, checkStmt);
+    ResFinalizer finalizerData([checkStmt]() {
+        sqlite3_stmt *statement = checkStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] reset log stmt failed %d when check data changed", ret);
+        }
+    });
+    int index = 1;
+    errCode = SQLiteUtils::BindInt64ToStatement(checkStmt, index++, data.timestamp[dataIndex]);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] bind modify time failed %d when check data changed", errCode);
+        return true;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(checkStmt, index++, data.hashKey[dataIndex]);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when check data changed", errCode);
+        return true;
+    }
+    errCode = SQLiteUtils::StepNext(checkStmt);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] step failed %d when check data changed", errCode);
+        return true;
+    }
+    return sqlite3_column_int64(checkStmt, 0) == 0; // get index start at 0, get 0 is data changed
+}
+
+void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &param,
+    const CloudSyncBatch &data, const std::string &user, size_t dataIndex)
+{
+    sqlite3_stmt *logStmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(param.first, MARK_UPLOAD_SUCCESS, logStmt);
+    ResFinalizer finalizerData([logStmt]() {
+        sqlite3_stmt *statement = logStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] reset log stmt failed %d when mark upload success", ret);
+        }
+    });
+    int index = 1;
+    errCode = SQLiteUtils::BindBlobToStatement(logStmt, index++, data.hashKey[dataIndex]);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when mark upload success", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(logStmt, index++, user);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when mark upload success", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepNext(logStmt);
+    if (errCode != E_OK && errCode != -E_FINISHED) {
+        LOGW("[SqliteCloudKvExecutorUtils] step failed %d when mark upload success", errCode);
+        return;
+    }
 }
 }
