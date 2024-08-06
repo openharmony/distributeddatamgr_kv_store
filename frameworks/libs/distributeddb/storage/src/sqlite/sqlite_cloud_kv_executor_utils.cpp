@@ -1297,6 +1297,9 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccess(const FillGidParam &param, co
         LOGW("[SqliteCloudKvExecutorUtils] invalid index %zu when mark upload success", dataIndex);
         return;
     }
+    if (!DBCommon::IsRecordSuccess(data.extend[dataIndex])) {
+        return;
+    }
     if (CheckDataChanged(param, data, dataIndex)) {
         LOGW("[SqliteCloudKvExecutorUtils] %zu data changed when mark upload success", dataIndex);
         return;
@@ -1361,7 +1364,7 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &para
         return;
     }
     errCode = SQLiteUtils::StepNext(logStmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_FINISHED) {
         LOGW("[SqliteCloudKvExecutorUtils] step failed %d when mark upload success", errCode);
         return;
     }
