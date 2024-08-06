@@ -349,8 +349,7 @@ int RdSingleVerNaturalStore::Import(const std::string &filePath, const CipherPas
     // close all grd handle
     storageEngine_->CloseAllExecutor();
 
-    const char *dbFlie = strdup(storePath.c_str());
-    errCode = RdRestore(dbFlie, filePath.c_str(), decryptedKey, decryptedKeyLen);
+    errCode = RdRestore(storePath.c_str(), filePath.c_str(), decryptedKey, decryptedKeyLen);
     if (errCode != E_OK) {
         AbortHandleAndWaitWriteHandle();
         return errCode;
