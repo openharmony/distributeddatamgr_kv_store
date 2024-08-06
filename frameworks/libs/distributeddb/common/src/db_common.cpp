@@ -721,9 +721,9 @@ std::string DBCommon::GetCursorKey(const std::string &tableName)
 
 void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
 {
-    std::unordered_map<std::string, int> indexMap;
-    int vectorSize = assets.size();
-    std::vector<int> arr(vectorSize, 0);
+    std::unordered_map<std::string, size_t> indexMap;
+    size_t vectorSize = assets.size();
+    std::vector<size_t> arr(vectorSize, 0);
     for (std::vector<DistributedDB::Asset>::size_type i = 0; i < assets.size(); ++i) {
         DistributedDB::Asset asset = assets.at(i);
         auto it = indexMap.find(asset.name);
@@ -731,7 +731,7 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
             indexMap[asset.name] = i;
             continue;
         }
-        int prevIndex = it->second;
+        size_t prevIndex = it->second;
         Asset &prevAsset = assets.at(prevIndex);
         if (prevAsset.assetId.empty()) {
             arr[prevIndex] = 1;
@@ -756,7 +756,7 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
         indexMap[asset.name] = prevIndex;
     }
     indexMap.clear();
-    int arrIndex = 0;
+    size_t arrIndex = 0;
     for (auto it = assets.begin(); it != assets.end();) {
         if (arr[arrIndex] == 1) {
             it = assets.erase(it);
