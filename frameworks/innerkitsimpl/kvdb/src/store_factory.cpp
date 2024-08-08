@@ -15,6 +15,7 @@
 #define LOG_TAG "StoreFactory"
 #include "store_factory.h"
 
+#include <cerrno>
 #include "backup_manager.h"
 #include "device_convertor.h"
 #include "ithread_pool.h"
