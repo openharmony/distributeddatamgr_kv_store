@@ -30,6 +30,7 @@
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
 #endif // DB_DEBUG_ENV
+#include "kv_store_result_set_impl.h"
 #include "kv_store_nb_delegate_impl.h"
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
@@ -3045,5 +3046,172 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
     }
 
     delete observer;
+}
+
+/**
+ * @tc.name: AbnormalKvStoreTest001
+ * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. GetKvStore for initialize g_kvNbDelegatePtr.
+     * @tc.expected: step1. Success.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("AbnormalKvStoreTest001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    InitResultSet();
+
+    /**
+     * @tc.steps: step2. test KvStoreNbDelegateImpl interface while conn is nullptr.
+     * @tc.expected: step2. return DB_ERROR.
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+
+    const Key key = {0};
+    EXPECT_EQ(kvStoreImpl->PublishLocal(key, true, true, nullptr), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->UnpublishToLocal(key, true, true), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->UnpublishToLocal({}, true, true), INVALID_ARGS);
+    EXPECT_EQ(kvStoreImpl->RemoveDeviceData(""), DB_ERROR);
+    bool autoSync = true;
+    PragmaData data = static_cast<PragmaData>(&autoSync);
+    EXPECT_EQ(kvStoreImpl->Pragma(AUTO_SYNC, data), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->SetConflictNotifier(0, nullptr), DB_ERROR);
+    CipherPassword password;
+    EXPECT_EQ(kvStoreImpl->Rekey(password), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->Export("", password, true), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->Import("", password), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->StartTransaction(), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->Commit(), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->Rollback(), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->CheckIntegrity(), DB_ERROR);
+    SecurityOption securityOption;
+    EXPECT_EQ(kvStoreImpl->GetSecurityOption(securityOption), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->SetRemotePushFinishedNotify(nullptr), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->SetEqualIdentifier("", {}), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->SetPushDataInterceptor(nullptr), DB_ERROR);
+
+    /**
+     * @tc.steps: step3. close kvStore.
+     * @tc.expected: step3. Success.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("AbnormalKvStoreTest001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+ * @tc.name: AbnormalKvStoreTest002
+ * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. GetKvStore for initialize g_kvNbDelegatePtr.
+     * @tc.expected: step1. Success.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("AbnormalKvStoreTest002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    InitResultSet();
+
+    /**
+     * @tc.steps: step2. test KvStoreNbDelegateImpl interface while conn is nullptr.
+     * @tc.expected: step2. return DB_ERROR.
+     */
+    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(g_kvNbDelegatePtr);
+    EXPECT_EQ(kvStoreImpl->Close(), OK);
+
+    Query query;
+    EXPECT_EQ(kvStoreImpl->SubscribeRemoteQuery({}, nullptr, query, true), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->UnSubscribeRemoteQuery({}, nullptr, query, true), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->RemoveDeviceData(), DB_ERROR);
+    const Key key = {0};
+    std::vector<Key> keys;
+    EXPECT_EQ(kvStoreImpl->GetKeys(key, keys), DB_ERROR);
+    uint32_t expectedVal = 0;
+    EXPECT_EQ(kvStoreImpl->GetSyncDataSize(""), expectedVal);
+    EXPECT_EQ(kvStoreImpl->UpdateKey(nullptr), DB_ERROR);
+    const std::string device = "test";
+    std::pair<DBStatus, WatermarkInfo> info = kvStoreImpl->GetWatermarkInfo(device);
+    EXPECT_EQ(info.first, DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->GetTaskCount(), DB_ERROR);
+    EXPECT_EQ(kvStoreImpl->SetReceiveDataInterceptor(nullptr), DB_ERROR);
+    CloudSyncConfig config;
+    EXPECT_EQ(kvStoreImpl->SetCloudSyncConfig(config), DB_ERROR);
+    const IOption iOption;
+    std::vector<Entry> entries;
+    EXPECT_EQ(kvStoreImpl->GetEntries(key, entries), DB_ERROR);
+
+    /**
+     * @tc.steps: step3. close kvStore.
+     * @tc.expected: step3. Success.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("AbnormalKvStoreTest002"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+ * @tc.name: AbnormalKvStoreResultSetTest
+ * @tc.desc: Test KvStoreResultSetImpl interface when class para is nullptr.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreResultSetTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces when calss para is null.
+     * @tc.expected: step1. return failInfo.
+     */
+    KvStoreResultSetImpl kvStoreObj(nullptr);
+    EXPECT_EQ(kvStoreObj.GetCount(), 0);
+    EXPECT_EQ(kvStoreObj.GetPosition(), INIT_POSITION);
+    EXPECT_EQ(kvStoreObj.Move(0), false);
+    EXPECT_EQ(kvStoreObj.MoveToPosition(0), false);
+    EXPECT_EQ(kvStoreObj.MoveToFirst(), false);
+    EXPECT_EQ(kvStoreObj.MoveToLast(), false);
+    EXPECT_EQ(kvStoreObj.IsFirst(), false);
+    EXPECT_EQ(kvStoreObj.IsLast(), false);
+    EXPECT_EQ(kvStoreObj.IsBeforeFirst(), false);
+    EXPECT_EQ(kvStoreObj.IsAfterLast(), false);
+    std::vector<std::string> columnNames;
+    kvStoreObj.GetColumnNames(columnNames);
+    Entry entry;
+    EXPECT_EQ(kvStoreObj.GetEntry(entry), DB_ERROR);
+    EXPECT_EQ(kvStoreObj.IsClosed(), false);
+    kvStoreObj.Close();
+
+    /**
+     * @tc.steps: step2. Call unsupported interfaces.
+     * @tc.expected: step2. return NOT_SUPPORT.
+     */
+    std::string columnName;
+    int columnIndex = 0;
+    EXPECT_EQ(kvStoreObj.GetColumnIndex(columnName, columnIndex), NOT_SUPPORT);
+    EXPECT_EQ(kvStoreObj.GetColumnName(columnIndex, columnName), NOT_SUPPORT);
+    std::vector<uint8_t> vecVal;
+    EXPECT_EQ(kvStoreObj.Get(columnIndex, vecVal), NOT_SUPPORT);
+    std::string strVal;
+    EXPECT_EQ(kvStoreObj.Get(columnIndex, strVal), NOT_SUPPORT);
+    int64_t intVal;
+    EXPECT_EQ(kvStoreObj.Get(columnIndex, intVal), NOT_SUPPORT);
+    double doubleVal;
+    EXPECT_EQ(kvStoreObj.Get(columnIndex, doubleVal), NOT_SUPPORT);
+    bool isNull;
+    EXPECT_EQ(kvStoreObj.IsColumnNull(columnIndex, isNull), NOT_SUPPORT);
+    std::map<std::string, VariantData> data;
+    EXPECT_EQ(kvStoreObj.GetRow(data), NOT_SUPPORT);
 }
 }

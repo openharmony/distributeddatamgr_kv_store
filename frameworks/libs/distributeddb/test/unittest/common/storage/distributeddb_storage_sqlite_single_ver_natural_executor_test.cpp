@@ -20,6 +20,7 @@
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
 #include "kvdb_pragma.h"
 #include "storage_engine_manager.h"
+#include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 using namespace testing::ext;
@@ -1089,4 +1090,113 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     dataItem.flag = DataItem::DELETE_FLAG;
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
     sqlite3_close_v2(db);
+}
+
+/**
+ * @tc.name: AbnormalSqlExecutorTest001
+ * @tc.desc: Check SQLiteStorageExecutor interfaces abnormal scene.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces when db and para is invalid.
+     * @tc.expected: step1. return errorCode.
+     */
+    SQLiteStorageExecutor storageObj(nullptr, true, true);
+    EXPECT_EQ(storageObj.Reset(), -E_INVALID_DB);
+    sqlite3 *dbHandle = nullptr;
+    EXPECT_EQ(storageObj.GetDbHandle(dbHandle), -E_NOT_FOUND);
+    SqliteMetaExecutor metaObj;
+    std::vector<Key> keys;
+    int ret = metaObj.GetAllKeys(nullptr, true, keys);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step2. Call GetMetaKeysByKeyPrefix interface when para metaMode is not in enum class MetaMode.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
+     */
+    std::set<std::string> outKeys;
+    int metaMode = 10; // set metaMode to 10 not in enum class MetaMode
+    ret = metaObj.GetMetaKeysByKeyPrefix("", nullptr,
+        static_cast<SqliteMetaExecutor::MetaMode>(metaMode), true, outKeys);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: AbnormalSqlExecutorTest002
+ * @tc.desc: Check SQLiteSingleVerStorageExecutor interfaces abnormal scene.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces when db is null.
+     * @tc.expected: step1. return -E_INVALID_DB.
+     */
+    const std::vector<std::string> vec = {"test"};
+    int ret = g_nullHandle->RemoveTrigger(vec);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->RemoveSubscribeTriggerWaterMark(vec);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    std::vector<std::string> triggerNames;
+    ret = g_nullHandle->GetTriggers("", triggerNames);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    std::vector<Entry> entries;
+    ret = g_nullHandle->GetEntries("", entries);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->RemoveDeviceData("", ClearMode::DEFAULT);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->RemoveDeviceData("", "", ClearMode::FLAG_AND_DATA);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    const Key keyPrefix;
+    SingleVerRecord result;
+    ret = g_nullHandle->GetKvDataByHashKey(keyPrefix, result);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->EraseSyncData(keyPrefix);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->UpdateKey(nullptr);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    ret = g_nullHandle->CreateCloudLogTable();
+    EXPECT_EQ(ret, -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: AbnormalSqlExecutorTest003
+ * @tc.desc: Check SQLiteSingleVerStorageExecutor interfaces abnormal scene.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces with invalid para.
+     * @tc.expected: step1. return errCode.
+     */
+    QueryObjNode node;
+    const std::list<QueryObjNode> queryObjNodes = {node};
+    const std::vector<uint8_t> prefixKey;
+    const std::set<Key> keys;
+    QueryObject queryObj(queryObjNodes, prefixKey, keys);
+    int ret = g_handle->AddSubscribeTrigger(queryObj, "");
+    EXPECT_EQ(ret, -E_INVALID_QUERY_FORMAT);
+    ret = g_handle->ReloadResultSet(queryObj);
+    EXPECT_EQ(ret, -E_INVALID_QUERY_FORMAT);
+    Entry entry;
+    ret = g_nullHandle->GetEntryByRowId(0, entry);
+    EXPECT_EQ(ret, -E_RESULT_SET_STATUS_INVALID);
+
+    /**
+     * @tc.steps: step2. Call AddSubscribeTrigger interface when executorState is CACHEDB.
+     * @tc.expected: step2. return -E_EKEYREVOKED.
+     */
+    SQLiteSingleVerStorageExecutor obj(nullptr, true, true, ExecutorState::CACHEDB);
+    QueryObject query;
+    ret = obj.AddSubscribeTrigger(query, "");
+    EXPECT_EQ(ret, -E_EKEYREVOKED);
 }
