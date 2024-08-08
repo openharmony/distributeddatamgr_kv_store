@@ -52,13 +52,13 @@ struct KVDBCorruptedEvent {
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
-    const KvStoreTuple &storeTuple, std::string &appendix)
+    const KvStoreTuple &storeTuple, const std::string &appendix)
 {
     KVDBCorruptedEvent eventInfo(options);
     eventInfo.errorCode = errorCode;
     eventInfo.systemErrorNo = systemErrorNo;
     eventInfo.appendix = appendix;
-    eventInfo.storeName = StoreUtil::Anonymous(storeTuple.storeId);
+    eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = getCurrentMicrosecondTimeFormat();
     ReportCommonFault(eventInfo);

@@ -30,7 +30,7 @@ class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
         const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
-        const KvStoreTuple &storeTuple, std::string &appendix);
+        const KvStoreTuple &storeTuple, const std::string &appendix);
 
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
