@@ -25,12 +25,13 @@ struct KVDBCorruptedEvent;
 constexpr const char* OPEN_STORE = "OPEN_STORE";
 enum DBErrorCode {
     CORRUPTED = 0,
-}
+};
 
 class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
-        const Options &options, uint32_t errorCode, uint32_t systemErrorNo, const KvStoreTuple &storeTuple, const std::string &appendix);
+        const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
+        const KvStoreTuple &storeTuple, std::string &appendix);
 
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
