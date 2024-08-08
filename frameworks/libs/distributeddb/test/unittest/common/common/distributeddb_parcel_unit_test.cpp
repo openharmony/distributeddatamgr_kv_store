@@ -677,4 +677,79 @@ HWTEST_F(DistributedDBParcelTest, WriteString006, TestSize.Level2)
     delete []buf;
     EXPECT_TRUE(ret != EOK);
 }
+
+/**
+ * @tc.name: WriteBoolTest
+ * @tc.desc: write and read a bool.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBParcelTest, WriteBoolTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create a bool, and write it into a buffer;
+     * @tc.expected: step1. write ok;
+     */
+    bool writeData = true;
+    uint32_t len = Parcel::GetBoolLen();
+    len = Parcel::GetEightByteAlign(len);
+    uint8_t *buf = new(nothrow) uint8_t[len];
+    ASSERT_NE(buf, nullptr);
+
+    Parcel writeParcel(buf, len);
+    EXPECT_EQ(writeParcel.WriteBool(writeData), EOK);
+
+    /**
+     * @tc.steps: step2. read the bool, the bool should same as written bool;
+     * @tc.expected: step2. read out readData same as written writeData;
+     */
+    bool readData;
+    Parcel readParcel(buf, len);
+    uint32_t readLen = readParcel.ReadBool(readData);
+    EXPECT_TRUE(readLen == Parcel::GetBoolLen());
+    EXPECT_TRUE(!readParcel.IsError());
+    EXPECT_TRUE(readData == writeData);
+    delete []buf;
+}
+
+/**
+ * @tc.name: ParcelErrTest
+ * @tc.desc: write and read a bool.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBParcelTest, ParcelErrTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. WriteDouble when Parcel para is null;
+     * @tc.expected: step1. return -E_PARSE_FAIL;
+     */
+    uint8_t *buf = nullptr;
+    Parcel parcel(buf, 0);
+    EXPECT_TRUE(parcel.IsError());
+
+    int ret = parcel.WriteDouble(0);
+    EXPECT_EQ(ret, -E_PARSE_FAIL);
+    double val;
+    uint32_t expectedVal = 0;
+    EXPECT_EQ(parcel.ReadDouble(val), expectedVal);
+
+    /**
+     * @tc.steps: step2. WriteBlob when para is null;
+     * @tc.expected: step2. return -E_INVALID_ARGS;
+     */
+    ret = parcel.WriteBlob(nullptr, 0);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+    EXPECT_EQ(parcel.ReadBlob(nullptr, 0), expectedVal);
+
+    /**
+     * @tc.steps:step3. WriteDouble when Parcel para is null;
+     * @tc.expected: step3. return -E_PARSE_FAIL;
+     */
+    ret = parcel.WriteBlob("", 1);
+    EXPECT_EQ(ret, -E_PARSE_FAIL);
+    EXPECT_EQ(parcel.ReadBlob("", 1), expectedVal);
+}
 #endif

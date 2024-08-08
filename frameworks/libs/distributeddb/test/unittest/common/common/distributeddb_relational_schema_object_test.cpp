@@ -838,4 +838,110 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.
     db = nullptr;
 }
 } // namespace
+
+/**
+ * @tc.name: FieldInfoCompareTest
+ * @tc.desc: Test field info compare
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. call CompareWithField when storageType is different
+     * @tc.expected: step1. return false.
+     */
+    FieldInfo field1;
+    field1.SetStorageType(StorageType::STORAGE_TYPE_INTEGER);
+    FieldInfo field2;
+    EXPECT_EQ(field2.CompareWithField(field1, true), false);
+
+    /**
+     * @tc.steps: step2. call CompareWithField when fieldName is different
+     * @tc.expected: step2. return false.
+     */
+    field1.SetFieldName("test1");
+    field1.SetFieldName("test2");
+    EXPECT_EQ(field2.CompareWithField(field1, true), false);
+}
+
+/**
+ * @tc.name: TableInfoInterfacesTest
+ * @tc.desc: Test TableInfo interfaces
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableInfoInterfacesTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. GetFieldName with empty TableInfo class
+     * @tc.expected: step1. return empty string.
+     */
+    TableInfo table1;
+    std::string str1 = table1.GetFieldName(0);
+    const std::string expectStr1 = "";
+    EXPECT_TRUE(str1.compare(0, expectStr1.length(), expectStr1) == 0);
+    table1.ToTableInfoString("");
+
+    /**
+     * @tc.steps: step2. Set and get tableId.
+     * @tc.expected: step2. success.
+     */
+    int inputId = 1;
+    table1.SetTableId(inputId);
+    int outputId = table1.GetTableId();
+    EXPECT_EQ(outputId, inputId);
+}
+
+/**
+ * @tc.name: SchemaTableCompareTest
+ * @tc.desc: Test LiteSchemaTable Compare
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, SchemaTableCompareTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set key index of SetPrimaryKey to an invalid value
+     * @tc.expected: step1. fieldName vector is null.
+     */
+    TableInfo table1;
+    int keyIndex = -1;
+    table1.SetPrimaryKey("test", keyIndex);
+    CompositeFields vec = table1.GetIdentifyKey();
+    uint32_t expectedVal = 0;
+    EXPECT_EQ(vec.size(), expectedVal);
+
+    /**
+     * @tc.steps: step2. Compare table when fieldName of SetPrimaryKey is set to'rowid'
+     * @tc.expected: step2. compare return -E_RELATIONAL_TABLE_INCOMPATIBLE.
+     */
+    const std::vector<CompositeFields> uniqueDefine = {{"test0", "test1"}};
+    table1.SetUniqueDefine(uniqueDefine);
+    const std::map<int, FieldName> keyName1 = {{0, "rowid"}};
+    table1.SetPrimaryKey(keyName1);
+
+    vec = table1.GetIdentifyKey();
+    EXPECT_EQ(vec.size(), uniqueDefine[0].size());
+    int ret = table1.CompareWithLiteSchemaTable(table1);
+    EXPECT_EQ(ret, -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step3. Compare table when fieldName of SetPrimaryKey is not set to "rowid".
+     * @tc.expected: step3. compare return E_OK.
+     */
+    FieldInfo field1;
+    table1.AddField(field1);
+    const std::map<int, FieldName> keyName2 = {{0, "test0"}, {1, "test1"}};
+    table1.SetPrimaryKey(keyName2);
+
+    vec = table1.GetIdentifyKey();
+    EXPECT_EQ(vec.size(), keyName2.size());
+    field1.SetFieldName("test1");
+    ret = table1.CompareWithLiteSchemaTable(table1);
+    EXPECT_EQ(ret, E_OK);
+}
 #endif
