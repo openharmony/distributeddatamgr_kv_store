@@ -27,6 +27,28 @@ namespace OHOS::DistributedKv {
 
 static constexpr const char *EVENT_NAME = "DATABASE_CORRUPTED";
 static constexpr const char *DISTRIBUTED_DATAMGR = "DISTDATAMGR";
+struct KVDBCorruptedEvent {
+    std::string bundleName;
+    std::string moduleName;
+    std::string storeType;
+    std::string storeName;
+    uint32_t securityLevel;
+    uint32_t pathArea;
+    uint32_t encryptStatus;
+    uint32_t integrityCheck;
+    uint32_t errorCode;
+    int32_t systemErrorNo;
+    std::string appendix;
+    std::string errorOccurTime;
+
+    KVDBCorruptedEvent(const Options &options) : storeType("KVDB")
+    {
+        moduleName = options.hapName;
+        securityLevel = static_cast<uint32_t>(options.securityLevel);
+        pathArea = static_cast<uint32_t>(options.area);
+        encryptStatus = static_cast<uint32_t>(options.encrypt);
+    }
+};
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, uint32_t systemErrorNo, const KvStoreTuple &storeTuple, std::string &appendix)
