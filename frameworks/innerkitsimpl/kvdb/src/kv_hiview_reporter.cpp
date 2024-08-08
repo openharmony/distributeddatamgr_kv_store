@@ -41,9 +41,8 @@ struct KVDBCorruptedEvent {
     std::string appendix;
     std::string errorOccurTime;
 
-    KVDBCorruptedEvent(const Options &options)
+    explicit KVDBCorruptedEvent(const Options &options) : storeType("KVDB")
     {
-        storeType = "KVDB";
         moduleName = options.hapName;
         securityLevel = static_cast<uint32_t>(options.securityLevel);
         pathArea = static_cast<uint32_t>(options.area);

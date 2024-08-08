@@ -20,9 +20,8 @@
 #include "types.h"
 
 namespace OHOS::DistributedKv {
-struct KVDBCorruptedEvent;
-
 constexpr const char* OPEN_STORE = "OPEN_STORE";
+struct KVDBCorruptedEvent;
 enum DBErrorCode {
     CORRUPTED = 0,
 };

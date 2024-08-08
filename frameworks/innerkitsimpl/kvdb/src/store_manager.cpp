@@ -55,10 +55,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
 
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
-    if (status == CRYPT_ERROR) {
-        KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, "GetOrOpenStore");
-    }
+    KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
+    KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, OPEN_STORE);
     if (isCreate && options.persistent) {
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
             path, options.encrypt);
