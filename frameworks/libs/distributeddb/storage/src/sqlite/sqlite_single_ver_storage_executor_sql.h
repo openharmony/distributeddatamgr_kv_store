@@ -353,6 +353,13 @@ namespace DistributedDB {
     constexpr const char *SELECT_SYNC_ENTRIES_BY_DEVICE_SQL =
         "SELECT key,value FROM sync_data WHERE device=? AND flag&0x200=0";
 
+    constexpr const char *MARK_UPLOAD_SUCCESS =
+        "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_flag=cloud_flag|0x400 "
+        "WHERE hash_key=? AND userid=? ";
+
+    constexpr const char *CHECK_DATA_CHANGED =
+        "SELECT COUNT(1) FROM sync_data WHERE modify_time=? AND hash_key=?";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;
