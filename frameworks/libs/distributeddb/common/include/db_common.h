@@ -27,6 +27,10 @@
 namespace DistributedDB {
 class DBCommon final {
 public:
+    enum FileControlType {
+        SET_FLAG,
+        CLEAR_FLAG
+    };
     static int CreateDirectory(const std::string &directory);
 
     static void StringToVector(const std::string &src, std::vector<uint8_t> &dst);
@@ -144,6 +148,10 @@ public:
     static bool CheckCloudSyncConfigValid(const CloudSyncConfig &config);
 
     static std::string GetCursorKey(const std::string &tableName);
+
+    static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
+
+    static void SetOrClearFSMonitorFlag(const std::string &fileName, FileControlType fileControlType);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

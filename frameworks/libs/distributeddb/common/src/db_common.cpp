@@ -18,6 +18,11 @@
 #include <climits>
 #include <cstdio>
 #include <queue>
+#ifndef OS_TYPE_WINDOWS
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
@@ -27,6 +32,14 @@
 #include "hash.h"
 #include "runtime_context.h"
 #include "value_hash_calc.h"
+
+#ifndef OS_TYPE_WINDOWS
+constexpr unsigned int HMFS_MONITOR_FL = 0x00000002;
+// This ioctl cmd is used to get the flags' information of a file or folder.
+#define HMFS_IOCTL_HW_GET_FLAGS _IOR(0xf5, 70, unsigned int)
+// This ioctl cmd is used to set the flags' information of a file or folder.
+#define HMFS_IOCTL_HW_SET_FLAGS _IOR(0xf5, 71, unsigned int)
+#endif
 
 namespace DistributedDB {
 namespace {
@@ -811,5 +824,57 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
         }
         arrIndex++;
     }
+}
+
+void DBCommon::SetOrClearFSMonitorFlag(const std::string &fileName, FileControlType fileControlType)
+{
+#ifndef OS_TYPE_WINDOWS
+    int fd = open(fileName.c_str(), O_RDONLY, S_IRWXU | S_IRWXG);
+    if (fd < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to open file, errno: %d, controlType: %d", errno,
+            fileControlType);
+        return;
+    }
+    unsigned int flags = 0u;
+    int ret = ioctl(fd, HMFS_IOCTL_HW_GET_FLAGS, &flags);
+    if (ret < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to get flags, errno: %d, controlType: %d", errno,
+            fileControlType);
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == SET_FLAG && (flags & HMFS_MONITOR_FL)) {
+        LOGD("[SetOrClearFSMonitorFlag] Delete control flag is already set");
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == CLEAR_FLAG && !(flags & HMFS_MONITOR_FL)) {
+        LOGD("[SetOrClearFSMonitorFlag] Delete control flag has been cleared");
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == SET_FLAG) {
+        flags |= HMFS_MONITOR_FL;
+    } else {
+        flags &= ~HMFS_MONITOR_FL;
+    }
+
+    ret = ioctl(fd, HMFS_IOCTL_HW_SET_FLAGS, &flags);
+    if (ret < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to set flags, errno: %d, controlType: %d", errno,
+            fileControlType);
+        close(fd);
+        return;
+    }
+
+    LOGD("[SetOrClearFSMonitorFlag] File control operation success type: %d", fileControlType);
+    close(fd);
+#else
+    (void)fileName;
+    (void)fileControlType;
+#endif
 }
 } // namespace DistributedDB
