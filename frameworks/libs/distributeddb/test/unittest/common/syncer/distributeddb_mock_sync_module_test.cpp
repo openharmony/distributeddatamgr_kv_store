@@ -1189,7 +1189,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MessageScheduleTest001, TestSize.Level
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
 {
     std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
-    EXPECT_CALL(*enginePtr, CreateSyncTaskContext())
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
         .WillRepeatedly(Return(new (std::nothrow) SingleVerKvSyncTaskContext()));
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
     MockKvSyncInterface syncDBInterface;
@@ -1248,8 +1248,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
      */
     auto *enginePtr = new (std::nothrow) MockSyncEngine();
     ASSERT_NE(enginePtr, nullptr);
-    EXPECT_CALL(*enginePtr, CreateSyncTaskContext())
-        .WillRepeatedly([]() {
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
+        .WillRepeatedly([](const ISyncInterface &) {
             return new (std::nothrow) SingleVerKvSyncTaskContext();
         });
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
@@ -1321,6 +1321,24 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest003, TestSize.Level1)
         EXPECT_EQ(operation->GetStatus(device), static_cast<int>(SyncOperation::OP_BUSY_FAILURE));
     }
     RefObject::KillAndDecObjRef(operation);
+    RefObject::KillAndDecObjRef(enginePtr);
+}
+
+/**
+ * @tc.name: SyncEngineTest004
+ * @tc.desc: Test SyncEngine alloc failed with null storage.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest004, TestSize.Level0)
+{
+    auto *enginePtr = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(enginePtr, nullptr);
+    int errCode = E_OK;
+    auto *context = enginePtr->CallGetSyncTaskContext("dev", errCode);
+    EXPECT_EQ(context, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_DB);
     RefObject::KillAndDecObjRef(enginePtr);
 }
 

@@ -647,19 +647,26 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync013, TestSize.Level0)
  */
 HWTEST_F(DistributedDBCloudKvTest, NormalSync014, TestSize.Level1)
 {
+    /**
+     * @tc.steps: step1. kvDelegatePtrS1_ put and sync data (k1, v1)
+     * @tc.expected: step1.ok
+     */
     g_mgr.SetSyncActivationCheckCallback([] (const std::string &userId, const std::string &appId,
         const std::string &storeId)-> bool {
         return true;
     });
-
     KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
     KvStoreNbDelegate::Option option;
     option.syncDualTupleMode = true;
     GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option);
     Key key = {'k', '1'};
     Value value = {'v', '1'};
-    ASSERT_EQ(kvDelegatePtrS3_->Put(key, value), OK);
-
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps: step2. Set sync block time 2s, and change user in sync block time
+     * @tc.expected: step2. Sync return  USER_CHANGED.
+     */
     virtualCloudDb_->SetBlockTime(2000); // 2000ms
     std::thread thread([&]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // sleep for 1000ms
@@ -1196,6 +1203,43 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
      * @tc.expected: step2 ok.
      */
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+}
+
+/**
+ * @tc.name: NormalSync041
+ * @tc.desc: Test concurrent sync and close DB.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync041, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. put data to cloud.
+     * @tc.expected: step1 ok.
+     */
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    kvDelegatePtrS1_->Put(key, value);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps:step2. sync and close DB concurrently.
+     * @tc.expected: step2 ok.
+     */
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    virtualCloudDb_->ForkQuery([](const std::string &tableName, VBucket &extend) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep for 200ms
+    });
+    KvStoreDelegateManager &mgr = g_mgr;
+    std::thread syncThread([&mgr, &kvDelegatePtrS3_]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+        EXPECT_EQ(mgr.CloseKvStore(kvDelegatePtrS3_), OK);
+    });
+    EXPECT_EQ(kvDelegatePtrS3_->Sync(g_CloudSyncoption, nullptr), OK);
+    syncThread.join();
 }
 
 /**
@@ -2200,6 +2244,36 @@ HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest011, TestSize.Level0)
     EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", ClearMode::FLAG_ONLY), DB_ERROR);
     EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", "", ClearMode::FLAG_ONLY), DB_ERROR);
     EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS1_), OK);
+}
+
+/**
+ * @tc.name: RemoveDeviceTest012
+ * @tc.desc: Test remove all data from other device.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert three record, k0 from device sync, k1 from local write, k2 from cloud sync.
+     * * @tc.expected: step1. insert successfully
+    */
+    int recordNum = 3;
+    InsertRecord(recordNum);
+    SetFlag({'k', '0'}, LogInfoFlag::FLAG_CLOUD);
+    SetFlag({'k', '1'}, LogInfoFlag::FLAG_LOCAL);
+    /**
+     * @tc.steps: step2. Remove data from device sync and cloud sync, and remove log.
+     * * @tc.expected: step2. All data and log are removed except data from local write.
+    */
+    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(), OK);
+    Value actualValue;
+    Value expectValue = {'k', '1'};
+    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '1'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '0'}, actualValue), NOT_FOUND);
+    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '2'}, actualValue), NOT_FOUND);
 }
 
 /**
