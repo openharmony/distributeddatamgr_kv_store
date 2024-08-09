@@ -27,7 +27,7 @@ public:
     void EnableClearRemoteStaleData(bool enable);
 
     // used by SingleVerKVSyncer when db online
-    int StartAutoSubscribeTimer() override;
+    int StartAutoSubscribeTimer(const ISyncInterface &syncInterface) override;
 
     // used by SingleVerKVSyncer when remote/local db closed
     void StopAutoSubscribeTimer() override;
@@ -39,7 +39,7 @@ protected:
     ~SingleVerSyncEngine() override {};
 
     // Create a context
-    ISyncTaskContext *CreateSyncTaskContext() override;
+    ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) override;
 
 private:
     DECLARE_OBJECT_TAG(SingleVerSyncEngine);

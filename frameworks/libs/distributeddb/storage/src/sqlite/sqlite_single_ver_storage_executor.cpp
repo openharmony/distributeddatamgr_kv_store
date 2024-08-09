@@ -1703,36 +1703,13 @@ END:
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName)
 {
     int errCode = E_OK;
-    sqlite3_stmt *statement = nullptr;
     if (deviceName.empty()) {
-        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_ALL_DEV_DATA_SQL, statement);
-        if (errCode != E_OK) {
-            goto ERROR;
-        }
+        CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_LOG_DATA_SQL, "", "");
+        errCode = CloudExcuteRemoveOrUpdate(REMOVE_ALL_DEV_DATA_SQL, "", "");
     } else {
-        // device name always hash string.
-        std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
-        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
-        if (errCode != E_OK) {
-            goto ERROR;
-        }
-
-        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // only one arg.
-        if (errCode != E_OK) {
-            LOGE("Failed to bind the removed device:%d", errCode);
-            goto ERROR;
-        }
+        CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "");
+        errCode = CloudExcuteRemoveOrUpdate(REMOVE_DEV_DATA_SQL, deviceName, "");
     }
-
-    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        LOGE("Failed to execute rm the device synced data:%d", errCode);
-    } else {
-        errCode = E_OK;
-    }
-
-ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 

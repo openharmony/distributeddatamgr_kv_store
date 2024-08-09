@@ -261,8 +261,10 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
     }
     Bytes key;
     DBCommon::StringToVector(keyStr, key);
+    Bytes hashKey;
+    DBCommon::CalcValueHash(key, hashKey);
     sqlite3_stmt *stmt = nullptr;
-    std::tie(errCode, stmt) = GetLogInfoStmt(db, cloudData, !key.empty());
+    std::tie(errCode, stmt) = GetLogInfoStmt(db, cloudData, !hashKey.empty());
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Get stmt failed %d", errCode);
         return res;
@@ -273,7 +275,7 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
         LOGE("[SqliteCloudKvExecutorUtils] Get gid failed %d", errCode);
         return res;
     }
-    return GetLogInfoInner(stmt, isMemory, gid, key);
+    return GetLogInfoInner(stmt, isMemory, gid, hashKey);
 }
 
 std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData,
@@ -286,7 +288,7 @@ std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3
     if (existKey) {
         sql += " UNION ";
         sql += QUERY_CLOUD_SYNC_DATA_LOG;
-        sql += " WHERE key = ?";
+        sql += " WHERE sync_data.hash_key = ?";
     }
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     return res;

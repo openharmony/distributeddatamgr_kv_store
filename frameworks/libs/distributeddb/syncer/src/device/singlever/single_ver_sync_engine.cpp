@@ -21,10 +21,10 @@
 #include "single_ver_sync_task_context.h"
 
 namespace DistributedDB {
-ISyncTaskContext *SingleVerSyncEngine::CreateSyncTaskContext()
+ISyncTaskContext *SingleVerSyncEngine::CreateSyncTaskContext(const ISyncInterface &syncInterface)
 {
     SingleVerSyncTaskContext *context = nullptr;
-    switch (syncInterface_->GetInterfaceType()) {
+    switch (syncInterface.GetInterfaceType()) {
         case ISyncInterface::SYNC_SVD:
             context = new (std::nothrow) SingleVerKvSyncTaskContext();
             break;
@@ -60,9 +60,9 @@ void SingleVerSyncEngine::EnableClearRemoteStaleData(bool enable)
     }
 }
 
-int SingleVerSyncEngine::StartAutoSubscribeTimer()
+int SingleVerSyncEngine::StartAutoSubscribeTimer(const ISyncInterface &syncInterface)
 {
-    if (syncInterface_->IsSupportSubscribe() == -E_NOT_SUPPORT) {
+    if (syncInterface.IsSupportSubscribe() == -E_NOT_SUPPORT) {
         LOGI("[StartAutoSubscribeTimer] no need to start subscribe timer");
         return E_OK;
     }

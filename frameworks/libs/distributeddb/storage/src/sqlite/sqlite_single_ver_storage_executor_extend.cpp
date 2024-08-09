@@ -132,6 +132,9 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
 {
+    if (mode == ClearMode::DEFAULT) {
+        return CloudExcuteRemoveOrUpdate(REMOVE_ALL_DEV_SYNC_DATA_SQL, "", "");
+    }
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
@@ -150,6 +153,9 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &deviceName, ClearMode mode)
 {
+    if (mode == ClearMode::DEFAULT) {
+        return CloudExcuteRemoveOrUpdate(REMOVE_DEV_SYNC_DATA_BY_DEV_ID_SQL, deviceName, "");
+    }
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
@@ -231,7 +237,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
     }
     bool isDataExist = false;
     errCode = CloudCheckDataExist(SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "", isDataExist);
-    if (!isDataExist || errCode != E_OK) { // means deviceId can not be matched in log table
+    // means deviceId can not be matched in log table
+    if (mode != ClearMode::DEFAULT && (!isDataExist || errCode != E_OK)) {
         return CheckCorruptedStatus(errCode);
     }
     return CheckCorruptedStatus(RemoveDeviceDataInner(deviceName, mode));
@@ -240,6 +247,10 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName, const std::string &user,
     ClearMode mode)
 {
+    if (mode == ClearMode::DEFAULT) {
+        return CheckCorruptedStatus(deviceName.empty() ?
+            RemoveDeviceDataInner(deviceName, mode) : RemoveDeviceDataInner(mode));
+    }
     int errCode = E_OK;
     bool isDataExist = false;
     if (deviceName.empty()) {

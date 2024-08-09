@@ -1012,6 +1012,7 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
     propertiesPtr->SetBoolProp(KvDBProperties::MEMORY_MODE, false);
     propertiesPtr->SetBoolProp(KvDBProperties::ENCRYPTED_MODE, param.option.isEncryptedDb);
     propertiesPtr->SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    propertiesPtr->SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, param.option.conflictResolvePolicy);
     propertiesPtr->SetSchema(schemaObject);
     if (RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
         propertiesPtr->SetIntProp(KvDBProperties::SECURITY_LABEL, param.option.secOption.securityLabel);

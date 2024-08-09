@@ -202,13 +202,6 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 // Stop syncer
 void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
 {
-    NotificationChain::Listener *userChangeListener = nullptr;
-    {
-        std::unique_lock<std::mutex> lock(syncerOperateLock_);
-        StopSyncerWithNoLock(isClosedOperation);
-        userChangeListener = userChangeListener_;
-        userChangeListener_ = nullptr;
-    }
     {
         std::unique_lock<std::mutex> lock(cloudSyncerLock_);
         if (isClosedOperation && cloudSyncer_ != nullptr) {
@@ -216,6 +209,13 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
             RefObject::KillAndDecObjRef(cloudSyncer_);
             cloudSyncer_ = nullptr;
         }
+    }
+    NotificationChain::Listener *userChangeListener = nullptr;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        StopSyncerWithNoLock(isClosedOperation);
+        userChangeListener = userChangeListener_;
+        userChangeListener_ = nullptr;
     }
     if (userChangeListener != nullptr) {
         userChangeListener->Drop(true);
@@ -225,6 +225,12 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
 
 void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
 {
+    if (!isClosedOperation && userChangeListener_ != nullptr) {
+        std::unique_lock<std::mutex> lock(cloudSyncerLock_);
+        if (cloudSyncer_ != nullptr) {
+            cloudSyncer_->StopAllTasks();
+        }
+    }
     ReSetSyncModuleActive();
     syncer_.Close(isClosedOperation);
     if (started_) {
@@ -232,7 +238,6 @@ void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
     }
     closed_ = isClosedOperation;
     if (!isClosedOperation && userChangeListener_ != nullptr) {
-        cloudSyncer_->StopAllTasks();
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }
