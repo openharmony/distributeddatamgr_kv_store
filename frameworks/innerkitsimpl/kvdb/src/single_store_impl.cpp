@@ -15,7 +15,7 @@
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
 
-#include <cerror>
+#include <cerrno>
 #include "accesstoken_kit.h"
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
