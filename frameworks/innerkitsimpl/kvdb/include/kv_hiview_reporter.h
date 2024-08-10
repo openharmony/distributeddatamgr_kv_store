@@ -22,10 +22,6 @@
 namespace OHOS::DistributedKv {
 constexpr const char* OPEN_STORE = "OPEN_STORE";
 struct KVDBCorruptedEvent;
-enum DBErrorCode {
-    CORRUPTED = 0,
-};
-
 class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
