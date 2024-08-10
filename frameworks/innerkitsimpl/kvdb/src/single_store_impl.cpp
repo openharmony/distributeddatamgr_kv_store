@@ -1133,7 +1133,7 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
     return status;
 }
 
-void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX) const;
+void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX) const
 {
     if (status == CRYPT_ERROR) {
         Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
