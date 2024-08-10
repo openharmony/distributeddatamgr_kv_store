@@ -21,6 +21,20 @@
 
 namespace OHOS::DistributedKv {
 constexpr const char* OPEN_STORE = "OPEN_STORE";
+constexpr const char* PUT = "PUT";
+constexpr const char* PUTBATCH = "PUTBATCH";
+constexpr const char* DELETE = "DELETE";
+constexpr const char* DELETEBATCH = "DELETEBATCH";
+constexpr const char* STARTTRANSACTION = "STARTTRANSACTION";
+constexpr const char* COMMIT = "COMMIT";
+constexpr const char* ROLLBACK = "ROLLBACK";
+constexpr const char* GET = "GET";
+constexpr const char* GETDEVICEENTRIES = "GETDEVICEENTRIES";
+constexpr const char* GETCOUNT = "GETCOUNT";
+constexpr const char* GETSECURITYLEVEL = "GETSECURITYLEVEL";
+constexpr const char* REMOVEDEVICEDATA = "REMOVEDEVICEDATA";
+constexpr const char* GETENTRIES = "GETENTRIES";
+
 struct KVDBCorruptedEvent;
 class KVDBFaultHiViewReporter {
 public:

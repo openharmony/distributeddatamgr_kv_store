@@ -14,6 +14,7 @@
  */
 
 #define LOG_TAG "KVDBFaultHiViewReporter"
+
 #include "kv_hiview_reporter.h"
 #include <chrono>
 #include <ctime>
@@ -21,7 +22,7 @@
 #include <sstream>
 #include "hisysevent_c.h"
 #include "log_print.h"
-#include "store_util.h"
+#include "types.h"
 
 namespace OHOS::DistributedKv {
 
@@ -59,8 +60,7 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     eventInfo.systemErrorNo = systemErrorNo;
     eventInfo.appendix = appendix;
     eventInfo.storeName = storeTuple.storeId;
-    eventInfo.bundleName = storeTuple.appId;
-    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
+    eventInfo.bundleName = storeTuple.appId;eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     ReportCommonFault(eventInfo);
 }
 
