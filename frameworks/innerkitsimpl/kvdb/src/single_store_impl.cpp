@@ -1133,10 +1133,10 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
     return status;
 }
 
-void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX)
+void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX) const;
 {
     if (status == CRYPT_ERROR) {
-        Options options = { .encrypt_ = encrypt, .autoSync_ = autoSync, .securityLevel = securityLevel_,
+        Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
             .area = area_, .hapName = hapName_ };
         KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
         KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, appendIX);
