@@ -51,11 +51,11 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     eventInfo.appendix = appendix;
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
-    eventInfo.errorOccurTime = getCurrentMicrosecondTimeFormat();
+    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     ReportCommonFault(eventInfo);
 }
 
-std::string KVDBFaultHiViewReporter::getCurrentMicrosecondTimeFormat()
+std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
 {
     return "";
 }

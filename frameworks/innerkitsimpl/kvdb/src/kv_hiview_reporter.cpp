@@ -60,11 +60,11 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     eventInfo.appendix = appendix;
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
-    eventInfo.errorOccurTime = getCurrentMicrosecondTimeFormat();
+    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     ReportCommonFault(eventInfo);
 }
 
-std::string KVDBFaultHiViewReporter::getCurrentMicrosecondTimeFormat()
+std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
 {
     auto now = std::chrono::system_clock::now();
     auto now_ms = std::chrono::time_point_cast<std::chrono::microseconds>(now);

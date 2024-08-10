@@ -31,7 +31,7 @@ public:
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
-    static std::string getCurrentMicrosecondTimeFormat();
+    static std::string GetCurrentMicrosecondTimeFormat();
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H
