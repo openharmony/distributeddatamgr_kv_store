@@ -60,7 +60,8 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     eventInfo.systemErrorNo = systemErrorNo;
     eventInfo.appendix = appendix;
     eventInfo.storeName = storeTuple.storeId;
-    eventInfo.bundleName = storeTuple.appId;eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
+    eventInfo.bundleName = storeTuple.appId;
+    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     ReportCommonFault(eventInfo);
 }
 

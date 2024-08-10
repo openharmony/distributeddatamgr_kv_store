@@ -23,7 +23,7 @@ namespace OHOS::DistributedKv {
 constexpr const char* OPEN_STORE = "OPEN_STORE";
 constexpr const char* PUT = "PUT";
 constexpr const char* PUTBATCH = "PUTBATCH";
-constexpr const char* DELETE = "DELETE";
+constexpr const char* DEL = "DELETE";
 constexpr const char* DELETEBATCH = "DELETEBATCH";
 constexpr const char* STARTTRANSACTION = "STARTTRANSACTION";
 constexpr const char* COMMIT = "COMMIT";

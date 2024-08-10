@@ -158,7 +158,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKey]() { return dbStore_->Delete(dbKey); });
-    ReportDBCorruptedFault(status, DELETE);
+    ReportDBCorruptedFault(status, DEL);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
