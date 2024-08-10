@@ -153,7 +153,7 @@ private:
     uint64_t taskId_ = 0;
 
     bool encrypt_ = false;
-    int32_t securityLabel_ = -1;
+    int32_t securityLevel_ = -1;
     int32_t area_ = 1;
     std::string hapName_ = "";
 
