@@ -683,7 +683,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
      */
     InsertLocalData(0, 1, ASSETS_TABLE_NAME, true);
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where cursor='31';";
+        " where cursor='41';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }
@@ -723,7 +723,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
      * @tc.expected: step3. return ok.
      */
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where data_key='0' and extend_field='name10' and cursor='31';";
+        " where data_key='0' and extend_field='name10' and cursor='32';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }

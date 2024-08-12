@@ -72,6 +72,8 @@ public:
 
     static constexpr const char *CLOUD_VERSION_RECORD_PREFIX_KEY = "naturalbase_cloud_version_";
 
+    static constexpr const char *FLAG_AND_DATA_MODE_NOTIFY = "DELETE#ALL_CLOUDDATA";
+
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
     static constexpr uint32_t TEN_THOUSAND = 10000;

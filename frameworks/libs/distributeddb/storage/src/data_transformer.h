@@ -56,6 +56,7 @@ enum class LogInfoFlag : uint32_t {
     FLAG_CLOUD_WRITE = 0x100,
     FLAG_SYSTEM_RECORD = 0x200,
     FLAG_UPLOAD_FINISHED = 0x400,
+    FLAG_LOGIC_DELETE_FOR_LOGOUT = 0x800,
 };
 
 struct RowDataWithLog {
