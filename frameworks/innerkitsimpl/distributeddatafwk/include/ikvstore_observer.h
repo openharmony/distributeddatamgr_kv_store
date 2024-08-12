@@ -38,7 +38,7 @@ public:
     virtual void OnChange(const ChangeNotification &changeNotification) = 0;
     virtual void OnChange(const DataOrigin &origin, Keys &&keys) = 0;
 protected:
-    static constexpr int64_t SWITCH_RAW_DATA_SIZE = 700 * 1024;
+    static constexpr int64_t SWITCH_RAW_DATA_SIZE = 200 * 1024;
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
 
