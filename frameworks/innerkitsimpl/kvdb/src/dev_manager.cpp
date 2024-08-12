@@ -169,4 +169,34 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
     }
     return dtInfos;
 }
+
+std::string DevManager::GetUnEncryptedUuid()
+{
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+    if (!UnEncryptedLocalInfo_.uuid.empty()) {
+        return UnEncryptedLocalInfo_.uuid;
+    }
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
+        return "";
+    }
+    auto networkId = std::string(info.networkId);
+    if (networkId.empty()) {
+        ZLOGE("networkid empty");
+        return "";
+    }
+    std::string uuid;
+    DeviceManager::GetInstance().GetUuidByNetworkId(PKG_NAME, networkId, uuid);
+    if (uuid.empty()) {
+        ZLOGE("get uuid by networkid fail");
+        return "";
+    }
+    UnEncryptedLocalInfo_.uuid = std::move(uuid);
+    ZLOGI("[GetUnEncryptedUuid] uuid:%{public}s, networkId:%{public}s",
+        StoreUtil::Anonymous(UnEncryptedLocalInfo_.uuid).c_str(),
+        StoreUtil::Anonymous(networkId).c_str());
+    return UnEncryptedLocalInfo_.uuid;
+}
 } // namespace OHOS::DistributedKv

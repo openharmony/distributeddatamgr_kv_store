@@ -494,7 +494,14 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     }
     std::vector<DBEntry> dbEntries;
     std::string devId;
-    auto dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
+    DBStatus dbStatus = DBStatus::DB_ERROR;
+    auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
+    if (device == uuid) {
+        dbStatus = dbStore_->GetDeviceEntries("", dbEntries);
+        ZLOGI("device equal loacluuid:%{public}s", StoreUtil::Anonymous(uuid).c_str());
+    } else {
+        dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
+    }
     entries.resize(dbEntries.size());
     auto it = entries.begin();
     for (auto &dbEntry : dbEntries) {
