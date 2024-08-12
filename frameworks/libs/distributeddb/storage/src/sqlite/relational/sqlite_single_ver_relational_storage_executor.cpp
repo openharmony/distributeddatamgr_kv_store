@@ -44,6 +44,8 @@ static constexpr const char *FLAG_IS_CLOUD_CONSISTENCY = "FLAG & 0x20 = 0"; // s
 static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(CASE WHEN data_key = -1 and "
     "FLAG & 0x02 = 0x02 THEN (FLAG | 0x02) & (~0x10) & (~0x20) ELSE (FLAG | 0x02 | 0x20) & (~0x10) END)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
+// set data logic delete and exist passport
+static constexpr const char *SET_FLAG_LOGIC_DELETE = "FLAG | 0x08 | 0x800 | 0x01";
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const char *UPDATE_CURSOR_SQL = "cursor=update_cursor()";
 static constexpr const int SET_FLAG_ZERO_MASK = ~0x04; // clear 2th bit of flag
@@ -1841,6 +1843,57 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::ChangeCloudDataFlagOnLogTable(const std::string &logTableName)
+{
+    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " +
+        SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " +
+        CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '' " + "WHERE NOT " + FLAG_IS_CLOUD_CONSISTENCY + ";";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
+    if (errCode != E_OK) {
+        LOGE("change cloud log flag failed, %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(const std::string &tableName,
+    const std::string &logTableName)
+{
+    UpdateCursorContext context;
+    context.cursor = GetCursor(tableName);
+    LOGI("removeData start and cursor is, %d.", context.cursor);
+    int errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
+    std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_LOGIC_DELETE +
+                      ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
+                      SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
+                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD_CONSISTENCY + ");";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        LOGE("Failed to change cloud data flag on usertable, %d.", errCode);
+        CreateFuncUpdateCursor(context, nullptr);
+        return errCode;
+    }
+    // deal when data is logicDelete
+    sql = "UPDATE '" + logTableName + "' SET " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD +
+          " = '', " + SHARING_RESOURCE + " = '' WHERE " + FLAG_IS_LOGIC_DELETE + ";";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        LOGE("Failed to deal logic delete data flag on usertable, %d.", errCode);
+        CreateFuncUpdateCursor(context, nullptr);
+        return errCode;
+    }
+    LOGI("removeData finish and cursor is %d.", context.cursor);
+    errCode = SetCursor(tableName, context.cursor);
+    if (errCode != E_OK) {
+        CreateFuncUpdateCursor(context, nullptr);
+        LOGE("set new cursor after removeData error %d.", errCode);
+    }
+    errCode = CreateFuncUpdateCursor(context, nullptr);
+    if (errCode != E_OK) {
+        LOGE("Clear FuncUpdateCursor error %d.", errCode);
+    }
+    return ChangeCloudDataFlagOnLogTable(logTableName);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::string &logTableName,
     std::vector<int64_t> &dataKeys, bool distinguishCloudFlag)
 {
@@ -1850,6 +1903,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
     if (distinguishCloudFlag) {
         sql += " AND (";
         sql += FLAG_IS_CLOUD;
+        sql += " OR ";
+        sql +=  FLAG_IS_CLOUD_CONSISTENCY;
     }
     sql += ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, selectStmt);
