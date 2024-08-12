@@ -1188,7 +1188,7 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
     }
     sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
         " b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
-    sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
+    sql += " AND (b.flag & 0x808 = 0) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
 }
 

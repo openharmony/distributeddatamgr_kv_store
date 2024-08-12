@@ -976,20 +976,21 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
-void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t num)
+void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t num, uint64_t flag)
 {
     for (size_t i = 0; i < num; ++i) {
         std::string sql = "insert or replace into " + tableName + " VALUES('" + std::to_string(i) + "', 'zhangsan');";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
-    std::string sql = "update " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" + " SET flag = flag | 0x08";
+    std::string sql = "update " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" +
+        " SET flag = flag | " + std::to_string(flag);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 }
 
-void CheckLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t expectNum)
+void CheckLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t expectNum, uint64_t flag)
 {
     std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log"
-        " where flag&0x08=0x08 and flag&0x01=0";
+        " where flag&" + std::to_string(flag) + "=" + std::to_string(flag) + " and flag&0x01=0";
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -1025,7 +1026,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     EXPECT_NE(db, nullptr);
     uint64_t num = 10;
-    InitLogicDeleteData(db, tableName, num);
+    InitLogicDeleteData(db, tableName, num, 0x08);
 
     /**
      * @tc.steps:step2. db handle is nullptr
@@ -1050,18 +1051,46 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
      * @tc.expected: step5. return OK.
      */
     EXPECT_EQ(DropLogicDeletedData(db, tableName, 0u), OK);
-    CheckLogicDeleteData(db, tableName, 0u);
+    CheckLogicDeleteData(db, tableName, 0u, 0x08);
 
     /**
      * @tc.steps:step6. init data again, and cursor is 15
      * @tc.expected: step6. return OK.
      */
     uint64_t cursor = 15;
-    InitLogicDeleteData(db, tableName, num);
+    InitLogicDeleteData(db, tableName, num, 0x08);
     EXPECT_EQ(DropLogicDeletedData(db, tableName, cursor), OK);
-    CheckLogicDeleteData(db, tableName, cursor - num);
+    CheckLogicDeleteData(db, tableName, cursor - num, 0x08);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
+
+/**
+ * @tc.name: DropDeleteData002
+ * @tc.desc: Test drop logic delete data with flag 0x800
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "DropDeleteData002";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    uint64_t num = 10;
+    InitLogicDeleteData(db, tableName, num, 0x800);
+    /**
+     * @tc.steps:step2. cursor is 0
+     * @tc.expected: step2. return OK.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, tableName, 0u), OK);
+    CheckLogicDeleteData(db, tableName, 0u, 0x800);
+}
+
 
 /**
  * @tc.name: FfrtTest001
