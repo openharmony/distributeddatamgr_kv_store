@@ -15,6 +15,7 @@
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
 
+#include <cerrno>
 #include "accesstoken_kit.h"
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
@@ -26,6 +27,8 @@
 #include "store_result_set.h"
 #include "store_util.h"
 #include "task_executor.h"
+#include "kv_hiview_reporter.h"
+
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;
@@ -43,6 +46,10 @@ SingleStoreImpl::SingleStoreImpl(
     syncObserver_ = std::make_shared<SyncObserver>();
     roleType_ = options.role;
     dataType_ = options.dataType;
+    encrypt_ = options.encrypt;
+    securityLevel_ = options.securityLevel;
+    area_ = options.area;
+    hapName_ = options.hapName;
     if (options.backup) {
         BackupManager::GetInstance().Prepare(path, storeId_);
     }
@@ -93,6 +100,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKey, &value]() { return dbStore_->Put(dbKey, value); });
+    ReportDBCorruptedFault(status, PUT);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
@@ -125,6 +133,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
     }
 
     auto status = RetryWithCheckPoint([this, &dbEntries]() { return dbStore_->PutBatch(dbEntries); });
+    ReportDBCorruptedFault(status, PUTBATCH);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
@@ -149,6 +158,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKey]() { return dbStore_->Delete(dbKey); });
+    ReportDBCorruptedFault(status, DEL);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -177,6 +187,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKeys]() { return dbStore_->DeleteBatch(dbKeys); });
+    ReportDBCorruptedFault(status, DELETEBATCH);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
@@ -195,6 +206,7 @@ Status SingleStoreImpl::StartTransaction()
     }
 
     auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
+    ReportDBCorruptedFault(status, STARTTRANSACTION);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -212,6 +224,7 @@ Status SingleStoreImpl::Commit()
 
     auto dbStatus = dbStore_->Commit();
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, COMMIT);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -229,6 +242,7 @@ Status SingleStoreImpl::Rollback()
 
     auto dbStatus = dbStore_->Rollback();
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, ROLLBACK);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -341,6 +355,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     auto dbStatus = dbStore_->Get(dbKey, dbValue);
     value = std::move(dbValue);
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, GET);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -514,6 +529,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     }
 
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, GETDEVICEENTRIES);
     if (status == NOT_FOUND) {
         status = SUCCESS;
     }
@@ -559,6 +575,7 @@ Status SingleStoreImpl::GetCount(const DataQuery &query, int &result) const
     DBQuery dbQuery = convertor_.GetDBQuery(query);
     auto dbStatus = dbStore_->GetCount(dbQuery, result);
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, GETCOUNT);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x query:%{public}s", status, StoreUtil::Anonymous(query.ToString()).c_str());
     }
@@ -578,6 +595,7 @@ Status SingleStoreImpl::GetSecurityLevel(SecurityLevel &secLevel) const
     auto dbStatus = dbStore_->GetSecurityOption(option);
     secLevel = static_cast<SecurityLevel>(StoreUtil::GetSecLevel(option));
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, GETSECURITYLEVEL);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x security:[%{public}d]", status, option.securityLabel);
     }
@@ -604,6 +622,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
 
     auto dbStatus = dbStore_->RemoveDeviceData(DevManager::GetInstance().ToUUID(device));
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, REMOVEDEVICEDATA);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x device:%{public}s", status, StoreUtil::Anonymous(device).c_str());
     }
@@ -935,6 +954,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
     }
 
     auto status = StoreUtil::ConvertStatus(dbStatus);
+    ReportDBCorruptedFault(status, GETENTRIES);
     if (status == NOT_FOUND) {
         status = SUCCESS;
     }
@@ -1111,5 +1131,15 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
         ZLOGE("SetIdentifier failed, status:0x%{public}x", status);
     }
     return status;
+}
+
+void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX) const
+{
+    if (status == CRYPT_ERROR) {
+        Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
+            .area = area_, .hapName = hapName_ };
+        KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
+        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, appendIX);
+    }
 }
 } // namespace OHOS::DistributedKv

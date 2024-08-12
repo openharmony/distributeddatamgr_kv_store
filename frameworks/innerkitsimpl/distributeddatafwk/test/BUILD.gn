@@ -124,7 +124,10 @@ ohos_source_set("distributeddatafwk_src_file") {
 ohos_unittest("DistributedKvDataManagerTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/distributed_kv_data_manager_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/distributed_kv_data_manager_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -144,7 +147,10 @@ ohos_unittest("DistributedKvDataManagerTest") {
 ohos_unittest("DistributedKvDataManagerEncryptTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/distributed_kv_data_manager_encrypt_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/distributed_kv_data_manager_encrypt_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -164,7 +170,10 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
 ohos_unittest("LocalSubscribeStoreTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/local_subscribe_store_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/local_subscribe_store_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -184,7 +193,10 @@ ohos_unittest("LocalSubscribeStoreTest") {
 ohos_unittest("LocalSubscribeDeviceStoreTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/local_subscribe_device_store_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/local_subscribe_device_store_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -204,7 +216,10 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
 ohos_unittest("SingleKvStoreClientQueryTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/single_kvstore_client_query_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/single_kvstore_client_query_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -224,7 +239,10 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
 ohos_unittest("SingleKvStoreClientTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/single_kvstore_client_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/single_kvstore_client_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -244,7 +262,10 @@ ohos_unittest("SingleKvStoreClientTest") {
 ohos_unittest("SingleKvStoreAsyncGetTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/single_kvstore_async_get_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/single_kvstore_async_get_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -264,7 +285,10 @@ ohos_unittest("SingleKvStoreAsyncGetTest") {
 ohos_unittest("DeviceKvStoreTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/device_kvstore_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/device_kvstore_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -322,7 +346,10 @@ ohos_unittest("TypesUtilTest") {
 ohos_unittest("KvUtilTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/kv_utils_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/kv_utils_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -341,7 +368,10 @@ ohos_unittest("KvUtilTest") {
 ohos_unittest("KvstoreDatashareBridgeTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/kvstore_datashare_bridge_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/kvstore_datashare_bridge_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -383,7 +413,10 @@ ohos_unittest("DistributedDataMgrTest") {
 ohos_unittest("EndPointTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/end_point_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/end_point_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
