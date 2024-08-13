@@ -22,6 +22,7 @@
 #include "message_transform.h"
 #include "parcel.h"
 #include "remote_executor_packet.h"
+#include "single_ver_data_sync_utils.h"
 #include "sync_types.h"
 #include "version.h"
 
@@ -934,6 +935,12 @@ int SingleVerSerializeManager::DataPacketInnerDeSerialization(DataRequestPacket 
         parcel.ReadInt(option.securityFlag);
         packet->SetSecurityOption(option);
     }
+    if (SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
+        uint32_t total = 0u;
+        parcel.ReadUInt32(total);
+        parcel.EightByteAlign();
+        packet->SetTotalDataCount(total);
+    }
     return errCode;
 }
 
@@ -965,6 +972,10 @@ int SingleVerSerializeManager::DataPacketInnerSerialization(const DataRequestPac
             LOGE("[SingleVerSerializeManager] Serialize security option failed");
             return -E_PARSE_FAIL;
         }
+    }
+    if (SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
+        parcel.WriteUInt32(packet->GetTotalDataCount());
+        parcel.EightByteAlign();
     }
     return E_OK;
 }

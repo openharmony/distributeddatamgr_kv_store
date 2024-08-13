@@ -195,6 +195,43 @@ int GenericSyncer::Sync(const SyncParma &param, uint64_t connectionId)
     return E_OK;
 }
 
+int GenericSyncer::CancelSync(uint32_t syncId)
+{
+    LOGI("[Syncer] Start cancelSync %" PRIu32 "", syncId);
+    ISyncEngine *engine = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(syncerLock_);
+        engine = syncEngine_;
+        RefObject::IncObjRef(engine);
+    }
+    SyncOperation *operation = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(operationMapLock_);
+        auto iter = syncOperationMap_.find(syncId);
+        if (iter == syncOperationMap_.end()) {
+            LOGE("[Syncer] Non-existent syncId %" PRIu32 "", syncId);
+            RefObject::DecObjRef(engine);
+            return -E_NOT_SUPPORT;
+        } else if (iter->second->CanCancel() == false) {
+            RefObject::DecObjRef(engine);
+            LOGE("[Syncer] Can't cancel syncId %" PRIu32 " %" PRIu32 "", syncId, iter->second->CanCancel());
+            return -E_NOT_SUPPORT;
+        }
+        operation = iter->second;
+        RefObject::IncObjRef(operation);
+    }
+
+    const std::vector<std::string> &devices = operation->GetDevices();
+    for (auto &deviceId : devices) {
+        engine->ClearAllSyncTaskByDevice(deviceId);
+    }
+    LOGI("[Syncer] End cancelSync %" PRIu32 ", devices = %s", syncId, GetSyncDevicesStr(devices).c_str());
+
+    RefObject::DecObjRef(operation);
+    RefObject::DecObjRef(engine);
+    return E_OK;
+}
+
 int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId)
 {
     auto *operation =
@@ -851,9 +888,10 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)
 {
     operation->SetIdentifier(syncInterface_->GetIdentifier());
+    operation->SetSyncProcessCallFun(param.onSyncProcess);
     operation->Initialize();
-    operation->OnKill(std::bind(&GenericSyncer::SyncOperationKillCallback, this, operation->GetSyncId()));
-    std::function<void(int)> onFinished = std::bind(&GenericSyncer::OnSyncFinished, this, std::placeholders::_1);
+    operation->OnKill([this, id = operation->GetSyncId()] { SyncOperationKillCallback(id); });
+    std::function<void(int)> onFinished = [this](int syncId) { OnSyncFinished(syncId); };
     operation->SetOnSyncFinished(onFinished);
     operation->SetOnSyncFinalize(param.onFinalize);
     if (param.isQuerySync) {

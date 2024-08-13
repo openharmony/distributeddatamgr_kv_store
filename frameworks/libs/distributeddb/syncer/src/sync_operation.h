@@ -129,7 +129,17 @@ public:
 
     static DBStatus DBStatusTrans(int operationStatus);
 
+    static ProcessStatus DBStatusTransProcess(int operationStatus);
+
     void SetSyncContext(RefObject *context);
+
+    bool CanCancel();
+
+    void SetSyncProcessCallFun(DeviceSyncProcessCallback callBack);
+
+    void SetSyncProcessTotal(const std::string &deviceId, uint32_t total);
+
+    void UpdateFinishedCount(const std::string &deviceId, uint32_t count);
 
 protected:
     virtual ~SyncOperation();
@@ -161,6 +171,9 @@ private:
     // The callback caller registered, will be called when destruction.
     OnSyncFinalize onFinalize_;
 
+    // The syncProcess callback caller registered
+    DeviceSyncProcessCallback userSyncProcessCallback_;
+
     // The device id we sync with
     std::map<std::string, int> statuses_;
 
@@ -184,6 +197,14 @@ private:
 
     // record identifier used to call ScheduleQueuedTask in SyncOperation::Finished
     std::string identifier_;
+
+    // The device id we syncProcess with
+    std::map<std::string, DeviceSyncProcess> syncProcessMap_;
+
+    // Can be cancelled
+    bool canCancel_ = false;
+
+    void ExeSyncProcessCallFun(const std::map<std::string, DeviceSyncProcess> &syncProcessMap);
 };
 } // namespace DistributedDB
 

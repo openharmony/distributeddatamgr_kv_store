@@ -431,7 +431,7 @@ int SyncTaskContext::StartStateMachine()
 
 int SyncTaskContext::ReceiveMessageCallback(Message *inMsg)
 {
-    if (GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_BASE && inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+    if (inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
         uint16_t remoteVersion = 0;
         (void)communicator_->GetRemoteCommunicatorVersion(deviceId_, remoteVersion);
         SetRemoteSoftwareVersion(SOFTWARE_VERSION_EARLIEST + remoteVersion);
@@ -502,6 +502,9 @@ void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context,
 void SyncTaskContext::SetRemoteSoftwareVersion(uint32_t version)
 {
     std::lock_guard<std::mutex> lock(remoteSoftwareVersionLock_);
+    if (remoteSoftwareVersion_ == version) {
+        return;
+    }
     remoteSoftwareVersion_ = version;
     remoteSoftwareVersionId_++;
 }

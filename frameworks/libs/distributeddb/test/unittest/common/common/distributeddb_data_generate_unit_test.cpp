@@ -90,4 +90,18 @@ void GenerateRecords(int recordNum, std::vector<Entry> &entries, std::vector<Key
         entry.value.clear();
     }
 }
+
+void GenerateNumberEntryVector(int entryNum, std::vector<Entry> &entries)
+{
+    if (entryNum <= 0) {
+        return;
+    }
+    for (int i = 1; i <= entryNum; i++) {
+        Entry entry;
+        std::string cntStr = std::to_string(i);
+        entry.key.assign(cntStr.begin(), cntStr.end());
+        entry.value.assign(cntStr.begin(), cntStr.end());
+        entries.push_back(entry);
+    }
+}
 } // namespace DistributedDBUnitTest

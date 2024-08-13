@@ -40,6 +40,9 @@ public:
     void Offline();
     int StartResponseTask();
     TimeOffset GetLocalTimeOffset() const;
+    void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
+        const DeviceSyncProcessCallback &onProcess) const;
+    virtual int Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess);
     virtual int Sync(SyncMode mode, bool wait);
     virtual int Sync(SyncMode mode, const Query &query, bool wait);
     virtual int Sync(SyncMode mode, const Query &query, const SyncOperation::UserCallback &callBack, bool wait);

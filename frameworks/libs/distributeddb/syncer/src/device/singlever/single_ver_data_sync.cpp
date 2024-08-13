@@ -83,6 +83,7 @@ int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
     } else if (tmpMode == SyncModeType::PULL) {
         errCode = PullRequestStart(context);
     } else {
+        SingleVerDataSyncUtils::CacheInitWaterMark(context, this);
         errCode = PullResponseStart(context);
     }
     if (context->IsSkipTimeoutError(errCode)) {
@@ -1014,6 +1015,8 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
         (void)SendDataAck(context, message, errCode, dataTime.endTime);
         return errCode;
     }
+    SingleVerDataSyncUtils::UpdateSyncProcess(context, packet, data.size());
+
     if (pullEndWatermark > 0 && !storage_->IsReadable()) { // pull mode
         pullEndWatermark = 0;
         errCode = SendDataAck(context, message, -E_EKEYREVOKED, dataTime.endTime);
@@ -1084,6 +1087,14 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
     }
     SyncType syncType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     FillDataRequestPacket(packet, context, syncOutData, ackCode, SyncModeType::RESPONSE_PULL);
+
+    if ((ackCode == E_OK || ackCode == SEND_FINISHED) &&
+        SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
+        uint32_t total = 0u;
+        (void)SingleVerDataSyncUtils::GetUnsyncTotal(context, storage_, total);
+        LOGD("[SendPullResponseDataPkt] GetUnsyncTotal total=%u", total);
+        packet->SetTotalDataCount(total);
+    }
     uint32_t packetLen = packet->CalculateLen(SingleVerDataSyncUtils::GetMessageId(syncType));
     Message *message = new (std::nothrow) Message(SingleVerDataSyncUtils::GetMessageId(syncType));
     if (message == nullptr) {
@@ -1699,7 +1710,7 @@ void SingleVerDataSync::UpdateMtuSize()
     mtuSize_ = communicateHandle_->GetCommunicatorMtuSize(deviceId_) * 9 / 10; // get the 9/10 of the size
 }
 
-void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
+void SingleVerDataSync::FillRequestReSendPacket(SingleVerSyncTaskContext *context, DataRequestPacket *packet,
     DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode)
 {
     SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
@@ -1745,6 +1756,17 @@ void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *
     if (needCompressOnSync && curAlgo != CompressAlgorithm::NONE) {
         packet->SetCompressDataMark();
         packet->SetCompressAlgo(curAlgo);
+    }
+    FillRequestReSendPacketV2(context, packet);
+}
+
+void SingleVerDataSync::FillRequestReSendPacketV2(SingleVerSyncTaskContext *context, DataRequestPacket *packet)
+{
+    if (context->GetMode() == SyncModeType::RESPONSE_PULL &&
+        SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
+        uint32_t total = 0u;
+        (void)SingleVerDataSyncUtils::GetUnsyncTotal(context, storage_, total);
+        packet->SetTotalDataCount(total);
     }
 }
 

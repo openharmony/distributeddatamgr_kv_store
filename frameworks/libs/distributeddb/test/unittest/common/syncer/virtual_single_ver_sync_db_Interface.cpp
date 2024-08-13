@@ -135,6 +135,57 @@ int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end,
     return -E_NOT_SUPPORT;
 }
 
+int VirtualSingleVerSyncDBInterface::GetUnSyncTotal(Timestamp begin, Timestamp end, uint32_t &total) const
+{
+    total = 0;
+    for (const auto &data : dbData_) {
+        if (data.isLocal) {
+            if (data.writeTimestamp >= begin && data.writeTimestamp < end) {
+                total++;
+            }
+        }
+    }
+    return E_OK;
+}
+
+int VirtualSingleVerSyncDBInterface::GetUnSyncTotal(QueryObject &query, const SyncTimeRange &timeRange,
+    uint32_t &total) const
+{
+    if (getDataDelayTime_ > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(getDataDelayTime_));
+    }
+    int errCode  = DataControl();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    total = 0;
+    const auto &startKey = query.GetPrefixKey();
+    Key endKey = startKey;
+    endKey.resize(DBConstant::MAX_KEY_SIZE, UCHAR_MAX);
+
+    for (const auto &data : dbData_) {
+        // Only get local data.
+        if (!data.isLocal) {
+            continue;
+        }
+
+        if ((data.flag & VirtualDataItem::DELETE_FLAG) != 0) {
+            if (data.timestamp >= timeRange.deleteBeginTime && data.timestamp < timeRange.deleteEndTime) {
+                total++;
+            }
+        } else {
+            if (data.timestamp >= timeRange.beginTime && data.timestamp < timeRange.endTime &&
+                data.key >= startKey && data.key <= endKey) {
+                    total++;
+            }
+        }
+    }
+
+    LOGD("GetUnSyncTotal %u", total);
+    return E_OK;
+}
+
 int VirtualSingleVerSyncDBInterface::GetSyncDataNext(std::vector<DataItem> &dataItems, ContinueToken &continueStmtToken,
     const DataSizeSpecInfo &dataSizeInfo) const
 {

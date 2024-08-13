@@ -117,6 +117,11 @@ public:
 
     void ClearDataMsg();
 
+    void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
+        WaterMark &waterMark) const;
+    
+    void GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context, WaterMark &waterMark) const;
+
 protected:
     static const int SEND_FINISHED = 0xff;
     static const int LOCAL_WATER_MARK_NOT_INIT = 0xaa;
@@ -168,15 +173,10 @@ protected:
     int SaveLocalWaterMark(SyncType syncType, const SingleVerSyncTaskContext *context,
         SyncTimeRange dataTimeRange, bool isCheckBeforUpdate = false) const;
 
-    void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
-        WaterMark &waterMark) const;
-
     void GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify, const DeviceID &deviceId,
         WaterMark &waterMark) const;
 
     void GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &waterMark);
-
-    void GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context, WaterMark &waterMark) const;
 
     int RemoveDeviceDataHandle(SingleVerSyncTaskContext *context, const Message *message, WaterMark maxSendDataTime);
 
@@ -227,8 +227,10 @@ protected:
 
     virtual void UpdateSendInfo(SyncTimeRange dataTimeRange, SingleVerSyncTaskContext *context);
 
-    void FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
+    void FillRequestReSendPacket(SingleVerSyncTaskContext *context, DataRequestPacket *packet,
         DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode);
+    
+    void FillRequestReSendPacketV2(SingleVerSyncTaskContext *context, DataRequestPacket *packet);
 
     void UpdateMtuSize();
 

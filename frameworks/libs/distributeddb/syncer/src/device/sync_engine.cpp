@@ -859,6 +859,15 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
     }
 }
 
+void SyncEngine::ClearAllSyncTaskByDevice(const std::string &deviceId)
+{
+    ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
+    if (context != nullptr) {
+        context->ClearAllSyncTask();
+        RefObject::DecObjRef(context);
+    }
+}
+
 void SyncEngine::GetLocalSubscribeQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries)
 {
     subManager_->GetLocalSubscribeQueries(device, subscribeQueries);
