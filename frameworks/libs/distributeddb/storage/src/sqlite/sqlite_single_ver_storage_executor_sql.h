@@ -161,10 +161,10 @@ namespace DistributedDB {
         "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0);";
 
     constexpr const char *REMOVE_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0);";
 
     constexpr const char *REMOVE_ALL_DEV_DATA_SQL =
-        "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
+        "DELETE FROM sync_data WHERE (flag&0x02=0);";
 
     constexpr const char *REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
@@ -239,6 +239,12 @@ namespace DistributedDB {
 
     constexpr const char *REMOVE_CLOUD_ALL_LOG_DATA_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log;";
+
+    constexpr const char *REMOVE_ALL_DEV_SYNC_DATA_SQL =
+        "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
+
+    constexpr const char *REMOVE_DEV_SYNC_DATA_BY_DEV_ID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 
     constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE (flag&0x100!=0);";

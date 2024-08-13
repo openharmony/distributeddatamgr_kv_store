@@ -98,7 +98,7 @@ public:
     void GetAllUnFinishSubQueries(std::map<std::string, std::vector<QuerySyncObject>> &allSyncQueries);
 
     // used by SingleVerSyncer when db online
-    int StartAutoSubscribeTimer() override;
+    int StartAutoSubscribeTimer(const ISyncInterface &syncInterface) override;
 
     // used by SingleVerSyncer when remote/local db closed
     void StopAutoSubscribeTimer() override;
@@ -128,7 +128,7 @@ public:
     int32_t GetResponseTaskCount() override;
 protected:
     // Create a context
-    virtual ISyncTaskContext *CreateSyncTaskContext() = 0;
+    virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;
 
     // Find SyncTaskContext from the map
     ISyncTaskContext *FindSyncTaskContext(const std::string &deviceId);
@@ -136,6 +136,13 @@ protected:
     void GetQueryAutoSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
     void GetSubscribeSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
 
+    void ClearSyncInterface();
+    ISyncInterface *GetAndIncSyncInterface();
+    void SetSyncInterface(ISyncInterface *syncInterface);
+
+    ISyncTaskContext *GetSyncTaskContext(const std::string &deviceId, int &errCode);
+
+    std::mutex storageMutex_;
     ISyncInterface *syncInterface_;
     // Used to store all send sync task infos (such as pull sync response, and push sync request)
     std::map<std::string, ISyncTaskContext *> syncTaskContextMap_;
@@ -147,9 +154,7 @@ private:
 
     // Init DeviceManager set callback and remoteExecutor
     int InitInnerSource(const std::function<void(std::string)> &onRemoteDataChanged,
-        const std::function<void(std::string)> &offlineChanged);
-
-    ISyncTaskContext *GetSyncTaskContext(const std::string &deviceId, int &errCode);
+        const std::function<void(std::string)> &offlineChanged, ISyncInterface *syncInterface);
 
     // Init Comunicator, register callbacks
     int InitComunicator(const ISyncInterface *syncInterface);

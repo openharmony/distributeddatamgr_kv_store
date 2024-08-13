@@ -22,11 +22,16 @@
 namespace DistributedDB {
 class MockSyncEngine : public SyncEngine {
 public:
-    MOCK_METHOD0(CreateSyncTaskContext, ISyncTaskContext *(void));
+    MOCK_METHOD1(CreateSyncTaskContext, ISyncTaskContext *(const ISyncInterface &syncInterface));
 
     void InitSubscribeManager()
     {
         subManager_ = std::make_shared<SubscribeManager>();
+    }
+
+    ISyncTaskContext *CallGetSyncTaskContext(const std::string &deviceId, int &errCode)
+    {
+        return SyncEngine::GetSyncTaskContext(deviceId, errCode);
     }
 };
 } // namespace DistributedDB
