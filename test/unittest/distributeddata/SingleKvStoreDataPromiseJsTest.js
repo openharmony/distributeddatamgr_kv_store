@@ -2800,4 +2800,54 @@ describe('singleKvStorePromiseTest', function () {
         });
         done();
     })
+
+    /**
+     * @tc.name: KVStorePutPromiseTest001
+     * @tc.desc: Test Js Api KVManager.Put() testcase 001
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('KVStorePutPromiseTest001', 0, async function (done) {
+        console.info('KVStorePutPromiseTest001');
+        try {
+            await kvStore.put(TEST_BUNDLE_NAME, TEST_STORE_ID).then((data) => {
+                if (err != undefined){
+                    console.info('KVStorePutPromiseTest001 put promise fail');
+                } else {
+                    console.info('KVStorePutPromiseTest001 put promise success');
+                    expect(null).assertFail();
+                }
+                done();
+            });
+        } catch (e) {
+            console.error('KVStorePutPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            done();
+        }
+    })
+
+    /**
+     * @tc.name: KVStoreDeletePromiseTest001
+     * @tc.desc: Test Js Api KVManager.Delete testcase 001
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('KVStoreDeletePromiseTest001', 0, async function (done) {
+        console.info('KVStoreDeletePromiseTest001');
+        try {
+            kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then((data) => {
+                console.info('KVStoreDeletePromiseTest001 getKVStore success');
+                kvStore.delete(KEY_TEST_STRING_ELEMENT).then((data) => {
+                    console.info("testKVStoreDelete001  promise delete success");
+                    expect(null).assertFail();
+                }).catch((err) => {
+                    console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            }).catch((err) => {
+                console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+            });
+        }catch (e) {
+            console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+        }
+        done();
+    })    
 })
