@@ -388,18 +388,24 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &table
         LOGE("[Storage Executor]get cursor failed=%d", errCode);
         return cursor;
     }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when get cursor", ret);
+        }
+    });
     Key key;
     DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
     errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key, false); // first arg.
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return cursor;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         cursor = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
     return cursor;
 }
 
@@ -412,6 +418,14 @@ int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &table
         LOGE("Set cursor sql failed=%d", errCode);
         return cursor;
     }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when set cursor", ret);
+        }
+    });
     int index = 1;
     errCode = SQLiteUtils::BindInt64ToStatement(stmt, index++, cursor);
     if (errCode != E_OK) {
@@ -422,14 +436,12 @@ int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &table
     DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, key, false);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return cursor;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
 }
 
