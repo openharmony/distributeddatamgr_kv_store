@@ -1793,6 +1793,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
         return errCode;
     }
     cleanLogSql = "DELETE FROM " + logTableName + " WHERE " + FLAG_IS_CLOUD + " AND " + DATA_IS_DELETE + ";";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
+    if (errCode != E_OK) {
+        LOGE("delete cloud log failed, %d", errCode);
+        return errCode;
+    }
+    // set all flag logout
+    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800;";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
@@ -1870,6 +1877,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(c
     if (errCode != E_OK) {
         CreateFuncUpdateCursor(context, nullptr);
         LOGE("set new cursor after removeData error %d.", errCode);
+        return errCode;
     }
     errCode = CreateFuncUpdateCursor(context, nullptr);
     if (errCode != E_OK) {
@@ -1888,7 +1896,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
         sql += " AND ";
         sql += FLAG_IS_CLOUD;
         sql += " OR ";
-        sql +=  FLAG_IS_CLOUD_CONSISTENCY;
+        sql += FLAG_IS_CLOUD_CONSISTENCY;
     }
     sql += ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, selectStmt);
