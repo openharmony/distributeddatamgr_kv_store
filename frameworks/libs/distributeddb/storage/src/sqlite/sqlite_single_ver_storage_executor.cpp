@@ -1367,7 +1367,7 @@ int SQLiteSingleVerStorageExecutor::SaveSyncDataItem(DataItem &dataItem, const D
 
     PutConflictData(dataItem, notify.getData, deviceInfo, notify.dataStatus, committedData);
     if (notify.dataStatus.isDefeated) {
-        LOGD("Data status is defeated:%d", errCode);
+        LOGE("Data status is defeated:%d", errCode);
         return ResetSaveSyncStatements(errCode);
     }
 
