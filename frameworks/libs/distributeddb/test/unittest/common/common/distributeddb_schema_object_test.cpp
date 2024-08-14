@@ -1087,4 +1087,88 @@ HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField002, TestSize.Level1)
         theValue), E_OK);
     EXPECT_EQ(theValue.stringValue == std::string("3.1415"), true);
 }
+
+/**
+ * @tc.name: SchemaObjectErrTest
+ * @tc.desc: Parse Schema Object err scene
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call GetExtractFuncName interface with NONE SchemaType.
+     * @tc.expected: step1. Get non-JSON string.
+     */
+    SchemaObject schema;
+    std::string str1 = schema.GetExtractFuncName(SchemaType::NONE);
+    const std::string expectStr1 = "flatbuffer_extract_by_path";
+    EXPECT_TRUE(str1.compare(0, expectStr1.length(), expectStr1) == 0);
+
+    /**
+     * @tc.steps: step2. Call interfaces with empty FieldPath.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
+     */
+    FieldPath inFieldpath1 = {};
+    std::string str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath1, FieldType::LEAF_FIELD_BOOL, 0, "");
+    const std::string expectStr2 = "";
+    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
+    FieldType schemaFieldType = FieldType::LEAF_FIELD_BOOL;
+    int ret = schema.CheckQueryableAndGetFieldType(inFieldpath1, schemaFieldType);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Call interfaces with LEAF_FIELD_NULL FieldType.
+     * @tc.expected: step3. return -E_NOT_FOUND.
+     */
+    FieldPath inFieldpath2 = {"test"};
+    str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath2, FieldType::LEAF_FIELD_NULL, 0, "");
+    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
+    ret = schema.CheckQueryableAndGetFieldType(inFieldpath2, schemaFieldType);
+    EXPECT_EQ(ret, -E_NOT_FOUND);
+}
+
+/**
+ * @tc.name: SchemaObjectErrTest002
+ * @tc.desc: Parse Schema Object err scene
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces without Schema Parse.
+     * @tc.expected: step1. return -E_NOT_PERMIT.
+     */
+    SchemaObject schema;
+    IndexDifference indexDiffer;
+    int ret = schema.CompareAgainstSchemaObject(schema, indexDiffer);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
+    ValueObject inValue;
+    ret = schema.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, inValue);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
+
+    const Value val = {0};
+    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, val);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
+
+    /**
+     * @tc.steps: step2. Call VerifyValue interface when RawValue first para is nullptr.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
+     */
+    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, RawValue{nullptr, 0});
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Parse twice same schema.
+     * @tc.expected: step3. second return -E_NOT_PERMIT.
+     */
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_EQ(stepOne, E_OK);
+    stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_EQ(stepOne, -E_NOT_PERMIT);
+}
 #endif

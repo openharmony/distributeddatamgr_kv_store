@@ -226,3 +226,59 @@ HWTEST_F(DistributedDBInterfacesQueryTest, Query003, TestSize.Level1)
     EXPECT_TRUE(queryExpression1.GetErrFlag());
     EXPECT_EQ(queryExpression1.GetQueryExpression().size(), 2UL);
 }
+
+/**
+ * @tc.name: Query004
+ * @tc.desc: Check QueryExpression abnormal scene
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBInterfacesQueryTest, Query004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. call comparison func when type is VALUE_TYPE_BOOL
+     * @tc.expected: step1. flag is false.
+     */
+    QueryExpression expression;
+    const FieldValue value = {};
+    expression.GreaterThanOrEqualTo("", QueryValueType::VALUE_TYPE_BOOL, value);
+    EXPECT_FALSE(expression.GetErrFlag());
+    expression.LessThanOrEqualTo("", QueryValueType::VALUE_TYPE_BOOL, value);
+    EXPECT_FALSE(expression.GetErrFlag());
+
+    /**
+     * @tc.steps: step2. call RangeParamCheck func with operFlag OPER_ILLEGAL
+     * @tc.expected: step2. flag is false.
+     */
+    expression.GetQueryExpression();
+    EXPECT_EQ(expression.RangeParamCheck(), -E_INVALID_ARGS);
+    EXPECT_FALSE(expression.GetErrFlag());
+    expression.Reset();
+    EXPECT_TRUE(expression.GetErrFlag());
+
+    /**
+     * @tc.steps: step3. call From func when tables_ is empty
+     * @tc.expected: step3. -E_INVALID_ARGS.
+     */
+    EXPECT_EQ(expression.GetExpressionStatus(), E_OK);
+    const std::string tableName1;
+    expression.From(tableName1);
+    const std::string tableName2 = "test2";
+    for (size_t i = 0; i < 2; i++) { // 传入相同tableName2次
+        expression.From(tableName2);
+    }
+    EXPECT_EQ(expression.GetExpressionStatus(), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step4. call From func when tables_ is not empty
+     * @tc.expected: step4. -E_NOT_SUPPORT.
+     */
+    QueryExpression expression1;
+    EXPECT_EQ(expression1.GetExpressionStatus(), E_OK);
+    const std::vector<std::string> tableNames = {tableName1, tableName2};
+    expression1.SetTables(tableNames);
+    const std::string tableName3 = "test3";
+    expression1.From(tableName3);
+    EXPECT_EQ(expression1.GetExpressionStatus(), -E_NOT_SUPPORT);
+}

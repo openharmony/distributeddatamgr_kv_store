@@ -559,7 +559,7 @@ int StorageProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return -E_INVALID_DB;
     }
     return store_->SetIAssetLoader(loader);
 }
@@ -568,7 +568,7 @@ int StorageProxy::UpdateRecordFlag(const std::string &tableName, bool recordConf
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return -E_INVALID_DB;
     }
     return store_->UpdateRecordFlag(tableName, recordConflict, logInfo);
 }
@@ -577,7 +577,7 @@ int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuer
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return -E_INVALID_DB;
     }
     return store_->GetCompensatedSyncQuery(syncQuery);
 }
@@ -587,7 +587,7 @@ int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const Downl
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return -E_INVALID_DB;
     }
     return store_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
 }
@@ -627,7 +627,7 @@ int StorageProxy::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
-        return E_INVALID_DB;
+        return -E_INVALID_DB;
     }
     return store_->GetCloudDbSchema(cloudSchema);
 }

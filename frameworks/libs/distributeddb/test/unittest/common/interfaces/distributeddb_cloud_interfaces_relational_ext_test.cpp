@@ -1720,4 +1720,110 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), INVALID_ARGS);
 }
+
+/**
+ * @tc.name: AbnormalDelegateImplTest001
+ * @tc.desc: Test delegateImpl interface after delegate is closed
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create db and open store.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+   /**
+     * @tc.steps: step2. close delegate.
+     * @tc.expected: step2. return ok.
+     */
+    auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
+    status = delegateImpl->Close();
+    EXPECT_EQ(status, OK);
+
+    /**
+     * @tc.steps: step3. test DelegateImpl interface after delegate is closed.
+     * @tc.expected: step3. return DB_ERROR.
+     */
+    const RemoteCondition condition;
+    std::shared_ptr<ResultSet> result = nullptr;
+    DBStatus ret = delegateImpl->RemoteQuery("", condition, 0, result);
+    EXPECT_EQ(ret, DB_ERROR);
+    EXPECT_EQ(delegateImpl->RemoveDeviceData(), DB_ERROR);
+
+    StoreObserver observer;
+    EXPECT_EQ(delegateImpl->RegisterObserver(&observer), DB_ERROR);
+    EXPECT_EQ(delegateImpl->UnRegisterObserver(&observer), DB_ERROR);
+    DistributedDB::SqlCondition sqlCondition;
+    std::vector<VBucket> records = {};
+    EXPECT_EQ(delegateImpl->ExecuteSql(sqlCondition, records), DB_ERROR);
+    EXPECT_EQ(delegateImpl->UpsertData("", records, RecordStatus::WAIT_COMPENSATED_SYNC), DB_ERROR);
+    const CloudSyncConfig config;
+    EXPECT_EQ(delegateImpl->SetCloudSyncConfig(config), DB_ERROR);
+
+    /**
+     * @tc.steps: step4. close store.
+     * @tc.expected: step4. return ok.
+     */
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
+}
+
+/**
+ * @tc.name: AbnormalDelegateImplTest002
+ * @tc.desc: Test delegate interface after delegate is closed
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create db and open store.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    /**
+     * @tc.steps: step2. test DelegateImpl interface when para is err.
+     * @tc.expected: step2. return INVALID_ARGS or NOT_FOUND.
+     */
+    auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
+    const CloudSyncConfig config;
+    EXPECT_EQ(delegateImpl->SetCloudSyncConfig(config), OK);
+
+    DistributedDB::SqlCondition sqlCondition;
+    std::vector<VBucket> records = {};
+    EXPECT_EQ(delegateImpl->ExecuteSql(sqlCondition, records), INVALID_ARGS);
+    EXPECT_EQ(delegateImpl->UpsertData("", records, RecordStatus::WAIT_COMPENSATED_SYNC), INVALID_ARGS);
+    EXPECT_EQ(delegateImpl->CleanTrackerData("", 0), INVALID_ARGS);
+    TrackerSchema schema;
+    EXPECT_EQ(delegateImpl->SetTrackerTable(schema), INVALID_ARGS);
+    schema = {.tableName = "test", .extendColName = "", .trackerColNames = {}};
+    EXPECT_EQ(delegateImpl->SetTrackerTable(schema), NOT_FOUND);
+
+    /**
+     * @tc.steps: step3. close store.
+     * @tc.expected: step3. return ok.
+     */
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
+}
 }

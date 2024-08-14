@@ -511,3 +511,39 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckFieldPath002, TestSize.Level1)
         EXPECT_EQ(SchemaUtils::ParseAndCheckFieldPath(iter, ans), -E_SCHEMA_PARSE_FAIL);
     }
 }
+
+/**
+ * @tc.name: ParseTrackerSchemaAndName
+ * @tc.desc: Correctly identify illegal shema index fields
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBSchemalTest, ParseTrackerSchemaAndName, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Trans TrackerSchema to Lower.
+     * @tc.expected: step1. Trans success.
+     */
+    const TrackerSchema srcSchema = {"Test", "Col", {"Col1", "Col2"}};
+    TrackerSchema destSchema;
+    SchemaUtils::TransTrackerSchemaToLower(srcSchema, destSchema);
+    TrackerSchema expectedSchema = {"test", "col", {"col1", "col2"}};
+    EXPECT_TRUE(destSchema.tableName.compare(0, expectedSchema.tableName.length(), expectedSchema.tableName) == 0);
+    EXPECT_TRUE(
+        destSchema.extendColName.compare(0, expectedSchema.extendColName.length(), expectedSchema.extendColName) == 0);
+
+    /**
+     * @tc.steps: step2. Strip space from name.
+     * @tc.expected: step2. Success.
+     */
+    const std::string inputName1 = "test1";
+    std::string expectedName1 = "test1";
+    std::string outputName1 = SchemaUtils::StripNameSpace(inputName1);
+    EXPECT_TRUE(outputName1.compare(0, expectedName1.length(), expectedName1) == 0);
+
+    const std::string inputName2 = "test1.test2";
+    std::string expectedName2 = "test2";
+    std::string outputName2 = SchemaUtils::StripNameSpace(inputName2);
+    EXPECT_TRUE(outputName2.compare(0, expectedName2.length(), expectedName2) == 0);
+}
