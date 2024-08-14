@@ -1271,8 +1271,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         return errCode;
     }
     sql = "DELETE FROM " + tableName + " WHERE _rowid_ IN (SELECT data_key FROM " + logTblName + " WHERE "
-        " (flag&0x08=0x08 OR flag&0x800=0x800)" + (cursor == 0 ? ");" : // When the flag is 0x800, it must also be 0x08
-        " AND cursor <= '" + std::to_string(cursor) + "');");
+        " flag&0x08=0x08" + (cursor == 0 ? ");" : " AND cursor <= '" + std::to_string(cursor) + "');");
     errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("delete logic deletedData failed. %d", errCode);
@@ -1284,12 +1283,11 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         LOGE("get log table version failed. %d", errCode);
         return errCode;
     }
-    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x808) | 0x01";
+    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01";
     if (logTableVersion >= DBConstant::LOG_TABLE_VERSION_5_3) {
         sql += ", sharing_resource = ''";
     }
-    sql += " WHERE (flag&0x08=0x08 OR flag&0x800=0x800)" + (cursor == 0 ? ";" :
-        " AND cursor <= '" + std::to_string(cursor) + "';");
+    sql += " WHERE flag&0x08=0x08" + (cursor == 0 ? ";" : " AND cursor <= '" + std::to_string(cursor) + "';");
     errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("update logic deletedData failed. %d", errCode);

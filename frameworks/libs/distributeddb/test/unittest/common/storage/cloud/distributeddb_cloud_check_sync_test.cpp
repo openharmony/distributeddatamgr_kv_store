@@ -1600,38 +1600,6 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level
 }
 
 /**
- * @tc.name: LogicDeleteSyncTest007
- * @tc.desc: Test sync when data with flag 0x800 locally.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest007, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Insert user table record with flag 0x800.
-     * @tc.expected: step1. ok.
-     */
-    uint32_t dataCount = 10;
-    uint32_t logicDeleteCount = 4;
-    InsertUserTableRecord(tableName_, dataCount);
-    std::string sql = "update " + DBCommon::GetLogTableName(tableName_) +
-        " set flag = flag | 0x800 where data_key <= " + std::to_string(logicDeleteCount);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
-    /**
-     * @tc.steps:step2. Do sync.
-     * @tc.expected: step2. ok.
-     */
-    Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_, g_actualDBStatus);
-    /**
-     * @tc.steps:step3. Check data on cloud.
-     * @tc.expected: step3. Data count is 0.
-     */
-    CheckCloudTableCount(tableName_, dataCount - logicDeleteCount);
-}
-
-/**
  * @tc.name: LogicDeleteSyncTest008
  * @tc.desc: Test sync when data with flag 0x800 locally but there is updated data on the cloud.
  * @tc.type: FUNC
