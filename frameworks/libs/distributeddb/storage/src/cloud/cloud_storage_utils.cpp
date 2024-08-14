@@ -501,7 +501,10 @@ int CloudStorageUtils::FillAssetForUpload(Asset &asset, Asset &dbAsset, AssetOpe
 {
     if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
         // db assetId may be empty, need to be based on cache
-        dbAsset.assetId = asset.assetId;
+        // Notes: Assign happened when dbAsset.assetId is empty because of asset.assetId may be empty.
+        if (dbAsset.assetId.empty()) {
+            dbAsset.assetId = asset.assetId;
+        }
         return E_OK;
     }
     AssetStatus status = static_cast<AssetStatus>(dbAsset.status);

@@ -88,7 +88,7 @@ public:
 
     static int FillAssetIdToAssetData(const Type &extend, Type &assetData);
 
-    static int FillAssetIdToAssetsData(const Assets &extend, Assets &assets);
+    static void FillAssetIdToAssetsData(const Assets &extend, Assets &assets);
 
     static bool CheckIfContainsInsertAssets(const Type &assetData);
 
