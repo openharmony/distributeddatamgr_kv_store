@@ -447,20 +447,23 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
         if (DBCommon::IsRecordIgnored(data.extend[i])) {
             continue;
         }
-        for (auto &[col, value] : data.assets[i]) {
+        for (auto it = data.assets[i].begin(); it != data.assets[i].end();) {
+            auto &[col, value] = *it;
             if (!CheckIfContainsInsertAssets(value)) {
+                ++it;
                 continue;
             }
             auto extendIt = data.extend[i].find(col);
             if (extendIt == data.extend[i].end()) {
-                LOGE("[CloudSyncUtils] Asset field name can not find in extend.");
-                errCode = -E_CLOUD_ERROR;
+                LOGI("[CloudSyncUtils] Asset field name can not find in extend. key is:%s.", col.c_str());
+                it = data.assets[i].erase(it);
                 continue;
             }
             if (extendIt->second.index() != value.index()) {
                 LOGE("[CloudSyncUtils] Asset field type not same. extend:%zu, data:%zu",
                     extendIt->second.index(), value.index());
                 errCode = -E_CLOUD_ERROR;
+                ++it;
                 continue;
             }
             int ret = FillAssetIdToAssetData(extendIt->second, value);
@@ -468,6 +471,7 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
                 LOGE("[CloudSyncUtils] fail to fill assetId, %d.", ret);
                 errCode = -E_CLOUD_ERROR;
             }
+            ++it;
         }
     }
     return errCode;
@@ -487,20 +491,17 @@ int CloudSyncUtils::FillAssetIdToAssetData(const Type &extend, Type &assetData)
         std::get<Asset>(assetData).assetId = std::get<Asset>(extend).assetId;
     }
     if (extend.index() == TYPE_INDEX<Assets>) {
-        int errCode = FillAssetIdToAssetsData(std::get<Assets>(extend), std::get<Assets>(assetData));
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncUtils][FillAssetIdToAssetData] Failed to fill assetId to Assets, %d.", errCode);
-            return errCode;
-        }
+        FillAssetIdToAssetsData(std::get<Assets>(extend), std::get<Assets>(assetData));
     }
     return E_OK;
 }
 
-int CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets)
+void CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets)
 {
-    int errCode = E_OK;
-    for (auto &asset : assets) {
+    for (auto it = assets.begin(); it != assets.end();) {
+        auto &asset = *it;
         if (asset.flag != static_cast<uint32_t>(AssetOpType::INSERT)) {
+            ++it;
             continue;
         }
         auto extendAssets = extend;
@@ -513,11 +514,12 @@ int CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets
             }
         }
         if (!isAssetExisted) {
-            LOGE("[CloudSyncUtils][FillAssetIdToAssets] Assets name can not find in extend.");
-            errCode = -E_CLOUD_ERROR;
+            LOGI("Unable to sync local asset, skip fill assetId.");
+            it = assets.erase(it);
+        } else {
+            ++it;
         }
     }
-    return errCode;
 }
 
 bool CloudSyncUtils::CheckIfContainsInsertAssets(const Type &assetData)

@@ -948,7 +948,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
     g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
         extend.erase("assets");
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
 
     /**
@@ -964,7 +964,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
             }
         }
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     int beginFailFillNum = 101;
     int endFailFillNum = 120;
     std::set<int> index;
@@ -1004,7 +1004,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Le
             }
         }
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
 
     /**
@@ -1265,7 +1265,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Le
             num++;
         }
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {41}); // // 41th asset do not fill
 }
 
@@ -1536,6 +1536,83 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId019, TestSize.Le
         + " set data_key='999' where data_key>'10';";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
     EXPECT_EQ(g_delegate->RemoveDeviceData("", FLAG_ONLY), OK);
+}
+
+/**
+ * @tc.name: FillAssetId020
+ * @tc.desc: Test if assetId is filled when extend(lack of assets/assetId is empty/modify asset info)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        extend.erase("assets");
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+ 
+    /**
+     * @tc.steps:step2. local insert assets and modify assetId to empty
+     * @tc.expected: step2. return OK.
+     */
+    int addLocalCount = 10;
+    InsertLocalData(db, localCount, addLocalCount, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end()) {
+            for (auto &asset : std::get<Assets>(extend["assets"])) {
+                asset.assetId = "";
+            }
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 101;
+    int endFailFillNum = 120;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+ 
+    /**
+     * @tc.steps:step3. local insert assets and modify assetId info such as asset.name
+     * @tc.expected: step3. return OK.
+     */
+    InsertLocalData(db, localCount + addLocalCount, addLocalCount, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end()) {
+            for (auto &asset : std::get<Assets>(extend["assets"])) {
+                asset.name = "mod_pat";
+            }
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    beginFailFillNum = 121;
+    endFailFillNum = 140;
+    std::set<int> newIndex;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        newIndex.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", newIndex);
+ 
+    /**
+     * @tc.steps:step4. local update assets and sync, check the local assetId.
+     * @tc.expected: step4. sync success.
+     */
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 
 /**
