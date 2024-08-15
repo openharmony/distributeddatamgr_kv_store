@@ -78,8 +78,6 @@ public:
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     void OnRemoteDied() override;
-    void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
-    void SyncCompleted(const std::map<std::string, Status> &results) override;
 
     // normal function
     int32_t Close(bool isForce = false);
@@ -130,10 +128,8 @@ private:
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    Status DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
-    Status SyncExt(const std::string &networkId, uint64_t sequenceId);
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();
