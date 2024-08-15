@@ -313,19 +313,19 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
         case INSERT: {
             status = cloudDb->BatchInsert(context->GetTableName(), std::move(record), extend);
             context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::INSERT);
+            context->SetInfo(CloudWaterType::INSERT, status);
             break;
         }
         case UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
             context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::UPDATE);
+            context->SetInfo(CloudWaterType::UPDATE, status);
             break;
         }
         case DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
             context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::DELETE);
+            context->SetInfo(CloudWaterType::DELETE, status);
             break;
         }
         default: {
@@ -568,12 +568,17 @@ bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
     return false;
 }
 
-bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, bool isInsert)
+bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status)
 {
-    if (extend.count(CloudDbConstant::GID_FIELD) == 0 || DBCommon::IsRecordError(extend) ||
-        (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordIgnored(extend) &&
-        !DBCommon::IsRecordVersionConflict(extend))) {
+    if (extend.count(CloudDbConstant::GID_FIELD) == 0) {
         return true;
+    }
+    if (status != OK) {
+        if (DBCommon::IsRecordError(extend) ||
+            (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordIgnored(extend) &&
+            !DBCommon::IsRecordVersionConflict(extend))) {
+            return true;
+        }
     }
     auto gid = std::get_if<std::string>(&extend.at(CloudDbConstant::GID_FIELD));
     if (gid == nullptr || (isInsert && (*gid).empty())) {
@@ -592,7 +597,7 @@ bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend,
     return false;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type)
+void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBStatus status)
 {
     totalCount_ = record_.size();
 
@@ -605,7 +610,7 @@ void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type)
         if (DBCommon::IsNeedCompensatedForUpload(extend, type)) {
             continue;
         }
-        if (IsRecordActionFail(extend, type == CloudWaterType::INSERT)) {
+        if (IsRecordActionFail(extend, type == CloudWaterType::INSERT, status)) {
             failedCount_++;
         } else {
             successCount_++;
