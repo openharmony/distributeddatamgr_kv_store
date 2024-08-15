@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest001, TestSiz
      * @tc.expected: step1. ok.
      */
     const int actualCount = 10;
-    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    InsertUserTableRecord(tableName_, 0, actualCount);
     /**
      * @tc.steps:step2. Set callback function to cause some upstream data to fail.
      * @tc.expected: step2. ok.
@@ -802,7 +802,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest002, TestSiz
      * @tc.expected: step1. ok.
      */
     const int actualCount = 10;
-    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    InsertUserTableRecord(tableName_, 0, actualCount);
     Query query = Query::Select().FromTable({ tableName_ });
     BlockSync(query, delegate_);
     /**
@@ -841,7 +841,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSiz
      * @tc.expected: step1. ok.
      */
     const int actualCount = 100;
-    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    InsertUserTableRecord(tableName_, 0, actualCount);
     /**
      * @tc.steps:step2. Set callback function to return CLOUD_RECORD_ALREADY_EXISTED in 1st batch.
      * @tc.expected: step2. ok.

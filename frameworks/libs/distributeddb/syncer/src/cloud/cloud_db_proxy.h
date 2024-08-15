@@ -20,6 +20,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include "cloud/cloud_db_types.h"
+#include "cloud/cloud_db_types.h"
 #include "cloud/icloud_db.h"
 #include "cloud/iAssetLoader.h"
 
