@@ -223,6 +223,45 @@ void DeleteCloudDBData(int64_t begin, int64_t count, const std::string &tableNam
     }
 }
 
+void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t versionStart,
+    const std::string &tableName)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    GenerateDataRecords(begin, count, gidStart, record, extend);
+    for (auto &entry: extend) {
+        entry[CloudDbConstant::VERSION_FIELD] = std::to_string(versionStart++);
+    }
+    ASSERT_EQ(g_virtualCloudDb->BatchUpdate(tableName, std::move(record), extend), DBStatus::OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
+int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
+{
+    auto status = static_cast<std::vector<int64_t> *>(data);
+    for (int i = 0; i < count; i++) {
+        status->push_back(strtol(colValue[0], nullptr, 10));
+    }
+    return 0;
+}
+
+void CheckLockStatus(sqlite3 *db, int startId, int endId, LockStatus lockStatus)
+{
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "select status from " + logName + " where data_key >=" + std::to_string(startId) +
+        " and data_key <=" +  std::to_string(endId) + ";";
+    std::vector<int64_t> status;
+    char * str = NULL;
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryStatusCallback, static_cast<void *>(&status), &str),
+        SQLITE_OK);
+    ASSERT_EQ(static_cast<size_t>(endId - startId + 1), status.size());
+
+    for(auto stat : status) {
+        ASSERT_EQ(static_cast<int64_t>(lockStatus), stat);
+    }
+}
+
 void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName)
 {
     std::vector<VBucket> record;

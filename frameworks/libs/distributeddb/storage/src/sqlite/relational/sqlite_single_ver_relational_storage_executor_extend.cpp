@@ -677,7 +677,9 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
     }
 
     std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0)";
+        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, " + "CASE WHEN (SELECT status FROM " +
+        DBCommon::GetLogTableName(tableSchema.name) + " WHERE hash_key=?) IS NULL THEN 0 ELSE " +
+        "(SELECT status FROM " + DBCommon::GetLogTableName(tableSchema.name) + " WHERE hash_key=?) " + "END)";
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {
@@ -728,6 +730,23 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpsertStatement(const V
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt,
+    std::vector<uint8_t> &hashKey)
+{
+    int errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, 12, hashKey); // 12 is hash_key
+    if (errCode != E_OK) {
+        LOGE("Bind hash_key to status subQuery statement failed, %d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, 13, hashKey); // 13 is hash_key
+    if (errCode != E_OK) {
+        LOGE("Bind hash_key to status subQuery2 statement failed, %d", errCode);
+        return errCode;
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket,
     const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt)
 {
@@ -768,7 +787,11 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
         return errCode;
     }
 
-    return BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
+    errCode = BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return BindStatusSubQueryHashKeyStatement(insertLogStmt, hashKey);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBucket &vBucket,
