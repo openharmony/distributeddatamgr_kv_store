@@ -1199,6 +1199,82 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync041
+ * @tc.desc: Test concurrent sync and close DB.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync041, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. put data to cloud.
+     * @tc.expected: step1 ok.
+     */
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    kvDelegatePtrS1_->Put(key, value);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps:step2. sync and close DB concurrently.
+     * @tc.expected: step2 ok.
+     */
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    virtualCloudDb_->ForkQuery([](const std::string &tableName, VBucket &extend) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep for 200ms
+    });
+    KvStoreDelegateManager &mgr = g_mgr;
+    std::thread syncThread([&mgr, &kvDelegatePtrS3_]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
+        EXPECT_EQ(mgr.CloseKvStore(kvDelegatePtrS3_), OK);
+    });
+    EXPECT_EQ(kvDelegatePtrS3_->Sync(g_CloudSyncoption, nullptr), OK);
+    syncThread.join();
+}
+
+/**
+ * @tc.name: NormalSync045
+ * @tc.desc: Test some record upload fail in 1 batch and extend size greater than record size
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 10 records.
+     * @tc.expected: step1 ok.
+     */
+    vector<Entry> entries;
+    int count = 10; // put 10 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    /**
+     * @tc.steps:step2. sync and add one empty extend as result
+     * @tc.expected: step2 sync fail and upLoadInfo.failCount is 10. 1 batch failed.
+     */
+    std::atomic<int> missCount = -1;
+    virtualCloudDb_->SetClearExtend(missCount);
+    BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 10u);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
  * @tc.name: SyncOptionCheck001
  * @tc.desc: Test sync without user.
  * @tc.type: FUNC

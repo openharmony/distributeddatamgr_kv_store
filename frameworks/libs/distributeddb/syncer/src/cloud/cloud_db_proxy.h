@@ -19,6 +19,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <shared_mutex>
+#include "cloud/cloud_db_types.h"
 #include "cloud/icloud_db.h"
 #include "cloud/iAssetLoader.h"
 
@@ -103,12 +104,16 @@ protected:
 
         Info GetInfo();
 
-        void SetInfo();
+        void SetInfo(const CloudWaterType &type, DBStatus status);
 
         void SetTableName(const std::string &tableName);
 
         std::string GetTableName();
     private:
+        static bool IsEmptyAssetId(const Assets &assets);
+
+        static bool IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status);
+
         std::mutex actionMutex_;
         std::condition_variable actionCv_;
         bool actionFinished_;

@@ -2157,5 +2157,86 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestS
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     EXPECT_EQ(errCode, E_OK);
 }
+
+/**
+ * @tc.name: RecordLockFuncTest001
+ * @tc.desc: UNLOCKING->UNLOCKING Synchronous download failure wholly.
+ * @tc.type: FUNC
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init local data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 100;
+    int cloudCount = 100;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, true);
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "update " + logName + " SET status = 2 where data_key >=70;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    CheckLockStatus(db, 0, 69, LockStatus::UNLOCK);
+    CheckLockStatus(db, 70, 99, LockStatus::LOCK);
+    DeleteLocalRecord(db, 70, 30, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. init cloud data
+     * @tc.expected: step2. return OK.
+     */
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    UpdateCloudDBData(0, 70, 0, 0, ASSETS_TABLE_NAME);
+
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s  %d", gid.c_str(), index);
+                index++;
+                if (index <= 30) {
+                    return DBStatus::CLOUD_ERROR;
+                } else {
+                    return DBStatus::OK;
+                }
+
+            });
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
+        LOGD("query index:%d", ++queryIdx);
+        if (queryIdx == 2) { // 2 is compensated sync
+            mtx.lock();
+            cv.notify_one();
+            mtx.unlock();
+            std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
+        }
+    });
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock);
+    }
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. check before compensated sync
+     * @tc.expected: 70-99 is UNLOCKING.
+     */
+    CheckLockStatus(db, 0, 69, LockStatus::UNLOCK);
+    CheckLockStatus(db, 70, 99, LockStatus::UNLOCKING);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    /**
+     * @tc.steps:step4. check after compensated sync
+     * @tc.expected: all is UNLOCKING.
+     */
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+}
 } // namespace
 #endif // RELATIONAL_STORE
