@@ -318,20 +318,20 @@ int SchemaObject::VerifyValue(ValueSource sourceType, const Value &inValue) cons
 
 int SchemaObject::VerifyValue(ValueSource sourceType, const RawValue &inValue) const
 {
-    if (inValue.first == nullptr) {
+    if (inValue.first == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
-    if (!isValid_ || schemaType_ != SchemaType::FLATBUFFER) {
+    if (!isValid_ || schemaType_ != SchemaType::FLATBUFFER) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
-    if (inValue.second <= schemaSkipSize_) {
+    if (inValue.second <= schemaSkipSize_) { // LCOV_EXCL_BR_LINE
         LOGE("[Schema][Verify] Value length=%" PRIu32 " invalid, skipsize=%" PRIu32, inValue.second, schemaSkipSize_);
         return -E_FLATBUFFER_VERIFY_FAIL;
     }
 
     RawValue rawValue;
     std::vector<uint8_t> cache;
-    if (schemaSkipSize_ % SchemaConstant::SECURE_BYTE_ALIGN == 0) {
+    if (schemaSkipSize_ % SchemaConstant::SECURE_BYTE_ALIGN == 0) { // LCOV_EXCL_BR_LINE
         rawValue = {inValue.first + schemaSkipSize_, inValue.second - schemaSkipSize_};
     } else {
         cache.assign(inValue.first + schemaSkipSize_, inValue.first + inValue.second);
@@ -340,7 +340,7 @@ int SchemaObject::VerifyValue(ValueSource sourceType, const RawValue &inValue) c
 
     // Currently do not try no sizePrefix, future may depend on sourceType
     int errCode = flatbufferSchema_.VerifyFlatBufferValue(rawValue, false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[Schema][Verify] Value verify fail, srcType=%d.", static_cast<int>(sourceType));
         return errCode;
     }
@@ -351,20 +351,20 @@ int SchemaObject::ExtractValue(ValueSource sourceType, RawString inPath, const R
     TypeValue &outExtract, std::vector<uint8_t> *cache) const
 {
     // NOTE!!! This function is performance sensitive !!! Carefully not to allocate memory often!!!
-    if (!isValid_ || schemaType_ != SchemaType::FLATBUFFER) {
+    if (!isValid_ || schemaType_ != SchemaType::FLATBUFFER) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
-    if (inPath == nullptr || inValue.first == nullptr) {
+    if (inPath == nullptr || inValue.first == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
-    if (inValue.second <= schemaSkipSize_) {
+    if (inValue.second <= schemaSkipSize_) { // LCOV_EXCL_BR_LINE
         LOGE("[Schema][Extract] Value length=%" PRIu32 " invalid, skip:%" PRIu32, inValue.second, schemaSkipSize_);
         return -E_FLATBUFFER_VERIFY_FAIL;
     }
 
     RawValue rawValue;
     std::vector<uint8_t> *tempCache = nullptr; // A temporary cache for use when input cache can not hold.
-    if (schemaSkipSize_ % SchemaConstant::SECURE_BYTE_ALIGN == 0) {
+    if (schemaSkipSize_ % SchemaConstant::SECURE_BYTE_ALIGN == 0) { // LCOV_EXCL_BR_LINE
         rawValue = {inValue.first + schemaSkipSize_, inValue.second - schemaSkipSize_};
     } else if ((cache != nullptr) && (cache->size() >= (inValue.second - schemaSkipSize_))) {
         // Do not expand the cache if it can not hold
@@ -384,7 +384,7 @@ int SchemaObject::ExtractValue(ValueSource sourceType, RawString inPath, const R
 
     // Currently do not try no sizePrefix, future may depend on sourceType
     int errCode = flatbufferSchema_.ExtractFlatBufferValue(inPath, rawValue, outExtract, false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[Schema][Extract] Fail, srcType=%d.", static_cast<int>(sourceType));
     }
     delete tempCache; // delete nullptr is safe

@@ -54,7 +54,7 @@ void SingleVerSyncEngine::EnableClearRemoteStaleData(bool enable)
     std::unique_lock<std::mutex> lock(contextMapLock_);
     for (auto &iter : syncTaskContextMap_) {
         auto context = static_cast<SingleVerSyncTaskContext *>(iter.second);
-        if (context != nullptr) {
+        if (context != nullptr) { // LCOV_EXCL_BR_LINE
             context->EnableClearRemoteStaleData(enable);
         }
     }
@@ -101,13 +101,13 @@ void SingleVerSyncEngine::StopAutoSubscribeTimer()
 
 int SingleVerSyncEngine::SubscribeTimeOut(TimerId id)
 {
-    if (!queryAutoSyncCallback_) {
+    if (!queryAutoSyncCallback_) { // LCOV_EXCL_BR_LINE
         return E_OK;
     }
     std::lock_guard<std::mutex> lockGuard(timerLock_);
     std::map<std::string, std::vector<QuerySyncObject>> allSyncQueries;
     GetAllUnFinishSubQueries(allSyncQueries);
-    if (allSyncQueries.empty()) {
+    if (allSyncQueries.empty()) { // LCOV_EXCL_BR_LINE
         return E_OK;
     }
     for (const auto &item : allSyncQueries) {

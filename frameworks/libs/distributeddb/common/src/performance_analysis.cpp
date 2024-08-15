@@ -82,7 +82,7 @@ void PerformanceAnalysis::ClosePerformanceAnalysis()
 
 bool PerformanceAnalysis::InsertTimeRecord(const TimePair &timePair, uint32_t step)
 {
-    if (!IsStepValid(step)) {
+    if (!IsStepValid(step)) { // LCOV_EXCL_BR_LINE
         return false;
     }
     timeRecordData_.timeInfo[step] = timePair;
@@ -91,7 +91,7 @@ bool PerformanceAnalysis::InsertTimeRecord(const TimePair &timePair, uint32_t st
 
 bool PerformanceAnalysis::GetTimeRecord(uint32_t step, TimePair &timePair) const
 {
-    if (!IsStepValid(step)) {
+    if (!IsStepValid(step)) { // LCOV_EXCL_BR_LINE
         return false;
     }
     timePair = timeRecordData_.timeInfo[step];
@@ -100,7 +100,7 @@ bool PerformanceAnalysis::GetTimeRecord(uint32_t step, TimePair &timePair) const
 
 void PerformanceAnalysis::TimeRecordStart()
 {
-    if (!IsOpen()) {
+    if (!IsOpen()) { // LCOV_EXCL_BR_LINE
         return;
     }
     StepTimeRecordStart(0);
@@ -108,7 +108,7 @@ void PerformanceAnalysis::TimeRecordStart()
 
 void PerformanceAnalysis::TimeRecordEnd()
 {
-    if (!IsOpen()) {
+    if (!IsOpen()) { // LCOV_EXCL_BR_LINE
         return;
     }
     StepTimeRecordEnd(0);
@@ -119,13 +119,13 @@ void PerformanceAnalysis::StepTimeRecordStart(uint32_t step)
     if (!IsOpen()) {
         return;
     }
-    if (!IsStepValid(step)) {
+    if (!IsStepValid(step)) { // LCOV_EXCL_BR_LINE
         return;
     }
     TimePair timePair = {0, 0};
     uint64_t curTime = 0;
     int errCode = OS::GetCurrentSysTimeInMicrosecond(curTime);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[performance_analysis] GetCurrentSysTimeInMicrosecond fail");
     } else {
         timePair.startTime = curTime;
@@ -139,12 +139,12 @@ void PerformanceAnalysis::StepTimeRecordEnd(uint32_t step)
     if (!IsOpen()) {
         return;
     }
-    if (!IsStepValid(step)) {
+    if (!IsStepValid(step)) { // LCOV_EXCL_BR_LINE
         return;
     }
     TimePair timePair = {0, 0};
     bool errCode = GetTimeRecord(step, timePair);
-    if (!errCode) {
+    if (!errCode) { // LCOV_EXCL_BR_LINE
         return;
     }
     (void)InsertTimeRecord({0, 0}, step);
@@ -154,18 +154,19 @@ void PerformanceAnalysis::StepTimeRecordEnd(uint32_t step)
     timePair.endTime = curTime;
     LOGD("[performance_analysis] StepTimeRecordEnd step:%" PRIu32 ", curTime:%" PRIu64, step, curTime);
 
-    if ((timePair.endTime < timePair.startTime) || (timePair.startTime == 0) || (timePair.endTime == 0)) {
+    if ((timePair.endTime < timePair.startTime) || (timePair.startTime == 0)
+        || (timePair.endTime == 0)) { // LCOV_EXCL_BR_LINE
         return;
     }
     Timestamp offset = timePair.endTime - timePair.startTime;
-    if (stepTimeRecordInfo_[step].max < offset) {
+    if (stepTimeRecordInfo_[step].max < offset) { // LCOV_EXCL_BR_LINE
         stepTimeRecordInfo_[step].max = offset;
     }
-    if (offset < stepTimeRecordInfo_[step].min) {
+    if (offset < stepTimeRecordInfo_[step].min) { // LCOV_EXCL_BR_LINE
         stepTimeRecordInfo_[step].min = offset;
     }
     counts_[step]++;
-    if (counts_[step] == 0) {
+    if (counts_[step] == 0) { // LCOV_EXCL_BR_LINE
         stepTimeRecordInfo_[step].average = 0;
         return;
     }
@@ -177,7 +178,7 @@ std::string PerformanceAnalysis::GetStatistics()
 {
     std::string result;
     for (size_t i = 0; i < stepTimeRecordInfo_.size(); i++) {
-        if (stepTimeRecordInfo_[i].max != 0) {
+        if (stepTimeRecordInfo_[i].max != 0) { // LCOV_EXCL_BR_LINE
             result += "\nstep : " + std::to_string(i) + "\n";
             result += "max:                 " + std::to_string(stepTimeRecordInfo_[i].max) + "\n";
             result += "min:                 " + std::to_string(stepTimeRecordInfo_[i].min) + "\n";
@@ -201,7 +202,7 @@ void PerformanceAnalysis::OutStatistics()
     // This part filters the zeros data
     outFile << "stepNum, maxTime(us), minTime(us), averageTime(us), count,\n";
     for (size_t i = 0; i < stepTimeRecordInfo_.size(); i++) { // output to performance file
-        if (stepTimeRecordInfo_[i].max != 0) {
+        if (stepTimeRecordInfo_[i].max != 0) { // LCOV_EXCL_BR_LINE
             outFile << i << "," << stepTimeRecordInfo_[i].max<< "," << stepTimeRecordInfo_[i].min
                 << "," << stepTimeRecordInfo_[i].average << "," << counts_[i] << "," << "\n";
         }

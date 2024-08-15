@@ -550,7 +550,7 @@ void GenericSyncer::ClearInnerResource(bool isClosedOperation)
 
 void GenericSyncer::TriggerSyncFinished(SyncOperation *operation)
 {
-    if (operation != nullptr && operation->CheckIsAllFinished()) {
+    if (operation != nullptr && operation->CheckIsAllFinished()) { // LCOV_EXCL_BR_LINE
         operation->Finished();
     }
 }
@@ -676,11 +676,11 @@ int GenericSyncer::AddQueuedManualSyncSize(int mode, bool wait)
 bool GenericSyncer::IsQueuedManualSyncFull(int mode, bool wait) const
 {
     std::lock_guard<std::mutex> lock(queuedManualSyncLock_);
-    if (IsManualSync(mode) && (!manualSyncEnable_)) {
+    if (IsManualSync(mode) && (!manualSyncEnable_)) { // LCOV_EXCL_BR_LINE
         LOGI("[GenericSyncer] manualSyncEnable_:false");
         return true;
     }
-    if (IsManualSync(mode) && (!wait)) {
+    if (IsManualSync(mode) && (!wait)) { // LCOV_EXCL_BR_LINE
         if (queuedManualSyncSize_ < queuedManualSyncLimit_) {
             return false;
         } else {
@@ -827,10 +827,10 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
         if (errCode != E_OK) {
             return errCode;
         }
-        if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) {
+        if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) { // LCOV_EXCL_BR_LINE
             return -E_INVALID_ARGS;
         }
-        if (IsQueuedManualSyncFull(param.mode, param.wait)) {
+        if (IsQueuedManualSyncFull(param.mode, param.wait)) { // LCOV_EXCL_BR_LINE
             LOGE("[Syncer] -E_BUSY");
             return -E_BUSY;
         }

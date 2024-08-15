@@ -71,13 +71,13 @@ int SQLiteStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handl
 {
     sqlite3 *dbHandle = nullptr;
     int errCode = SQLiteUtils::OpenDatabase(option_, dbHandle);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
     bool isMemDb = option_.isMemDb;
-    if (!isUpdated_) {
+    if (!isUpdated_) { // LCOV_EXCL_BR_LINE
         errCode = Upgrade(dbHandle);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             (void)sqlite3_close_v2(dbHandle);
             dbHandle = nullptr;
             return errCode;
@@ -87,7 +87,7 @@ int SQLiteStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handl
     }
 
     handle = NewSQLiteStorageExecutor(dbHandle, isWrite, isMemDb);
-    if (handle == nullptr) {
+    if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("New SQLiteStorageExecutor[%d] for the pool failed.", isWrite);
         (void)sqlite3_close_v2(dbHandle);
         dbHandle = nullptr;

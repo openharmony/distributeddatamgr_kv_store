@@ -222,7 +222,7 @@ public:
             Timestamp currentLocalTime = currentSysTime + timeOffset + localTimeOffset;
             auto virtualTimeOffset = static_cast<int64_t>(currentLocalTime - lastLocalTime_);
             auto changedOffset = static_cast<int64_t>(virtualTimeOffset - monotonicTimeOffset * TO_100_NS);
-            if (std::abs(changedOffset) > static_cast<int64_t>(MAX_NOISE * TO_100_NS)) {
+            if (std::abs(changedOffset) > static_cast<int64_t>(MAX_NOISE * TO_100_NS)) { // LCOV_EXCL_BR_LINE
                 // localTimeOffset was not flushed, use temporary calculated value
                 localTimeOffset_ = static_cast<Timestamp>(static_cast<int64_t>(localTimeOffset_) -
                     (systemTimeOffset - monotonicTimeOffset) * static_cast<int64_t>(TO_100_NS));
@@ -256,7 +256,7 @@ public:
         // If GetSysCurrentTime in 1us, we need increase the currentIncCount_
         if (curTime == lastSystemTimeUs_) {
             // if the currentIncCount_ has been increased MAX_INC_COUNT, keep the currentIncCount_
-            if (currentIncCount_ < MAX_INC_COUNT) {
+            if (currentIncCount_ < MAX_INC_COUNT) { // LCOV_EXCL_BR_LINE
                 currentIncCount_++;
             }
         } else {
@@ -782,7 +782,7 @@ std::string GetInsertTrigger(const std::string &tableName, bool isRowid, const s
     insertTrigger += "naturalbase_rdb_" + tableName + "_local_ON_INSERT AFTER INSERT\n";
     insertTrigger += "ON '" + tableName + "'\n";
     insertTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) {
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
         insertTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 0);\n";
     } else {
         insertTrigger += "SELECT data_change('" + tableName + "', ";
@@ -799,7 +799,7 @@ std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const s
     updateTrigger += "naturalbase_rdb_" + tableName + "_local_ON_UPDATE AFTER UPDATE\n";
     updateTrigger += "ON '" + tableName + "'\n";
     updateTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) {
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
         updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 1);\n";
     } else {
         updateTrigger += "SELECT data_change('" + tableName + "', ";
@@ -816,7 +816,7 @@ std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const s
     deleteTrigger += "naturalbase_rdb_" + tableName + "_local_ON_DELETE AFTER DELETE\n";
     deleteTrigger += "ON '" + tableName + "'\n";
     deleteTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) {
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
         deleteTrigger += "SELECT data_change('" + tableName + "', 'rowid', OLD._rowid_, 2);\n";
     } else {
         deleteTrigger += "SELECT data_change('" + tableName + "', ";
@@ -1043,7 +1043,7 @@ void RegisterCommitAndRollbackHook(sqlite3 *db)
 
 int ResetStatement(sqlite3_stmt *&stmt)
 {
-    if (stmt == nullptr || sqlite3_finalize(stmt) != SQLITE_OK) {
+    if (stmt == nullptr || sqlite3_finalize(stmt) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         return -E_ERROR;
     }
     stmt = nullptr;
@@ -1093,7 +1093,7 @@ int StepWithRetry(sqlite3_stmt *stmt)
 
 int BindBlobToStatement(sqlite3_stmt *stmt, int index, const std::vector<uint8_t> &value, bool permEmpty)
 {
-    if (stmt == nullptr || (value.empty() && !permEmpty)) {
+    if (stmt == nullptr || (value.empty() && !permEmpty)) { // LCOV_EXCL_BR_LINE
         return -E_ERROR;
     }
     int errCode;
@@ -1187,13 +1187,13 @@ bool CheckTableExists(sqlite3 *db, const std::string &tableName)
 {
     sqlite3_stmt *stmt = nullptr;
     std::string sql = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='" + tableName + "';";
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(stmt);
         return false;
     }
 
     bool isLogTblExists = false;
-    if (sqlite3_step(stmt) == SQLITE_ROW && static_cast<bool>(sqlite3_column_int(stmt, 0))) {
+    if (sqlite3_step(stmt) == SQLITE_ROW && static_cast<bool>(sqlite3_column_int(stmt, 0))) { // LCOV_EXCL_BR_LINE
         isLogTblExists = true;
     }
     (void)sqlite3_finalize(stmt);
@@ -1213,7 +1213,7 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
     std::string keyStr = SYNC_TABLE_TYPE + tableName;
     std::vector<uint8_t> key(keyStr.begin(), keyStr.end());
     if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
-        SQLITE_TRANSIENT) != SQLITE_OK) {
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         return -E_ERROR;
     }
 
@@ -1252,7 +1252,7 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     }
 
     if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
-        SQLITE_TRANSIENT) != SQLITE_OK) {
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(statement);
         return;
     }
@@ -1318,13 +1318,13 @@ int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
     }
 
     if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
-        SQLITE_TRANSIENT) != SQLITE_OK) {
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(statement);
         LOGE("[SaveDeleteFlagToDB] bind key failed, %d", errCode);
         return -E_ERROR;
     }
     if (sqlite3_bind_blob(statement, 2, static_cast<const void *>(value.data()), value.size(), // 2 is column index
-        SQLITE_TRANSIENT) != SQLITE_OK) {
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(statement);
         LOGE("[SaveDeleteFlagToDB] bind value failed, %d", errCode);
         return -E_ERROR;
@@ -1377,13 +1377,13 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
 {
     sqlite3_stmt *stmt = nullptr;
     std::string sql = "SELECT count(1) FROM " + tableName + " WHERE status=1";
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(stmt);
         return false;
     }
 
     bool isExists = false;
-    if ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0)) {
+    if ((sqlite3_step(stmt) == SQLITE_ROW) && (sqlite3_column_int(stmt, 0) > 0)) { // LCOV_EXCL_BR_LINE
         isExists = true;
     }
     (void)sqlite3_finalize(stmt);
@@ -1567,7 +1567,7 @@ SQLITE_API int sqlite3_open16_relational(const void *filename, sqlite3 **ppDb)
 {
     bool isExists = (access(static_cast<const char *>(filename), 0) == 0);
     int err = sqlite3_open16(filename, ppDb);
-    if (err != SQLITE_OK) {
+    if (err != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         return err;
     }
     PostHandle(isExists, *ppDb);

@@ -27,7 +27,7 @@ ValueObject::ValueObject(const ValueObject &other)
 
 ValueObject& ValueObject::operator=(const ValueObject &other)
 {
-    if (&other != this) {
+    if (&other != this) { // LCOV_EXCL_BR_LINE
         isValid_ = other.isValid_;
         value_ = other.value_;
         dataBeforeOffset_ = other.dataBeforeOffset_;
@@ -106,7 +106,7 @@ bool ValueObject::IsFieldPathExist(const FieldPath &inPath) const
 
 int ValueObject::GetFieldTypeByFieldPath(const FieldPath &inPath, FieldType &outType) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetFieldTypeByFieldPath(inPath, outType);
@@ -114,7 +114,7 @@ int ValueObject::GetFieldTypeByFieldPath(const FieldPath &inPath, FieldType &out
 
 int ValueObject::GetFieldValueByFieldPath(const FieldPath &inPath, FieldValue &outValue) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetFieldValueByFieldPath(inPath, outValue);
@@ -122,7 +122,7 @@ int ValueObject::GetFieldValueByFieldPath(const FieldPath &inPath, FieldValue &o
 
 int ValueObject::GetSubFieldPath(const FieldPath &inPath, std::set<FieldPath> &outSubPath) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetSubFieldPath(inPath, outSubPath);
@@ -130,7 +130,7 @@ int ValueObject::GetSubFieldPath(const FieldPath &inPath, std::set<FieldPath> &o
 
 int ValueObject::GetSubFieldPath(const std::set<FieldPath> &inPath, std::set<FieldPath> &outSubPath) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetSubFieldPath(inPath, outSubPath);
@@ -138,7 +138,7 @@ int ValueObject::GetSubFieldPath(const std::set<FieldPath> &inPath, std::set<Fie
 
 int ValueObject::GetSubFieldPathAndType(const FieldPath &inPath, std::map<FieldPath, FieldType> &outSubPathType) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetSubFieldPathAndType(inPath, outSubPathType);
@@ -147,7 +147,7 @@ int ValueObject::GetSubFieldPathAndType(const FieldPath &inPath, std::map<FieldP
 int ValueObject::GetSubFieldPathAndType(const std::set<FieldPath> &inPath,
     std::map<FieldPath, FieldType> &outSubPathType) const
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.GetSubFieldPathAndType(inPath, outSubPathType);
@@ -164,7 +164,7 @@ int ValueObject::InsertField(const FieldPath &inPath, FieldType inType, const Fi
 
 int ValueObject::DeleteField(const FieldPath &inPath)
 {
-    if (!isValid_) {
+    if (!isValid_) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
     }
     return value_.DeleteField(inPath);

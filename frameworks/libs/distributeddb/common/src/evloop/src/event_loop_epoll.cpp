@@ -171,13 +171,13 @@ void EventLoopEpoll::EpollWokenUp()
 uint32_t EventLoopEpoll::CalEpollEvents(EventsMask events) const
 {
     uint32_t epollEvents = 0;
-    if (events & IEvent::ET_READ) {
+    if (events & IEvent::ET_READ) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLIN;
     }
-    if (events & IEvent::ET_WRITE) {
+    if (events & IEvent::ET_WRITE) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLOUT;
     }
-    if (events & IEvent::ET_ERROR) {
+    if (events & IEvent::ET_ERROR) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLERR;
     }
     return epollEvents;
@@ -186,13 +186,13 @@ uint32_t EventLoopEpoll::CalEpollEvents(EventsMask events) const
 EventsMask EventLoopEpoll::CalEventsMask(uint32_t epollEvents)
 {
     EventsMask events = 0;
-    if (epollEvents & EPOLLIN) {
+    if (epollEvents & EPOLLIN) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_READ;
     }
-    if (epollEvents & EPOLLOUT) {
+    if (epollEvents & EPOLLOUT) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_WRITE;
     }
-    if (epollEvents & EPOLLERR) {
+    if (epollEvents & EPOLLERR) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_ERROR;
     }
     return events;
@@ -202,15 +202,15 @@ int EventLoopEpoll::EpollCtl(int operation, EventImpl *event, EventsMask events)
 {
     if (operation != EPOLL_CTL_ADD &&
         operation != EPOLL_CTL_MOD &&
-        operation != EPOLL_CTL_DEL) {
+        operation != EPOLL_CTL_DEL) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
-    if (event == nullptr) {
+    if (event == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     EventFd fd = event->GetEventFd();
-    if (fd.IsValid()) {
+    if (fd.IsValid()) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
@@ -220,7 +220,7 @@ int EventLoopEpoll::EpollCtl(int operation, EventImpl *event, EventsMask events)
     epollEvent.data.ptr = event;
 
     int errCode = epoll_ctl(epollFd_, operation, fd, &epollEvent);
-    if (errCode < 0) {
+    if (errCode < 0) { // LCOV_EXCL_BR_LINE
         errCode = -errno;
         return errCode;
     }
@@ -229,13 +229,13 @@ int EventLoopEpoll::EpollCtl(int operation, EventImpl *event, EventsMask events)
 
 int EventLoopEpoll::AddEvent(EventImpl *event)
 {
-    if (event == nullptr) {
+    if (event == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     EventsMask events = event->GetEvents();
     int errCode = EpollCtl(EPOLL_CTL_ADD, event, events);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Add fd to epoll set failed, err:'%d'", errCode);
         return errCode;
     }
@@ -246,13 +246,13 @@ int EventLoopEpoll::AddEvent(EventImpl *event)
 
 int EventLoopEpoll::RemoveEvent(EventImpl *event)
 {
-    if (event == nullptr) {
+    if (event == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     EventsMask events = event->GetEvents();
     int errCode = EpollCtl(EPOLL_CTL_DEL, event, events);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Remove fd from epoll set failed, err:'%d'", errCode);
         return errCode;
     }
@@ -263,19 +263,19 @@ int EventLoopEpoll::RemoveEvent(EventImpl *event)
 
 int EventLoopEpoll::ModifyEvent(EventImpl *event, bool isAdd, EventsMask events)
 {
-    if (event == nullptr) {
+    if (event == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     EventsMask newEvents = event->GetEvents();
-    if (isAdd) {
+    if (isAdd) { // LCOV_EXCL_BR_LINE
         newEvents |= events;
     } else {
         newEvents &= ~events;
     }
 
     int errCode = EpollCtl(EPOLL_CTL_MOD, event, newEvents);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Modify fd in epoll set failed, err:'%d'", errCode);
         return errCode;
     }

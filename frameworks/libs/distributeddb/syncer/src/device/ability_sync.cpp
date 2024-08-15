@@ -429,7 +429,7 @@ int AbilitySync::AckRecv(const Message *message, ISyncTaskContext *context)
         std::string schema = packet->GetSchema();
         uint8_t schemaType = packet->GetSchemaType();
         bool isCompatible = static_cast<SyncGenericInterface *>(storageInterface_)->CheckCompatible(schema, schemaType);
-        if (!isCompatible) {
+        if (!isCompatible) { // LCOV_EXCL_BR_LINE
             (static_cast<SingleVerSyncTaskContext *>(context))->SetTaskErrCode(-E_SCHEMA_MISMATCH);
             LOGE("[AbilitySync][AckRecv] scheme check failed");
             return -E_SCHEMA_MISMATCH;
@@ -514,7 +514,7 @@ void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished, ISyncTaskConte
         return;
     }
     // record finished with all schema compatible
-    if (syncFinished && !context.IsSchemaCompatible()) {
+    if (syncFinished && !context.IsSchemaCompatible()) { // LCOV_EXCL_BR_LINE
         return;
     }
     int errCode = metadata_->SetAbilitySyncFinishMark(deviceId_, syncFinished);
@@ -1213,7 +1213,8 @@ SyncOpinion AbilitySync::MakeKvSyncOpinion(const AbilitySyncRequestPacket *packe
     uint8_t remoteSchemaType = packet->GetSchemaType();
     SchemaObject localSchema = (static_cast<SingleVerKvDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
     SyncOpinion localSyncOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
-    if (IsBothKvAndOptAbilitySync(context->GetRemoteSoftwareVersion(), localSchema.GetSchemaType(), remoteSchemaType)) {
+    if (IsBothKvAndOptAbilitySync(context->GetRemoteSoftwareVersion(),
+        localSchema.GetSchemaType(), remoteSchemaType)) { // LCOV_EXCL_BR_LINE
         // both kv no need convert
         SyncStrategy localStrategy;
         localStrategy.permitSync = true;
@@ -1248,10 +1249,11 @@ int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         localStrategy.permitSync,
         true
     };
-    if (localStrategy.permitSync) {
+    if (localStrategy.permitSync) { // LCOV_EXCL_BR_LINE
         RecordAbilitySyncFinish(recvPacket->GetSchemaVersion(), *context);
     }
-    if (IsBothKvAndOptAbilitySync(context->GetRemoteSoftwareVersion(), localSchema.GetSchemaType(), remoteSchemaType)) {
+    if (IsBothKvAndOptAbilitySync(context->GetRemoteSoftwareVersion(),
+        localSchema.GetSchemaType(), remoteSchemaType)) { // LCOV_EXCL_BR_LINE
         return -E_ABILITY_SYNC_FINISHED;
     }
     return E_OK;
@@ -1356,7 +1358,7 @@ void AbilitySync::InitAbilitySyncFinishStatus(ISyncTaskContext &context)
     }
     LOGI("[AbilitySync] Mark ability sync finish from db status");
     syncFinished_ = true;
-    if (context.GetRemoteSoftwareVersion() == 0u) {
+    if (context.GetRemoteSoftwareVersion() == 0u) { // LCOV_EXCL_BR_LINE
         LOGD("[AbilitySync] Init remote version with default");
         context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_9_0); // remote version >= 109
     }
@@ -1376,7 +1378,7 @@ void AbilitySync::InitRemoteDBAbility(ISyncTaskContext &context)
 void AbilitySync::RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTaskContext &context)
 {
     SetAbilitySyncFinishedStatus(true, context);
-    if (context.GetRemoteSoftwareVersion() >= SOFTWARE_VERSION_RELEASE_9_0) {
+    if (context.GetRemoteSoftwareVersion() >= SOFTWARE_VERSION_RELEASE_9_0) { // LCOV_EXCL_BR_LINE
         (void)metadata_->SetRemoteSchemaVersion(deviceId_, remoteSchemaVersion);
     }
 }

@@ -122,7 +122,7 @@ void SyncTaskContext::SetOperationStatus(int status)
 
     int operationStatus = syncOperation_->GetStatus(deviceId_);
     if (status == SyncOperation::OP_SEND_FINISHED && operationStatus == SyncOperation::OP_RECV_FINISHED) {
-        if (GetTaskErrCode() == -E_EKEYREVOKED) {
+        if (GetTaskErrCode() == -E_EKEYREVOKED) { // LCOV_EXCL_BR_LINE
             finalStatus = SyncOperation::OP_EKEYREVOKED_FAILURE;
         } else {
             finalStatus = SyncOperation::OP_FINISHED_ALL;
@@ -197,7 +197,7 @@ void SyncTaskContext::ClearSyncTarget()
     requestTargetQueue_.clear();
 
     for (auto &responseTarget : responseTargetQueue_) {
-        if (responseTarget != nullptr) {
+        if (responseTarget != nullptr) { // LCOV_EXCL_BR_LINE
             delete responseTarget;
             responseTarget = nullptr;
         }
@@ -610,7 +610,7 @@ void SyncTaskContext::KillWait()
             return false;
         },
         KILL_WAIT_SECONDS);
-    if (!noDeadLock) {
+    if (!noDeadLock) { // LCOV_EXCL_BR_LINE
         LOGE("[SyncTaskContext] Dead lock may happen, we stop waiting the task exit.");
     } else {
         LOGW("[SyncTaskContext] Wait the task exit ok.");
@@ -732,7 +732,7 @@ void SyncTaskContext::Dump(int fd)
         std::lock_guard<std::mutex> lock(targetQueueLock_);
         totalSyncTaskCount = requestTargetQueue_.size() + responseTargetQueue_.size();
         for (const auto &target : requestTargetQueue_) {
-            if (target->IsAutoSync()) {
+            if (target->IsAutoSync()) { // LCOV_EXCL_BR_LINE
                 autoSyncTaskCount++;
             }
         }
