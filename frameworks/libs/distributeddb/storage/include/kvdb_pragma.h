@@ -51,6 +51,7 @@ enum : int {
     PRAGMA_SUBSCRIBE_QUERY,
     PRAGMA_SET_MAX_LOG_LIMIT,
     PRAGMA_EXEC_CHECKPOINT,
+    PRAGMA_CANCEL_SYNC_DEVICES,
 };
 
 struct PragmaSync {
@@ -78,12 +79,36 @@ struct PragmaSync {
     {
     }
 
+    PragmaSync(const DeviceSyncOption &option, const QuerySyncObject &query, const DeviceSyncProcessCallback &onProcess)
+        : devices_(option.devices),
+        mode_(option.mode),
+        wait_(option.isWait),
+        isQuerySync_(option.isQuery),
+        onSyncProcess_(onProcess)
+    {
+        if (!isQuerySync_) {
+            return;
+        }
+        query_ = query;
+    }
+
+    PragmaSync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
+        :devices_(option.devices),
+        mode_(option.mode),
+        wait_(option.isWait),
+        isQuerySync_(false),
+        query_(Query::Select()),
+        onSyncProcess_(onProcess)
+    {
+    }
+
     std::vector<std::string> devices_;
     int mode_;
     std::function<void(const std::map<std::string, int> &devicesMap)> onComplete_;
     bool wait_;
     bool isQuerySync_;
     QuerySyncObject query_;
+    DeviceSyncProcessCallback onSyncProcess_;
 };
 
 struct PragmaRemotePushNotify {

@@ -199,6 +199,12 @@ public:
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
         const Query &query, bool wait) = 0;
 
+    // Sync with device, provides sync count information
+    DB_API virtual DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) = 0;
+
+    // Cancel sync by syncId
+    DB_API virtual DBStatus CancelSync(uint32_t syncId) = 0;
+
     // Check the integrity of this kvStore.
     DB_API virtual DBStatus CheckIntegrity() const = 0;
 

@@ -132,6 +132,12 @@ public:
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
         const Query &query, bool wait) override;
 
+    // Sync with devices, provides sync count information
+    DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) override;
+
+    // Cancel sync by syncId
+    DBStatus CancelSync(uint32_t syncId) override;
+
     DBStatus CheckIntegrity() const override;
 
     // Set an equal identifier for this database, After this called, send msg to the target will use this identifier
@@ -190,6 +196,9 @@ private:
 
     void OnSyncComplete(const std::map<std::string, int> &statuses,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) const;
+    
+    void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
+        const DeviceSyncProcessCallback &onProcess) const;
 
     DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
 

@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 
+#include "query.h"
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -185,6 +186,26 @@ struct SyncProcess {
     std::map<std::string, TableProcessInfo> tableProcess;
 };
 
+struct DeviceSyncOption {
+    std::vector<std::string> devices;
+    SyncMode mode = SYNC_MODE_PULL_ONLY;
+    Query query; // isQuery must be set to true if the query is set
+    bool isQuery = false;
+    bool isWait = true;
+};
+
+struct DeviceSyncInfo {
+    uint32_t total = 0;
+    uint32_t finishedCount = 0;
+};
+
+struct DeviceSyncProcess {
+    ProcessStatus process = PREPARED;
+    DBStatus errCode = OK;
+    uint32_t syncId;
+    DeviceSyncInfo pullInfo;
+};
+
 using KvStoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using StoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
@@ -192,6 +213,8 @@ using StoreCorruptionHandler = std::function<void (const std::string &appId, con
 using SyncStatusCallback = std::function<void(const std::map<std::string, std::vector<TableStatus>> &devicesMap)>;
 
 using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
+
+using DeviceSyncProcessCallback = std::function<void(const std::map<std::string, DeviceSyncProcess> &processMap)>;
 
 struct RemoteCondition {
     std::string sql;  // The sql statement;

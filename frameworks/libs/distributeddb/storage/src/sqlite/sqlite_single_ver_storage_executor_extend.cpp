@@ -300,6 +300,90 @@ int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::v
     return errCode;
 }
 
+int SQLiteSingleVerStorageExecutor::PrepareForUnSyncTotalByTime(Timestamp begin, Timestamp end,
+    sqlite3_stmt *&statement, bool getDeletedData) const
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+
+    const std::string sql = (getDeletedData ? COUNT_SYNC_DELETED_ENTRIES_SQL : COUNT_SYNC_ENTRIES_SQL);
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("Prepare the sync num entries statement error:%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_BEGIN_STAMP_INDEX, begin);
+    if (errCode != E_OK) {
+        LOGE("Bind the timestamp for getting sync num error:%d", errCode);
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return CheckCorruptedStatus(errCode);
+    }
+
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_END_STAMP_INDEX, end);
+    return CheckCorruptedStatus(errCode);
+}
+
+int SQLiteSingleVerStorageExecutor::GetCountValue(sqlite3_stmt *&countStatement, uint32_t &total) const
+{
+    int errCode = SQLiteUtils::StepWithRetry(countStatement, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        uint64_t readCount = static_cast<uint64_t>(sqlite3_column_int64(countStatement, 0));
+        if (readCount > UINT32_MAX) {
+            LOGW("ReadCount is beyond UINT32_MAX");
+            total = 0;
+            errCode = -E_UNEXPECTED_DATA;
+        } else {
+            total = static_cast<uint32_t>(readCount);
+            errCode = E_OK;
+        }
+        LOGD("[GetCountValue]Entry count in this result set is %" PRIu32 "", total);
+    } else {
+        errCode = -E_UNEXPECTED_DATA;
+    }
+    SQLiteUtils::ResetStatement(countStatement, true, errCode);
+    return CheckCorruptedStatus(errCode);
+}
+
+int SQLiteSingleVerStorageExecutor::GetUnSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const
+{
+    sqlite3_stmt *countStatement = nullptr;
+    int errCode = PrepareForUnSyncTotalByTime(begin, end, countStatement);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return GetCountValue(countStatement, total);
+}
+
+int SQLiteSingleVerStorageExecutor::GetDeletedSyncTotalByTimestamp(Timestamp begin, Timestamp end,
+    uint32_t &total) const
+{
+    sqlite3_stmt *countStatement = nullptr;
+    int errCode = PrepareForUnSyncTotalByTime(begin, end, countStatement, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return GetCountValue(countStatement, total);
+}
+
+int SQLiteSingleVerStorageExecutor::GetSyncTotalWithQuery(QueryObject &query,
+    const std::pair<Timestamp, Timestamp> &timeRange, uint32_t &total) const
+{
+    int errCode = E_OK;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    sqlite3_stmt *queryStmt = nullptr;
+    errCode = helper.GetQuerySyncStatement(dbHandle_, timeRange.first, timeRange.second, queryStmt, true);
+    if (errCode != E_OK) {
+        LOGE("Get query sync num statement failed. %d", errCode);
+        return errCode;
+    }
+    return GetCountValue(queryStmt, total);
+}
+
 int SQLiteSingleVerStorageExecutor::RemoveCloudUploadFlag(const std::vector<uint8_t> &hashKey)
 {
     const std::string tableName = "naturalbase_kv_aux_sync_data_log";

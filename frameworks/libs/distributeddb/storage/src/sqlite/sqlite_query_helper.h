@@ -76,7 +76,8 @@ public:
     int GetCountSqlStatement(sqlite3 *dbHandle, sqlite3_stmt *&countStmt);
 
     // For query Sync
-    int GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime, sqlite3_stmt *&statement);
+    int GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime, sqlite3_stmt *&statement,
+        bool isCount = false);
     int GetSyncDataCheckSql(std::string &sql);
     int BindSyncDataCheckStmt(sqlite3_stmt *statement, const Key &hashKey) const;
 
@@ -145,7 +146,7 @@ private:
     bool FilterSymbolToAddBracketLink(std::string &querySql, bool isNeedLink = true) const;
     std::string AssembleSqlForSuggestIndex(const std::string &baseSql, const std::string &filter) const;
     std::string CheckAndFormatSuggestIndex() const;
-    int GetSyncDataQuerySql(std::string &sql, bool hasSubQuery);
+    int GetSyncDataQuerySql(std::string &sql, bool hasSubQuery, bool isCount);
     int ParseQueryObjNodeToSQL(bool isQueryForSync);
     int BindTimeRange(sqlite3_stmt *&statement, int &index, uint64_t beginTime, uint64_t endTime) const;
     int BindObjNodes(sqlite3_stmt *&statement, int &index) const;

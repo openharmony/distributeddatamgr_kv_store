@@ -72,6 +72,14 @@ int SyncerProxy::Sync(const SyncParma &parma, uint64_t connectionId)
     return syncer_->Sync(parma, connectionId);
 }
 
+int SyncerProxy::CancelSync(uint32_t syncId)
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->CancelSync(syncId);
+}
+
 int SyncerProxy::RemoveSyncOperation(int syncId)
 {
     if (syncer_ == nullptr) {

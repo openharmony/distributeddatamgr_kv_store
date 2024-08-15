@@ -845,6 +845,60 @@ int SQLiteSingleVerNaturalStore::GetSyncDataNext(std::vector<DataItem> &dataItem
     return errCode;
 }
 
+int SQLiteSingleVerNaturalStore::GetUnSyncTotal(Timestamp begin, Timestamp end, uint32_t &total) const
+{
+    if (begin >= end) {
+        return -E_INVALID_ARGS;
+    }
+
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->GetUnSyncTotalByTimestamp(begin, end, total);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStore::GetUnSyncTotal(QueryObject &query, const SyncTimeRange &timeRange,
+    uint32_t &total) const
+{
+    if (!timeRange.IsValid()) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = CheckReadDataControlled();
+    if (errCode != E_OK) {
+        LOGE("[GetEntries] Existed cache prevents the reading from query sync total[%d]!", errCode);
+        return errCode;
+    }
+
+    query.SetSchema(GetSchemaObject());
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return -E_ALREADY_REGISTER;
+    }
+
+    uint32_t delTotal = 0u;
+    errCode = handle->GetSyncTotalWithQuery(query, std::make_pair(timeRange.beginTime, timeRange.endTime), total);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerNaturalStore][GetUnSyncTotal] Get query count failed.");
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    errCode = handle->GetDeletedSyncTotalByTimestamp(timeRange.deleteBeginTime, timeRange.deleteEndTime, delTotal);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerNaturalStore][GetUnSyncTotal] Get del count failed.");
+        return errCode;
+    }
+
+    total += delTotal;
+    return errCode;
+}
+
 void SQLiteSingleVerNaturalStore::ReleaseContinueToken(ContinueToken &continueStmtToken) const
 {
     auto token = static_cast<SQLiteSingleVerContinueToken *>(continueStmtToken);

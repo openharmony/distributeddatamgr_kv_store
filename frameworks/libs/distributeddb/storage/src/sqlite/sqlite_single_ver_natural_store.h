@@ -88,6 +88,10 @@ public:
 
     int GetSyncDataNext(std::vector<SingleVerKvEntry *> &entries, ContinueToken &continueStmtToken,
         const DataSizeSpecInfo &dataSizeInfo) const override;
+    
+    int GetUnSyncTotal(Timestamp begin, Timestamp end, uint32_t &total) const override;
+
+    int GetUnSyncTotal(QueryObject &query, const SyncTimeRange &timeRange, uint32_t &total) const override;
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 

@@ -594,4 +594,40 @@ void SingleVerSyncTaskContext::StopFeedDogForGetData()
 {
     stateMachine_->StopFeedDogForGetData();
 }
+
+void SingleVerSyncTaskContext::UpdateOperationFinishedCount(const std::string &deviceId, uint32_t count)
+{
+    std::lock_guard<std::mutex> lock(operationLock_);
+    if (syncOperation_ != nullptr) {
+        syncOperation_->UpdateFinishedCount(deviceId, count);
+    }
+}
+
+void SingleVerSyncTaskContext::SetOperationSyncProcessTotal(const std::string &deviceId, uint32_t total)
+{
+    std::lock_guard<std::mutex> lock(operationLock_);
+    if (syncOperation_ != nullptr) {
+        syncOperation_->SetSyncProcessTotal(deviceId, total);
+    }
+}
+
+void SingleVerSyncTaskContext::SetInitWaterMark(WaterMark waterMark)
+{
+    initWaterMark_ = waterMark;
+}
+
+WaterMark SingleVerSyncTaskContext::GetInitWaterMark() const
+{
+    return initWaterMark_;
+}
+
+void SingleVerSyncTaskContext::SetInitDeletedMark(WaterMark waterMark)
+{
+    initDeletedMark_ = waterMark;
+}
+
+WaterMark SingleVerSyncTaskContext::GetInitDeletedMark() const
+{
+    return initDeletedMark_;
+}
 } // namespace DistributedDB
