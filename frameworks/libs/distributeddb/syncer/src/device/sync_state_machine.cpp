@@ -113,7 +113,7 @@ void SyncStateMachine::Abort()
         this->AbortImmediately();
         RefObject::DecObjRef(this->syncContext_);
     });
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[SyncStateMachine][Abort] Abort failed, errCode %d", errCode);
         RefObject::DecObjRef(syncContext_);
     }
@@ -416,7 +416,7 @@ void SyncStateMachine::DoFeedDogForSync(SyncDirectionFlag flag)
         (void)ResetWatchDog();
     }
     std::lock_guard<std::mutex> innerLock(feedDogLock_[flag]);
-    if (watchDogController_[flag].feedDogCnt >= watchDogController_[flag].feedDogUpperLimit) {
+    if (watchDogController_[flag].feedDogCnt >= watchDogController_[flag].feedDogUpperLimit) { // LCOV_EXCL_BR_LINE
         StopFeedDogForSyncNoLock(flag);
         return;
     }

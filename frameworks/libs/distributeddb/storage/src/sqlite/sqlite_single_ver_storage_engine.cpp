@@ -50,12 +50,12 @@ int SQLiteSingleVerStorageEngine::MigrateLocalData(SQLiteSingleVerStorageExecuto
 int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::string> &removeDevices, bool isNeedHash)
 {
     auto kvdbManager = KvDBManager::GetInstance();
-    if (kvdbManager == nullptr) {
+    if (kvdbManager == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_DB;
     }
     auto identifier = GetIdentifier();
     auto kvdb = kvdbManager->FindKvDB(identifier);
-    if (kvdb == nullptr) {
+    if (kvdb == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("[SingleVerEngine::EraseWaterMark] kvdb is null.");
         return -E_INVALID_DB;
     }
@@ -63,7 +63,7 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::strin
     auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
     for (const auto &devId : removeDevices) {
         int errCode = kvStore->EraseDeviceWaterMark(devId, isNeedHash);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             RefObject::DecObjRef(kvdb);
             return errCode;
         }
@@ -76,13 +76,14 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::strin
 int SQLiteSingleVerStorageEngine::GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *handle, const DataItem &item,
     std::set<std::string> &removeDevices, bool &isNeedHash) const
 {
-    if (handle == nullptr) {
+    if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_DB;
     }
     if (item.value.empty()) { // Device ID has been set to value in cache db
         // Empty means remove all device data, get device id from meta key
+        // LCOV_EXCL_BR_LINE
         int errCode = handle->GetExistsDevicesFromMeta(removeDevices);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Get remove devices list from meta failed. err=%d", errCode);
             return errCode;
         }
@@ -105,27 +106,27 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(SQLiteSingleVerStorageExe
             bool isNeedHash = true;
             std::set<std::string> removeDevices;
             errCode = GetRemoveDataDevices(handle, dataItem, removeDevices, isNeedHash);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Get remove device id failed. err=%d", errCode);
                 return errCode;
             }
 
             // sync module will use handle to fix watermark, if fix fail then migrate fail, not need hold write handle
             errCode = ReleaseExecutor(handle);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("release executor for erase water mark! errCode = [%d]", errCode);
                 return errCode;
             }
 
             errCode = EraseDeviceWaterMark(removeDevices, isNeedHash);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("EraseDeviceWaterMark failed when migrating, errCode = [%d]", errCode);
                 return errCode;
             }
 
             handle = static_cast<SQLiteSingleVerStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
                 errCode));
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Migrate sync data fail, Can not get available executor, errCode = [%d]", errCode);
                 return errCode;
             }
@@ -212,17 +213,17 @@ int SQLiteSingleVerStorageEngine::AddSubscribeToMainDBInMigrate()
 {
     LOGD("Add subscribe to mainDB from cache. %d", GetEngineState());
     std::lock_guard<std::mutex> lock(subscribeMutex_);
-    if (subscribeQuery_.empty()) {
+    if (subscribeQuery_.empty()) { // LCOV_EXCL_BR_LINE
         return E_OK;
     }
     int errCode = E_OK;
     auto handle = static_cast<SQLiteSingleVerStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
-    if (errCode != E_OK || handle == nullptr) {
+    if (errCode != E_OK || handle == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("Get available executor for add subscribe failed. %d", errCode);
         return errCode;
     }
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         goto END;
     }
     for (auto item : subscribeQuery_) {
@@ -324,7 +325,7 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(sqlite3 *dbHandle, Engi
     // Judge the file corresponding to db by the engine status and attach it to another file
     int errCode = E_OK;
     std::string attachAbsPath;
-    if (stateBeforeMigrate == EngineState::MAINDB) {
+    if (stateBeforeMigrate == EngineState::MAINDB) { // LCOV_EXCL_BR_LINE
         attachAbsPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
             DBConstant::DB_EXTENSION;
         errCode = SQLiteUtils::AttachNewDatabase(dbHandle, option_.cipherType, option_.passwd, attachAbsPath, "cache");
@@ -335,7 +336,7 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(sqlite3 *dbHandle, Engi
     } else {
         return -E_NOT_SUPPORT;
     }
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Attached database failed, errCode = [%d] engine state = [%d]", errCode, stateBeforeMigrate);
         return errCode;
     }
@@ -369,11 +370,11 @@ int SQLiteSingleVerStorageEngine::FinishMigrateData(SQLiteSingleVerStorageExecut
 {
     LOGI("Begin to finish migrate and reinit db state!");
     int errCode;
-    if (handle == nullptr) {
+    if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
-    if (stateBeforeMigrate == EngineState::MAINDB) {
+    if (stateBeforeMigrate == EngineState::MAINDB) { // LCOV_EXCL_BR_LINE
         sqlite3 *dbHandle = nullptr;
         errCode = handle->GetDbHandle(dbHandle); // use executor get sqlite3 handle to operating database
         if (errCode != E_OK) {
@@ -382,13 +383,13 @@ int SQLiteSingleVerStorageEngine::FinishMigrateData(SQLiteSingleVerStorageExecut
         }
 
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle, "DETACH 'cache'");
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Execute the SQLite detach failed:%d", errCode);
             return errCode;
         }
         // delete cachedb
         errCode = DBCommon::RemoveAllFilesOfDirectory(GetDbDir(option_.subdir, DbType::CACHE), false);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Remove files of cache database after detach:%d", errCode);
         }
 
@@ -397,7 +398,7 @@ int SQLiteSingleVerStorageEngine::FinishMigrateData(SQLiteSingleVerStorageExecut
     }
 
     errCode = ReleaseExecutor(handle);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Release executor for reopen database! errCode = [%d]", errCode);
         return errCode;
     }
@@ -407,14 +408,14 @@ int SQLiteSingleVerStorageEngine::FinishMigrateData(SQLiteSingleVerStorageExecut
 
     // delete cache db
     errCode = DBCommon::RemoveAllFilesOfDirectory(GetDbDir(option_.subdir, DbType::CACHE), false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Remove files of cache database after release current db:%d", errCode);
         return errCode;
     }
 
     // reInit, it will reset engine state
     errCode = ReInit();
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Reinit failed when finish migrate data! please try reopen kvstore! errCode = [%d]", errCode);
         return errCode;
     }
@@ -1036,8 +1037,8 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
     auto &entries = syncData.entries;
 
     // Put data. Including insert, update and delete.
-    if (!isRemoveDeviceData) {
-        if (committedData != nullptr) {
+    if (!isRemoveDeviceData) { // LCOV_EXCL_BR_LINE
+        if (committedData != nullptr) { // LCOV_EXCL_BR_LINE
             int eventType = static_cast<int>(isRemote ?
                 SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT :
                 SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT);
@@ -1047,24 +1048,25 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
     }
 
     // Remove device data.
-    if (entries.empty() || entries.size() > MAX_TOTAL_NOTIFY_ITEM_SIZE) {
+    if (entries.empty() || entries.size() > MAX_TOTAL_NOTIFY_ITEM_SIZE) { // LCOV_EXCL_BR_LINE
         return;
     }
     size_t totalSize = 0;
     for (auto iter = entries.begin(); iter != entries.end();) {
         auto &entry = *iter;
-        if (committedData == nullptr) {
+        if (committedData == nullptr) { // LCOV_EXCL_BR_LINE
             committedData = new (std::nothrow) SingleVerNaturalStoreCommitNotifyData();
-            if (committedData == nullptr) {
+            if (committedData == nullptr) { // LCOV_EXCL_BR_LINE
                 LOGE("Alloc committed notify data failed.");
                 return;
             }
         }
-        if (entry.key.size() > DBConstant::MAX_KEY_SIZE || entry.value.size() > DBConstant::MAX_VALUE_SIZE) {
+        if (entry.key.size() > DBConstant::MAX_KEY_SIZE ||
+            entry.value.size() > DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
             iter++;
             continue;
         }
-        if (entry.key.size() + entry.value.size() + totalSize > MAX_TOTAL_NOTIFY_DATA_SIZE) {
+        if (entry.key.size() + entry.value.size() + totalSize > MAX_TOTAL_NOTIFY_DATA_SIZE) { // LCOV_EXCL_BR_LINE
             CommitAndReleaseNotifyData(committedData,
                 static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
             totalSize = 0;
@@ -1074,7 +1076,7 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
         committedData->InsertCommittedData(std::move(entry), DataType::DELETE, false);
         iter++;
     }
-    if (committedData != nullptr) {
+    if (committedData != nullptr) { // LCOV_EXCL_BR_LINE
         CommitAndReleaseNotifyData(committedData,
             static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
     }

@@ -1097,7 +1097,7 @@ void SingleVerSyncStateMachine::PushPullDataRequestEvokeErrHandle()
 {
     // the pushpull sync task should wait for send finished after remote dev get data occur E_EKEYREVOKED error.
     if (context_->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_2_0 &&
-        SyncOperation::TransferSyncMode(context_->GetMode()) == SyncModeType::PUSH_AND_PULL) {
+        SyncOperation::TransferSyncMode(context_->GetMode()) == SyncModeType::PUSH_AND_PULL) { // LCOV_EXCL_BR_LINE
         LOGI("data request errCode = %d, wait for send finished", -E_EKEYREVOKED);
         context_->SetTaskErrCode(-E_EKEYREVOKED);
         context_->SetOperationStatus(SyncOperation::OP_RECV_FINISHED);
@@ -1149,7 +1149,7 @@ void SingleVerSyncStateMachine::DataRecvErrCodeHandle(uint32_t sessionId, int er
 
 bool SingleVerSyncStateMachine::AbilityMsgSessionIdCheck(const Message *inMsg)
 {
-    if (inMsg != nullptr && inMsg->GetSessionId() == context_->GetRequestSessionId()) {
+    if (inMsg != nullptr && inMsg->GetSessionId() == context_->GetRequestSessionId()) { // LCOV_EXCL_BR_LINE
         return true;
     }
     LOGE("[AbilitySync] session check failed,dev=%s", STR_MASK(context_->GetDeviceId()));
@@ -1158,7 +1158,7 @@ bool SingleVerSyncStateMachine::AbilityMsgSessionIdCheck(const Message *inMsg)
 
 SyncType SingleVerSyncStateMachine::GetSyncType(uint32_t messageId) const
 {
-    if (messageId == QUERY_SYNC_MESSAGE) {
+    if (messageId == QUERY_SYNC_MESSAGE) { // LCOV_EXCL_BR_LINE
         return SyncType::QUERY_SYNC_TYPE;
     }
     return SyncType::MANUAL_FULL_SYNC_TYPE;

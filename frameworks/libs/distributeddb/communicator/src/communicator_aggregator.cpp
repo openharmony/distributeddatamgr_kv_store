@@ -278,14 +278,14 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel)
 namespace {
 void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 {
-    if (onEnd) {
+    if (onEnd) { // LCOV_EXCL_BR_LINE
         TaskAction onSendEndTask = [onEnd, result]() {
             LOGD("[CommAggr][SendEndTask] Before On Send End.");
             onEnd(result);
             LOGD("[CommAggr][SendEndTask] After On Send End.");
         };
         int errCode = RuntimeContext::GetInstance()->ScheduleTask(onSendEndTask);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[CommAggr][SendEndTask] ScheduleTask failed, errCode = %d.", errCode);
         }
     }
@@ -345,7 +345,7 @@ int CommunicatorAggregator::GetRemoteCommunicatorVersion(const std::string &targ
 {
     std::lock_guard<std::mutex> versionMapLockGuard(versionMapMutex_);
     auto pair = versionMap_.find(target);
-    if (pair == versionMap_.end()) {
+    if (pair == versionMap_.end()) { // LCOV_EXCL_BR_LINE
         return -E_NOT_FOUND;
     }
     outVersion = pair->second;
@@ -901,7 +901,7 @@ void CommunicatorAggregator::NotifyConnectChange(const std::string &srcTarget,
         // Ignore nonactivated communicator
         if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
             LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
-                 VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
+                VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
             commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
         }
     }

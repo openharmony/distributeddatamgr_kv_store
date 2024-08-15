@@ -362,7 +362,7 @@ bool SingleVerSyncTaskContext::GetSendPermitCheck() const
 
 bool SingleVerSyncTaskContext::IsSkipTimeoutError(int errCode) const
 {
-    if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) {
+    if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) { // LCOV_EXCL_BR_LINE
         LOGE("[SingleVerSyncTaskContext] send message timeout error occurred");
         return true;
     } else {

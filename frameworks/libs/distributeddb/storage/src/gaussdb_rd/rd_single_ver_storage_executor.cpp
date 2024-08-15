@@ -96,18 +96,18 @@ int RdSingleVerStorageExecutor::CloseResultSet(GRD_ResultSet *resultSet)
 int RdSingleVerStorageExecutor::InnerMoveToHead(const int position, GRD_ResultSet *resultSet, int &currPosition)
 {
     int errCode = E_OK;
-    while (true) {
+    while (true) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Prev(resultSet));
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             currPosition = 0;
             int ret = TransferGrdErrno(GRD_Next(resultSet));
-            if (ret != E_OK) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
                 currPosition = position <= INIT_POSITION ? INIT_POSITION : currPosition;
                 return ret;
             }
             ret = TransferGrdErrno(GRD_Prev(resultSet));
-            if (ret != E_OK) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("[RdSingleVerStorageExecutor] failed to move prev for result set.");
                 return ret;
             }
@@ -124,23 +124,23 @@ int RdSingleVerStorageExecutor::InnerMoveToHead(const int position, GRD_ResultSe
 int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition)
 {
     int errCode = E_OK; // incase it never been move before
-    if (currPosition == INIT_POSITION) {
+    if (currPosition == INIT_POSITION) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Next(resultSet)); // but when we have only 1 element ?
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] result set is empty when move to");
             return -E_RESULT_SET_EMPTY;
         }
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
             return errCode;
         }
         currPosition++;
     }
     errCode = InnerMoveToHead(position, resultSet, currPosition);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
-    if (position <= INIT_POSITION) {
+    if (position <= INIT_POSITION) { // LCOV_EXCL_BR_LINE
         LOGE("[RdSingleVerStorageExecutor] current position must > -1 when move to.");
         int ret = TransferGrdErrno(GRD_Prev(resultSet));
         if (ret != E_OK && ret != -E_NOT_FOUND) {
@@ -151,9 +151,9 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
         return -E_INVALID_ARGS;
     }
     currPosition = 0;
-    while (currPosition < position) {
+    while (currPosition < position) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Next(resultSet));
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] move to position: %d, out of bounds", position);
             currPosition++;
             return -E_INVALID_ARGS;

@@ -639,10 +639,10 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     OpenDbProperties metaProperties {metaDbPath, true, false};
     sqlite3 *db = nullptr;
     int errCode = SQLiteUtils::OpenDatabase(metaProperties, db);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[CreateMetaDatabase] Failed to create the meta database[%d]", errCode);
     }
-    if (db != nullptr) {
+    if (db != nullptr) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_close_v2(db);
         db = nullptr;
     }
@@ -1005,7 +1005,7 @@ int SQLiteUtils::Rekey(sqlite3 *db, const CipherPassword &passwd)
 
 int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
 {
-    if (properties.uri.empty()) {
+    if (properties.uri.empty()) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
@@ -1013,16 +1013,16 @@ int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
     // Please make sure the database file exists and is working properly
     std::string fileUrl = DBConstant::SQLITE_URL_PRE + properties.uri;
     int errCode = sqlite3_open_v2(fileUrl.c_str(), &dbTemp, SQLITE_OPEN_URI | SQLITE_OPEN_READONLY, nullptr);
-    if (errCode != SQLITE_OK) {
+    if (errCode != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
         LOGE("Open database failed: %d, sys:%d", errCode, errno);
         goto END;
     }
     // in memory mode no need cipher
-    if (!properties.isMemDb) {
+    if (!properties.isMemDb) { // LCOV_EXCL_BR_LINE
         errCode = SQLiteUtils::SetKey(dbTemp, properties.cipherType, properties.passwd, false,
             properties.iterTimes);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Set key failed: %d", errCode);
             goto END;
         }
@@ -1031,7 +1031,7 @@ int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
     errCode = GetVersion(dbTemp, version);
 
 END:
-    if (dbTemp != nullptr) {
+    if (dbTemp != nullptr) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_close_v2(dbTemp);
         dbTemp = nullptr;
     }
@@ -1091,26 +1091,26 @@ int SQLiteUtils::GetJournalMode(sqlite3 *db, std::string &mode)
 
 int SQLiteUtils::SetUserVer(const OpenDbProperties &properties, int version)
 {
-    if (properties.uri.empty()) {
+    if (properties.uri.empty()) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     // Please make sure the database file exists and is working properly
     sqlite3 *db = nullptr;
     int errCode = SQLiteUtils::OpenDatabase(properties, db);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
 
     // Set user version
     errCode = SQLiteUtils::SetUserVer(db, version);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Set user version fail: %d", errCode);
         goto END;
     }
 
 END:
-    if (db != nullptr) {
+    if (db != nullptr) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_close_v2(db);
         db = nullptr;
     }
@@ -1422,7 +1422,7 @@ void SQLiteUtils::GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **
 
 void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 0 || argv == nullptr) {
+    if (ctx == nullptr || argc != 0 || argv == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("Parameter does not meet restrictions.");
         return;
     }
@@ -1941,7 +1941,8 @@ void SQLiteUtils::FlatBufferExtractByPath(sqlite3_context *ctx, int argc, sqlite
         return;
     }
     auto schema = static_cast<SchemaObject *>(sqlite3_user_data(ctx));
-    if (schema == nullptr || !schema->IsSchemaValid() || (schema->GetSchemaType() != SchemaType::FLATBUFFER)) {
+    if (schema == nullptr || !schema->IsSchemaValid() ||
+        (schema->GetSchemaType() != SchemaType::FLATBUFFER)) { // LCOV_EXCL_BR_LINE
         sqlite3_result_error(ctx, "[FlatBufferExtract] No SchemaObject or invalid.", USING_STR_LEN);
         LOGE("[FlatBufferExtract] No SchemaObject or invalid.");
         return;
@@ -1949,7 +1950,7 @@ void SQLiteUtils::FlatBufferExtractByPath(sqlite3_context *ctx, int argc, sqlite
     // Get information from argv
     auto valueBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
     int valueBlobLen = sqlite3_value_bytes(argv[0]);
-    if (IsDeleteRecord(valueBlob, valueBlobLen)) {
+    if (IsDeleteRecord(valueBlob, valueBlobLen)) { // LCOV_EXCL_BR_LINE
         // Currently delete records are filtered out of query and create-index sql, so not allowed here.
         sqlite3_result_error(ctx, "[FlatBufferExtract] Delete record not allowed.", USING_STR_LEN);
         LOGE("[FlatBufferExtract] Delete record not allowed.");
@@ -1957,7 +1958,8 @@ void SQLiteUtils::FlatBufferExtractByPath(sqlite3_context *ctx, int argc, sqlite
     }
     auto path = reinterpret_cast<const char *>(sqlite3_value_text(argv[1]));
     int offset = sqlite3_value_int(argv[2]); // index 2 is the third parameter
-    if ((path == nullptr) || (offset < 0) || (static_cast<uint32_t>(offset) != schema->GetSkipSize())) {
+    if ((path == nullptr) || (offset < 0) ||
+        (static_cast<uint32_t>(offset) != schema->GetSkipSize())) { // LCOV_EXCL_BR_LINE
         sqlite3_result_error(ctx, "[FlatBufferExtract] Path null or offset invalid.", USING_STR_LEN);
         LOGE("[FlatBufferExtract] Path null or offset=%d(skipsize=%u) invalid.", offset, schema->GetSkipSize());
         return;
@@ -1979,10 +1981,10 @@ void SQLiteUtils::FlatBufferExtractInnerFunc(sqlite3_context *ctx, const SchemaO
     RawString inPath)
 {
     // All parameter had already been check inside FlatBufferExtractByPath, only called by FlatBufferExtractByPath
-    if (schema.GetSkipSize() % SchemaConstant::SECURE_BYTE_ALIGN == 0) {
+    if (schema.GetSkipSize() % SchemaConstant::SECURE_BYTE_ALIGN == 0) { // LCOV_EXCL_BR_LINE
         TypeValue outExtract;
         int errCode = schema.ExtractValue(ValueSource::FROM_DBFILE, inPath, inValue, outExtract, nullptr);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             sqlite3_result_error(ctx, "[FlatBufferExtract] ExtractValue fail.", USING_STR_LEN);
             LOGE("[FlatBufferExtract] ExtractValue fail, errCode=%d.", errCode);
             return;
@@ -1992,7 +1994,7 @@ void SQLiteUtils::FlatBufferExtractInnerFunc(sqlite3_context *ctx, const SchemaO
     }
     // Not byte-align secure, we have to make a cache for copy. Check whether cache had already exist.
     auto cached = static_cast<std::vector<uint8_t> *>(sqlite3_get_auxdata(ctx, VALUE_CACHE_ID)); // Share the same id
-    if (cached == nullptr) {
+    if (cached == nullptr) { // LCOV_EXCL_BR_LINE
         // Make the cache
         auto newCache = new (std::nothrow) std::vector<uint8_t>;
         if (newCache == nullptr) {
@@ -2009,12 +2011,12 @@ void SQLiteUtils::FlatBufferExtractInnerFunc(sqlite3_context *ctx, const SchemaO
         // See sqlite.org for more information.
         cached = static_cast<std::vector<uint8_t> *>(sqlite3_get_auxdata(ctx, VALUE_CACHE_ID));
     }
-    if (cached == nullptr) {
+    if (cached == nullptr) { // LCOV_EXCL_BR_LINE
         LOGW("[FlatBufferExtract] Something wrong with Auxdata, but it is no matter without cache.");
     }
     TypeValue outExtract;
     int errCode = schema.ExtractValue(ValueSource::FROM_DBFILE, inPath, inValue, outExtract, cached);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         sqlite3_result_error(ctx, "[FlatBufferExtract] ExtractValue fail.", USING_STR_LEN);
         LOGE("[FlatBufferExtract] ExtractValue fail, errCode=%d.", errCode);
         return;

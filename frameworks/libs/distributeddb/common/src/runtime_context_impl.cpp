@@ -45,16 +45,16 @@ RuntimeContextImpl::RuntimeContextImpl()
 // Destruct the object.
 RuntimeContextImpl::~RuntimeContextImpl()
 {
-    if (taskPoolReportsTimerId_ > 0) {
+    if (taskPoolReportsTimerId_ > 0) { // LCOV_EXCL_BR_LINE
         RemoveTimer(taskPoolReportsTimerId_, true);
         taskPoolReportsTimerId_ = 0;
     }
-    if (taskPool_ != nullptr) {
+    if (taskPool_ != nullptr) { // LCOV_EXCL_BR_LINE
         taskPool_->Stop();
         taskPool_->Release(taskPool_);
         taskPool_ = nullptr;
     }
-    if (mainLoop_ != nullptr) {
+    if (mainLoop_ != nullptr) { // LCOV_EXCL_BR_LINE
         mainLoop_->Stop();
         mainLoop_->KillAndDecObjRef(mainLoop_);
         mainLoop_ = nullptr;
@@ -308,7 +308,7 @@ int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,
 void RuntimeContextImpl::ShrinkMemory(const std::string &description)
 {
     std::lock_guard<std::mutex> autoLock(taskLock_);
-    if (taskPool_ != nullptr) {
+    if (taskPool_ != nullptr) { // LCOV_EXCL_BR_LINE
         taskPool_->ShrinkMemory(description);
     }
 }

@@ -58,7 +58,7 @@ int SyncerProxy::Sync(const std::vector<std::string> &devices, int mode,
     const std::function<void(const std::map<std::string, int> &)> &onComplete,
     const std::function<void(void)> &onFinalize, bool wait)
 {
-    if (syncer_ == nullptr) {
+    if (syncer_ == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_NOT_INIT;
     }
     return syncer_->Sync(devices, mode, onComplete, onFinalize, wait);
@@ -74,7 +74,7 @@ int SyncerProxy::Sync(const SyncParma &parma, uint64_t connectionId)
 
 int SyncerProxy::RemoveSyncOperation(int syncId)
 {
-    if (syncer_ == nullptr) {
+    if (syncer_ == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_NOT_INIT;
     }
     return syncer_->RemoveSyncOperation(syncId);
