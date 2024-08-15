@@ -550,6 +550,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
             for (const auto &asset: tmpAssets) {
                 assets.push_back(asset);
             }
+        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
