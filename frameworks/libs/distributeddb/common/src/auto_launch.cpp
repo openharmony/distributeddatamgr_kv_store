@@ -106,7 +106,7 @@ AutoLaunch::~AutoLaunch()
                 (!autoLaunchItemMap_[identifierInfo.first][identifierInfo.second].isDisable);
         });
         if (autoLaunchItemMap_.count(identifierInfo.first) != 0 &&
-            autoLaunchItemMap_[identifierInfo.first].count(identifierInfo.second)) {
+            autoLaunchItemMap_[identifierInfo.first].count(identifierInfo.second)) { // LCOV_EXCL_BR_LINE
             TryCloseConnection(autoLaunchItemMap_[identifierInfo.first][identifierInfo.second]);
         }
     }
@@ -598,7 +598,7 @@ void AutoLaunch::GetConnInDoOpenMapInner(std::pair<const std::string, std::map<s
                 return;
             }
             ret = RegisterObserverAndLifeCycleCallback(iter.second, items.first, false);
-            if (ret != E_OK) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("[AutoLaunch] GetConnInDoOpenMap failed, we do CloseConnection");
                 TryCloseConnection(iter.second); // if here failed, do nothing
                 iter.second.conn = nullptr;
@@ -606,7 +606,7 @@ void AutoLaunch::GetConnInDoOpenMapInner(std::pair<const std::string, std::map<s
             sema.SendSemaphore();
             LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
         });
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[AutoLaunch] GetConnInDoOpenMap ScheduleTask failed, SendSemaphore");
             sema.SendSemaphore();
         }

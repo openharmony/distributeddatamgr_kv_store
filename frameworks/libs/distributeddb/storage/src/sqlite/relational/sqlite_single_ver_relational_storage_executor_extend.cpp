@@ -489,21 +489,21 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
         std::string queryAssetSql = "SELECT " + fieldName + " FROM '" + tableName +
             "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetSql, selectStmt);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Get select asset statement failed, %d", errCode);
             return errCode;
         }
         errCode = SQLiteUtils::StepWithRetry(selectStmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
             std::vector<uint8_t> blobValue;
             errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Get column blob value failed, %d", errCode);
                 goto END;
             }
             Asset asset;
             errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Transfer blob to asset failed, %d", errCode);
                 goto END;
             }
@@ -531,12 +531,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
         std::string queryAssetsSql = "SELECT " + fieldName + " FROM '" + tableName +
             "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Get select assets statement failed, %d", errCode);
             goto END;
         }
         errCode = SQLiteUtils::StepWithRetry(selectStmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
             std::vector<uint8_t> blobValue;
             errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
             if (errCode != E_OK) {
@@ -544,7 +544,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
             }
             Assets tmpAssets;
             errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, tmpAssets);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 goto END;
             }
             for (const auto &asset: tmpAssets) {

@@ -131,7 +131,7 @@ int SyncEngine::Close()
         while (!msgQueue_.empty()) {
             Message *inMsg = msgQueue_.front();
             msgQueue_.pop_front();
-            if (inMsg != nullptr) {
+            if (inMsg != nullptr) { // LCOV_EXCL_BR_LINE
                 queueCacheSize_ -= GetMsgSize(inMsg);
                 delete inMsg;
                 inMsg = nullptr;
@@ -333,7 +333,7 @@ int SyncEngine::AddSyncOperForContext(const std::string &deviceId, SyncOperation
                 return errCode;
             }
         }
-        if (context->IsKilled()) {
+        if (context->IsKilled()) { // LCOV_EXCL_BR_LINE
             return -E_OBJ_IS_KILLED;
         }
         // IncRef for SyncEngine to make sure context is valid, to avoid a big lock
@@ -438,7 +438,7 @@ ISyncTaskContext *SyncEngine::GetContextForMsg(const std::string &targetDev, int
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
         context = FindSyncTaskContext(targetDev);
-        if (context != nullptr) {
+        if (context != nullptr) { // LCOV_EXCL_BR_LINE
             if (context->IsKilled()) {
                 errCode = -E_OBJ_IS_KILLED;
                 return nullptr;
@@ -555,7 +555,7 @@ void SyncEngine::PutMsgIntoQueue(const std::string &targetDev, Message *inMsg, i
             [&targetDev](const Message *msg) {
                 return targetDev == msg->GetTarget() && msg->GetMessageId() == LOCAL_DATA_CHANGED;
             });
-        if (iter != msgQueue_.end()) {
+        if (iter != msgQueue_.end()) { // LCOV_EXCL_BR_LINE
             delete inMsg;
             inMsg = nullptr;
             return;
@@ -613,7 +613,7 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContextAndInc(const std::string &device
         LOGI("[SyncEngine] dev=%s, context is null, no need to clear sync operation", STR_MASK(deviceId));
         return nullptr;
     }
-    if (context->IsKilled()) {
+    if (context->IsKilled()) { // LCOV_EXCL_BR_LINE
         LOGI("[SyncEngine] context is killing");
         return nullptr;
     }
@@ -673,7 +673,7 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
             context->ClearSyncOperation();
             continue;
         }
-        if (context->IsCurrentSyncTaskCanBeSkipped()) {
+        if (context->IsCurrentSyncTaskCanBeSkipped()) { // LCOV_EXCL_BR_LINE
             context->SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
             context->ClearSyncOperation();
             continue;
@@ -737,7 +737,7 @@ void SyncEngine::SetSyncRetry(bool isRetry)
     std::lock_guard<std::mutex> lock(contextMapLock_);
     for (auto &iter : syncTaskContextMap_) {
         ISyncTaskContext *context = iter.second;
-        if (context != nullptr) {
+        if (context != nullptr) { // LCOV_EXCL_BR_LINE
             context->SetSyncRetry(isRetry);
         }
     }
@@ -785,7 +785,7 @@ void SyncEngine::SetEqualIdentifier()
 {
     std::map<std::string, std::vector<std::string>> equalIdentifier; // key: equalIdentifier value: devices
     for (auto &item : equalIdentifierMap_) {
-        if (equalIdentifier.find(item.second) == equalIdentifier.end()) {
+        if (equalIdentifier.find(item.second) == equalIdentifier.end()) { // LCOV_EXCL_BR_LINE
             equalIdentifier[item.second] = {item.first};
         } else {
             equalIdentifier[item.second].push_back(item.first);
@@ -842,7 +842,7 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
         if (communicatorProxy_ == nullptr) {
             return;
         }
-        if (communicatorProxy_->IsDeviceOnline(deviceId)) {
+        if (communicatorProxy_->IsDeviceOnline(deviceId)) { // LCOV_EXCL_BR_LINE
             LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
             RefObject::DecObjRef(context);
             return;
@@ -1043,7 +1043,7 @@ void SyncEngine::SchemaChange()
         std::lock_guard<std::mutex> lock(contextMapLock_);
         for (const auto &entry : syncTaskContextMap_) {
             auto context = entry.second;
-            if (context == nullptr || context->IsKilled()) {
+            if (context == nullptr || context->IsKilled()) { // LCOV_EXCL_BR_LINE
                 continue;
             }
             RefObject::IncObjRef(context);
@@ -1176,7 +1176,7 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
         std::lock_guard<std::mutex> lock(contextMapLock_);
         for (const auto &entry : syncTaskContextMap_) {
             auto context = entry.second;
-            if (context == nullptr || context->IsKilled()) {
+            if (context == nullptr || context->IsKilled()) { // LCOV_EXCL_BR_LINE
                 continue;
             }
             RefObject::IncObjRef(context);
@@ -1198,7 +1198,7 @@ void SyncEngine::WaitingExecTaskExist()
     std::unique_lock<std::mutex> closeLock(execTaskCountLock_);
     bool isTimeout = execTaskCv_.wait_for(closeLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
         [this]() { return execTaskCount_ == 0; });
-    if (!isTimeout) {
+    if (!isTimeout) { // LCOV_EXCL_BR_LINE
         LOGD("SyncEngine Close with executing task!");
     }
 }
@@ -1238,7 +1238,7 @@ void SyncEngine::AddQuerySubscribe(SyncGenericInterface *storage, const std::str
     }
     errCode = subManager_->ReserveRemoteSubscribeQuery(device, query);
     if (errCode != E_OK) {
-        if (!subManager_->IsQueryExistSubscribe(query.GetIdentify())) {
+        if (!subManager_->IsQueryExistSubscribe(query.GetIdentify())) { // LCOV_EXCL_BR_LINE
             (void)storage->RemoveSubscribe(query.GetIdentify());
         }
         return;

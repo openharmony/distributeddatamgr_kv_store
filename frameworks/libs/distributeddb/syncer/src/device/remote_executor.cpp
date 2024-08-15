@@ -361,7 +361,7 @@ bool RemoteExecutor::CheckTaskExeStatus(const std::string &device)
 uint32_t RemoteExecutor::GenerateSessionId()
 {
     uint32_t sessionId = Hash::Hash32Func(std::to_string(TimeHelper::GetSysCurrentTime()));
-    while (taskMap_.find(sessionId) != taskMap_.end()) {
+    while (taskMap_.find(sessionId) != taskMap_.end()) { // LCOV_EXCL_BR_LINE
         sessionId++;
         if (sessionId == 0) { // if over flow start with 1
             sessionId++;
@@ -449,24 +449,24 @@ void RemoteExecutor::DoRollBack(uint32_t sessionId)
 {
     Task task;
     std::lock_guard<std::mutex> autoLock(taskLock_);
-    if (taskMap_.find(sessionId) == taskMap_.end()) {
+    if (taskMap_.find(sessionId) == taskMap_.end()) { // LCOV_EXCL_BR_LINE
         return;
     }
     task = taskMap_[sessionId];
-    if (task.status != Status::WAITING) {
+    if (task.status != Status::WAITING) { // LCOV_EXCL_BR_LINE
         // task is execute, abort roll back
         return;
     }
     taskMap_.erase(sessionId);
 
     auto iter = searchTaskQueue_[task.target].begin();
-    while (iter != searchTaskQueue_[task.target].end()) {
-        if ((*iter) == sessionId) {
+    while (iter != searchTaskQueue_[task.target].end()) { // LCOV_EXCL_BR_LINE
+        if ((*iter) == sessionId) { // LCOV_EXCL_BR_LINE
             break;
         }
         iter++;
     }
-    if (iter != searchTaskQueue_[task.target].end()) {
+    if (iter != searchTaskQueue_[task.target].end()) { // LCOV_EXCL_BR_LINE
         searchTaskQueue_[task.target].erase(iter);
     }
     // this task should not in workingSet

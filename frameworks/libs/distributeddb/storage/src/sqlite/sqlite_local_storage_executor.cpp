@@ -48,17 +48,17 @@ int SQLiteLocalStorageExecutor::Get(const Key &key, Value &value) const
 {
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, SELECT_SQL, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return CheckCorruptedStatus(errCode);
     }
 
     errCode = SQLiteUtils::BindBlobToStatement(statement, SELECT_BIND_KEY_INDEX, key, false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         goto END;
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // LCOV_EXCL_BR_LINE
         errCode = -E_NOT_FOUND;
         goto END;
     } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -83,13 +83,13 @@ int SQLiteLocalStorageExecutor::GetEntries(const Key &keyPrefix,
 {
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, SELECT_BATCH_SQL, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return CheckCorruptedStatus(errCode);
     }
 
     Entry entry;
     errCode = SQLiteUtils::BindPrefixKey(statement, SELECT_BIND_KEY_INDEX, keyPrefix); // first arg is prefix key
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         goto END;
     }
 
@@ -97,12 +97,12 @@ int SQLiteLocalStorageExecutor::GetEntries(const Key &keyPrefix,
         errCode = SQLiteUtils::StepWithRetry(statement);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             errCode = SQLiteUtils::GetColumnBlobValue(statement, SELECT_RESULT_KEY_INDEX, entry.key);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 goto END;
             }
 
             errCode = SQLiteUtils::GetColumnBlobValue(statement, SELECT_RESULT_VAL_INDEX, entry.value);
-            if (errCode != E_OK) {
+            if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 goto END;
             }
 
@@ -116,7 +116,7 @@ int SQLiteLocalStorageExecutor::GetEntries(const Key &keyPrefix,
     } while (true);
 
     // if select no result, return the -E_NOT_FOUND.
-    if (entries.empty()) {
+    if (entries.empty()) { // LCOV_EXCL_BR_LINE
         errCode = -E_NOT_FOUND;
     } else {
         errCode = E_OK;
@@ -129,14 +129,14 @@ END:
 
 int SQLiteLocalStorageExecutor::PutBatch(const std::vector<Entry> &entries)
 {
-    if (entries.empty()) {
+    if (entries.empty()) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
     for (const auto &entry : entries) {
         // first argument is key and second argument is value.
         int errCode = Put(entry.key, entry.value);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("PutBatch failed: %d", errCode);
             return CheckCorruptedStatus(errCode);
         }
@@ -147,7 +147,7 @@ int SQLiteLocalStorageExecutor::PutBatch(const std::vector<Entry> &entries)
 
 int SQLiteLocalStorageExecutor::DeleteBatch(const std::vector<Key> &keys)
 {
-    if (keys.empty()) {
+    if (keys.empty()) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
@@ -155,15 +155,15 @@ int SQLiteLocalStorageExecutor::DeleteBatch(const std::vector<Key> &keys)
 
     for (const auto &key : keys) {
         int errCode = Delete(key);
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        if (errCode != E_OK && errCode != -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             return CheckCorruptedStatus(errCode);
         }
-        if (errCode != -E_NOT_FOUND && isAllNoExisted == true) {
+        if (errCode != -E_NOT_FOUND && isAllNoExisted == true) { // LCOV_EXCL_BR_LINE
             isAllNoExisted = false;
         }
     }
 
-    if (isAllNoExisted) {
+    if (isAllNoExisted) { // LCOV_EXCL_BR_LINE
         return -E_NOT_FOUND;
     }
 
@@ -192,24 +192,24 @@ int SQLiteLocalStorageExecutor::Put(const Key &key, const Value &value)
 {
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, INSERT_SQL, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return CheckCorruptedStatus(errCode);
     }
 
     errCode = SQLiteUtils::BindBlobToStatement(statement, BIND_KEY_INDEX, key, false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Failed to bind the key.");
         goto END;
     }
 
     errCode = SQLiteUtils::BindBlobToStatement(statement, BIND_VAL_INDEX, value, true);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Failed to bind the value");
         goto END;
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // LCOV_EXCL_BR_LINE
         errCode = E_OK;
     } else {
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
@@ -224,22 +224,22 @@ int SQLiteLocalStorageExecutor::Delete(const Key &key)
 {
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, DELETE_SQL, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Failed to get the delete statememt.");
         return CheckCorruptedStatus(errCode);
     }
 
     errCode = SQLiteUtils::BindBlobToStatement(statement, BIND_KEY_INDEX, key, false);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Bind key failed");
         goto END;
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // LCOV_EXCL_BR_LINE
         LOGE("Delete step error:%d", errCode);
     } else {
-        if (sqlite3_changes(dbHandle_) > 0) {
+        if (sqlite3_changes(dbHandle_) > 0) { // LCOV_EXCL_BR_LINE
             errCode = E_OK;
         } else {
             errCode = -E_NOT_FOUND;

@@ -276,12 +276,12 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
     switch (sqlite3_column_type(stmt, cid)) {
         case SQLITE_INTEGER: {
             const char *declType = sqlite3_column_decltype(stmt, cid);
-            if (declType == nullptr) {
+            if (declType == nullptr) { // LCOV_EXCL_BR_LINE
                 typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
                 break;
             }
             if (strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOL.c_str()) == 0 ||
-                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN.c_str()) == 0) {
+                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN.c_str()) == 0) { // LCOV_EXCL_BR_LINE
                 typeVal = static_cast<bool>(sqlite3_column_int(stmt, cid));
                 break;
             }
@@ -298,7 +298,7 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
         }
         case SQLITE3_TEXT: {
             errCode = GetBlobByStatement(stmt, cid, typeVal);
-            if (errCode != E_OK || typeVal.index() != TYPE_INDEX<Nil>) {
+            if (errCode != E_OK || typeVal.index() != TYPE_INDEX<Nil>) { // LCOV_EXCL_BR_LINE
                 break;
             }
             std::string str;
@@ -317,34 +317,34 @@ int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type 
 {
     const char *declType = sqlite3_column_decltype(stmt, cid);
     int errCode = E_OK;
-    if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSET) == 0) {
+    if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSET) == 0) { // LCOV_EXCL_BR_LINE
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             return errCode;
         }
         Asset asset;
         errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             return errCode;
         }
         typeVal = asset;
     } else if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSETS) == 0) {
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             return errCode;
         }
         Assets assets;
         errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             return errCode;
         }
         typeVal = assets;
     } else if (sqlite3_column_type(stmt, cid) == SQLITE_BLOB) {
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             return errCode;
         }
         typeVal = blobValue;

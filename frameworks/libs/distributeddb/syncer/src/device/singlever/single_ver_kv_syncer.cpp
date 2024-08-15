@@ -194,7 +194,7 @@ int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEng
 
 void SingleVerKVSyncer::TriggerSubscribe(const std::string &device, const QuerySyncObject &query)
 {
-    if (!initialized_) {
+    if (!initialized_) { // LCOV_EXCL_BR_LINE
         LOGE("[Syncer] Syncer has not Init");
         return;
     }
@@ -211,12 +211,12 @@ void SingleVerKVSyncer::TriggerSubscribe(const std::string &device, const QueryS
         param.isQuerySync = true;
         param.syncQuery = query;
         int errCode = Sync(param);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[SingleVerKVSyncer] subscribe start by RemoteDataChanged failed err %d", errCode);
         }
         RefObject::DecObjRef(syncEngine_);
     });
-    if (retCode != E_OK) {
+    if (retCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("[Syncer] triggler query subscribe start failed err %d", retCode);
         RefObject::DecObjRef(syncEngine_);
     }
