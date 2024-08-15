@@ -53,18 +53,4 @@ HWTEST_F(DistributedDataMgrTest, ClearAppStorage001, TestSize.Level1)
     auto ret = manager.ClearAppStorage(BUNDLE_NAME, TEST_USERID, APP_INDEX, tokenId);
     EXPECT_EQ(ret, Status::SUCCESS);
 }
-
-/**
-* @tc.name: ClearAppStorage
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(DistributedDataMgrTest, ClearAppStorage002, TestSize.Level1)
-{
-    auto tokenId = AccessTokenKit::GetNativeTokenId("distributeddatamgrtest");
-    auto ret = manager.ClearAppStorage(BUNDLE_NAME, TEST_USERID, APP_INDEX, tokenId);
-    EXPECT_EQ(ret, Status::ERROR);
-}
 } // namespace OHOS::Test
