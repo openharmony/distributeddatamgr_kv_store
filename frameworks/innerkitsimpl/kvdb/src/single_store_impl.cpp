@@ -380,6 +380,33 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
     onResult(status, std::move(entries));
 }
 
+void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
+{
+    AsyncFunc asyncFunc;
+    auto exist = asyncFuncs_.ComputeIfPresent(sequenceId, [&asyncFunc](const auto &key, const auto &value) -> bool {
+        asyncFunc = value;
+        return false;
+    });
+    if (!exist) {
+        ZLOGD("not exist, sequenceId:%{public}" PRIu64, sequenceId);
+        return ;
+    }
+    if (asyncFunc.toGet) {
+        Value value;
+        auto status = Get(asyncFunc.key, value);
+        asyncFunc.toGet(status, std::move(value));
+        return;
+    }
+    if (asyncFunc.toGetEntries) {
+        std::vector<Entry> entries;
+        auto status = GetEntries(asyncFunc.key, entries);
+        asyncFunc.toGetEntries(status, std::move(entries));
+        return;
+    }
+    ZLOGW("sync ext completed, but do nothing, key:%{public}s, sequenceId:%{public}" PRIu64,
+        StoreUtil::Anonymous(asyncFunc.key.ToString()).c_str(), sequenceId);
+}
+
 bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
 {
     auto clientUuid = DevManager::GetInstance().ToUUID(deviceId);
@@ -396,6 +423,9 @@ bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
     }
     return serviceAgent->IsChanged(clientUuid, static_cast<DataType>(dataType_));
 }
+
+void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results)
+{}
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
@@ -921,6 +951,7 @@ Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCal
         for (auto &[key, dbStatus] : devicesMap) {
             result[key] = StoreUtil::ConvertStatus(dbStatus);
         }
+        observer->SyncCompleted(result);
     };
 
     auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
