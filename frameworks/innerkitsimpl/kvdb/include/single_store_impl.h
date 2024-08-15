@@ -32,7 +32,6 @@
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,
                         public KvStoreDeathRecipient,
-                        public KvStoreSyncCallback,
                         public std::enable_shared_from_this<SingleStoreImpl> {
 public:
     using Observer = KvStoreObserver;
@@ -78,8 +77,6 @@ public:
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     void OnRemoteDied() override;
-    void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
-    void SyncCompleted(const std::map<std::string, Status> &results) override;
 
     // normal function
     int32_t Close(bool isForce = false);
