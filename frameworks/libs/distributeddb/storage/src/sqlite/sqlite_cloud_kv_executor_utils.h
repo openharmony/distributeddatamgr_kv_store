@@ -147,6 +147,14 @@ private:
 
     static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
         const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);
+private:
+    static void MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data, const std::string &user,
+        size_t dataIndex);
+
+    static bool CheckDataChanged(const FillGidParam &param, const CloudSyncBatch &data, size_t dataIndex);
+
+    static void MarkUploadSuccessInner(const FillGidParam &param, const CloudSyncBatch &data, const std::string &user,
+        size_t dataIndex);
 };
 }
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H
