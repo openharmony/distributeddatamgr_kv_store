@@ -1271,7 +1271,7 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
         LOGE("the transaction has not been started");
         return -E_INVALID_DB;
     }
-    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    transactionHandle_->SetLogicDelete(logicDelete_);
     std::vector<std::string> notifyTableList;
     int errCode = transactionHandle_->DoCleanInner(mode, tableNameList, localSchema, assets, notifyTableList);
     if (!notifyTableList.empty()) {
