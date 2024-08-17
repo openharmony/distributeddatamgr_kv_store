@@ -97,6 +97,9 @@ public:
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
+
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
+
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 

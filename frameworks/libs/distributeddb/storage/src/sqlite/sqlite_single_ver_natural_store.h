@@ -219,6 +219,12 @@ public:
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    // for test mock
+    const SqliteCloudKvStore* GetCloudKvStore()
+    {
+        return sqliteCloudKvStore_;
+    }
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 

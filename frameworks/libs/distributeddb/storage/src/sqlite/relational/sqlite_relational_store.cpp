@@ -1090,8 +1090,9 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     }
     LOGI("sync mode:%d, pri:%d, comp:%d", option.mode, option.priorityTask, option.compensatedSyncOnly);
     if (option.compensatedSyncOnly) {
-        CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo();
+        CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo(option, onProcess);
         info.callback = onProcess;
+        info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
         cloudSyncer_->GenerateCompensatedSync(info);
         return E_OK;
     }
