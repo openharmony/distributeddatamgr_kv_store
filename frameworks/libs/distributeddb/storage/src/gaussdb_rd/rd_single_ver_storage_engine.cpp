@@ -100,7 +100,7 @@ int RdSingleVerStorageEngine::GetExistedSecOption(SecurityOption &secOption) con
 
 int RdSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
 {
-    if (!(secOption == option_.securityOpt) &&
+    if (!(secOption == option_.securityOpt) && (secOption.securityLabel > option_.securityOpt.securityLabel) &&
         secOption.securityLabel != SecurityLabel::NOT_SET &&
         option_.securityOpt.securityLabel != SecurityLabel::NOT_SET) {
         LOGE("[RdSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
