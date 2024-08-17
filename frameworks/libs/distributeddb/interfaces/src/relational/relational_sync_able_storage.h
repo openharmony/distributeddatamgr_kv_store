@@ -213,14 +213,6 @@ public:
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
 
-    void SyncFinishHook() override;
-
-    void SetSyncFinishHook(const std::function<void (void)> &func) override;
-
-    void SetDoUploadHook(const std::function<void (void)> &) override;
-
-    void DoUploadHook() override;
-
     CloudSyncConfig GetCloudSyncConfig() const override;
 
     void SetCloudSyncConfig(const CloudSyncConfig &config);
@@ -286,9 +278,6 @@ private:
 
     int GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
         const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery);
-
-    int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data,
-        QuerySyncObject &querySyncObject);
 
     int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName);
 

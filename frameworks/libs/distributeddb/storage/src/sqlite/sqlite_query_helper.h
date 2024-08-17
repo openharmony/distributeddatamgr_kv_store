@@ -113,6 +113,8 @@ public:
     int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
         sqlite3_stmt *&statement);
 
+    int GetAndBindGidKvCloudQueryStatement(const std::string &user, sqlite3 *dbHandle, sqlite3_stmt *&stmt);
+
     int GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush, const CloudWaterType mode, sqlite3_stmt *&stmt);
 
     std::pair<int, int64_t> BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory, const Timestamp &timestamp,

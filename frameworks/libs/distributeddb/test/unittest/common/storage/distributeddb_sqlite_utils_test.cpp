@@ -19,6 +19,7 @@
 #include "native_sqlite.h"
 #include "platform_specific.h"
 #include "sqlite_import.h"
+#include "sqlite_log_table_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -239,4 +240,26 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetTextTest003, TestSize.Level1)
         EXPECT_EQ(val, text);
         return E_OK;
     });
+}
+
+/**
+ * @tc.name: KVLogUpgrade001
+ * @tc.desc: Get blob size over limit
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, KVLogUpgrade001, TestSize.Level0)
+{
+    const std::string tableName = "naturalbase_kv_aux_sync_data_log";
+    const std::string primaryKey = "PRIMARY KEY(userid, hash_key)";
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+        "userid    TEXT NOT NULL," + \
+        "hash_key  BLOB NOT NULL," + \
+        "cloud_gid TEXT," + \
+        "version   TEXT," + \
+        primaryKey + ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(g_db, createTableSql);
+    ASSERT_EQ(errCode, E_OK);
+    EXPECT_EQ(SqliteLogTableManager::CreateKvSyncLogTable(g_db), E_OK);
 }

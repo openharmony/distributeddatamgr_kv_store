@@ -16,6 +16,9 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
+#include "db_base64_utils.h"
+#include "db_common.h"
+#include "query_utils.h"
 #include "runtime_context.h"
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_single_ver_continue_token.h"
@@ -345,7 +348,20 @@ std::string SqliteCloudKvStore::GetIdentify() const
 int SqliteCloudKvStore::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
     bool isCloudForcePush, bool isCompensatedTask, std::vector<std::string> &cloudGid)
 {
-    return E_OK;
+    auto[errCode, handle] = storageHandle_->GetStorageExecutor(false);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore] get handle failed %d", errCode);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    (void)handle->GetDbHandle(db);
+    QuerySyncObject query = querySyncObject;
+    errCode = SqliteCloudKvExecutorUtils::QueryCloudGid(db, handle->IsMemory(), user_, query, cloudGid);
+    storageHandle_->RecycleStorageExecutor(handle);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore] Query cloud gid failed %d", errCode);
+    }
+    return errCode;
 }
 
 int SqliteCloudKvStore::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess)
@@ -522,5 +538,43 @@ void SqliteCloudKvStore::ReleaseUploadRecord(const std::string &tableName, const
     Timestamp localMark)
 {
     recorder_.ReleaseUploadRecord(tableName, type, localMark);
+}
+
+int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+{
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    (void)GetCloudDbSchema(cloudSchema);
+    if (cloudSchema == nullptr) {
+        return -E_INVALID_SCHEMA;
+    }
+    if (cloudSchema->tables.empty()) {
+        return E_OK;
+    }
+    int ret = StartTransaction(TransactType::DEFERRED);
+    if (ret != E_OK) {
+        return ret;
+    }
+    sqlite3 *db = nullptr;
+    (void)transactionHandle_->GetDbHandle(db);
+    for (const auto &table: cloudSchema->tables) {
+        std::vector<VBucket> syncDataPk;
+        int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(db, transactionHandle_->IsMemory(),
+            syncDataPk);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvStore] Get wait compensated sync date failed, continue! errCode=%d", errCode);
+            continue;
+        }
+        if (syncDataPk.empty()) {
+            continue;
+        }
+        QuerySyncObject syncObject;
+        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, true, syncObject);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvStore] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
+            continue;
+        }
+        syncQuery.push_back(syncObject);
+    }
+    return Commit();
 }
 }

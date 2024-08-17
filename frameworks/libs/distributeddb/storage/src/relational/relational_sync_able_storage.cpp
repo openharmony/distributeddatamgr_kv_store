@@ -1798,7 +1798,8 @@ int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, bo
         LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
         return -E_INVALID_DB;
     }
-    return transactionHandle_->UpdateRecordFlag(tableName, recordConflict, logInfo);
+    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, recordConflict, logInfo);
+    return transactionHandle_->UpdateRecordFlag(tableName, sql, logInfo);
 }
 
 int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -1853,7 +1854,9 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = rowId;
         logInfo.hashKey = updateData.hashKey[i];
-        int errCode = handle->UpdateRecordFlag(tableName, DBCommon::IsRecordIgnored(record), logInfo);
+        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, DBCommon::IsRecordIgnored(record),
+            logInfo, record, type);
+        int errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
         if (errCode != E_OK) {
             LOGE("[RDBStorage] Update record flag failed in index %zu", i);
             return errCode;
@@ -1929,7 +1932,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
             continue;
         }
         QuerySyncObject syncObject;
-        errCode = GetSyncQueryByPk(table.name, syncDataPk, syncObject);
+        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, false, syncObject);
         if (errCode != E_OK) {
             LOGW("[RDBStorageEngine] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
             errCode = E_OK;
@@ -1949,48 +1952,6 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         }
     }
     return errCode;
-}
-
-int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
-    const std::vector<VBucket> &data, QuerySyncObject &querySyncObject)
-{
-    std::map<std::string, size_t> dataIndex;
-    std::map<std::string, std::vector<Type>> syncPk;
-    int ignoreCount = 0;
-    for (const auto &oneRow : data) {
-        if (oneRow.size() >= 2u) { // mean this data has more than 2 pk
-            LOGW("[RDBStorageEngine] Not support compensated sync with composite primary key now");
-            return -E_NOT_SUPPORT;
-        }
-        for (const auto &[col, value] : oneRow) {
-            bool isFind = dataIndex.find(col) != dataIndex.end();
-            if (!isFind && value.index() == TYPE_INDEX<Nil>) {
-                ignoreCount++;
-                continue;
-            }
-            if (!isFind && value.index() != TYPE_INDEX<Nil>) {
-                dataIndex[col] = value.index();
-                syncPk[col].push_back(value);
-                continue;
-            }
-            if (isFind && dataIndex[col] != value.index()) {
-                ignoreCount++;
-                continue;
-            }
-            syncPk[col].push_back(value);
-        }
-    }
-    LOGI("[RDBStorageEngine] match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
-    Query query = Query::Select().From(tableName);
-    for (const auto &[col, pkList] : syncPk) {
-        QueryUtils::FillQueryInKeys(col, pkList, dataIndex[col], query);
-    }
-    auto objectList = QuerySyncObject::GetQuerySyncObject(query);
-    if (objectList.size() != 1u) {
-        return -E_INTERNAL_ERROR;
-    }
-    querySyncObject = objectList[0];
-    return E_OK;
 }
 
 int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -2039,30 +2000,6 @@ int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName
         LOGE("[RelationalSyncAbleStorage] mark flag as consistent failed.%d", errCode);
     }
     return errCode;
-}
-
-void RelationalSyncAbleStorage::SyncFinishHook()
-{
-    if (syncFinishFunc_) {
-        syncFinishFunc_();
-    }
-}
-
-void RelationalSyncAbleStorage::SetSyncFinishHook(const std::function<void (void)> &func)
-{
-    syncFinishFunc_ = func;
-}
-
-void RelationalSyncAbleStorage::DoUploadHook()
-{
-    if (uploadStartFunc_) {
-        uploadStartFunc_();
-    }
-}
-
-void RelationalSyncAbleStorage::SetDoUploadHook(const std::function<void (void)> &func)
-{
-    uploadStartFunc_ = func;
 }
 
 CloudSyncConfig RelationalSyncAbleStorage::GetCloudSyncConfig() const

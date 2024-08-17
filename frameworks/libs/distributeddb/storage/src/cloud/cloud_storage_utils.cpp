@@ -1120,20 +1120,24 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
 }
 
 std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
-    const LogInfo &logInfo)
+    const LogInfo &logInfo, const VBucket &uploadExtend, const CloudWaterType &type)
 {
     std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
     std::string consistentBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY));
     bool gidEmpty = logInfo.cloudGid.empty();
     bool isDeleted = logInfo.dataKey == DBConstant::DEFAULT_ROW_ID;
-    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (case when timestamp = ? then ";
-
-    if (recordConflict && !(isDeleted && gidEmpty)) {
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN ";
+    bool isNeedCompensated = recordConflict || DBCommon::IsNeedCompensatedForUpload(uploadExtend, type);
+    if (isNeedCompensated && !(isDeleted && gidEmpty)) {
         sql += "flag | " + compensatedBit + " ELSE flag | " + compensatedBit;
     } else {
         sql += "flag & ~" + compensatedBit + " & ~" + consistentBit + " ELSE flag & ~" + compensatedBit;
     }
-    sql += " end), status = (case when status == 2 then 3 when (status == 1 and timestamp = ?) then 0 else status end)";
+    sql += " END), status = (CASE WHEN status == 2 THEN 3 WHEN (status == 1 AND timestamp = ?) THEN 0 ELSE status END)";
+    if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
+        (type == CloudWaterType::UPDATE || type == CloudWaterType::DELETE)) {
+        sql += ", cloud_gid = '', version = '' ";
+    }
     sql += " WHERE ";
     if (!gidEmpty) {
         sql += " cloud_gid = '" + logInfo.cloudGid + "'";
@@ -1424,5 +1428,51 @@ std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
     return "INSERT OR REPLACE INTO " + DBCommon::GetMetaTableName() + "(key,value) VALUES (x'" +
         DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "', (SELECT CASE WHEN MAX(cursor) IS" +
         " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
+}
+
+int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
+    QuerySyncObject &querySyncObject)
+{
+    std::map<std::string, size_t> dataIndex;
+    std::map<std::string, std::vector<Type>> syncPk;
+    int ignoreCount = 0;
+    for (const auto &oneRow : data) {
+        if (oneRow.size() >= 2u) { // mean this data has more than 2 pk
+            LOGW("Not support compensated sync with composite primary key now");
+            return -E_NOT_SUPPORT;
+        }
+        for (const auto &[col, value] : oneRow) {
+            bool isFind = dataIndex.find(col) != dataIndex.end();
+            if (!isFind && value.index() == TYPE_INDEX<Nil>) {
+                ignoreCount++;
+                continue;
+            }
+            if (!isFind && value.index() != TYPE_INDEX<Nil>) {
+                dataIndex[col] = value.index();
+                syncPk[col].push_back(value);
+                continue;
+            }
+            if (isFind && dataIndex[col] != value.index()) {
+                ignoreCount++;
+                continue;
+            }
+            syncPk[col].push_back(value);
+        }
+    }
+    LOGI("match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
+    Query query = Query::Select().From(tableName);
+    if (isKv) {
+        QueryUtils::FillQueryInKeys(syncPk, dataIndex, query);
+    } else {
+        for (const auto &[col, pkList] : syncPk) {
+            QueryUtils::FillQueryIn(col, pkList, dataIndex[col], query);
+        }
+    }
+    auto objectList = QuerySyncObject::GetQuerySyncObject(query);
+    if (objectList.size() != 1u) { // only support one QueryExpression
+        return -E_INTERNAL_ERROR;
+    }
+    querySyncObject = objectList[0];
+    return E_OK;
 }
 }
