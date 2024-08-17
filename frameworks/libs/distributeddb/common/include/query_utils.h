@@ -26,10 +26,6 @@ public:
 
     static void FillQueryInKeys(const std::map<std::string, std::vector<Type>> &syncPk,
         std::map<std::string, size_t> dataIndex, Query &query);
-private:
-    static void FillStringQueryKeys(std::set<Key> &keys, const std::vector<Type> &pkList);
-
-    static void FillByteQueryKeys(std::set<Key> &keys, const std::vector<Type> &pkList);
 };
 } // DistributedDB
 #endif // QUERY_UTILS_H

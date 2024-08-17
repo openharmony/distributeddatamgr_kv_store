@@ -64,10 +64,15 @@ void QueryUtils::FillQueryInKeys(const std::map<std::string, std::vector<Type>> 
     for (const auto &[col, pkList] : syncPk) {
         switch (dataIndex[col]) {
             case TYPE_INDEX<std::string>:
-                FillStringQueryKeys(keys, pkList);
+                for (const auto &pk : pkList) {
+                    std::string keyStr = std::get<std::string>(pk);
+                    keys.insert(Key(keyStr.begin(), keyStr.end()));
+                }
                 break;
             case TYPE_INDEX<Bytes>:
-                FillByteQueryKeys(keys, pkList);
+                for (const auto &pk : pkList) {
+                    keys.insert(std::get<Bytes>(pk));
+                }
                 break;
             default:
                 break;
@@ -75,27 +80,6 @@ void QueryUtils::FillQueryInKeys(const std::map<std::string, std::vector<Type>> 
     }
     if (!keys.empty()) {
         query.InKeys(keys);
-    }
-}
-
-void QueryUtils::FillStringQueryKeys(std::set<Key> &keys, const std::vector<Type> &pkList)
-{
-    for (const auto &pk : pkList) {
-        const std::string *keyStrPtr = std::get_if<std::string>(&pk);
-        if (keyStrPtr == nullptr) {
-            continue;
-        }
-        keys.insert(Key((*keyStrPtr).begin(), (*keyStrPtr).end()));
-    }
-}
-
-void QueryUtils::FillByteQueryKeys(std::set<Key> &keys, const std::vector<Type> &pkList)
-{
-    for (const auto &pk : pkList) {
-        if (std::get_if<Bytes>(&pk) == nullptr) {
-            continue;
-        }
-        keys.insert(std::get<Bytes>(pk));
     }
 }
 } // DistributedDB
