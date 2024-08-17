@@ -359,10 +359,12 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx
         return;
     }
     auto context = static_cast<UpdateCursorContext *>(sqlite3_user_data(ctx));
+    if (context == nullptr) {
+        LOGW("[SqlSinRDBExe][UpdateCursor] invalid context");
+        return;
+    }
     context->cursor++;
-    Value cursor;
-    DBCommon::StringToVector(std::to_string(context->cursor), cursor);
-    sqlite3_result_blob(ctx, cursor.data(), static_cast<int>(cursor.size()), SQLITE_TRANSIENT);
+    sqlite3_result_int64(ctx, static_cast<sqlite_int64>(context->cursor));
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,
