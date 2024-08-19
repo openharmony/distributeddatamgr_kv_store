@@ -1103,6 +1103,11 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
     errCode = DoDownloadInner(taskId, param, isFirstDownload);
     (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
+        // No need to handle ret.
+        int ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
+        if (ret != E_OK) {
+            LOGE("[DoDownload] Cannot get cloud watermark : %d.", ret);
+        }
         std::lock_guard<std::mutex> autoLock(dataLock_);
         resumeTaskInfos_[taskId].syncParam = std::move(param);
     }
