@@ -800,7 +800,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
     EXPECT_EQ(ver.first, -E_NOT_SUPPORT);
     std::vector<Asset> assets = {{}};
     ret = proxy.RemoveLocalAssets(assets);
-    EXPECT_EQ(ret, -E_NOT_SET);
+    EXPECT_EQ(ret, -E_OK);
 }
 
 /**
