@@ -234,8 +234,8 @@ int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
 {
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
     if (iAssetLoader_ == nullptr) {
-        LOGE("Asset loader has not been set %d", -E_NOT_SET);
-        return -E_NOT_SET;
+        LOGW("Asset loader has not been set");
+        return E_OK;
     }
     DBStatus status = iAssetLoader_->RemoveLocalAssets(assets);
     if (status != OK) {
