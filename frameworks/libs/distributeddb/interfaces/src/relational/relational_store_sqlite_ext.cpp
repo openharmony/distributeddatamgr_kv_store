@@ -1581,6 +1581,7 @@ SQLITE_API int sqlite3_open_v2_relational(const char *filename, sqlite3 **ppDb, 
     if (err != SQLITE_OK) {
         return err;
     }
+    sqlite3_db_config(*ppDb, SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, 1, nullptr);
     PostHandle(isExists, *ppDb);
     return err;
 }
