@@ -21,6 +21,7 @@
 #include "cloud/iAssetLoader.h"
 #include "data_transformer.h"
 #include "query_sync_object.h"
+#include "query_utils.h"
 #include "sqlite_utils.h"
 #include "store_observer.h"
 
@@ -57,21 +58,32 @@ public:
     ICloudSyncStorageHook() = default;
     virtual ~ICloudSyncStorageHook() = default;
 
-    virtual void SetSyncFinishHook(const std::function<void (void)> &)
+    virtual void SetSyncFinishHook(const std::function<void (void)> &func)
     {
+        syncFinishFunc_ = func;
     }
 
     virtual void SyncFinishHook()
     {
+        if (syncFinishFunc_) {
+            syncFinishFunc_();
+        }
     }
 
-    virtual void SetDoUploadHook(const std::function<void (void)> &)
+    virtual void SetDoUploadHook(const std::function<void (void)> &func)
     {
+        uploadStartFunc_ = func;
     }
 
     virtual void DoUploadHook()
     {
+        if (uploadStartFunc_) {
+            uploadStartFunc_();
+        }
     }
+protected:
+    std::function<void (void)> syncFinishFunc_;
+    std::function<void (void)> uploadStartFunc_;
 };
 
 class ICloudSyncStorageInterface : public ICloudSyncStorageHook {

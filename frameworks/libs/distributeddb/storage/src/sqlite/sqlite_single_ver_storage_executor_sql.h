@@ -367,6 +367,14 @@ namespace DistributedDB {
     constexpr const char *SELECT_SYNC_ENTRIES_BY_DEVICE_SQL =
         "SELECT key,value FROM sync_data WHERE device=? AND flag&0x200=0";
 
+    constexpr const char *SELECT_COMPENSATE_SYNC_KEY_SQL =
+        "SELECT key FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table on sync_data.hash_key"
+        "= log_table.hash_key WHERE log_table.cloud_flag=log_table.cloud_flag|0x10";
+
+    constexpr const char *SELECT_CLOUD_GID_SQL =
+        "SELECT cloud_gid FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table"
+        " on sync_data.hash_key = log_table.hash_key WHERE log_table.userid=?";
+
     constexpr const char *MARK_UPLOAD_SUCCESS =
         "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_flag=cloud_flag|0x400 "
         "WHERE hash_key=? AND userid=? ";

@@ -97,6 +97,11 @@ public:
     static OpType CalOpType(ICloudSyncer::SyncParam &param, size_t dataIndex);
 
     static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo();
+
+    static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo(const CloudSyncOption &option,
+        const SyncProcessCallback &onProcess);
+
+    static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo(const CloudSyncer::CloudTaskInfo &oriTaskInfo);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

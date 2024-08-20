@@ -16,7 +16,7 @@
 #include "query_utils.h"
 
 namespace DistributedDB {
-void QueryUtils::FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType,
+void QueryUtils::FillQueryIn(const std::string &col, const std::vector<Type> &data, size_t valueType,
     Query &query)
 {
     switch (valueType) {
@@ -54,6 +54,32 @@ void QueryUtils::FillQueryInKeys(const std::string &col, const std::vector<Type>
         }
         default:
             break;
+    }
+}
+
+void QueryUtils::FillQueryInKeys(const std::map<std::string, std::vector<Type>> &syncPk,
+    std::map<std::string, size_t> dataIndex, Query &query)
+{
+    std::set<Key> keys;
+    for (const auto &[col, pkList] : syncPk) {
+        switch (dataIndex[col]) {
+            case TYPE_INDEX<std::string>:
+                for (const auto &pk : pkList) {
+                    std::string keyStr = std::get<std::string>(pk);
+                    keys.insert(Key(keyStr.begin(), keyStr.end()));
+                }
+                break;
+            case TYPE_INDEX<Bytes>:
+                for (const auto &pk : pkList) {
+                    keys.insert(std::get<Bytes>(pk));
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    if (!keys.empty()) {
+        query.InKeys(keys);
     }
 }
 } // DistributedDB

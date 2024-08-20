@@ -22,7 +22,10 @@
 namespace DistributedDB {
 class QueryUtils {
 public:
-    static void FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType, Query &query);
+    static void FillQueryIn(const std::string &col, const std::vector<Type> &data, size_t valueType, Query &query);
+
+    static void FillQueryInKeys(const std::map<std::string, std::vector<Type>> &syncPk,
+        std::map<std::string, size_t> dataIndex, Query &query);
 };
 } // DistributedDB
 #endif // QUERY_UTILS_H

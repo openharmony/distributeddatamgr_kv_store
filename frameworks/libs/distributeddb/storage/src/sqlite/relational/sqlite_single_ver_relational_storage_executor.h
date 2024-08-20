@@ -186,7 +186,7 @@ public:
 
     int UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged);
 
-    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
+    int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
     int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
 
