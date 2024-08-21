@@ -165,7 +165,6 @@ int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&db
         goto END;
     }
 
-    sqlite3_db_config(dbTemp, SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, 1, nullptr);
     errCode = SetDataBaseProperty(dbTemp, properties, setWal, sqls);
     if (errCode != SQLITE_OK) {
         LOGE("[SQLite] SetDataBaseProperty failed: %d", errCode);
@@ -1011,7 +1010,6 @@ int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
         LOGE("Open database failed: %d, sys:%d", errCode, errno);
         goto END;
     }
-    sqlite3_db_config(dbTemp, SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, 1, nullptr);
     // in memory mode no need cipher
     if (!properties.isMemDb) { // LCOV_EXCL_BR_LINE
         errCode = SQLiteUtils::SetKey(dbTemp, properties.cipherType, properties.passwd, false,
