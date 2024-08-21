@@ -70,7 +70,7 @@ bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
         return false;
     }
     if (localInfo.originDev.empty() && localInfo.device.empty()) {
-        LOGW("[CloudSyncStrategy] %.3s was ignored override", localInfo.cloudGid.c_str());
+        LOGW("[CloudSyncStrategy] %.6s was ignored override", localInfo.cloudGid.c_str());
         return true;
     }
     return false;
