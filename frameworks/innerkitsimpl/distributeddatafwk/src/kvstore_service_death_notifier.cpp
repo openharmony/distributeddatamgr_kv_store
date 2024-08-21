@@ -30,53 +30,33 @@ namespace OHOS {
 namespace DistributedKv {
 
 std::mutex KvStoreServiceDeathNotifier::instanceMutex_;
-KvStoreServiceDeathNotifier* KvStoreServiceDeathNotifier::instance_ = nullptr;
-
-KvStoreServiceDeathNotifier* KvStoreServiceDeathNotifier::GetInstance()
+KvStoreServiceDeathNotifier& KvStoreServiceDeathNotifier::GetInstance()
 {
-    if (instance_ == nullptr) {
-        std::lock_guard<std::mutex> lock(instanceMutex_);
-        if (instance_ == nullptr) {
-            instance_ = new (std::nothrow) KvStoreServiceDeathNotifier();
-            if (instance_ == nullptr) {
-                ZLOGE("KvStoreServiceDeathNotifier nullptr");
-            }
-            return instance_;
-        }
-    }
-    return instance_;
+    static KvStoreServiceDeathNotifier instance;
+    return instance;
 }
 
 void KvStoreServiceDeathNotifier::SetAppId(const AppId &appId)
 {
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return;
-    }
-    std::lock_guard<decltype(mutex_)> lg(instance->mutex_);
-    instance->appId_ = appId;
+    auto &instance = GetInstance();
+    std::lock_guard<decltype(mutex_)> lg(instance.mutex_);
+    instance.appId_ = appId;
 }
 
 AppId KvStoreServiceDeathNotifier::GetAppId()
 {
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return {};
-    }
-    std::lock_guard<decltype(mutex_)> lg(instance->mutex_);
-    return instance->appId_;
+    auto &instance = GetInstance();
+    std::lock_guard<decltype(mutex_)> lg(instance.mutex_);
+    return instance.appId_;
 }
 
 sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataService()
 {
     ZLOGD("begin.");
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return nullptr;
-    }
-    std::lock_guard<std::mutex> lg(instance->watchMutex_);
-    if (instance->kvDataServiceProxy_ != nullptr) {
-        return instance->kvDataServiceProxy_;
+    auto &instance = GetInstance();
+    std::lock_guard<std::mutex> lg(instance.watchMutex_);
+    if (instance.kvDataServiceProxy_ != nullptr) {
+        return instance.kvDataServiceProxy_;
     }
 
     ZLOGI("create remote proxy.");
@@ -87,26 +67,26 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    instance->kvDataServiceProxy_ = iface_cast<DataMgrServiceProxy>(remote);
-    if (instance->kvDataServiceProxy_ == nullptr) {
+    instance.kvDataServiceProxy_ = iface_cast<DataMgrServiceProxy>(remote);
+    if (instance.kvDataServiceProxy_ == nullptr) {
         ZLOGE("initialize proxy failed.");
         return nullptr;
     }
 
-    if (instance->deathRecipientPtr_ == nullptr) {
-        instance->deathRecipientPtr_ = new (std::nothrow) ServiceDeathRecipient();
-        if (instance->deathRecipientPtr_ == nullptr) {
+    if (instance.deathRecipientPtr_ == nullptr) {
+        instance.deathRecipientPtr_ = new (std::nothrow) ServiceDeathRecipient();
+        if (instance.deathRecipientPtr_ == nullptr) {
             ZLOGW("new KvStoreDeathRecipient failed");
             return nullptr;
         }
     }
-    if ((remote->IsProxyObject()) && (!remote->AddDeathRecipient(instance->deathRecipientPtr_))) {
+    if ((remote->IsProxyObject()) && (!remote->AddDeathRecipient(instance.deathRecipientPtr_))) {
         ZLOGE("failed to add death recipient.");
     }
 
-    instance->RegisterClientDeathObserver();
+    instance.RegisterClientDeathObserver();
 
-    return instance->kvDataServiceProxy_;
+    return instance.kvDataServiceProxy_;
 }
 
 void KvStoreServiceDeathNotifier::RegisterClientDeathObserver()
@@ -126,47 +106,38 @@ void KvStoreServiceDeathNotifier::RegisterClientDeathObserver()
 
 void KvStoreServiceDeathNotifier::AddServiceDeathWatcher(std::shared_ptr<KvStoreDeathRecipient> watcher)
 {
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return;
-    }
-    std::lock_guard<std::mutex> lg(instance->watchMutex_);
-    auto ret = instance->serviceDeathWatchers_.insert(std::move(watcher));
+    auto &instance = GetInstance();
+    std::lock_guard<std::mutex> lg(instance.watchMutex_);
+    auto ret = instance.serviceDeathWatchers_.insert(std::move(watcher));
     if (ret.second) {
-        ZLOGI("success set size: %zu", instance->serviceDeathWatchers_.size());
+        ZLOGI("success set size: %zu", instance.serviceDeathWatchers_.size());
     } else {
-        ZLOGE("failed set size: %zu", instance->serviceDeathWatchers_.size());
+        ZLOGE("failed set size: %zu", instance.serviceDeathWatchers_.size());
     }
 }
 
 void KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(std::shared_ptr<KvStoreDeathRecipient> watcher)
 {
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return;
-    }
-    std::lock_guard<std::mutex> lg(instance->watchMutex_);
-    auto it = instance->serviceDeathWatchers_.find(std::move(watcher));
-    if (it != instance->serviceDeathWatchers_.end()) {
-        instance->serviceDeathWatchers_.erase(it);
-        ZLOGI("find & erase set size: %zu", instance->serviceDeathWatchers_.size());
+    auto &instance = GetInstance();
+    std::lock_guard<std::mutex> lg(instance.watchMutex_);
+    auto it = instance.serviceDeathWatchers_.find(std::move(watcher));
+    if (it != instance.serviceDeathWatchers_.end()) {
+        instance.serviceDeathWatchers_.erase(it);
+        ZLOGI("find & erase set size: %zu", instance.serviceDeathWatchers_.size());
     } else {
-        ZLOGE("no found set size: %zu", instance->serviceDeathWatchers_.size());
+        ZLOGE("no found set size: %zu", instance.serviceDeathWatchers_.size());
     }
 }
 
 void KvStoreServiceDeathNotifier::ServiceDeathRecipient::OnRemoteDied(const wptr<IRemoteObject> &remote)
 {
     ZLOGW("DistributedDataMgrService died.");
-    auto *instance = GetInstance();
-    if (instance == nullptr) {
-        return;
-    }
+    auto &instance = GetInstance();
     // Need to do this with the lock held
-    std::lock_guard<std::mutex> lg(instance->watchMutex_);
-    instance->kvDataServiceProxy_ = nullptr;
-    ZLOGI("watcher set size: %zu", instance->serviceDeathWatchers_.size());
-    for (const auto &watcher : instance->serviceDeathWatchers_) {
+    std::lock_guard<std::mutex> lg(instance.watchMutex_);
+    instance.kvDataServiceProxy_ = nullptr;
+    ZLOGI("watcher set size: %zu", instance.serviceDeathWatchers_.size());
+    for (const auto &watcher : instance.serviceDeathWatchers_) {
         if (watcher == nullptr) {
             ZLOGI("watcher is nullptr");
             continue;
