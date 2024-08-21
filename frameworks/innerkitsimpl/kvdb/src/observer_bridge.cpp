@@ -16,6 +16,7 @@
 #include "kvdb_service_client.h"
 #include "kvstore_observer_client.h"
 namespace OHOS::DistributedKv {
+constexpr uint32_t INVALID_SUBSCRIBE_TYPE = 0;
 ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Observer> observer, const Convertor &cvt)
     : appId_(std::move(appId)), storeId_(std::move(store)), observer_(std::move(observer)), convert_(cvt)
 {
@@ -87,7 +88,7 @@ void ObserverBridge::OnChange(const DBChangedData &data)
 }
 
 ObserverBridge::ObserverClient::ObserverClient(std::shared_ptr<Observer> observer, const Convertor &cvt)
-    : KvStoreObserverClient(observer), convert_(cvt)
+    : KvStoreObserverClient(observer), convert_(cvt), realType_(INVALID_SUBSCRIBE_TYPE)
 {
 }
 
