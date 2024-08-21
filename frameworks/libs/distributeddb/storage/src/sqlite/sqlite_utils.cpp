@@ -171,7 +171,6 @@ int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&db
         LOGE("[SQLite] SetDataBaseProperty failed: %d", errCode);
         goto END;
     }
-    DBCommon::SetOrClearFSMonitorFlag(properties.uri, DBCommon::SET_FLAG);
 
 END:
     if (errCode != E_OK && dbTemp != nullptr) {

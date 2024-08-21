@@ -196,8 +196,6 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
             LOGE("[RdSingleVerStorageEngine] database is corrupted");
             return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         }
-    } else if (errCode == E_OK) {
-        DBCommon::SetOrClearFSMonitorFlag(option.uri, DBCommon::SET_FLAG);
     }
     return errCode;
 }
