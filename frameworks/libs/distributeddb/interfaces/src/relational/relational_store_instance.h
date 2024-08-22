@@ -28,13 +28,15 @@ public:
     RelationalStoreInstance();
     ~RelationalStoreInstance() = default;
 
-    static RelationalStoreConnection *GetDatabaseConnection(const RelationalDBProperties &properties, int &errCode);
+    static RelationalStoreConnection *GetDatabaseConnection(const RelationalDBProperties &properties, int &errCode,
+        bool isNeedIfOpened = true);
     static RelationalStoreInstance *GetInstance();
 
     static int ReleaseDataBaseConnection(RelationalStoreConnection *connection);
 
     // public for test mock
-    static IRelationalStore *GetDataBase(const RelationalDBProperties &properties, int &errCode);
+    static IRelationalStore *GetDataBase(const RelationalDBProperties &properties, int &errCode,
+        bool isNeedIfOpened = true);
 
     void Dump(int fd);
 private:
