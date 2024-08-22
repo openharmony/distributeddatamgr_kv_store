@@ -148,11 +148,23 @@ public:
 
     static int GetSysCurrentRawTime(uint64_t &curTime)
     {
+        static uint64_t lastCurTime = 0u;
         int errCode = GetCurrentSysTimeInMicrosecond(curTime);
         if (errCode != E_OK) {
             return errCode;
         }
         curTime *= TO_100_NS;
+
+        std::lock_guard<std::mutex> lock(systemTimeLock_);
+        int64_t timeDiff = static_cast<int64_t>(curTime) - static_cast<int64_t>(lastCurTime);
+        if (std::abs(timeDiff) > 1000u) { // 1000 is us
+            lastCurTime = curTime;
+            return E_OK;
+        }
+        if (curTime <= lastCurTime) {
+            curTime = lastCurTime + 1;
+        }
+        lastCurTime = curTime;
         return E_OK;
     }
 
