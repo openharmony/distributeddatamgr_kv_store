@@ -92,6 +92,7 @@ kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/system_api.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/task_executor.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/task_executor_adapter.cpp",
+  "../../../frameworks/innerkitsimpl/kvdb/src/kv_hiview_reporter.cpp",
 ]
 
 deps_config = [
