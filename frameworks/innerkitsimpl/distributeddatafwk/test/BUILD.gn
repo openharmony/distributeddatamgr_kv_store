@@ -354,7 +354,7 @@ ohos_unittest("KvUtilTest") {
 
   sources = [
     "../../kvdb/src/kv_hiview_reporter_mock.cpp",
-    "unittest/kvstore_datashare_bridge_test.cpp",
+    "unittest/kv_utils_test.cpp",
   ]
 
   configs = [ ":module_private_config" ]
@@ -374,7 +374,10 @@ ohos_unittest("KvUtilTest") {
 ohos_unittest("KvstoreDatashareBridgeTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/kvstore_datashare_bridge_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/kvstore_datashare_bridge_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
