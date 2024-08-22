@@ -71,12 +71,18 @@ ohos_fuzztest("NbDelegateFuzzTest") {
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
+    "--coverage",
   ]
+
+  ldflags = [ "--coverage" ]
+
+  cflags_cc = [ "--coverage" ]
 
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/nbdelegate_fuzzer"
 
   sources = distributeddb_src
   sources += [
+    "../../../test/fuzztest/common/fuzzer_data.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "nbdelegate_fuzzer.cpp",
   ]

@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <set>
 #include <string>
 
 namespace DistributedDBTest {
@@ -34,6 +35,7 @@ public:
     std::vector<uint8_t> GetSequence(size_t size, uint32_t mod = MOD);
     std::string GetString(size_t len);
     std::vector<std::string> GetStringVector(size_t size);
+    std::set<std::string> GetStringSet(size_t size);
     std::vector<std::u16string> GetU16StringVector(size_t size);
 private:
     static const uint32_t MOD = 1024; // MOD length

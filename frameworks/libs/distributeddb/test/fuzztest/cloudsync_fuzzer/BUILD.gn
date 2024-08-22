@@ -64,7 +64,12 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
+    "--coverage",
   ]
+
+  ldflags = [ "--coverage" ]
+
+  cflags_cc = [ "--coverage" ]
 
   fuzz_config_file = "../cloudsync_fuzzer"
 

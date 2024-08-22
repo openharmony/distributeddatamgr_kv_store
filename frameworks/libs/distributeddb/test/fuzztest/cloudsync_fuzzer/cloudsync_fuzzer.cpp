@@ -38,6 +38,8 @@ static const char *g_storeId = "STORE_ID";
 static const char *g_dbSuffix = ".db";
 static const char *g_table = "worker1";
 KvStoreDelegateManager g_mgr(DistributedDBUnitTest::APP_ID, DistributedDBUnitTest::USER_ID);
+CloudSyncOption g_CloudSyncOption;
+const std::string USER_ID_2 = "user2";
 static const char *g_createLocalTableSql =
     "CREATE TABLE IF NOT EXISTS worker1(" \
     "name TEXT PRIMARY KEY," \
@@ -158,7 +160,7 @@ public:
         return asset;
     }
 
-    void InitDbAsset(const uint8_t* data, size_t size)
+    void InitDbAsset(const uint8_t *data, size_t size)
     {
         if (data == nullptr || size == 0) {
             return;
@@ -250,12 +252,18 @@ public:
         mgr_ = std::make_shared<RelationalStoreManager>("APP_ID", "USER_ID");
         RelationalStoreDelegate::Option option;
         mgr_->OpenStore(storePath_, "STORE_ID", option, delegate_);
+        g_CloudSyncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+        g_CloudSyncOption.users.push_back(DistributedDBUnitTest::USER_ID);
+        g_CloudSyncOption.devices.push_back("cloud");
         config_.dataDir = testDir_;
         g_mgr.SetKvStoreConfig(config_);
-        GetKvStore(kvDelegatePtrS1_, DistributedDBUnitTest::STORE_ID_1);
-        GetKvStore(kvDelegatePtrS2_, DistributedDBUnitTest::STORE_ID_2);
+        KvStoreNbDelegate::Option option1;
+        GetKvStore(kvDelegatePtrS1_, DistributedDBUnitTest::STORE_ID_1, option1);
+        KvStoreNbDelegate::Option option2;
+        GetKvStore(kvDelegatePtrS2_, DistributedDBUnitTest::STORE_ID_2, option2);
         virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
         virtualCloudDb1_ = std::make_shared<VirtualCloudDb>();
+        virtualCloudDb2_ = std::make_shared<VirtualCloudDb>();
         virtualAssetLoader_ = std::make_shared<VirtualAssetLoader>();
         delegate_->SetCloudDB(virtualCloudDb_);
         delegate_->SetIAssetLoader(virtualAssetLoader_);
@@ -276,14 +284,15 @@ public:
         CloseKvStore(kvDelegatePtrS1_, DistributedDBUnitTest::STORE_ID_1);
         CloseKvStore(kvDelegatePtrS2_, DistributedDBUnitTest::STORE_ID_2);
         virtualCloudDb1_ = nullptr;
+        virtualCloudDb2_ = nullptr;
         virtualAssetLoader_ = nullptr;
         if (DistributedDBToolsTest::RemoveTestDbFiles(testDir_) != 0) {
             LOGE("rm test db files error.");
         }
     }
 
-    void KvBlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
-        SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE, int expectSyncResult = OK)
+    void KvBlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus, CloudSyncOption option,
+        int expectSyncResult = OK)
     {
         if (delegate == nullptr) {
             return;
@@ -292,25 +301,28 @@ public:
         std::condition_variable cv;
         bool finish = false;
         SyncProcess last;
-        auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish](
+        auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish, &option](
             const std::map<std::string, SyncProcess> &process) {
-            for (const auto &item: process) {
-                if (item.second.process == DistributedDB::FINISHED) {
-                    {
-                        std::lock_guard<std::mutex> autoLock(dataMutex);
+            size_t notifyCnt = 0;
+            for (const auto &item : process) {
+                LOGD("user = %s, status = %d", item.first.c_str(), item.second.process);
+                if (item.second.process != DistributedDB::FINISHED) {
+                    continue;
+                }
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    notifyCnt++;
+                    std::set<std::string> userSet(option.users.begin(), option.users.end());
+                    if (notifyCnt == userSet.size()) {
                         finish = true;
                         last = item.second;
+                        cv.notify_one();
                     }
-                    cv.notify_one();
                 }
             }
         };
-        CloudSyncOption option;
-        option.mode = mode;
-        option.users.push_back(DistributedDBUnitTest::USER_ID);
-        option.devices.push_back("cloud");
-        delegate->Sync(option, callback);
-        if (expectSyncResult == OK) {
+        auto result = delegate->Sync(option, callback);
+        if (result == OK) {
             std::unique_lock<std::mutex> uniqueLock(dataMutex);
             cv.wait(uniqueLock, [&finish]() {
                 return finish;
@@ -319,11 +331,11 @@ public:
         lastProcess_ = last;
     }
 
-    static DataBaseSchema GetDataBaseSchema()
+    static DataBaseSchema GetDataBaseSchema(bool invalidSchema)
     {
         DataBaseSchema schema;
         TableSchema tableSchema;
-        tableSchema.name = CloudDbConstant::CLOUD_KV_TABLE_NAME;
+        tableSchema.name = invalidSchema ? "invalid_schema_name" : CloudDbConstant::CLOUD_KV_TABLE_NAME;
         Field field;
         field.colName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
         field.type = TYPE_INDEX<std::string>;
@@ -343,9 +355,9 @@ public:
         return schema;
     }
 
-    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId, int securityLabel = NOT_SET)
+    void GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId, KvStoreNbDelegate::Option option,
+        int securityLabel = NOT_SET, bool invalidSchema = false)
     {
-        KvStoreNbDelegate::Option option;
         DBStatus openRet = OK;
         option.secOption.securityLabel = securityLabel;
         g_mgr.GetKvStore(storeId, option, [&openRet, &delegate](DBStatus status, KvStoreNbDelegate *openDelegate) {
@@ -357,9 +369,11 @@ public:
         }
         std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
         cloudDbs[DistributedDBUnitTest::USER_ID] = virtualCloudDb1_;
+        cloudDbs[USER_ID_2] = virtualCloudDb2_;
         delegate->SetCloudDB(cloudDbs);
         std::map<std::string, DataBaseSchema> schemas;
-        schemas[DistributedDBUnitTest::USER_ID] = GetDataBaseSchema();
+        schemas[DistributedDBUnitTest::USER_ID] = GetDataBaseSchema(invalidSchema);
+        schemas[USER_ID_2] = GetDataBaseSchema(invalidSchema);
         delegate->SetCloudDbSchema(schemas);
     }
 
@@ -391,6 +405,29 @@ public:
         context->WaitForFinish();
     }
 
+    void OptionBlockSync(std::vector<std::string> devices, SyncMode mode = SYNC_MODE_CLOUD_MERGE)
+    {
+        Query query = Query::Select().FromTable({ g_table });
+        auto context = std::make_shared<CloudSyncContext>();
+        auto callback = [context](const std::map<std::string, SyncProcess> &onProcess) {
+            for (const auto &item : onProcess) {
+                if (item.second.process == ProcessStatus::FINISHED) {
+                    context->FinishAndNotify();
+                }
+            }
+        };
+        CloudSyncOption option;
+        option.mode = mode;
+        option.devices = devices;
+        option.query = query;
+        option.waitTime = DBConstant::MAX_TIMEOUT;
+        DBStatus status = delegate_->Sync(option, callback);
+        if (status != OK) {
+            return;
+        }
+        context->WaitForFinish();
+    }
+
     void NormalSync()
     {
         BlockSync();
@@ -403,13 +440,13 @@ public:
         Key key = {'k'};
         Value expectValue = {'v'};
         kvDelegatePtrS1_->Put(key, expectValue);
-        KvBlockSync(kvDelegatePtrS1_, OK);
-        KvBlockSync(kvDelegatePtrS2_, OK);
+        KvBlockSync(kvDelegatePtrS1_, OK, g_CloudSyncOption);
+        KvBlockSync(kvDelegatePtrS2_, OK, g_CloudSyncOption);
         Value actualValue;
         kvDelegatePtrS2_->Get(key, actualValue);
     }
 
-    void RandomModeSync(const uint8_t* data, size_t size)
+    void RandomModeSync(const uint8_t *data, size_t size)
     {
         if (size == 0) {
             BlockSync();
@@ -420,7 +457,7 @@ public:
         BlockSync(mode);
     }
 
-    void DataChangeSync(const uint8_t* data, size_t size)
+    void DataChangeSync(const uint8_t *data, size_t size)
     {
         SetCloudDbSchema(delegate_);
         if (size == 0) {
@@ -428,9 +465,29 @@ public:
         }
         InitDbData(db_, data, size);
         BlockSync();
+        FuzzerData fuzzerData(data, size);
+        CloudSyncConfig config;
+        int maxUploadSize = fuzzerData.GetInt();
+        int maxUploadCount = fuzzerData.GetInt();
+        config.maxUploadSize = maxUploadSize;
+        config.maxUploadCount = maxUploadCount;
+        delegate_->SetCloudSyncConfig(config);
+        kvDelegatePtrS1_->SetCloudSyncConfig(config);
+        uint32_t len = fuzzerData.GetUInt32() % MOD;
+        std::string version = fuzzerData.GetString(len);
+        kvDelegatePtrS1_->SetGenCloudVersionCallback([version](const std::string &origin) {
+            return origin + version;
+        });
+        KvNormalSync();
+        int count = fuzzerData.GetInt();
+        kvDelegatePtrS1_->GetCount(Query::Select(), count);
+        std::string device = fuzzerData.GetString(len);
+        kvDelegatePtrS1_->GetCloudVersion(device);
+        std::vector<std::string> devices = fuzzerData.GetStringVector(len);
+        OptionBlockSync(devices);
     }
 
-    void InitAssets(const uint8_t* data, size_t size)
+    void InitAssets(const uint8_t *data, size_t size)
     {
         FuzzerData fuzzerData(data, size);
         uint32_t len = fuzzerData.GetUInt32() % MOD;
@@ -440,7 +497,7 @@ public:
         }
     }
 
-    void AssetChangeSync(const uint8_t* data, size_t size)
+    void AssetChangeSync(const uint8_t *data, size_t size)
     {
         SetCloudDbSchema(delegate_);
         if (size == 0) {
@@ -451,7 +508,7 @@ public:
         BlockSync();
     }
 
-    void RandomModeRemoveDeviceData(const uint8_t* data, size_t size)
+    void RandomModeRemoveDeviceData(const uint8_t *data, size_t size)
     {
         if (size == 0) {
             return;
@@ -478,6 +535,7 @@ private:
     KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb1_ = nullptr;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb2_ = nullptr;
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_;
     std::shared_ptr<RelationalStoreManager> mgr_;
     KvStoreConfig config_;
@@ -506,7 +564,7 @@ void TearDown()
     }
 }
 
-void CombineTest(const uint8_t* data, size_t size)
+void CombineTest(const uint8_t *data, size_t size)
 {
     if (g_cloudSyncTest == nullptr) {
         return;
@@ -521,7 +579,7 @@ void CombineTest(const uint8_t* data, size_t size)
 }
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     OHOS::Setup();
     OHOS::CombineTest(data, size);

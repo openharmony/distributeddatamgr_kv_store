@@ -14,32 +14,34 @@
  */
 
 #include "relationalstoredelegate_fuzzer.h"
+#include "cloud/cloud_store_types.h"
 #include "distributeddb_data_generate_unit_test.h"
+#include "distributeddb/result_set.h"
 #include "distributeddb_tools_test.h"
-#include "log_print.h"
 #include "fuzzer_data.h"
+#include "log_print.h"
+#include "query.h"
 #include "relational_store_delegate.h"
 #include "relational_store_manager.h"
-#include "virtual_communicator_aggregator.h"
-#include "query.h"
-#include "store_types.h"
-#include "distributeddb/result_set.h"
 #include "runtime_context.h"
+#include "store_observer.h"
+#include "store_types.h"
+#include "virtual_communicator_aggregator.h"
 
 namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
 using namespace DistributedDBUnitTest;
 
-constexpr const char* DB_SUFFIX = ".db";
-constexpr const char* STORE_ID = "Relational_Store_ID";
+constexpr const char *DB_SUFFIX = ".db";
+constexpr const char *STORE_ID = "Relational_Store_ID";
 const std::string DEVICE_A = "DEVICE_A";
 std::string g_testDir;
 std::string g_dbDir;
 DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
 sqlite3 *g_db = nullptr;
 RelationalStoreDelegate *g_delegate = nullptr;
-VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+VirtualCommunicatorAggregator *g_communicatorAggregator = nullptr;
 const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_data(" \
     "key         BLOB NOT NULL UNIQUE," \
     "value       BLOB," \
@@ -95,8 +97,38 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void CombineTest(const uint8_t* data, size_t size)
+void MultiCombineTest(const uint8_t *data, const std::string &tableName, const std::string &extendColName,
+    std::set<std::string> trackerColNames, bool isDeleted)
 {
+    TrackerSchema schema;
+    schema.tableName = tableName;
+    schema.extendColName = extendColName;
+    schema.trackerColNames = trackerColNames;
+    g_delegate->SetTrackerTable(schema);
+    g_delegate->SetReference({});
+    g_delegate->CleanTrackerData(tableName, 0);
+    bool logicDelete = isDeleted;
+    auto pragmaData = static_cast<PragmaData>(&logicDelete);
+    auto pragmaCmd = static_cast<PragmaCmd>(data[0]);
+    g_delegate->Pragma(pragmaCmd, pragmaData);
+    VBucket records;
+    records[extendColName] = extendColName;
+    auto recordStatus = static_cast<RecordStatus>(data[0]);
+    g_delegate->UpsertData(tableName, { records }, recordStatus);
+    DistributedDB::SqlCondition sqlCondition;
+    std::vector<VBucket> sqlRecords;
+    g_delegate->ExecuteSql(sqlCondition, sqlRecords);
+}
+
+void CombineTest(const uint8_t *data, size_t size)
+{
+    auto observer = new (std::nothrow) DistributedDB::StoreObserver;
+    if (observer == nullptr) {
+        delete observer;
+        observer = nullptr;
+        return;
+    }
+    g_delegate->RegisterObserver(observer);
     if (g_delegate == nullptr) {
         LOGI("delegate is null");
         return;
@@ -118,6 +150,11 @@ void CombineTest(const uint8_t* data, size_t size)
     }
     SyncStatusCallback callback = nullptr;
     g_delegate->Sync(device, mode, query, callback, len % 2); // 2 is mod num for wait parameter
+    g_delegate->GetCloudSyncTaskCount();
+    std::string extendColName = fuzzerData.GetString(len % lenMod);
+    std::set<std::string> trackerColNames = fuzzerData.GetStringSet(len % lenMod);
+    bool isLogicDeleted = static_cast<bool>(*data);
+    MultiCombineTest(data, tableName, extendColName, trackerColNames, isLogicDeleted);
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
     g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);
@@ -127,11 +164,16 @@ void CombineTest(const uint8_t* data, size_t size)
     std::shared_ptr<ResultSet> resultSet = nullptr;
     uint64_t timeout = len;
     g_delegate->RemoteQuery(deviceId, rc, timeout, resultSet);
+    g_delegate->UnRegisterObserver(observer);
+    g_delegate->RegisterObserver(observer);
+    g_delegate->UnRegisterObserver();
+    delete observer;
+    observer = nullptr;
 }
 }
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     OHOS::Setup();
     OHOS::CombineTest(data, size);
