@@ -189,6 +189,11 @@ struct SecurityOption {
     {
         return securityLabel == rhs.securityLabel && securityFlag == rhs.securityFlag;
     }
+
+    bool operator!=(const SecurityOption &rhs) const
+    {
+        return !(*this == rhs);
+    }
 };
 
 enum class ResultSetCacheMode : int {

@@ -691,7 +691,7 @@ int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
 
 int SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
 {
-    if (!(secOption == option_.securityOpt) &&
+    if (!(secOption == option_.securityOpt) && (secOption.securityLabel > option_.securityOpt.securityLabel) &&
         secOption.securityLabel != SecurityLabel::NOT_SET &&
         option_.securityOpt.securityLabel != SecurityLabel::NOT_SET) {
         LOGE("[SQLiteSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
@@ -1092,6 +1092,9 @@ bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &e
     }
     if (existedSecOpt.securityLabel != openSecOpt.securityLabel &&
         existedSecOpt.securityLabel == SecurityLabel::NOT_SET) {
+        return false;
+    }
+    if (existedSecOpt.securityLabel < openSecOpt.securityLabel) {
         return false;
     }
     return true;
