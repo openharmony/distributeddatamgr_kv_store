@@ -396,6 +396,11 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData1, TestSize.Level1)
         EXPECT_TRUE(errCode == E_OK || errCode == -E_UNFINISHED);
     }
     EXPECT_EQ(count, RECORD_COUNT);
+
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    auto db = RelationalStoreInstance::GetDataBase(properties, errCode, false);
+    EXPECT_EQ(db, nullptr);
     RefObject::DecObjRef(g_store);
 }
 
