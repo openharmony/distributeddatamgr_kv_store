@@ -89,6 +89,15 @@ std::vector<std::string> FuzzerData::GetStringVector(size_t size)
     return vec;
 }
 
+std::set<std::string> FuzzerData::GetStringSet(size_t size)
+{
+    std::set<std::string> set;
+    for (size_t i = 1; i <= size; i++) {
+        set.insert(GetString(i));
+    }
+    return set;
+}
+
 std::vector<std::u16string> FuzzerData::GetU16StringVector(size_t size)
 {
     std::vector<std::u16string> vec;
