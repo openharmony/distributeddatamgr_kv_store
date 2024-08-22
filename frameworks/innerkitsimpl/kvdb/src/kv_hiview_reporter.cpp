@@ -36,9 +36,9 @@ struct KVDBCorruptedEvent {
     uint32_t securityLevel;
     uint32_t pathArea;
     uint32_t encryptStatus;
-    uint32_t integrityCheck;
-    uint32_t errorCode;
-    int32_t systemErrorNo;
+    uint32_t integrityCheck = 0;
+    uint32_t errorCode = 0;
+    int32_t systemErrorNo = 0;
     std::string appendix;
     std::string errorOccurTime;
 
@@ -52,7 +52,7 @@ struct KVDBCorruptedEvent {
 };
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
-    const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
+    const Options &options, uint32_t errorCode, int32_t systemErrorNo,
     const KvStoreTuple &storeTuple, const std::string &appendix)
 {
     KVDBCorruptedEvent eventInfo(options);
@@ -74,12 +74,16 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     auto timestamp = value.count();
 
     std::time_t tt = std::chrono::system_clock::to_time_t(now);
-    std::tm tm = *std::localtime(&tt);
+    std::tm *tm = std::localtime(&tt);
+    if (tm == nullptr) {
+        ZLOGE("Failed localtime is nullptr");
+        return "";
+    }
 
     const int offset = 1000;
     const int width = 3;
     std::stringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S.") << std::setfill('0') << std::setw(width)
+    oss << std::put_time(tm, "%Y-%m-%d %H:%M:%S.") << std::setfill('0') << std::setw(width)
         << ((timestamp / offset) % offset) << "." << std::setfill('0') << std::setw(width) << (timestamp % offset);
     return oss.str();
 }

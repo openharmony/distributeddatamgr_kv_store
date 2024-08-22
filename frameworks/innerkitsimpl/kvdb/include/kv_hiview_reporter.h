@@ -39,7 +39,7 @@ struct KVDBCorruptedEvent;
 class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
-        const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
+        const Options &options, uint32_t errorCode, int32_t systemErrorNo,
         const KvStoreTuple &storeTuple, const std::string &appendix);
 
 private:
