@@ -88,6 +88,7 @@ enum DBStatus {
     CLOUD_SYNC_TASK_MERGED, // sync task is merged
     CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
+    SQLITE_CANT_OPEN, // the sqlite cannot open
     BUTT_STATUS
 };
 
