@@ -65,7 +65,7 @@ int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
     return Sync(taskInfo);
 }
 
-int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
+int CloudSyncer::Sync(CloudTaskInfo &taskInfo)
 {
     int errCode = CloudSyncUtils::CheckParamValid(taskInfo.devices, taskInfo.mode);
     if (errCode != E_OK) {
@@ -81,7 +81,7 @@ int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
     }
     CloudTaskInfo info = taskInfo;
     info.status = ProcessStatus::PREPARED;
-    errCode = TryToAddSyncTask(std::move(info));
+    errCode = TryToAddSyncTask(std::move(info), taskInfo.taskId);
     if (errCode != E_OK) {
         return errCode;
     }

@@ -43,6 +43,8 @@ public:
     void SetUser(const std::string &user);
 
     void SetAllTableFinish();
+
+    std::map<std::string, TableProcessInfo> GetCurrentTableProcess() const;
 protected:
     mutable std::mutex processMutex_;
     SyncProcess syncProcess_;

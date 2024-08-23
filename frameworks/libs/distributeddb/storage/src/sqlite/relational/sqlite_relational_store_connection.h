@@ -51,8 +51,6 @@ public:
     int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) override;
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
-    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
-
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
     int SetTrackerTable(const TrackerSchema &schema) override;
@@ -66,6 +64,10 @@ public:
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) override;
+
+    SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

@@ -67,8 +67,6 @@ public:
     virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
     virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 
-    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
-
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
     virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
@@ -82,6 +80,10 @@ public:
     virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
 
     virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
+
+    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) = 0;
+
+    virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

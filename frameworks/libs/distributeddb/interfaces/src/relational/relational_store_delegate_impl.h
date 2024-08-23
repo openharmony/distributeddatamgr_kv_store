@@ -81,6 +81,10 @@ public:
         RecordStatus status) override;
 
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) override;
+
+    SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);
