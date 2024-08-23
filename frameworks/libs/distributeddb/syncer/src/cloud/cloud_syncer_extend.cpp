@@ -651,7 +651,7 @@ bool CloudSyncer::IsNeedGetLocalWater(TaskId taskId)
         !IsCompensatedTask(taskId);
 }
 
-int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo, uint64_t &taskId)
+int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
 {
     if (closed_) {
         LOGW("[CloudSyncer] syncer is closed, should not sync now");
@@ -668,12 +668,10 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo, uint64_t &taskId)
     if (errCode != E_OK) {
         return errCode;
     }
-    lastTaskId_++;
-    if (lastTaskId_ == UINT64_MAX) {
-        lastTaskId_ = 1u;
+    errCode = GenerateTaskIdIfNeed(taskInfo);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    taskInfo.taskId = lastTaskId_;
-    taskId = lastTaskId_;
     cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
     if (cloudTaskInfos_[lastTaskId_].priorityTask) {
         priorityTaskQueue_.push_back(lastTaskId_);
@@ -1087,5 +1085,25 @@ SyncProcess CloudSyncer::GetCloudTaskStatus(uint64_t taskId) const
     LOGI("[CloudSyncer] Found task %" PRIu64 " storeId %.3s status %d has notifier %d", taskId,
         iter->second.storeId.c_str(), static_cast<int64_t>(syncProcess.process), static_cast<int>(hasNotifier));
     return syncProcess;
+}
+
+int CloudSyncer::GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo)
+{
+    if (taskInfo.taskId != INVALID_TASK_ID) {
+        if (cloudTaskInfos_.find(taskInfo.taskId) != cloudTaskInfos_.end()) {
+            LOGE("[CloudSyncer] Sync with exist taskId %" PRIu64 " storeId %.3s", taskInfo.taskId,
+                taskInfo.storeId.c_str());
+            return -E_INVALID_ARGS;
+        }
+        lastTaskId_ = taskInfo.taskId;
+        LOGI("[CloudSyncer] Sync with taskId %" PRIu64 " storeId %.3s", taskInfo.taskId, taskInfo.storeId.c_str());
+        return E_OK;
+    }
+    lastTaskId_++;
+    if (lastTaskId_ == UINT64_MAX) {
+        lastTaskId_ = 1u;
+    }
+    taskInfo.taskId = lastTaskId_;
+    return E_OK;
 }
 }

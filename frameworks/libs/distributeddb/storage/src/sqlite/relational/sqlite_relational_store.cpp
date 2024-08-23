@@ -1078,7 +1078,7 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
     return storageEngine_->ChkSchema(tableName);
 }
 
-int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId)
+int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId)
 {
     if (storageEngine_ == nullptr) {
         LOGE("[RelationalStore][Sync] storageEngine was not initialized");
@@ -1105,8 +1105,8 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     if (ret != E_OK) {
         return ret;
     }
+    info.taskId = taskId;
     errCode = cloudSyncer_->Sync(info);
-    taskId = info.taskId;
     return errCode;
 }
 

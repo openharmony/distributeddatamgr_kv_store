@@ -48,7 +48,7 @@ public:
     int Sync(const std::vector<DeviceID> &devices, SyncMode mode, const std::vector<std::string> &tables,
         const SyncProcessCallback &callback, int64_t waitTime);
 
-    int Sync(CloudTaskInfo &taskInfo);
+    int Sync(const CloudTaskInfo &taskInfo);
 
     void SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
 
@@ -204,7 +204,7 @@ protected:
 
     int GetCurrentTableName(std::string &tableName);
 
-    int TryToAddSyncTask(CloudTaskInfo &&taskInfo, uint64_t &taskId);
+    int TryToAddSyncTask(CloudTaskInfo &&taskInfo);
 
     int CheckQueueSizeWithNoLock(bool priorityTask);
 
@@ -420,6 +420,8 @@ protected:
     void MarkDownloadFinishIfNeed(const std::string &downloadTable);
 
     bool IsNeedUpdateAsset(const VBucket &data);
+
+    int GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

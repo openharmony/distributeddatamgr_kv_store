@@ -456,7 +456,7 @@ DBStatus RelationalStoreDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &
 }
 
 DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
-    uint64_t &taskId)
+    uint64_t taskId)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for sync!");

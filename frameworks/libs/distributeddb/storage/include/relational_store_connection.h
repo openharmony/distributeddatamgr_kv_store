@@ -81,7 +81,7 @@ public:
 
     virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 
-    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) = 0;
+    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) = 0;
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 protected:

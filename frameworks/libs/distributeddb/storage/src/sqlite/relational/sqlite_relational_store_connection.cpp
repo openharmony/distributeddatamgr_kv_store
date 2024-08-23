@@ -431,7 +431,7 @@ int SQLiteRelationalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &c
 }
 
 int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
-    uint64_t &taskId)
+    uint64_t taskId)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {

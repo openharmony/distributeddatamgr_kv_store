@@ -82,7 +82,7 @@ public:
 
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
-    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) override;
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 private:
