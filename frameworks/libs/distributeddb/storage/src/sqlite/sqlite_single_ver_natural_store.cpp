@@ -1539,7 +1539,7 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
     if (errCode != E_OK) {
         return errCode;
     }
-    StopSyncer(true);
+    StopSyncer(true, true);
     std::this_thread::sleep_for(std::chrono::milliseconds(5)); // wait for 5 ms
     std::unique_ptr<SingleVerDatabaseOper> operation;
 
@@ -2013,6 +2013,16 @@ std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSc
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     return sqliteCloudKvStore_->GetDataBaseSchemas();
+}
+
+bool SQLiteSingleVerNaturalStore::CheckSchemaSupportForCloudSync() const
+{
+    auto schemaType = GetSchemaObject().GetSchemaType();
+    if (schemaType != SchemaType::NONE) {
+        LOGE("un support schema type %d for cloud sync", static_cast<int>(schemaType));
+        return false;
+    }
+    return true;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

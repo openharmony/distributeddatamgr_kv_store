@@ -1148,7 +1148,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
     Value value = {'1'};
     Timestamp currentTime;
     (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
-    EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == OK);
+    EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == E_OK);
     EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
 
     Value outValue;
@@ -1915,7 +1915,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, DelaySync001, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for data conflict
     Timestamp currentTime = TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET;
     Value bValue = {'b'};
-    EXPECT_EQ(g_deviceB->PutData(key, bValue, currentTime, 0), OK);
+    EXPECT_EQ(g_deviceB->PutData(key, bValue, currentTime, 0), E_OK);
 
     // delay time sync message, delay time/2 should greater than put sleep time
     g_communicatorAggregator->SetTimeout(DEVICE_B, DBConstant::MAX_TIMEOUT);
@@ -2123,7 +2123,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt003, TestSize.Level0)
      * @tc.expected: step4. reopen OK and sync success, no negotiation packet.
      */
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 0);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
@@ -2182,7 +2182,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt005, TestSize.Level0)
      * @tc.steps: step2. deviceB call sync and wait
      * @tc.expected: step2. sync should return OK.
      */
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 2); // DEV_A send negotiation 2 ack packet.
     /**
      * @tc.steps: step3. reopen kv store
@@ -2194,7 +2194,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt005, TestSize.Level0)
      * @tc.expected: step4. reopen OK and sync success, no negotiation packet.
      */
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 0);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
@@ -2219,7 +2219,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level0)
      */
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
     /**
      * @tc.steps: step3. rebuild kv store
@@ -2239,7 +2239,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level0)
      * @tc.expected: step4. rebuild OK and sync success, re ability sync.
      */
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 1);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
@@ -2262,7 +2262,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
      * @tc.steps: step2. deviceB call sync and wait
      * @tc.expected: step2. sync should return OK.
      */
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 2); // DEV_A send negotiation 2 ack packet.
     /**
      * @tc.steps: step3. export and import
@@ -2277,7 +2277,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
      * @tc.expected: step4. reopen OK and sync success, no negotiation packet.
      */
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 1); // DEV_A send negotiation 1 ack packet.
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
@@ -2322,7 +2322,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
     Sync(devices, OK);
     EXPECT_EQ(messageCount, 1); // 1 contain time sync request packet
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), OK);
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 0);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }

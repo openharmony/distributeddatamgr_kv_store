@@ -82,9 +82,9 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
             LOGD("[ProcessNotifier] task has error, do not notify now");
             return;
         }
-        syncProcess_.errCode = TransferDBErrno(taskInfo.errCode);
+        syncProcess_.errCode = TransferDBErrno(taskInfo.errCode, true);
         syncProcess_.process = taskInfo.status;
-        multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode);
+        multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode, true);
         multiSyncProcess_[user_].process = taskInfo.status;
         if (user_.empty()) {
             for (const auto &device : devices_) {
@@ -140,6 +140,9 @@ uint32_t ProcessNotifier::GetUploadBatchIndex(const std::string &tableName) cons
 
 void ProcessNotifier::ResetUploadBatchIndex(const std::string &tableName)
 {
+    if (tableName.empty()) {
+        return;
+    }
     std::lock_guard<std::mutex> autoLock(processMutex_);
     auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
     if (syncProcess.tableProcess.find(tableName) == syncProcess.tableProcess.end()) {
@@ -172,7 +175,7 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
         syncProcess = multiSyncProcess_[user_];
     }
     
-    if (syncProcess.tableProcess.find(process.tableName) == syncProcess.tableProcess.end()) {
+    if (syncProcess.tableProcess.find(process.tableName) != syncProcess.tableProcess.end()) {
         process.downLoadInfo = syncProcess.tableProcess[process.tableName].downLoadInfo;
     }
 }

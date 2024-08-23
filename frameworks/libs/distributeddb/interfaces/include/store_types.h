@@ -26,7 +26,7 @@
 
 namespace DistributedDB {
 enum DBStatus {
-    DB_ERROR = -1,
+    DB_ERROR = -1, // DBStatus in [27328512, 27394048]
     OK = 0,
     BUSY,
     NOT_FOUND,
@@ -88,6 +88,7 @@ enum DBStatus {
     CLOUD_SYNC_TASK_MERGED, // sync task is merged
     CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
+    BUTT_STATUS
 };
 
 struct KvStoreConfig {

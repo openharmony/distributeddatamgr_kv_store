@@ -41,11 +41,11 @@ public:
 
     int GetLocalWaterMark(const std::string &tableName, Timestamp &localMark);
 
-    int GetLocalWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode);
+    int GetLocalWaterMarkByMode(const std::string &tableName, CloudWaterType mode, Timestamp &localMark);
 
     int PutLocalWaterMark(const std::string &tableName, Timestamp &localMark);
 
-    int PutWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode);
+    int PutWaterMarkByMode(const std::string &tableName, CloudWaterType mode, Timestamp &localMark);
 
     int GetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
 
@@ -148,7 +148,11 @@ public:
 
     bool IsTableExistReference(const std::string &table);
 
+    bool IsTableExistReferenceOrReferenceBy(const std::string &table);
+
     void ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark);
+
+    bool IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo);
 protected:
     void Init();
 

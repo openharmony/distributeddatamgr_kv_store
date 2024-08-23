@@ -219,7 +219,7 @@ uint64_t SQLiteSingleVerNaturalStore::GetCacheRecordVersion() const
 uint64_t SQLiteSingleVerNaturalStore::GetAndIncreaseCacheRecordVersion() const
 {
     if (storageEngine_ == nullptr) {
-        LOGE("[SingleVerNStore] Get cache version storage engine is invalid.");
+        LOGE("[SingleVerNStore] Get and increase cache version storage engine is invalid.");
         return 0;
     }
     return storageEngine_->GetAndIncreaseCacheRecordVersion();
@@ -511,7 +511,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        LOGE("[SingleVerNStore] RemoveDeviceData with mode get handle failed:%d", errCode);
         return errCode;
     }
     errCode = handle->RemoveDeviceData(hashDev, mode);
@@ -525,7 +525,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        LOGE("[SingleVerNStore] RemoveDeviceData with user and mode get handle failed:%d", errCode);
         return errCode;
     }
     errCode = handle->RemoveDeviceData(hashDev, user, mode);

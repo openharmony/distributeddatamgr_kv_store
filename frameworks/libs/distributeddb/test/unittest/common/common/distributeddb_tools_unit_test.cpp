@@ -990,6 +990,22 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
     return callStatus;
 }
 
+bool CheckStatusAndSyncProcess(DBStatus status, std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+{
+    if (status != OK) {
+        return true;
+    }
+    if (syncProcessMap.empty()) {
+        return false;
+    }
+    for (const auto &entry : syncProcessMap) {
+        if (entry.second.process < ProcessStatus::FINISHED) {
+            return false;
+        }
+    }
+    return true;
+}
+
 DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, DeviceSyncOption option,
     std::map<std::string, DeviceSyncProcess> &syncProcessMap)
 {
@@ -1001,24 +1017,13 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
             this->syncCondVar_.notify_one();
         };
     DBStatus status = delegate->Sync(option, onProcess);
-    if (option.isWait) {
-        return status;
+
+    if (!option.isWait) {
+        std::unique_lock<std::mutex> lock(this->syncLock_);
+        this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
+            return CheckStatusAndSyncProcess(status, syncProcessMap);
+        });
     }
-    std::unique_lock<std::mutex> lock(this->syncLock_);
-    this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
-        if (status != OK) {
-            return true;
-        }
-        if (syncProcessMap.empty()) {
-            return false;
-        }
-        for (const auto &entry : syncProcessMap) {
-            if (entry.second.process < ProcessStatus::FINISHED) {
-                return false;
-            }
-        }
-        return true;
-    });
     return status;
 }
 
@@ -1410,6 +1415,7 @@ DistributedDB::DBStatus RelationalTestUtils::InsertCloudRecord(int64_t begin, in
             asset.name = assetNameBegin + "_" + std::to_string(j);
             asset.status = AssetStatus::INSERT;
             asset.hash = "DEC";
+            asset.assetId = std::to_string(j);
             assets.push_back(asset);
         }
         data.insert_or_assign("assets", assets);

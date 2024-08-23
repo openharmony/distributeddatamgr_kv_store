@@ -200,6 +200,8 @@ public:
     void SetUploadConfig(int32_t maxUploadCount, int32_t maxUploadSize);
 
     int InitCursorToMeta(const std::string &tableName);
+
+    void SetTableSchema(const TableSchema &tableSchema);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -225,7 +227,7 @@ private:
     int SetCursor(const std::string &tableName, int cursor);
 
     int IncreaseCursorOnAssetData(const std::string &tableName, const std::string &gid);
-    
+
     int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys,
         bool distinguishCloudFlag);
 
@@ -312,6 +314,8 @@ private:
     int BindOneField(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *updateStmt);
 
     int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
+
+    int BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt, std::vector<uint8_t> &hashKey);
 
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);

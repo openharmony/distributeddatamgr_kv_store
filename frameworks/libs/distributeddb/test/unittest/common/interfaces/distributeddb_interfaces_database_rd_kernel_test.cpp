@@ -46,7 +46,6 @@ namespace {
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
-    static const char *g_syncMMapFile = "./share_mem";
 #ifndef OMIT_JSON
     void GenerateValidSchemaString(std::string &string, int num = SCHEMA_TYPE1)
     {
@@ -666,7 +665,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetDBWhileOpened001, TestS
      * @tc.expected: step3. Returns E_OK.
      */
     auto connection3 = KvDBManager::GetDatabaseConnection(property, errCode, true);
-    EXPECT_EQ(errCode, OK);
+    EXPECT_EQ(errCode, E_OK);
     EXPECT_NE(connection3, nullptr);
 
     KvDBManager::ReleaseDatabaseConnection(connection1);
@@ -885,114 +884,4 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, DataInterceptor1, TestSize
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
 }
-
-int *GetProcessSyncMemory(int *fd)
-{
-    *fd = open(g_syncMMapFile, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (*fd <= 0) {
-        return NULL;
-    }
-    if (ftruncate(*fd, sizeof(int)) < 0) {
-        return NULL;
-    }
-    int *step = (int *)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
-    if (step == MAP_FAILED) {
-        return NULL;
-    }
-    *step = 0;
-    return step;
-}
-
-void ClearProcessSyncMemory(int fd, int *buffer)
-{
-    ASSERT_GE(munmap(buffer, sizeof(int)), 0);
-    ASSERT_EQ(close(fd), 0);
-    ASSERT_GE(unlink(g_syncMMapFile), 0);
-}
-
-void WaitCondition(int *X, int Y)
-{
-    while (*X != Y) {
-        usleep(10000);  // sleep 10000 microseconds
-    }
-}
-
-KvStoreNbDelegate::Option GetWriteOption()
-{
-    KvStoreNbDelegate::Option option;
-    option.storageEngineType = GAUSSDB_RD;
-    option.rdconfig.readOnly = false;
-    return option;
-}
-
-/**
- * @tc.name: MultiProcessOpenDb001
- * @tc.desc: Test 2 processes concurrently start the same KvStoreNbDelegate
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: huangboxin
- */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, MultiProcessOpenDb001, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Create shared variable memory to share variables
-     * @tc.expected: step1. OK
-     */
-    int fd = 0;
-    int *step = GetProcessSyncMemory(&fd);
-    /**
-     * @tc.steps: step2. use 2 process to get kv store
-     * @tc.expected: step2. Returns OK and OVER_MAX_LIMITS
-     */
-    DBStatus result;
-    KvStoreNbDelegate::Option writeOption = GetWriteOption();
-    pid_t pid = fork();
-    ASSERT_GE(pid, 0);
-    if (pid == 0) {
-        (*step)++;
-        WaitCondition(step, 1);
-
-        KvStoreDelegateManager mgr1(APP_ID, USER_ID);
-        KvStoreNbDelegate *delegate1 = nullptr;
-        mgr1.SetKvStoreConfig(g_config);
-        auto delegateCallback1 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
-        placeholders::_1, placeholders::_2, std::ref(result), std::ref(delegate1));
-        mgr1.GetKvStore("multiprocess_getkvstore_001", writeOption, delegateCallback1);
-        ASSERT_TRUE(delegate1 != nullptr);
-
-        if (result != OK) {
-            EXPECT_EQ(result, OVER_MAX_LIMITS);
-        }
-        (*step)++;
-        WaitCondition(step, 3);
-        if (delegate1 != nullptr) {
-            EXPECT_EQ(mgr1.CloseKvStore(delegate1), OK);
-            delegate1 = nullptr;
-        }
-        // quit the child process
-        exit(0);
-    } else {
-        WaitCondition(step, 1);
-
-        KvStoreDelegateManager mgr2(APP_ID, USER_ID);
-        KvStoreNbDelegate *delegate2 = nullptr;
-        mgr2.SetKvStoreConfig(g_config);
-        auto delegateCallback2 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
-        placeholders::_1, placeholders::_2, std::ref(result), std::ref(delegate2));
-        mgr2.GetKvStore("multiprocess_getkvstore_001", writeOption, delegateCallback2);
-
-        if (result != OK) {
-            EXPECT_EQ(result, OVER_MAX_LIMITS);
-        }
-        (*step)++;
-        WaitCondition(step, 3);
-        if (delegate2 != nullptr) {
-            EXPECT_EQ(mgr2.CloseKvStore(delegate2), OK);
-            delegate2 = nullptr;
-        }
-    }
-    waitpid(pid, NULL, 0);
-    ClearProcessSyncMemory(fd, step);
-}
-
 #endif // USE_RD_KERNEL

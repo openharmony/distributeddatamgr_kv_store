@@ -65,6 +65,7 @@ const Asset ASSET_COPY = {.version = 1,
     .size = "256",
     .hash = "ASE"};
 const Assets ASSETS_COPY1 = { ASSET_COPY };
+const string ASSET_SUFFIX = "_copy";
 
 string g_storePath;
 string g_testDir;
@@ -119,6 +120,9 @@ protected:
     void CallSync(const CloudSyncOption &option, DBStatus expectResult = OK);
 
     void TestConflictSync001(bool isUpdate);
+    void CheckAssetStatusNormal();
+    void UpdateCloudAssets(Asset &asset, Assets &assets, const std::string &version);
+    void CheckUploadAbnormal(OpType opType, int64_t expCnt, bool isCompensated = false);
     sqlite3 *db = nullptr;
 };
 
@@ -368,6 +372,74 @@ void DistributedDBCloudSyncerLockTest::TestConflictSync001(bool isUpdate)
     sql = "select count(*) from " + ASSETS_TABLE_NAME + " where name = 'name30' AND id = '1';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+}
+
+void DistributedDBCloudSyncerLockTest::CheckAssetStatusNormal()
+{
+    std::string sql = "SELECT asset, assets FROM " + ASSETS_TABLE_NAME + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        ASSERT_EQ(sqlite3_column_type(stmt, 1), SQLITE_BLOB);
+        Type assetBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Asset>, 0, assetBlob), E_OK);
+        Asset asset = g_virtualCloudDataTranslate->BlobToAsset(std::get<Bytes>(assetBlob));
+        EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+        Type assetsBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, assetsBlob), E_OK);
+        Assets assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(assetsBlob));
+        for (const auto &as : assets) {
+            EXPECT_EQ(as.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+        }
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DistributedDBCloudSyncerLockTest::UpdateCloudAssets(Asset &asset, Assets &assets, const std::string &version)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    VBucket data;
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    asset.name.empty() ? data.insert_or_assign(COL_ASSET, Nil()) : data.insert_or_assign(COL_ASSET, asset);
+    data.insert_or_assign(COL_ID, 0L);
+    data.insert_or_assign(COL_NAME, "name" + std::to_string(g_nameId++));
+    assets.empty() ? data.insert_or_assign(COL_ASSETS, Nil()) : data.insert_or_assign(COL_ASSETS, assets);
+    record.push_back(data);
+    VBucket log;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(0));
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, version);
+    extend.push_back(log);
+    ASSERT_EQ(g_virtualCloudDb->BatchUpdate(ASSETS_TABLE_NAME, std::move(record), extend), DBStatus::OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
+void DistributedDBCloudSyncerLockTest::CheckUploadAbnormal(OpType opType, int64_t expCnt, bool isCompensated)
+{
+    std::string sql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " WHERE ";
+    switch (opType) {
+        case OpType::INSERT:
+            sql += isCompensated ? " cloud_gid != '' AND version !='' AND flag&0x10=0" :
+                   " cloud_gid != '' AND version !='' AND flag=flag|0x10";
+            break;
+        case OpType::UPDATE:
+            sql += isCompensated ? " cloud_gid != '' AND version !='' AND flag&0x10=0" :
+                   " cloud_gid == '' AND version =='' AND flag=flag|0x10";
+            break;
+        case OpType::DELETE:
+            sql += " cloud_gid == '' AND version ==''";
+            break;
+        default:
+            break;
+    }
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(expCnt), nullptr), SQLITE_OK);
 }
 
 /**
@@ -683,7 +755,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
      */
     InsertLocalData(0, 1, ASSETS_TABLE_NAME, true);
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where cursor='41';";
+        " where cursor='31';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }
@@ -723,7 +795,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
      * @tc.expected: step3. return ok.
      */
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where data_key='0' and extend_field='name10' and cursor='32';";
+        " where data_key='0' and extend_field='name10' and cursor='31';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }

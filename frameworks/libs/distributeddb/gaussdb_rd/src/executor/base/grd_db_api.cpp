@@ -28,6 +28,7 @@ static GRD_APIInfo GRD_DBApiInfo;
 GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db)
 {
     if (GRD_DBApiInfo.DBOpenApi == nullptr) {
+        InitApiInfo(configStr);
         GRD_DBApiInfo = GetApiInfoInstance();
     }
     if (GRD_DBApiInfo.DBOpenApi == nullptr) {

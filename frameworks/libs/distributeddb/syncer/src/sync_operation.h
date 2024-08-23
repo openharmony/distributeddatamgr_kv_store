@@ -201,7 +201,7 @@ private:
     // The device id we syncProcess with
     std::map<std::string, DeviceSyncProcess> syncProcessMap_;
 
-    // Can be cancelled
+    // Can be canceled
     bool canCancel_ = false;
 
     void ExeSyncProcessCallFun(const std::map<std::string, DeviceSyncProcess> &syncProcessMap);

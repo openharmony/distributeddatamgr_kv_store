@@ -32,7 +32,6 @@ TimeTickMonitor::TimeTickMonitor()
 
 TimeTickMonitor::~TimeTickMonitor()
 {
-    LOGD("TimeTickMonitor destroy");
     StopTimeTickMonitor();
     runtimeCxt_ = nullptr;
 }

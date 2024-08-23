@@ -204,6 +204,7 @@ int NetworkAdapter::GetLocalIdentity(std::string &outTarget)
     std::lock_guard<std::mutex> identityLockGuard(identityMutex_);
     DeviceInfos devInfo = processCommunicator_->GetLocalDeviceInfos();
     if (devInfo.identifier.empty()) {
+        LOGE("[NetworkAdapter] Get empty local id");
         return -E_PERIPHERAL_INTERFACE_FAIL;
     }
     if (devInfo.identifier != localIdentity_) {
@@ -329,7 +330,7 @@ void NetworkAdapter::OnDeviceChangeHandler(const DeviceInfos &devInfo, bool isOn
 void NetworkAdapter::SearchOnlineRemoteDeviceAtStartup()
 {
     std::vector<DeviceInfos> onlineDev = processCommunicator_->GetRemoteOnlineDeviceInfosList();
-    LOGE("[NAdapt][SearchOnline] onlineDev count = %zu.", onlineDev.size());
+    LOGI("[NAdapt][SearchOnline] onlineDev count = %zu.", onlineDev.size());
     if (onlineDev.empty()) {
         return;
     }

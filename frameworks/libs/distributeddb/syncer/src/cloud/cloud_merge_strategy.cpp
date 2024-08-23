@@ -17,13 +17,17 @@
 
 namespace DistributedDB {
 
-OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
+OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+    const LogInfo &cloudInfo)
 {
+    bool isCloudDelete = IsDelete(cloudInfo);
+    bool isLocalDelete = IsDelete(localInfo);
+    if (isSameCurDevice) {
+        return TagCloudUpdateLocal(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
+    }
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;
     }
-    bool isCloudDelete = IsDelete(cloudInfo);
-    bool isLocalDelete = IsDelete(localInfo);
     if (!existInLocal) {
         // when cloud data is deleted, we think it is different data
         if (isCloudDelete) {
@@ -78,5 +82,17 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;
+}
+
+OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+    bool isCloudDelete, bool isLocalDelete)
+{
+    if (isCloudDelete) {
+        return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
+    }
+    if (isLocalDelete) {
+        return OpType::INSERT;
+    }
+    return TagUpdateLocal(cloudInfo, localInfo);
 }
 }

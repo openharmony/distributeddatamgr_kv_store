@@ -93,5 +93,6 @@ struct GRD_APIInfo {
     KVBatchDestory KVBatchDestoryApi = nullptr;
 };
 GRD_APIInfo GetApiInfoInstance();
+void InitApiInfo(const char *configStr);
 } // namespace DocumentDB
 #endif // __cplusplus

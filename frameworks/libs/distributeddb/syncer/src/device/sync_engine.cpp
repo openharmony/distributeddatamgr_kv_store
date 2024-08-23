@@ -73,7 +73,7 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
         return -E_INVALID_ARGS;
     }
     int errCode = StartAutoSubscribeTimer(*syncInterface);
-    if (errCode != OK) {
+    if (errCode != E_OK) {
         return errCode;
     }
 

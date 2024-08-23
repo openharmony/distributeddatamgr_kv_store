@@ -23,6 +23,7 @@
 
 #include "db_types.h"
 #include "ikvdb_sync_interface.h"
+#include "version.h"
 #include "query_sync_water_mark_helper.h"
 
 namespace DistributedDB {
@@ -39,7 +40,7 @@ struct MetaDataValue {
 };
 
 struct LocalMetaData {
-    uint32_t version = 0; // start at 108
+    uint32_t version = LOCAL_META_DATA_VERSION_V2; // start at 108
     uint64_t localSchemaVersion = 0;
 };
 

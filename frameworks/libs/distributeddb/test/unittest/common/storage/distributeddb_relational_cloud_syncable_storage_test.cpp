@@ -87,10 +87,10 @@ void CreateDB()
     sqlite3_close(db);
 }
 
-void CreateLogTable()
+void CreateLogTable(const std::string &tableName)
 {
     TableInfo table;
-    table.SetTableName(g_tableName);
+    table.SetTableName(tableName);
     table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -138,7 +138,8 @@ void CreateAndInitUserTable(int64_t count, int64_t photoSize, const Asset &expec
     sqlite3_close(db);
 }
 
-void InitLogData(int64_t insCount, int64_t updCount, int64_t delCount, int64_t excludeCount)
+void InitLogData(int64_t insCount, int64_t updCount, int64_t delCount, int64_t excludeCount,
+    const std::string &tableName)
 {
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -160,7 +161,7 @@ void InitLogData(int64_t insCount, int64_t updCount, int64_t delCount, int64_t e
             cloudGid = "''";
         }
         Bytes hashKey(index.begin(), index.end());
-        string sql = "INSERT OR REPLACE INTO " + g_logTblName +
+        string sql = "INSERT OR REPLACE INTO " + tableName +
             " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)" +
             " VALUES ('" + std::to_string(i) + "', '', '', '" +  std::to_string(g_startTime + i) + "', '" +
             std::to_string(g_startTime + i) + "','" + flag + "', ? , " + cloudGid + ");";
@@ -281,7 +282,7 @@ void SetDbSchema(const TableSchema &tableSchema)
 {
     DataBaseSchema dataBaseSchema;
     dataBaseSchema.tables.push_back(tableSchema);
-    EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), E_OK);
+    EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
 }
 
 void InitUserDataForAssetTest(int64_t insCount, int64_t photoSize, const Asset &expect)
@@ -624,10 +625,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
     query.SetTableName(g_tableName);
     EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, false, resCount), -E_INVALID_QUERY_FORMAT);
 
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 100;
     CreateAndInitUserTable(insCount, insCount, g_localAsset);
-    InitLogData(insCount, insCount, insCount, insCount);
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, false, resCount), E_OK);
     EXPECT_EQ(resCount, insCount + insCount + insCount);
 
@@ -649,9 +650,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
   */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 100;
-    InitLogData(insCount, insCount, 0, insCount);
+    InitLogData(insCount, insCount, 0, insCount, g_logTblName);
     CreateAndInitUserTable(insCount, insCount, g_localAsset);
     int64_t resCount = 0;
 
@@ -686,10 +687,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 100;
     CreateAndInitUserTable(insCount, insCount, g_localAsset);
-    InitLogData(0, 0, insCount, insCount);
+    InitLogData(0, 0, insCount, insCount, g_logTblName);
     int64_t resCount = 0;
 
     /**
@@ -713,9 +714,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 100;
-    InitLogData(insCount, 0, insCount, insCount);
+    InitLogData(insCount, 0, insCount, insCount, g_logTblName);
     CloudSyncData syncData(g_tableName);
     SetDbSchema(g_tableSchema);
 
@@ -798,10 +799,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 1024;
     int64_t photoSize = 1024 * 8;
-    InitLogData(insCount, insCount, insCount, insCount);
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     CreateAndInitUserTable(2 * insCount, photoSize, g_localAsset); // 2 is insert,update type data
 
     SetDbSchema(g_tableSchema);
@@ -830,10 +831,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestS
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 10;
     int64_t photoSize = 10;
-    InitLogData(insCount, insCount, insCount, insCount);
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     CreateAndInitUserTable(3 * insCount, photoSize, g_localAsset); // 3 is insert,update and delete type data
 
     SetDbSchema(g_tableSchema);
@@ -866,10 +867,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestS
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestSize.Level0)
 {
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 1024;
     int64_t photoSize = 1024 * 8;
-    InitLogData(insCount, insCount, insCount, insCount);
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     CreateAndInitUserTable(2 * insCount, photoSize, g_localAsset); // 2 is insert,update type data
 
     SetDbSchema(g_tableSchema);
@@ -900,10 +901,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
      * @tc.steps:step1. Init data and set asset status to invalid num
      * @tc.expected: step1. return ok.
      */
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 1024;
     int64_t photoSize = 1024;
-    InitLogData(insCount, insCount, insCount, insCount);
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     CreateAndInitUserTable(2 * insCount, photoSize, g_localAsset); // 2 is insert,update type data
     Asset asset = g_localAsset;
     asset.status = static_cast<uint32_t>(AssetStatus::UPDATE) + 1;
@@ -1552,10 +1553,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
      * @tc.steps:step1. Init data and set asset status to abnormal
      * @tc.expected: step1. return ok.
      */
-    CreateLogTable();
+    CreateLogTable(g_tableName);
     int64_t insCount = 10;
     int64_t photoSize = 1024 * 100;
-    InitLogData(insCount * 3, insCount * 3, 1, insCount); // 3 is multiple
+    InitLogData(insCount * 3, insCount * 3, 1, insCount, g_logTblName); // 3 is multiple
     CreateAndInitUserTable(insCount, photoSize, g_localAsset); // 2 is insert,update type data
     Asset asset = g_localAsset;
     asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);

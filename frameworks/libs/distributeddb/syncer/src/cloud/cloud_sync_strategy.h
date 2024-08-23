@@ -29,7 +29,8 @@ public:
 
     void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
-    virtual OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo);
+    virtual OpType TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+        const LogInfo &cloudInfo);
 
     virtual bool JudgeUpdateCursor();
 
@@ -39,12 +40,11 @@ public:
 
     static bool IsLogNeedUpdate(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
+    OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;
 protected:
     static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
     bool IsIgnoreUpdate(const LogInfo &localInfo) const;
-
-    OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;
 
     bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);
 

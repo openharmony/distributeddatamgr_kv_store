@@ -1096,6 +1096,7 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
         LOGD("[SendPullResponseDataPkt] GetUnsyncTotal total=%u", total);
         packet->SetTotalDataCount(total);
     }
+    
     uint32_t packetLen = packet->CalculateLen(SingleVerDataSyncUtils::GetMessageId(syncType));
     Message *message = new (std::nothrow) Message(SingleVerDataSyncUtils::GetMessageId(syncType));
     if (message == nullptr) {

@@ -124,7 +124,7 @@ int SQLiteRelationalStore::GetSchemaFromMeta(RelationalSchemaObject &schema)
         LOGE("Get relational schema from meta table failed. %d", errCode);
         return errCode;
     } else if (errCode == -E_NOT_FOUND || schemaVal.empty()) {
-        LOGW("No relational schema info was found.");
+        LOGW("No relational schema info was found. error %d size %zu", errCode, schemaVal.size());
         return -E_NOT_FOUND;
     }
 
@@ -1092,7 +1092,6 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     LOGI("sync mode:%d, pri:%d, comp:%d", option.mode, option.priorityTask, option.compensatedSyncOnly);
     if (option.compensatedSyncOnly) {
         CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo(option, onProcess);
-        info.callback = onProcess;
         info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
         cloudSyncer_->GenerateCompensatedSync(info);
         return E_OK;

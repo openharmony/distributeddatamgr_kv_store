@@ -123,9 +123,6 @@ int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &confi
     } else {
         errCode = -E_UNFINISHED;
     }
-    if (errCode == E_OK) {
-        errCode = CheckIgnoreData(config, data, extraLog);
-    }
     if (errCode == -E_IGNORE_DATA) {
         errCode = E_OK;
         totalSize = preSize;
@@ -217,7 +214,10 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     if ((keyStr == CloudDbConstant::CLOUD_KV_FIELD_DEVICE ||
         keyStr == CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE)) {
         if (tmp.empty()) {
-            (void)RuntimeContext::GetInstance()->GetLocalIdentity(tmp);
+            errCode = RuntimeContext::GetInstance()->GetLocalIdentity(tmp);
+            if (errCode != E_OK) {
+                return errCode;
+            }
             tmp = DBCommon::TransferHashString(tmp);
         }
         tmp = DBBase64Utils::Encode(std::vector<uint8_t>(tmp.begin(), tmp.end()));
@@ -225,24 +225,6 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     totalSize += tmp.size();
     data.insert_or_assign(keyStr, tmp);
     return E_OK;
-}
-
-int SqliteCloudKvExecutorUtils::CheckIgnoreData(const CloudSyncConfig &config, VBucket &data, VBucket &flags)
-{
-    auto iter = data.find(CloudDbConstant::CLOUD_KV_FIELD_VALUE);
-    if (iter == data.end()) {
-        return E_OK;
-    }
-    auto &valueStr = std::get<std::string>(iter->second);
-    if (valueStr.size() <= static_cast<size_t>(config.maxUploadSize)) {
-        return E_OK;
-    }
-    Bytes *hashKey = std::get_if<Bytes>(&flags[CloudDbConstant::HASH_KEY]);
-    if (hashKey != nullptr) {
-        LOGW("[SqliteCloudKvExecutorUtils] Ignore value size %zu hash is %.3s", valueStr.size(),
-            std::string(hashKey->begin(), hashKey->end()).c_str());
-    }
-    return -E_IGNORE_DATA;
 }
 
 std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *db, bool isMemory,
@@ -973,7 +955,10 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
         return res;
     }
     std::string dev;
-    (void)RuntimeContext::GetInstance()->GetLocalIdentity(dev);
+    errCode = RuntimeContext::GetInstance()->GetLocalIdentity(dev);
+    if (errCode != E_OK) {
+        return res;
+    }
     dev = DBCommon::TransferHashString(dev);
     auto decodeDevice = DBBase64Utils::Decode(dataItem.dev);
     if (!decodeDevice.empty()) {
@@ -1141,7 +1126,10 @@ std::pair<int, CloudSyncData> SqliteCloudKvExecutorUtils::GetLocalCloudVersionIn
         }
     });
     std::string hashDev;
-    (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
+    errCode = RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
+    if (errCode != E_OK) {
+        return res;
+    }
     std::string tempDev = DBCommon::TransferHashString(hashDev);
     hashDev = DBCommon::TransferStringToHex(tempDev);
     std::string key = CloudDbConstant::CLOUD_VERSION_RECORD_PREFIX_KEY + hashDev;
@@ -1189,8 +1177,9 @@ void SqliteCloudKvExecutorUtils::InitDefaultCloudVersionRecord(const std::string
     VBucket defaultRecord;
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_KEY] = key;
     defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_VALUE] = std::string("");
-    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_DEVICE] = dev;
-    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE] = dev;
+    auto encodeDev = DBBase64Utils::Encode(dev);
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_DEVICE] = encodeDev;
+    defaultRecord[CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE] = encodeDev;
     syncData.insData.record.push_back(std::move(defaultRecord));
     VBucket defaultExtend;
     defaultExtend[CloudDbConstant::HASH_KEY_FIELD] = DBCommon::TransferStringToHex(key);
@@ -1205,7 +1194,10 @@ int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, const
     sqlite3_stmt *dataStmt)
 {
     std::string hashDevice;
-    (void)RuntimeContext::GetInstance()->GetLocalIdentity(hashDevice);
+    int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(hashDevice);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     Bytes bytes;
     if (device == hashDevice) {
         DBCommon::StringToVector("", bytes);
@@ -1213,7 +1205,7 @@ int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, const
         hashDevice = DBCommon::TransferHashString(device);
         DBCommon::StringToVector(hashDevice, bytes);
     }
-    int errCode = SQLiteUtils::BindBlobToStatement(dataStmt, BIND_CLOUD_VERSION_DEVICE_INDEX, bytes);
+    errCode = SQLiteUtils::BindBlobToStatement(dataStmt, BIND_CLOUD_VERSION_DEVICE_INDEX, bytes);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind device failed %d", errCode);
     }
