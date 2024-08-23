@@ -100,6 +100,11 @@ public:
 
     // set the config for cloud sync task
     DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
+
+    DB_API virtual DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        uint64_t &taskId) = 0;
+
+    DB_API virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

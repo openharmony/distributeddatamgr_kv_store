@@ -90,7 +90,8 @@ public:
         taskInfo.table = tables;
         taskInfo.callback = onProcess;
         taskInfo.timeout = waitTime;
-        return TryToAddSyncTask(std::move(taskInfo));
+        uint64_t taskId = 0;
+        return TryToAddSyncTask(std::move(taskInfo), taskId);
     }
 
     void CallClose()
@@ -211,7 +212,8 @@ public:
 
     int CallTryToAddSyncTask(CloudTaskInfo &&taskInfo)
     {
-        return TryToAddSyncTask(std::move(taskInfo));
+        uint64_t taskId = 0;
+        return TryToAddSyncTask(std::move(taskInfo), taskId);
     }
 
     void PopTaskQueue()

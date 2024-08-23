@@ -1078,7 +1078,7 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
     return storageEngine_->ChkSchema(tableName);
 }
 
-int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId)
 {
     if (storageEngine_ == nullptr) {
         LOGE("[RelationalStore][Sync] storageEngine was not initialized");
@@ -1105,7 +1105,9 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     if (ret != E_OK) {
         return ret;
     }
-    return cloudSyncer_->Sync(info);
+    errCode = cloudSyncer_->Sync(info);
+    taskId = info.taskId;
+    return errCode;
 }
 
 int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
@@ -1566,6 +1568,11 @@ int SQLiteRelationalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
     }
     storageEngine_->SetCloudSyncConfig(config);
     return E_OK;
+}
+
+SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
+{
+    return cloudSyncer_->GetCloudTaskStatus(taskId);
 }
 } //namespace DistributedDB
 #endif

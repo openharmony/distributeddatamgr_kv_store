@@ -199,4 +199,10 @@ bool ProcessNotifier::IsMultiUser() const
 {
     return !user_.empty() && multiSyncProcess_.find(user_) != multiSyncProcess_.end();
 }
+
+std::map<std::string, TableProcessInfo> ProcessNotifier::GetCurrentTableProcess() const
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    return syncProcess_.tableProcess;
+}
 }
