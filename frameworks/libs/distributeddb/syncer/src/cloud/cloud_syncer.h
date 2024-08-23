@@ -84,6 +84,8 @@ public:
     CloudSyncEvent SyncMachineDoFinished();
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
+
+    SyncProcess GetCloudTaskStatus(uint64_t taskId) const;
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -419,7 +421,9 @@ protected:
 
     bool IsNeedUpdateAsset(const VBucket &data);
 
-    std::mutex dataLock_;
+    int GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo);
+
+    mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
     std::list<TaskId> priorityTaskQueue_;

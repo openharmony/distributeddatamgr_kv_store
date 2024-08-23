@@ -226,20 +226,12 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
 DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
     const SyncProcessCallback &onProcess, int64_t waitTime)
 {
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
     CloudSyncOption option;
     option.devices = devices;
     option.mode = mode;
     option.query = query;
     option.waitTime = waitTime;
-    int errCode = conn_->Sync(option, onProcess);
-    if (errCode != E_OK) {
-        LOGW("[RelationalStore Delegate] cloud sync failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
+    return Sync(option, onProcess);
 }
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
@@ -330,15 +322,8 @@ DBStatus RelationalStoreDelegateImpl::UnRegisterObserver(StoreObserver *observer
 
 DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
-    int errCode = conn_->Sync(option, onProcess);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] cloud sync failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
+    uint64_t taskId = 0;
+    return Sync(option, onProcess, taskId);
 }
 
 DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
@@ -468,6 +453,32 @@ DBStatus RelationalStoreDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &
     }
     LOGI("[RelationalStore Delegate] SetCloudSyncConfig success");
     return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    uint64_t taskId)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->Sync(option, onProcess, taskId);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Cloud sync failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+SyncProcess RelationalStoreDelegateImpl::GetCloudTaskStatus(uint64_t taskId)
+{
+    SyncProcess syncProcess;
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for getting cloud task status!");
+        syncProcess.errCode = DB_ERROR;
+        return syncProcess;
+    }
+    return conn_->GetCloudTaskStatus(taskId);
 }
 } // namespace DistributedDB
 #endif

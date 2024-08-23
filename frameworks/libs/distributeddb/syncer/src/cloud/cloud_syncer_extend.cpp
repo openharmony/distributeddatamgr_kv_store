@@ -24,6 +24,7 @@
 #include "cloud_sync_tag_assets.h"
 #include "cloud_sync_utils.h"
 #include "db_errno.h"
+#include "kv_store_errno.h"
 #include "log_print.h"
 #include "runtime_context.h"
 #include "storage_proxy.h"
@@ -667,11 +668,10 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     if (errCode != E_OK) {
         return errCode;
     }
-    lastTaskId_++;
-    if (lastTaskId_ == UINT64_MAX) {
-        lastTaskId_ = 1u;
+    errCode = GenerateTaskIdIfNeed(taskInfo);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    taskInfo.taskId = lastTaskId_;
     cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
     if (cloudTaskInfos_[lastTaskId_].priorityTask) {
         priorityTaskQueue_.push_back(lastTaskId_);
@@ -1059,5 +1059,51 @@ bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
         }
     }
     return false;
+}
+
+SyncProcess CloudSyncer::GetCloudTaskStatus(uint64_t taskId) const
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    auto iter = cloudTaskInfos_.find(taskId);
+    SyncProcess syncProcess;
+    if (iter == cloudTaskInfos_.end()) {
+        syncProcess.process = ProcessStatus::FINISHED;
+        syncProcess.errCode = NOT_FOUND;
+        LOGE("[CloudSyncer] Not found task %" PRIu64, taskId);
+        return syncProcess;
+    }
+    syncProcess.process = iter->second.status;
+    syncProcess.errCode = TransferDBErrno(iter->second.errCode);
+    std::shared_ptr<ProcessNotifier> notifier = nullptr;
+    if (currentContext_.currentTaskId == taskId) {
+        notifier = currentContext_.notifier;
+    }
+    bool hasNotifier = notifier != nullptr;
+    if (hasNotifier) {
+        syncProcess.tableProcess = notifier->GetCurrentTableProcess();
+    }
+    LOGI("[CloudSyncer] Found task %" PRIu64 " storeId %.3s status %d has notifier %d", taskId,
+        iter->second.storeId.c_str(), static_cast<int64_t>(syncProcess.process), static_cast<int>(hasNotifier));
+    return syncProcess;
+}
+
+int CloudSyncer::GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo)
+{
+    if (taskInfo.taskId != INVALID_TASK_ID) {
+        if (cloudTaskInfos_.find(taskInfo.taskId) != cloudTaskInfos_.end()) {
+            LOGE("[CloudSyncer] Sync with exist taskId %" PRIu64 " storeId %.3s", taskInfo.taskId,
+                taskInfo.storeId.c_str());
+            return -E_INVALID_ARGS;
+        }
+        lastTaskId_ = taskInfo.taskId;
+        LOGI("[CloudSyncer] Sync with taskId %" PRIu64 " storeId %.3s", taskInfo.taskId, taskInfo.storeId.c_str());
+        return E_OK;
+    }
+    lastTaskId_++;
+    if (lastTaskId_ == UINT64_MAX) {
+        lastTaskId_ = 1u;
+    }
+    taskInfo.taskId = lastTaskId_;
+    return E_OK;
 }
 }
