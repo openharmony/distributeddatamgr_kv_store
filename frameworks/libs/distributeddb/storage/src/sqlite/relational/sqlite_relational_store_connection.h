@@ -65,7 +65,7 @@ public:
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
-    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId) override;
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 protected:

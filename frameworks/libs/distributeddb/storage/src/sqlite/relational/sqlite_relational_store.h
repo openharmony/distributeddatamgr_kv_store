@@ -91,7 +91,7 @@ public:
 
     int ChkSchema(const TableName &tableName);
 
-    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t &taskId);
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);
 
     int SetTrackerTable(const TrackerSchema &trackerSchema);
 
