@@ -1101,7 +1101,7 @@ int AutoLaunch::OpenRelationalConnection(AutoLaunchItem &autoLaunchItem)
     std::shared_ptr<RelationalDBProperties> properties =
         std::static_pointer_cast<RelationalDBProperties>(autoLaunchItem.propertiesPtr);
     int errCode = E_OK;
-    auto conn = RelationalStoreInstance::GetDatabaseConnection(*properties, errCode);
+    auto conn = RelationalStoreInstance::GetDatabaseConnection(*properties, errCode, false);
     if (errCode == -E_ALREADY_OPENED) {
         LOGI("[AutoLaunch] GetOneConnection user already openstore by self");
     } else if (conn == nullptr) {
