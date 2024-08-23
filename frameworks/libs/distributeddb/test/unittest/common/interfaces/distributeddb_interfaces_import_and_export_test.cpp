@@ -1225,7 +1225,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportWithTimeChange001, Te
     sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
     ASSERT_NE(db, nullptr);
     std::string fakeSql = "UPDATE sync_data SET timestamp = 3270281552768731970, w_timestamp = 3270281552768731970";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, fakeSql), OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, fakeSql), E_OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     db = nullptr;
 

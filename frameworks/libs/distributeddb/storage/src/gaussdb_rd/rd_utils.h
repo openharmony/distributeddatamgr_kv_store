@@ -27,6 +27,10 @@
 
 namespace DistributedDB {
 
+const uint32_t SQLITE_PAGE_SIZE_MIN = 1; // KByte
+const uint32_t SQLITE_PAGE_SIZE_MAX = 64; // KByte
+const uint32_t SQLITE_CACHE_SIZE_PAGE = 2147483647; // Max page number of cache
+
 constexpr const char *SYNC_COLLECTION_NAME = "naturalbase_kv_sync_data";
 
 std::string InitRdConfig();
@@ -45,6 +49,7 @@ int RdBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32
 
 int RdRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey, uint32_t decryptedKeyLen);
 
+// if delete key is not exist in db, return errCode is OK.
 int RdKVDel(GRD_DB *db, const char *collectionName, const Key &key);
 
 int RdKVScan(GRD_DB *db, const char *collectionName, const Key &key, GRD_KvScanModeE mode,
@@ -67,6 +72,7 @@ int RdKVBatchPut(GRD_DB *db, const char *kvTableName, GRD_KVBatchT *batch);
 
 int RdFlush(GRD_DB *db, uint32_t flags);
 
+// if delete key is not exist in db, return errCode is OK.
 int RdKVBatchDel(GRD_DB *db, const char *kvTableName, GRD_KVBatchT *batch);
 
 int RdKVBatchDestroy(GRD_KVBatchT *batch);
@@ -75,7 +81,9 @@ int RdDbOpen(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB *
 
 int RdIndexPreload(GRD_DB *&db, const char *collectionName);
 
-bool CheckRdOption(const KvStoreNbDelegate::Option &option,
+int RdCreateCollection(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags);
+
+bool CheckParaOption(const KvStoreNbDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
 } // namespace DistributedDB
 #endif // RD_UTILS_H

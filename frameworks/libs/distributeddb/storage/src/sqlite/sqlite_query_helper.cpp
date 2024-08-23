@@ -16,15 +16,14 @@
 
 #include <iomanip>
 
-#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "macro_utils.h"
-#include "res_finalizer.h"
 #include "sqlite_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
+#include "cloud/cloud_storage_utils.h"
 #include "res_finalizer.h"
 
 namespace DistributedDB {
@@ -1412,7 +1411,7 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
         return res;
     }
     count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
-    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count failed %" PRId64, count);
+    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
     return res;
 }
 

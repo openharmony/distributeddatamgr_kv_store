@@ -32,6 +32,7 @@ int CloudMetaData::GetLocalWaterMark(const TableName &tableName, Timestamp &loca
     if (cloudMetaVals_.count(tableName) == 0) {
         int ret = ReadMarkFromMeta(tableName);
         if (ret != E_OK) {
+            LOGE("[Meta][GetLocalWaterMark] read mark from meta failed.");
             return ret;
         }
     }
@@ -45,6 +46,7 @@ int CloudMetaData::GetLocalWaterMarkByType(const TableName &tableName, CloudWate
     if (cloudMetaVals_.count(tableName) == 0) {
         int ret = ReadMarkFromMeta(tableName);
         if (ret != E_OK) {
+            LOGE("[Meta][GetLocalWaterMarkByType] read mark from meta failed.");
             return ret;
         }
     }
@@ -237,14 +239,14 @@ int CloudMetaData::DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaVal
         parcel.ReadUInt64(cloudMetaValue.updateLocalMark);
         parcel.ReadUInt64(cloudMetaValue.deleteLocalMark);
     }
+    if (parcel.IsError()) {
+        LOGE("[Meta] Parcel error while deserializing cloud meta data.");
+        return -E_PARSE_FAIL;
+    }
     if (blobMark.size() < GetParcelCurrentLength(cloudMetaValue)) {
         cloudMetaValue.insertLocalMark = cloudMetaValue.localMark;
         cloudMetaValue.updateLocalMark = cloudMetaValue.localMark;
         cloudMetaValue.deleteLocalMark = cloudMetaValue.localMark;
-    }
-    if (parcel.IsError()) {
-        LOGE("[Meta] Parcel error while deserializing cloud meta data.");
-        return -E_PARSE_FAIL;
     }
     return E_OK;
 }

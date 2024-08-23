@@ -240,9 +240,9 @@ void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t v
 int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
 {
     auto status = static_cast<std::vector<int64_t> *>(data);
+    int base = 10;
     for (int i = 0; i < count; i++) {
-        const int decimal = 10;
-        status->push_back(strtol(colValue[0], nullptr, decimal));
+        status->push_back(strtol(colValue[0], nullptr, base));
     }
     return 0;
 }
@@ -315,7 +315,7 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
 {
     for (auto &item : assets) {
         for (auto &asset : item.second) {
-            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::INSERT));
             if (index < 4) { // 1-4 is inserted
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
             }
@@ -370,17 +370,13 @@ void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
 
 void CheckConsistentCount(sqlite3 *db, int64_t expectCount)
 {
-    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x20=0;";
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    EXPECT_EQ(sqlite3_exec(db, QUERY_CONSISTENT_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
 void CheckCompensatedCount(sqlite3 *db, int64_t expectCount)
 {
-    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x10!=0;";
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    EXPECT_EQ(sqlite3_exec(db, QUERY_COMPENSATED_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 

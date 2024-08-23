@@ -1378,6 +1378,7 @@ DistributedDB::DBStatus RelationalTestUtils::InsertCloudRecord(int64_t begin, in
             asset.name = assetNameBegin + "_" + std::to_string(j);
             asset.status = AssetStatus::INSERT;
             asset.hash = "DEC";
+            asset.assetId = std::to_string(j);
             assets.push_back(asset);
         }
         data.insert_or_assign("assets", assets);

@@ -65,7 +65,7 @@ int StorageProxy::GetLocalWaterMark(const std::string &tableName, Timestamp &loc
     return cloudMetaData_->GetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
 }
 
-int StorageProxy::GetLocalWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode)
+int StorageProxy::GetLocalWaterMarkByMode(const std::string &tableName, CloudWaterType mode, Timestamp &localMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -91,7 +91,7 @@ int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &loc
     return cloudMetaData_->SetLocalWaterMark(AppendWithUserIfNeed(tableName), localMark);
 }
 
-int StorageProxy::PutWaterMarkByMode(const std::string &tableName, Timestamp &localMark, CloudWaterType mode)
+int StorageProxy::PutWaterMarkByMode(const std::string &tableName, CloudWaterType mode, Timestamp &localMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -186,11 +186,7 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isClou
         }
         timeStampVec.push_back(tmpMark);
     }
-    int errCode = store_->GetAllUploadCount(query, timeStampVec, isCloudForcePush, isCompensatedTask, count);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return store_->GetAllUploadCount(query, timeStampVec, isCloudForcePush, isCompensatedTask, count);
 }
 
 int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &localMark,
@@ -657,6 +653,15 @@ bool StorageProxy::IsTableExistReference(const std::string &table)
         return false;
     }
     return store_->IsTableExistReference(table);
+}
+
+bool StorageProxy::IsTableExistReferenceOrReferenceBy(const std::string &table)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return false;
+    }
+    return store_->IsTableExistReferenceOrReferenceBy(table);
 }
 
 void StorageProxy::ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark)

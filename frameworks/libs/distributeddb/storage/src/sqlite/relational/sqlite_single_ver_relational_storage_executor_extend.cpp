@@ -364,7 +364,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx
         return;
     }
     context->cursor++;
-    sqlite3_result_int64(ctx, static_cast<sqlite_int64>(context->cursor));
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(context->cursor));
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,
@@ -1193,6 +1193,11 @@ int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string
         LOGE("Get cursor from meta table failed. %d", errCode);
     }
     return errCode;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetTableSchema(const TableSchema &tableSchema)
+{
+    tableSchema_ = tableSchema;
 }
 } // namespace DistributedDB
 #endif

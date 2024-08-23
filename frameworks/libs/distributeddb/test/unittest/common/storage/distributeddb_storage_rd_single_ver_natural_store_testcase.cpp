@@ -84,8 +84,6 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate006
 {
     IOption option;
     option.dataType = IOption::SYNC_DATA;
-    Key key1, key2, key3;
-    Value value1, value2, value3;
 
     /**
      * @tc.steps: step2/3/4. Set Ioption to synchronous data.
@@ -94,12 +92,17 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate006
      * Insert the data of key length=keyPrefix length - 1, value3.
      * @tc.expected: step2/3/4. Return E_NOT_FOUND.
      */
+    Key key1;
     DistributedDBToolsUnitTest::GetRandomKeyValue(key1, 30); // 30 as random size
-    key3 = key2 = key1;
+    Key key2 = key1;
     key2.push_back('C');
+    Key key3 = key1;
     key3.pop_back();
+    Value value1;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value1, 84); // 84 as random size
+    Value value2;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value2, 101); // 101 as random size
+    Value value3;
     DistributedDBToolsUnitTest::GetRandomKeyValue(value3, 37); // 37 as random size
     EXPECT_EQ(connection->Put(option, key1, value1), E_OK);
     EXPECT_EQ(connection->Put(option, key2, value2), E_OK);

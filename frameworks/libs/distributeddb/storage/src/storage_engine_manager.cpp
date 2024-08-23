@@ -202,6 +202,7 @@ StorageEngine *CreateSingleVerStorageEngine(int databaseType)
     }
     return nullptr;
 }
+
 StorageEngine *StorageEngineManager::CreateStorageEngine(const KvDBProperties &property, int &errCode)
 {
     int databaseType = GetDatabaseType(property);
@@ -266,7 +267,7 @@ void StorageEngineManager::ReleaseResources(const std::string &identifier)
 
     if (storageEngine != nullptr) {
         LOGI("[StorageEngineManager] Release storage engine");
-        delete storageEngine;
+        RefObject::KillAndDecObjRef(storageEngine);
     }
 }
 

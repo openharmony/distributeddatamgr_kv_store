@@ -903,7 +903,7 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
     }
     PermissionCheckCallbackV2 nullCallback;
     EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(nullCallback), OK);
-    EXPECT_EQ(DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir), OK);
+    EXPECT_EQ(DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir), E_OK);
     if (g_communicatorAggregator != nullptr) {
         g_communicatorAggregator->RegOnDispatch(nullptr);
     }

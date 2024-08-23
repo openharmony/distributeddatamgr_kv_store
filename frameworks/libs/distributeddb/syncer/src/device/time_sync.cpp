@@ -28,9 +28,9 @@ std::set<TimeSync *> TimeSync::timeSyncSet_;
 namespace {
     constexpr uint64_t TIME_SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 24h
     constexpr int TRIP_DIV_HALF = 2;
-    constexpr int64_t MAX_TIME_OFFSET_NOISE = 1 * 1000 * 10000; // 1s for 100ns
-    constexpr int64_t MAX_TIME_RTT_NOISE = 1 * 1000 * 10000; // 1s for 100ns
-    constexpr uint64_t RTT_NOISE_CHECK_INTERVAL = 30 * 60 * 1000 * 10000u; // 30min for 100ns
+    constexpr int64_t MAX_TIME_OFFSET_NOISE = 1 * 1000 * 10000; // 1 second in 100-nanosecond units
+    constexpr int64_t MAX_TIME_RTT_NOISE = 1 * 1000 * 10000; // 1 second in 100-nanosecond units
+    constexpr uint64_t RTT_NOISE_CHECK_INTERVAL = 30 * 60 * 1000 * 10000u; // 30 minute in 100-nanosecond units
 }
 
 // Class TimeSyncPacket

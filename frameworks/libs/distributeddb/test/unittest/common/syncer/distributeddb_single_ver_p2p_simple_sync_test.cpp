@@ -1077,10 +1077,10 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, BlockSync001, TestSize.Level1)
         EXPECT_TRUE(pair.second == OK);
     }
     VirtualDataItem item1;
-    EXPECT_EQ(g_deviceB->GetData(KEY_1, item1), OK);
+    EXPECT_EQ(g_deviceB->GetData(KEY_1, item1), E_OK);
     EXPECT_EQ(item1.value, VALUE_1);
     VirtualDataItem item2;
-    EXPECT_EQ(g_deviceC->GetData(KEY_1, item2), OK);
+    EXPECT_EQ(g_deviceC->GetData(KEY_1, item2), E_OK);
     EXPECT_EQ(item2.value, VALUE_1);
 }
 

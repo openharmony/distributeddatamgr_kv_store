@@ -21,13 +21,13 @@
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "log_print.h"
+#include "log_table_manager_factory.h"
 #include "parcel.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
 #include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
-#include "log_print.h"
-#include "log_table_manager_factory.h"
 
 namespace DistributedDB {
 namespace {

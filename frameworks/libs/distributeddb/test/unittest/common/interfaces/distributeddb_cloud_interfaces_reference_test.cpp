@@ -415,7 +415,7 @@ namespace {
             RelationalSchemaObject obj;
             EXPECT_EQ(obj.ParseFromSchemaString(schemaStr), E_OK);
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);

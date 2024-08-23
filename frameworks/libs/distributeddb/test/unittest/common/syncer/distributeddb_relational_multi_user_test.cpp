@@ -1146,7 +1146,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level0)
      */
     Query query = Query::Select(g_tableName);
     SyncStatusCallback callback = nullptr;
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
     /**
      * @tc.steps: step4. create distributed table and sync again
@@ -1154,7 +1154,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level0)
      */
     PrepareEnvironment("table2", g_storePath1, g_rdbDelegatePtr1);
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     EXPECT_EQ(messageCount, 1);
     CloseStore();
     OS::RemoveFile(g_storePath1);
@@ -1230,7 +1230,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
      */
     Query query = Query::Select(g_tableName);
     SyncStatusCallback callback = nullptr;
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
     /**
      * @tc.steps: step4. notify time change and sync again
@@ -1240,7 +1240,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
     RuntimeContext::GetInstance()->RecordAllTimeChange();
     RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
     messageCount = 0;
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     EXPECT_EQ(messageCount, 1);
     CloseStore();
     OS::RemoveFile(g_storePath1);

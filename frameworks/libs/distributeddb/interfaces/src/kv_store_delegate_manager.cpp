@@ -264,7 +264,7 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
         LOGE("[KvStoreMgr] Invalid callback for kv store");
         return false;
     }
-    if (!CheckRdOption(option, callback)) {
+    if (!CheckParaOption(option, callback)) {
         LOGE("[KvStoreMgr] Unsupport option for RD mode");
         return false;
     }
@@ -315,15 +315,22 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     if (!GetKvStoreParamCheck(storeId, option, callback)) {
         return;
     }
+    auto tmpOption = option;
+    if (tmpOption.storageEngineType == std::string(GAUSSDB_RD)) {
+        DBCommon::LoadGrdLib();
+        if (!DBCommon::IsGrdLibLoaded()) {
+            tmpOption.storageEngineType = std::string(SQLITE);
+        }
+    }
     // check if schema is supported and valid
     SchemaObject schema;
-    DBStatus retCode = CheckAndGetSchema(option.isMemoryDb, option.schema, schema);
+    DBStatus retCode = CheckAndGetSchema(tmpOption.isMemoryDb, tmpOption.schema, schema);
     if (retCode != OK) {
         callback(retCode, nullptr);
         return;
     }
     KvDBProperties properties;
-    InitPropWithNbOption(properties, GetKvStorePath(), schema, option);
+    InitPropWithNbOption(properties, GetKvStorePath(), schema, tmpOption);
     DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_, instanceId_ };
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
@@ -343,7 +350,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
         return;
     }
 
-    status = SetObserverNotifier(kvStore, option);
+    status = SetObserverNotifier(kvStore, tmpOption);
     if (status != OK) {
         CloseKvStore(kvStore);
         callback(status, nullptr);
@@ -353,7 +360,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     bool enAutoSync = false;
     (void)conn->Pragma(PRAGMA_AUTO_SYNC, static_cast<void *>(&enAutoSync));
 
-    SecurityOption secOption = option.secOption;
+    SecurityOption secOption = tmpOption.secOption;
     (void)conn->Pragma(PRAGMA_TRIGGER_TO_MIGRATE_DATA, &secOption);
 
     callback(OK, kvStore);
@@ -409,7 +416,7 @@ DBStatus KvStoreDelegateManager::DeleteKvStore(const std::string &storeId)
 
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, GetKvStorePath());
-    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_ };
     DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::RemoveDatabase(properties);
     if (errCode == E_OK) {
@@ -479,7 +486,7 @@ DBStatus KvStoreDelegateManager::GetKvStoreDiskSize(const std::string &storeId, 
     }
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, dataDir);
-    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_ };
     DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::CalculateKvStoreSize(properties, size);
     if (errCode != E_OK) {

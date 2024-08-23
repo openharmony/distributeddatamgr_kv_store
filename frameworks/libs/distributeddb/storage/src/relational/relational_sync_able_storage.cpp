@@ -1165,6 +1165,7 @@ int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
     QuerySyncObject query = querySyncObject;
     query.SetSchema(GetSchemaInfo());
+    handle->SetTableSchema(tableSchema);
     errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, isCompensatedTask, cloudGid);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
@@ -2030,10 +2031,40 @@ bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
     return !tableReference.empty();
 }
 
+bool RelationalSyncAbleStorage::IsTableExistReferenceOrReferenceBy(const std::string &table)
+{
+    // check whether reference or reference by exist
+    if (storageEngine_ == nullptr) {
+        LOGE("[IsTableExistReferenceOrReferenceBy] storage is null when get reference gid");
+        return false;
+    }
+    RelationalSchemaObject schema = storageEngine_->GetSchema();
+    auto referenceProperty = schema.GetReferenceProperty();
+    if (referenceProperty.empty()) {
+        return false;
+    }
+    auto [sourceTableName, errCode] = GetSourceTableName(table);
+    if (errCode != E_OK) {
+        return false;
+    }
+    for (const auto &property : referenceProperty) {
+        if (DBCommon::CaseInsensitiveCompare(property.sourceTableName, sourceTableName) ||
+            DBCommon::CaseInsensitiveCompare(property.targetTableName, sourceTableName)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type,
     Timestamp localMark)
 {
     uploadRecorder_.ReleaseUploadRecord(tableName, type, localMark);
+}
+
+bool RelationalSyncAbleStorage::IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo)
+{
+    return false;
 }
 }
 #endif

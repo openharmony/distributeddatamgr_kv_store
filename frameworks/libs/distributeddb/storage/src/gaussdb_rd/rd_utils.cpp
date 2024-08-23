@@ -215,7 +215,11 @@ int RdKvFetch(GRD_ResultSet *resultSet, Key &key, Value &value)
 
 int RdDBClose(GRD_DB *db, uint32_t flags)
 {
-    return TransferGrdErrno(GRD_DBClose(db, flags));
+    int ret = TransferGrdErrno(GRD_DBClose(db, flags));
+    if (ret != E_OK) {
+        LOGE("Can not close db %d", ret);
+    }
+    return ret;
 }
 
 int RdFreeResultSet(GRD_ResultSet *resultSet)
@@ -287,9 +291,30 @@ int RdIndexPreload(GRD_DB *&db, const char *collectionName)
     return TransferGrdErrno(GRD_IndexPreload(db, collectionName));
 }
 
-bool CheckRdOption(const KvStoreNbDelegate::Option &option,
+int RdCreateCollection(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags)
+{
+    return TransferGrdErrno(GRD_CreateCollection(db, collectionName, optionStr, flags));
+}
+
+bool CheckParaOption(const KvStoreNbDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback)
 {
+    if (option.storageEngineType == SQLITE) {
+        if ((option.rdconfig.pageSize < SQLITE_PAGE_SIZE_MIN) ||
+           (option.rdconfig.pageSize > SQLITE_PAGE_SIZE_MAX)) {
+            callback(INVALID_ARGS, nullptr);
+            LOGE("Invalid config pageSize:%" PRIu32, option.rdconfig.pageSize);
+            return false;
+        }
+        if ((option.rdconfig.cacheSize % option.rdconfig.pageSize != 0) ||
+            ((option.rdconfig.pageSize & (option.rdconfig.pageSize - 1)) != 0) ||
+            (option.rdconfig.cacheSize / SQLITE_CACHE_SIZE_PAGE > option.rdconfig.pageSize)) {
+            callback(INVALID_ARGS, nullptr);
+            LOGE("Invalid config pageSize:%" PRIu32 "and cacheSize:%" PRIu32, option.rdconfig.pageSize,
+                option.rdconfig.cacheSize);
+            return false;
+        }
+    }
     if (option.storageEngineType != GAUSSDB_RD && option.storageEngineType != SQLITE) {
         callback(INVALID_ARGS, nullptr);
         return false;

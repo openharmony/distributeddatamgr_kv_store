@@ -62,8 +62,7 @@ public:
     static int SaveChangedDataByType(const VBucket &datum, ChangedData &changedData, const DataInfoWithLog &localInfo,
         ChangeType type);
 
-    static int CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
-        const int64_t &count, uint64_t &taskId);
+    static int CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName, int64_t count);
 
     static void ClearCloudSyncData(CloudSyncData &uploadData);
 

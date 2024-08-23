@@ -67,6 +67,9 @@ public:
 
     int RemoveLocalAssets(const std::vector<Asset> &assets);
 
+    int RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets);
+
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 
     bool IsExistCloudVersionCallback() const;

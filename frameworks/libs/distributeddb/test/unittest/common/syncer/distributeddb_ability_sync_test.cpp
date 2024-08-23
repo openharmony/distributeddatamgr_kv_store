@@ -534,7 +534,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
      * @tc.expected: step5. AckRecv return ok GetRemoteSoftwareVersion is SOFTWARE_VERSION_CURRENT
      *     IsSchemaCompatible true;
      */
-    EXPECT_EQ(async.AckRecv(&msg1, context), OK);
+    EXPECT_EQ(async.AckRecv(&msg1, context), E_OK);
     EXPECT_TRUE(context->GetRemoteSoftwareVersion() == SOFTWARE_VERSION_CURRENT);
     EXPECT_TRUE(context->GetTaskErrCode() != -E_SCHEMA_MISMATCH);
 

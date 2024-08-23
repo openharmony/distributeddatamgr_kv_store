@@ -153,6 +153,7 @@ int RuntimeContextImpl::GetLocalIdentity(std::string &outTarget)
     if (communicatorAggregator_ != nullptr) {
         return communicatorAggregator_->GetLocalIdentity(outTarget);
     }
+    LOGW("[RuntimeContextImpl] Get local id without communicatorAggregator");
     return -E_NOT_INIT;
 }
 

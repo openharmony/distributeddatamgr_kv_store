@@ -737,13 +737,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
     });
     int errCode = g_cloudSyncer->CallDoDownloadInNeed(true, true);
     EXPECT_EQ(errCode, E_OK);
-    auto downloadStatus = g_cloudSyncer->GetDownloadFinishedStatus();
-    for (const auto &item : downloadStatus) {
-        for (const auto &[table, finish] : item.second) {
-            LOGI("check table %s", table.c_str());
-            EXPECT_TRUE(finish);
-        }
-    }
+    auto recorder = g_cloudSyncer->GetProcessRecorder();
+    ASSERT_NE(recorder, nullptr);
+    EXPECT_TRUE(recorder->IsDownloadFinish(0, g_cloudSyncer->GetCurrentContextTableName()));
 }
 
 /**

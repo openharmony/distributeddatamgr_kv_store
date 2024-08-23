@@ -58,7 +58,6 @@
 
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
-#include "cloud/cloud_db_constant.h"
 
 using namespace DistributedDB::OS;
 #endif
@@ -481,7 +480,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
             errCode = CalcValueHash(value, hashValue);
     }
 
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != E_OK) {
         sqlite3_result_error(ctx, "Get hash value error.", -1);
         return;
     }
@@ -583,7 +582,7 @@ void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
     uint64_t curTime = 0;
     int errCode = TimeHelper::GetSysCurrentRawTime(curTime);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != E_OK) {
         sqlite3_result_error(ctx, "get raw sys time failed.", errCode);
         return;
     }
@@ -639,9 +638,10 @@ static bool GetDbHashString(sqlite3 *db, std::string &hashFileName)
 {
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
+        LOGE("Get db fileName failed.");
         return false;
     }
-    return GetHashString(fileName, hashFileName) == DistributedDB::DBStatus::OK;
+    return GetHashString(fileName, hashFileName) == E_OK;
 }
 
 void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
@@ -855,6 +855,7 @@ int GetPrimaryKeyName(sqlite3 *db, const std::string &tableName, std::string &pr
     while ((errCode = StepWithRetry(stmt)) != SQLITE_DONE) {
         if (errCode != SQLITE_ROW) {
             ResetStatement(stmt);
+            LOGE("Get primary key name step statement failed.");
             return -E_ERROR;
         }
         GetColumnTextValue(stmt, 0, primaryKey);
@@ -964,6 +965,7 @@ void StoreObserverCallback(sqlite3 *db, const std::string &hashFileName)
     std::vector<std::string> triggerSqls;
     int errCode = GetTriggerSqls(db, tableInfos, triggerSqls);
     if (errCode != E_OK) {
+        LOGE("Get data change trigger sql failed %d", errCode);
         return;
     }
     for (const auto &sql : triggerSqls) {
@@ -984,7 +986,7 @@ int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
     }
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != E_OK) {
         return 0;
     }
     ClientObserverCallback(hashFileName);
@@ -1001,7 +1003,7 @@ void RollbackHookCallback(void* data)
     }
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != E_OK) {
         return;
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
@@ -1219,7 +1221,7 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
     int errCode = sqlite3_prepare_v2(db, selectSql, -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
         (void)sqlite3_finalize(statement);
-        return DistributedDB::DBStatus::DB_ERROR;
+        return -E_ERROR;
     }
 
     std::string keyStr = SYNC_TABLE_TYPE + tableName;
@@ -1231,7 +1233,7 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
 
     if (sqlite3_step(statement) == SQLITE_ROW) {
         std::vector<uint8_t> value;
-        if (GetColumnBlobValue(statement, 0, value) == DistributedDB::DBStatus::OK) {
+        if (GetColumnBlobValue(statement, 0, value) == E_OK) {
             tableType.assign(value.begin(), value.end());
             (void)sqlite3_finalize(statement);
             return E_OK;
@@ -1296,6 +1298,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         return errCode;
     }
     sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01";
+    // sharing_resource is added after VERSION_5_3, this one is for compatibility
     if (logTableVersion >= DBConstant::LOG_TABLE_VERSION_5_3) {
         sql += ", sharing_resource = ''";
     }
@@ -1370,7 +1373,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
             LOGW("[ClearTheLogAfterDropTable] save delete flag failed.");
         }
         std::string tableType = DEVICE_TYPE;
-        if (GetTableSyncType(db, tableStr, tableType) != DistributedDB::DBStatus::OK) {
+        if (GetTableSyncType(db, tableStr, tableType) != E_OK) {
             return;
         }
         if (tableType == DEVICE_TYPE) {
@@ -1390,7 +1393,6 @@ bool CheckUnLockingDataExists(sqlite3 *db, const std::string &tableName)
     sqlite3_stmt *stmt = nullptr;
     std::string sql = "SELECT count(1) FROM " + tableName + " WHERE status=1";
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
-        (void)sqlite3_finalize(stmt);
         return false;
     }
 
@@ -1513,7 +1515,7 @@ int GetTableInfos(sqlite3 *db, std::map<std::string, bool> &tableInfos)
     if (db == nullptr) {
         return -E_ERROR;
     }
-    std::string sql = "SELECT name FROM main.sqlite_master where type = 'table'";
+    std::string sql = "SELECT name FROM main.sqlite_master WHERE type = 'table'";
     sqlite3_stmt *stmt = nullptr;
     int errCode = GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -1606,7 +1608,7 @@ DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientO
 
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         return DistributedDB::DB_ERROR;
     }
 
@@ -1624,7 +1626,7 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
 
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         return DistributedDB::DB_ERROR;
     }
 
@@ -1651,13 +1653,13 @@ DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::sha
 
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         LOGE("[RegisterStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
     }
 
     errCode = CreateTempTrigger(db);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         LOGE("[RegisterStoreObserver] Create trigger failed.");
         return DistributedDB::DB_ERROR;
     }
@@ -1687,7 +1689,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db, const std::s
 
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         LOGE("[UnregisterStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
     }
@@ -1714,7 +1716,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
 
     std::string hashFileName;
     int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::DBStatus::OK) {
+    if (errCode != DistributedDB::E_OK) {
         LOGE("[UnregisterAllStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
     }

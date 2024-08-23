@@ -200,14 +200,18 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 }
 
 // Stop syncer
-void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
+void SyncAbleKvDB::StopSyncer(bool isClosedOperation, bool isStopTaskOnly)
 {
     {
         std::unique_lock<std::mutex> lock(cloudSyncerLock_);
-        if (isClosedOperation && cloudSyncer_ != nullptr) {
-            cloudSyncer_->Close();
-            RefObject::KillAndDecObjRef(cloudSyncer_);
-            cloudSyncer_ = nullptr;
+        if (cloudSyncer_ != nullptr) {
+            if (isStopTaskOnly) {
+                cloudSyncer_->StopAllTasks();
+            } else if (isClosedOperation) {
+                cloudSyncer_->Close();
+                RefObject::KillAndDecObjRef(cloudSyncer_);
+                cloudSyncer_ = nullptr;
+            }
         }
     }
     NotificationChain::Listener *userChangeListener = nullptr;
@@ -537,7 +541,8 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.callback = onProcess;
     info.devices = option.devices;
     info.mode = option.mode;
-    info.users = option.users;
+    std::set<std::string> userSet(option.users.begin(), option.users.end());
+    info.users = std::vector<std::string>(userSet.begin(), userSet.end());
     info.lockAction = option.lockAction;
     info.storeId = MyProp().GetStringProp(DBProperties::STORE_ID, "");
     info.merge = option.merge;
@@ -557,7 +562,7 @@ int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSync
     auto schemas = GetDataBaseSchemas();
     if (schemas.empty()) {
         LOGE("[SyncAbleKvDB][Sync] not set cloud schema");
-        return -E_CLOUD_ERROR;
+        return -E_SCHEMA_MISMATCH;
     }
     for (const auto &user : option.users) {
         if (cloudDBs.find(user) == cloudDBs.end()) {
@@ -572,6 +577,9 @@ int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSync
     if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
         LOGE("[SyncAbleKvDB][Sync] invalid wait time of sync option: %lld", option.waitTime);
         return -E_INVALID_ARGS;
+    }
+    if (!CheckSchemaSupportForCloudSync()) {
+        return -E_NOT_SUPPORT;
     }
     return E_OK;
 }
@@ -658,5 +666,10 @@ void SyncAbleKvDB::SetGenCloudVersionCallback(const GenerateCloudVersionCallback
 std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
 {
     return {};
+}
+
+bool SyncAbleKvDB::CheckSchemaSupportForCloudSync() const
+{
+    return true; // default is valid
 }
 }

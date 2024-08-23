@@ -25,7 +25,7 @@
 
 namespace DistributedDB {
 enum DBStatus {
-    DB_ERROR = -1,
+    DB_ERROR = -1, // DBStatus in [27328512, 27394048]
     OK = 0,
     BUSY,
     NOT_FOUND,
@@ -88,6 +88,7 @@ enum DBStatus {
     CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
     LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
+    BUTT_STATUS
 };
 
 struct KvStoreConfig {

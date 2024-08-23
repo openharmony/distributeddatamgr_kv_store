@@ -1431,7 +1431,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadChangedAssets(
     if (toDeleteAssets.empty()) {
         return E_OK;
     }
-    int ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
+    DBStatus ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
     if (ret != OK) {
         LOGE("remove local assets failed %d.", ret);
         return -E_REMOVE_ASSETS_FAILED;

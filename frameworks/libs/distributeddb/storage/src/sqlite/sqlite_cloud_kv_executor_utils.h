@@ -69,8 +69,6 @@ private:
     static int GetCloudKvBlobData(const std::string &keyStr, int index, sqlite3_stmt *stmt,
         VBucket &data, uint32_t &totalSize);
 
-    static int CheckIgnoreData(const CloudSyncConfig &config, VBucket &data, VBucket &flags);
-
     static std::pair<int, sqlite3_stmt*> GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData, bool existKey);
 
     static std::pair<int, DataInfoWithLog> GetLogInfoInner(sqlite3_stmt *stmt, bool isMemory, const std::string &gid,

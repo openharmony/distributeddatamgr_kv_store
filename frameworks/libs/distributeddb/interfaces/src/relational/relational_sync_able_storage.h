@@ -219,7 +219,11 @@ public:
 
     bool IsTableExistReference(const std::string &table) override;
 
+    bool IsTableExistReferenceOrReferenceBy(const std::string &table) override;
+
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
+
+    bool IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

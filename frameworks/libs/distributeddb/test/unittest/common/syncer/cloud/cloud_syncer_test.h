@@ -58,6 +58,7 @@ public:
         cloudTaskInfos_[taskId].table.push_back(currentContext_.tableName);
         currentContext_.currentTaskId = taskId;
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
+        currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
         closed_ = false;
@@ -119,9 +120,9 @@ public:
         };
     }
 
-    int CallDoSyncInner(const CloudTaskInfo &taskInfo, const bool &needUpload)
+    int CallDoSyncInner(const CloudTaskInfo &taskInfo)
     {
-        return DoSyncInner(taskInfo, needUpload, true);
+        return DoSyncInner(taskInfo);
     }
 
     SyncProcessCallback getCallback(TaskId taskId)
@@ -340,10 +341,10 @@ public:
         return CloudSyncer::HandleTagAssets(hashKey, dataInfo, idx, param, localAssetInfo);
     }
 
-    std::map<int, std::map<std::string, bool>> GetDownloadFinishedStatus()
+    std::shared_ptr<ProcessRecorder> GetProcessRecorder()
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        return currentContext_.isDownloadFinished;
+        return currentContext_.processRecorder;
     }
 
     int CallDoDownloadInNeed(bool needUpload, bool isFirstDownload)
@@ -354,6 +355,16 @@ public:
             taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
         }
         return DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    }
+
+    int CallDoUploadInNeed()
+    {
+        CloudTaskInfo taskInfo;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
+        }
+        return DoUploadInNeed(taskInfo, true);
     }
     CloudTaskInfo taskInfo_;
 private:

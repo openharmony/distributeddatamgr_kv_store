@@ -74,6 +74,10 @@ constexpr int ABILITY_SYNC_VERSION_V1 = SOFTWARE_VERSION_RELEASE_2_0; // Ability
 constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V1 = SOFTWARE_VERSION_RELEASE_1_0; // The 1st version num
 constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V2 = SOFTWARE_VERSION_RELEASE_2_0; // The 2nd version num
 constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V3 = SOFTWARE_VERSION_RELEASE_3_0; // The third version num
+
+// Local Meta Data Version
+constexpr uint32_t LOCAL_META_DATA_VERSION_V1 = SOFTWARE_VERSION_RELEASE_8_0;
+constexpr uint32_t LOCAL_META_DATA_VERSION_V2 = SOFTWARE_VERSION_RELEASE_9_0;
 } // namespace DistributedDB
 
 #endif // VERSION_H

@@ -149,7 +149,7 @@ namespace {
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::string extendVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
-            ASSERT_NE(num, 0u);
+            ASSERT_NE(num, 0ul);
             EXPECT_EQ(extendVal, "Local" + std::to_string(index % num));
             std::string cursorVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);

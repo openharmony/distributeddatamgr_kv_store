@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
     std::vector<VBucket> expectExtends = CloudDBDataUtils::GenerateExtends(10); // generate 10 extends
     Info uploadInfo;
     std::vector<VBucket> insert = expectRecords;
-    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), E_OK);
 
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::string("");
@@ -246,14 +246,14 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
     std::vector<VBucket> expectExtends = CloudDBDataUtils::GenerateExtends(10); // generate 10 extends
     Info uploadInfo;
     std::vector<VBucket> insert = expectRecords;
-    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), E_OK);
     /**
      * @tc.steps: step3. update data to cloud db
      * @tc.expected: step3. E_OK
      */
     ModifyRecords(expectRecords);
     std::vector<VBucket> update = expectRecords;
-    EXPECT_EQ(proxy.BatchUpdate(TABLE_NAME, update, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchUpdate(TABLE_NAME, update, expectExtends, uploadInfo), E_OK);
     /**
      * @tc.steps: step3. proxy close cloud db
      * @tc.expected: step3. E_OK
@@ -500,6 +500,77 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest011, TestSize.Level2)
 }
 
 /**
+ * @tc.name: CloudDBProxyTest012
+ * @tc.desc: Asset data deduplication.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest012, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    Assets assets;
+    Asset asset1;
+    asset1.name = "assetName1";
+    asset1.assetId = "";
+    asset1.modifyTime = "20240730";
+    assets.push_back(asset1);
+    
+    Asset asset2;
+    asset2.name = "assetName1";
+    asset2.assetId = "123";
+    asset2.modifyTime = "20240730";
+    assets.push_back(asset2);
+
+    Asset asset3;
+    asset3.name = "assetName2";
+    asset3.assetId = "456";
+    asset3.modifyTime = "20240730";
+    assets.push_back(asset3);
+
+    Asset asset4;
+    asset4.name = "assetName2";
+    asset4.assetId = "789";
+    asset4.modifyTime = "20240731";
+    assets.push_back(asset4);
+
+    Asset asset5;
+    asset5.name = "assetName3";
+    asset5.assetId = "123";
+    asset5.modifyTime = "20240730";
+    assets.push_back(asset5);
+
+    Asset asset6;
+    asset6.name = "assetName3";
+    asset6.assetId = "789";
+    asset6.modifyTime = "20240730";
+    assets.push_back(asset6);
+
+    Asset asset7;
+    asset7.name = "assetName1";
+    asset7.assetId = "456";
+    asset7.modifyTime = "20240731";
+    assets.push_back(asset7);
+
+    DBCommon::RemoveDuplicateAssetsData(assets);
+
+    /**
+     * @tc.steps: step2. check data
+     * @tc.expected: step2. E_OK
+     */
+    std::string assetNameArr[] = {"assetName2", "assetName3", "assetName1"};
+    std::string assetIdArr[] = {"789", "123", "456"};
+    EXPECT_EQ(assets.size(), 3u);
+    for (std::vector<DistributedDB::Asset>::size_type i = 0; i < assets.size(); ++i) {
+        EXPECT_EQ(assets.at(i).name, assetNameArr[i]);
+        EXPECT_EQ(assets.at(i).assetId, assetIdArr[i]);
+    }
+}
+
+/**
  * @tc.name: CloudSyncQueue001
  * @tc.desc: Verify sync task count decrease after sync finished.
  * @tc.type: FUNC
@@ -727,7 +798,10 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
      */
     std::pair<int, std::string> ver = proxy.GetCloudVersion("test");
     EXPECT_EQ(ver.first, -E_NOT_SUPPORT);
-    std::vector<Asset> assets = {{}};
+    std::vector<Asset> assets;
+    ret = proxy.RemoveLocalAssets(assets);
+    EXPECT_EQ(ret, -E_OK);
+    assets = {{}};
     ret = proxy.RemoveLocalAssets(assets);
     EXPECT_EQ(ret, -E_OK);
 }

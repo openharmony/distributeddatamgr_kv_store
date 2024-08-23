@@ -233,6 +233,8 @@ protected:
     ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
 
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas() override;
+
+    bool CheckSchemaSupportForCloudSync() const override;
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);

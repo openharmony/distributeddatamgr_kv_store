@@ -47,6 +47,7 @@ int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string 
     }
     // device name always hash string.
     int bindIndex = 1; // 1 is the first index for blob to bind.
+    int ret = E_OK;
     if (!user.empty()) {
         if (isUserBlobType) {
             std::vector<uint8_t> useVect(user.begin(), user.end());
@@ -56,7 +57,7 @@ int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string 
         }
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
         bindIndex++;
@@ -66,7 +67,7 @@ int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string 
         errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, devVect, true); // only one arg.
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
     }
@@ -76,8 +77,8 @@ int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string 
     } else {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, const std::string &deviceName,
@@ -90,11 +91,12 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
         return errCode;
     }
     int bindIndex = 1; // 1 is the first index for blob to bind.
+    int ret = E_OK;
     if (!user.empty()) {
         errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, user); // only one arg.
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
         bindIndex++;
@@ -102,7 +104,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
             errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, user); // only one arg.
             if (errCode != E_OK) {
                 LOGE("Failed to bind the removed device:%d", errCode);
-                SQLiteUtils::ResetStatement(statement, true, errCode);
+                SQLiteUtils::ResetStatement(statement, true, ret);
                 return errCode;
             }
         }
@@ -112,7 +114,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
         errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, devVect, true); // only one arg.
         if (errCode != E_OK) {
             LOGE("Failed to bind the removed device:%d", errCode);
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
     }
@@ -123,11 +125,11 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // means deviceId can be matched in log table
             isExist = true;
         }
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return E_OK;
     }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
@@ -145,10 +147,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
     }
     if (mode == FLAG_AND_DATA) {
         return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_DEV_DATA_SQL, "", "");
-    } else {
-        return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_ALL_DEV_DATA_SQL, "", "");
     }
-    return errCode;
+    return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_ALL_DEV_DATA_SQL, "", "");
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &deviceName, ClearMode mode)
@@ -166,10 +166,13 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
     }
     if (mode == FLAG_AND_DATA) {
         return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
-    } else {
-        return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
+    } else if (mode == FLAG_ONLY) {
+        errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL, deviceName, "");
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
-    return errCode;
+    return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode)
@@ -222,21 +225,16 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::str
             return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL, deviceName, "");
         }
     }
-    errCode = CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL, deviceName, "");
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL, deviceName, "");
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName, ClearMode mode)
 {
-    int errCode = E_OK;
     if (deviceName.empty()) {
         return CheckCorruptedStatus(RemoveDeviceDataInner(mode));
     }
     bool isDataExist = false;
-    errCode = CloudCheckDataExist(SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "", isDataExist);
+    int errCode = CloudCheckDataExist(SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "", isDataExist);
     // means deviceId can not be matched in log table
     if (mode != ClearMode::DEFAULT && (!isDataExist || errCode != E_OK)) {
         return CheckCorruptedStatus(errCode);

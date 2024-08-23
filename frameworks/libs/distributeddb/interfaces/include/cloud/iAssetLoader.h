@@ -38,6 +38,12 @@ public:
     {
         return DBStatus::OK;
     }
+
+    virtual DBStatus RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets)
+    {
+        return DBStatus::OK;
+    }
 };
 } // namespace DistributedDB
 

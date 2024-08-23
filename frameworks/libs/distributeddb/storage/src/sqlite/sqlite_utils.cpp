@@ -195,7 +195,6 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         std::lock_guard<std::mutex> lock(logMutex_);
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
-            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
             g_configLog = true;
         }
     }
@@ -647,7 +646,6 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     }
     return errCode;
 }
-
 int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 {
     sqlite3_stmt *statement = nullptr;
@@ -1327,12 +1325,12 @@ int SQLiteUtils::ChangeIndex(sqlite3 *db, const IndexName &name, const IndexInfo
 {
     // Currently we change index by drop it then create it, SQLite "REINDEX" may be used in the future
     int errCode = DecreaseIndex(db, name);
-    if (errCode != OK) {
+    if (errCode != E_OK) {
         LOGE("[ChangeIndex] Decrease fail=%d.", errCode);
         return errCode;
     }
     errCode = IncreaseIndex(db, name, info, type, skipSize);
-    if (errCode != OK) {
+    if (errCode != E_OK) {
         LOGE("[ChangeIndex] Increase fail=%d.", errCode);
         return errCode;
     }

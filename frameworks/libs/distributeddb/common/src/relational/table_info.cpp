@@ -579,7 +579,6 @@ int TableInfo::CompareWithTableIndex(const IndexInfoMap &inTableIndex) const
         -E_RELATIONAL_TABLE_COMPATIBLE;
 }
 
-
 namespace {
 void Difference(const FieldInfoMap &first, const FieldInfoMap &second, FieldInfoMap &orphanFst, FieldInfoMap &orphanSnd,
     FieldInfoMap &bothAppear)
