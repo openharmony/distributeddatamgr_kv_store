@@ -25,6 +25,7 @@
 #include "kvdb_manager.h"
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
+#include "sqlite_cloud_kv_executor_utils.h"
 #include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
 
@@ -159,7 +160,7 @@ void DistributedDBCloudKvSyncerTest::BlockSync(KvStoreNbDelegate *delegate, DBSt
         SyncProcess> &process) {
         size_t notifyCnt = 0;
         for (const auto &item: process) {
-            LOGD("user = %s, status = %d", item.first.c_str(), item.second.process);
+            LOGD("user = %s, status = %d, errCode = %d", item.first.c_str(), item.second.process, item.second.errCode);
             if (item.second.process != DistributedDB::FINISHED) {
                 continue;
             }

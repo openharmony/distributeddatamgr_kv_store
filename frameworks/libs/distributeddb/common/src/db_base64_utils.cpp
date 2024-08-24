@@ -27,7 +27,7 @@ static constexpr const std::string_view BASE64_CHARS = /* NOLINT */
 static constexpr const uint32_t CHAR_ARRAY_LENGTH_THREE = 3;
 static constexpr const uint32_t CHAR_ARRAY_LENGTH_FOUR = 4;
 
-enum BASE64_ENCODE_CONSTANT : uint8_t {
+enum class BASE64_ENCODE_CONSTANT : uint8_t {
     BASE64_ENCODE_MASK1 = 0xfc,
     BASE64_ENCODE_MASK2 = 0x03,
     BASE64_ENCODE_MASK3 = 0x0f,
@@ -42,7 +42,7 @@ enum BASE64_ENCODE_CONSTANT : uint8_t {
     BASE64_ENCODE_INDEX2 = 2,
 };
 
-enum BASE64_DECODE_CONSTANT : uint8_t {
+enum class BASE64_DECODE_CONSTANT : uint8_t {
     BASE64_DECODE_MASK1 = 0x30,
     BASE64_DECODE_MASK2 = 0xf,
     BASE64_DECODE_MASK3 = 0x3c,
@@ -65,12 +65,23 @@ static void MakeCharFour(const std::array<uint8_t, CHAR_ARRAY_LENGTH_THREE> &cha
     std::array<uint8_t, CHAR_ARRAY_LENGTH_FOUR> &charArrayFour)
 {
     const uint8_t table[CHAR_ARRAY_LENGTH_FOUR] = {
-        static_cast<uint8_t>((charArrayThree[BASE64_ENCODE_INDEX0] & BASE64_ENCODE_MASK1) >> BASE64_ENCODE_OFFSET2),
-        static_cast<uint8_t>(((charArrayThree[BASE64_ENCODE_INDEX0] & BASE64_ENCODE_MASK2) << BASE64_ENCODE_OFFSET4) +
-                             ((charArrayThree[BASE64_ENCODE_INDEX1] & BASE64_ENCODE_MASK5) >> BASE64_ENCODE_OFFSET4)),
-        static_cast<uint8_t>(((charArrayThree[BASE64_ENCODE_INDEX1] & BASE64_ENCODE_MASK3) << BASE64_ENCODE_OFFSET2) +
-                             ((charArrayThree[BASE64_ENCODE_INDEX2] & BASE64_ENCODE_MASK6) >> BASE64_ENCODE_OFFSET6)),
-        static_cast<uint8_t>(charArrayThree[BASE64_ENCODE_INDEX2] & BASE64_ENCODE_MASK4),
+        static_cast<uint8_t>((charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX0)] &
+                                static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK1)) >>
+                            static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_OFFSET2)),
+        static_cast<uint8_t>(((charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX0)] &
+                                  static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK2))
+                                << static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_OFFSET4)) +
+                                ((charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX1)] &
+                                    static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK5)) >>
+                                  static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_OFFSET4))),
+        static_cast<uint8_t>(((charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX1)] &
+                                  static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK3))
+                                << static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_OFFSET2)) +
+                             ((charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX2)] &
+                                  static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK6)) >>
+                                static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_OFFSET6))),
+        static_cast<uint8_t>(charArrayThree[static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_INDEX2)] &
+                            static_cast<uint8_t>(BASE64_ENCODE_CONSTANT::BASE64_ENCODE_MASK4)),
     };
     for (size_t index = 0; index < CHAR_ARRAY_LENGTH_FOUR; ++index) {
         charArrayFour[index] = table[index];
@@ -81,12 +92,21 @@ static void MakeCharTree(const std::array<uint8_t, CHAR_ARRAY_LENGTH_FOUR> &char
     std::array<uint8_t, CHAR_ARRAY_LENGTH_THREE> &charArrayThree)
 {
     const uint8_t table[CHAR_ARRAY_LENGTH_THREE] = {
-        static_cast<uint8_t>((charArrayFour[BASE64_DECODE_INDEX0] << BASE64_DECODE_OFFSET2) +
-                             ((charArrayFour[BASE64_DECODE_INDEX1] & BASE64_DECODE_MASK1) >> BASE64_DECODE_OFFSET4)),
-        static_cast<uint8_t>(((charArrayFour[BASE64_DECODE_INDEX1] & BASE64_DECODE_MASK2) << BASE64_DECODE_OFFSET4) +
-                             ((charArrayFour[BASE64_DECODE_INDEX2] & BASE64_DECODE_MASK3) >> BASE64_DECODE_OFFSET2)),
-        static_cast<uint8_t>(((charArrayFour[BASE64_DECODE_INDEX2] & BASE64_DECODE_MASK4) << BASE64_DECODE_OFFSET6) +
-                             charArrayFour[BASE64_DECODE_INDEX3]),
+        static_cast<uint8_t>((charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX0)]
+                                << static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_OFFSET2)) +
+                             ((charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX1)] &
+                                  static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_MASK1)) >>
+                                static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_OFFSET4))),
+        static_cast<uint8_t>(((charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX1)] &
+                                  static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_MASK2))
+                                  << static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_OFFSET4)) +
+                             ((charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX2)] &
+                                  static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_MASK3)) >>
+                                static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_OFFSET2))),
+        static_cast<uint8_t>(((charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX2)] &
+                                  static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_MASK4))
+                                << static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_OFFSET6)) +
+                             charArrayFour[static_cast<uint8_t>(BASE64_DECODE_CONSTANT::BASE64_DECODE_INDEX3)]),
     };
     for (size_t index = 0; index < CHAR_ARRAY_LENGTH_THREE; ++index) {
         charArrayThree[index] = table[index];
@@ -177,5 +197,19 @@ std::vector<uint8_t> DBBase64Utils::Decode(const std::string &encoded)
         ret.emplace_back(charArrayThree[i]);
     }
     return ret;
+}
+
+std::string DBBase64Utils::Encode(const std::string &source)
+{
+    return Encode(std::vector<uint8_t>(source.begin(), source.end()));
+}
+
+std::string DBBase64Utils::DecodeIfNeed(const std::string &source)
+{
+    auto decodeRes = Decode(source);
+    if (decodeRes.empty()) {
+        return source;
+    }
+    return std::string(decodeRes.begin(), decodeRes.end());
 }
 }

@@ -106,13 +106,7 @@ int VirtualCommunicatorAggregator::GetLocalIdentity(std::string &outTarget) cons
     } else {
         outTarget = localDeviceId_;
     }
-    return E_OK;
-}
-
-void VirtualCommunicatorAggregator::SetLocalDeviceId(const std::string &deviceId)
-{
-    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
-    localDeviceId_ = deviceId;
+    return getLocalDeviceRet_;
 }
 
 void VirtualCommunicatorAggregator::OnlineDevice(const std::string &deviceId) const
@@ -364,5 +358,17 @@ void VirtualCommunicatorAggregator::RegBeforeDispatch(
     const std::function<void(const std::string &, const Message *)> &beforeDispatch)
 {
     beforeDispatch_ = beforeDispatch;
+}
+
+void VirtualCommunicatorAggregator::SetLocalDeviceId(const std::string &deviceId)
+{
+    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
+    localDeviceId_ = deviceId;
+}
+
+void VirtualCommunicatorAggregator::MockGetLocalDeviceRes(int mockRes)
+{
+    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
+    getLocalDeviceRet_ = mockRes;
 }
 } // namespace DistributedDB

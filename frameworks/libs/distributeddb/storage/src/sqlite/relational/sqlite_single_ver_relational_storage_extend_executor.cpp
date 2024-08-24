@@ -156,7 +156,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         LOGE("get update asset data cursor stmt failed %d.", errCode);
         return errCode;
     }
-    ResFinalizer finalizer([statement] {
+    ResFinalizer finalizer([statement]() {
         sqlite3_stmt *statementInner = statement;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
@@ -1426,7 +1426,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadChangedAssets(
     if (toDeleteAssets.empty()) {
         return E_OK;
     }
-    int ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
+    DBStatus ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
     if (ret != OK) {
         LOGE("remove local assets failed %d.", ret);
         return -E_REMOVE_ASSETS_FAILED;

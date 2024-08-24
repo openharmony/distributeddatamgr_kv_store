@@ -1867,7 +1867,7 @@ void PutRangeDataIntoDB()
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
@@ -1951,7 +1951,7 @@ void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate,  and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
@@ -2031,7 +2031,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -2110,7 +2110,7 @@ void ChkRangeResultSetMoveFuc(KvStoreResultSet *resultSet, int beginNum, int end
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.

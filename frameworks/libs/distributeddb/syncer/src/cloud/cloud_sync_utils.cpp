@@ -25,7 +25,7 @@ int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::
     std::vector<Type> &cloudPkVals)
 {
     if (!cloudPkVals.empty()) {
-        LOGE("[CloudSyncer] Output paramater should be empty");
+        LOGE("[CloudSyncer] Output parameter should be empty");
         return -E_INVALID_ARGS;
     }
     for (const auto &pkColName : pkColNames) {
@@ -186,6 +186,7 @@ LogInfo CloudSyncUtils::GetCloudLogInfo(DistributedDB::VBucket &datum)
     cloudLogInfo.wTimestamp = (Timestamp)std::get<int64_t>(datum[CloudDbConstant::CREATE_FIELD]);
     cloudLogInfo.flag = (std::get<bool>(datum[CloudDbConstant::DELETE_FIELD])) ? 1u : 0u;
     cloudLogInfo.cloudGid = std::get<std::string>(datum[CloudDbConstant::GID_FIELD]);
+    CloudStorageUtils::GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, datum, cloudLogInfo.device);
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::SHARING_RESOURCE_FIELD,
         datum, cloudLogInfo.sharingResource);
     (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD,
@@ -212,7 +213,7 @@ int CloudSyncUtils::SaveChangedDataByType(const VBucket &datum, ChangedData &cha
 }
 
 int CloudSyncUtils::CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
-    const int64_t &count, uint64_t &taskId)
+    int64_t count)
 {
     size_t insRecordLen = uploadData.insData.record.size();
     size_t insExtendLen = uploadData.insData.extend.size();
@@ -259,7 +260,7 @@ int CloudSyncUtils::GetWaterMarkAndUpdateTime(std::vector<VBucket> &extend, Time
             return -E_INTERNAL_ERROR;
         }
         if (TYPE_INDEX<int64_t> != extendData.at(CloudDbConstant::MODIFY_FIELD).index()) {
-            LOGE("[CloudSyncer] VBucket's MODIFY_FIELD doestn't fit int64_t.");
+            LOGE("[CloudSyncer] VBucket's MODIFY_FIELD doesn't fit int64_t.");
             return -E_INTERNAL_ERROR;
         }
         if (extendData.empty() || extendData.find(CloudDbConstant::CREATE_FIELD) == extendData.end()) {
@@ -267,7 +268,7 @@ int CloudSyncUtils::GetWaterMarkAndUpdateTime(std::vector<VBucket> &extend, Time
             return -E_INTERNAL_ERROR;
         }
         if (TYPE_INDEX<int64_t> != extendData.at(CloudDbConstant::CREATE_FIELD).index()) {
-            LOGE("[CloudSyncer] VBucket's CREATE_FIELD doestn't fit int64_t.");
+            LOGE("[CloudSyncer] VBucket's CREATE_FIELD doesn't fit int64_t.");
             return -E_INTERNAL_ERROR;
         }
         waterMark = std::max(int64_t(waterMark), std::get<int64_t>(extendData.at(CloudDbConstant::MODIFY_FIELD)));
@@ -302,7 +303,7 @@ void CloudSyncUtils::ModifyCloudDataTime(DistributedDB::VBucket &data)
 int CloudSyncUtils::UpdateExtendTime(CloudSyncData &uploadData, const int64_t &count, uint64_t taskId,
     Timestamp &waterMark)
 {
-    int ret = CloudSyncUtils::CheckCloudSyncDataValid(uploadData, uploadData.tableName, count, taskId);
+    int ret = CloudSyncUtils::CheckCloudSyncDataValid(uploadData, uploadData.tableName, count);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Invalid Sync Data when get local water mark.");
         return ret;
@@ -392,8 +393,6 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
                 param.withoutRowIdData.updateData.emplace_back(dataIndex,
                     param.changedData.primaryData[ChangeType::OP_UPDATE].size());
             }
-        } else {
-            LOGW("[CloudSyncer] deletePrimaryKeySet ignore opType %d.", opType);
         }
     }
     // INSERT: for no primary key or composite primary key situation
@@ -430,7 +429,7 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.assetInsertData.clear();
 }
 
-int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
+int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, const CloudWaterType &type)
 {
     if (data.extend.size() != data.assets.size()) {
         LOGE("[CloudSyncUtils] size not match, extend:%zu assets:%zu.", data.extend.size(), data.assets.size());
@@ -438,13 +437,9 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
     }
     int errCode = E_OK;
     for (size_t i = 0; i < data.assets.size(); i++) {
-        if (data.assets[i].empty()) {
-            continue;
-        }
-        if (errorCode != E_OK && DBCommon::IsRecordError(data.extend[i])) {
-            continue;
-        }
-        if (DBCommon::IsRecordIgnored(data.extend[i])) {
+        if (data.assets[i].empty() || DBCommon::IsRecordIgnored(data.extend[i]) ||
+            (errorCode != E_OK && DBCommon::IsRecordError(data.extend[i])) ||
+            DBCommon::IsNeedCompensatedForUpload(data.extend[i], type)) {
             continue;
         }
         for (auto it = data.assets[i].begin(); it != data.assets[i].end();) {

@@ -98,6 +98,8 @@ public:
 
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
 
+    bool IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo) override;
+
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
 
 private:

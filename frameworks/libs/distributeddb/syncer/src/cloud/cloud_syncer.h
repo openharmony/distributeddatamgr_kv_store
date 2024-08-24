@@ -27,6 +27,7 @@
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_syncer.h"
 #include "cloud/process_notifier.h"
+#include "cloud/process_recorder.h"
 #include "cloud_locker.h"
 #include "data_transformer.h"
 #include "db_common.h"
@@ -92,6 +93,7 @@ protected:
         std::string tableName;
         std::shared_ptr<ProcessNotifier> notifier;
         std::shared_ptr<CloudSyncStrategy> strategy;
+        std::shared_ptr<ProcessRecorder> processRecorder;
         std::map<TableName, std::vector<Field>> assetFields;
         // should be cleared after each Download
         DownloadList assetDownloadList;
@@ -100,11 +102,9 @@ protected:
         // struct: <currentUserIndex, <tableName, waterMark>>
         std::map<int, std::map<TableName, std::string>> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
-        bool isNeedUpload = false;  // whether the current task need do upload
-        CloudSyncState currentState = CloudSyncState::IDLE;
+        bool isNeedUpload = false;  // whether the current task need to do upload
         bool isRealNeedUpload = false;
         bool isFirstDownload = false;
-        std::map<int, std::map<std::string, bool>> isDownloadFinished; // struct: <currentUserIndex, <tableName, value>>
         int currentUserIndex = 0;
         int repeatCount = 0;
     };
@@ -144,7 +144,7 @@ protected:
 
     int PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index);
 
-    int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
+    int DoSyncInner(const CloudTaskInfo &taskInfo);
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
@@ -259,7 +259,7 @@ protected:
     int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
-    int TagUploadAssets(CloudSyncData &uploadData);
+    void TagUploadAssets(CloudSyncData &uploadData);
 
     int FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
         VBucket &failedAssets);
@@ -325,8 +325,6 @@ protected:
 
     size_t GetDownloadAssetIndex(TaskId taskId);
 
-    size_t GetStartTableIndex(TaskId taskId, bool upload);
-
     uint32_t GetCurrentTableUploadBatchIndex();
 
     void ResetCurrentTableUploadBatchIndex();
@@ -361,8 +359,14 @@ protected:
     std::pair<int, uint32_t> GetDBAssets(bool isSharedTable, const InnerProcessInfo &info,
         const DownloadItem &downloadItem, VBucket &dbAssets);
 
-    std::map<std::string, Assets> BackFillAssetsAfterDownload(std::map<std::string, Assets> tmpAssets,
-        std::map<std::string, std::vector<uint32_t>> tmpFlags, int downloadCode);
+    std::map<std::string, Assets>& BackFillAssetsAfterDownload(int downloadCode, int deleteCode,
+        std::map<std::string, std::vector<uint32_t>> &tmpFlags, std::map<std::string, Assets> &tmpAssetsToDownload,
+        std::map<std::string, Assets> &tmpAssetsToDelete);
+
+    int IsNeedSkipDownload(bool isSharedTable, int &errCode, const InnerProcessInfo &info,
+        const DownloadItem &downloadItem, VBucket &dbAssets);
+
+    bool CheckDownloadOrDeleteCode(int &errCode, int downloadCode, int deleteCode, DownloadItem &downloadItem);
 
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
@@ -417,7 +421,11 @@ protected:
 
     CloudSyncEvent SyncMachineDoRepeatCheck();
 
-    void MarkDownloadFinishIfNeed(const std::string &downloadTable);
+    void MarkDownloadFinishIfNeed(const std::string &downloadTable, bool isFinish = true);
+
+    bool IsTableFinishInUpload(const std::string &table);
+
+    void MarkUploadFinishIfNeed(const std::string &table);
 
     bool IsNeedUpdateAsset(const VBucket &data);
 

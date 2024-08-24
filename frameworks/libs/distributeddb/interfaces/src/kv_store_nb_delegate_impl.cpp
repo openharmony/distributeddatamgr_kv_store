@@ -302,10 +302,9 @@ DBStatus KvStoreNbDelegateImpl::PublishLocal(const Key &key, bool deleteLocal, b
         PragmaPublishInfo publishInfo{ key, deleteLocal, updateTimestamp, onConflict };
         int errCode = conn_->Pragma(PRAGMA_PUBLISH_LOCAL, static_cast<PragmaData>(&publishInfo));
         if (errCode != E_OK) {
-            LOGD("[KvStoreNbDelegate] Publish local err:%d", errCode);
-            return TransferDBErrno(errCode);
+            LOGE("[KvStoreNbDelegate] Publish local err:%d", errCode);
         }
-        return OK;
+        return TransferDBErrno(errCode);
     }
 
     LOGE("%s", INVALID_CONNECTION);
@@ -323,10 +322,9 @@ DBStatus KvStoreNbDelegateImpl::UnpublishToLocal(const Key &key, bool deletePubl
         PragmaUnpublishInfo unpublishInfo{ key, deletePublic, updateTimestamp };
         int errCode = conn_->Pragma(PRAGMA_UNPUBLISH_SYNC, static_cast<PragmaData>(&unpublishInfo));
         if (errCode != E_OK) {
-            LOGD("[KvStoreNbDelegate] Unpublish result:%d", errCode);
-            return TransferDBErrno(errCode);
+            LOGE("[KvStoreNbDelegate] Unpublish result:%d", errCode);
         }
-        return OK;
+        return TransferDBErrno(errCode);
     }
 
     LOGE("%s", INVALID_CONNECTION);
@@ -345,10 +343,8 @@ DBStatus KvStoreNbDelegateImpl::PutLocalBatch(const std::vector<Entry> &entries)
     int errCode = conn_->PutBatch(option, entries);
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Put local batch data failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::DeleteLocalBatch(const std::vector<Key> &keys)
@@ -537,9 +533,8 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
         const_cast<void *>(static_cast<const void *>(&device)));
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Remove device data failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 std::string KvStoreNbDelegateImpl::GetStoreId() const
@@ -693,9 +688,8 @@ DBStatus KvStoreNbDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Pragma failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::SetConflictNotifier(int conflictType, const KvStoreNbConflictNotifier &notifier)
@@ -740,9 +734,8 @@ DBStatus KvStoreNbDelegateImpl::SetConflictNotifier(int conflictType, const KvSt
 END:
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Register conflict failed:%d!", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::Rekey(const CipherPassword &password)
@@ -836,9 +829,8 @@ DBStatus KvStoreNbDelegateImpl::StartTransaction()
     int errCode = conn_->StartTransaction();
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] StartTransaction failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::Commit()
@@ -851,9 +843,8 @@ DBStatus KvStoreNbDelegateImpl::Commit()
     int errCode = conn_->Commit();
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Commit failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::Rollback()
@@ -866,9 +857,8 @@ DBStatus KvStoreNbDelegateImpl::Rollback()
     int errCode = conn_->RollBack();
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] Rollback failed:%d", errCode);
-        return TransferDBErrno(errCode);
     }
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 void KvStoreNbDelegateImpl::SetReleaseFlag(bool flag)
@@ -936,7 +926,7 @@ DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, 
     }
 
     if (errCode != -E_NOT_FOUND) {
-        LOGW("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
+        LOGE("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
     }
     return TransferDBErrno(errCode);
 }
@@ -953,7 +943,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntriesInner(const IOption &option,
     if (errCode == E_OK) {
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] Get the batch data failed:%d", errCode);
+    LOGE("[KvStoreNbDelegate] Get the batch data failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
 
@@ -1118,7 +1108,7 @@ DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &
     if (errCode == E_OK) {
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] Get the keys failed:%d", errCode);
+    LOGE("[KvStoreNbDelegate] Get the keys failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
 
@@ -1156,7 +1146,7 @@ DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
         LOGI("[KvStoreNbDelegate] update keys success");
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] update keys failed:%d", errCode);
+    LOGE("[KvStoreNbDelegate] update keys failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
 
@@ -1199,7 +1189,7 @@ DBStatus KvStoreNbDelegateImpl::SetCloudDB(const std::map<std::string, std::shar
         return DB_ERROR;
     }
     if (cloudDBs.empty()) {
-        LOGE("[KvStoreNbDelegateImpl] no cloud db");
+        LOGE("[KvStoreNbDelegate] no cloud db");
         return INVALID_ARGS;
     }
     return TransferDBErrno(conn_->SetCloudDB(cloudDBs));
@@ -1221,7 +1211,10 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, Clea
         return DB_ERROR;
     }
     int errCode = conn_->RemoveDeviceData(device, mode);
-    LOGI("[KvStoreNbDelegateImpl] remove device data res %d", errCode);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] remove device data res %d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] remove device data res");
     return TransferDBErrno(errCode);
 }
 
@@ -1233,11 +1226,14 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, cons
         return DB_ERROR;
     }
     if (user.empty() && mode != ClearMode::DEFAULT) {
-        LOGE("[KvStoreNbDelegateImpl] remove device data with empty user!");
+        LOGE("[KvStoreNbDelegate] remove device data with empty user!");
         return INVALID_ARGS;
     }
     int errCode = conn_->RemoveDeviceData(device, user, mode);
-    LOGI("[KvStoreNbDelegateImpl] remove device data with user res %d", errCode);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] remove device data with user res %d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] remove device data with user res");
     return TransferDBErrno(errCode);
 }
 
@@ -1279,7 +1275,7 @@ std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::G
     } else {
         LOGE("[KvStoreNbDelegate] get cloudVersion failed:%d", errCode);
     }
-    if (res.second.empty()) {
+    if (errCode == E_OK && res.second.empty()) {
         errCode = -E_NOT_FOUND;
     }
     res.first = TransferDBErrno(errCode);
@@ -1293,7 +1289,10 @@ DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor 
         return DB_ERROR;
     }
     int errCode = conn_->SetReceiveDataInterceptor(interceptor);
-    LOGI("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] Set receive data interceptor");
     return TransferDBErrno(errCode);
 }
 
@@ -1307,7 +1306,10 @@ DBStatus KvStoreNbDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config
         return INVALID_ARGS;
     }
     int errCode = conn_->SetCloudSyncConfig(config);
-    LOGI("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] Set cloud sync config");
     return TransferDBErrno(errCode);
 }
 

@@ -846,13 +846,13 @@ int AbilitySync::RequestPacketDeSerializationTailPart(Parcel &parcel, AbilitySyn
     }
     packet->SetDbAbility(remoteDbAbility);
     if (version >= SOFTWARE_VERSION_RELEASE_9_0) {
-        uint64_t schemaVersion = 0;
+        uint64_t schemaVersion = 0u;
         parcel.ReadUInt64(schemaVersion);
-        packet->SetSchemaVersion(schemaVersion);
         if (parcel.IsError()) {
             LOGW("[AbilitySync] request packet read schema version failed");
             return -E_PARSE_FAIL;
         }
+        packet->SetSchemaVersion(schemaVersion);
     }
     return E_OK;
 }
@@ -898,11 +898,11 @@ int AbilitySync::AckPacketDeSerializationTailPart(Parcel &parcel, AbilitySyncAck
     if (version >= SOFTWARE_VERSION_RELEASE_9_0) {
         uint64_t schemaVersion = 0;
         parcel.ReadUInt64(schemaVersion);
-        packet->SetSchemaVersion(schemaVersion);
         if (parcel.IsError()) {
             LOGW("[AbilitySync] ack packet read schema version failed.");
             return -E_PARSE_FAIL;
         }
+        packet->SetSchemaVersion(schemaVersion);
     }
     return E_OK;
 }
@@ -1361,7 +1361,7 @@ void AbilitySync::InitAbilitySyncFinishStatus(ISyncTaskContext &context)
     LOGI("[AbilitySync] Mark ability sync finish from db status");
     syncFinished_ = true;
     if (context.GetRemoteSoftwareVersion() == 0u) { // LCOV_EXCL_BR_LINE
-        LOGD("[AbilitySync] Init remote version with default");
+        LOGI("[AbilitySync] Init remote version with default");
         context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_9_0); // remote version >= 109
     }
     InitRemoteDBAbility(context);

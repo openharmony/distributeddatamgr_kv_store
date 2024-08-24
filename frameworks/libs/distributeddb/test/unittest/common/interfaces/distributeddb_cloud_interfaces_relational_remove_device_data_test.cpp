@@ -329,9 +329,8 @@ namespace {
     {
         int i = 0;
         for (const auto &tableName: tableList) {
-            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where device = 'cloud'" +
-                " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +" where device = 'cloud'";
+            sql += " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
             EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
             i++;
@@ -1228,7 +1227,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
 /*
  * @tc.name: CleanCloudDataTest014
- * @tc.desc: Test when remove device data at flagOnly mode.
+ * @tc.desc: Test when remove device data at flag only mode.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong

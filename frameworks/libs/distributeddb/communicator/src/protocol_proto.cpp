@@ -50,6 +50,7 @@ void SetFrameType(FrameType inFrameType, uint8_t &inPacketType)
     inPacketType &= 0x0F; // Use 0x0F to clear high four bits
     inPacketType |= (static_cast<uint8_t>(inFrameType) << 4); // frame type is on high 4 bits
 }
+
 FrameType GetFrameType(uint8_t inPacketType)
 {
     uint8_t frameType = ((inPacketType & 0xF0) >> 4); // Use 0xF0 to get high 4 bits
@@ -58,10 +59,12 @@ FrameType GetFrameType(uint8_t inPacketType)
     }
     return static_cast<FrameType>(frameType);
 }
+
 bool IsSendLabelExchange(uint8_t inPacketType)
 {
     return ((inPacketType & 0x08) >> 3) == 0; // Use 0x08 and remove low 3 bit, it is Communication negotiation mark
 }
+
 void SetSendLabelExchange(uint8_t &inPacketType, bool sendLabelExchange)
 {
     if (!sendLabelExchange) {

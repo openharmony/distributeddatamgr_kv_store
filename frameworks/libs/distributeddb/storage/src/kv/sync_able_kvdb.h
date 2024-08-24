@@ -125,7 +125,7 @@ protected:
     int StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActive);
 
     // Stop syncer
-    void StopSyncer(bool isClosedOperation = false);
+    void StopSyncer(bool isClosedOperation = false, bool isStopTaskOnly = false);
 
     void StopSyncerWithNoLock(bool isClosedOperation = false);
 
@@ -143,8 +143,10 @@ protected:
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
-
+protected:
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
+
+    virtual bool CheckSchemaSupportForCloudSync() const;
 private:
     int RegisterEventType(EventType type);
 

@@ -244,9 +244,20 @@ int DistributedDBInterfacesImportAndExportRdTest::ModifyDataInPage(int modifyPos
         printf("Failed to open file");
         return 1;
     }
-    (void)fseek(fp, modifyPos, SEEK_SET);
-    (void)fwrite(&newVal, sizeof(char), 1, fp);
-    (void)fclose(fp);
+    if (fseek(fp, modifyPos, SEEK_SET) != 0) {
+        printf("Failed to seek to position");
+        fclose(fp);
+        return 1;
+    }
+    size_t ret = fwrite(&newVal, sizeof(char), 1, fp);
+    if (ret != 1) {
+        printf("Failed to write file");
+        return 1;
+    }
+    if (fclose(fp) == EOF) {
+        printf("Failed to close file");
+        return 1;
+    }
     return 0;
 }
 

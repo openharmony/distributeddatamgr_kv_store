@@ -25,7 +25,7 @@ void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy 
     policy_ = policy;
 }
 
-OpType CloudSyncStrategy::TagSyncDataStatus([[gnu::unused]] bool existInLocal,
+OpType CloudSyncStrategy::TagSyncDataStatus([[gnu::unused]] bool existInLocal, [[gnu::unused]] bool isSameCurDevice,
     [[gnu::unused]] const LogInfo &localInfo, [[gnu::unused]] const LogInfo &cloudInfo)
 {
     return OpType::NOT_HANDLE;

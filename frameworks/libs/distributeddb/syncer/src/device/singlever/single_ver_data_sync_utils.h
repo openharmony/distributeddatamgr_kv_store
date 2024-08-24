@@ -103,7 +103,7 @@ public:
 
     static int SchemaVersionMatchCheck(const SingleVerSyncTaskContext &context, const DataRequestPacket &packet,
         std::shared_ptr<Metadata> &metadata);
-    
+
     static int GetUnsyncTotal(SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
         uint32_t &total);
     static int GetUnsyncTotal(SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,

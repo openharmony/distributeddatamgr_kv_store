@@ -23,13 +23,17 @@ public:
     CloudMergeStrategy() = default;
     ~CloudMergeStrategy() override = default;
 
-    OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo) override;
+    OpType TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+        const LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
 
     bool JudgeUpload() override;
 private:
     OpType TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete, bool isLocalDelete);
+
+    OpType TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete,
+        bool isLocalDelete);
 };
 }
 #endif // DIFFERENTIAL_STRATEGY_H

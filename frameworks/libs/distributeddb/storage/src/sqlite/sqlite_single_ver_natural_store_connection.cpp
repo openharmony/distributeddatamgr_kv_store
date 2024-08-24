@@ -1896,15 +1896,15 @@ int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const KvStor
 
 int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, ClearMode mode)
 {
-    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-    if (naturalStore == nullptr) {
-        return -E_INVALID_DB;
-    }
     if (device.length() > DBConstant::MAX_DEV_LENGTH) {
         return -E_INVALID_ARGS;
     }
     if (mode == ClearMode::CLEAR_SHARED_TABLE) {
         return -E_NOT_SUPPORT;
+    }
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
     }
     return naturalStore->RemoveDeviceData(device, mode);
 }
@@ -1912,15 +1912,15 @@ int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &d
 int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &device, const std::string &user,
     ClearMode mode)
 {
-    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-    if (naturalStore == nullptr) {
-        return -E_INVALID_DB;
-    }
     if (device.length() > DBConstant::MAX_DEV_LENGTH) {
         return -E_INVALID_ARGS;
     }
     if (mode == ClearMode::CLEAR_SHARED_TABLE) {
         return -E_NOT_SUPPORT;
+    }
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
     }
     return naturalStore->RemoveDeviceData(device, user, mode);
 }
@@ -1933,6 +1933,34 @@ int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &de
         return -E_INVALID_DB;
     }
     return naturalStore->GetCloudVersion(device, versionMap);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] DB is null when set config");
+        return -E_INVALID_DB;
+    }
+    return naturalStore->SetCloudSyncConfig(config);
+}
+
+void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
+    SQLiteSingleVerNaturalStore &naturalStore)
+{
+    dataItem.timestamp = naturalStore.GetCurrentTimestamp();
+    if (currentMaxTimestamp_ > dataItem.timestamp) {
+        dataItem.timestamp = currentMaxTimestamp_;
+    }
+
+    auto currentRawTime = TimeHelper::GetSysCurrentTime();
+    if (existCreateTime != 0) {
+        dataItem.writeTimestamp = existCreateTime;
+    } else {
+        dataItem.writeTimestamp = dataItem.timestamp;
+    }
+    dataItem.createTime = currentRawTime;
+    dataItem.modifyTime = currentRawTime;
 }
 
 int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device, std::vector<Entry> &entries) const
@@ -1966,34 +1994,6 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device,
     errCode = handle->GetEntries(getDevice, entries);
     ReleaseExecutor(handle);
     return errCode;
-}
-
-int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
-{
-    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-    if (naturalStore == nullptr) {
-        LOGE("[SingleVerConnection] DB is null when set config");
-        return -E_INVALID_DB;
-    }
-    return naturalStore->SetCloudSyncConfig(config);
-}
-
-void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
-    SQLiteSingleVerNaturalStore &naturalStore)
-{
-    dataItem.timestamp = naturalStore.GetCurrentTimestamp();
-    if (currentMaxTimestamp_ > dataItem.timestamp) {
-        dataItem.timestamp = currentMaxTimestamp_;
-    }
-
-    auto currentRawTime = TimeHelper::GetSysCurrentTime();
-    if (existCreateTime != 0) {
-        dataItem.writeTimestamp = existCreateTime;
-    } else {
-        dataItem.writeTimestamp = dataItem.timestamp;
-    }
-    dataItem.createTime = currentRawTime;
-    dataItem.modifyTime = currentRawTime;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

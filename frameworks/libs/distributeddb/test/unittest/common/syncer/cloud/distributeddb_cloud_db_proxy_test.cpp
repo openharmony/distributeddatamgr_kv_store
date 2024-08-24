@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
     std::vector<VBucket> expectExtends = CloudDBDataUtils::GenerateExtends(10); // generate 10 extends
     Info uploadInfo;
     std::vector<VBucket> insert = expectRecords;
-    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), E_OK);
 
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::string("");
@@ -246,14 +246,14 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
     std::vector<VBucket> expectExtends = CloudDBDataUtils::GenerateExtends(10); // generate 10 extends
     Info uploadInfo;
     std::vector<VBucket> insert = expectRecords;
-    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchInsert(TABLE_NAME, insert, expectExtends, uploadInfo), E_OK);
     /**
      * @tc.steps: step3. update data to cloud db
      * @tc.expected: step3. E_OK
      */
     ModifyRecords(expectRecords);
     std::vector<VBucket> update = expectRecords;
-    EXPECT_EQ(proxy.BatchUpdate(TABLE_NAME, update, expectExtends, uploadInfo), OK);
+    EXPECT_EQ(proxy.BatchUpdate(TABLE_NAME, update, expectExtends, uploadInfo), E_OK);
     /**
      * @tc.steps: step3. proxy close cloud db
      * @tc.expected: step3. E_OK
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest011, TestSize.Level2)
 HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest012, TestSize.Level2)
 {
     /**
-     * @tc.steps: step1. construct data
+     * @tc.steps: step1. set cloud db to proxy
      * @tc.expected: step1. E_OK
      */
     Assets assets;
@@ -798,7 +798,10 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
      */
     std::pair<int, std::string> ver = proxy.GetCloudVersion("test");
     EXPECT_EQ(ver.first, -E_NOT_SUPPORT);
-    std::vector<Asset> assets = {{}};
+    std::vector<Asset> assets;
+    ret = proxy.RemoveLocalAssets(assets);
+    EXPECT_EQ(ret, -E_OK);
+    assets = {{}};
     ret = proxy.RemoveLocalAssets(assets);
     EXPECT_EQ(ret, -E_OK);
 }
@@ -848,7 +851,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncUtilsTest, TestSize.Level0)
     EXPECT_EQ(ret, -E_INTERNAL_ERROR);
     CloudSyncBatch data;
     data.assets = {{}};
-    ret = utilsObj.FillAssetIdToAssets(data, 0);
+    ret = utilsObj.FillAssetIdToAssets(data, 0, CloudWaterType::UPDATE);
     EXPECT_EQ(ret, -E_CLOUD_ERROR);
 
     /**

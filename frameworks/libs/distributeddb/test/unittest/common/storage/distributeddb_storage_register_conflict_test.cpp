@@ -417,7 +417,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest002, 
      * @tc.expected: step3. Expect to trigger a conflict. Return a SingleVerConflictData with {
      * CONFLICT_NATIVE_ALL, KEY_1, VALUE_1, VALUE_2, false, false, true, true}
      */
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_2), E_OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_2), OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_LAG));
     ASSERT_FALSE(g_conflictData.empty());
     SingleVerConflictData expectNotifyData = {KvStoreNbConflictType::CONFLICT_NATIVE_ALL,

@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
     EXPECT_EQ(errCode, E_OK);
     errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime] (sqlite3_stmt *stmt) {
         EXPECT_GT(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)), curTime);
-        return OK;
+        return E_OK;
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
@@ -290,7 +290,7 @@ void InsertTriggerTest(DistributedDB::TableSyncType tableSyncType)
             EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index flag == 2
         }
         resultCount++;
-        return OK;
+        return E_OK;
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
@@ -374,7 +374,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest003, Te
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 4, gidStr), E_OK); // 4 is column index
         EXPECT_EQ(gid, gidStr);
         resultCount++;
-        return OK;
+        return E_OK;
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
@@ -441,7 +441,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
         EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
 
         resultCount++;
-        return OK;
+        return E_OK;
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
@@ -533,7 +533,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
         EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
 
         resultCount++;
-        return OK;
+        return E_OK;
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
@@ -1292,20 +1292,20 @@ void InitDataStatus(const std::string &tableName, int count, sqlite3 *db)
 {
     int type = 4; // the num of different status
     for (int i = 1; i <= type * count; i++) {
-        std::string sql = "insert into " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" +
+        std::string sql = "INSERT INTO " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" +
             std::to_string(i) + "');";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
     std::string countStr = std::to_string(count);
-    std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " SET status=(case when data_key<=" +
-        countStr + " then 0 when data_key>" + countStr + " and data_key<=2*" + countStr + " then 1 when data_key>2*" +
-        countStr + " and data_key<=3*" + countStr + " then 2 else 3 end)";
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET status=(CASE WHEN data_key<=" +
+        countStr + " THEN 0 WHEN data_key>" + countStr + " AND data_key<=2*" + countStr + " THEN 1 WHEN data_key>2*" +
+        countStr + " AND data_key<=3*" + countStr + " THEN 2 ELSE 3 END)";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 }
 
 void CheckDataStatus(const std::string &tableName, const std::string &condition, sqlite3 *db, int64_t expect)
 {
-    std::string sql = "select count(1) from " + DBCommon::GetLogTableName(tableName) + " where " + condition;
+    std::string sql = "SELECT count(1) FROM " + DBCommon::GetLogTableName(tableName) + " WHERE " + condition;
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {

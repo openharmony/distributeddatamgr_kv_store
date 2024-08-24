@@ -1278,7 +1278,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetDBWhileOpened001, TestSize.Leve
      * @tc.expected: step3. Returns E_OK.
      */
     auto connection3 = KvDBManager::GetDatabaseConnection(property, errCode, true);
-    EXPECT_EQ(errCode, OK);
+    EXPECT_EQ(errCode, E_OK);
     EXPECT_NE(connection3, nullptr);
 
     KvDBManager::ReleaseDatabaseConnection(connection1);

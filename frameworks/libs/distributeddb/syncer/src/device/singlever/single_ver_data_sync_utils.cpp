@@ -577,7 +577,7 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(SingleVerSyncTaskContext *context, co
 {
     SyncTimeRange waterRange;
     WaterMark startMark = context->GetInitWaterMark();
-    if (waterRange.endTime == 0 || startMark > waterRange.endTime) {
+    if ((waterRange.endTime == 0) || (startMark > waterRange.endTime)) {
         return E_OK;
     }
 
@@ -589,8 +589,8 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(SingleVerSyncTaskContext *context, co
 int SingleVerDataSyncUtils::GetUnsyncTotal(SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
     SyncTimeRange &waterMarkInfo, uint32_t &total)
 {
-    int errCode = E_OK;
-    SyncType curType = (context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE);
+    int errCode;
+    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     if (curType != SyncType::QUERY_SYNC_TYPE) {
         errCode = storage->GetUnSyncTotal(waterMarkInfo.beginTime, waterMarkInfo.endTime, total);
     } else {
@@ -598,7 +598,7 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(SingleVerSyncTaskContext *context, co
         errCode = storage->GetUnSyncTotal(queryObj, waterMarkInfo, total);
     }
     if (errCode != E_OK) {
-        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed, errCode=%d", errCode);
+        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed,errCode=%d", errCode);
     }
     return errCode;
 }
@@ -611,8 +611,8 @@ bool SingleVerDataSyncUtils::IsSupportRequestTotal(uint32_t version)
 void SingleVerDataSyncUtils::UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet,
     uint32_t dataSize)
 {
-    LOGI("[DataSync][UpdateSyncProcess] mode=%d, total=%u, size=%u", packet->GetMode(), packet->GetTotalDataCount(),
-        dataSize);
+    LOGD("[DataSync][UpdateSyncProcess] mode=%d, total=%" PRIu64 ", size=%" PRIu64, packet->GetMode(),
+        packet->GetTotalDataCount(), dataSize);
     if (packet->GetMode() == SyncModeType::PUSH || packet->GetMode() == SyncModeType::QUERY_PUSH) {
         // save total count to sync process
         if (packet->GetTotalDataCount() > 0) {
@@ -624,7 +624,7 @@ void SingleVerDataSyncUtils::UpdateSyncProcess(SingleVerSyncTaskContext *context
 
 void SingleVerDataSyncUtils::CacheInitWaterMark(SingleVerSyncTaskContext *context, SingleVerDataSync *dataSync)
 {
-    SyncType curType = context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
+    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     WaterMark startMark = 0;
     dataSync->GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
     context->SetInitWaterMark(startMark);
@@ -632,6 +632,6 @@ void SingleVerDataSyncUtils::CacheInitWaterMark(SingleVerSyncTaskContext *contex
     WaterMark deletedMark = 0;
     dataSync->GetLocalDeleteSyncWaterMark(context, deletedMark);
     context->SetInitDeletedMark(deletedMark);
-    LOGI("[SingleVerDataSync][CacheInitWaterMark] startMark %u deletedMark %u", startMark, deletedMark);
+    LOGI("[SingleVerDataSync][CacheInitWaterMark] startMark %" PRIu64 " deletedMark %" PRIu64, startMark, deletedMark);
 }
 }

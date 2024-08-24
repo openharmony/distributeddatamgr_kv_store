@@ -17,10 +17,10 @@
 #include <set>
 
 #include "cloud/asset_operation_utils.h"
+#include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "runtime_context.h"
-#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field &field,
@@ -898,7 +898,8 @@ void CloudStorageUtils::GetToBeRemoveAssets(const VBucket &vBucket,
             Asset delAsset;
             GetValueFromType(itItem, delAsset);
             auto itOp = col.second.find(delAsset.name);
-            if (itOp != col.second.end() && itOp->second == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+            if (itOp != col.second.end() && itOp->second == AssetOperationUtils::AssetOpType::NOT_HANDLE
+                && delAsset.flag != static_cast<uint32_t>(AssetOpType::DELETE)) {
                 removeAssets.push_back(delAsset);
             }
             continue;
@@ -907,7 +908,8 @@ void CloudStorageUtils::GetToBeRemoveAssets(const VBucket &vBucket,
         GetValueFromType(itItem, assets);
         for (const auto &asset: assets) {
             auto itOp = col.second.find(asset.name);
-            if (itOp == col.second.end() || itOp->second == AssetOperationUtils::AssetOpType::HANDLE) {
+            if (itOp == col.second.end() || itOp->second == AssetOperationUtils::AssetOpType::HANDLE ||
+                asset.flag == static_cast<uint32_t>(AssetOpType::DELETE)) {
                 continue;
             }
             removeAssets.push_back(asset);
@@ -1094,7 +1096,6 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
             errCode = SQLiteUtils::BindInt64ToStatement(updateLogStmt, index, std::get<int64_t>(vBucket.at(colName)));
         } else if (colName == CloudDbConstant::VERSION_FIELD) {
             if (vBucket.find(colName) == vBucket.end()) {
-                LOGW("cloud data doesn't contain version field when bind update log stmt.");
                 errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, std::string(""));
             } else {
                 errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,

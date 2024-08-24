@@ -80,18 +80,43 @@ void DBDfxAdapter::Dump(int fd, const std::vector<std::u16string> &args)
 void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
 {
     int dbDfxErrCode = -(reportTask.errCode - E_BASE) + E_DB_DFX_BASE;
+    struct HiSysEventParam params[] = {
+        {.name = {"ORG_PKG"},
+            .t = HISYSEVENT_STRING,
+            .v = {.s = const_cast<char *>(ORG_PKG_NAME.c_str())},
+            .arraySize = 0},
+        {.name = {"FUNC"},
+            .t = HISYSEVENT_STRING,
+            .v = {.s = const_cast<char *>(reportTask.funcName.c_str())},
+            .arraySize = 0},
+        {.name = {"BIZ_SCENE"},
+            .t = HISYSEVENT_INT32,
+            .v = {.i32 = static_cast<int32_t>(reportTask.scene)},
+            .arraySize = 0 },
+        {.name = {"BIZ_STATE"},
+            .t = HISYSEVENT_INT32,
+            .v = {.i32 = static_cast<int32_t>(reportTask.state)},
+            .arraySize = 0 },
+        {.name = {"BIZ_STAGE"},
+            .t = HISYSEVENT_INT32,
+            .v = { .i32 = static_cast<int32_t>(reportTask.stage)},
+            .arraySize = 0 },
+        {.name = {"STAGE_RES"},
+            .t = HISYSEVENT_INT32,
+            .v = { .i32 = static_cast<int32_t>(reportTask.result)},
+            .arraySize = 0 },
+        {.name = {"ERROR_CODE"},
+            .t = HISYSEVENT_INT32,
+            .v = { .i32 = static_cast<int32_t>(dbDfxErrCode)},
+            .arraySize = 0 },
+    };
     RuntimeContext::GetInstance()->ScheduleTask([=]() {
         // call hievent here
-        HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::DISTRIBUTED_DATAMGR,
-            DISTRIBUTED_DB_BEHAVIOR,
-            OHOS::HiviewDFX::HiSysEvent::EventType::BEHAVIOR,
-            ORG_PKG, ORG_PKG_NAME,
-            FUNC, reportTask.funcName,
-            BIZ_SCENE, static_cast<int>(reportTask.scene),
-            BIZ_STATE, static_cast<int>(reportTask.state),
-            BIZ_STAGE, static_cast<int>(reportTask.stage),
-            STAGE_RES, static_cast<int>(reportTask.result),
-            ERROR_CODE, dbDfxErrCode);
+        OH_HiSysEvent_Write(OHOS::HiviewDFX::HiSysEvent::Domain::DISTRIBUTED_DATAMGR,
+            DISTRIBUTED_DB_BEHAVIOR.c_str(),
+            HISYSEVENT_BEHAVIOR,
+            params,
+            sizeof(params) / sizeof(params[0]));
     });
 }
 

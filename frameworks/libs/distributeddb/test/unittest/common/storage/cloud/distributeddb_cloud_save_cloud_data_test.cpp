@@ -872,7 +872,7 @@ namespace {
         EXPECT_NE(db, nullptr);
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // will get only 1 log record
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, SQLITE_OK);
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
@@ -1120,7 +1120,7 @@ namespace {
             EXPECT_EQ(sqlite3_column_int64(stmt, 1), BASE_MODIFY_TIME + 1);
             EXPECT_EQ(sqlite3_column_int(stmt, 2), 0x20|0x01); // 2 is flag
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
@@ -1221,7 +1221,7 @@ namespace {
                 EXPECT_EQ(static_cast<uint16_t>(flag) & 0x04, 0);
             }
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 2); // 2 is result count
@@ -1276,7 +1276,7 @@ namespace {
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int(stmt, 0), 0);
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
@@ -1346,7 +1346,7 @@ namespace {
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int(stmt, 0), 3); // 3 mean local delete
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
@@ -1361,7 +1361,7 @@ namespace {
         count = 0;
         errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
             count++;
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
@@ -1503,7 +1503,7 @@ namespace {
             " where data_key in('10', '1')";
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x20|0x02);
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
 
@@ -1515,7 +1515,7 @@ namespace {
             " where data_key=-1 and cloud_gid !='';";
         errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x20|0x03);
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
 
@@ -1527,7 +1527,7 @@ namespace {
               " where data_key=-1 and cloud_gid ='';";
         errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
             EXPECT_EQ(sqlite3_column_int(stmt, 0), 0x03);
-            return OK;
+            return E_OK;
         });
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);

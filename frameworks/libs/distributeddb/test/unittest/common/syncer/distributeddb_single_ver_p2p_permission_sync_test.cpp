@@ -815,7 +815,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck010, TestSi
      * @tc.expected: step4. get return OK.
      */
     VirtualDataItem actualValue;
-    EXPECT_EQ(g_deviceB->GetData(k1, actualValue), OK);
+    EXPECT_EQ(g_deviceB->GetData(k1, actualValue), E_OK);
     EXPECT_EQ(v1, actualValue.value);
     PermissionCheckCallbackV2 nullCallback = nullptr;
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(nullCallback), OK);

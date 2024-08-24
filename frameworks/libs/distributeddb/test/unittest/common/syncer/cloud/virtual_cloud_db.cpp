@@ -50,9 +50,7 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         return status;
     }
     if (missingExtendCount_ > 0) {
-        if (!extend.empty()) {
-            extend.pop_back();
-        }
+        extend.erase(extend.end());
     } else if (missingExtendCount_ < 0) {
         VBucket vBucket;
         extend.push_back(vBucket);
@@ -142,9 +140,7 @@ DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::v
         cloudData_[tableName].push_back(cloudData);
     }
     if (missingExtendCount_ > 0) {
-        if (!extend.empty()) {
-            extend.pop_back();
-        }
+        extend.erase(extend.end());
     } else if (missingExtendCount_ < 0) {
         VBucket vBucket;
         extend.push_back(vBucket);
@@ -207,6 +203,9 @@ DBStatus VirtualCloudDb::HeartBeat()
 
 std::pair<DBStatus, uint32_t> VirtualCloudDb::Lock()
 {
+    if (lockStatus_) {
+        return { CLOUD_LOCK_ERROR, DBConstant::MIN_TIMEOUT };
+    }
     lockCount_++;
     if (actionStatus_ != OK) {
         return { actionStatus_, DBConstant::MIN_TIMEOUT };
@@ -416,9 +415,7 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
         return res;
     }
     if (missingExtendCount_ > 0) {
-        if (!extend.empty()) {
-            extend.pop_back();
-        }
+        extend.erase(extend.end());
     } else if (missingExtendCount_ < 0) {
         VBucket vBucket;
         extend.push_back(vBucket);
