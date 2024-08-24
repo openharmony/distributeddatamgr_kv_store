@@ -298,6 +298,34 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore008, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKvStore009
+ * @tc.desc: Get a SingleKvStore which security level upgrade.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: yanhui
+ */
+HWTEST_F(DistributedKvDataManagerTest, GetKvStore009, TestSize.Level1)
+{
+    ZLOGI("GetKvStore009 begin.");
+    std::shared_ptr<SingleKvStore> kvStore = nullptr;
+    Options options = create;
+    options.securityLevel = S1;
+    Status status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
+
+    manager.CloseKvStore(appId, storeId64);
+    options.securityLevel = S2;
+    status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    EXPECT_NE(kvStore, nullptr);
+
+    manager.CloseKvStore(appId, storeId64);
+    options.securityLevel = S1;
+    status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::STORE_META_CHANGED);
+    EXPECT_EQ(kvStore, nullptr);
+}
+
+/**
 * @tc.name: GetKvStoreInvalidSecurityLevel
 * @tc.desc: Get a SingleKvStore with a 64
  * -byte storeId, the callback function should receive INVALID_ARGUMENT
