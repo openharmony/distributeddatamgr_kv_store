@@ -20,7 +20,9 @@
 namespace DistributedDB {
 RuntimeContext *RuntimeContext::GetInstance()
 {
-    static char instMemory[sizeof(RuntimeContextImpl)];
+    const int MEMORY_MAX_SIZE = 4096;
+    static_assert(sizeof(RuntimeContextImpl) < MEMORY_MAX_SIZE);
+    static char instMemory[MEMORY_MAX_SIZE];
     static std::mutex instLock_;
     static std::atomic<RuntimeContext *> instPtr = nullptr;
     // For Double-Checked Locking, we need check insPtr twice
