@@ -228,7 +228,7 @@ void SingleVerDataMessageSchedule::StartTimer(SingleVerSyncTaskContext *context)
     std::lock_guard<std::mutex> lock(lock_);
     TimerId timerId = 0;
     RefObject::IncObjRef(context);
-    TimerAction timeOutCallback = std::bind(&SingleVerDataMessageSchedule::TimeOut, this, std::placeholders::_1);
+    TimerAction timeOutCallback = [this](TimerId timerId) { return TimeOut(timerId); };
     int errCode = RuntimeContext::GetInstance()->SetTimer(IDLE_TIME_OUT, timeOutCallback,
         [context]() {
             int errCode = RuntimeContext::GetInstance()->ScheduleTask([context]() {

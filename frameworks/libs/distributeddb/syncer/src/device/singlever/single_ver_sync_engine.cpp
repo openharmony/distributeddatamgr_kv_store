@@ -73,7 +73,7 @@ int SingleVerSyncEngine::StartAutoSubscribeTimer(const ISyncInterface &syncInter
         return -E_INTERNAL_ERROR;
     }
     TimerId timerId = 0;
-    TimerAction timeOutCallback = std::bind(&SingleVerSyncEngine::SubscribeTimeOut, this, std::placeholders::_1);
+    TimerAction timeOutCallback = [this](TimerId id) { return SubscribeTimeOut(id); };
     int errCode = RuntimeContext::GetInstance()->SetTimer(SUBSCRIBE_TRIGGER_TIME_OUT, timeOutCallback, nullptr,
         timerId);
     if (errCode != E_OK) {

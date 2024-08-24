@@ -418,9 +418,9 @@ int RelationalSyncAbleStorage::GetSyncDataForQuerySync(std::vector<DataItem> &da
         errCode = handle->GetSyncDataByQuery(dataItems,
             Parcel::GetAppendedLen(),
             dataSizeInfo,
-            std::bind(&SQLiteSingleVerRelationalContinueToken::GetStatement, *token,
-                std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-            storageEngine_->GetSchema().GetTable(token->GetQuery().GetTableName()));
+            [token](sqlite3 *db, sqlite3_stmt *&queryStmt, sqlite3_stmt *&fullStmt, bool &isGettingDeletedData) {
+                return token->GetStatement(db, queryStmt, fullStmt, isGettingDeletedData);
+            }, storageEngine_->GetSchema().GetTable(token->GetQuery().GetTableName()));
         if (errCode == -E_FINISHED) {
             token->FinishGetData();
             errCode = token->IsGetAllDataFinished() ? E_OK : -E_UNFINISHED;

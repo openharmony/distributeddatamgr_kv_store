@@ -119,7 +119,9 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
         return NOT_SUPPORT;
     }
     RelationalStoreConnection::SyncInfo syncInfo{devices, mode,
-        std::bind(&RelationalStoreDelegateImpl::OnSyncComplete, std::placeholders::_1, onComplete), query, wait};
+        [this, onComplete](const std::map<std::string, std::vector<TableStatus>> &devicesStatus) {
+            OnSyncComplete(devicesStatus, onComplete);
+        }, query, wait};
     int errCode = conn_->SyncToDevice(syncInfo);
     if (errCode != E_OK) {
         LOGW("[RelationalStore Delegate] sync data to device failed:%d", errCode);
