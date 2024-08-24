@@ -720,9 +720,9 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 {
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     int errCode = adapterHandle_->RegBytesReceiveCallback(
-        std::bind(&CommunicatorAggregator::OnBytesReceive, this, std::placeholders::_1, std::placeholders::_2,
-            std::placeholders::_3, std::placeholders::_4),
-        [this]() { RefObject::DecObjRef(this); });
+        [this](const std::string &srcTarget, const uint8_t *bytes, uint32_t length, const std::string &userId) {
+            OnBytesReceive(srcTarget, bytes, length, userId);
+        }, [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed
         return errCode;
@@ -730,7 +730,7 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     errCode = adapterHandle_->RegTargetChangeCallback(
-        std::bind(&CommunicatorAggregator::OnTargetChange, this, std::placeholders::_1, std::placeholders::_2),
+        [this](const std::string &target, bool isConnect) { OnTargetChange(target, isConnect); },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed
@@ -932,7 +932,7 @@ void CommunicatorAggregator::InitSendThread()
     if (RuntimeContext::GetInstance()->GetThreadPool() != nullptr) {
         return;
     }
-    exclusiveThread_ = std::thread(&CommunicatorAggregator::SendDataRoutine, this);
+    exclusiveThread_ = std::thread([this] { SendDataRoutine(); });
     useExclusiveThread_ = true;
 }
 

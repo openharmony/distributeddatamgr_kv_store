@@ -123,7 +123,7 @@ void GenericKvDB::CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *
         data->SetMyDb(this, eventNotifyCounter_);
         data->IncObjRef(data);
         int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(GetStoreId(),
-            std::bind(&GenericKvDB::CommitNotifyAsync, this, notifyEvent, data));
+            [this, notifyEvent, data] { CommitNotifyAsync(notifyEvent, data); });
         if (errCode != E_OK) {
             LOGE("Failed to do commit notify, schedule task err:%d.", errCode);
             data->DecObjRef(data);
@@ -148,7 +148,7 @@ void GenericKvDB::CorruptNotify() const
 {
     IncObjRef(this);
     int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(GetStoreId(),
-        std::bind(&GenericKvDB::CorruptNotifyAsync, this));
+        [this] { CorruptNotifyAsync(); });
     if (errCode != E_OK) {
         LOGE("Failed to do the corrupt notify, schedule task err:%d.", errCode);
         DecObjRef(this);

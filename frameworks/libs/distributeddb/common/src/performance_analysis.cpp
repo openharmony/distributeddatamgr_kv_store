@@ -31,7 +31,7 @@ std::once_flag PerformanceAnalysis::initFlag_;
 PerformanceAnalysis *PerformanceAnalysis::GetInstance(int stepNum)
 {
     static PerformanceAnalysis inst(stepNum);
-    std::call_once(initFlag_, std::bind(&PerformanceAnalysis::Initialization, &inst));
+    std::call_once(initFlag_, [] { inst.Initialization(); });
     return &inst;
 }
 

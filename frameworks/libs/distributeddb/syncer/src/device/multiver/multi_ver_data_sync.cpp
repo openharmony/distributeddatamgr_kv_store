@@ -156,11 +156,13 @@ uint32_t MultiVerDataSync::CalculateLen(const Message *inMsg)
 int MultiVerDataSync::RegisterTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&MultiVerDataSync::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&MultiVerDataSync::Serialization, std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&MultiVerDataSync::DeSerialization, std::placeholders::_1,
-                                     std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
     return MessageTransform::RegTransformFunction(MULTI_VER_DATA_SYNC_MESSAGE, func);
 }
 

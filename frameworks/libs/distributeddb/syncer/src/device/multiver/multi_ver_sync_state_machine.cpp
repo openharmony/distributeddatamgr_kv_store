@@ -101,8 +101,7 @@ void MultiVerSyncStateMachine::SyncStep()
 {
     RefObject::IncObjRef(context_);
     RefObject::IncObjRef(communicator_);
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
-        std::bind(&MultiVerSyncStateMachine::SyncStepInnerLocked, this));
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this] { SyncStepInnerLocked(); });
     if (errCode != E_OK) {
         LOGE("[MultiVerSyncStateMachine] Schedule SyncStep failed");
         RefObject::DecObjRef(communicator_);
@@ -544,8 +543,7 @@ void MultiVerSyncStateMachine::SyncResponseBegin(uint32_t sessionId)
             LOGE("[MultiVerSyncStateMachine][SyncResponseEnd] sessionId existed! exit.");
             return;
         }
-        TimerAction timeOutCallback =
-            std::bind(&MultiVerSyncStateMachine::SyncResponseTimeout, this, std::placeholders::_1);
+        TimerAction timeOutCallback = [this](TimerId timerId) -> int { SyncResponseTimeout(timerId); };
         // To make sure context_ alive in timeout callback, we should IncObjRef for the context_.
         RefObject::IncObjRef(context_);
         TimerId timerId = 0;
