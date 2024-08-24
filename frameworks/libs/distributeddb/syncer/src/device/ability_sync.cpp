@@ -614,11 +614,13 @@ void AbilitySync::GetPacketSecOption(const ISyncTaskContext *context, SecurityOp
 int AbilitySync::RegisterTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&AbilitySync::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&AbilitySync::Serialization, std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&AbilitySync::DeSerialization, std::placeholders::_1,
-                                     std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
     return MessageTransform::RegTransformFunction(ABILITY_SYNC_MESSAGE, func);
 }
 

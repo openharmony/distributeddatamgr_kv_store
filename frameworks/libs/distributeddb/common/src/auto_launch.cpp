@@ -59,14 +59,15 @@ void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
         LOGI("[AutoLaunch] SetCommunicatorAggregator aggregator is nullptr");
         return;
     }
-    errCode = aggregator->RegOnConnectCallback(std::bind(&AutoLaunch::OnlineCallBack, this,
-        std::placeholders::_1, std::placeholders::_2), nullptr);
+    errCode = aggregator->RegOnConnectCallback(
+        [this](const std::string &device, bool isConnect) { OnlineCallBack(device, isConnect); }, nullptr);
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] RegOnConnectCallback errCode:%d", errCode);
     }
     errCode = aggregator->RegCommunicatorLackCallback(
-        std::bind(&AutoLaunch::ReceiveUnknownIdentifierCallBack, this, std::placeholders::_1, std::placeholders::_2),
-        nullptr);
+        [this](const LabelType &label, const std::string &originalUserId) {
+            return ReceiveUnknownIdentifierCallBack(label, originalUserId);
+        }, nullptr);
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] RegCommunicatorLackCallback errCode:%d", errCode);
     }
@@ -502,8 +503,8 @@ void AutoLaunch::ConnectionLifeCycleCallbackTask(const std::string &identifier, 
 void AutoLaunch::ConnectionLifeCycleCallback(const std::string &identifier, const std::string &userId)
 {
     LOGI("[AutoLaunch] ConnectionLifeCycleCallback identifier=%.6s", STR_TO_HEX(identifier));
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(&AutoLaunch::ConnectionLifeCycleCallbackTask,
-        this, identifier, userId));
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
+        [this, identifier, userId] { ConnectionLifeCycleCallbackTask(identifier, userId); });
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] ConnectionLifeCycleCallback ScheduleTask failed");
     }
@@ -539,7 +540,7 @@ void AutoLaunch::OnlineCallBack(const std::string &device, bool isConnect)
         onlineDevices_.insert(device);
     }
 
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(&AutoLaunch::OnlineCallBackTask, this));
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this] { OnlineCallBackTask(); });
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] OnlineCallBack ScheduleTask failed");
     }
@@ -720,8 +721,8 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
         LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack set state IN_COMMUNICATOR_CALL_BACK");
     }
 
-    errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(
-        &AutoLaunch::ReceiveUnknownIdentifierCallBackTask, this, identifier, userId));
+    errCode = RuntimeContext::GetInstance()->ScheduleTask(
+        [this, identifier, userId] { ReceiveUnknownIdentifierCallBackTask(identifier, userId); });
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] ReceiveUnknownIdentifierCallBack ScheduleTask failed");
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -777,8 +778,10 @@ int AutoLaunch::AutoLaunchExt(const std::string &identifier, const std::string &
     autoLaunchItem.isAutoSync = param.option.isAutoSync;
     autoLaunchItem.type = openType;
     autoLaunchItem.storeObserver = param.option.storeObserver;
-    errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(&AutoLaunch::AutoLaunchExtTask, this,
-        identifier, param.userId, autoLaunchItem));
+    errCode = RuntimeContext::GetInstance()->ScheduleTask([this, identifier, userId = param.userId, autoLaunchItem] {
+        AutoLaunchItem item = autoLaunchItem;
+        AutoLaunchExtTask(identifier, userId, item);
+    });
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] AutoLaunchExt ScheduleTask errCode:%d", errCode);
     }
@@ -881,8 +884,8 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
 void AutoLaunch::ExtConnectionLifeCycleCallback(const std::string &identifier, const std::string &userId)
 {
     LOGI("[AutoLaunch] ExtConnectionLifeCycleCallback identifier=%.6s", STR_TO_HEX(identifier));
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(
-        &AutoLaunch::ExtConnectionLifeCycleCallbackTask, this, identifier, userId));
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
+        [this, identifier, userId] { ExtConnectionLifeCycleCallbackTask(identifier, userId); });
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] ExtConnectionLifeCycleCallback ScheduleTask failed");
     }
@@ -1116,11 +1119,13 @@ int AutoLaunch::RegisterLifeCycleCallback(AutoLaunchItem &autoLaunchItem, const 
     int errCode = E_OK;
     DatabaseLifeCycleNotifier notifier;
     if (isExt) {
-        notifier = std::bind(
-            &AutoLaunch::ExtConnectionLifeCycleCallback, this, std::placeholders::_1, std::placeholders::_2);
+        notifier = [this](const std::string &identifier, const std::string &userId) {
+            ExtConnectionLifeCycleCallback(identifier, userId);
+        };
     } else {
-        notifier = std::bind(&AutoLaunch::ConnectionLifeCycleCallback,
-            this, std::placeholders::_1, std::placeholders::_2);
+        notifier = [this](const std::string &identifier, const std::string &userId) {
+            ConnectionLifeCycleCallback(identifier, userId);
+        };
     }
     switch (autoLaunchItem.type) {
         case DBTypeInner::DB_KV:
@@ -1261,8 +1266,13 @@ int AutoLaunch::RegisterKvObserver(AutoLaunchItem &autoLaunchItem, const std::st
     KvDBObserverHandle *observerHandle = nullptr;
     IKvDBConnection *kvConn = static_cast<IKvDBConnection *>(autoLaunchItem.conn);
     observerHandle = kvConn->RegisterObserver(OBSERVER_CHANGES_FOREIGN, key,
-        std::bind((isExt ? &AutoLaunch::ExtObserverFunc : &AutoLaunch::ObserverFunc), this, std::placeholders::_1,
-        identifier, userId), errCode);
+        [this, isExt, identifier, userId](const KvDBCommitNotifyData &notifyData) {
+            if (isExt) {
+                ExtObserverFunc(notifyData, identifier, userId);
+            } else {
+                ObserverFunc(notifyData, identifier, userId);
+            }
+        }, errCode);
     if (errCode != E_OK) {
         LOGE("[AutoLaunch] RegisterObserver failed:%d!", errCode);
         return errCode;

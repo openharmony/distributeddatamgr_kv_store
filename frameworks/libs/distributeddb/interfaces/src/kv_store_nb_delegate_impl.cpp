@@ -560,8 +560,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         return NOT_SUPPORT;
     }
 
-    PragmaSync pragmaData(devices, mode, std::bind(&KvStoreNbDelegateImpl::OnSyncComplete,
-        this, std::placeholders::_1, onComplete), wait);
+    PragmaSync pragmaData(
+        devices, mode, [this, onComplete](const std::map<std::string, int> &statuses) {
+            OnSyncComplete(statuses, onComplete);
+        }, wait);
     int errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
     if (errCode < E_OK) {
         LOGE("[KvStoreNbDelegate] Sync data failed:%d", errCode);
@@ -592,8 +594,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         LOGE("not support order by timestamp and query by range");
         return NOT_SUPPORT;
     }
-    PragmaSync pragmaData(devices, mode, querySyncObj, std::bind(&KvStoreNbDelegateImpl::OnSyncComplete,
-        this, std::placeholders::_1, onComplete), wait);
+    PragmaSync pragmaData(
+        devices, mode, querySyncObj, [this, onComplete](const std::map<std::string, int> &statuses) {
+            OnSyncComplete(statuses, onComplete);
+        }, wait);
     int errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
     if (errCode < E_OK) {
         LOGE("[KvStoreNbDelegate] QuerySync data failed:%d", errCode);
@@ -983,7 +987,7 @@ DBStatus KvStoreNbDelegateImpl::SubscribeRemoteQuery(const std::vector<std::stri
         return NOT_SUPPORT;
     }
     PragmaSync pragmaData(devices, SyncModeType::SUBSCRIBE_QUERY, querySyncObj,
-        std::bind(&KvStoreNbDelegateImpl::OnSyncComplete, this, std::placeholders::_1, onComplete), wait);
+        [this, onComplete](const std::map<std::string, int> &statuses) { OnSyncComplete(statuses, onComplete); }, wait);
     int errCode = conn_->Pragma(PRAGMA_SUBSCRIBE_QUERY, &pragmaData);
     if (errCode < E_OK) {
         LOGE("[KvStoreNbDelegate] Subscribe remote data with query failed:%d", errCode);
@@ -1007,7 +1011,7 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
         return NOT_SUPPORT;
     }
     PragmaSync pragmaData(devices, SyncModeType::UNSUBSCRIBE_QUERY, querySyncObj,
-        std::bind(&KvStoreNbDelegateImpl::OnSyncComplete, this, std::placeholders::_1, onComplete), wait);
+        [this, onComplete](const std::map<std::string, int> &statuses) { OnSyncComplete(statuses, onComplete); }, wait);
     int errCode = conn_->Pragma(PRAGMA_SUBSCRIBE_QUERY, &pragmaData);
     if (errCode < E_OK) {
         LOGE("[KvStoreNbDelegate] Unsubscribe remote data with query failed:%d", errCode);

@@ -61,8 +61,10 @@ int NetworkAdapter::StartAdapter()
         LOGE("[NAdapt][Start] Start Fail, errCode=%d.", static_cast<int>(errCode));
         return -E_PERIPHERAL_INTERFACE_FAIL;
     }
-    errCode = processCommunicator_->RegOnDataReceive(std::bind(&NetworkAdapter::OnDataReceiveHandler, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    errCode = processCommunicator_->RegOnDataReceive(
+        [this](const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length) {
+            OnDataReceiveHandler(srcDevInfo, data, length);
+        });
     if (errCode != DBStatus::OK) {
         LOGE("[NAdapt][Start] RegOnDataReceive Fail, errCode=%d.", static_cast<int>(errCode));
         // DO ROLLBACK
@@ -70,8 +72,9 @@ int NetworkAdapter::StartAdapter()
         LOGI("[NAdapt][Start] ROLLBACK: Stop errCode=%d.", static_cast<int>(errCode));
         return -E_PERIPHERAL_INTERFACE_FAIL;
     }
-    errCode = processCommunicator_->RegOnDeviceChange(std::bind(&NetworkAdapter::OnDeviceChangeHandler, this,
-        std::placeholders::_1, std::placeholders::_2));
+    errCode = processCommunicator_->RegOnDeviceChange([this](const DeviceInfos &devInfo, bool isOnline) {
+        OnDeviceChangeHandler(devInfo, isOnline);
+    });
     if (errCode != DBStatus::OK) {
         LOGE("[NAdapt][Start] RegOnDeviceChange Fail, errCode=%d.", static_cast<int>(errCode));
         // DO ROLLBACK

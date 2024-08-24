@@ -865,7 +865,7 @@ void KvDBManager::DataBaseCorruptNotifyAsync(const std::string &appId, const std
     const std::string &storeId)
 {
     int errCode = RuntimeContext::GetInstance()->ScheduleTask(
-        std::bind(&KvDBManager::DataBaseCorruptNotify, this, appId, userId, storeId));
+        [this, appId, userId, storeId] { DataBaseCorruptNotify(appId, userId, storeId); });
     if (errCode != E_OK) {
         LOGE("[KvDBManager][CorruptNotify] ScheduleTask failed, errCode = %d.", errCode);
         return;
