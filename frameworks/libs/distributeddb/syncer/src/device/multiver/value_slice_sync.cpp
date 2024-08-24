@@ -156,11 +156,13 @@ uint32_t ValueSliceSync::CalculateLen(const Message *inMsg)
 int ValueSliceSync::RegisterTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&ValueSliceSync::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&ValueSliceSync::Serialization, std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&ValueSliceSync::DeSerialization, std::placeholders::_1,
-                                     std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
     return MessageTransform::RegTransformFunction(VALUE_SLICE_SYNC_MESSAGE, func);
 }
 

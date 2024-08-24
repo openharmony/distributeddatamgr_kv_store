@@ -487,8 +487,9 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterLockStatusLister(const 
         }
 
         if (systemApiAdapter_ != nullptr) {
-            auto callback = std::bind(&LockStatusObserver::OnStatusChange,
-                lockStatusObserver_, std::placeholders::_1);
+            auto callback = [lockStatusObserver = lockStatusObserver_](bool isLocked) {
+                lockStatusObserver->OnStatusChange(isLocked);
+            };
             errCode = systemApiAdapter_->RegOnAccessControlledEvent(callback);
             if (errCode != OK) {
                 delete lockStatusObserver_;
@@ -599,8 +600,9 @@ int RuntimeContextImpl::SetProcessSystemApiAdapter(const std::shared_ptr<IProces
     std::lock_guard<std::recursive_mutex> systemApiAdapterLock(systemApiAdapterLock_, std::adopt_lock);
     systemApiAdapter_ = adapter;
     if (systemApiAdapter_ != nullptr && lockStatusObserver_ != nullptr && lockStatusObserver_->IsStarted()) {
-        auto callback = std::bind(&LockStatusObserver::OnStatusChange,
-            lockStatusObserver_, std::placeholders::_1);
+        auto callback = [lockStatusObserver = lockStatusObserver_](bool isLocked) {
+            lockStatusObserver->OnStatusChange(isLocked);
+        };
         int errCode = systemApiAdapter_->RegOnAccessControlledEvent(callback);
         if (errCode != OK) {
             LOGE("Register access controlled event failed while setting adapter, err = %d", errCode);

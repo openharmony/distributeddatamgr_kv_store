@@ -210,8 +210,10 @@ void SyncEngine::StartCommunicator()
         return;
     }
     LOGD("[SyncEngine][StartCommunicator] RegOnConnectCallback");
-    int errCode = communicator_->RegOnConnectCallback(std::bind(&DeviceManager::OnDeviceConnectCallback,
-        deviceManager_, std::placeholders::_1, std::placeholders::_2), nullptr);
+    int errCode = communicator_->RegOnConnectCallback(
+        [this, deviceManager = deviceManager_](const std::string &targetDev, bool isConnect) {
+            deviceManager->OnDeviceConnectCallback(targetDev, isConnect);
+        }, nullptr);
     if (errCode != E_OK) {
         LOGE("[SyncEngine][StartCommunicator] register failed, auto sync can not use! err %d", errCode);
         return;
@@ -294,8 +296,7 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
     }
 
     errCode = communicator_->RegOnMessageCallback(
-        std::bind(&SyncEngine::MessageReciveCallback, this, std::placeholders::_1, std::placeholders::_2),
-        []() {});
+        [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
     if (errCode != E_OK) {
         LOGE("[SyncEngine] SyncRequestCallback register failed! err = %d", errCode);
         communicatorAggregator->ReleaseCommunicator(communicator_);
@@ -477,8 +478,8 @@ int SyncEngine::ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg)
     if (inMsg->GetMessageId() == LOCAL_DATA_CHANGED) {
         RemoteDataChangedTask(context, comProxy, inMsg);
     } else {
-        errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(&SyncEngine::MessageReciveCallbackTask,
-            this, context, comProxy, inMsg));
+        errCode = RuntimeContext::GetInstance()->ScheduleTask(
+            [this, context, comProxy, inMsg] { MessageReciveCallbackTask(context, comProxy, inMsg); });
     }
 
     if (errCode != E_OK) {
@@ -651,7 +652,7 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, in
         RefObject::DecObjRef(this);
         storage->DecRefCount();
     });
-    context->RegOnSyncTask(std::bind(&SyncEngine::ExecSyncTask, this, context));
+    context->RegOnSyncTask([this, context] { return ExecSyncTask(context); });
     return context;
 }
 
@@ -899,8 +900,7 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
     }
 
     errCode = communicator->RegOnMessageCallback(
-        std::bind(&SyncEngine::MessageReciveCallback, this, std::placeholders::_1, std::placeholders::_2),
-        []() {});
+        [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
     if (errCode != E_OK) {
         LOGE("[SyncEngine] SyncRequestCallback register failed in SetEqualIdentifier! err = %d", errCode);
         communicatorAggregator->ReleaseCommunicator(communicator);
@@ -908,8 +908,9 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
     }
 
     errCode = communicator->RegOnConnectCallback(
-        std::bind(&DeviceManager::OnDeviceConnectCallback, deviceManager_,
-        std::placeholders::_1, std::placeholders::_2), nullptr);
+        [this, deviceManager = deviceManager_](const std::string &targetDev, bool isConnect) {
+            deviceManager->OnDeviceConnectCallback(targetDev, isConnect);
+        }, nullptr);
     if (errCode != E_OK) {
         LOGE("[SyncEngine][RegConnCB] register failed in SetEqualIdentifier! err %d", errCode);
         communicator->RegOnMessageCallback(nullptr, nullptr);

@@ -310,7 +310,7 @@ int SyncTaskContext::StartTimer()
     }
     TimerId timerId = 0;
     RefObject::IncObjRef(this);
-    TimerAction timeOutCallback = std::bind(&SyncTaskContext::TimeOut, this, std::placeholders::_1);
+    TimerAction timeOutCallback = [this](TimerId id) { return TimeOut(id); };
     int errCode = RuntimeContext::GetInstance()->SetTimer(timeout_, timeOutCallback,
         [this]() {
             int ret = RuntimeContext::GetInstance()->ScheduleTask([this]() { RefObject::DecObjRef(this); });
