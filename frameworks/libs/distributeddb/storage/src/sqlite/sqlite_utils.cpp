@@ -1141,6 +1141,8 @@ int SQLiteUtils::MapSQLiteErrno(int errCode)
             return -E_DENIED_SQL;
         case SQLITE_CONSTRAINT:
             return -E_CONSTRAINT;
+        case SQLITE_CANTOPEN:
+            return -E_SQLITE_CANT_OPEN;
         default:
             break;
     }
