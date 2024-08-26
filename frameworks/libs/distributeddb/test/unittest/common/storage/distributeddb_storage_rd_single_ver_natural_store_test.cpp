@@ -255,7 +255,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, ExportBusy001, TestSiz
     ASSERT_NE(g_store, nullptr);
     ASSERT_EQ(g_store->TryToDisableConnection(OperatePerm::NORMAL_WRITE), E_OK);
     CipherPassword password;
-    EXPECT_EQ(g_store->Export(g_testDir, password), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->Export(g_testDir, password), -E_READ_ONLY);
     g_store->ReEnableConnection(OperatePerm::NORMAL_WRITE);
 }
 }
