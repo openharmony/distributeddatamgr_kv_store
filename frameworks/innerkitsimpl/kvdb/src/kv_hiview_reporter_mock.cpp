@@ -65,4 +65,4 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
 {
     return;
 }
-} // namespace OHOS::NativeRdb
+} // namespace OHOS::DistributedKv
