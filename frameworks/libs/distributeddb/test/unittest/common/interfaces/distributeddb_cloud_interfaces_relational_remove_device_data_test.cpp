@@ -1262,5 +1262,43 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckLogoutLogCount(db, g_tables, {40, 40});
     CloseDb();
 }
+
+/*
+ * @tc.name: CleanCloudDataTest015
+ * @tc.desc: Test get schema from db is ok when local has not been set.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+**/
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest015, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set data is logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 10 records on local
+     */
+    int64_t paddingSize = 20;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step3. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step4. remove and check
+     * @tc.expected: OK.
+     */
+    CheckCloudRecordNum(db, g_tables, {0, 0});
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {10, 10});
+    CheckLocalLogCount(db, g_tables, {10, 10});
+    CheckLogoutLogCount(db, g_tables, {10, 10});
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE

@@ -156,6 +156,8 @@ public:
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
+    int GetSchemaFromDB(RelationalSchemaObject &schema) override;
+
     int ChkSchema(const TableName &tableName) override;
 
     int SetCloudDbSchema(const DataBaseSchema &schema) override;

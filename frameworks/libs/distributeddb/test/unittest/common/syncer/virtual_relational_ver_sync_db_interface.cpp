@@ -341,6 +341,11 @@ int VirtualRelationalVerSyncDBInterface::SaveRemoteDeviceSchema(const std::strin
     return E_OK;
 }
 
+int VirtualRelationalVerSyncDBInterface::GetSchemaFromDB(RelationalSchemaObject &schema)
+{
+    return E_OK;
+};
+
 int VirtualRelationalVerSyncDBInterface::GetRemoteDeviceSchema(const std::string &deviceId,
     RelationalSchemaObject &schemaObj)
 {
