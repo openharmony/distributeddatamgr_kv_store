@@ -376,6 +376,8 @@ namespace DistributedDB {
 
     constexpr const char *CHECK_DATA_CHANGED =
         "SELECT COUNT(1) FROM sync_data WHERE modify_time=? AND hash_key=?";
+    
+    constexpr const char *NATURALBASE_KV_AUX_SYNC_DATA_LOG_TABLE_NAME = "naturalbase_kv_aux_sync_data_log";
 
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
