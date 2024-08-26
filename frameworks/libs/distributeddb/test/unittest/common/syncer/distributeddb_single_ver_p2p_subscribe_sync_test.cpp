@@ -202,6 +202,7 @@ void DistributedDBSingleVerP2PSubscribeSyncTest::WaitUntilNotify(KvVirtualDevice
         LOGI("End wait notify");
     }
     virtualDevice.SetPushNotifier(nullptr);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void InitSubSchemaDb()

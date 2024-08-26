@@ -531,6 +531,7 @@ namespace {
 
     void CloseDb()
     {
+        g_delegate->UnRegisterObserver(g_observer);
         delete g_observer;
         g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
