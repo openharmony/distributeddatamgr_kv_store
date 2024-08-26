@@ -1189,11 +1189,46 @@ int RelationalSyncAbleStorage::ReleaseCloudDataToken(ContinueToken &continueStmt
     return errCode;
 }
 
+int RelationalSyncAbleStorage::GetSchemaFromDB(RelationalSchemaObject &schema)
+{
+    Key schemaKey;
+    DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, schemaKey);
+    Value schemaVal;
+    int errCode = GetMetaData(schemaKey, schemaVal);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("Get relational schema from DB failed. %d", errCode);
+        return errCode;
+    } else if (errCode == -E_NOT_FOUND || schemaVal.empty()) {
+        LOGW("No relational schema info was found. error %d size %zu", errCode, schemaVal.size());
+        return -E_NOT_FOUND;
+    }
+    std::string schemaStr;
+    DBCommon::VectorToString(schemaVal, schemaStr);
+    errCode = schema.ParseFromSchemaString(schemaStr);
+    if (errCode != E_OK) {
+        LOGE("Parse schema string from DB failed.");
+        return errCode;
+    }
+    storageEngine_->SetSchema(schema);
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
 {
     std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
     RelationalSchemaObject localSchema = GetSchemaInfo();
-    return schemaMgr_.ChkSchema(tableName, localSchema);
+    int errCode = schemaMgr_.ChkSchema(tableName, localSchema);
+    if (errCode == -E_SCHEMA_MISMATCH) {
+        LOGI("Get schema by tableName %s failed.", DBCommon::STR_MASK(tableName));
+        RelationalSchemaObject newSchema;
+        errCode = GetSchemaFromDB(newSchema);
+        if (errCode != E_OK) {
+            LOGE("Get schema from db when check schema.");
+            return errCode;
+        }
+        errCode = schemaMgr_.ChkSchema(tableName, newSchema);
+    }
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
