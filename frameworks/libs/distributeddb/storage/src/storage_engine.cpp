@@ -234,8 +234,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle)
     if (handle == nullptr) {
         return;
     }
-    std::string id = DBCommon::TransferStringToHex(identifier_);
-    LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), id.c_str());
+    LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), hashIdentifier_.c_str());
     if (handle->GetWritable()) {
         std::unique_lock<std::mutex> lock(writeMutex_);
         auto iter = std::find(writeUsingList_.begin(), writeUsingList_.end(), handle);
@@ -455,8 +454,7 @@ StorageExecutor *StorageEngine::FetchStorageExecutor(bool isWrite, std::list<Sto
     auto item = idleList.front();
     usingList.push_back(item);
     idleList.remove(item);
-    LOGD("Get executor[%d] from [%.3s]", isWrite,
-        DBCommon::TransferStringToHex(identifier_).c_str());
+    LOGD("Get executor[%d] from [%.3s]", isWrite, hashIdentifier_.c_str());
     errCode = E_OK;
     return item;
 }
@@ -477,14 +475,13 @@ bool StorageEngine::IsMigrating() const
 void StorageEngine::WaitWriteHandleIdle()
 {
     std::unique_lock<std::mutex> autoLock(idleMutex_);
-    LOGD("Wait wHandle release id[%s]. write[%zu-%zu-%" PRIu32 "]", DBCommon::TransferStringToHex(identifier_).c_str(),
+    LOGD("Wait wHandle release id[%s]. write[%zu-%zu-%" PRIu32 "]", hashIdentifier_.c_str(),
         writeIdleList_.size(), writeUsingList_.size(), engineAttr_.maxWriteNum);
     idleCondition_.wait(autoLock, [this]() {
         return writeUsingList_.empty();
     });
     LOGD("Wait wHandle release finish id[%s]. write[%zu-%zu-%" PRIu32 "]",
-        DBCommon::TransferStringToHex(identifier_).c_str(), writeIdleList_.size(), writeUsingList_.size(),
-        engineAttr_.maxWriteNum);
+        hashIdentifier_.c_str(), writeIdleList_.size(), writeUsingList_.size(), engineAttr_.maxWriteNum);
 }
 
 void StorageEngine::IncreaseCacheRecordVersion()

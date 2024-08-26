@@ -15,6 +15,7 @@
 
 #include "sqlite_storage_engine.h"
 
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "sqlite_storage_executor.h"
@@ -38,6 +39,7 @@ int SQLiteStorageEngine::InitSQLiteStorageEngine(const StorageEngineAttr &poolSi
     engineAttr_ = poolSize;
     option_ = option;
     identifier_ = identifier;
+    hashIdentifier_ = DBCommon::TransferStringToHex(identifier_);
     if (GetEngineState() == EngineState::CACHEDB) {
         LOGI("Is alive! not need to create executor, only fix option.");
         return E_OK;

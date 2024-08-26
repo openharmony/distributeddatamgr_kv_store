@@ -112,6 +112,7 @@ protected:
     bool isUpdated_;
     std::atomic<bool> isMigrating_;
     std::string identifier_;
+    std::string hashIdentifier_;
 
     // Mutex for commitNotifyFunc_.
     mutable std::shared_mutex notifyMutex_;
