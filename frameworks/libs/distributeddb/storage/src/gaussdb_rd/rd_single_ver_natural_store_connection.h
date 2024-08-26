@@ -100,6 +100,12 @@ public:
 
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
+
 private:
     int CheckRdMonoStatus(OperatePerm perm);
 

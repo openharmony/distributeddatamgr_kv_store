@@ -792,5 +792,19 @@ int RdSingleVerNaturalStoreConnection::GetSyncDataSize(const std::string &device
 {
     return -E_NOT_SUPPORT;
 }
+
+int RdSingleVerNaturalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    return -E_NOT_SUPPORT;
+}
+
+int RdSingleVerNaturalStoreConnection::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    return -E_NOT_SUPPORT;
+}
+
+void RdSingleVerNaturalStoreConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+}
 }
 // namespace DistributedDB

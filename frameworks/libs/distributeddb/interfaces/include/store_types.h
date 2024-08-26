@@ -25,8 +25,8 @@
 
 namespace DistributedDB {
 enum DBStatus {
-    DB_ERROR = -1, // DBStatus in [27328512, 27394048]
-    OK = 0,
+    DB_ERROR = 27328512, // DBStatus in [27328512, 27394048]
+    OK,
     BUSY,
     NOT_FOUND,
     INVALID_ARGS,
