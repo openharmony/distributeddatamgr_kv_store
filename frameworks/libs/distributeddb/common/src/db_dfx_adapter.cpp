@@ -69,7 +69,11 @@ void DBDfxAdapter::Dump(int fd, const std::vector<std::u16string> &args)
     }
     DBDumpHelper::Dump(fd, "DistributedDB Dump Message Info:\n\n");
     DBDumpHelper::Dump(fd, "DistributedDB Database Basic Message Info:\n");
-    KvDBManager::GetInstance()->Dump(fd);
+    auto kvDBManager = KvDBManager::GetInstance();
+    if (kvDBManager == nullptr) {
+        return;
+    }
+    kvDBManager->Dump(fd);
     RelationalStoreInstance::GetInstance()->Dump(fd);
     DBDumpHelper::Dump(fd, "DistributedDB Common Message Info:\n");
     RuntimeContext::GetInstance()->DumpCommonInfo(fd);
