@@ -85,6 +85,7 @@ int RdSingleVerStorageEngine::InitRdStorageEngine(const StorageEngineAttr &poolS
     engineAttr_ = poolSize;
     option_ = option;
     identifier_ = identifier;
+    hashIdentifier_ = DBCommon::TransferStringToHex(identifier_);
     int errCode = Init();
     if (errCode != E_OK) {
         LOGI("Storage engine init fail! errCode = [%d]", errCode);
@@ -147,7 +148,7 @@ int RdSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption &se
 {
     int errCode = TryToOpenMainDatabase(isWrite, dbHandle);
     LOGD("Finish to open the main database, write[%d], label[%d], flag[%d], id[%.6s], errCode[%d]",  isWrite,
-        secOpt.securityLabel, secOpt.securityFlag, DBCommon::TransferStringToHex(identifier_).c_str(), errCode);
+        secOpt.securityLabel, secOpt.securityFlag, hashIdentifier_.c_str(), errCode);
     if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
         return errCode;
     }
