@@ -26,9 +26,9 @@ struct KVDBCorruptedEvent {
     uint32_t securityLevel;
     uint32_t pathArea;
     uint32_t encryptStatus;
-    uint32_t integrityCheck;
-    uint32_t errorCode;
-    int32_t systemErrorNo;
+    uint32_t integrityCheck = 0;
+    uint32_t errorCode = 0;
+    int32_t systemErrorNo = 0;
     std::string appendix;
     std::string errorOccurTime;
 
@@ -42,7 +42,7 @@ struct KVDBCorruptedEvent {
 };
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
-    const Options &options, uint32_t errorCode, uint32_t systemErrorNo,
+    const Options &options, uint32_t errorCode, int32_t systemErrorNo,
     const KvStoreTuple &storeTuple, const std::string &appendix)
 {
     KVDBCorruptedEvent eventInfo(options);
@@ -65,4 +65,4 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
 {
     return;
 }
-} // namespace OHOS::DistributedKv
+} // namespace OHOS::NativeRdb
