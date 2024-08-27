@@ -461,7 +461,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync002, TestSize.Lev
         LOGD("Begin PUSH");
         EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);
         ASSERT_TRUE(result.size() == devices.size());
-        EXPECT_TRUE(result[DEVICE_B] == OK);
+        EXPECT_TRUE(result[DEVICE_A] == OK);
     });
     /**
      * @tc.steps: step3. B pull to A when A is in push task
@@ -851,11 +851,11 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, EncryptedAlgoUpgrade001, Test
     std::string hashDir = DBCommon::TransferHashString(identifier);
     std::string hexHashDir = DBCommon::TransferStringToHex(hashDir);
     std::string dbPath = g_testDir + "/" + hexHashDir + "/single_ver";
-    ASSERT_TRUE(DBCommon::CreateDirectory(g_testDir + "/" + hexHashDir) == E_OK);
-    ASSERT_TRUE(DBCommon::CreateDirectory(dbPath) == E_OK);
+    ASSERT_TRUE(DBCommon::CreateDirectory(g_testDir + "/" + hexHashDir) == OK);
+    ASSERT_TRUE(DBCommon::CreateDirectory(dbPath) == OK);
     std::vector<std::string> dbDir {DBConstant::MAINDB_DIR, DBConstant::METADB_DIR, DBConstant::CACHEDB_DIR};
     for (const auto &item : dbDir) {
-        ASSERT_TRUE(DBCommon::CreateDirectory(dbPath + "/" + item) == E_OK);
+        ASSERT_TRUE(DBCommon::CreateDirectory(dbPath + "/" + item) == OK);
     }
     uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     sqlite3 *db;

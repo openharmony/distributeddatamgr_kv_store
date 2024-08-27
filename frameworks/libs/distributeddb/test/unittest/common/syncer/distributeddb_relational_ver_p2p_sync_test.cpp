@@ -735,7 +735,7 @@ namespace {
         }
         RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
         LOGD("CloseStore Start");
-        EXPECT_EQ(g_rdbDelegatePtr->RemoveDeviceData(), OK);
+        EXPECT_EQ(g_rdbDelegatePtr->RemoveDeviceData(), E_OK);
         ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
         g_rdbDelegatePtr = nullptr;
         OpenStore();
@@ -1828,7 +1828,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer006, TestSize.Level3)
         }
         return true;
     };
-    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(callback), OK);
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(callback), E_OK);
 
     /**
      * @tc.steps: step3. device A check observer
