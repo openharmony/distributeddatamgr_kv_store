@@ -480,12 +480,12 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
     Value value = {'1'};
     Timestamp currentTime;
     (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
-    EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == E_OK);
+    EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == OK);
     /**
      * @tc.steps: step4. device B push sync to A
      * @tc.expected: step4. success.
      */
-    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(observer->GetCallCount() == 1); // only A
     /**

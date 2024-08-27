@@ -1132,7 +1132,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
      * @tc.steps: step1. deviceB sync to deviceA just for timeSync and abilitySync
      * @tc.expected: step1. should return OK.
      */
-    ASSERT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
+    ASSERT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
 
     /**
      * @tc.steps: step2. deviceA StartTransaction for prevent other sync action deviceB sync will fail
@@ -1149,7 +1149,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
     Timestamp currentTime;
     (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
     EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == E_OK);
-    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
 
     Value outValue;
     EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == NOT_FOUND);
@@ -1159,9 +1159,9 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
      * @tc.expected: step3. should return OK.
      */
     EXPECT_TRUE(g_kvDelegatePtr->Commit() == OK);
-    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
 
-    EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == OK);
+    EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == E_OK);
     EXPECT_EQ(outValue, value);
 }
 
