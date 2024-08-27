@@ -293,7 +293,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
 
 int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
     const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema,
-    std::vector<Asset> &assets)
+    std::vector<Asset> &assets, std::vector<std::string> &notifyTableList)
 {
     int errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
@@ -312,6 +312,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
             LOGE("[Storage Executor] Failed to do clean log and data when clean cloud data.");
             return errCode;
         }
+        notifyTableList = tableNameList;
     } else if (mode == CLEAR_SHARED_TABLE) {
         errCode = DoCleanShareTableDataAndLog(tableNameList);
         if (errCode != E_OK) {
@@ -351,6 +352,101 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
     return errCode;
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 0 || argv == nullptr) {
+        LOGW("[SqlSinRDBExe][UpdateCursor] invalid param=%d", argc);
+        return;
+    }
+    auto context = static_cast<UpdateCursorContext *>(sqlite3_user_data(ctx));
+    if (context == nullptr) {
+        LOGW("[SqlSinRDBExe][UpdateCursor] invalid context");
+        return;
+    }
+    context->cursor++;
+    sqlite3_result_int64(ctx, static_cast<sqlite_int64>(context->cursor));
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,
+    void (*updateCursor)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const
+{
+    std::string sql = "update_cursor";
+    int errCode = sqlite3_create_function_v2(dbHandle_, sql.c_str(), 0, SQLITE_UTF8 | SQLITE_DIRECTONLY,
+        &context, updateCursor, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[Storage Executor][UpdateCursor] Create func=updateCursor failed=%d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &tableName)
+{
+    int cursor = -1;
+    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata where key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor]get cursor failed=%d", errCode);
+        return cursor;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when get cursor", ret);
+        }
+    });
+    Key key;
+    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key, false); // first arg.
+    if (errCode != E_OK) {
+        return cursor;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        cursor = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    }
+    return cursor;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &tableName, int cursor)
+{
+    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata SET VALUE = ? where KEY = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Set cursor sql failed=%d", errCode);
+        return cursor;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when set cursor", ret);
+        }
+    });
+    int index = 1;
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, index++, cursor);
+    if (errCode != E_OK) {
+        LOGE("Bind saved cursor failed:%d", errCode);
+        return errCode;
+    }
+    Key key;
+    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, index, key, false);
+    if (errCode != E_OK) {
+        return cursor;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vector<std::string> &tableNameList,
     const RelationalSchemaObject &localSchema, std::vector<Asset> &assets)
 {
@@ -371,8 +467,11 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             LOGE("[Storage Executor] failed to get cloud assets when clean cloud data, %d", errCode);
             return errCode;
         }
-
-        errCode = CleanCloudDataAndLogOnUserTable(tableName, logTableName, localSchema);
+        if (isLogicDelete_) {
+            errCode = SetDataOnUserTablWithLogicDelete(tableName, logTableName);
+        } else {
+            errCode = CleanCloudDataAndLogOnUserTable(tableName, logTableName, localSchema);
+        }
         if (errCode != E_OK) {
             LOGE("[Storage Executor] failed to clean cloud data and log on user table, %d.", errCode);
             return errCode;
@@ -453,6 +552,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
             for (const auto &asset: tmpAssets) {
                 assets.push_back(asset);
             }
+        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }

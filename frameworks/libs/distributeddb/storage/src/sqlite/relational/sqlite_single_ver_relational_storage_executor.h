@@ -45,6 +45,12 @@ public:
         DEFAULT,
         SET_WAIT_COMPENSATED_SYNC
     };
+
+    struct UpdateCursorContext {
+        int errCode = E_OK;
+        int cursor;
+    };
+
     SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable, DistributedTableMode mode);
     ~SQLiteSingleVerRelationalStorageExecutor() override = default;
 
@@ -130,7 +136,8 @@ public:
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
-        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
+        std::vector<std::string> &notifyTableList);
 
     int FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema, const CloudSyncBatch &data);
     int FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data);
@@ -204,6 +211,21 @@ private:
     int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName,
         const RelationalSchemaObject &localSchema);
 
+    int ChangeCloudDataFlagOnLogTable(const std::string &logTableName);
+
+    int SetDataOnUserTablWithLogicDelete(const std::string &tableName, const std::string &logTableName);
+
+    static void UpdateCursor(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+
+    int CreateFuncUpdateCursor(UpdateCursorContext &context,
+        void(*updateCursorFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const;
+
+    int GetCursor(const std::string &tableName);
+
+    int SetCursor(const std::string &tableName, int cursor);
+
+    int IncreaseCursorOnAssetData(const std::string &tableName, const std::string &gid);
+    
     int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys,
         bool distinguishCloudFlag);
 

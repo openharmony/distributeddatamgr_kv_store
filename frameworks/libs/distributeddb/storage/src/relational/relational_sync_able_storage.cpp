@@ -1271,7 +1271,23 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
         LOGE("the transaction has not been started");
         return -E_INVALID_DB;
     }
-    return transactionHandle_->DoCleanInner(mode, tableNameList, localSchema, assets);
+    transactionHandle_->SetLogicDelete(logicDelete_);
+    std::vector<std::string> notifyTableList;
+    int errCode = transactionHandle_->DoCleanInner(mode, tableNameList, localSchema, assets, notifyTableList);
+    if (!notifyTableList.empty()) {
+        for (auto notifyTableName : notifyTableList) {
+            ChangedData changedData;
+            changedData.type = ChangedDataType::DATA;
+            changedData.tableName = notifyTableName;
+            std::vector<DistributedDB::Type> dataVec;
+            DistributedDB::Type type = std::string(CloudDbConstant::FLAG_AND_DATA_MODE_NOTIFY);
+            dataVec.push_back(type);
+            changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
+            TriggerObserverAction("CLOUD", std::move(changedData), true);
+        }
+    }
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)

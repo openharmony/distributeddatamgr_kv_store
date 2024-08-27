@@ -20,6 +20,7 @@
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "log_table_manager_factory.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "simple_tracker_log_table_manager.h"
 #include "sqlite_relational_utils.h"
@@ -123,6 +124,10 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     if (isDownloadSuccess) {
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetAfterDownload, CloudStorageUtils::FillAssetsAfterDownload);
+        errCode = IncreaseCursorOnAssetData(tableSchema.name, cloudGid);
+        if (errCode != E_OK) {
+            return errCode;
+        }
     } else {
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetAfterDownloadFail, CloudStorageUtils::FillAssetsAfterDownloadFail);
@@ -136,6 +141,53 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     errCode = ExecuteFillDownloadAssetStatement(stmt, assetsField.size() + 1, cloudGid);
     int ret = CleanDownloadChangedAssets(vBucket, assetOpType);
     return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const std::string &tableName,
+    const std::string &gid)
+{
+    int cursor = GetCursor(tableName);
+    cursor++;
+    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    sql += " SET cursor = ? where cloud_gid = ?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("get update asset data cursor stmt failed %d.", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([statement] {
+        sqlite3_stmt *statementInner = statement;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statementInner, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when increase cursor on asset data", ret);
+        }
+    });
+    int index = 1;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, index++, cursor);
+    int ret = E_OK;
+    if (errCode != E_OK) {
+        LOGE("bind cursor data stmt failed %d.", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(statement, index, gid);
+    ret = E_OK;
+    if (errCode != E_OK) {
+        LOGE("bind cursor gid data stmt failed %d.", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("Fill upload asset failed:%d.", errCode);
+        return errCode;
+    }
+    LOGI("Upgrade cursor to %d after asset download success.", cursor);
+    errCode = SetCursor(tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("Upgrade cursor failed after asset download success %d.", errCode);
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema,

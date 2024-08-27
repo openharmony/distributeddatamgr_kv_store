@@ -242,6 +242,21 @@ namespace {
             ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
     }
 
+    void UpdateUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
+    {
+        for (size_t i = 0; i < g_tables.size(); i++) {
+            string updateAge = "UPDATE " + g_tables[i] + " SET height = 111.11 where " + g_tablesPKey[i] + " in (";
+            for (int64_t j = begin; j < count; ++j) {
+                updateAge += "'" + g_prefix[i] + std::to_string(j) + "',";
+            }
+            updateAge.pop_back();
+            updateAge += ");";
+            ASSERT_EQ(RelationalTestUtils::ExecSql(db, updateAge), SQLITE_OK);
+        }
+        LOGD("update local record worker1[primary key]:[local%" PRId64 " - local%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
+    }
+
     void DeleteCloudTableRecordByGid(int64_t begin, int64_t count)
     {
         for (int64_t i = begin; i < begin + count; ++i) {
@@ -315,7 +330,8 @@ namespace {
         int i = 0;
         for (const auto &tableName: tableList) {
             std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where device = 'cloud'" + " and cloud_gid is not null and cloud_gid != '' and flag & 0x2 = 0;";
+                " where device = 'cloud'" +
+                " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
             EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
             i++;
@@ -327,6 +343,18 @@ namespace {
         int i = 0;
         for (const auto &tableName: tableList) {
             std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName);
+            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
+            i++;
+        }
+    }
+
+    void CheckLogoutLogCount(sqlite3 *&db, const std::vector<std::string> &tableList, const std::vector<int> &countList)
+    {
+        int i = 0;
+        for (const auto &tableName: tableList) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where flag & 0x800 = 0x800";
             EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
             i++;
@@ -345,9 +373,20 @@ namespace {
             EXPECT_EQ(sqlite3_exec(db, sql2.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
             std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where flag & 0x02 = 0;";
+                " where (flag & 0x02 = 0 or flag & 0x20 = 0);";
             EXPECT_EQ(sqlite3_exec(db, sql3.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+        }
+    }
+
+    void CheckCleanDataNum(sqlite3 *&db, const std::vector<std::string> &tableList, const std::vector<int> &countList)
+    {
+        int i = 0;
+        for (const auto &tableName: tableList) {
+            std::string sql = "select count(*) from " + tableName;
+            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
+            i++;
         }
     }
 
@@ -365,7 +404,7 @@ namespace {
             EXPECT_EQ(sqlite3_exec(db, sql2.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
             std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where flag & 0x02 = 0;";
+                " where (flag & 0x02 = 0 or flag & 0x20 = 0);";
             EXPECT_EQ(sqlite3_exec(db, sql3.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
             std::string local_sql = "select count(*) from " + tableName +";";
@@ -1084,6 +1123,144 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                     reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     }
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest012
+ * @tc.desc: Test modify data will not be deleted before upload to cloud when remove device data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 20 records on local
+     */
+    int64_t paddingSize = 20;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step3. modify local data
+     * @tc.expected: OK.
+     */
+    InsertUserTableRecord(db, 20, localCount, paddingSize, false);
+    UpdateUserTableRecord(db, 5, 10);
+    DeleteUserTableRecord(db, 10, 15);
+    /**
+     * @tc.steps: step4. check cloud record data and remove device data.
+     * @tc.expected: OK.
+     */
+    CheckCloudRecordNum(db, g_tables, {0, 0});
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {25, 25});
+    CheckLocalLogCount(db, g_tables, {30, 30});
+    /**
+     * @tc.steps: step5. do sync again and remove device data, then check local data and log.
+     * @tc.expected: OK.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {0, 0});
+    CheckLocalLogCount(db, g_tables, {0, 0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest013
+ * @tc.desc: Test modify data will not be deleted before upload to cloud when remove device data when set logicDelete.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set data is logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 20 records on local
+     */
+    int64_t paddingSize = 20;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step3. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step4. modify local data
+     * @tc.expected: OK.
+     */
+    InsertUserTableRecord(db, 20, localCount, paddingSize, false);
+    UpdateUserTableRecord(db, 5, 10);
+    DeleteUserTableRecord(db, 10, 15);
+    /**
+     * @tc.steps: step5. check cloud record data and remove device data.
+     * @tc.expected: OK.
+     */
+    CheckCloudRecordNum(db, g_tables, {0, 0});
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {35, 35});
+    CheckLocalLogCount(db, g_tables, {40, 40});
+    CheckLogoutLogCount(db, g_tables, {10, 10});
+    /**
+     * @tc.steps: step6. do sync again and remove device data, then check local data and log.
+     * @tc.expected: OK.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {40, 35});
+    CheckLocalLogCount(db, g_tables, {40, 40});
+    CheckLogoutLogCount(db, g_tables, {15, 10});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest014
+ * @tc.desc: Test when remove device data at flagOnly mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+**/
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest014, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 20 records on local
+     */
+    int64_t paddingSize = 20;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step3. modify local data
+     * @tc.expected: OK.
+     */
+    InsertUserTableRecord(db, 20, localCount, paddingSize, false);
+    UpdateUserTableRecord(db, 5, 10);
+    DeleteUserTableRecord(db, 10, 15);
+    /**
+     * @tc.steps: step4. check cloud record data and remove device data.
+     * @tc.expected: OK.
+     */
+    CheckCloudRecordNum(db, g_tables, {0, 0});
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {35, 35});
+    CheckLogoutLogCount(db, g_tables, {40, 40});
     CloseDb();
 }
 }

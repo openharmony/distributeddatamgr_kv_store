@@ -526,7 +526,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest001, TestSize.Level0)
         dataCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
     });
-    EXPECT_EQ(dataCnt, actualCount);
+    EXPECT_EQ(dataCnt, 0);
 }
 
 /**
@@ -1412,7 +1412,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level
     CheckLocalCount(actualCount);
     std::string device = "";
     ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
-    CheckLocalCount(0);
+    CheckLocalCount(actualCount);
 }
 
 /**
@@ -1597,6 +1597,43 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level
     for (auto status : actualDBStatus) {
         EXPECT_EQ(status, OK);
     }
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest008
+ * @tc.desc: Test sync when data with flag 0x800 locally but there is updated data on the cloud.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert user table record with flag 0x800. Insert cloud table record.
+     * @tc.expected: step1. ok.
+     */
+    int dataCount = 10;
+    uint32_t logicDeleteCount = 4;
+    InsertUserTableRecord(tableName_, dataCount);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName_) +
+        " set flag = flag | 0x800 where data_key <= " + std::to_string(logicDeleteCount);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    InsertCloudTableRecord(0, dataCount, 0, false);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(tableName_) + " where flag & 0x800=0x800";
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(logicDeleteCount), nullptr), SQLITE_OK);
+    /**
+     * @tc.steps:step2. Do sync.
+     * @tc.expected: step2. ok.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+    /**
+     * @tc.steps:step3. Check data flag in local DB.
+     * @tc.expected: step3. No data flag is 0x800.
+     */
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 }
 
 /**
