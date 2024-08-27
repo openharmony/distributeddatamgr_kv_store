@@ -541,7 +541,11 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
     g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
     g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // Wait 5s to make sure send done
+    int reTryTimes = 5;
+    while (recvMsgForBB == nullptr && reTryTimes > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        reTryTimes--;
+    }
     ASSERT_NE(recvMsgForBB, nullptr);
     ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
     /**

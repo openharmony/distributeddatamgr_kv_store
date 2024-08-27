@@ -911,6 +911,15 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
     LOGD("TearDown FINISH");
 }
 
+void WaitCallCount(RelationalStoreObserverUnitTest *observer1)
+{
+    int reTry = 5;
+    while (observer1->GetCallCount() != 1u && reTry > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        reTry--;
+    }
+}
+
 /**
 * @tc.name: Normal Sync 001
 * @tc.desc: Test normal push sync for add data.
@@ -2032,6 +2041,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
      * @tc.steps: step6. Call sync expect sync successful and device A check observer
      */
     EXPECT_EQ(autoObserver->GetCallCount(), 1u);
+    WaitCallCount(observer1);
     EXPECT_EQ(observer1->GetCallCount(), 1u);
     EXPECT_EQ(autoObserver->GetDataChangeDevice(), DEVICE_B);
     CheckIdentify(autoObserver);

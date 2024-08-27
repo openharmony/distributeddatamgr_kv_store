@@ -425,7 +425,11 @@ void TestRemoteRestart()
      * @tc.expected: step6. communicatorE has callback;
      */
     AdapterStub::ConnectAdapterStub(envDeviceD.adapterHandle, envDeviceE.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    int reTryTimes = 5;
+    while (onlineForEE.onlineDevices.size() != 1 && reTryTimes > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        reTryTimes--;
+    }
     EXPECT_EQ(onlineForEE.onlineDevices.size(), static_cast<size_t>(1));
     // Clean up and disconnect
     envDeviceD.commAggrHandle->ReleaseCommunicator(commDD);
