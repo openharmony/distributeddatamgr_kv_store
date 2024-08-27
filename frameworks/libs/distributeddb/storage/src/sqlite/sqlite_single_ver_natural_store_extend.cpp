@@ -494,6 +494,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
         }
     }
 
+    CleanAllWaterMark();
     if (IsExtendedCacheDBMode()) {
         errCode = RemoveDeviceDataInCacheMode(hashDev, isNeedNotify);
     } else {
@@ -514,7 +515,22 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
         LOGE("[SingleVerNStore] RemoveDeviceData with mode get handle failed:%d", errCode);
         return errCode;
     }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("Start transaction failed %d in RemoveDeviceData.", errCode);
+        ReleaseHandle(handle);
+        return errCode;
+    }
     errCode = handle->RemoveDeviceData(hashDev, mode);
+    if (errCode != E_OK) {
+        LOGE("RemoveDeviceData failed: %d", errCode);
+        (void)handle->Rollback();
+    } else {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("Transaction commit failed %d in RemoveDeviceData.", errCode);
+        }
+    }
     ReleaseHandle(handle);
     return errCode;
 }
@@ -528,7 +544,22 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
         LOGE("[SingleVerNStore] RemoveDeviceData with user and mode get handle failed:%d", errCode);
         return errCode;
     }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("Start transaction failed %d in RemoveDeviceData.", errCode);
+        ReleaseHandle(handle);
+        return errCode;
+    }
     errCode = handle->RemoveDeviceData(hashDev, user, mode);
+    if (errCode != E_OK) {
+        LOGE("RemoveDeviceData failed: %d", errCode);
+        (void)handle->Rollback();
+    } else {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("Transaction commit failed %d in RemoveDeviceData.", errCode);
+        }
+    }
     ReleaseHandle(handle);
     return errCode;
 }
