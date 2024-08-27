@@ -115,6 +115,8 @@ public:
 
     int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
 
+    int GetSchemaFromDB(RelationalSchemaObject &schema) override;
+
     void SetPermitCreateDistributedTable(bool permitCreateDistributedTable);
 
     int GetSecurityOption(SecurityOption &option) const override;
