@@ -28,6 +28,7 @@
 #include "runtime_context.h"
 #include "sqlite_meta_executor.h"
 #include "sqlite_relational_utils.h"
+#include "time_helper.h"
 #include "value_hash_calc.h"
 
 namespace DistributedDB {
@@ -555,8 +556,16 @@ static int GetLogData(sqlite3_stmt *logStatement, LogInfo &logInfo)
 namespace {
 void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize)
 {
-    logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
+    int64_t modifyTime = static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX));
+    uint64_t curTime = 0;
+    if (TimeHelper::GetSysCurrentRawTime(curTime) == E_OK) {
+        if (modifyTime > static_cast<int64_t>(curTime)) {
+            modifyTime = static_cast<int64_t>(curTime);
+        }
+    } else {
+        LOGW("[Relational] get raw sys time failed.");
+    }
+    logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD, modifyTime);
     logInfo.insert_or_assign(CloudDbConstant::CREATE_FIELD,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, W_TIMESTAMP_INDEX)));
     totalSize += sizeof(int64_t) + sizeof(int64_t);

@@ -21,6 +21,7 @@
 #include "res_finalizer.h"
 #include "runtime_context.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, const DBParam &param,
@@ -136,8 +137,16 @@ int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &confi
 void SqliteCloudKvExecutorUtils::GetCloudLog(sqlite3_stmt *stmt, VBucket &logInfo,
     uint32_t &totalSize)
 {
-    logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD,
-        static_cast<int64_t>(sqlite3_column_int64(stmt, CLOUD_QUERY_MODIFY_TIME_INDEX)));
+    int64_t modifyTime = static_cast<int64_t>(sqlite3_column_int64(stmt, CLOUD_QUERY_MODIFY_TIME_INDEX));
+    uint64_t curTime = 0;
+    if (TimeHelper::GetSysCurrentRawTime(curTime) == E_OK) {
+        if (modifyTime > static_cast<int64_t>(curTime)) {
+            modifyTime = static_cast<int64_t>(curTime);
+        }
+    } else {
+        LOGW("[SqliteCloudKvExecutorUtils] get raw sys time failed.");
+    }
+    logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD, modifyTime);
     logInfo.insert_or_assign(CloudDbConstant::CREATE_FIELD,
         static_cast<int64_t>(sqlite3_column_int64(stmt, CLOUD_QUERY_CREATE_TIME_INDEX)));
     totalSize += sizeof(int64_t) + sizeof(int64_t);
