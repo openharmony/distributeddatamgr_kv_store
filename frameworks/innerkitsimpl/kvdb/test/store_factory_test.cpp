@@ -216,6 +216,7 @@ bool StoreFactoryTest::ModifyDate(int time)
 HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
 {
     Status status = DB_ERROR;
+    options.autoRekey = true;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
