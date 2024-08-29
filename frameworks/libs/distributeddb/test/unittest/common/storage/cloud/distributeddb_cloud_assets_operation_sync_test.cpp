@@ -717,5 +717,153 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSi
     delegate1 = nullptr;
     mgr1 = nullptr;
 }
+
+/**
+ * @tc.name: UploadAssetsTest001
+ * @tc.desc: Test upload asset with error.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Insert 10 records.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 10;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    /**
+     * @tc.steps:step2. Set callback function to cause some upstream data to fail.
+     * @tc.expected: step2. ok.
+     */
+    int recordIndex = 0;
+    Asset tempAsset = {
+            .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
+            .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
+    };
+    virtualCloudDb_->ForkUpload([&tempAsset, &recordIndex](const std::string &tableName, VBucket &extend) {
+        Asset asset;
+        Assets assets;
+        switch (recordIndex) {
+            case 0: // record[0] is successful because ERROR_FIELD is not verified when BatchInsert returns OK status.
+                extend[std::string(CloudDbConstant::ERROR_FIELD)] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+                break;
+            case 1: // record[1] is considered successful because it is a conflict.
+                extend[std::string(CloudDbConstant::ERROR_FIELD)] =
+                    static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+                break;
+            case 2: // record[2] fail because of empty gid.
+                extend[std::string(CloudDbConstant::GID_FIELD)] = std::string("");
+                break;
+            case 3: // record[3] fail because of empty assetId.
+                asset = tempAsset;
+                asset.assetId = "";
+                extend[std::string(CloudDbConstant::ASSET)] = asset;
+                break;
+            case 4: // record[4] fail because of empty assetId.
+                assets.push_back(tempAsset);
+                assets[0].assetId = "";
+                extend[std::string(CloudDbConstant::ASSETS)] = assets;
+                break;
+            case 5: // record[5] is successful because ERROR_FIELD is not verified when BatchInsert returns OK status.
+                extend[std::string(CloudDbConstant::ERROR_FIELD)] = std::string("");
+                break;
+            default:
+                break;
+        }
+        recordIndex++;
+    });
+    /**
+     * @tc.steps:step3. Sync and check upLoadInfo.
+     * @tc.expected: step3. failCount is 5 and successCount is 5.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 7u);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: UploadAssetsTest002
+ * @tc.desc: Test upload asset with error.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Insert 10 records.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 10;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step2. Delete local data.
+     * @tc.expected: step2. OK.
+     */
+    std::string sql = "delete from " + tableName_ + " where id >= " + std::to_string(actualCount / 2);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), SQLITE_OK);
+    /**
+     * @tc.steps:step3. Set callback function to cause some upstream data to fail.
+     * @tc.expected: step3. ok.
+     */
+    virtualCloudDb_->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        extend[std::string(CloudDbConstant::GID_FIELD)] = "";
+    });
+    BlockSync(query, delegate_);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 5u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 5u);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: UploadAssetsTest003
+ * @tc.desc: Test upload asset with error CLOUD_RECORD_ALREADY_EXISTED.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 100 records.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 100;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    /**
+     * @tc.steps:step2. Set callback function to return CLOUD_RECORD_ALREADY_EXISTED in 1st batch.
+     * @tc.expected: step2. ok.
+     */
+    int uploadCount = 0;
+    virtualCloudDb_->ForkUpload([&uploadCount](const std::string &tableName, VBucket &extend) {
+        if (uploadCount < 30) { // There are a total of 30 pieces of data in one batch of upstream data
+            extend[std::string(CloudDbConstant::ERROR_FIELD)] =
+                static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED);
+        }
+        uploadCount++;
+    });
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.batchIndex, 4u);
+        EXPECT_EQ(table.second.upLoadInfo.total, 70u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 70u);
+        EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
 }
 #endif
