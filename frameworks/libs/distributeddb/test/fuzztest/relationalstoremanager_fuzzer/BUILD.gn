@@ -71,7 +71,12 @@ ohos_fuzztest("RelationalstoremanagerFuzzTest") {
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
+    "--coverage",
   ]
+
+  ldflags = [ "--coverage" ]
+
+  cflags_cc = [ "--coverage" ]
 
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/relationalstoremanager_fuzzer"
 

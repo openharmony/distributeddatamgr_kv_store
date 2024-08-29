@@ -100,6 +100,9 @@ int RemoveDir(const char *dir)
                 continue;
             }
             if (sprintf_s(dirName, sizeof(dirName), "%s / %s", dir, dr->d_name) < 0) {
+                (void)RemoveDir(dirName);
+                closedir(dirPtr);
+                rmdir(dir);
                 return -1;
             }
             (void)RemoveDir(dirName);
@@ -139,7 +142,7 @@ std::string getMaxString()
 }
 } // namespace
 
-void InsertDocOneFuzz(std::string documentData)
+void InsertDocOneFuzz(const std::string documentData)
 {
     std::string document2 = "{\"_id\":2,\"field\":\"" + documentData + "\"}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document2.c_str(), 0);
@@ -189,12 +192,13 @@ void InsertDocOneFuzz(std::string documentData)
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document20.c_str(), 0);
 }
 
-void InsertDocTwoFuzz(std::string documentData)
+void InsertDocTwoFuzz(const std::string documentData)
 {
     std::string documentPart1 = "{ \"_id\" : \"15\", \"textVal\" : \" ";
     std::string documentPart2 = "\" }";
     std::string jsonVal = std::string(HALF_BYTES * ONE_BYTES - documentPart1.size() - documentPart2.size(), 'k');
     std::string document = documentPart1 + jsonVal + documentPart2;
+    GRD_InsertDocInner(g_db, COLLECTION_NAME, document.c_str(), 0);
     std::string jsonVal2 = std::string(HALF_BYTES * ONE_BYTES - 1 - documentPart1.size() - documentPart2.size(), 'k');
     std::string document21 = documentPart1 + jsonVal2 + documentPart2;
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document21.c_str(), 0);
@@ -232,7 +236,7 @@ void InsertDocTwoFuzz(std::string documentData)
     GRD_InsertDocInner(g_db, collectionName5.c_str(), document30.c_str(), 0);
 }
 
-void InsertDocThreeFuzz(std::string documentData)
+void InsertDocThreeFuzz(const std::string documentData)
 {
     std::string collectionName5 = "gm_sys_collectionName";
     std::string document31 = "{\"_id\" : \"24_4\", \"name\" : \"" + documentData + "\"}";
@@ -284,7 +288,7 @@ void InsertDocThreeFuzz(std::string documentData)
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document38.c_str(), 0);
 }
 
-void InsertDocFourFuzz(std::string longId, std::string documentData)
+void InsertDocFourFuzz(const std::string longId, const std::string documentData)
 {
     std::string document39 =
         "{\"_id\" : \"35\", \"A_aBdk_324_\" : \"" + documentData + "\", \"name\" : \"" + documentData + "\"}";
@@ -449,7 +453,7 @@ void TearDownTestCase()
     g_db = nullptr;
 }
 
-void FindDocResultSetFuzz(const char *collName, std::string filter, std::string projectionInfo)
+void FindDocResultSetFuzz(const char *collName, const std::string filter, const std::string projectionInfo)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -462,7 +466,7 @@ void FindDocResultSetFuzz(const char *collName, std::string filter, std::string 
     GRD_FreeResultSetInner(resultSet);
 }
 
-void FindDocWithFlagFuzz(std::string filter, std::string projectionInfo, int flag)
+void FindDocWithFlagFuzz(const std::string filter, const std::string projectionInfo, int flag)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -474,7 +478,7 @@ void FindDocWithFlagFuzz(std::string filter, std::string projectionInfo, int fla
     GRD_FreeResultSetInner(resultSet);
 }
 
-void FindDocNextTwiceFuzz(std::string filter, std::string projectionInfo)
+void FindDocNextTwiceFuzz(const std::string filter, const std::string projectionInfo)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -944,7 +948,7 @@ void FindDocFuzz(const uint8_t *data, size_t size)
     GRD_DropCollectionInner(g_db, COLLECTION_NAME, 0);
 }
 
-void UpdateDocOneFuzz(std::string s, std::string input)
+void UpdateDocOneFuzz(std::string s, const std::string input)
 {
     std::string inputJson = "{\"field5\": \"" + s + "\"}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
@@ -953,11 +957,11 @@ void UpdateDocOneFuzz(std::string s, std::string input)
     inputJson = "{\"field1\": [\"field2\", {\"field3\":\"" + input + "\"}]}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"name\":\"doc6\", \"c0\" : {\"c1\" : true } }";
-    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc6\"}", "{\"c0.c1\":false}", 1);
+    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc6\"}", inputJson.c_str(), 1);
     inputJson = "{\"name\":\"doc7\", \"c0\" : {\"c1\" : null } }";
-    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc7\"}", "{\"c0.c1\":null}", 1);
+    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc7\"}", inputJson.c_str(), 1);
     inputJson = "{\"name\":\"doc8\", \"c0\" : [\"" + input + "\", 123]}";
-    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc8\"}", "{\"c0.0\":\"ac\"}", 1);
+    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc8\"}", inputJson.c_str(), 1);
 
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     GRD_UpdateDocInner(g_db, inputJson.c_str(), "{}", "{}", 0);
@@ -969,6 +973,7 @@ void UpdateDocOneFuzz(std::string s, std::string input)
     inputJson = "{\"field\":" + input + "}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1.field2.field3.field4.field5.field6\":" + input + "}";
+    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1\": {\"field2\": {\"field3\": {\"field4\": {\"field5\":" + input + "}}}}}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     s.clear();
@@ -992,7 +997,7 @@ void UpdateDocOneFuzz(std::string s, std::string input)
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc8\"}", "{\"c0.0\":\"ac\"}", 1);
 }
 
-void UpdateDocTwoFuzz(const char *newCollName, std::string s, std::string input)
+void UpdateDocTwoFuzz(const char *newCollName, std::string s, const std::string input)
 {
     std::string inputJson = "{\"field5\": \"" + s + "\"}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
@@ -1001,11 +1006,11 @@ void UpdateDocTwoFuzz(const char *newCollName, std::string s, std::string input)
     inputJson = "{\"field1\": [\"field2\", {\"field3\":\"" + input + "\"}]}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"name\":\"doc6\", \"c0\" : {\"c1\" : true } }";
-    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc6\"}", "{\"c0.c1\":false}", 1);
+    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc6\"}", inputJson.c_str(), 1);
     inputJson = "{\"name\":\"doc7\", \"c0\" : {\"c1\" : null } }";
-    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc7\"}", "{\"c0.c1\":null}", 1);
+    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc7\"}", inputJson.c_str(), 1);
     inputJson = "{\"name\":\"doc8\", \"c0\" : [\"" + input + "\", 123]}";
-    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc8\"}", "{\"c0.0\":\"ac\"}", 1);
+    GRD_UpdateDocInner(g_db, newCollName, "{\"name\":\"doc8\"}", inputJson.c_str(), 1);
 
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     GRD_UpdateDocInner(g_db, inputJson.c_str(), "{}", "{}", 0);
@@ -1017,6 +1022,7 @@ void UpdateDocTwoFuzz(const char *newCollName, std::string s, std::string input)
     inputJson = "{\"field\":" + input + "}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1.field2.field3.field4.field5.field6\":" + input + "}";
+    GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1\": {\"field2\": {\"field3\": {\"field4\": {\"field5\":" + input + "}}}}}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     s.clear();
@@ -1087,6 +1093,7 @@ void UpdateDocFuzz(const uint8_t *data, size_t size)
     inputJson = "{\"field\":" + input + "}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1.field2.field3.field4.field5.field6\":" + input + "}";
+    GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1\": {\"field2\": {\"field3\": {\"field4\": {\"field5\":" + input + "}}}}}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     std::string s;
@@ -1105,6 +1112,7 @@ void UpdateDocFuzz(const uint8_t *data, size_t size)
     inputJson = "{\"field\":" + input + "}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1.field2.field3.field4.field5.field6\":" + input + "}";
+    GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     inputJson = "{\"field1\": {\"field2\": {\"field3\": {\"field4\": {\"field5\":" + input + "}}}}}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
     s.clear();
@@ -1116,7 +1124,7 @@ void UpdateDocFuzz(const uint8_t *data, size_t size)
     UpdateDocFilterFuzz();
 }
 
-void UpsertDocNewFuzz(std::string input, GRD_DB *db1)
+void UpsertDocNewFuzz(const std::string input, GRD_DB *db1)
 {
     GRD_CreateCollectionInner(g_db, "student", "", 0);
     std::string documentNew =
@@ -1182,7 +1190,7 @@ void UpsertDocFuzz(const uint8_t *data, size_t size)
     UpsertDocNewFuzz(input, db1);
 }
 
-void DeleteDocResultFuzz(std::string input)
+void DeleteDocResultFuzz(const std::string input)
 {
     const char *filter = "{\"age\" : 15}";
     GRD_DeleteDocInner(g_db, COLLECTION_NAME, filter, 0);
@@ -1320,7 +1328,7 @@ void FindAndRelease(Query query)
 }
 } // namespace
 
-void FindAndReleaseFuzz(std::string document, std::string filter, Query query, std::string input)
+void FindAndReleaseFuzz(std::string document, std::string filter, Query query, const std::string input)
 {
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document.c_str(), 0);
     query.filter = filter.c_str();
@@ -1574,7 +1582,7 @@ void TestGrdDbApGrdGetItem002Fuzz()
     for (uint32_t i = 0; i < NUM_NINETY_EIGHT; ++i) {
         std::string v = smallPrefix + std::to_string(i);
         GRD_KVItemT key = { &i, sizeof(uint32_t) };
-        GRD_KVItemT value = { (void *)v.data(), (uint32_t)v.size() + 1 };
+        GRD_KVItemT value = { reinterpret_cast<void *>(v.data()), static_cast<uint32_t>(v.size()) + 1 };
         GRD_KVPutInner(g_db, COLLECTION_NAME, &key, &value);
 
         GRD_KVItemT getValue = { nullptr, 0 };
@@ -1635,10 +1643,12 @@ void TestGrdKvBatchCoupling003Fuzz()
         GRD_KVBatchPrepareInner(BATCH_COUNT, &batchDel);
         GRD_KVBatchPutInner(g_db, COLLECTION_NAME, batchDel);
         for (uint16_t i = 0; i < BATCH_COUNT; i++) {
-            GRD_KVBatchPushbackInner((void *)keySet[CURSOR_COUNT + j * BATCH_COUNT + i].c_str(),
-                (uint32_t)keySet[CURSOR_COUNT + j * BATCH_COUNT + i].length() + 1,
-                (void *)valueSet[CURSOR_COUNT + j * BATCH_COUNT + i].c_str(),
-                (uint32_t)valueSet[CURSOR_COUNT + j * BATCH_COUNT + i].length() + 1,
+            char *batchKey = const_cast<char *>(keySet[CURSOR_COUNT + j * BATCH_COUNT + i].c_str());
+            char *batchValue = const_cast<char *>(valueSet[CURSOR_COUNT + j * BATCH_COUNT + i].c_str());
+            GRD_KVBatchPushbackInner(static_cast<void *>(batchKey),
+                static_cast<uint32_t>(keySet[CURSOR_COUNT + j * BATCH_COUNT + i].length()) + 1,
+                static_cast<void *>(batchValue),
+                static_cast<uint32_t>(valueSet[CURSOR_COUNT + j * BATCH_COUNT + i].length()) + 1,
                 batchDel);
         }
 

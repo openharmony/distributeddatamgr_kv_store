@@ -21,11 +21,13 @@ using namespace DistributedDB;
 using namespace DistributedDBTest;
 
 namespace OHOS {
-std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<Key>& keys)
+static constexpr const int MOD = 1024; // 1024 is mod
+static constexpr const int PASSWDLEN = 20; // 20 is passwdlen
+std::vector<Entry> CreateEntries(const uint8_t *data, size_t size, std::vector<Key>& keys)
 {
     std::vector<Entry> entries;
     // key'length is less than 1024.
-    auto count = static_cast<int>(std::min(size, size_t(1024)));
+    auto count = static_cast<int>(std::min(size, size_t(MOD)));
     for (int i = 1; i < count; i++) {
         Entry entry;
         entry.key = std::vector<uint8_t>(data, data + 1);
@@ -51,7 +53,33 @@ KvStoreDelegate *PrepareKvStore(KvStoreConfig &config, KvStoreDelegate::Option &
     return kvDelegatePtr;
 }
 
-void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Option &option)
+void EncryptOperation(const uint8_t *data, size_t size, KvStoreDelegate *kvDelegatePtr)
+{
+    if (kvDelegatePtr == nullptr) {
+        return;
+    }
+    CipherPassword passwd;
+    int len = static_cast<int>(std::min(size, size_t(PASSWDLEN)));
+    passwd.SetValue(data, len);
+    kvDelegatePtr->Rekey(passwd);
+    bool autoSync = (size == 0) ? true : data[0];
+    PragmaData praData = static_cast<PragmaData>(&autoSync);
+    kvDelegatePtr->Pragma(AUTO_SYNC, praData);
+}
+
+void CombineTest(const uint8_t *data, KvStoreDelegate *kvDelegatePtr)
+{
+    if (kvDelegatePtr == nullptr) {
+        return;
+    }
+    kvDelegatePtr->GetStoreId();
+    kvDelegatePtr->Rollback();
+    kvDelegatePtr->Commit();
+    auto type = static_cast<ResolutionPolicyType>(data[0]);
+    kvDelegatePtr->SetConflictResolutionPolicy(type, nullptr);
+}
+
+void MultiCombineFuzzer(const uint8_t *data, size_t size, KvStoreDelegate::Option &option)
 {
     KvStoreConfig config;
     KvStoreDelegate *kvDelegatePtr = PrepareKvStore(config, option);
@@ -66,7 +94,8 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     Key key = std::vector<uint8_t>(data, data + (size % 1024)); /* 1024 is max */
     Value value = std::vector<uint8_t>(data, data + size);
     kvDelegatePtr->Put(key, value);
-    KvStoreSnapshotDelegate* kvStoreSnapshotPtr = nullptr;
+    kvDelegatePtr->StartTransaction();
+    KvStoreSnapshotDelegate *kvStoreSnapshotPtr = nullptr;
     kvDelegatePtr->GetKvStoreSnapshot(nullptr,
         [&kvStoreSnapshotPtr](DBStatus status, KvStoreSnapshotDelegate* kvStoreSnapshot) {
             kvStoreSnapshotPtr = std::move(kvStoreSnapshot);
@@ -89,10 +118,15 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     kvStoreSnapshotPtr->GetEntries(keyPrefix, [](DBStatus status, const std::vector<Entry> &entries) {
         (void) entries.size();
     });
+    if (option.isEncryptedDb) {
+        EncryptOperation(data, size, kvDelegatePtr);
+    }
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
+    CombineTest(data, kvDelegatePtr);
     kvDelegatePtr->UnRegisterObserver(observer);
     delete observer;
+    observer = nullptr;
     kvDelegatePtr->ReleaseKvStoreSnapshot(kvStoreSnapshotPtr);
     g_kvManger.CloseKvStore(kvDelegatePtr);
     g_kvManger.DeleteKvStore("distributed_delegate_test");
@@ -101,7 +135,7 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
 }
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     CipherPassword passwd;
     KvStoreDelegate::Option option = {true, true, false, CipherType::DEFAULT, passwd};
@@ -110,4 +144,3 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::MultiCombineFuzzer(data, size, option);
     return 0;
 }
-
