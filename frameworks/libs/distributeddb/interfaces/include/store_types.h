@@ -87,6 +87,7 @@ enum DBStatus {
     CLOUD_SYNC_TASK_MERGED, // sync task is merged
     CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
+    LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
 };
 
 struct KvStoreConfig {

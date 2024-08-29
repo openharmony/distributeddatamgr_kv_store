@@ -1616,6 +1616,98 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
 }
 
 /**
+ * @tc.name: FillAssetId021
+ * @tc.desc: Test if local assets missing, one records's assets missing will not mark the whole sync progress failure
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+ 
+    /**
+     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
+     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     */
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId == 25) { // 25 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+ 
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 49;
+    int endFailFillNum = 50;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    g_virtualCloudDb->ForkUpload(nullptr);
+}
+ 
+/**
+ * @tc.name: FillAssetId022
+ * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+ 
+    /**
+     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
+     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     */
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId >= 25 && uploadFailId <= 27) { // 25-27 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+ 
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 49;
+    int endFailFillNum = 54;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    g_virtualCloudDb->ForkUpload(nullptr);
+}
+
+/**
  * @tc.name: ConsistentFlagTest001
  * @tc.desc:Assets are the different, check the 0x20 bit of flag after sync
  * @tc.type: FUNC

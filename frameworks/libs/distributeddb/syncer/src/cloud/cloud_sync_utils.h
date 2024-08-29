@@ -84,7 +84,9 @@ public:
 
     static void ClearWithoutData(ICloudSyncer::SyncParam &param);
 
-    static int FillAssetIdToAssets(CloudSyncBatch &data, int errorCode);
+    static bool IsSkipAssetsMissingRecord(const std::vector<VBucket> &extend);
+
+    static int FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, const CloudWaterType &type);
 
     static int FillAssetIdToAssetData(const Type &extend, Type &assetData);
 
