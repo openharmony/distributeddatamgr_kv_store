@@ -442,6 +442,11 @@ struct Options {
     */
     bool encrypt = false;
     /**
+     * Set whether the rekey takes effect.
+     * It does not take effect by default.
+    */
+    bool autoRekey = false;
+    /**
      * Data storage disk by default.
     */
     bool persistent = true;

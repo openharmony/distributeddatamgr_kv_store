@@ -86,7 +86,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                     StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
-            if (dbPassword.isKeyOutdated) {
+            if (dbPassword.isKeyOutdated && options.autoRekey) {
                 ReKey(storeId, path, dbPassword, dbManager, options);
             }
         }
