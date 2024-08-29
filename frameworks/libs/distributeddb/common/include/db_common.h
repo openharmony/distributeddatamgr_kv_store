@@ -117,9 +117,13 @@ public:
 
     static bool IsRecordError(const VBucket &record);
 
+    static bool IsIntTypeRecordError(const VBucket &record);
+
     static bool IsRecordIgnored(const VBucket &record);
 
     static bool IsRecordVersionConflict(const VBucket &record);
+
+    static bool IsRecordAssetsMissing(const VBucket &record);
 
     static bool IsRecordDelete(const VBucket &record);
 

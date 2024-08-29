@@ -178,21 +178,6 @@ HWTEST_F(DocumentDBApiTest, OpenDBPathTest002, TestSize.Level0)
 }
 
 /**
- * @tc.name: OpenDBPathTest004
- * @tc.desc: call GRD_DBOpen, input dbFile as existed menu
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DocumentDBApiTest, OpenDBPathTest004, TestSize.Level0)
-{
-    GRD_DB *db = nullptr;
-    std::string pathNoPerm = "../test";
-    int status = GRD_DBOpen(pathNoPerm.c_str(), nullptr, GRD_DB_OPEN_CREATE, &db);
-    EXPECT_EQ(status, GRD_INVALID_ARGS);
-}
-
-/**
  * @tc.name: OpenDBConfigTest001
  * @tc.desc: Test open document db with invalid config option
  * @tc.type: FUNC

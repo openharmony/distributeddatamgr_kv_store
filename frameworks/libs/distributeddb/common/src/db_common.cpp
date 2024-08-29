@@ -619,6 +619,14 @@ bool DBCommon::IsRecordError(const VBucket &record)
     return record.at(CloudDbConstant::ERROR_FIELD).index() == TYPE_INDEX<std::string>;
 }
 
+bool DBCommon::IsIntTypeRecordError(const VBucket &record)
+{
+    if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {
+        return false;
+    }
+    return record.at(CloudDbConstant::ERROR_FIELD).index() == TYPE_INDEX<int64_t>;
+}
+
 bool DBCommon::IsRecordIgnored(const VBucket &record)
 {
     if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {
@@ -641,6 +649,18 @@ bool DBCommon::IsRecordVersionConflict(const VBucket &record)
     }
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+}
+
+bool DBCommon::IsRecordAssetsMissing(const VBucket &record)
+{
+    if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {
+        return false;
+    }
+    if (record.at(CloudDbConstant::ERROR_FIELD).index() != TYPE_INDEX<int64_t>) {
+        return false;
+    }
+    auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
+    return status == static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
 }
 
 bool DBCommon::IsRecordDelete(const VBucket &record)

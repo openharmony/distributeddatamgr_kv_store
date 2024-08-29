@@ -89,6 +89,7 @@ enum DBStatus {
     CLOUD_RECORD_NOT_FOUND, // this error happen in BatchUpdate/BatchDelete
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
     SQLITE_CANT_OPEN, // the sqlite cannot open
+    LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
     BUTT_STATUS // end of status
 };
 
