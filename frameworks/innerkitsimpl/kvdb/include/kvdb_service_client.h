@@ -58,6 +58,8 @@ public:
     Status SubscribeSwitchData(const AppId &appId) override;
     Status UnsubscribeSwitchData(const AppId &appId) override;
     Status SetConfig(const AppId &appId, const StoreId &storeId, const StoreConfig &storeConfig) override;
+    Status RemoveDeviceData(const AppId &appId, const StoreId &storeId, const std::string &device) override;
+
     sptr<KVDBNotifierClient> GetServiceAgent(const AppId &appId);
 
 protected:
