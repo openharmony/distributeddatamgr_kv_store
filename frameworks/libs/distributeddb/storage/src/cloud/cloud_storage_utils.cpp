@@ -1156,6 +1156,15 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableNa
     return sql;
 }
 
+std::string CloudStorageUtils::GetUpdateUploadFinishedSql(const std::string &tableName)
+{
+    std::string finishedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED));
+    std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
+    // When the data flag is not in the compensation state and the local data does not change, the upload is finished.
+    return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? AND flag & " +
+        compensatedBit + " != " + compensatedBit + " THEN flag | " + finishedBit + " ELSE flag END) WHERE hash_key=?";
+}
+
 int CloudStorageUtils::BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
     const std::set<std::string> &gidFilters)
 {

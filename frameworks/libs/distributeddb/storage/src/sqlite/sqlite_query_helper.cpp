@@ -1188,8 +1188,12 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
     } else if (queryObjNodes_.empty() && mode != CloudWaterType::INSERT) { // means unPriorityTask and not insert
         sql += "(b.status != 1) AND ";
     }
-    sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
-        " b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    if (isCloudForcePush) {
+        sql += " (b.flag & 0x04 != 0x04)";
+    } else {
+        // local data and flag is not upload finished.
+        sql += "(b.flag & 0x02 = 0x02) AND (b.flag & 0x400 != 0x400)";
+    }
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
 }
@@ -1222,9 +1226,8 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
         // deleted data does not have primary key, requires gid to compensate sync
         sql += " (b.status = 1 AND (b.flag & 0x01 = 0x01)) OR ";
     }
-    sql += isCloudForcePush ? " b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
-        " b.timestamp > ?";
-    sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.
+    // actually, b.cloud_gid will not be null.
+    sql += isCloudForcePush ? " (b.flag & 0x04 != 0x04) AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";
 }
 
 int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime,
@@ -1242,16 +1245,7 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
         LOGE("[Query] Get statement fail!");
         return -E_INVALID_QUERY_FORMAT;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, static_cast<int64_t>(beginTime));
-    if (errCode != E_OK) {
-        int resetRet = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, resetRet);
-        if (resetRet != E_OK) {
-            LOGW("[Query] reset statement failed %d", resetRet);
-        }
-        return errCode;
-    }
-    int index = 2;
+    int index = 1;
     errCode = BindObjNodes(statement, index);
     if (errCode != E_OK) {
         LOGE("[Query] BindObjNodes failed %d", errCode);

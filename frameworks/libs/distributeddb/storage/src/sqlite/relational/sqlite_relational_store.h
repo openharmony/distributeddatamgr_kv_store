@@ -156,7 +156,7 @@ private:
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
 
-    int CleanWaterMark(std::set<std::string> &clearWaterMarkTable);
+    int CleanWaterMark(SQLiteSingleVerRelationalStorageExecutor *&handle, std::set<std::string> &clearWaterMarkTable);
 
     int InitTrackerSchemaFromMeta();
 
