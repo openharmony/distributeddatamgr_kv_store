@@ -429,6 +429,22 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.assetInsertData.clear();
 }
 
+bool CloudSyncUtils::IsSkipAssetsMissingRecord(const std::vector<VBucket> &extend)
+{
+    if (extend.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < extend.size(); ++i) {
+        if (DBCommon::IsRecordError(extend[i])) { // Kepp std::string type error
+            return false;
+        }
+        if (DBCommon::IsIntTypeRecordError(extend[i]) && !DBCommon::IsRecordAssetsMissing(extend[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, const CloudWaterType &type)
 {
     if (data.extend.size() != data.assets.size()) {
@@ -438,7 +454,8 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, con
     int errCode = E_OK;
     for (size_t i = 0; i < data.assets.size(); i++) {
         if (data.assets[i].empty() || DBCommon::IsRecordIgnored(data.extend[i]) ||
-            (errorCode != E_OK && DBCommon::IsRecordError(data.extend[i])) ||
+            (errorCode != E_OK &&
+            (DBCommon::IsRecordError(data.extend[i]) || DBCommon::IsRecordAssetsMissing(data.extend[i]))) ||
             DBCommon::IsNeedCompensatedForUpload(data.extend[i], type)) {
             continue;
         }
