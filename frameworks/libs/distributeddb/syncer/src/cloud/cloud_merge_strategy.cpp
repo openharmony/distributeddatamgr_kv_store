@@ -29,11 +29,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isSameCurDe
         return OpType::LOCKED_NOT_HANDLE;
     }
     if (!existInLocal) {
-        // when cloud data is deleted, we think it is different data
-        if (isCloudDelete) {
-            return OpType::NOT_HANDLE;
-        }
-        return OpType::INSERT;
+        return TagLocalNotExist(isCloudDelete);
     }
     if (IsIgnoreUpdate(localInfo)) {
         return OpType::NOT_HANDLE;
@@ -94,5 +90,14 @@ OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const L
         return OpType::INSERT;
     }
     return TagUpdateLocal(cloudInfo, localInfo);
+}
+
+OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
+{
+    // when cloud data is deleted, we think it is different data
+        if (isCloudDelete) {
+            return OpType::NOT_HANDLE;
+        }
+        return OpType::INSERT;
 }
 }

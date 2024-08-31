@@ -106,10 +106,11 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      */
     EXPECT_EQ(strategy->TagSyncDataStatus(false, false, localInfo, cloudInfo), OpType::INSERT);
     /**
-     * @tc.steps: step3. local record is newer and local not exist gid
+     * @tc.steps: step3. local record is newer and local not exist gid, while local data is not sync-ed
      * @tc.expected: step3. only update gid
      */
     localInfo.timestamp = 1u;
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL);
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
     /**
      * @tc.steps: step4. local record is newer and local exist gid
@@ -152,6 +153,7 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      * @tc.expected: step10 clear gid
      */
     localInfo.timestamp = 3u; // mark 3 means local is new
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL);
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::CLEAR_GID);
     /**
      * @tc.steps: step10. cloud is old and delete, local has not gid
@@ -167,6 +169,14 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
     cloudInfo.flag = 0; // it means no delete
     localInfo.flag = 0; // it means no delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+
+    /**
+     * @tc.steps: step12. local record is newer and local not exist gid, while record is sync-ed
+     * @tc.expected: step12. update
+     */
+    localInfo.timestamp = 1u;
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
 }
 
 /**
