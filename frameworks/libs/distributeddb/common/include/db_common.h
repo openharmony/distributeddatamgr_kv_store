@@ -73,6 +73,8 @@ public:
 
     static std::string StringMasking(const std::string &oriStr, size_t remain = 3); // remain 3 unmask
 
+    static std::string StringMiddleMasking(const std::string &name);
+
     static std::string GetDistributedTableName(const std::string &device, const std::string &tableName);
 
     static std::string GetDistributedTableName(const std::string &device, const std::string &tableName,
