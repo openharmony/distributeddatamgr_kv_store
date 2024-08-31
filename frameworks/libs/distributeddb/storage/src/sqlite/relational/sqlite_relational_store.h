@@ -91,7 +91,7 @@ public:
 
     int ChkSchema(const TableName &tableName);
 
-    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);
 
     int SetTrackerTable(const TrackerSchema &trackerSchema);
 
@@ -106,6 +106,8 @@ public:
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    SyncProcess GetCloudTaskStatus(uint64_t taskId);
 private:
     void ReleaseResources();
 

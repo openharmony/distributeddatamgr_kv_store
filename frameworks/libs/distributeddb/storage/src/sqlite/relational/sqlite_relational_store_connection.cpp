@@ -341,27 +341,6 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     return ret;
 }
 
-int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
-{
-    auto *store = GetDB<SQLiteRelationalStore>();
-    if (store == nullptr) {
-        LOGE("[RelationalConnection] store is null, get executor failed!");
-        return -E_INVALID_CONNECTION;
-    }
-    {
-        AutoLock lockGuard(this);
-        if (IsKilled()) {
-            // If this happens, users are using a closed connection.
-            LOGE("Sync on a closed connection.");
-            return -E_STALE;
-        }
-        IncObjRef(this);
-    }
-    int errCode = store->Sync(option, onProcess);
-    DecObjRef(this);
-    return errCode;
-}
-
 int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
@@ -449,6 +428,53 @@ int SQLiteRelationalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &c
         return -E_INVALID_CONNECTION;
     }
     return store->SetCloudSyncConfig(config);
+}
+
+int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    uint64_t taskId)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    {
+        AutoLock lockGuard(this);
+        if (IsKilled()) {
+            // If this happens, users are using a closed connection.
+            LOGE("[RelationalConnection] Sync on a closed connection.");
+            return -E_STALE;
+        }
+        IncObjRef(this);
+    }
+    int errCode = store->Sync(option, onProcess, taskId);
+    DecObjRef(this);
+    return errCode;
+}
+
+SyncProcess SQLiteRelationalStoreConnection::GetCloudTaskStatus(uint64_t taskId)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        SyncProcess process;
+        process.errCode = DB_ERROR;
+        return process;
+    }
+    {
+        AutoLock lockGuard(this);
+        if (IsKilled()) {
+            // If this happens, users are using a closed connection.
+            LOGE("[RelationalConnection] Get sync task on a closed connection.");
+            SyncProcess process;
+            process.errCode = DB_ERROR;
+            return process;
+        }
+        IncObjRef(this);
+    }
+    SyncProcess process = store->GetCloudTaskStatus(taskId);
+    DecObjRef(this);
+    return process;
 }
 }
 #endif
