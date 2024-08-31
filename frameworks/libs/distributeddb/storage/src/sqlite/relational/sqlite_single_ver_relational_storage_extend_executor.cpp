@@ -1832,6 +1832,34 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string
     return errCode == E_OK ? ret : errCode;
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsUploadFinished(const std::string &tableName,
+    const Key &hashKey, Timestamp timestamp)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, CloudStorageUtils::GetUpdateUploadFinishedSql(tableName),
+        stmt);
+    int index = 1;
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, index++, timestamp);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        LOGW("[Storage Executor] Bind timestamp to update record flag for upload finished stmt failed, %d", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, index++, hashKey);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        LOGW("[Storage Executor] Bind hashKey to update record flag for upload finished stmt failed, %d", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[Storage Executor]Step update record flag for upload finished stmt failed, %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const TableSchema &table,
     std::vector<VBucket> &data)
 {

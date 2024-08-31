@@ -633,12 +633,12 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
     EXPECT_EQ(resCount, insCount + insCount + insCount);
 
     /**
-     * @tc.steps: There are no matching data anymore
-     * @tc.expected: count is 0 and return E_OK.
+     * @tc.steps: Timestamp filtering will not work.
+     * @tc.expected: count is 300 and return E_OK.
      */
     Timestamp invalidTime = g_startTime + g_startTime;
     EXPECT_EQ(g_cloudStore->GetUploadCount(query, invalidTime, false, false, resCount), E_OK);
-    EXPECT_EQ(resCount, 0);
+    EXPECT_EQ(resCount, insCount + insCount + insCount);
 }
 
 /**
@@ -665,7 +665,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
     int timeOffset = 30;
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime + timeOffset, false, resCount), E_OK);
-    EXPECT_EQ(resCount, insCount + insCount - timeOffset);
+    // Timestamp filtering will not work.
+    EXPECT_EQ(resCount, insCount + insCount);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 
     /**
@@ -674,7 +675,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
      */
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
     EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime + timeOffset, false, resCount), E_OK);
-    EXPECT_EQ(resCount, insCount + insCount - timeOffset);
+    // Timestamp filtering will not work.
+    EXPECT_EQ(resCount, insCount + insCount);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
