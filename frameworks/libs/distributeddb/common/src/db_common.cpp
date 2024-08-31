@@ -35,11 +35,11 @@
 
 namespace DistributedDB {
 namespace {
-    const int32_t HEAD_SIZE = 3;
-    const int32_t END_SIZE = 3;
-    const int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
-    const char *REPLACE_CHAIN = "***";
-    const char *DEFAULT_ANONYMOUS = "******";
+    constexpr const int32_t HEAD_SIZE = 3;
+    constexpr const int32_t END_SIZE = 3;
+    constexpr const int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    constexpr const char *REPLACE_CHAIN = "***";
+    constexpr const char *DEFAULT_ANONYMOUS = "******";
 
     void RemoveFiles(const std::list<OS::FileAttr> &fileList, OS::FileType type)
     {
