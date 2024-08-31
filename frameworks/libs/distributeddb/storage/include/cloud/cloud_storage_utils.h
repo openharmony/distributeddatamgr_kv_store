@@ -105,6 +105,7 @@ public:
     static std::string GetSelectIncCursorSql(const std::string &tableName);
     static std::string GetCursorIncSql(const std::string &tableName);
     static std::string GetCursorUpgradeSql(const std::string &tableName);
+    static std::string GetUpdateUploadFinishedSql(const std::string &tableName);
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);

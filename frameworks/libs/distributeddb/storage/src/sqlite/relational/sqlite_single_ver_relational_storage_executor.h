@@ -188,6 +188,10 @@ public:
 
     int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
+    void MarkFlagAsUploadFinished(const std::string &tableName, const Key &hashKey, Timestamp timestamp);
+
+    int CleanUploadFinishedFlag(const std::string &tableName);
+
     int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,

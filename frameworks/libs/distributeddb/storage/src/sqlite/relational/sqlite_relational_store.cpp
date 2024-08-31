@@ -1277,7 +1277,8 @@ int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector
     return sqliteStorageEngine_->ExecuteSql(condition, records);
 }
 
-int SQLiteRelationalStore::CleanWaterMark(std::set<std::string> &clearWaterMarkTable)
+int SQLiteRelationalStore::CleanWaterMark(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    std::set<std::string> &clearWaterMarkTable)
 {
     int errCode = E_OK;
     for (const auto &tableName : clearWaterMarkTable) {
@@ -1291,6 +1292,11 @@ int SQLiteRelationalStore::CleanWaterMark(std::set<std::string> &clearWaterMarkT
         errCode = storageEngine_->PutMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal, true);
         if (errCode != E_OK) {
             LOGE("[SQLiteRelationalStore] put meta data failed, errCode = %d", errCode);
+            return errCode;
+        }
+        errCode = handle->CleanUploadFinishedFlag(tableName);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRelationalStore] clean upload finished flag failed, errCode = %d", errCode);
             return errCode;
         }
     }
@@ -1321,7 +1327,7 @@ int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty
 
     if (!clearWaterMarkTables.empty()) {
         storageEngine_->SetReusedHandle(handle);
-        int ret = CleanWaterMark(clearWaterMarkTables);
+        int ret = CleanWaterMark(handle, clearWaterMarkTables);
         if (ret != E_OK) {
             LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", ret);
             storageEngine_->SetReusedHandle(nullptr);

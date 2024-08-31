@@ -1897,6 +1897,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
             LOGE("[RDBStorage] Update record flag failed in index %zu", i);
             return errCode;
         }
+        handle->MarkFlagAsUploadFinished(tableName, updateData.hashKey[i], updateData.timestamp[i]);
         uploadRecorder_.RecordUploadRecord(tableName, logInfo.hashKey, type, updateData.timestamp[i]);
     }
     return E_OK;
