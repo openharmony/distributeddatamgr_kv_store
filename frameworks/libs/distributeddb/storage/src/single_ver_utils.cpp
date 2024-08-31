@@ -18,6 +18,7 @@
 #include "db_common.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
+#include "sqlite_utils.h"
 
 namespace DistributedDB {
 
@@ -154,5 +155,35 @@ void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *commit
     }
 
     committedData->InitKeyPropRecord(hashKey, existedStatus);
+}
+
+int CheckStoreStatus(const OpenDbProperties &opt)
+{
+    // Check the existence of the database, include the origin database and the database in the 'main' directory.
+    auto mainDbDir = GetDbDir(opt.subdir, DbType::MAIN);
+    auto mainDbFilePath = mainDbDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    auto origDbFilePath = opt.subdir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    if (!OS::CheckPathExistence(origDbFilePath) && !OS::CheckPathExistence(mainDbFilePath)) {
+        return E_OK;
+    }
+    int errCode;
+    sqlite3 *db = nullptr;
+    if (OS::CheckPathExistence(mainDbFilePath)) {
+        errCode = SQLiteUtils::OpenDatabase(opt, db);
+    } else {
+        errCode = SQLiteUtils::OpenDatabase(opt, db);
+    }
+    if (db != nullptr) {
+        int ret = sqlite3_close_v2(db);
+        if (ret != E_OK) {
+            LOGW("close db failed %d when check db status", ret);
+        }
+    }
+    if (errCode != E_OK && errCode != -E_EKEYREVOKED) {
+        LOGE("check db status failed %d", errCode);
+    } else {
+        errCode = E_OK;
+    }
+    return errCode;
 }
 } // namespace DistributedDB
