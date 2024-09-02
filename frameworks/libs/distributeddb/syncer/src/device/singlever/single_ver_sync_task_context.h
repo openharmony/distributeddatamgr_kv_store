@@ -139,6 +139,8 @@ public:
 
     int32_t GetResponseTaskCount() override;
 
+    int32_t GetResponseTaskCount() override;
+
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
