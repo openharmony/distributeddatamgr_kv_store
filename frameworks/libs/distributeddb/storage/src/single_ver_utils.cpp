@@ -166,13 +166,14 @@ int CheckStoreStatus(const OpenDbProperties &opt)
     if (!OS::CheckPathExistence(origDbFilePath) && !OS::CheckPathExistence(mainDbFilePath)) {
         return E_OK;
     }
-    int errCode;
     sqlite3 *db = nullptr;
+    OpenDbProperties checkOpt = opt;
     if (OS::CheckPathExistence(mainDbFilePath)) {
-        errCode = SQLiteUtils::OpenDatabase(opt, db);
+        checkOpt.uri = mainDbFilePath;
     } else {
-        errCode = SQLiteUtils::OpenDatabase(opt, db);
+        checkOpt.uri = origDbFilePath;
     }
+    int errCode = SQLiteUtils::OpenDatabase(checkOpt, db);
     if (db != nullptr) {
         int ret = sqlite3_close_v2(db);
         if (ret != E_OK) {

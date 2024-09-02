@@ -330,7 +330,7 @@ void DistributedDBStorageSingleVerUpgradeTest::TearDown(void)
   * @tc.require: AR000DPTQ7
   * @tc.author: wangbingquan
   */
-HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Level2)
+HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. create old version V1 db.
