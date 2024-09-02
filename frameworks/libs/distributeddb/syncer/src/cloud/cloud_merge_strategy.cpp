@@ -34,7 +34,8 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isSameCurDe
     if (IsIgnoreUpdate(localInfo)) {
         return OpType::NOT_HANDLE;
     }
-    if (localInfo.timestamp > cloudInfo.timestamp) {
+    if ((localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) != 0 &&
+        localInfo.timestamp > cloudInfo.timestamp) {
         return TagLocallyNewer(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
     }
     if (isCloudDelete) {

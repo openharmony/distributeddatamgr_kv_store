@@ -174,7 +174,7 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      * @tc.steps: step12. local record is newer and local not exist gid, while record is sync-ed
      * @tc.expected: step12. update
      */
-    localInfo.timestamp = 1u;
+    localInfo.timestamp = 4u;
     localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD);
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
 }
