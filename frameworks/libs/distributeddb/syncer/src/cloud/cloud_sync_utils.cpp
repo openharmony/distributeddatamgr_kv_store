@@ -435,9 +435,6 @@ bool CloudSyncUtils::IsSkipAssetsMissingRecord(const std::vector<VBucket> &exten
         return false;
     }
     for (size_t i = 0; i < extend.size(); ++i) {
-        if (DBCommon::IsRecordError(extend[i])) { // Kepp std::string type error
-            return false;
-        }
         if (DBCommon::IsIntTypeRecordError(extend[i]) && !DBCommon::IsRecordAssetsMissing(extend[i])) {
             return false;
         }

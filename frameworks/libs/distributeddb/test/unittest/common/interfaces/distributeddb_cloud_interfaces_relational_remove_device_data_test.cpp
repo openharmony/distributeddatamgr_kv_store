@@ -1301,5 +1301,59 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckLogoutLogCount(db, g_tables, {10, 10});
     CloseDb();
 }
+
+/*
+ * @tc.name: CleanCloudDataTest022
+ * @tc.desc: Test conflict, not dound, exis errCode will deal.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest022, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set data is logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 20 records on local.
+     */
+    int64_t paddingSize = 20;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step3. make 2-5th data errCode.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx == 2) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED);
+        }
+        if (upIdx == 3) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+        }
+        if (upIdx == 4) {
+            // CLOUD_RECORD_NOT_FOUND means cloud and terminal is consitenct
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+        }
+        if (upIdx == 5) {
+            // CLOUD_RECORD_NOT_FOUND means no error
+            extend[CloudDbConstant::ERROR_FIELD] = std::string("x");
+        }
+    });
+    /*
+     * @tc.steps: step4. call Sync, and check consitency.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    g_virtualCloudDb->ForkUpload(nullptr);
+    std::string sql = "select count() from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where flag & 0x20 = 0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(18), nullptr), SQLITE_OK);
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE
