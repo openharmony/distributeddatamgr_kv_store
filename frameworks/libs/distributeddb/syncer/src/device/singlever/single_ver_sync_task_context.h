@@ -145,6 +145,8 @@ public:
     void SetInitDeletedMark(WaterMark waterMark);
     WaterMark GetInitDeletedMark() const;
 
+    int32_t GetResponseTaskCount() override;
+
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
