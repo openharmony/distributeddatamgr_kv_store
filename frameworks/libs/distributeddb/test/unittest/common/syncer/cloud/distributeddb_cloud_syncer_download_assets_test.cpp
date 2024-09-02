@@ -1061,7 +1061,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Le
     std::atomic<int> count = 0;
     g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end() && count == 0) {
-            extend["#_error"] = std::string("");
+            extend["#_error"] = static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR);
             count++;
         }
     });
@@ -1238,7 +1238,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Le
     std::atomic<int> count = 0;
     g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end() && count == 0) {
-            extend["#_error"] = std::string("");
+            extend["#_error"] = static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR);
             count++;
         }
     });
@@ -1865,14 +1865,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
 
     /**
-     * @tc.steps:step2. fork upload, return error filed of type string
+     * @tc.steps:step2. fork upload, not return error filed of CLOUD_NETWORK_ERROR
      * @tc.expected: step2. return OK.
      */
     int upIdx = 0;
     g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
         LOGD("upload index:%d", ++upIdx);
         if (upIdx == 1) {
-            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, std::string("x"));
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR));
         }
     });
 
@@ -1906,7 +1906,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
      * @tc.expected: step5. return OK.
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    CheckConsistentCount(db, localCount - 1);
+    CheckConsistentCount(db, localCount - 2);
 }
 
 /**
