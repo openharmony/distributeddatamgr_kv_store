@@ -136,6 +136,9 @@ public:
 
     void StartFeedDogForGetData(uint32_t sessionId);
     void StopFeedDogForGetData();
+
+    int32_t GetResponseTaskCount() override;
+
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
