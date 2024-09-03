@@ -151,6 +151,10 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         uploadData.insData.extend, insertInfo);
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     innerProcessInfo.upLoadInfo.insertCount += insertInfo.successCount;
+    innerProcessInfo.upLoadInfo.total -= insertInfo.total - insertInfo.successCount - insertInfo.failCount;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer][BatchInsert] BatchInsert with error, ret is %d.", errCode);
+    }
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -161,20 +165,22 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
+        if (ret != errCode) {
+            LOGE("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
+        }
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
         bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
         if (isSkip) {
             LOGI("[CloudSyncer][BatchInsert] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
-            return storageProxy_->FillCloudLogAndAsset(OpType::INSERT, uploadData);
+            return E_OK;
         } else {
             LOGE("[CloudSyncer][BatchInsert] errCode: %d, can not skip assets missing record.", errCode);
             return errCode;
         }
     }
-    
     // we need to fill back gid after insert data to cloud.
     int errorCode = storageProxy_->FillCloudLogAndAsset(OpType::INSERT, uploadData);
     if ((errorCode != E_OK) || (ret != E_OK)) {
@@ -190,6 +196,10 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         uploadData.updData.extend, updateInfo);
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     innerProcessInfo.upLoadInfo.updateCount += updateInfo.successCount;
+    innerProcessInfo.upLoadInfo.total -= updateInfo.total - updateInfo.successCount - updateInfo.failCount;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer][BatchUpdate] BatchUpdate with error, ret is %d.", errCode);
+    }
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -200,14 +210,17 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode, CloudWaterType::UPDATE);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer][BatchUpdate] FillAssetIdToAssets with error, ret is %d.", ret);
+        }
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
         bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
         if (isSkip) {
             LOGI("[CloudSyncer][BatchUpdate] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
-            return storageProxy_->FillCloudLogAndAsset(OpType::UPDATE, uploadData);
+            return E_OK;
         } else {
             LOGE("[CloudSyncer][BatchUpdate] errCode: %d, can not skip assets missing record.", errCode);
             return errCode;

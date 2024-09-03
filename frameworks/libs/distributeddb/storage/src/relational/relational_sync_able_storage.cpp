@@ -1837,7 +1837,11 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
     }
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordVersionConflict(record) || isLock) {
+        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordAssetsMissing(record) ||
+            DBCommon::IsRecordVersionConflict(record) || isLock) {
+            if (DBCommon::IsRecordAssetsMissing(record)) {
+                LOGI("[RDBStorage][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
+            }
             int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
                 updateData.hashKey[i]);
             if (errCode != E_OK) {
