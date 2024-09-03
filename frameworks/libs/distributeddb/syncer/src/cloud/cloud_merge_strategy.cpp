@@ -25,16 +25,13 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
     if (!existInLocal) {
-        // when cloud data is deleted, we think it is different data
-        if (isCloudDelete) {
-            return OpType::NOT_HANDLE;
-        }
-        return OpType::INSERT;
+        return TagLocalNotExist(isCloudDelete);
     }
     if (IsIgnoreUpdate(localInfo)) {
         return OpType::NOT_HANDLE;
     }
-    if (localInfo.timestamp > cloudInfo.timestamp) {
+    if ((localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) != 0 &&
+        localInfo.timestamp > cloudInfo.timestamp) {
         return TagLocallyNewer(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
     }
     if (isCloudDelete) {
@@ -78,5 +75,14 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;
+}
+
+OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
+{
+    // when cloud data is deleted, we think it is different data
+    if (isCloudDelete) {
+        return OpType::NOT_HANDLE;
+    }
+    return OpType::INSERT;
 }
 }
