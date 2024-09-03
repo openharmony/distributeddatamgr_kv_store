@@ -452,8 +452,11 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, con
     for (size_t i = 0; i < data.assets.size(); i++) {
         if (data.assets[i].empty() || DBCommon::IsRecordIgnored(data.extend[i]) ||
             (errorCode != E_OK &&
-            (DBCommon::IsRecordError(data.extend[i]) || DBCommon::IsRecordAssetsMissing(data.extend[i]))) ||
+                (DBCommon::IsRecordError(data.extend[i]) || DBCommon::IsRecordAssetsMissing(data.extend[i]))) ||
             DBCommon::IsNeedCompensatedForUpload(data.extend[i], type)) {
+            if (errCode != E_OK && DBCommon::IsRecordAssetsMissing(data.extend[i])) {
+                LOGI("[CloudSyncUtils][FileAssetIdToAssets] errCode with assets missing, skip fill assets id");
+            }
             continue;
         }
         for (auto it = data.assets[i].begin(); it != data.assets[i].end();) {
