@@ -1061,6 +1061,26 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
     ASSERT_EQ(count, 10);
 }
 
+void ChangeOwnerToService(std::string baseDir, std::string hashId)
+{
+    static constexpr int ddmsId = 3012;
+    std::string path = baseDir;
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/kvdb";
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/" + hashId;
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/single_ver";
+    chown(path.c_str(), ddmsId, ddmsId);
+    chown((path + "/meta").c_str(), ddmsId, ddmsId);
+    chown((path + "/cache").c_str(), ddmsId, ddmsId);
+    path = path + "/main";
+    chown(path.c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db").c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db-shm").c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db-wal").c_str(), ddmsId, ddmsId);
+}
+
 /**
  * @tc.name: RemoveDeviceData
  * @tc.desc: remove local device data
@@ -1088,7 +1108,10 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
-    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().uuid);
+    ChangeOwnerToService(
+        "/data/service/el1/public/database/SingleStoreImplTest",
+        "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
+    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
     ASSERT_EQ(status, SUCCESS);
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
@@ -1299,6 +1322,9 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
     const string device = { "" };
+    ChangeOwnerToService(
+        "/data/service/el1/public/database/SingleStoreImplTest",
+        "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
     status = store->RemoveDeviceData(device);
     ASSERT_EQ(status, SUCCESS);
 }

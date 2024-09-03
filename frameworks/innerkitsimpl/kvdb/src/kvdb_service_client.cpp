@@ -436,4 +436,16 @@ Status KVDBServiceClient::SetConfig(const AppId &appId, const StoreId &storeId, 
     }
     return static_cast<Status>(status);
 }
+
+Status KVDBServiceClient::RemoveDeviceData(const AppId &appId, const StoreId &storeId, const std::string &device)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(
+        static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_REMOVE_DEVICE_DATA), reply, appId, storeId, device);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
+    }
+    return static_cast<Status>(status);
+}
 } // namespace OHOS::DistributedKv
