@@ -218,6 +218,12 @@ public:
         [[gnu::unused]] const CloudWaterType &type, Timestamp localMark)
     {
     }
+
+    virtual bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+        SingleVerConflictResolvePolicy policy)
+    {
+        return false;
+    }
 };
 }
 

@@ -540,6 +540,40 @@ void SqliteCloudKvStore::ReleaseUploadRecord(const std::string &tableName, const
     recorder_.ReleaseUploadRecord(tableName, type, localMark);
 }
 
+bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+    SingleVerConflictResolvePolicy policy)
+{
+    std::string cloudInfoDev;
+    auto decodeCloudInfoDev = DBBase64Utils::Decode(cloudInfo.device);
+    if (!decodeCloudInfoDev.empty()) {
+        cloudInfoDev = std::string(decodeCloudInfoDev.begin(), decodeCloudInfoDev.end());
+    }
+    if (policy == SingleVerConflictResolvePolicy::DENY_OTHER_DEV_AMEND_CUR_DEV_DATA &&
+        !localInfo.originDev.empty() && localInfo.originDev == cloudInfoDev) {
+        return true;
+    }
+    std::string device;
+    if (RuntimeContext::GetInstance()->GetLocalIdentity(device) != E_OK) {
+        LOGE("[SqliteCloudKvStore] GetLocalIdentity device failed.");
+        return false;
+    }
+    device = DBCommon::TransferHashString(device);
+    std::string localInfoDev = localInfo.device;
+    if (localInfoDev.empty()) {
+        return false;
+    }
+    bool isLocal = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) ==
+        static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
+    bool isLocalDelete = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
+        static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
+    if (cloudInfoDev.empty()) {
+        return !isLocal;
+    } else if (isLocalDelete) {
+        return cloudInfoDev != device;
+    }
+    return localInfoDev == cloudInfoDev && localInfoDev != device;
+}
+
 int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
 {
     std::shared_ptr<DataBaseSchema> cloudSchema;

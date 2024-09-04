@@ -149,6 +149,9 @@ public:
     bool IsTableExistReference(const std::string &table);
 
     void ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark);
+
+    bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+        SingleVerConflictResolvePolicy policy);
 protected:
     void Init();
 
