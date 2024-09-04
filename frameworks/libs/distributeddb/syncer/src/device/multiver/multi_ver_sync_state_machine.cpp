@@ -543,7 +543,7 @@ void MultiVerSyncStateMachine::SyncResponseBegin(uint32_t sessionId)
             LOGE("[MultiVerSyncStateMachine][SyncResponseEnd] sessionId existed! exit.");
             return;
         }
-        TimerAction timeOutCallback = [this](TimerId timerId) -> int { SyncResponseTimeout(timerId); };
+        TimerAction timeOutCallback = [this](TimerId timerId) -> int { return SyncResponseTimeout(timerId); };
         // To make sure context_ alive in timeout callback, we should IncObjRef for the context_.
         RefObject::IncObjRef(context_);
         TimerId timerId = 0;

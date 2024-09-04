@@ -53,7 +53,7 @@ int MultiVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInterf
 
     errCode = stateMachine_->Initialize(this, syncInterface, metadata, communicator);
     TimerAction timeOutCallback = [stateMachine = static_cast<MultiVerSyncStateMachine *>(stateMachine_)](
-        TimerId timerId) -> int { stateMachine->TimeoutCallback(timerId); };
+        TimerId timerId) -> int { return stateMachine->TimeoutCallback(timerId); };
     SetTimeoutCallback(timeOutCallback);
     OnKill([this]() { this->KillWait(); });
     {
