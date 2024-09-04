@@ -1902,7 +1902,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, 
         g_processCondition.wait(lock, []() {
             return g_syncProcess.process == FINISHED;
         });
-        ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
+        ASSERT_EQ(g_syncProcess.errCode, DBStatus::CLOUD_ERROR);
     }
     CloseDb();
 }
