@@ -22,7 +22,7 @@
 #include <string>
 
 namespace DistributedDB {
-constexpr const char *LOG_TAG_KV = "DistributedDB";
+const std::string LOG_TAG_KV = "DistributedDB";
 
 class Logger {
 public:

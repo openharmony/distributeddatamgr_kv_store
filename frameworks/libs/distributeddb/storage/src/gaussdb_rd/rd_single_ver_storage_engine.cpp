@@ -52,13 +52,13 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
     }
     if (!option_.readOnly) {
         std::string tableMode = GetTableMode(option_.isHashTable);
-        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME, tableMode.c_str(), 0));
+        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME.c_str(), tableMode.c_str(), 0));
         if (ret != E_OK) {
             LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
             return ret;
         }
     }
-    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME));
+    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME.c_str()));
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine] GRD_IndexPreload FAILED %d", ret);
         return ret;
