@@ -208,7 +208,12 @@ enum Status : int32_t {
     /**
      * database can not open.
     */
-    DB_CANT_OPEN = DISTRIBUTEDDATAMGR_ERR_OFFSET + 42
+    DB_CANT_OPEN = DISTRIBUTEDDATAMGR_ERR_OFFSET + 42,
+
+    /**
+     * The device is not online.
+    */
+    DEVICE_NOT_ONLINE = DISTRIBUTEDDATAMGR_ERR_OFFSET + 43
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_INTERFACES_DISTRIBUTEDDATA_STORE_ERRNO_H

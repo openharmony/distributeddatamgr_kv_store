@@ -114,7 +114,7 @@ void SyncOperation::SetStatus(const std::string &deviceId, int status, int commE
             return;
         }
         iter->second = status;
-        if ((status != OP_COMM_ABNORMAL) || (commErrCode == E_OK)) {
+        if (((status != OP_COMM_ABNORMAL) && (status != OP_TIMEOUT)) || (commErrCode == E_OK)) {
             return;
         }
         commErrCodeMap_.insert(std::pair<std::string, int>(deviceId, commErrCode));
@@ -164,7 +164,7 @@ int SyncOperation::GetMode() const
 void SyncOperation::ReplaceCommErrCode(std::map<std::string, int> &finishStatus)
 {
     for (auto &item : finishStatus) {
-        if (item.second != OP_COMM_ABNORMAL) {
+        if ((item.second != OP_COMM_ABNORMAL) && (item.second != OP_TIMEOUT)) {
             continue;
         }
         std::string deviceId = item.first;
@@ -476,7 +476,7 @@ std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &
     std::string msg = "Sync detail is:";
     for (const auto &[dev, status]: finishStatus) {
         msg += "dev=" + DBCommon::StringMasking(dev);
-        if (status > static_cast<int>(OP_FINISHED_ALL)) {
+        if ((status > static_cast<int>(OP_FINISHED_ALL)) || (status < E_OK)) {
             msg += " sync failed, reason is " + std::to_string(status);
         } else {
             msg += " sync success";

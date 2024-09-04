@@ -578,7 +578,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize
 {
     // preset
     std::vector<int> sendResult;
-    auto sendResultNotifier = [&sendResult](int result) {
+    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
         sendResult.push_back(result);
     };
 

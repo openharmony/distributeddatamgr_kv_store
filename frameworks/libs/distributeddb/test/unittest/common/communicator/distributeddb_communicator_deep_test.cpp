@@ -965,3 +965,53 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
     onDataReceive(deviceInfos, data.data(), 1u);
     EXPECT_EQ(callByteReceiveCount, 0);
 }
+
+/**
+ * @tc.name: RetrySendExceededLimit001
+ * @tc.desc: Test send result when the number of retry times exceeds the limit
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit001, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. connect device A with device B and fork SendBytes
+     * @tc.expected: step1. operation OK
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    std::atomic<int> count = 0;
+    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
+        count++;
+        return -E_WAIT_RETRY;
+    });
+
+    /**
+     * @tc.steps: step2. the number of retry times for device A to send a message exceeds the limit
+     * @tc.expected: step2. sendResult fail
+     */
+    std::vector<std::pair<int, bool>> sendResult;
+    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
+        sendResult.push_back(std::pair<int, bool>(result, isDirectEnd));
+    };
+    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
+    Message *sendMsg = BuildRegedGiantMessage(dataLength);
+    ASSERT_NE(sendMsg, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
+    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
+    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B, -E_BASE);
+    int reTryTimes = 5;
+    while ((count < 4) && (reTryTimes > 0)) { // Wait to make sure retry exceeds the limit
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        reTryTimes--;
+    }
+    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1)); // only one callback result notification
+    EXPECT_EQ(sendResult[0].first, -E_BASE); // index 0 retry fail
+    EXPECT_EQ(sendResult[0].second, false);
+
+    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}

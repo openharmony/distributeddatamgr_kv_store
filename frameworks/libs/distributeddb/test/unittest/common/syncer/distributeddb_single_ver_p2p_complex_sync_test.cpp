@@ -828,77 +828,6 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync002, TestSiz
 }
 
 /**
- * @tc.name: Device Offline Sync 003
- * @tc.desc: Test sync statuses when device offline and sendMessage return different errCode
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync003, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. device put data.
-     * @tc.expected: step1. sync return OK.
-     */
-    std::vector<std::string> devices;
-    devices.push_back(g_deviceB->GetDeviceId());
-    devices.push_back(g_deviceC->GetDeviceId());
-    Key key1 = {'1'};
-    Value value1 = {'1'};
-    ASSERT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
-
-    /**
-     * @tc.steps: step2. call sync when device offline and mock commErrCode is E_BASE(positive number).
-     * @tc.expected: step2. return COMM_FAILURE.
-     */
-    g_communicatorAggregator->MockCommErrCode(E_BASE);
-    std::map<std::string, DBStatus> result;
-    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
-    ASSERT_EQ(status, OK);
-    for (const auto &pair : result) {
-        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, E_BASE);
-        EXPECT_EQ(pair.second, COMM_FAILURE);
-    }
-
-    /**
-     * @tc.steps: step3. call sync when device offline and mock commErrCode is -E_BASE(negative number).
-     * @tc.expected: step3. return -E_BASE.
-     */
-    g_communicatorAggregator->MockCommErrCode(-E_BASE);
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
-    ASSERT_EQ(status, OK);
-    for (const auto &pair : result) {
-        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, COMM_FAILURE);
-        EXPECT_EQ(pair.second, static_cast<DBStatus>(-E_BASE));
-    }
-
-    /**
-     * @tc.steps: step4. call sync when device offline and mock commErrCode is INT_MAX.
-     * @tc.expected: step4. return COMM_FAILURE.
-     */
-    g_communicatorAggregator->MockCommErrCode(INT_MAX);
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
-    ASSERT_EQ(status, OK);
-    for (const auto &pair : result) {
-        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, INT_MAX);
-        EXPECT_EQ(pair.second, COMM_FAILURE);
-    }
-
-    /**
-     * @tc.steps: step5. call sync when device offline and mock commErrCode is -INT_MAX.
-     * @tc.expected: step5. return -INT_MAX.
-     */
-    g_communicatorAggregator->MockCommErrCode(-INT_MAX);
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
-    ASSERT_EQ(status, OK);
-    for (const auto &pair : result) {
-        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, -INT_MAX);
-        EXPECT_EQ(pair.second, -INT_MAX);
-    }
-    g_communicatorAggregator->MockCommErrCode(E_OK);
-}
-
-/**
   * @tc.name: EncryptedAlgoUpgrade001
   * @tc.desc: Test upgrade encrypted db can sync normally
   * @tc.type: FUNC
@@ -2279,4 +2208,150 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, MetaBusy001, TestSize.Level1)
     }
     g_deviceB->SetSaveDataCallback(nullptr);
     RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
+ * @tc.name: TestErrCodePassthrough001
+ * @tc.desc: Test ErrCode Passthrough when sync comm fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, TestErrCodePassthrough001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device put data.
+     * @tc.expected: step1. sync return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(g_deviceC->GetDeviceId());
+    Key key1 = {'1'};
+    Value value1 = {'1'};
+    ASSERT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
+
+    /**
+     * @tc.steps: step2. call sync and mock commErrCode is E_BASE(positive number).
+     * @tc.expected: step2. return COMM_FAILURE.
+     */
+    g_communicatorAggregator->MockCommErrCode(E_BASE);
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, E_BASE);
+        EXPECT_EQ(pair.second, COMM_FAILURE);
+    }
+
+    /**
+     * @tc.steps: step3. call sync and mock commErrCode is -E_BASE(negative number).
+     * @tc.expected: step3. return -E_BASE.
+     */
+    g_communicatorAggregator->MockCommErrCode(-E_BASE);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, COMM_FAILURE);
+        EXPECT_EQ(pair.second, static_cast<DBStatus>(-E_BASE));
+    }
+
+    /**
+     * @tc.steps: step4. call sync and mock commErrCode is INT_MAX.
+     * @tc.expected: step4. return COMM_FAILURE.
+     */
+    g_communicatorAggregator->MockCommErrCode(INT_MAX);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, INT_MAX);
+        EXPECT_EQ(pair.second, COMM_FAILURE);
+    }
+
+    /**
+     * @tc.steps: step5. call sync and mock commErrCode is -INT_MAX.
+     * @tc.expected: step5. return -INT_MAX.
+     */
+    g_communicatorAggregator->MockCommErrCode(-INT_MAX);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, -INT_MAX);
+        EXPECT_EQ(pair.second, -INT_MAX);
+    }
+    g_communicatorAggregator->MockCommErrCode(E_OK);
+}
+
+/**
+  * @tc.name: TestErrCodePassthrough002
+  * @tc.desc: Test ErrCode Passthrough when sync time out and isDirectEnd is false
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: suyue
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, TestErrCodePassthrough002, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. device put data.
+     * @tc.expected: step1. sync return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    ASSERT_EQ(g_kvDelegatePtr->Put({'k', '1'}, {'v', '1'}), OK);
+
+    /**
+     * @tc.steps: step2. set messageId invalid and isDirectEnd is false
+     * @tc.expected: step2. make sure deviceA push data failed due to timeout
+     */
+    g_communicatorAggregator->RegOnDispatch([](const std::string &target, DistributedDB::Message *msg) {
+        ASSERT_NE(msg, nullptr);
+        if (target == DEVICE_B && msg->GetMessageId() == QUERY_SYNC_MESSAGE) {
+            msg->SetMessageId(INVALID_MESSAGE_ID);
+        }
+    });
+    g_communicatorAggregator->MockDirectEndFlag(false);
+
+    /**
+     * @tc.steps: step3. call sync and mock errCode is E_BASE(positive number).
+     * @tc.expected: step3. return TIME_OUT.
+     */
+    std::map<std::string, DBStatus> result;
+    auto callback = [&result](const std::map<std::string, DBStatus> &map) {
+        result = map;
+    };
+    Query query = Query::Select().PrefixKey({'k', '1'});
+    g_communicatorAggregator->MockCommErrCode(E_BASE);
+    EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], TIME_OUT);
+
+    /**
+     * @tc.steps: step4. call sync and mock errCode is -E_BASE(negative number).
+     * @tc.expected: step4. return -E_BASE.
+     */
+    g_communicatorAggregator->MockCommErrCode(-E_BASE);
+    EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], -E_BASE);
+
+    /**
+     * @tc.steps: step5. call sync and mock errCode is E_OK(0).
+     * @tc.expected: step5. return TIME_OUT.
+     */
+    g_communicatorAggregator->MockCommErrCode(E_OK);
+    EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], TIME_OUT);
+
+    /**
+     * @tc.steps: step6. call sync and mock errCode is -INT_MAX.
+     * @tc.expected: step6. return - INT_MAX.
+     */
+    g_communicatorAggregator->MockCommErrCode(-INT_MAX);
+    EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], -INT_MAX);
+
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+    g_communicatorAggregator->MockCommErrCode(E_OK);
+    g_communicatorAggregator->MockDirectEndFlag(true);
 }

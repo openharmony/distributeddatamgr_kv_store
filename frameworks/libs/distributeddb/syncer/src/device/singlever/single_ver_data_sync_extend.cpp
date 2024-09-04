@@ -111,8 +111,8 @@ int SingleVerDataSync::SendControlPacket(ControlRequestPacket *packet, SingleVer
     }
     SingleVerDataSyncUtils::SetMessageHeadInfo(*message, TYPE_REQUEST, context->GetDeviceId(),
         context->GetSequenceId(), context->GetRequestSessionId());
-    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret) {
-        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId);
+    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret, bool isDirectEnd) {
+        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId, isDirectEnd);
     };
     errCode = Send(context, message, handler, packetLen);
     if (errCode != E_OK) {

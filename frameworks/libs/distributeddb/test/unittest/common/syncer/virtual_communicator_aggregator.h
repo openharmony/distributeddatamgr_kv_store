@@ -95,6 +95,8 @@ public:
 
     void MockCommErrCode(int mockErrCode);
 
+    void MockDirectEndFlag(bool isDirectEnd);
+
     ~VirtualCommunicatorAggregator() override = default;
     VirtualCommunicatorAggregator() = default;
 
@@ -127,6 +129,7 @@ private:
     std::string localDeviceId_;
     int getLocalDeviceRet_ = E_OK;
     int commErrCodeMock_ = E_OK;
+    bool isDirectEnd_ = true;
 };
 } // namespace DistributedDB
 

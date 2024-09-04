@@ -1066,8 +1066,8 @@ int SingleVerDataSync::SendDataPacket(SyncType syncType, DataRequestPacket *pack
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_DATA_SEND_REQUEST_TO_ACK_RECV);
     }
-    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret) {
-        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId);
+    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret, bool isDirectEnd) {
+        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId, isDirectEnd);
     };
     errCode = Send(context, message, handler, packetLen);
     if (errCode != E_OK) {
@@ -1467,8 +1467,8 @@ int SingleVerDataSync::SendReSendPacket(DataRequestPacket *packet, SingleVerSync
         return errCode;
     }
     SingleVerDataSyncUtils::SetMessageHeadInfo(*message, TYPE_REQUEST, context->GetDeviceId(), sequenceId, sessionId);
-    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret) {
-        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId);
+    CommErrHandler handler = [this, context, sessionId = message->GetSessionId()](int ret, bool isDirectEnd) {
+        SyncTaskContext::CommErrHandlerFunc(ret, context, sessionId, isDirectEnd);
     };
     errCode = Send(context, message, handler, packetLen);
     if (errCode != E_OK) {

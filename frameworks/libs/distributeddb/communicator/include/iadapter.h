@@ -28,7 +28,7 @@ namespace DistributedDB {
 using BytesReceiveCallback = std::function<void(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
     const std::string &userId)>;
 using TargetChangeCallback = std::function<void(const std::string &target, bool isConnect)>;
-using SendableCallback = std::function<void(const std::string &target)>;
+using SendableCallback = std::function<void(const std::string &target, int softBusErrCode)>;
 
 class IAdapter {
 public:

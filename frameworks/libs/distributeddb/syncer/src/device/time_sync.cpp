@@ -502,7 +502,7 @@ int TimeSync::TimeSyncDriver(TimerId timerId)
     }
     std::lock_guard<std::mutex> lock(timeDriverLock_);
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
-        CommErrHandler handler = [this](int ret) { CommErrHandlerFunc(ret, this); };
+        CommErrHandler handler = [this](int ret, bool isDirectEnd) { CommErrHandlerFunc(ret, this); };
         (void)this->SyncStart(handler);
         std::lock_guard<std::mutex> innerLock(this->timeDriverLock_);
         this->timeDriverLockCount_--;
@@ -523,7 +523,7 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
             std::lock_guard<std::mutex> lock(cvLock_);
             isAckReceived_ = false;
         }
-        CommErrHandler handler = [this](int ret) { CommErrHandlerFunc(ret, this); };
+        CommErrHandler handler = [this](int ret, bool isDirectEnd) { CommErrHandlerFunc(ret, this); };
         int errCode = SyncStart(handler, sessionId);
         LOGD("TimeSync::GetTimeOffset start, current time = %" PRIu64 ", errCode = %d, timeout = %" PRIu32 " ms",
             TimeHelper::GetSysCurrentTime(), errCode, timeout);
@@ -621,7 +621,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
 {
     std::shared_ptr<TimeSync> timeSyncPtr = shared_from_this();
     auto sessionId = message->GetSessionId();
-    return SendPacket(deviceId_, message, [handler, timeSyncPtr, sessionId, this](int errCode) {
+    return SendPacket(deviceId_, message, [handler, timeSyncPtr, sessionId, this](int errCode, bool isDirectEnd) {
         if (closed_) {
             LOGW("[TimeSync] DB closed, ignore send end! dev=%.3s", deviceId_.c_str());
             return;
@@ -632,7 +632,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
             sessionBeginTime_[sessionId] = timeHelper_->GetTime();
         }
         if (handler != nullptr) {
-            handler(errCode);
+            handler(errCode, isDirectEnd);
         }
     });
 }
