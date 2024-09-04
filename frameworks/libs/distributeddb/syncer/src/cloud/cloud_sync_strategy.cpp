@@ -25,7 +25,7 @@ void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy 
     policy_ = policy;
 }
 
-OpType CloudSyncStrategy::TagSyncDataStatus([[gnu::unused]] bool existInLocal,
+OpType CloudSyncStrategy::TagSyncDataStatus([[gnu::unused]] bool existInLocal, [[gnu::unused]] bool isCloudWin,
     [[gnu::unused]] const LogInfo &localInfo, [[gnu::unused]] const LogInfo &cloudInfo)
 {
     return OpType::NOT_HANDLE;
@@ -63,6 +63,10 @@ bool CloudSyncStrategy::IsSameVersion(const LogInfo &cloudInfo, const LogInfo &l
 bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
 {
     if (policy_ == SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN) {
+        return false;
+    }
+    if ((localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 && IsDelete(localInfo)) {
+        LOGW("[CloudSyncStrategy] dont ignore %.6s", localInfo.cloudGid.c_str());
         return false;
     }
     if (localInfo.originDev.empty() && localInfo.device.empty()) {
