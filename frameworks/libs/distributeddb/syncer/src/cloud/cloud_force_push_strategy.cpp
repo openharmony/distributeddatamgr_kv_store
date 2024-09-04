@@ -17,7 +17,7 @@
 
 namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
-OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
     const LogInfo &cloudInfo)
 {
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {

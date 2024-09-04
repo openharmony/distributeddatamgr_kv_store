@@ -516,4 +516,55 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
     syncObject.ParserQueryNodes(bytes, queryNodes);
     ASSERT_EQ(queryNodes[0].type, QueryNodeType::IN);
 }
+
+/**
+ * @tc.name: DeviceCollaborationTest001
+ * @tc.desc: Check force override data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open db with DEVICE_COLLABORATION.
+     * @tc.expected: step1. return E_OK.
+     */
+    KvStoreNbDelegate* kvDelegatePtrS3 = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.conflictResolvePolicy = ConflictResolvePolicy::DEVICE_COLLABORATION;
+    ASSERT_EQ(GetKvStore(kvDelegatePtrS3, STORE_ID_3, option), OK);
+    ASSERT_NE(kvDelegatePtrS3, nullptr);
+    KvStoreNbDelegate* kvDelegatePtrS4 = nullptr;
+    ASSERT_EQ(GetKvStore(kvDelegatePtrS4, STORE_ID_4, option), OK);
+    ASSERT_NE(kvDelegatePtrS4, nullptr);
+    /**
+     * @tc.steps: step2. db3 put (k1,v1) sync to db4.
+     * @tc.expected: step2. db4 get (k1,v1).
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    EXPECT_EQ(kvDelegatePtrS3->Put(key, value), OK);
+    communicatorAggregator_->SetLocalDeviceId("DB3");
+    BlockSync(kvDelegatePtrS3, OK, g_CloudSyncoption);
+    communicatorAggregator_->SetLocalDeviceId("DB4");
+    BlockSync(kvDelegatePtrS4, OK, g_CloudSyncoption);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS4->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step3. db4 delete (k1,v1) db3 sync again to db4.
+     * @tc.expected: step3. db4 get (k1,v1).
+     */
+    EXPECT_EQ(kvDelegatePtrS4->Delete(key), OK);
+    communicatorAggregator_->SetLocalDeviceId("DB3");
+    EXPECT_EQ(kvDelegatePtrS3->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    BlockSync(kvDelegatePtrS3, OK, g_CloudSyncoption);
+    communicatorAggregator_->SetLocalDeviceId("DB4");
+    BlockSync(kvDelegatePtrS4, OK, g_CloudSyncoption);
+    EXPECT_EQ(kvDelegatePtrS4->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    CloseKvStore(kvDelegatePtrS3, STORE_ID_3);
+    CloseKvStore(kvDelegatePtrS4, STORE_ID_4);
+}
 }

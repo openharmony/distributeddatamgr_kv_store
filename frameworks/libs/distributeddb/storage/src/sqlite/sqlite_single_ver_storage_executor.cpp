@@ -1241,7 +1241,7 @@ DataOperStatus SQLiteSingleVerStorageExecutor::JudgeSyncSaveType(DataItem &dataI
         std::string deviceName = DBCommon::TransferHashString(devName);
         if (itemGet.writeTimestamp >= dataItem.writeTimestamp) {
             // for multi user mode, no permit to forcewrite
-            if ((!deviceName.empty()) && (itemGet.dev == deviceName) && isPermitForceWrite) {
+            if ((!deviceName.empty()) && IsFromDataOwner(itemGet, deviceName) && isPermitForceWrite) {
                 LOGI("Force overwrite the data:%" PRIu64 " vs %" PRIu64,
                     itemGet.writeTimestamp, dataItem.writeTimestamp);
                 status.isDefeated = false;

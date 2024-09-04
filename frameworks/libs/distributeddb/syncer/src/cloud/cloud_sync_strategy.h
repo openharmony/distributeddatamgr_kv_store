@@ -29,7 +29,7 @@ public:
 
     void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
-    virtual OpType TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+    virtual OpType TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
         const LogInfo &cloudInfo);
 
     virtual bool JudgeUpdateCursor();

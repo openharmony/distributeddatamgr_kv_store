@@ -19,7 +19,7 @@
 namespace DistributedDB {
 class CloudForcePushStrategy : public CloudSyncStrategy {
 public:
-    OpType TagSyncDataStatus(bool existInLocal, bool isSameCurDevice, const LogInfo &localInfo,
+    OpType TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
         const LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
