@@ -25,8 +25,8 @@
 
 namespace DistributedDB {
 enum DBStatus {
-    DB_ERROR = -1, // DBStatus in [27328512, 27394048]
     OK = 0,
+    DB_ERROR = 27328512, // DBStatus in [27328512, 27394048)
     BUSY,
     NOT_FOUND,
     INVALID_ARGS,
@@ -89,7 +89,7 @@ enum DBStatus {
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
     SQLITE_CANT_OPEN, // the sqlite cannot open
     LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
-    BUTT_STATUS // end of status
+    BUTT_STATUS = 27394048 // end of status
 };
 
 struct KvStoreConfig {

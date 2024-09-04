@@ -26,7 +26,7 @@
 #include "sync_target.h"
 #include "time_helper.h"
 namespace DistributedDB {
-using CommErrHandler = std::function<void(int)>;
+using CommErrHandler = std::function<void(int, bool)>;
 
 class ISyncTaskContext : public virtual RefObject {
 public:

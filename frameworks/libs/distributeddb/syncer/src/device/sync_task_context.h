@@ -174,7 +174,7 @@ public:
     virtual void Abort(int status);
 
     // Used in send msg, as execution is asynchronous, should use this function to handle result.
-    static void CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId);
+    static void CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId, bool isDirectEnd = true);
 
     int GetTaskErrCode() const override;
 
@@ -216,6 +216,10 @@ public:
     void TimeChange() override;
 
     int32_t GetResponseTaskCount() override;
+
+    int GetCommErrCode() const;
+
+    void SetCommFailErrCode(int errCode);
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 
@@ -225,7 +229,7 @@ protected:
 
     virtual void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam);
 
-    void CommErrHandlerFuncInner(int errCode, uint32_t sessionId);
+    void CommErrHandlerFuncInner(int errCode, uint32_t sessionId, bool isDirectEnd = true);
 
     void KillWait();
 
@@ -242,6 +246,8 @@ protected:
     uint32_t GenerateRequestSessionId();
 
     static uint8_t GetPermissionCheckFlag(bool isAutoSync, int syncMode);
+
+    void SetErrCodeWhenWaitTimeOut(int errCode);
 
     mutable std::mutex targetQueueLock_;
     std::list<ISyncTarget *> requestTargetQueue_;
@@ -284,6 +290,7 @@ protected:
 
     volatile bool isCommNormal_;
     volatile int taskErrCode_;
+    std::atomic<int> commErrCode_;
     volatile uint64_t packetId_ = 0; // used for assignment to reSendMap_.ReSendInfo.packetId in 103 version or above
     volatile bool syncTaskRetryStatus_;
     volatile bool isSyncRetry_;

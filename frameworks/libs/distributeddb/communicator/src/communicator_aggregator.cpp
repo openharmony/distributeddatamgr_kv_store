@@ -281,7 +281,7 @@ void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
     if (onEnd) { // LCOV_EXCL_BR_LINE
         TaskAction onSendEndTask = [onEnd, result]() {
             LOGD("[CommAggr][SendEndTask] Before On Send End.");
-            onEnd(result);
+            onEnd(result, true);
             LOGD("[CommAggr][SendEndTask] After On Send End.");
         };
         int errCode = RuntimeContext::GetInstance()->ScheduleTask(onSendEndTask);
@@ -452,7 +452,7 @@ void CommunicatorAggregator::TaskFinalizer(const SendTask &inTask, int result)
     // Call the OnSendEnd if need
     if (inTask.onEnd) {
         LOGD("[CommAggr][TaskFinal] On Send End.");
-        inTask.onEnd(result);
+        inTask.onEnd(result, true);
     }
     // Finalize the task that just scheduled
     int errCode = scheduler_.FinalizeLastScheduleTask();
@@ -738,10 +738,13 @@ int CommunicatorAggregator::RegCallbackToAdapter()
     }
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
-    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target) {
-            LOGI("[CommAggr] Send able dev=%.3s", target.c_str());
-            (void)IncreaseSendSequenceId(target);
-            OnSendable(target);
+    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int softBusErrCode) {
+            LOGI("[CommAggr] Send able dev=%.3s, softBusErrCode=%d", target.c_str(), softBusErrCode);
+            if (softBusErrCode == E_OK) {
+                (void)IncreaseSendSequenceId(target);
+                OnSendable(target);
+            }
+            scheduler_.SetSoftBusErrCode(target, softBusErrCode);
         },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {

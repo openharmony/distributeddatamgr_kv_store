@@ -841,7 +841,16 @@ void SyncWithQuery(vector<std::string> &devices, const Query &query, const SyncM
     DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, mode, result, query);
     EXPECT_TRUE(status == OK);
     for (const auto &deviceId : devices) {
-        ASSERT_EQ(result[deviceId], targetStatus);
+        if (targetStatus == COMM_FAILURE) {
+            // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+            // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+            // The returned status is COMM_FAILURE.
+            // If syncTaskContext of deviceB is not executed first, the error code is transparently transmitted.
+            EXPECT_TRUE((result[deviceId] == static_cast<DBStatus>(-E_PERIPHERAL_INTERFACE_FAIL)) ||
+                (result[deviceId] == COMM_FAILURE));
+        } else {
+            ASSERT_EQ(result[deviceId], targetStatus);
+        }
     }
 }
 
@@ -865,6 +874,9 @@ void SyncWithDeviceOffline(vector<std::string> &devices, Key &key, const Query &
      * @tc.steps: step3. device offline when sync
      * @tc.expected: step3. should return COMM_FAILURE.
      */
+    // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+    // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+    // The returned status is COMM_FAILURE.
     SyncWithQuery(devices, query, COMM_FAILURE);
 }
 

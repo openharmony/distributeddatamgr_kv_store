@@ -1274,7 +1274,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync002, TestSize.Leve
     Query query = Query::Select(g_tableName);
     SyncOperation::UserCallback callBack = [](const std::map<std::string, int> &statusMap) {
         for (const auto &entry : statusMap) {
-            EXPECT_EQ(entry.second, static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
+            EXPECT_EQ(entry.second, -E_NOT_FOUND);
         }
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, callBack, true), E_OK);
@@ -1316,7 +1316,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync003, TestSize.Leve
     Query query = Query::Select(g_tableName);
     SyncOperation::UserCallback callBack = [](const std::map<std::string, int> &statusMap) {
         for (const auto &entry : statusMap) {
-            EXPECT_EQ(entry.second, static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
+            EXPECT_EQ(entry.second, -E_NOT_FOUND);
         }
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, callBack, true), E_OK);

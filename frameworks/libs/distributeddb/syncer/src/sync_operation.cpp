@@ -78,9 +78,9 @@ void SyncOperation::SetOnSyncFinished(const OnSyncFinished &callback)
     onFinished_ = callback;
 }
 
-void SyncOperation::SetStatus(const std::string &deviceId, int status)
+void SyncOperation::SetStatus(const std::string &deviceId, int status, int commErrCode)
 {
-    LOGD("[SyncOperation] SetStatus dev %s{private} status %d", deviceId.c_str(), status);
+    LOGD("[SyncOperation] SetStatus dev %s{private} status %d commErrCode %d", deviceId.c_str(), status, commErrCode);
     AutoLock lockGuard(this);
     if (IsKilled()) {
         LOGE("[SyncOperation] SetStatus failed, the SyncOperation has been killed!");
@@ -97,7 +97,10 @@ void SyncOperation::SetStatus(const std::string &deviceId, int status)
             return;
         }
         iter->second = status;
-        return;
+        if (((status != OP_COMM_ABNORMAL) && (status != OP_TIMEOUT)) || (commErrCode == E_OK)) {
+            return;
+        }
+        commErrCodeMap_.insert(std::pair<std::string, int>(deviceId, commErrCode));
     }
 }
 
@@ -141,6 +144,20 @@ int SyncOperation::GetMode() const
     return mode_;
 }
 
+void SyncOperation::ReplaceCommErrCode(std::map<std::string, int> &finishStatus)
+{
+    for (auto &item : finishStatus) {
+        if ((item.second != OP_COMM_ABNORMAL) && (item.second != OP_TIMEOUT)) {
+            continue;
+        }
+        std::string deviceId = item.first;
+        auto iter = commErrCodeMap_.find(deviceId);
+        if (iter != commErrCodeMap_.end()) {
+            item.second = iter->second;
+        }
+    }
+}
+
 void SyncOperation::Finished()
 {
     std::map<std::string, int> tmpStatus;
@@ -151,6 +168,7 @@ void SyncOperation::Finished()
         }
         isFinished_ = true;
         tmpStatus = statuses_;
+        ReplaceCommErrCode(tmpStatus);
     }
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
@@ -334,12 +352,13 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         { static_cast<int>(OP_USER_CHANGED),                  USER_CHANGED },
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
+        { static_cast<int>(OP_FAILED),                        DB_ERROR },
     };
     const auto &result = std::find_if(std::begin(syncOperationStatusNodes), std::end(syncOperationStatusNodes),
         [operationStatus](const auto &node) {
             return node.operationStatus == operationStatus;
         });
-    return result == std::end(syncOperationStatusNodes) ? DB_ERROR : result->status;
+    return result == std::end(syncOperationStatusNodes) ? static_cast<DBStatus>(operationStatus) : result->status;
 }
 
 std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &finishStatus)
@@ -347,7 +366,7 @@ std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &
     std::string msg = "Sync detail is:";
     for (const auto &[dev, status]: finishStatus) {
         msg += "dev=" + DBCommon::StringMasking(dev);
-        if (status > static_cast<int>(OP_FINISHED_ALL)) {
+        if ((status > static_cast<int>(OP_FINISHED_ALL)) || (status < E_OK)) {
             msg += " sync failed, reason is " + std::to_string(status);
         } else {
             msg += " sync success";

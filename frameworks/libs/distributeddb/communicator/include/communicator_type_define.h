@@ -25,7 +25,7 @@
 namespace DistributedDB {
 using LabelType = std::vector<uint8_t>;
 using Finalizer = std::function<void(void)>;
-using OnSendEnd = std::function<void(int result)>;
+using OnSendEnd = std::function<void(int result, bool isDirectEnd)>;
 using OnConnectCallback = std::function<void(const std::string &target, bool isConnect)>;
 constexpr unsigned int COMM_LABEL_LENGTH = 32; // Using SHA256 which length is 32
 constexpr uint32_t MAX_TOTAL_LEN = 104857600; // 100M Limitation For Max Total Length
