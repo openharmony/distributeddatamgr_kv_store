@@ -17,6 +17,21 @@
 #include "db_properties.h"
 
 namespace DistributedDB {
+const std::string DBProperties::CREATE_IF_NECESSARY = "createIfNecessary";
+const std::string DBProperties::DATA_DIR = "dataDir";
+const std::string DBProperties::USER_ID = "userId";
+const std::string DBProperties::APP_ID = "appId";
+const std::string DBProperties::STORE_ID = "storeId";
+const std::string DBProperties::INSTANCE_ID = "instanceId";
+const std::string DBProperties::SUB_USER = "subUser";
+const std::string DBProperties::IDENTIFIER_DATA = "identifier";
+const std::string DBProperties::IDENTIFIER_DIR = "identifierDir";
+const std::string DBProperties::DUAL_TUPLE_IDENTIFIER_DATA = "dualTupleIdentifier";
+const std::string DBProperties::SYNC_DUAL_TUPLE_MODE = "syncDualTuple";
+const std::string DBProperties::AUTO_LAUNCH_ID = "autoLaunchID";
+
+const std::string DBProperties::DATABASE_TYPE = "databaseType";
+
 std::string DBProperties::GetStringProp(const std::string &name, const std::string &defaultValue) const
 {
     auto iter = stringProperties_.find(name);

@@ -22,284 +22,283 @@
 
 namespace DistributedDB {
     //  cache.sync_data is design for migrating action after process restart
-    constexpr const char *INSERT_LOCAL_SQL =
+    const std::string INSERT_LOCAL_SQL =
         "INSERT OR REPLACE INTO local_data VALUES(?,?,?,?);";
-    constexpr const char *INSERT_LOCAL_SQL_FROM_CACHEHANDLE =
+    const std::string INSERT_LOCAL_SQL_FROM_CACHEHANDLE =
         "INSERT OR REPLACE INTO maindb.local_data VALUES(?,?,?,?);";
 
-    constexpr const char *INSERT_CACHE_LOCAL_SQL =
+    const std::string INSERT_CACHE_LOCAL_SQL =
         "INSERT OR REPLACE INTO local_data VALUES(?,?,?,?,?);";
 
-    constexpr const char *UPDATE_LOCAL_SQL_FROM_CACHEHANDLE =
+    const std::string UPDATE_LOCAL_SQL_FROM_CACHEHANDLE =
         "UPDATE maindb.local_data SET key=?,value=?,timestamp=? where hash_key=?";
 
-    constexpr const char *UPDATE_CACHE_LOCAL_SQL =
+    const std::string UPDATE_CACHE_LOCAL_SQL =
         "UPDATE local_data SET key=?,value=?,timestamp=? where hash_key=?";
 
-    constexpr const char *INSERT_META_SQL =
+    const std::string INSERT_META_SQL =
         "INSERT OR REPLACE INTO meta_data VALUES(?,?);";
 
-    constexpr const char *INSERT_ATTACH_META_SQL =
+    const std::string INSERT_ATTACH_META_SQL =
         "INSERT OR REPLACE INTO meta.meta_data VALUES(?,?);";
 
-    constexpr const char *INSERT_SYNC_SQL =
+    const std::string INSERT_SYNC_SQL =
         "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
 
-    constexpr const char *UPDATE_SYNC_SQL =
+    const std::string UPDATE_SYNC_SQL =
         "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?," \
         "modify_time=?,create_time=? WHERE hash_key=?;";
 
-    constexpr const char *INSERT_CACHE_SYNC_SQL =
+    const std::string INSERT_CACHE_SYNC_SQL =
         "INSERT OR REPLACE INTO sync_data VALUES(?,?,?,?,?,?,?,?,?);";
-    constexpr const char *INSERT_CACHE_SYNC_SQL_FROM_MAINHANDLE =
+    const std::string INSERT_CACHE_SYNC_SQL_FROM_MAINHANDLE =
         "INSERT OR REPLACE INTO cache.sync_data VALUES(?,?,?,?,?,?,?,?,?);";
 
-    constexpr const char *UPDATE_CACHE_SYNC_SQL =
+    const std::string UPDATE_CACHE_SYNC_SQL =
         "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? WHERE hash_key=?;";
 
-    constexpr const char *UPDATE_CACHE_SYNC_SQL_FROM_MAINHANDLE =
+    const std::string UPDATE_CACHE_SYNC_SQL_FROM_MAINHANDLE =
         "UPDATE cache.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=? "
         "WHERE hash_key=?;";
 
-    constexpr const char *DELETE_LOCAL_SQL =
+    const std::string DELETE_LOCAL_SQL =
         "DELETE FROM local_data WHERE key=?;";
-    constexpr const char *DELETE_LOCAL_SQL_FROM_CACHEHANDLE =
+    const std::string DELETE_LOCAL_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.local_data WHERE key=?;";
 
-    constexpr const char *SELECT_ALL_META_KEYS =
+    const std::string SELECT_ALL_META_KEYS =
         "SELECT key FROM meta_data;";
 
-    constexpr const char *SELECT_ATTACH_ALL_META_KEYS =
+    const std::string SELECT_ATTACH_ALL_META_KEYS =
         "SELECT key FROM meta.meta_data;";
 
-    constexpr const char *SELECT_META_KEYS_BY_PREFIX =
+    const std::string SELECT_META_KEYS_BY_PREFIX =
         "SELECT key FROM meta_data where key like ?;";
 
-    constexpr const char *SELECT_ATTACH_META_KEYS_BY_PREFIX =
+    const std::string SELECT_ATTACH_META_KEYS_BY_PREFIX =
         "SELECT key FROM meta.meta_data where key like ?;";
 
-    constexpr const char *SELECT_ALL_SYNC_ENTRIES_BY_DEV =
+    const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV =
         "SELECT key, value FROM sync_data WHERE device=? AND (flag&0x03=0);";
 
-    constexpr const char *SELECT_ALL_SYNC_ENTRIES =
+    const std::string SELECT_ALL_SYNC_ENTRIES =
         "SELECT key, value FROM sync_data WHERE (flag&0x03=0);";
 
-    constexpr const char *SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE =
+    const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE =
         "SELECT key, value FROM maindb.sync_data WHERE device=? AND (flag&0x03=0);";
 
-    constexpr const char *SELECT_ALL_SYNC_ENTRIES_FROM_CACHEHANDLE =
+    const std::string SELECT_ALL_SYNC_ENTRIES_FROM_CACHEHANDLE =
         "SELECT key, value FROM maindb.sync_data WHERE (flag&0x03=0);";
 
-    constexpr const char *SELECT_LOCAL_VALUE_TIMESTAMP_SQL =
+    const std::string SELECT_LOCAL_VALUE_TIMESTAMP_SQL =
         "SELECT value, timestamp FROM local_data WHERE key=?;";
 
-    constexpr const char *SELECT_SYNC_SQL =
+    const std::string SELECT_SYNC_SQL =
         "SELECT * FROM sync_data WHERE key=?;";
 
-    constexpr const char *SELECT_SYNC_VALUE_WTIMESTAMP_SQL =
+    const std::string SELECT_SYNC_VALUE_WTIMESTAMP_SQL =
         "SELECT value, w_timestamp FROM sync_data WHERE key=? AND (flag&0x200=0);";
 
-    constexpr const char *SELECT_SYNC_HASH_SQL =
+    const std::string SELECT_SYNC_HASH_SQL =
         "SELECT * FROM sync_data WHERE hash_key=?;";
 
-    constexpr const char *SELECT_CACHE_SYNC_HASH_SQL =
+    const std::string SELECT_CACHE_SYNC_HASH_SQL =
         "SELECT * FROM sync_data WHERE hash_key=? AND version=?;";
-    constexpr const char *SELECT_CACHE_SYNC_HASH_SQL_FROM_MAINHANDLE =
+    const std::string SELECT_CACHE_SYNC_HASH_SQL_FROM_MAINHANDLE =
         "SELECT * FROM cache.sync_data WHERE hash_key=? AND version=?;";
 
-    constexpr const char *SELECT_LOCAL_HASH_SQL =
+    const std::string SELECT_LOCAL_HASH_SQL =
         "SELECT * FROM local_data WHERE hash_key=?;";
 
-    constexpr const char *SELECT_CACHE_LOCAL_HASH_SQL =
+    const std::string SELECT_CACHE_LOCAL_HASH_SQL =
         "SELECT * FROM local_data WHERE hash_key=?;";
 
-    constexpr const char *SELECT_META_VALUE_SQL =
+    const std::string SELECT_META_VALUE_SQL =
         "SELECT value FROM meta_data WHERE key=?;";
 
-    constexpr const char *SELECT_ATTACH_META_VALUE_SQL =
+    const std::string SELECT_ATTACH_META_VALUE_SQL =
         "SELECT value FROM meta.meta_data WHERE key=?;";
 
-    constexpr const char *SELECT_MAX_TIMESTAMP_SQL =
+    const std::string SELECT_MAX_TIMESTAMP_SQL =
         "SELECT MAX(timestamp) FROM sync_data;";
-    constexpr const char *SELECT_MAX_TIMESTAMP_SQL_FROM_CACHEHANDLE =
+    const std::string SELECT_MAX_TIMESTAMP_SQL_FROM_CACHEHANDLE =
         "SELECT MAX(timestamp) FROM maindb.sync_data;";
 
-    constexpr const char *SELECT_NATIVE_MIN_TIMESTAMP_IN_CACHE_SYNC_DATA_SQL =
+    const std::string SELECT_NATIVE_MIN_TIMESTAMP_IN_CACHE_SYNC_DATA_SQL =
         "SELECT MIN(timestamp) FROM sync_data WHERE flag&0x02=0x02;";
-    constexpr const char *SELECT_NATIVE_MIN_TIMESTAMP_IN_CACHE_SYNC_DATA_SQL_FROM_MAINHANDLE =
+    const std::string SELECT_NATIVE_MIN_TIMESTAMP_IN_CACHE_SYNC_DATA_SQL_FROM_MAINHANDLE =
         "SELECT MIN(timestamp) FROM cache.sync_data WHERE flag&0x02=0x02;";
 
-    constexpr const char *SELECT_SYNC_ENTRIES_SQL =
+    const std::string SELECT_SYNC_ENTRIES_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) AND (flag&0x200=0) "
         "ORDER BY timestamp ASC;";
 
-    constexpr const char *SELECT_SYNC_DELETED_ENTRIES_SQL =
+    const std::string SELECT_SYNC_DELETED_ENTRIES_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) AND (flag&0x200=0) "
         "ORDER BY timestamp ASC;";
 
-    constexpr const char *SELECT_SYNC_MODIFY_SQL =
+    const std::string SELECT_SYNC_MODIFY_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) AND (flag&0x200=0) "
         "ORDER BY timestamp ASC;";
 
-    constexpr const char *SELECT_SYNC_PREFIX_SQL =
+    const std::string SELECT_SYNC_PREFIX_SQL =
         "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) "
         "ORDER BY key ASC;";
 
-    constexpr const char *SELECT_SYNC_KEY_PREFIX_SQL =
+    const std::string SELECT_SYNC_KEY_PREFIX_SQL =
         "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
-    constexpr const char *SELECT_SYNC_ROWID_PREFIX_SQL =
+    const std::string SELECT_SYNC_ROWID_PREFIX_SQL =
         "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0) ORDER BY key ASC;";
 
-    constexpr const char *SELECT_SYNC_DATA_BY_ROWID_SQL =
+    const std::string SELECT_SYNC_DATA_BY_ROWID_SQL =
         "SELECT key, value FROM sync_data WHERE rowid=?;";
 
-    constexpr const char *SELECT_LOCAL_PREFIX_SQL =
+    const std::string SELECT_LOCAL_PREFIX_SQL =
         "SELECT key, value FROM local_data WHERE key>=? AND key<=? ORDER BY key ASC;";
 
-    constexpr const char *SELECT_COUNT_SYNC_PREFIX_SQL =
+    const std::string SELECT_COUNT_SYNC_PREFIX_SQL =
         "SELECT count(key) FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) AND (flag&0x200=0);";
 
-    constexpr const char *REMOVE_DEV_DATA_SQL =
+    const std::string REMOVE_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 
-    constexpr const char *REMOVE_ALL_DEV_DATA_SQL =
+    const std::string REMOVE_ALL_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
 
-    constexpr const char *REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
+    const std::string REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
 
-    constexpr const char *REMOVE_ALL_DEV_DATA_SQL_FROM_CACHEHANDLE =
+    const std::string REMOVE_ALL_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE (flag&0x02=0);";
 
-    constexpr const char *SELECT_ENTRY_DEVICE =
+    const std::string SELECT_ENTRY_DEVICE =
         "SELECT ori_device, device FROM sync_data WHERE key=?;";
 
     // sql for migrating data
-    constexpr const char *MIGRATE_LOCAL_SQL_FROM_CACHEHANDLE =
+    const std::string MIGRATE_LOCAL_SQL_FROM_CACHEHANDLE =
         "INSERT OR REPLACE INTO maindb.local_data select key, value, timestamp, hash_key from main.local_data;";
-    constexpr const char *MIGRATE_LOCAL_SQL_FROM_MAINHANDLE =
+    const std::string MIGRATE_LOCAL_SQL_FROM_MAINHANDLE =
         "INSERT OR REPLACE INTO main.local_data select key, value, timestamp, hash_key from cache.local_data;";
 
-    constexpr const char *MIGRATE_VACUUM_LOCAL_SQL_FROM_CACHEHANDLE =
+    const std::string MIGRATE_VACUUM_LOCAL_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.local_data where hash_key in (select hash_key FROM maindb.local_data where key is null);";
-    constexpr const char *MIGRATE_VACUUM_LOCAL_SQL_FROM_MAINHANDLE =
+    const std::string MIGRATE_VACUUM_LOCAL_SQL_FROM_MAINHANDLE =
         "DELETE FROM main.local_data where hash_key in (select hash_key FROM main.local_data where key is null);";
 
     // version is index, order by better than MIN()
-    constexpr const char *MIGRATE_SELECT_MIN_VER_CACHEDATA_FROM_CACHEHANDLE =
+    const std::string MIGRATE_SELECT_MIN_VER_CACHEDATA_FROM_CACHEHANDLE =
         "SELECT * FROM sync_data where version = (select version from sync_data order by version limit 1);";
-    constexpr const char *MIGRATE_SELECT_MIN_VER_CACHEDATA_FROM_MAINHANDLE =
+    const std::string MIGRATE_SELECT_MIN_VER_CACHEDATA_FROM_MAINHANDLE =
         "SELECT * FROM cache.sync_data where version = (select version from cache.sync_data order by version limit 1);";
 
-    constexpr const char *GET_MAX_VER_CACHEDATA_FROM_CACHEHANDLE =
+    const std::string GET_MAX_VER_CACHEDATA_FROM_CACHEHANDLE =
         "select version from sync_data order by version DESC limit 1;";
-    constexpr const char *GET_MAX_VER_CACHEDATA_FROM_MAINHANDLE =
+    const std::string GET_MAX_VER_CACHEDATA_FROM_MAINHANDLE =
         "select version from cache.sync_data order by version DESC limit 1;";
 
-    constexpr const char *MIGRATE_INSERT_DATA_TO_MAINDB_FROM_CACHEHANDLE =
+    const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_CACHEHANDLE =
         "INSERT INTO maindb.sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
-    constexpr const char *MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE =
+    const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_CACHEHANDLE =
         "UPDATE maindb.sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
         "modify_time=?,create_time=? WHERE hash_key=?;";
 
-    constexpr const char *MIGRATE_INSERT_DATA_TO_MAINDB_FROM_MAINHANDLE =
+    const std::string MIGRATE_INSERT_DATA_TO_MAINDB_FROM_MAINHANDLE =
         "INSERT INTO sync_data VALUES(?,?,?,?,?,?,?,?,?,?);";
-    constexpr const char *MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_MAINHANDLE =
+    const std::string MIGRATE_UPDATE_DATA_TO_MAINDB_FROM_MAINHANDLE =
         "UPDATE sync_data SET key=?,value=?,timestamp=?,flag=?,device=?,ori_device=?,w_timestamp=?,"
         "modify_time=?,create_time=? WHERE hash_key=?;";
 
-    constexpr const char *MIGRATE_DEL_DATA_BY_VERSION_FROM_CACHEHANDLE =
+    const std::string MIGRATE_DEL_DATA_BY_VERSION_FROM_CACHEHANDLE =
         "DELETE FROM sync_data WHERE version=?;";
-    constexpr const char *MIGRATE_DEL_DATA_BY_VERSION_FROM_MAINHANDLE =
+    const std::string MIGRATE_DEL_DATA_BY_VERSION_FROM_MAINHANDLE =
         "DELETE FROM cache.sync_data WHERE version=?;";
 
-    constexpr const char *SELECT_MAIN_SYNC_HASH_SQL_FROM_CACHEHANDLE =
-        "SELECT * FROM maindb.sync_data WHERE hash_key=?;";
+    const std::string SELECT_MAIN_SYNC_HASH_SQL_FROM_CACHEHANDLE = "SELECT * FROM maindb.sync_data WHERE hash_key=?;";
 
-    constexpr const char *REMOVE_META_VALUE_SQL =
+    const std::string REMOVE_META_VALUE_SQL =
         "DELETE FROM meta_data WHERE key=?;";
-    constexpr const char *REMOVE_ATTACH_META_VALUE_SQL =
+    const std::string REMOVE_ATTACH_META_VALUE_SQL =
         "DELETE FROM meta.meta_data WHERE key=?;";
 
-    constexpr const char *CHECK_DB_INTEGRITY_SQL = "PRAGMA integrity_check;";
+    const std::string CHECK_DB_INTEGRITY_SQL = "PRAGMA integrity_check;";
 
-    constexpr const char *REMOVE_META_VALUE_BY_KEY_PREFIX_SQL =
+    const std::string REMOVE_META_VALUE_BY_KEY_PREFIX_SQL =
         "DELETE FROM meta_data WHERE key>=? AND key<=?;";
-    constexpr const char *REMOVE_ATTACH_META_VALUE_BY_KEY_PREFIX_SQL =
+    const std::string REMOVE_ATTACH_META_VALUE_BY_KEY_PREFIX_SQL =
         "DELETE FROM meta.meta_data WHERE key>=? AND key<=?;";
 
-    constexpr const char *DELETE_SYNC_DATA_WITH_HASHKEY = "DELETE FROM sync_data where hash_key = ?;";
+    const std::string DELETE_SYNC_DATA_WITH_HASHKEY = "DELETE FROM sync_data where hash_key = ?;";
 
-    constexpr const char *DELETE_SYNC_DATA_WITH_HASHKEY_FROM_CACHEHANDLE =
+    const std::string DELETE_SYNC_DATA_WITH_HASHKEY_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data where hash_key = ?;";
 
-    constexpr const char *GET_SYNC_DATA_TIRGGER_SQL =
+    const std::string GET_SYNC_DATA_TIRGGER_SQL =
         "SELECT name FROM SQLITE_MASTER WHERE TYPE = 'trigger' AND TBL_NAME = 'sync_data' AND name like ?;";
 
-    constexpr const char *REMOVE_CLOUD_ALL_LOG_DATA_SQL =
+    const std::string REMOVE_CLOUD_ALL_LOG_DATA_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log;";
 
-    constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_SQL =
+    const std::string REMOVE_CLOUD_ALL_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE (flag&0x100!=0);";
 
-    constexpr const char *UPDATE_CLOUD_ALL_DEV_DATA_SQL =
+    const std::string UPDATE_CLOUD_ALL_DEV_DATA_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0);";
 
-    constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
 
-    constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0);";
 
-    constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "DELETE FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
 
-    constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0) AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
 
-    constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+    const std::string REMOVE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0) AND hash_key NOT IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
 
-    constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
+    const std::string UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0) AND hash_key NOT IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log);";
 
-    constexpr const char *REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL =
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
             "(SELECT hash_key FROM sync_data WHERE device =?);";
 
-    constexpr const char *REMOVE_CLOUD_LOG_DATA_BY_USERID_SQL =
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =?;";
 
-    constexpr const char *REMOVE_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+    const std::string REMOVE_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
         "DELETE FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
             "(SELECT hash_key FROM sync_data WHERE device =?);";
 
-    constexpr const char *SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL =
+    const std::string SELECT_CLOUD_LOG_DATA_BY_DEVID_SQL =
         "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
             "(SELECT hash_key FROM sync_data WHERE device =?);";
 
-    constexpr const char *SELECT_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_DEVID_SQL =
         "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
             "(SELECT hash_key FROM sync_data WHERE device =?);";
 
     // Check whether the hashKey is the same but the userId is different
-    constexpr const char *SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL =
+    const std::string SELECT_CLOUD_LOG_DATA_BY_USERID_HASHKEY_SQL =
         "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE userid =? AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid !=?);";
 
-    constexpr const char *SELECT_CLOUD_DEV_DATA_BY_USERID_SQL =
+    const std::string SELECT_CLOUD_DEV_DATA_BY_USERID_SQL =
         "SELECT * FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
 
-    constexpr const char *REMOVE_CLOUD_ALL_HWM_DATA_SQL =
+    const std::string REMOVE_CLOUD_ALL_HWM_DATA_SQL =
         "DELETE FROM meta_data WHERE KEY LIKE 'naturalbase_cloud_meta_sync_data_%';";
 
-    constexpr const char *REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL =
+    const std::string REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL =
         "DELETE FROM meta_data WHERE KEY =?;";
 
     constexpr const char *UPDATE_SYNC_DATA_KEY_SQL =

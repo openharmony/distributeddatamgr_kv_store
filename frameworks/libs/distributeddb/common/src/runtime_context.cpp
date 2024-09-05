@@ -30,7 +30,7 @@ RuntimeContext *RuntimeContext::GetInstance()
             // Use instMemory to make sure this singleton not free before other object.
             // This operation needn't to malloc memory, we needn't to check nullptr.
             instPtr = new (instMemory) RuntimeContextImpl;
-            LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING);
+            LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING.c_str());
         }
     }
     return instPtr;
