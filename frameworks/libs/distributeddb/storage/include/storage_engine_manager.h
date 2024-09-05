@@ -66,7 +66,7 @@ private:
 
     static std::mutex instanceLock_;
     static std::atomic<StorageEngineManager *> instance_;
-    static bool isRegLockStatusListener_;
+    static volatile bool isRegLockStatusListener_;
 
     static std::mutex storageEnginesLock_;
     std::map<std::string, StorageEngine *> storageEngines_;
