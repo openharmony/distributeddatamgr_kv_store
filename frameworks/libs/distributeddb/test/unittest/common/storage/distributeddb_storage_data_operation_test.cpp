@@ -135,10 +135,7 @@ void DistributedDBStorageDataOperationTest::TearDown(void)
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Insert001, TestSize.Level1)
 {
-    EXPECT_NE(g_connection, nullptr);
-    if (g_connection == nullptr) {
-        return;
-    }
+    ASSERT_NE(g_connection, nullptr);
 
     Key key(3, 'w');
     Value value;
@@ -177,10 +174,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Insert001, TestSize.Level1)
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, InsertBatch001, TestSize.Level1)
 {
-    EXPECT_NE(g_connection, nullptr);
-    if (g_connection == nullptr) {
-        return;
-    }
+    ASSERT_NE(g_connection, nullptr);
 
     Key key(3, 'w');
     Value value;
@@ -232,10 +226,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, InsertBatch001, TestSize.Level1)
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Clear001, TestSize.Level1)
 {
-    EXPECT_NE(g_connection, nullptr);
-    if (g_connection == nullptr) {
-        return;
-    }
+    ASSERT_NE(g_connection, nullptr);
 
     Key key(3, 'w');
     Value value;
@@ -303,10 +294,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Clear001, TestSize.Level1)
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Delete001, TestSize.Level1)
 {
-    EXPECT_NE(g_connection, nullptr);
-    if (g_connection == nullptr) {
-        return;
-    }
+    ASSERT_NE(g_connection, nullptr);
 
     Key key(3, 'w');
     Value value;
@@ -384,10 +372,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Delete001, TestSize.Level1)
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, DeleteBatch001, TestSize.Level1)
 {
-    EXPECT_NE(g_connection, nullptr);
-    if (g_connection == nullptr) {
-        return;
-    }
+    ASSERT_NE(g_connection, nullptr);
 
     Key key(3, 'w');
     Value value;

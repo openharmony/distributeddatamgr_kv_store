@@ -626,8 +626,6 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID002, TestSize.Level1)
 
     QuerySyncObject querySync(query1);
     EXPECT_EQ(querySync.GetIdentify().empty(), false);
-    // same object identify is same
-    EXPECT_EQ(querySync.GetIdentify(), querySync.GetIdentify());
 
     IOption option;
     option.dataType = IOption::SYNC_DATA;

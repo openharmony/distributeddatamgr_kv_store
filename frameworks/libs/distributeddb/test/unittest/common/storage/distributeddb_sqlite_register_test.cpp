@@ -149,10 +149,6 @@ HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract001, TestSize.Level1)
 HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract002, TestSize.Level1)
 {
     ASSERT_NE(g_sqliteDb, nullptr);
-    if (g_sqliteDb == nullptr) {
-        LOGE("Sqlite DB not exists.");
-        return;
-    }
     int errCode = sqlite3_exec(g_sqliteDb, SQL_JSON_WRONG_PATH, Callback, nullptr, &g_errMsg);
     if (errCode != SQLITE_OK) {
         if (g_errMsg != nullptr) {

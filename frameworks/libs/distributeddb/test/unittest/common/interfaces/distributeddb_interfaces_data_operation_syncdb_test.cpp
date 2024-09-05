@@ -1340,10 +1340,6 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, TransactionException001
      */
     IKvDBFactory *factory = IKvDBFactory::GetCurrent();
     ASSERT_NE(factory, nullptr);
-    if (factory == nullptr) {
-        LOGE("failed to get DefaultFactory!");
-        return;
-    }
     int result = E_OK;
     IKvDBCommitStorage *commitStorage = factory->CreateMultiVerCommitStorage(result);
     ASSERT_EQ(result, E_OK);

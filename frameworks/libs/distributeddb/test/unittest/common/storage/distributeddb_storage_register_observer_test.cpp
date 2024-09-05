@@ -353,7 +353,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver001, TestSize
      */
     result = g_singleVerNaturaStoreConnection->UnRegisterObserver(nullptr);
     EXPECT_EQ(result, -E_INVALID_ARGS);
-    return;
 }
 
 /**
@@ -397,7 +396,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver002, TestSize
      */
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -441,7 +439,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver003, TestSize
      */
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -469,7 +466,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver004, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -494,7 +490,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver005, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -518,7 +513,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver006, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -542,7 +536,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver007, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -566,7 +559,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver008, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -591,7 +583,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver009, TestSize
     EXPECT_EQ(result, E_OK);
     TestForOperation(g_entry1, false, false, false);
     TestForOperation(g_entry2, false, false, false);
-    return;
 }
 
 /**
@@ -615,7 +606,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver010, TestSize
         g_entry1.key, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
-    return;
 }
 
 /**
@@ -639,7 +629,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver011, TestSize
         g_entry1.key, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
-    return;
 }
 
 /**
@@ -663,7 +652,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver012, TestSize
         g_emptyKey, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
-    return;
 }
 
 /**
@@ -687,7 +675,6 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver013, TestSize
         g_emptyKey, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
-    return;
 }
 
 static void PreSyncDataForRegisterObserver014(Timestamp time, vector<DataItem> &dataItems)
@@ -788,8 +775,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver014, TestSize
      */
     result = g_singleVerNaturaStoreConnection->UnRegisterObserver(handle);
     EXPECT_EQ(result, E_OK);
-    return;
 }
+
 /**
   * @tc.name: RegisterObserver015
   * @tc.desc: Sync multiple records to the sync database, and remove them.
@@ -840,5 +827,4 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver015, TestSize
      */
     result = g_singleVerNaturaStoreConnection->UnRegisterObserver(handle);
     EXPECT_EQ(result, E_OK);
-    return;
 }

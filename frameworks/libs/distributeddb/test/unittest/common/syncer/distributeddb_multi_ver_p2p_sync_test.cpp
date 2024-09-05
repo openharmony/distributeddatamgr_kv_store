@@ -605,7 +605,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync003, TestSize.Level2)
 }
 
 static void SetTimeSyncPacketField(TimeSyncPacket &inPacket, Timestamp sourceBegin, Timestamp sourceEnd,
-    Timestamp targetBegin, Timestamp targetEnd, SyncId theId)
+    Timestamp targetBegin, Timestamp targetEnd)
 {
     inPacket.SetSourceTimeBegin(sourceBegin);
     inPacket.SetSourceTimeEnd(sourceEnd);
@@ -637,8 +637,8 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, TimesyncPacket001, TestSize.Level1)
      */
     TimeSyncPacket packetA;
     TimeSyncPacket packetB;
-    SetTimeSyncPacketField(packetA, 1, 2, 3, 4, 5); // 1, 2, 3, 4, 5 is five field for time sync packet
-    SetTimeSyncPacketField(packetB, 5, 4, 3, 2, 1); // 1, 2, 3, 4, 5 is five field for time sync packet
+    SetTimeSyncPacketField(packetA, 1, 2, 3, 4); // 1, 2, 3, 4 is four field for time sync packet
+    SetTimeSyncPacketField(packetB, 5, 4, 3, 2); // 2, 3, 4, 5 is four field for time sync packet
     Message oriMsgA;
     Message oriMsgB;
     oriMsgA.SetCopiedObject(packetA);
