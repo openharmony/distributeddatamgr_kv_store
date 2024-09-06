@@ -218,6 +218,39 @@ ohos_unittest("DevManagerTest") {
   ]
 }
 
+ohos_unittest("DevManagerMockTest") {
+  module_out_path = module_output_path
+  include_dirs = [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test" ]
+  sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/device_manager_impl_mock.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "dev_manager_mock_test.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  cflags = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "device_manager:devicemanagersdk",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":kvdb_src_file",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
+  ]
+}
+
 ohos_unittest("SingleStoreImplGetTopTest") {
   module_out_path = module_output_path
 
@@ -275,6 +308,7 @@ group("unittest") {
   deps = []
   deps += [
     ":BackupManagerTest",
+    ":DevManagerMockTest",
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
