@@ -202,7 +202,7 @@ HWTEST_F(DistributeddbKvCreateTest, Open003, TestSize.Level1)
     KvOption option = g_kvOption;
     option.createIfNecessary = IS_NOT_NEED_CREATE;
     option.localOnly = IS_LOCAL_ONLY;
-    status = DistributedTestTools::GetDelegateNotGood(manager, delegate, STORE_ID_1, APP_ID_1, USER_ID_1, option);
+    status = DistributedTestTools::GetDelegateNotGood(manager, delegate, STORE_ID_1, option);
     ASSERT_NE(status, DBStatus::OK);
     EXPECT_EQ(delegate, nullptr);
     EXPECT_EQ(manager->CloseKvStore(delegate), INVALID_ARGS);
@@ -263,10 +263,14 @@ HWTEST_F(DistributeddbKvCreateTest, Open004, TestSize.Level1)
  */
 HWTEST_F(DistributeddbKvCreateTest, Open005, TestSize.Level1)
 {
-    KvStoreDelegateManager *manager1 = nullptr;
-    KvStoreDelegateManager *manager2 = nullptr;
-    KvStoreDelegateManager *manager3 = nullptr;
-    KvStoreDelegateManager *manager4 = nullptr;
+    KvStoreDelegateManager *manager1 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, USER_ID_1);
+    ASSERT_NE(manager1, nullptr);
+    KvStoreDelegateManager *manager2 = new (std::nothrow) KvStoreDelegateManager("", USER_ID_1);
+    ASSERT_NE(manager2, nullptr);
+    KvStoreDelegateManager *manager3 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, "");
+    ASSERT_NE(manager3, nullptr);
+    KvStoreDelegateManager *manager4 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, USER_ID_1);
+    ASSERT_NE(manager4, nullptr);
     KvStoreDelegate *delegate1 = nullptr;
     KvStoreDelegate *delegate2 = nullptr;
     KvStoreDelegate *delegate3 = nullptr;
@@ -279,7 +283,7 @@ HWTEST_F(DistributeddbKvCreateTest, Open005, TestSize.Level1)
     KvOption option1 = g_kvOption;
     option1.createIfNecessary = IS_NEED_CREATE;
     option1.localOnly = IS_LOCAL_ONLY;
-    DBStatus status = DistributedTestTools::GetDelegateNotGood(manager1, delegate1, "", APP_ID_1, USER_ID_1, option1);
+    DBStatus status = DistributedTestTools::GetDelegateNotGood(manager1, delegate1, "", option1);
     ASSERT_EQ(status, DBStatus::INVALID_ARGS);
     EXPECT_TRUE(delegate1 == nullptr);
     EXPECT_TRUE(manager1->CloseKvStore(delegate1) == INVALID_ARGS);
@@ -291,7 +295,7 @@ HWTEST_F(DistributeddbKvCreateTest, Open005, TestSize.Level1)
     KvOption option2 = g_kvOption;
     option2.createIfNecessary = IS_NEED_CREATE;
     option2.localOnly = IS_LOCAL_ONLY;
-    status = DistributedTestTools::GetDelegateNotGood(manager2, delegate2, STORE_ID_1, "", USER_ID_1, option2);
+    status = DistributedTestTools::GetDelegateNotGood(manager2, delegate2, STORE_ID_1, option2);
     ASSERT_EQ(status, DBStatus::INVALID_ARGS);
     EXPECT_TRUE(delegate2 == nullptr);
     EXPECT_TRUE(manager2->CloseKvStore(delegate2) == INVALID_ARGS);
@@ -303,7 +307,7 @@ HWTEST_F(DistributeddbKvCreateTest, Open005, TestSize.Level1)
     KvOption option3 = g_kvOption;
     option3.createIfNecessary = IS_NEED_CREATE;
     option3.localOnly = IS_LOCAL_ONLY;
-    status = DistributedTestTools::GetDelegateNotGood(manager3, delegate3, STORE_ID_1, APP_ID_1, "", option3);
+    status = DistributedTestTools::GetDelegateNotGood(manager3, delegate3, STORE_ID_1, option3);
     ASSERT_EQ(status, DBStatus::INVALID_ARGS);
     EXPECT_TRUE(delegate3 == nullptr);
     EXPECT_TRUE(manager3->CloseKvStore(delegate3) == INVALID_ARGS);
@@ -315,7 +319,7 @@ HWTEST_F(DistributeddbKvCreateTest, Open005, TestSize.Level1)
     KvOption option4 = g_kvOption;
     option4.createIfNecessary = IS_NOT_NEED_CREATE;
     option4.localOnly = IS_LOCAL_ONLY;
-    status = DistributedTestTools::GetDelegateNotGood(manager4, delegate4, STORE_ID_1, APP_ID_1, USER_ID_1, option4);
+    status = DistributedTestTools::GetDelegateNotGood(manager4, delegate4, STORE_ID_1, option4);
     ASSERT_NE(status, DBStatus::OK);
     EXPECT_TRUE(delegate4 == nullptr);
     EXPECT_TRUE(manager4->CloseKvStore(delegate4) == INVALID_ARGS);
@@ -988,9 +992,12 @@ HWTEST_F(DistributeddbKvCreateTest, PathException004, TestSize.Level2)
     appTooLongID.append(TWO_M_LONG_STRING, 'b');
     userTooLongID.append(TWO_M_LONG_STRING, 'c');
 
-    KvStoreDelegateManager *manager1 = nullptr;
-    KvStoreDelegateManager *manager2 = nullptr;
-    KvStoreDelegateManager *manager3 = nullptr;
+    KvStoreDelegateManager *manager1 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, USER_ID_1);
+    ASSERT_NE(manager1, nullptr);
+    KvStoreDelegateManager *manager2 = new (std::nothrow) KvStoreDelegateManager(appTooLongID, USER_ID_1);
+    ASSERT_NE(manager2, nullptr);
+    KvStoreDelegateManager *manager3 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, userTooLongID);
+    ASSERT_NE(manager3, nullptr);
     KvStoreDelegate *delegate1 = nullptr;
     KvStoreDelegate *delegate2 = nullptr;
     KvStoreDelegate *delegate3 = nullptr;
@@ -998,24 +1005,21 @@ HWTEST_F(DistributeddbKvCreateTest, PathException004, TestSize.Level2)
      * @tc.steps: step1. create kv db with storeId=storeTooLongID.
      * @tc.expected: step1. create db failed.
      */
-    DBStatus status1 = DistributedTestTools::GetDelegateNotGood(manager1, delegate1,
-        storeTooLongID, APP_ID_1, USER_ID_1, g_kvOption);
+    DBStatus status1 = DistributedTestTools::GetDelegateNotGood(manager1, delegate1, storeTooLongID, g_kvOption);
     EXPECT_EQ(delegate1, nullptr);
     EXPECT_EQ(manager1->CloseKvStore(delegate1), INVALID_ARGS);
     /**
      * @tc.steps: step2. create kv db with appId=appTooLongID.
      * @tc.expected: step2. create db failed.
      */
-    DBStatus status2 = DistributedTestTools::GetDelegateNotGood(manager2, delegate2,
-        USER_ID_1, appTooLongID, USER_ID_1, g_kvOption);
+    DBStatus status2 = DistributedTestTools::GetDelegateNotGood(manager2, delegate2, USER_ID_1, g_kvOption);
     EXPECT_EQ(delegate2, nullptr);
     EXPECT_EQ(manager2->CloseKvStore(delegate2), INVALID_ARGS);
     /**
      * @tc.steps: step3. create kv db with userId=userTooLongID.
      * @tc.expected: step3. create db failed.
      */
-    DBStatus status3 = DistributedTestTools::GetDelegateNotGood(manager3, delegate3,
-        USER_ID_1, APP_ID_1, userTooLongID, g_kvOption);
+    DBStatus status3 = DistributedTestTools::GetDelegateNotGood(manager3, delegate3, USER_ID_1, g_kvOption);
     EXPECT_EQ(delegate3, nullptr);
     EXPECT_EQ(manager3->CloseKvStore(delegate3), INVALID_ARGS);
 
@@ -1121,7 +1125,8 @@ HWTEST_F(DistributeddbKvCreateTest, PathException006, TestSize.Level2)
 HWTEST_F(DistributeddbKvCreateTest, PathException007, TestSize.Level2)
 {
     KvStoreDelegateManager *manager1 = nullptr;
-    KvStoreDelegateManager *manager2 = nullptr;
+    KvStoreDelegateManager *manager2 = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, USER_ID_2);
+    ASSERT_NE(manager2, nullptr);
     KvStoreDelegate *delegate1 = nullptr;
     KvStoreDelegate *delegate2 = nullptr;
     /**
@@ -1147,8 +1152,7 @@ HWTEST_F(DistributeddbKvCreateTest, PathException007, TestSize.Level2)
     KvOption option = g_kvOption;
     option.createIfNecessary = IS_NOT_NEED_CREATE;
     option.localOnly = IS_LOCAL_ONLY;
-    DBStatus status = DistributedTestTools::GetDelegateNotGood(manager2, delegate2,
-        STORE_ID_1, APP_ID_1, USER_ID_2, option);
+    DBStatus status = DistributedTestTools::GetDelegateNotGood(manager2, delegate2, STORE_ID_1, option);
     EXPECT_TRUE(delegate2 == nullptr);
     EXPECT_EQ(manager2->CloseKvStore(delegate2), INVALID_ARGS);
     ASSERT_NE(status, OK);

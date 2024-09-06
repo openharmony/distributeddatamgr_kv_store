@@ -1216,10 +1216,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash001, 
     int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
     EXPECT_EQ(errCode, E_OK);
     errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return;
-    }
+    ASSERT_EQ(errCode, E_OK);
     errCode = SQLiteUtils::StepWithRetry(statement, false);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
@@ -1272,10 +1269,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash002, 
     int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
     EXPECT_EQ(errCode, E_OK);
     errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return;
-    }
+    ASSERT_EQ(errCode, E_OK);
     errCode = SQLiteUtils::StepWithRetry(statement, false);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));

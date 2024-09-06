@@ -189,7 +189,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level1)
     ASSERT_EQ(errCode, E_OK);
     ComparePath(g_sourcePath, g_unpackResultPath);
     ASSERT_EQ(fileInfo.dbType, g_fileInfo.dbType);
-    return;
 }
 
 /**
@@ -204,7 +203,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level1)
     int errCode = PackageFile::PackageFiles(g_sourcePath + NON_EXIST_PATH,
         g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_PATH);
-    return;
 }
 
 /**
@@ -219,7 +217,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level1)
     int errCode = PackageFile::PackageFiles(g_sourcePath,
         g_packageResultPath + NON_EXIST_PATH + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_PATH);
-    return;
 }
 
 /**
@@ -246,7 +243,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level1)
     ASSERT_TRUE(file2.is_open());
     file2.write(FILE_CONTENT_2, 4);
     file2.close();
-    return;
 }
 
 /**
@@ -261,7 +257,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level1)
     FileInfo fileInfo;
     int errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_unpackResultPath, fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_PATH);
-    return;
 }
 
 /**
@@ -279,7 +274,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level1)
     errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME,
         g_unpackResultPath + NON_EXIST_PATH, fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_PATH);
-    return;
 }
 
 /**
@@ -304,7 +298,6 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level1)
     FileInfo fileInfo;
     errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_unpackResultPath, fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_FILE);
-    return;
 }
 
 /**
@@ -337,6 +330,4 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level1)
     FileInfo fileInfo;
     errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_unpackResultPath, fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_FILE);
-    return;
 }
-

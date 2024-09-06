@@ -619,7 +619,7 @@ KvStoreDelegate* DistributedTestTools::GetDelegateStatus(KvStoreDelegateManager 
 
 // This static method is for moduleTest of distributed to try-get KvStoreDelegate with invalid params.
 DBStatus DistributedTestTools::GetDelegateNotGood(KvStoreDelegateManager *&manager, KvStoreDelegate *&outDelegate,
-    const string &storeId, const string &appId, const string &userId, const KvOption &optionParam)
+    const string &storeId, const KvOption &optionParam)
 {
     SetDir(DIRECTOR);
 
@@ -628,12 +628,6 @@ DBStatus DistributedTestTools::GetDelegateNotGood(KvStoreDelegateManager *&manag
     function<void(DBStatus, KvStoreDelegate*)> callFunction
         = bind(&DelegateKvMgrCallback::Callback, &delegateKvMgrCallback, _1, _2);
 
-    // use appid and userid to initialize a kvStoreDelegateManager, and set the default cfg.
-    manager = new (std::nothrow) KvStoreDelegateManager(appId, userId);
-    if (manager == nullptr) {
-        MST_LOG("new delegate failed nullptr.");
-        return DBStatus::DB_ERROR;
-    }
     DBStatus status = manager->SetKvStoreConfig(KV_CONFIG);
     if (status != DBStatus::OK) {
         MST_LOG("%s SetConfig failed! Status= %d", TAG.c_str(), status);

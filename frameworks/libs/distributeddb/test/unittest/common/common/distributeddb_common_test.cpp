@@ -228,10 +228,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFile, TestSize.Level1)
     LOGI("begin fork new process!!");
     pid_t pid = fork();
     ASSERT_TRUE(pid >= 0);
-    if (pid < 0) {
-        return;
-    }
-    else if (pid == 0) {
+    if (pid == 0) {
         LOGI("child process begin!");
         OS::FileHandle ChildFd;
         EXPECT_EQ(OS::OpenFile(g_testDir + DBConstant::DB_LOCK_POSTFIX, ChildFd), E_OK);
@@ -268,10 +265,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFileBlocked, TestSize.Level1)
     int count = 10; // wait 10 times 10 ms for block wait
     pid_t pid = fork();
     ASSERT_TRUE(pid >= 0);
-    if (pid < 0) {
-        return;
-    }
-    else if (pid == 0) {
+    if (pid == 0) {
         LOGI("child process begin!");
         EXPECT_FALSE(OS::CheckPathExistence(g_testDir + "/LOCK_step_1"));
         OS::FileHandle ChildFd;

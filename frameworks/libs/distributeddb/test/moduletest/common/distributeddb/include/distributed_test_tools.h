@@ -362,7 +362,7 @@ public:
 
     static DistributedDB::DBStatus GetDelegateNotGood(
         DistributedDB::KvStoreDelegateManager *&outManager, DistributedDB::KvStoreDelegate *&outDelegate,
-        const std::string &storeId, const std::string &appId, const std::string &userId, const KvOption &optionParam);
+        const std::string &storeId, const KvOption &optionParam);
 
     static DistributedDB::DBStatus Put(DistributedDB::KvStoreDelegate &kvStoreDelegate,
         const DistributedDB::Key &key, const DistributedDB::Value &value);

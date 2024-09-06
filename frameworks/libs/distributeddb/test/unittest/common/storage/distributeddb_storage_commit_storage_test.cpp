@@ -359,9 +359,6 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage002, TestSi
      */
     int result = g_commitStorage->Remove(g_prop);
     ASSERT_EQ(result, E_OK);
-    if (result != E_OK) {
-        return;
-    }
     CommitInfo commitInfo = {g_defaultCommitVer1, g_defaultCommitID1, g_defaultCommitID0, g_defaultCommitID0,
         TIME_STAMP1, true, g_localDevice};
 
