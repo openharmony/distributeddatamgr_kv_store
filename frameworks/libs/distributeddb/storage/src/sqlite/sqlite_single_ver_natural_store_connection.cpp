@@ -803,6 +803,12 @@ int SQLiteSingleVerNaturalStoreConnection::GetDeviceIdentifier(PragmaEntryDevice
 int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries)
 {
     DBDfxAdapter::StartTracing();
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    // check whether sync started to get SystemTime
+    naturalStore->WakeUpSyncer();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -844,6 +850,12 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
 int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
 {
     DBDfxAdapter::StartTracing();
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    // check whether sync started to get SystemTime
+    naturalStore->WakeUpSyncer();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -1395,6 +1407,12 @@ int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const Key &key, bool del
     SingleVerRecord localRecord;
     localRecord.key = key;
     SingleVerRecord syncRecord;
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    // check whether sync started to get SystemTime
+    naturalStore->WakeUpSyncer();
     {
         if (IsTransactionStarted()) {
             return -E_NOT_SUPPORT;
@@ -1513,6 +1531,11 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
     if (IsTransactionStarted()) {
         return -E_NOT_SUPPORT;
     }
+    // check whether sync started to get SystemTime
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        naturalStore->WakeUpSyncer();
+    }
 
     std::lock_guard<std::mutex> lock(transactionMutex_);
 
@@ -1524,25 +1547,15 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
     Key hashKey;
     int innerErrCode = E_OK;
     SingleVerRecord syncRecord;
+    std::pair<Key, Key> keyPair = { key, hashKey };
     SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
-    errCode = DBCommon::CalcValueHash(key, hashKey);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = writeHandle_->GetKvDataByHashKey(hashKey, syncRecord);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    syncRecord.key = key;
-    errCode = UnpublishInner(localCommittedData, syncRecord, updateTimestamp, innerErrCode);
+    errCode = UnpublishInner(keyPair, localCommittedData, syncRecord, updateTimestamp, innerErrCode);
     if (errCode != E_OK) {
         goto END;
     }
 
     if (deletePublic && (syncRecord.flag & DataItem::DELETE_FLAG) != DataItem::DELETE_FLAG) {
-        errCode = SaveEntry({hashKey, {}}, true);
+        errCode = SaveEntry({keyPair.second, {}}, true);
     }
 
 END:
@@ -1562,10 +1575,21 @@ END:
     return (errCode == E_OK) ? innerErrCode : errCode;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::UnpublishInner(SingleVerNaturalStoreCommitNotifyData *&committedData,
-    const SingleVerRecord &syncRecord, bool updateTimestamp, int &innerErrCode)
+int SQLiteSingleVerNaturalStoreConnection::UnpublishInner(std::pair<Key, Key> &keyPair,
+    SingleVerNaturalStoreCommitNotifyData *&committedData, SingleVerRecord &syncRecord, bool updateTimestamp,
+    int &innerErrCode)
 {
     int errCode = E_OK;
+    auto &[key, hashKey] = keyPair;
+    errCode = DBCommon::CalcValueHash(key, hashKey);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = writeHandle_->GetKvDataByHashKey(hashKey, syncRecord);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    syncRecord.key = key;
     int localOperation = static_cast<int>(LocalOperType::LOCAL_OPR_NONE);
     SingleVerRecord localRecord;
 
@@ -1948,7 +1972,7 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncCon
 void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
     SQLiteSingleVerNaturalStore &naturalStore)
 {
-    dataItem.timestamp = naturalStore.GetCurrentTimestamp();
+    dataItem.timestamp = naturalStore.GetCurrentTimestamp(false);
     if (currentMaxTimestamp_ > dataItem.timestamp) {
         dataItem.timestamp = currentMaxTimestamp_;
     }

@@ -54,8 +54,11 @@ public:
     // Stop a sync action in progress.
     void StopSync(uint64_t connectionId);
 
+    // Get The current virtual timestamp from db
+    virtual uint64_t GetTimestampFromDB();
+
     // Get The current virtual timestamp
-    uint64_t GetTimestamp();
+    uint64_t GetTimestamp(bool needStartSync = true);
 
     void WakeUpSyncer() override;
 
