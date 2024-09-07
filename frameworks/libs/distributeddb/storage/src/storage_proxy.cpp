@@ -673,11 +673,12 @@ void StorageProxy::ReleaseUploadRecord(const std::string &table, const CloudWate
     store_->ReleaseUploadRecord(table, type, localWaterMark);
 }
 
-bool StorageProxy::IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo)
+bool StorageProxy::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+    SingleVerConflictResolvePolicy policy)
 {
     if (store_ == nullptr) {
         return false;
     }
-    return store_->IsSameCloudLocalDeviceAndNotLocal(localInfo, cloudInfo);
+    return store_->IsTagCloudUpdateLocal(localInfo, cloudInfo, policy);
 }
 }

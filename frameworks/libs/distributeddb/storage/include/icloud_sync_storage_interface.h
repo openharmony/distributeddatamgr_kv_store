@@ -224,7 +224,8 @@ public:
     {
     }
 
-    virtual bool IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo)
+    virtual bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+        SingleVerConflictResolvePolicy policy)
     {
         return false;
     }

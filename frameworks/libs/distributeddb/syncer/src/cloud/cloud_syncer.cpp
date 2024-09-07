@@ -1736,10 +1736,10 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
             LOGE("[CloudSyncer] strategy has not been set when tag status, %d.", -E_INTERNAL_ERROR);
             return -E_INTERNAL_ERROR;
         }
-        bool isSameCurDevice = storageProxy_->IsSameCloudLocalDeviceAndNotLocal(dataInfo.localInfo.logInfo,
-            dataInfo.cloudLogInfo);
-        strategyOpResult = currentContext_.strategy->TagSyncDataStatus(
-            isExist, isSameCurDevice, dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
+        bool isCloudWin = storageProxy_->IsTagCloudUpdateLocal(dataInfo.localInfo.logInfo,
+            dataInfo.cloudLogInfo, policy_);
+        strategyOpResult = currentContext_.strategy->TagSyncDataStatus(isExist, isCloudWin,
+            dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
     }
     if (strategyOpResult == OpType::DELETE) {
         param.deletePrimaryKeySet.insert(dataInfo.localInfo.logInfo.hashKey);

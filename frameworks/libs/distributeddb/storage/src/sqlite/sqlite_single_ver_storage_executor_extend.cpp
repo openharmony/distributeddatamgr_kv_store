@@ -417,4 +417,10 @@ int SQLiteSingleVerStorageExecutor::RemoveCloudUploadFlag(const std::vector<uint
     }
     return errCode == E_OK ? ret : errCode;
 }
+
+bool SQLiteSingleVerStorageExecutor::IsFromDataOwner(const DataItem &itemGet, const std::string &syncDev)
+{
+    return itemGet.dev == syncDev ||
+        (conflictResolvePolicy_ == DENY_OTHER_DEV_AMEND_CUR_DEV_DATA && itemGet.origDev == syncDev);
+}
 } // namespace DistributedDB

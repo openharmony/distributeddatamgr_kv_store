@@ -235,7 +235,7 @@ private:
     static void PutConflictData(const DataItem &itemPut, const DataItem &itemGet, const DeviceInfo &deviceInfo,
         const DataOperStatus &dataStatus, SingleVerNaturalStoreCommitNotifyData *commitData);
 
-    static DataOperStatus JudgeSyncSaveType(DataItem &dataItem, const DataItem &itemGet,
+    DataOperStatus JudgeSyncSaveType(DataItem &dataItem, const DataItem &itemGet,
         const std::string &devName, bool isHashKeyExisted, bool isPermitForceWrite = true);
 
     static std::string GetOriginDevName(const DataItem &dataItem, const std::string &origDevGet);
@@ -377,6 +377,8 @@ private:
     int RemoveDeviceDataWithUserInner(const std::string &deviceName, const std::string &user, ClearMode mode);
 
     int RemoveCloudUploadFlag(const std::vector<uint8_t> &hashKey);
+
+    bool IsFromDataOwner(const DataItem &itemGet, const std::string &syncDev);
     sqlite3_stmt *getSyncStatement_;
     sqlite3_stmt *getResultRowIdStatement_;
     sqlite3_stmt *getResultEntryStatement_;

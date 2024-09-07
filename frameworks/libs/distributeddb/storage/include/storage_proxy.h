@@ -152,7 +152,8 @@ public:
 
     void ReleaseUploadRecord(const std::string &table, const CloudWaterType &type, Timestamp localWaterMark);
 
-    bool IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo);
+    bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+        SingleVerConflictResolvePolicy policy);
 protected:
     void Init();
 
