@@ -54,13 +54,11 @@ int32_t DeviceManagerImpl::GetAvailableDeviceList(const std::string &pkgName,
 
 int32_t DeviceManagerImpl::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo)
 {
-    if (pkgName == "demo_distributed_data")
-    {
+    if (pkgName == "demo_distributed_data") {
         deviceInfo.networkId[0] = 'a';
         return DM_OK;
     }
-    if (pkgName == "test_distributed_data")
-    {
+    if (pkgName == "test_distributed_data") {
         return DM_OK;
     }
     return ERR_DM_IPC_SEND_REQUEST_FAILED;
@@ -421,17 +419,17 @@ int32_t DeviceManagerImpl::GetDeviceSecurityLevel(const std::string &pkgName, co
 
 bool DeviceManagerImpl::IsSameAccount(const std::string &netWorkId)
 {
-    return true;
+    return false;
 }
 
 bool DeviceManagerImpl::CheckAccessControl(const DmAccessCaller &caller, const DmAccessCallee &callee)
 {
-    return true;
+    return false;
 }
 
 bool DeviceManagerImpl::CheckIsSameAccount(const DmAccessCaller &caller, const DmAccessCallee &callee)
 {
-    return true;
+    return false;
 }
 
 int32_t DeviceManagerImpl::GetErrCode(int32_t errCode)
