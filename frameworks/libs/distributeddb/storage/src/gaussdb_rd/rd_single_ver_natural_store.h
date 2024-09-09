@@ -83,8 +83,6 @@ public:
     RdSingleVerStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
 
-    void AbortHandleAndWaitWriteHandle() const;
-
     void ReleaseHandle(RdSingleVerStorageExecutor *&handle) const;
 
     int TransObserverTypeToRegisterFunctionType(int observerType, RegisterFuncType &type) const override;
@@ -146,7 +144,6 @@ public:
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
 private:
-    int PreCheckRdImport(std::string &storePath);
 
     int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);
 

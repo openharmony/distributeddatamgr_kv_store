@@ -26,11 +26,6 @@ GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t f
 
 GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags);
 
-GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen);
-
-GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
-    uint32_t decryptedKeyLen);
-
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName);
 
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags);

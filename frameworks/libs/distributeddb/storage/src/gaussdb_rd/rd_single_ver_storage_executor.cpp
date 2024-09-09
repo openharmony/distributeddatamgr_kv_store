@@ -278,11 +278,6 @@ int RdSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key &key
     return RdKVGet(db_, SYNC_COLLECTION_NAME.c_str(), key, value);
 }
 
-int RdSingleVerStorageExecutor::Backup(const std::string &filePath, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
-{
-    return RdBackup(db_, filePath.c_str(), encryptedKey, encryptedKeyLen);
-}
-
 int RdSingleVerStorageExecutor::ClearEntriesAndFreeResultSet(std::vector<Entry> &entries, GRD_ResultSet *resultSet)
 {
     entries.clear();
