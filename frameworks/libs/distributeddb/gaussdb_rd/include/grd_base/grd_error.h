@@ -48,8 +48,6 @@ extern "C" {
 #define GRD_DISK_SPACE_FULL (-41000)
 #define GRD_CRC_CHECK_DISABLED (-42000)
 #define GRD_PERMISSION_DENIED (-43000)
-#define GRD_DATA_CORRUPTED (-45000)
-#define GRD_DB_BUSY (-46000)
 
 // not support
 #define GRD_JSON_OPERATION_NOT_SUPPORT (-5001001)
@@ -79,9 +77,6 @@ extern "C" {
 #define GRD_COLLECTION_CONFLICT (-5016001)
 #define GRD_KEY_CONFLICT (-5016002)
 #define GRD_FIELD_TYPE_CONFLICT (-5016003)
-
-// data exception
-#define GRD_DATA_EXCEPTION (-5017001)
 
 // Cursor or ResultSet not available
 #define GRD_RESULT_SET_NOT_AVAILABLE (-5019001)

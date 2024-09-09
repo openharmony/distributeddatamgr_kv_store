@@ -79,10 +79,7 @@ const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_DISK_SPACE_FULL, -E_INTERNAL_ERROR },
     { GRD_CRC_CHECK_DISABLED, -E_INVALID_ARGS },
     { GRD_PERMISSION_DENIED, -E_DENIED_SQL },
-    { GRD_REBUILD_DATABASE, -E_REBUILD_DATABASE }, // rebuild database means ok
-    { GRD_DATA_CORRUPTED, -E_INVALID_PASSWD_OR_CORRUPTED_DB },
-    { GRD_DATA_EXCEPTION, -E_UNEXPECTED_DATA },
-    { GRD_DB_BUSY, -E_BUSY },
+    { GRD_REBUILD_DATABASE, -E_REBUILD_DATABASE}, // rebuild database means ok
 };
 int TransferGrdErrno(int err)
 {
@@ -146,16 +143,6 @@ int RdKVGet(GRD_DB *db, const char *collectionName, const Key &key, Value &value
     value = KvItemToBlob(innerVal);
     (void)GRD_KVFreeItem(&innerVal);
     return E_OK;
-}
-
-int RdBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
-{
-    return TransferGrdErrno(GRD_DBBackup(db, backupDbFile, encryptedKey, encryptedKeyLen));
-}
-
-int RdRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey, uint32_t decryptedKeyLen)
-{
-    return TransferGrdErrno(GRD_DBRestore(dbFile, backupDbFile, decryptedKey, decryptedKeyLen));
 }
 
 int RdKVDel(GRD_DB *db, const char *collectionName, const Key &key)

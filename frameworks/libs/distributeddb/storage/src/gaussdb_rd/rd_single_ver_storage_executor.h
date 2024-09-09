@@ -52,8 +52,6 @@ public:
     // Get the Kv data according the type(sync, meta, local data).
     int GetKvData(SingleVerDataType type, const Key &key, Value &value, Timestamp &timestamp) const;
 
-    int Backup(const std::string &filePath, uint8_t *encryptedKey, uint32_t encryptedKeyLen);
-
     // Get the sync data record by hash key.
     int GetKvDataByHashKey(const Key &hashKey, SingleVerRecord &result) const;
 
