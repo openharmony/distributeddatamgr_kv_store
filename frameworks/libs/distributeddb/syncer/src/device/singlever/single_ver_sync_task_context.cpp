@@ -594,4 +594,14 @@ void SingleVerSyncTaskContext::StopFeedDogForGetData()
 {
     stateMachine_->StopFeedDogForGetData();
 }
+
+int32_t SingleVerSyncTaskContext::GetResponseTaskCount()
+{
+    std::lock_guard<std::mutex> autoLock(targetQueueLock_);
+    int32_t taskCount = static_cast<int32_t>(responseTargetQueue_.size());
+    if (responseSessionId_ != 0) {
+        taskCount++;
+    }
+    return taskCount;
+}
 } // namespace DistributedDB
