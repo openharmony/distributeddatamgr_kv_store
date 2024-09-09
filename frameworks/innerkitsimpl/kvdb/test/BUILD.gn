@@ -245,7 +245,7 @@ ohos_unittest("DevManagerMockTest") {
 
   deps = [
     ":kvdb_src_file",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
   ]
 }
