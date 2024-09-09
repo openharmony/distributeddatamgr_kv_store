@@ -163,6 +163,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -186,6 +187,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -209,6 +211,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -232,6 +235,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -255,6 +259,7 @@ ohos_unittest("SingleKvStoreClientTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -301,6 +306,7 @@ ohos_unittest("DeviceKvStoreTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }
@@ -308,15 +314,13 @@ ohos_unittest("DeviceKvStoreTest") {
 ohos_unittest("BlobTest") {
   module_out_path = module_output_path
 
-  sources = [
-    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
-    "unittest/blob_test.cpp",
-  ]
+  sources = [ "unittest/blob_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -330,15 +334,13 @@ ohos_unittest("BlobTest") {
 ohos_unittest("TypesUtilTest") {
   module_out_path = module_output_path
 
-  sources = [
-    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
-    "unittest/types_util_test.cpp",
-  ]
+  sources = [ "unittest/types_util_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -361,6 +363,7 @@ ohos_unittest("KvUtilTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -383,6 +386,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 
@@ -396,10 +400,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 ohos_unittest("DistributedDataMgrTest") {
   module_out_path = module_output_path
 
-  sources = [
-    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
-    "unittest/distributed_data_mgr_test.cpp",
-  ]
+  sources = [ "unittest/distributed_data_mgr_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
