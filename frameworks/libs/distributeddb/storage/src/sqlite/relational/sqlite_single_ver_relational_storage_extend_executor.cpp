@@ -207,7 +207,8 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
         if (data.assets.at(i).empty()) {
             continue;
         }
-        if (DBCommon::IsRecordIgnored(data.extend[i]) || DBCommon::IsRecordVersionConflict(data.extend[i])) {
+        if (DBCommon::IsRecordIgnored(data.extend[i]) || DBCommon::IsRecordVersionConflict(data.extend[i]) ||
+            DBCommon::IsCloudRecordNotFound(data.extend[i]) || DBCommon::IsCloudRecordAlreadyExisted(data.extend[i])) {
             continue;
         }
         errCode = InitFillUploadAssetStatement(opType, tableSchema, data, i, stmt);
@@ -1780,7 +1781,7 @@ std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetUpdateField(cons
     return fields;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string &tableName, bool recordConflict,
+int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string &tableName, const std::string &sql,
     const LogInfo &logInfo)
 {
     bool useHashKey = false;
@@ -1791,7 +1792,6 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string
         }
         useHashKey = true;
     }
-    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, recordConflict, logInfo);
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {

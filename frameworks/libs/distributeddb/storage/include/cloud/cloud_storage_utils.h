@@ -114,7 +114,7 @@ public:
         const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
         bool allowEmpty);
     static std::string GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
-        const LogInfo &logInfo);
+        const LogInfo &logInfo, const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
     static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
         const std::set<std::string> &gidFilters);
     static bool IsCloudGidMismatch(const std::string &downloadGid, const std::string &curGid);
@@ -187,6 +187,9 @@ public:
     static std::pair<int, DataItem> GetSystemRecordFromCloudData(VBucket &data);
 
     static bool IsSystemRecord(const Key &key);
+
+    static int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
+        QuerySyncObject &querySyncObject);
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 };

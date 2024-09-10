@@ -25,6 +25,7 @@
 #include "res_finalizer.h"
 #include "sqlite_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
+#include "res_finalizer.h"
 
 namespace DistributedDB {
 using namespace TriggerMode;
@@ -1269,6 +1270,7 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
     int &errCode = res.first;
     std::string sql = GetKvCloudQuerySql(false, forcePush);
     AppendCloudQueryToGetDiffData(sql, mode, true);
+    AppendKvQueryObjectOnSql(sql);
     sql += "order by modify_time asc";
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -1336,6 +1338,32 @@ std::string SqliteQueryHelper::GetCloudVersionRecordSql(bool isDeviceEmpty)
     return sql;
 }
 
+int SqliteQueryHelper::GetAndBindGidKvCloudQueryStatement(const std::string &user, sqlite3 *dbHandle,
+    sqlite3_stmt *&stmt)
+{
+    std::string sql = SELECT_CLOUD_GID_SQL;
+    AppendKvQueryObjectOnSql(sql);
+    int errCode = SQLiteUtils::GetStatement(dbHandle, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Get gid stmt failed %d", errCode);
+        return errCode;
+    }
+    int index = 1;
+    int ret = E_OK;
+    errCode = SQLiteUtils::BindTextToStatement(stmt, index++, user);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        LOGE("[SqliteQueryHelper] Bind user failed %d when query gid", errCode);
+        return errCode;
+    }
+    errCode = BindKeysToStmt(keys_, stmt, index);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind keys to query gid stmt failed %d", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+    }
+    return errCode;
+}
+
 int SqliteQueryHelper::GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush, const CloudWaterType mode,
     sqlite3_stmt *&stmt)
 {
@@ -1384,7 +1412,7 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
         return res;
     }
     count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
-    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
+    LOGD("[SqliteCloudKvExecutorUtils] Get total upload count failed %" PRId64, count);
     return res;
 }
 

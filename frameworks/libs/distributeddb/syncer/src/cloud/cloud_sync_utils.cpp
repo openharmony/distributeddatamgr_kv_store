@@ -599,11 +599,33 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
     CloudSyncer::CloudTaskInfo taskInfo;
     taskInfo.priorityTask = true;
     taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
-    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;
     taskInfo.compensatedTask = true;
-    taskInfo.users.push_back("");
+    return taskInfo;
+}
+
+CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const CloudSyncOption &option,
+    const SyncProcessCallback &onProcess)
+{
+    CloudSyncer::CloudTaskInfo taskInfo = InitCompensatedSyncTaskInfo();
+    taskInfo.callback = onProcess;
+    taskInfo.devices = option.devices;
+    if (option.users.empty()) {
+        taskInfo.users.push_back("");
+    } else {
+        taskInfo.users = option.users;
+    }
+    return taskInfo;
+}
+
+CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const CloudSyncer::CloudTaskInfo &oriTaskInfo)
+{
+    CloudSyncer::CloudTaskInfo taskInfo = InitCompensatedSyncTaskInfo();
+    taskInfo.lockAction = oriTaskInfo.lockAction;
+    taskInfo.users = oriTaskInfo.users;
+    taskInfo.devices = oriTaskInfo.devices;
+    taskInfo.storeId = oriTaskInfo.storeId;
     return taskInfo;
 }
 }

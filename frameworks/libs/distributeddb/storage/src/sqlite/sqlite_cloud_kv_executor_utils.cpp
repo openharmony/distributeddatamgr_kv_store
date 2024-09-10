@@ -1273,6 +1273,74 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecordData(sqlite3_stmt *stmt, VB
     return GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, CLOUD_QUERY_DEV_INDEX, stmt, data, totalSize);
 }
 
+int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(sqlite3 *db, bool isMemory, std::vector<VBucket> &data)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, SELECT_COMPENSATE_SYNC_KEY_SQL, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get compensate key stmt failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizerData([stmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *statement = stmt;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset compensate key stmt failed %d", ret);
+        }
+    });
+    uint32_t totalSize = 0;
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt, isMemory);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[SqliteCloudKvExecutorUtils] Get key from compensate key stmt failed. %d", errCode);
+            break;
+        }
+        VBucket key;
+        errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_KEY, CLOUD_QUERY_KEY_INDEX, stmt, key, totalSize);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        data.push_back(key);
+    } while (errCode == E_OK);
+    return errCode;
+}
+
+int SqliteCloudKvExecutorUtils::QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
+    QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid)
+{
+    int errCode = E_OK;
+    QuerySyncObject query = querySyncObject;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    sqlite3_stmt *stmt = nullptr;
+    errCode = helper.GetAndBindGidKvCloudQueryStatement(user, db, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt, isMemory);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[SqliteCloudKvExecutorUtils] Get cloud version from cloud failed. %d", errCode);
+            break;
+        }
+        std::string gid;
+        errCode = SQLiteUtils::GetColumnTextValue(stmt, 0, gid);
+        cloudGid.push_back(gid);
+    } while (errCode == E_OK);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
 int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
     const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type)
 {
