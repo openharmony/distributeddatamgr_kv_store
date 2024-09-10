@@ -156,23 +156,21 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         LOGE("get update asset data cursor stmt failed %d.", errCode);
         return errCode;
     }
-    ResFinalizer finalizer([statement] {
+    ResFinalizer finalizer([statement]() {
         sqlite3_stmt *statementInner = statement;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
         if (ret != E_OK) {
-            LOGW("Reset stmt failed %d when increase cursor on asset data", ret);
+            LOGW("Reset  stmt failed %d when increase cursor on asset data", ret);
         }
     });
     int index = 1;
     errCode = SQLiteUtils::BindInt64ToStatement(statement, index++, cursor);
-    int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind cursor data stmt failed %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindTextToStatement(statement, index, gid);
-    ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind cursor gid data stmt failed %d.", errCode);
         return errCode;

@@ -14,6 +14,7 @@
  */
 #include "cloud_db_proxy.h"
 #include "cloud/cloud_db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 
@@ -293,7 +294,6 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
             return INVALID_ARGS;
         }
     }
-    context->SetInfo();
     if (status == CLOUD_VERSION_CONFLICT) {
         LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
     } else if (status != OK) {
@@ -516,7 +516,7 @@ Info CloudDBProxy::CloudActionContext::GetInfo()
     return info;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo()
+bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
 {
     for (auto &asset : assets) {
         if (asset.assetId.empty()) {

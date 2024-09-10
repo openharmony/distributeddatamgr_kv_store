@@ -45,7 +45,7 @@ static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(
     "FLAG & 0x02 = 0x02 THEN (FLAG | 0x02) & (~0x10) & (~0x20) ELSE (FLAG | 0x02 | 0x20) & (~0x10) END)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
 // set data logic delete and exist passport
-static constexpr const char *SET_FLAG_LOGIC_DELETE = "FLAG | 0x08 | 0x800 | 0x01";
+static constexpr const char *SET_FLAG_LOGIC_DELETE = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x02)";
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const char *UPDATE_CURSOR_SQL = "cursor=update_cursor()";
 static constexpr const int SET_FLAG_ZERO_MASK = ~0x04; // clear 2th bit of flag
@@ -1886,6 +1886,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(c
     if (errCode != E_OK) {
         CreateFuncUpdateCursor(context, nullptr);
         LOGE("set new cursor after removeData error %d.", errCode);
+        return errCode;
     }
     errCode = CreateFuncUpdateCursor(context, nullptr);
     if (errCode != E_OK) {
@@ -1905,6 +1906,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
         sql += FLAG_IS_CLOUD;
         sql += " OR ";
         sql +=  FLAG_IS_CLOUD_CONSISTENCY;
+        sql += " ) ";
     }
     sql += ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, selectStmt);

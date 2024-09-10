@@ -1211,7 +1211,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckLocalLogCount(db, g_tables, {40, 40});
     CloseDb();
 }
-
+ 
 /*
  * @tc.name: CleanCloudDataTest022
  * @tc.desc: Test conflict, not dound, exis errCode will deal.

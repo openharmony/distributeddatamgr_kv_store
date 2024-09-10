@@ -1062,6 +1062,33 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     return ret;
 }
 
+bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+            continue;
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 SyncProcess CloudSyncer::GetCloudTaskStatus(uint64_t taskId) const
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
