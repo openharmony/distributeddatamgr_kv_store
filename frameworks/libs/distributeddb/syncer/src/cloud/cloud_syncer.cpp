@@ -1103,6 +1103,11 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
     errCode = DoDownloadInner(taskId, param, isFirstDownload);
     (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
+        // No need to handle ret.
+        int ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
+        if (ret != E_OK) {
+            LOGE("[DoDownload] Cannot get cloud watermark : %d.", ret);
+        }
         std::lock_guard<std::mutex> autoLock(dataLock_);
         resumeTaskInfos_[taskId].syncParam = std::move(param);
     }
@@ -1734,33 +1739,6 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
         param.deletePrimaryKeySet.insert(dataInfo.localInfo.logInfo.hashKey);
     }
     return E_OK;
-}
-
-bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
-{
-    for (const auto &item : data) {
-        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
-        if (asset != nullptr) {
-            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
-                return true;
-            }
-            continue;
-        }
-        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
-        if (assets == nullptr) {
-            continue;
-        }
-        for (const auto &oneAsset : *assets) {
-            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,

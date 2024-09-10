@@ -151,6 +151,10 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         uploadData.insData.extend, insertInfo);
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     innerProcessInfo.upLoadInfo.insertCount += insertInfo.successCount;
+    innerProcessInfo.upLoadInfo.total -= insertInfo.total - insertInfo.successCount - insertInfo.failCount;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer][BatchInsert] BatchInsert with error, ret is %d.", errCode);
+    }
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -161,11 +165,21 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
+        if (ret != errCode) {
+            LOGE("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
+        }
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
-        return errCode;
+        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
+        if (isSkip) {
+            LOGI("[CloudSyncer][BatchInsert] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
+            return E_OK;
+        } else {
+            LOGE("[CloudSyncer][BatchInsert] errCode: %d, can not skip assets missing record.", errCode);
+            return errCode;
+        }
     }
     // we need to fill back gid after insert data to cloud.
     int errorCode = storageProxy_->FillCloudLogAndAsset(OpType::INSERT, uploadData);
@@ -182,6 +196,10 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         uploadData.updData.extend, updateInfo);
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
     innerProcessInfo.upLoadInfo.updateCount += updateInfo.successCount;
+    innerProcessInfo.upLoadInfo.total -= updateInfo.total - updateInfo.successCount - updateInfo.failCount;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer][BatchUpdate] BatchUpdate with error, ret is %d.", errCode);
+    }
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
@@ -192,11 +210,21 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode, CloudWaterType::UPDATE);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer][BatchUpdate] FillAssetIdToAssets with error, ret is %d.", ret);
+        }
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
-        return errCode;
+        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
+        if (isSkip) {
+            LOGI("[CloudSyncer][BatchUpdate] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
+            return E_OK;
+        } else {
+            LOGE("[CloudSyncer][BatchUpdate] errCode: %d, can not skip assets missing record.", errCode);
+            return errCode;
+        }
     }
     int errorCode = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE, uploadData);
     if ((errorCode != E_OK) || (ret != E_OK)) {
@@ -1032,6 +1060,33 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         storageProxy_->ReleaseContinueToken(continueStmtToken);
     }
     return ret;
+}
+
+bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+            continue;
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 SyncProcess CloudSyncer::GetCloudTaskStatus(uint64_t taskId) const

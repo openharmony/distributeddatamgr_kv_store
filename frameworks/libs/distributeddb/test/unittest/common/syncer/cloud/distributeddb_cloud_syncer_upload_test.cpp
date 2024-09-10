@@ -93,6 +93,7 @@ void DistributedDBCloudSyncerUploadTest::PrepareRecord(VBucket &tmp, VBucket &as
 {
     tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
                     pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                    pair<std::string, std::string>(CloudDbConstant::GID_FIELD, "0"),
                     pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
     assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
 }

@@ -14,6 +14,7 @@
  */
 #include "cloud_db_proxy.h"
 #include "cloud/cloud_db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 
@@ -272,17 +273,20 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     switch (action) {
         case INSERT: {
             status = cloudDb->BatchInsert(context->GetTableName(), std::move(record), extend);
-            context->MoveInExtend(extend);
+            context->MoveInRecordAndExtend(record, extend);
+            context->SetInfo(CloudWaterType::INSERT, status);
             break;
         }
         case UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
-            context->MoveInExtend(extend);
+            context->MoveInRecordAndExtend(record, extend);
+            context->SetInfo(CloudWaterType::UPDATE, status);
             break;
         }
         case DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
-            context->MoveInExtend(extend);
+            context->MoveInRecordAndExtend(record, extend);
+            context->SetInfo(CloudWaterType::DELETE, status);
             break;
         }
         default: {
@@ -290,7 +294,6 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
             return INVALID_ARGS;
         }
     }
-    context->SetInfo();
     if (status == CLOUD_VERSION_CONFLICT) {
         LOGI("[CloudSyncer] Version conflict during cloud batch upload.");
     } else if (status != OK) {
@@ -513,11 +516,59 @@ Info CloudDBProxy::CloudActionContext::GetInfo()
     return info;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo()
+bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
 {
-    totalCount_ = extend_.size();
-    for (auto extend : extend_) {
-        if (extend.find(CloudDbConstant::ERROR_FIELD) != extend.end()) {
+    for (auto &asset : assets) {
+        if (asset.assetId.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status)
+{
+    if (extend.count(CloudDbConstant::GID_FIELD) == 0) {
+        return true;
+    }
+    if (status != OK) {
+        if (DBCommon::IsRecordError(extend) ||
+            (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordIgnored(extend) &&
+            !DBCommon::IsRecordVersionConflict(extend))) {
+            return true;
+        }
+    }
+    auto gid = std::get_if<std::string>(&extend.at(CloudDbConstant::GID_FIELD));
+    if (gid == nullptr || (isInsert && (*gid).empty())) {
+        return true;
+    }
+    for (auto &entry : extend) {
+        auto asset = std::get_if<Asset>(&entry.second);
+        if (asset != nullptr && (*asset).assetId.empty()) {
+            return true;
+        }
+        auto assets = std::get_if<Assets>(&entry.second);
+        if (assets != nullptr && IsEmptyAssetId(*assets)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBStatus status)
+{
+    totalCount_ = record_.size();
+
+    // records_ size should be equal to extend_ or batch data failed.
+    if (record_.size() != extend_.size()) {
+        failedCount_ += record_.size();
+        return;
+    }
+    for (auto &extend : extend_) {
+        if (DBCommon::IsNeedCompensatedForUpload(extend, type)) {
+            continue;
+        }
+        if (IsRecordActionFail(extend, type == CloudWaterType::INSERT, status)) {
             failedCount_++;
         } else {
             successCount_++;

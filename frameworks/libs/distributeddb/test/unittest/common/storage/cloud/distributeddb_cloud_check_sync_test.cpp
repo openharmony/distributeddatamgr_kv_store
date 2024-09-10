@@ -383,19 +383,17 @@ void DistributedDBCloudCheckSyncTest::PriorityAndNormalSync(const Query &normalQ
         const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
-                {
-                    std::lock_guard<std::mutex> autoLock(dataMutex);
-                    normalFinish = true;
-                }
+                normalFinish = true;
                 ASSERT_EQ(priorityFinish, true);
                 cv.notify_one();
             }
         }
     };
-    auto priorityCallback = [&priorityFinish](const std::map<std::string, SyncProcess> &process) {
+    auto priorityCallback = [&cv, &priorityFinish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 priorityFinish = true;
+                cv.notify_one();
             }
         }
     };
@@ -404,6 +402,7 @@ void DistributedDBCloudCheckSyncTest::PriorityAndNormalSync(const Query &normalQ
     virtualCloudDb_->SetBlockTime(500); // 500 ms
     ASSERT_EQ(delegate->Sync(option, normalCallback), OK);
     PrepareOption(option, priorityQuery, true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 50 ms
     ASSERT_EQ(delegate->Sync(option, priorityCallback), OK);
     std::unique_lock<std::mutex> uniqueLock(dataMutex);
     cv.wait(uniqueLock, [&normalFinish]() {
@@ -854,10 +853,10 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest003, TestSize.Lev
     std::vector<std::string> idValue = {"0", "1", "2"};
     Query priorityQuery = Query::Select().From(tableName_).In("id", idValue);
     PriorityAndNormalSync(normalQuery, priorityQuery, delegate_);
-    CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records
     EXPECT_EQ(virtualCloudDb_->GetLockCount(), 2);
     virtualCloudDb_->Reset();
     EXPECT_EQ(virtualCloudDb_->GetLockCount(), 0);
+    CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records
 }
 
 /**

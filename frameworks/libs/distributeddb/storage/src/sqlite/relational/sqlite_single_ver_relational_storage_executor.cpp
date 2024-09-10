@@ -1905,7 +1905,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
         sql += " AND (";
         sql += FLAG_IS_CLOUD;
         sql += " OR ";
-        sql += FLAG_IS_CLOUD_CONSISTENCY;
+        sql +=  FLAG_IS_CLOUD_CONSISTENCY;
         sql += " ) ";
     }
     sql += ";";

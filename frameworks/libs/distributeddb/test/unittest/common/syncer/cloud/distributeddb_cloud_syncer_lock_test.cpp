@@ -490,7 +490,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
      */
     g_virtualCloudDb->ForkInsertConflict([](const std::string &tableName, VBucket &extend, VBucket &record,
         std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
-        for (const auto &[cloudRecord, cloudExtend]: cloudDataVec) {
+        for (auto &[cloudRecord, cloudExtend]: cloudDataVec) {
             int64_t cloudPk;
             CloudStorageUtils::GetValueFromVBucket<int64_t>(COL_ID, record, cloudPk);
             int64_t localPk;
@@ -504,6 +504,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Lev
             CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, cloudExtend,
                 cloudVersion);
             if (localVersion != cloudVersion) {
+                extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
                 return CLOUD_VERSION_CONFLICT;
             }
         }

@@ -1000,7 +1000,12 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
         return;
     }
     auto identifier = GetIdentifier();
-    auto kvdb = KvDBManager::GetInstance()->FindKvDB(identifier);
+    auto kvDBManager = KvDBManager::GetInstance();
+    if (kvDBManager == nullptr) {
+        LOGE("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] kvDBManager is null.");
+        return;
+    }
+    auto kvdb = kvDBManager->FindKvDB(identifier);
     if (kvdb == nullptr) {
         LOGE("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] kvdb is null.");
         return;

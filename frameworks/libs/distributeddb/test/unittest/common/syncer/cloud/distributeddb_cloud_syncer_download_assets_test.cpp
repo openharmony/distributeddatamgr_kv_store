@@ -223,6 +223,46 @@ void DeleteCloudDBData(int64_t begin, int64_t count, const std::string &tableNam
     }
 }
 
+void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t versionStart,
+    const std::string &tableName)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    GenerateDataRecords(begin, count, gidStart, record, extend);
+    for (auto &entry: extend) {
+        entry[CloudDbConstant::VERSION_FIELD] = std::to_string(versionStart++);
+    }
+    ASSERT_EQ(g_virtualCloudDb->BatchUpdate(tableName, std::move(record), extend), DBStatus::OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
+
+int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
+{
+    auto status = static_cast<std::vector<int64_t> *>(data);
+    for (int i = 0; i < count; i++) {
+        const int decimal = 10;
+        status->push_back(strtol(colValue[0], nullptr, decimal));
+    }
+    return 0;
+}
+
+void CheckLockStatus(sqlite3 *db, int startId, int endId, LockStatus lockStatus)
+{
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "select status from " + logName + " where data_key >=" + std::to_string(startId) +
+        " and data_key <=" +  std::to_string(endId) + ";";
+    std::vector<int64_t> status;
+    char *str = NULL;
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryStatusCallback, static_cast<void *>(&status), &str),
+        SQLITE_OK);
+    ASSERT_EQ(static_cast<size_t>(endId - startId + 1), status.size());
+
+    for (auto stat : status) {
+        ASSERT_EQ(static_cast<int64_t>(lockStatus), stat);
+    }
+}
+
 void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName)
 {
     std::vector<VBucket> record;
@@ -1061,7 +1101,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Le
     std::atomic<int> count = 0;
     g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end() && count == 0) {
-            extend["#_error"] = std::string("");
+            extend["#_error"] = static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR);
             count++;
         }
     });
@@ -1238,7 +1278,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Le
     std::atomic<int> count = 0;
     g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end() && count == 0) {
-            extend["#_error"] = std::string("");
+            extend["#_error"] = static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR);
             count++;
         }
     });
@@ -1616,6 +1656,98 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
 }
 
 /**
+ * @tc.name: FillAssetId021
+ * @tc.desc: Test if local assets missing, one records's assets missing will not mark the whole sync progress failure
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+ 
+    /**
+     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
+     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     */
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId == 25) { // 25 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+ 
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 49;
+    int endFailFillNum = 50;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    g_virtualCloudDb->ForkUpload(nullptr);
+}
+ 
+/**
+ * @tc.name: FillAssetId022
+ * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+ 
+    /**
+     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
+     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     */
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId >= 25 && uploadFailId <= 27) { // 25-27 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+ 
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 49;
+    int endFailFillNum = 54;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    g_virtualCloudDb->ForkUpload(nullptr);
+}
+
+/**
  * @tc.name: ConsistentFlagTest001
  * @tc.desc:Assets are the different, check the 0x20 bit of flag after sync
  * @tc.type: FUNC
@@ -1773,14 +1905,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
 
     /**
-     * @tc.steps:step2. fork upload, return error filed of type string
+     * @tc.steps:step2. fork upload, not return error filed of CLOUD_NETWORK_ERROR
      * @tc.expected: step2. return OK.
      */
     int upIdx = 0;
     g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
         LOGD("upload index:%d", ++upIdx);
         if (upIdx == 1) {
-            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, std::string("x"));
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, static_cast<int64_t>(DBStatus::CLOUD_NETWORK_ERROR));
         }
     });
 
@@ -1814,7 +1946,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
      * @tc.expected: step5. return OK.
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    CheckConsistentCount(db, localCount - 1);
+    CheckConsistentCount(db, localCount - 2);
 }
 
 /**
@@ -2156,6 +2288,87 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestS
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     EXPECT_EQ(errCode, E_OK);
+}
+
+/**
+ * @tc.name: RecordLockFuncTest001
+ * @tc.desc: UNLOCKING->UNLOCKING Synchronous download failure wholly.
+ * @tc.type: FUNC
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init local data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 100;
+    int cloudCount = 100;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, true);
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "update " + logName + " SET status = 2 where data_key >=70;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    CheckLockStatus(db, 0, 69, LockStatus::UNLOCK);
+    CheckLockStatus(db, 70, 99, LockStatus::LOCK);
+    DeleteLocalRecord(db, 70, 30, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. init cloud data
+     * @tc.expected: step2. return OK.
+     */
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    UpdateCloudDBData(0, 70, 0, 0, ASSETS_TABLE_NAME);
+
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s  %d", gid.c_str(), index);
+                index++;
+                if (index <= 30) {
+                    return DBStatus::CLOUD_ERROR;
+                } else {
+                    return DBStatus::OK;
+                }
+
+            });
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
+        LOGD("query index:%d", ++queryIdx);
+        if (queryIdx == 2) { // 2 is compensated sync
+            mtx.lock();
+            cv.notify_one();
+            mtx.unlock();
+            std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
+        }
+    });
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock);
+    }
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. check before compensated sync
+     * @tc.expected: 70-99 is UNLOCKING.
+     */
+    CheckLockStatus(db, 0, 69, LockStatus::UNLOCK);
+    CheckLockStatus(db, 70, 99, LockStatus::UNLOCKING);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    /**
+     * @tc.steps:step4. check after compensated sync
+     * @tc.expected: all is UNLOCKING.
+     */
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
 }
 } // namespace
 #endif // RELATIONAL_STORE

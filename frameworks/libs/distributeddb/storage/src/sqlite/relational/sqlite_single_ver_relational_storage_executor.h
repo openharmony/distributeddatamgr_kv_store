@@ -313,6 +313,8 @@ private:
 
     int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
 
+    int BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt, std::vector<uint8_t> &hashKey);
+
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 

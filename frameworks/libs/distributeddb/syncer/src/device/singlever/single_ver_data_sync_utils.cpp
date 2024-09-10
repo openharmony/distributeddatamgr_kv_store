@@ -509,6 +509,11 @@ std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromReque
     std::pair<TimeOffset, TimeOffset> res;
     auto &[systemOffset, senderLocalOffset] = res;
     const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
+    if (packet == nullptr) {
+        systemOffset = 0;
+        senderLocalOffset = 0;
+        return res;
+    }
     systemOffset = packet->GetSystemTimeOffset();
     senderLocalOffset = packet->GetSenderTimeOffset();
     return res;

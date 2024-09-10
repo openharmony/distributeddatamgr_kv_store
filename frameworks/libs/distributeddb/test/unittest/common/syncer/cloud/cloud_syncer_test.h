@@ -197,6 +197,7 @@ public:
     {
         VBucket tmp = { std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
                         std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                        std::pair<std::string, std::string>(CloudDbConstant::GID_FIELD, "0"),
                         std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
         VBucket asset = { std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
         uploadData.insData.record = std::vector<VBucket>(size, tmp);

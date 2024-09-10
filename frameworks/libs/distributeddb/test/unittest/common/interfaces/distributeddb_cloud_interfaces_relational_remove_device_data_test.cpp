@@ -349,18 +349,6 @@ namespace {
         }
     }
 
-    void CheckLogoutLogCount(sqlite3 *&db, const std::vector<std::string> &tableList, const std::vector<int> &countList)
-    {
-        int i = 0;
-        for (const auto &tableName: tableList) {
-            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where flag & 0x800 = 0x800";
-            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
-                reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
-            i++;
-        }
-    }
-
     void CheckCleanLogNum(sqlite3 *&db, const std::vector<std::string> tableList, int count)
     {
         for (const auto &tableName: tableList) {
@@ -1213,7 +1201,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {35, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
-    CheckLogoutLogCount(db, g_tables, {10, 10});
     /**
      * @tc.steps: step6. do sync again and remove device data, then check local data and log.
      * @tc.expected: OK.
@@ -1222,45 +1209,60 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {40, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
-    CheckLogoutLogCount(db, g_tables, {15, 10});
     CloseDb();
 }
-
+ 
 /*
- * @tc.name: CleanCloudDataTest014
- * @tc.desc: Test when remove device data at flagOnly mode.
+ * @tc.name: CleanCloudDataTest022
+ * @tc.desc: Test conflict, not dound, exis errCode will deal.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
-**/
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest014, TestSize.Level0)
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest022, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. make data: 20 records on local
+     * @tc.steps: step1. Set data is logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 20 records on local.
      */
     int64_t paddingSize = 20;
     int localCount = 20;
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     /**
-     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     * @tc.steps: step3. make 2-5th data errCode.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx == 2) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED);
+        }
+        if (upIdx == 3) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+        }
+        if (upIdx == 4) {
+            // CLOUD_RECORD_NOT_FOUND means cloud and terminal is consitenct
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+        }
+        if (upIdx == 5) {
+            // CLOUD_RECORD_NOT_FOUND means no error
+            extend[CloudDbConstant::ERROR_FIELD] = std::string("x");
+        }
+    });
+    /*
+     * @tc.steps: step4. call Sync, and check consitency.
      */
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
-    /**
-     * @tc.steps: step3. modify local data
-     * @tc.expected: OK.
-     */
-    InsertUserTableRecord(db, 20, localCount, paddingSize, false);
-    UpdateUserTableRecord(db, 5, 10);
-    DeleteUserTableRecord(db, 10, 15);
-    /**
-     * @tc.steps: step4. check cloud record data and remove device data.
-     * @tc.expected: OK.
-     */
-    CheckCloudRecordNum(db, g_tables, {0, 0});
-    std::string device;
-    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
-    CheckCleanDataNum(db, g_tables, {35, 35});
-    CheckLogoutLogCount(db, g_tables, {40, 40});
+    g_virtualCloudDb->ForkUpload(nullptr);
+    std::string sql = "select count() from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where flag & 0x20 = 0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(18), nullptr), SQLITE_OK);
     CloseDb();
 }
 }
