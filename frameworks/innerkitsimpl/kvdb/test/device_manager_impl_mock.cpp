@@ -442,5 +442,15 @@ int32_t DeviceManagerImpl::ShiftLNNGear(const std::string &pkgName)
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
+int32_t DeviceManagerImpl::SetDnPolicy(const std::string &pkgName, std::map<std::string, std::string> &policy)
+{
+    return ERR_DM_INPUT_PARA_INVALID;
+}
+
+int32_t DeviceManagerImpl::RegDevTrustChangeCallback(const std::string &pkgName,
+    std::shared_ptr<DevTrustChangeCallback> callback)
+{
+    return ERR_DM_INPUT_PARA_INVALID;
+}
 } // namespace DistributedHardware
 } // namespace OHOS
