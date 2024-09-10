@@ -303,11 +303,21 @@ void SyncAbleKvDB::ChangeUserListener()
     }
 }
 
+uint64_t SyncAbleKvDB::GetTimestampFromDB()
+{
+    return 0; //default is 0
+}
+
 // Get The current virtual timestamp
-uint64_t SyncAbleKvDB::GetTimestamp()
+uint64_t SyncAbleKvDB::GetTimestamp(bool needStartSync)
 {
     if (NeedStartSyncer()) {
-        StartSyncer();
+        if (needStartSync) {
+            StartSyncer();
+        } else {
+            // if syncer not start, get offset time from database
+            return GetTimestampFromDB();
+        }
     }
     return syncer_.GetTimestamp();
 }
