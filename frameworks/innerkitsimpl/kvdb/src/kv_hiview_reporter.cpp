@@ -114,4 +114,4 @@ void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventI
 
     OH_HiSysEvent_Write(DISTRIBUTED_DATAMGR, EVENT_NAME, HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
-} // namespace OHOS::DistributedKv
+} // namespace OHOS::NativeRdb

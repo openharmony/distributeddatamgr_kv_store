@@ -54,8 +54,7 @@
         "libuv",
         "openssl",
         "sqlite",
-        "zlib",
-        "googletest"
+        "zlib"
       ],
       "kernel_special": {},
       "board_special": {},
