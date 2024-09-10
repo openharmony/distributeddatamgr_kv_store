@@ -1439,7 +1439,7 @@ int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std:
     int ignoreCount = 0;
     for (const auto &oneRow : data) {
         if (oneRow.size() >= 2u) { // mean this data has more than 2 pk
-            LOGW("Not support compensated sync with composite primary key now");
+            LOGW("not support, size: %zu, table: %s", oneRow.size(), DBCommon::StringMiddleMasking(tableName).c_str());
             return -E_NOT_SUPPORT;
         }
         for (const auto &[col, value] : oneRow) {
