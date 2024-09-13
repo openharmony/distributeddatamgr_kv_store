@@ -1710,7 +1710,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
 {
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
-        LOGE("[UnregisterAllStoreObserver] StoreObserver is invalid.");
+        LOGD("[UnregisterAllStoreObserver] StoreObserver is invalid.");
         return DistributedDB::INVALID_ARGS;
     }
 
