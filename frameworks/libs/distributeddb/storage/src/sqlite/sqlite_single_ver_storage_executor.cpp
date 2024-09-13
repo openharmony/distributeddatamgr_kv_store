@@ -2220,6 +2220,29 @@ void SQLiteSingleVerStorageExecutor::CalHashKey(sqlite3_context *ctx, int argc, 
     sqlite3_result_blob(ctx, hashKey.data(), static_cast<int>(hashKey.size()), SQLITE_TRANSIENT);
 }
 
+bool SQLiteSingleVerStorageExecutor::IsPrintTimestamp()
+{
+    // Print only maxLogTimesPerSecond times a second.
+    Timestamp curTime = TimeHelper::GetSysCurrentTime();
+    if (curTime - startTime_ > printIntervalSeconds) {
+        logCount_ = 0;
+        startTime_ = curTime;
+        if (droppedCount_ > 0) {
+            LOGI("Dropped number of timestamp log:%" PRIu64, droppedCount_);
+        }
+        droppedCount_ = 0;
+    } else {
+        logCount_++;
+    }
+
+    if (logCount_ < maxLogTimesPerSecond) {
+        return true;
+    } else {
+        droppedCount_++;
+        return false;
+    }
+}
+
 int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate)
 {
     int errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_SYNC_STAMP_INDEX, dataItem.timestamp);
@@ -2249,8 +2272,11 @@ int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, co
         return errCode;
     }
 
-    LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
-        PRIu64, dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag, dataItem.modifyTime, dataItem.createTime);
+    if (IsPrintTimestamp()) {
+        LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
+            PRIu64, dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag, dataItem.modifyTime,
+            dataItem.createTime);
+    }
     return errCode;
 }
 

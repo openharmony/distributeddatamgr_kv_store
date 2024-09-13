@@ -362,7 +362,9 @@ EngineState StorageEngine::GetEngineState() const
 
 void StorageEngine::SetEngineState(EngineState state)
 {
-    LOGI("Storage engine state to [%d]!", state);
+    if (state != EngineState::MAINDB) {
+        LOGI("Storage engine state to [%d]!", state);
+    }
     engineState_ = state;
 }
 
