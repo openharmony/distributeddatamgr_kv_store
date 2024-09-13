@@ -58,8 +58,7 @@ void DevManagerMockTest::TearDown(void)
 */
 HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 {
-    auto &devMgr = DevManager::GetInstance();
-    auto devInfo = devMgr.GetLocalDevice();
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
     EXPECT_EQ(devInfo.uuid, "");
 }
 
@@ -72,8 +71,7 @@ HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 {
-    auto &devMgr = DevManager::GetInstance();
-    auto uuid = devMgr.GetUnEncryptedUuid();
+    auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     EXPECT_EQ(uuid, "");
 }
 
@@ -118,8 +116,7 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid003, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices, TestSize.Level1)
 {
-    auto &devMgr = DevManager::GetInstance();
-    auto detailInfo = devMgr.GetRemoteDevices();
+    auto detailInfo = DevManager::GetInstance().GetRemoteDevices();
     EXPECT_TRUE(detailInfo.empty());
 }
 } // namespace OHOS::Test
