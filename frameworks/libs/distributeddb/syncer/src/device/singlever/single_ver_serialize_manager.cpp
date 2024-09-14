@@ -737,11 +737,13 @@ ERROR:
 int SingleVerSerializeManager::RegisterCommunicatorTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&SingleVerSerializeManager::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&SingleVerSerializeManager::Serialization, std::placeholders::_1,
-        std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&SingleVerSerializeManager::DeSerialization, std::placeholders::_1,
-        std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
 
     static std::vector<MessageId> messageIds = {
         QUERY_SYNC_MESSAGE, DATA_SYNC_MESSAGE, CONTROL_SYNC_MESSAGE, REMOTE_EXECUTE_MESSAGE
@@ -761,11 +763,13 @@ int SingleVerSerializeManager::RegisterCommunicatorTransformFunc()
 void SingleVerSerializeManager::RegisterInnerTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&SingleVerSerializeManager::ISyncPacketCalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&SingleVerSerializeManager::ISyncPacketSerialization,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&SingleVerSerializeManager::ISyncPacketDeSerialization,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return ISyncPacketCalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return ISyncPacketSerialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return ISyncPacketDeSerialization(buffer, length, inMsg);
+    };
     std::lock_guard<std::mutex> autoLock(handlesLock_);
     messageHandles_.emplace(static_cast<uint32_t>(REMOTE_EXECUTE_MESSAGE), func);
 }

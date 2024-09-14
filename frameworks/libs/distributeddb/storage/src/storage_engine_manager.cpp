@@ -173,7 +173,7 @@ int StorageEngineManager::RegisterLockStatusListener()
                 return;
             }
             int taskErrCode = RuntimeContext::GetInstance()->ScheduleTask(
-                std::bind(&StorageEngineManager::LockStatusNotifier, this, isLocked));
+                [this, isLocked] { LockStatusNotifier(isLocked); });
             if (taskErrCode != E_OK) {
                 LOGE("[StorageEngineManager] LockStatusNotifier ScheduleTask failed : %d", taskErrCode);
             }

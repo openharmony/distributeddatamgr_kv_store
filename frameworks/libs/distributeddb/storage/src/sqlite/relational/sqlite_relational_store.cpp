@@ -696,7 +696,7 @@ int SQLiteRelationalStore::RegisterLifeCycleCallback(const DatabaseLifeCycleNoti
             return errCode;
         }
     }
-    auto listener = std::bind(&SQLiteRelationalStore::HeartBeat, this);
+    auto listener = [this] { HeartBeat(); };
     storageEngine_->RegisterHeartBeatListener(listener);
     return errCode;
 }

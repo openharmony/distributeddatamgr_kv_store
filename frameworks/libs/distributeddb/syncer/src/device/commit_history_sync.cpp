@@ -199,11 +199,13 @@ uint32_t CommitHistorySync::CalculateLen(const Message *inMsg)
 int CommitHistorySync::RegisterTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&CommitHistorySync::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&CommitHistorySync::Serialization, std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&CommitHistorySync::DeSerialization, std::placeholders::_1,
-                                     std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
     return MessageTransform::RegTransformFunction(COMMIT_HISTORY_SYNC_MESSAGE, func);
 }
 

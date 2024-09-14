@@ -617,7 +617,7 @@ void RemoteExecutor::StartTimer(uint64_t timeout, uint32_t sessionId)
 {
     TimerId timerId = 0u;
     RefObject::IncObjRef(this);
-    TimerAction timeoutCallBack = std::bind(&RemoteExecutor::TimeoutCallBack, this, std::placeholders::_1);
+    TimerAction timeoutCallBack = [this](TimerId timerId) { return TimeoutCallBack(timerId); };
     int errCode = RuntimeContext::GetInstance()->SetTimer(timeout, timeoutCallBack, [this]() {
         RefObject::DecObjRef(this);
     }, timerId);

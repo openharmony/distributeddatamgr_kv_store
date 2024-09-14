@@ -169,8 +169,7 @@ void SingleVerSyncStateMachine::SyncStep()
 {
     RefObject::IncObjRef(context_);
     RefObject::IncObjRef(communicator_);
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
-        std::bind(&SingleVerSyncStateMachine::SyncStepInnerLocked, this));
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this] { SyncStepInnerLocked(); });
     if (errCode != E_OK) {
         LOGE("[StateMachine][SyncStep] Schedule SyncStep failed");
         RefObject::DecObjRef(communicator_);
@@ -358,17 +357,15 @@ void SingleVerSyncStateMachine::InitStateSwitchTable(uint32_t version,
 
 void SingleVerSyncStateMachine::InitStateMapping()
 {
-    stateMapping_[TIME_SYNC] = std::bind(&SingleVerSyncStateMachine::DoTimeSync, this);
-    stateMapping_[ABILITY_SYNC] = std::bind(&SingleVerSyncStateMachine::DoAbilitySync, this);
-    stateMapping_[WAIT_FOR_RECEIVE_DATA_FINISH] = std::bind(&SingleVerSyncStateMachine::DoWaitForDataRecv, this);
-    stateMapping_[SYNC_TASK_FINISHED] = std::bind(&SingleVerSyncStateMachine::DoSyncTaskFinished, this);
-    stateMapping_[SYNC_TIME_OUT] = std::bind(&SingleVerSyncStateMachine::DoTimeout, this);
-    stateMapping_[INNER_ERR] = std::bind(&SingleVerSyncStateMachine::DoInnerErr, this);
-    stateMapping_[START_INITIACTIVE_DATA_SYNC] =
-        std::bind(&SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow, this);
-    stateMapping_[START_PASSIVE_DATA_SYNC] =
-        std::bind(&SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow, this);
-    stateMapping_[SYNC_CONTROL_CMD] = std::bind(&SingleVerSyncStateMachine::DoInitiactiveControlSync, this);
+    stateMapping_[TIME_SYNC] = [this] { return DoTimeSync(); };
+    stateMapping_[ABILITY_SYNC] = [this] { return DoAbilitySync(); };
+    stateMapping_[WAIT_FOR_RECEIVE_DATA_FINISH] = [this] { return DoWaitForDataRecv(); };
+    stateMapping_[SYNC_TASK_FINISHED] = [this] { return DoSyncTaskFinished(); };
+    stateMapping_[SYNC_TIME_OUT] = [this] { return DoTimeout(); };
+    stateMapping_[INNER_ERR] = [this] { return DoInnerErr(); };
+    stateMapping_[START_INITIACTIVE_DATA_SYNC] = [this] { return DoInitiactiveDataSyncWithSlidingWindow(); };
+    stateMapping_[START_PASSIVE_DATA_SYNC] = [this] { return DoPassiveDataSyncWithSlidingWindow(); };
+    stateMapping_[SYNC_CONTROL_CMD] = [this] { return DoInitiactiveControlSync(); };
 }
 
 Event SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow() const
@@ -480,8 +477,9 @@ Event SingleVerSyncStateMachine::DoTimeSync() const
         CommErrHandler handler = nullptr;
         // Auto sync need do retry don't use errHandler to return.
         if (!context_->IsAutoSync()) {
-            handler = std::bind(&SyncTaskContext::CommErrHandlerFunc, std::placeholders::_1,
-                context_, context_->GetRequestSessionId());
+            handler = [this, context = context_, requestSessionId = context_->GetRequestSessionId()](int ret) {
+                SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId);
+            };
         }
         int errCode = timeSync_->SyncStart(handler, context_->GetRequestSessionId());
         if (errCode == E_OK) {
@@ -511,8 +509,9 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
         return GetEventAfterTimeSync(context_->GetMode());
     }
 
-    CommErrHandler handler = std::bind(&SyncTaskContext::CommErrHandlerFunc, std::placeholders::_1,
-        context_, context_->GetRequestSessionId());
+    CommErrHandler handler = [this, context = context_, requestSessionId = context_->GetRequestSessionId()](int ret) {
+        SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId);
+    };
     LOGI("[StateMachine][AbilitySync] start abilitySync,label=%s,dev=%s", dataSync_->GetLabel().c_str(),
         STR_MASK(context_->GetDeviceId()));
     errCode = abilitySync_->SyncStart(context_->GetRequestSessionId(), context_->GetSequenceId(),

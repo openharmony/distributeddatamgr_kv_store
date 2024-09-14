@@ -25,7 +25,7 @@ int SingleVerRelationalSyncer::Initialize(ISyncInterface *syncInterface, bool is
     if (errCode != E_OK) {
         return errCode;
     }
-    auto callback = std::bind(&SingleVerRelationalSyncer::SchemaChangeCallback, this);
+    auto callback = [this] { SchemaChangeCallback(); };
     return static_cast<RelationalDBSyncInterface *>(syncInterface)->
         RegisterSchemaChangedCallback(callback);
 }
@@ -78,8 +78,9 @@ int SingleVerRelationalSyncer::GenerateEachSyncTask(const SyncParma &param, uint
         LOGI("[SingleVerRelationalSyncer] SubSyncId %" PRIu32 " create by SyncId %" PRIu32 ", hashTableName = %s",
             subSyncId, syncId, STR_MASK(DBCommon::TransferStringToHex(hashTableName)));
         subParam.syncQuery = table;
-        subParam.onComplete = std::bind(&SingleVerRelationalSyncer::DoOnSubSyncComplete, this, subSyncId,
-            syncId, param, std::placeholders::_1);
+        subParam.onComplete = [this, subSyncId, syncId, param](const std::map<std::string, int> &devicesMap) {
+            DoOnSubSyncComplete(subSyncId, syncId, param, devicesMap);
+        };
         {
             std::lock_guard<std::mutex> lockGuard(syncMapLock_);
             fullSyncIdMap_[syncId].insert(subSyncId);

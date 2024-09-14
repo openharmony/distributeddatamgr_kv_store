@@ -423,12 +423,14 @@ int GenericSyncer::InitSyncEngine(ISyncInterface *syncInterface)
     if (errCode != E_OK) {
         return errCode;
     }
-    const std::function<void(std::string)> onlineFunc = std::bind(&GenericSyncer::RemoteDataChanged,
-        this, std::placeholders::_1);
-    const std::function<void(std::string)> offlineFunc = std::bind(&GenericSyncer::RemoteDeviceOffline,
-        this, std::placeholders::_1);
+    const std::function<void(std::string)> onlineFunc = [this](const std::string &device) {
+        RemoteDataChanged(device);
+    };
+    const std::function<void(std::string)> offlineFunc = [this](const std::string &device) {
+        RemoteDeviceOffline(device);
+    };
     const std::function<void(const InternalSyncParma &param)> queryAutoSyncFunc =
-        std::bind(&GenericSyncer::QueryAutoSync, this, std::placeholders::_1);
+        [this](const InternalSyncParma &syncParam) { QueryAutoSync(syncParam); };
     const ISyncEngine::InitCallbackParam param = { onlineFunc, offlineFunc, queryAutoSyncFunc };
     errCode = syncEngine_->Initialize(syncInterface, metadata_, param);
     if (errCode == E_OK) {
