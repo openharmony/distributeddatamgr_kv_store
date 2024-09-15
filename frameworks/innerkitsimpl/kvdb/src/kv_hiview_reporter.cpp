@@ -20,6 +20,8 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <fcntl.h>
+#include <unistd.h>
 #include "hisysevent_c.h"
 #include "log_print.h"
 #include "types.h"
