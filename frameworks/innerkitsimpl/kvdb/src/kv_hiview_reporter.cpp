@@ -161,7 +161,7 @@ void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, con
     int result = remove(flagFilename.c_str());
     if (result != 0) {
         ZLOGW("remove corrupted flg fail, flgname=%{public}s, errno=%{public}d",
-            SqliteUtils::Anonymous(flagFilename).c_str(), errno);
+            StoreUtils::Anonymous(flagFilename).c_str(), errno);
     }
 }
 
