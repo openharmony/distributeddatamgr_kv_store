@@ -68,7 +68,7 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
 
 bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
 {
-    return;
+    return false;
 }
 
 void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
