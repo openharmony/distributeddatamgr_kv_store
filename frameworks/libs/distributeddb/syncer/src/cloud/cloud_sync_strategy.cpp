@@ -65,8 +65,12 @@ bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
     if (policy_ == SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN) {
         return false;
     }
+    if ((localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 && IsDelete(localInfo)) {
+        LOGW("[CloudSyncStrategy] dont ignore %.6s", localInfo.cloudGid.c_str());
+        return false;
+    }
     if (localInfo.originDev.empty() && localInfo.device.empty()) {
-        LOGW("[CloudSyncStrategy] %.3s was ignored override", localInfo.cloudGid.c_str());
+        LOGW("[CloudSyncStrategy] %.6s was ignored override", localInfo.cloudGid.c_str());
         return true;
     }
     return false;
