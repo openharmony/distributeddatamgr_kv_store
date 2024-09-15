@@ -85,4 +85,4 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
 {
     return "";
 }
-} // namespace OHOS::NativeRdb
+} // namespace OHOS::DistributedKv

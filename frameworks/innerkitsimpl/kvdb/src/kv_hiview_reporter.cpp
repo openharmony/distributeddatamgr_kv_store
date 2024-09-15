@@ -144,7 +144,7 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
     int fd = creat(flagFilename.c_str(), S_IRWXU | S_IRWXG);
     if (fd == -1) {
         ZLOGW("creat corrupted flg fail, flgname=%{public}s, errno=%{public}d",
-            StoreUtils::Anonymous(flagFilename).c_str(), errno);
+            StoreUtil::Anonymous(flagFilename).c_str(), errno);
         return;
 
     }
@@ -161,7 +161,7 @@ void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, con
     int result = remove(flagFilename.c_str());
     if (result != 0) {
         ZLOGW("remove corrupted flg fail, flgname=%{public}s, errno=%{public}d",
-            StoreUtils::Anonymous(flagFilename).c_str(), errno);
+            StoreUtil::Anonymous(flagFilename).c_str(), errno);
     }
 }
 
@@ -172,4 +172,4 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
     reporterDir = path + "/kvdb/" + reporterDir + "/";
     return reporterDir;
 }
-} // namespace OHOS::NativeRdb
+} // namespace OHOS::DistributedKv
