@@ -40,7 +40,7 @@ class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
-        const KvStoreTuple &storeTuple, const std::string &appendix);
+        const KvStoreTuple &storeTuple, const std::string &path);
     
     static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 
