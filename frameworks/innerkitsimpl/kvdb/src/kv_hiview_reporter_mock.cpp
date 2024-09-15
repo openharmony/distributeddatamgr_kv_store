@@ -65,4 +65,24 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
 {
     return;
 }
+
+bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
+{
+    return;
+}
+
+void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    return;
+}
+
+void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    return;
+}
+
+std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const std::string &storeId)
+{
+    return "";
+}
 } // namespace OHOS::NativeRdb

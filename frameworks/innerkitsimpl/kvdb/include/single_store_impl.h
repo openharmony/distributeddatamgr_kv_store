@@ -132,7 +132,7 @@ private:
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();
-    void ReportDBCorruptedFault(Status status, const std::string &appendIX) const;
+    void ReportDBCorruptedFault(Status status) const;
 
     bool isApplication_ = false;
     bool autoSync_ = false;
@@ -151,6 +151,7 @@ private:
     int32_t securityLevel_ = -1;
     int32_t area_ = 1;
     std::string hapName_ = "";
+    std::string path_ = "";
 
     std::mutex notifyMutex_;
     uint64_t notifyExpiredTime_ = 0;
