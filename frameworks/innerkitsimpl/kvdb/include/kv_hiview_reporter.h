@@ -40,12 +40,19 @@ class KVDBFaultHiViewReporter {
 public:
     static void ReportKVDBCorruptedFault(
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
-        const KvStoreTuple &storeTuple, const std::string &appendix);
+        const KvStoreTuple &storeTuple, const std::string &path);
+    
+    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 
+    static std::string GetDBPath(const std::string &path, const std::string &storeId);
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
     static std::string GetCurrentMicrosecondTimeFormat();
+    
+    static bool IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId);
+
+    static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H
