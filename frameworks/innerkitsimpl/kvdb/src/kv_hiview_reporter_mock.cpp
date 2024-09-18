@@ -43,12 +43,12 @@ struct KVDBCorruptedEvent {
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, int32_t systemErrorNo,
-    const KvStoreTuple &storeTuple, const std::string &appendix)
+    const KvStoreTuple &storeTuple, const std::string &path)
 {
     KVDBCorruptedEvent eventInfo(options);
     eventInfo.errorCode = errorCode;
     eventInfo.systemErrorNo = systemErrorNo;
-    eventInfo.appendix = appendix;
+    eventInfo.appendix = path;
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
@@ -65,4 +65,24 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
 {
     return;
 }
-} // namespace OHOS::NativeRdb
+
+bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
+{
+    return false;
+}
+
+void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    return;
+}
+
+void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    return;
+}
+
+std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const std::string &storeId)
+{
+    return "";
+}
+} // namespace OHOS::DistributedKv

@@ -20,14 +20,18 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <fcntl.h>
+#include <unistd.h>
 #include "hisysevent_c.h"
 #include "log_print.h"
 #include "types.h"
+#include "store_util.h"
 
 namespace OHOS::DistributedKv {
 
 static constexpr const char *EVENT_NAME = "DATABASE_CORRUPTED";
 static constexpr const char *DISTRIBUTED_DATAMGR = "DISTDATAMGR";
+constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
 struct KVDBCorruptedEvent {
     std::string bundleName;
     std::string moduleName;
@@ -53,16 +57,19 @@ struct KVDBCorruptedEvent {
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, int32_t systemErrorNo,
-    const KvStoreTuple &storeTuple, const std::string &appendix)
+    const KvStoreTuple &storeTuple, const std::string &path)
 {
     KVDBCorruptedEvent eventInfo(options);
     eventInfo.errorCode = errorCode;
     eventInfo.systemErrorNo = systemErrorNo;
-    eventInfo.appendix = appendix;
+    eventInfo.appendix = path;
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    ReportCommonFault(eventInfo);
+    if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
+        ReportCommonFault(eventInfo);
+        CreateCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
+    }
 }
 
 std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
@@ -86,6 +93,60 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     oss << std::put_time(tm, "%Y-%m-%d %H:%M:%S.") << std::setfill('0') << std::setw(width)
         << ((timestamp / offset) % offset) << "." << std::setfill('0') << std::setw(width) << (timestamp % offset);
     return oss.str();
+}
+
+bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
+{
+    if (dbPath.empty()) {
+        ZLOGW("dbPath path is empty");
+        return false;
+    }
+
+    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
+    if (access(flagFilename.c_str(), F_OK) == 0) {
+        ZLOGW("corrupted flag already exit");
+        return false;
+    }
+    return true;
+}
+
+void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    if (dbPath.empty()) {
+        ZLOGW("dbPath path is empty");
+        return;
+    }
+    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
+    int fd = creat(flagFilename.c_str(), S_IRWXU | S_IRWXG);
+    if (fd == -1) {
+        ZLOGW("creat corrupted flg fail, flgname=%{public}s, errno=%{public}d",
+            StoreUtil::Anonymous(flagFilename).c_str(), errno);
+        return;
+
+    }
+    close(fd);
+}
+
+void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)
+{
+    if (dbPath.empty()) {
+        ZLOGW("dbPath path is empty");
+        return;
+    }
+    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
+    int result = remove(flagFilename.c_str());
+    if (result != 0) {
+        ZLOGW("remove corrupted flg fail, flgname=%{public}s, errno=%{public}d",
+            StoreUtil::Anonymous(flagFilename).c_str(), errno);
+    }
+}
+
+std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const std::string &storeId)
+{
+    std::string reporterDir = "";
+    DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, reporterDir);
+    reporterDir = path + "/kvdb/" + reporterDir + "/";
+    return reporterDir;
 }
 
 void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventInfo)
@@ -114,4 +175,4 @@ void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventI
 
     OH_HiSysEvent_Write(DISTRIBUTED_DATAMGR, EVENT_NAME, HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
-} // namespace OHOS::NativeRdb
+} // namespace OHOS::DistributedKv

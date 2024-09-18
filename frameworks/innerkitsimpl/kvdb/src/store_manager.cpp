@@ -57,7 +57,13 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
     if (status == CRYPT_ERROR) {
         KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, OPEN_STORE);
+        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
+    }
+    if (options.rebuild && status == SUCCESS) {
+        ZLOGI("rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
+        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
     }
     if (isCreate && options.persistent) {
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
@@ -124,6 +130,8 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     if (service != nullptr) {
         service->Delete(appId, storeId);
     }
+    auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+    KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
     return StoreFactory::GetInstance().Delete(appId, storeId, path);
 }
 
