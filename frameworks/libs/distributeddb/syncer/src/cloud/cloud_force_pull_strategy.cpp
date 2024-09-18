@@ -17,7 +17,8 @@
 
 namespace DistributedDB {
 
-OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
+OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
+    const LogInfo &cloudInfo)
 {
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;

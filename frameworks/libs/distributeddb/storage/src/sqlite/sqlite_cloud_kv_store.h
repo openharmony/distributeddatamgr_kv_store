@@ -98,6 +98,9 @@ public:
 
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
 
+    bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+        SingleVerConflictResolvePolicy policy) override;
+
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
 
 private:
