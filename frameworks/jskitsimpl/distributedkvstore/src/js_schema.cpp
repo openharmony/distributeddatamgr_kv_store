@@ -72,7 +72,7 @@ napi_value JsSchema::New(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, schema !=nullptr, "no memory for schema");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
-        ZLOGD("Schema finalize.");
+        ZLOGI("Schema finalize.");
         auto* schema = reinterpret_cast<JsSchema*>(data);
         ASSERT_VOID(schema != nullptr, "schema is null!");
         delete schema;
