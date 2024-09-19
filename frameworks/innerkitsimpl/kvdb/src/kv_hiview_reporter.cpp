@@ -95,6 +95,33 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     return oss.str();
 }
 
+void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventInfo)
+{
+    char *bundleName = const_cast<char *>(eventInfo.bundleName.c_str());
+    char *moduleName = const_cast<char *>(eventInfo.moduleName.c_str());
+    char *storeType = const_cast<char *>(eventInfo.storeType.c_str());
+    char *storeName = const_cast<char *>(eventInfo.storeName.c_str());
+    uint32_t checkType = eventInfo.integrityCheck;
+    char *appendix = const_cast<char *>(eventInfo.appendix.c_str());
+    char *errorOccurTime = const_cast<char *>(eventInfo.errorOccurTime.c_str());
+    HiSysEventParam params[] = {
+        { .name = "BUNDLE_NAME", .t = HISYSEVENT_STRING, .v = { .s = bundleName }, .arraySize = 0 },
+        { .name = "MODULE_NAME", .t = HISYSEVENT_STRING, .v = { .s = moduleName }, .arraySize = 0 },
+        { .name = "STORE_TYPE", .t = HISYSEVENT_STRING, .v = { .s = storeType }, .arraySize = 0 },
+        { .name = "STORE_NAME", .t = HISYSEVENT_STRING, .v = { .s = storeName }, .arraySize = 0 },
+        { .name = "SECURITY_LEVEL", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.securityLevel }, .arraySize = 0 },
+        { .name = "PATH_AREA", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.pathArea }, .arraySize = 0 },
+        { .name = "ENCRYPT_STATUS", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.encryptStatus }, .arraySize = 0 },
+        { .name = "INTEGRITY_CHECK", .t = HISYSEVENT_UINT32, .v = { .ui32 = checkType }, .arraySize = 0 },
+        { .name = "ERROR_CODE", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.errorCode }, .arraySize = 0 },
+        { .name = "ERRNO", .t = HISYSEVENT_INT32, .v = { .i32 = eventInfo.systemErrorNo }, .arraySize = 0 },
+        { .name = "APPENDIX", .t = HISYSEVENT_STRING, .v = { .s = appendix }, .arraySize = 0 },
+        { .name = "ERROR_TIME", .t = HISYSEVENT_STRING, .v = { .s = errorOccurTime }, .arraySize = 0 },
+    };
+
+    OH_HiSysEvent_Write(DISTRIBUTED_DATAMGR, EVENT_NAME, HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
+}
+
 bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
 {
     if (dbPath.empty()) {
@@ -122,7 +149,6 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
         ZLOGW("creat corrupted flg fail, flgname=%{public}s, errno=%{public}d",
             StoreUtil::Anonymous(flagFilename).c_str(), errno);
         return;
-
     }
     close(fd);
 }
@@ -147,32 +173,5 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, reporterDir);
     reporterDir = path + "/kvdb/" + reporterDir + "/";
     return reporterDir;
-}
-
-void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventInfo)
-{
-    char *bundleName = const_cast<char *>(eventInfo.bundleName.c_str());
-    char *moduleName = const_cast<char *>(eventInfo.moduleName.c_str());
-    char *storeType = const_cast<char *>(eventInfo.storeType.c_str());
-    char *storeName = const_cast<char *>(eventInfo.storeName.c_str());
-    uint32_t checkType = eventInfo.integrityCheck;
-    char *appendix = const_cast<char *>(eventInfo.appendix.c_str());
-    char *errorOccurTime = const_cast<char *>(eventInfo.errorOccurTime.c_str());
-    HiSysEventParam params[] = {
-        { .name = "BUNDLE_NAME", .t = HISYSEVENT_STRING, .v = { .s = bundleName }, .arraySize = 0 },
-        { .name = "MODULE_NAME", .t = HISYSEVENT_STRING, .v = { .s = moduleName }, .arraySize = 0 },
-        { .name = "STORE_TYPE", .t = HISYSEVENT_STRING, .v = { .s = storeType }, .arraySize = 0 },
-        { .name = "STORE_NAME", .t = HISYSEVENT_STRING, .v = { .s = storeName }, .arraySize = 0 },
-        { .name = "SECURITY_LEVEL", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.securityLevel }, .arraySize = 0 },
-        { .name = "PATH_AREA", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.pathArea }, .arraySize = 0 },
-        { .name = "ENCRYPT_STATUS", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.encryptStatus }, .arraySize = 0 },
-        { .name = "INTEGRITY_CHECK", .t = HISYSEVENT_UINT32, .v = { .ui32 = checkType }, .arraySize = 0 },
-        { .name = "ERROR_CODE", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.errorCode }, .arraySize = 0 },
-        { .name = "ERRNO", .t = HISYSEVENT_INT32, .v = { .i32 = eventInfo.systemErrorNo }, .arraySize = 0 },
-        { .name = "APPENDIX", .t = HISYSEVENT_STRING, .v = { .s = appendix }, .arraySize = 0 },
-        { .name = "ERROR_TIME", .t = HISYSEVENT_STRING, .v = { .s = errorOccurTime }, .arraySize = 0 },
-    };
-
-    OH_HiSysEvent_Write(DISTRIBUTED_DATAMGR, EVENT_NAME, HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
 } // namespace OHOS::DistributedKv
