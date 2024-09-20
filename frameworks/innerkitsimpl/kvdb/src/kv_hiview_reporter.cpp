@@ -57,16 +57,20 @@ struct KVDBCorruptedEvent {
 
 void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, int32_t systemErrorNo,
-    const KvStoreTuple &storeTuple, const std::string &path)
+    const KvStoreTuple &storeTuple, const std::string &appendix)
 {
     KVDBCorruptedEvent eventInfo(options);
     eventInfo.errorCode = errorCode;
     eventInfo.systemErrorNo = systemErrorNo;
-    eventInfo.appendix = path;
+    eventInfo.appendix = appendix;
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
+    if (errorCode == 0 && appendix == DATABASE_REBUILD) {
+        ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
+        ReportCommonFault(eventInfo);
+    } else if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
+        ZLOGI("db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
         ReportCommonFault(eventInfo);
         CreateCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
     }
