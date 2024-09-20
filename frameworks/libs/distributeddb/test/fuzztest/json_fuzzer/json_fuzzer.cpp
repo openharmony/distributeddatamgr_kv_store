@@ -1412,18 +1412,28 @@ void FreeResultSetFuzz()
     GRD_DropCollection(g_db, COLLECTION_NAME, 0);
 }
 
+void DbOpenCloseFuzz(const char *dbFileVal, const char *configStr, GRD_DB *dbVal)
+{
+    int ret = GRD_DBOpen(dbFileVal, configStr, GRD_DB_OPEN_CREATE, &dbVal);
+    if (ret == GRD_OK) {
+        GRD_DBClose(dbVal, GRD_DB_CLOSE);
+    }
+}
+
 void DbOpenOneFuzz(GRD_DB *dbVal)
 {
     std::string path = "./documentFuzz.db";
-    GRD_DBOpen(path.c_str(), "", GRD_DB_OPEN_ONLY, &dbVal);
+    int ret = GRD_DBOpen(path.c_str(), "", GRD_DB_OPEN_ONLY, &dbVal);
+    if (ret == GRD_OK) {
+        GRD_DBClose(dbVal, GRD_DB_CLOSE);
+    }
     (void)remove(path.c_str());
 
     path = "./document.db";
-    GRD_DBOpen(path.c_str(), R""({"pageSize":64, "redopubbufsize":4033})"", GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBClose(dbVal, 0);
-    GRD_DBOpen(path.c_str(), R""({"pageSize":64, "redopubbufsize":4032})"", GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBOpen(path.c_str(), R""({"redopubbufsize":255})"", GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBOpen(path.c_str(), R""({"redopubbufsize":16385})"", GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(path.c_str(), R""({"pageSize":64, "redopubbufsize":4033})"", dbVal);
+    DbOpenCloseFuzz(path.c_str(), R""({"pageSize":64, "redopubbufsize":4032})"", dbVal);
+    DbOpenCloseFuzz(path.c_str(), R""({"redopubbufsize":255})"", dbVal);
+    DbOpenCloseFuzz(path.c_str(), R""({"redopubbufsize":16385})"", dbVal);
 }
 
 void DbOpenFuzz(const uint8_t *data, size_t size)
@@ -1438,46 +1448,47 @@ void DbOpenFuzz(const uint8_t *data, size_t size)
     GRD_DropCollection(g_db, COLLECTION_NAME, 0);
     std::string stringMax = getMaxString();
     const char *configStrMaxLen = stringMax.data();
-    GRD_DBOpen(dbFileVal, configStrMaxLen, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrMaxLen, dbVal);
 
     std::string fieldStringValue = "{\"bufferPoolSize\": \"1024.5\"}";
     const char *configStrStringValue = fieldStringValue.data();
-    GRD_DBOpen(dbFileVal, configStrStringValue, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrStringValue, dbVal);
 
     std::string fieldBoolValue = "{\"bufferPoolSize\":}";
     const char *configStrBool = fieldBoolValue.data();
-    GRD_DBOpen(dbFileVal, configStrBool, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrBool, dbVal);
 
     std::string fieldStringValueAppend = "{\"bufferPoolSize\":\"8192\"}";
     const char *configStrStr = fieldStringValueAppend.data();
-    GRD_DBOpen(dbFileVal, configStrStr, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrStr, dbVal);
 
     std::string fieldStringValueFlush = "{\"bufferPoolSize\":\"8192\",\"redoFlushBtTrx\":\"1\"}";
     const char *configStrFlush = fieldStringValueFlush.data();
-    GRD_DBOpen(dbFileVal, configStrFlush, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrFlush, dbVal);
 
     std::string fieldStringValueRedoBufsize = "{\"bufferPoolSize\":\"8192\",\"redoBufSize\":\"16384\"}";
     const char *configStrBs = fieldStringValueRedoBufsize.data();
-    GRD_DBOpen(dbFileVal, configStrBs, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrBs, dbVal);
 
     std::string fieldStringValueMaxConnNum = "{\"bufferPoolSize\":\"8192\",\"maxConnNum\":\"1024\"}";
     const char *configStrMcn = fieldStringValueMaxConnNum.data();
-    GRD_DBOpen(dbFileVal, configStrMcn, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrMcn, dbVal);
 
     GRD_DropCollection(g_db, COLLECTION_NAME, 0);
     std::string fieldStringValueAll = "{\"bufferPoolSize\":\"8192\",\"redoFlushBtTrx\":\"1\",\"redoBufSize\":"
                                         "\"16384\",\"maxConnNum\":\"1024\"}";
     const char *configStrAll = fieldStringValueAll.data();
-    GRD_DBOpen(dbFileVal, configStrAll, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrAll, dbVal);
 
     std::string fieldLowNumber = "{\"bufferPoolSize\": 102}";
     const char *configStrLowNumber = fieldLowNumber.data();
-    GRD_DBOpen(dbFileVal, configStrLowNumber, GRD_DB_OPEN_CREATE, &dbVal);
+    DbOpenCloseFuzz(dbFileVal, configStrLowNumber, dbVal);
 
-    GRD_DBOpen(nullptr, configStrVal, GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBOpen(dbFileVal, configStrVal, GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBClose(nullptr, GRD_DB_CLOSE);
-    GRD_DBClose(dbVal, GRD_DB_CLOSE);
+    int ret = GRD_DBOpen(nullptr, configStrVal, GRD_DB_OPEN_CREATE, &dbVal);
+    if (ret == GRD_OK) {
+        GRD_DBClose(nullptr, GRD_DB_CLOSE);
+    }
+    DbOpenCloseFuzz(dbFileVal, configStrVal, dbVal);
 
     DbOpenOneFuzz(dbVal);
 }
@@ -1490,27 +1501,30 @@ void DbCloseFuzz(const uint8_t *data, size_t size)
     std::string configStrData(reinterpret_cast<const char *>(data), size);
     const char *configStrVal = configStrData.data();
     GRD_DB *dbVal = nullptr;
-    GRD_DBOpen(dbFileVal, configStrVal, GRD_DB_OPEN_CREATE, &dbVal);
-    GRD_DBClose(dbVal, GRD_DB_CLOSE);
+    DbOpenCloseFuzz(dbFileVal, configStrVal, dbVal);
 }
 
 void DbCloseResultSetFuzz()
 {
     GRD_DB *db = nullptr;
     GRD_DB *db2 = nullptr;
-    GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
-    GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db2);
-    GRD_CreateCollection(db, "collection1", "{\"maxdoc\" : 5}", 0);
+    int ret = GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
+    int errCode = GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db2);
+    if (ret == GRD_OK) {
+        GRD_CreateCollection(db, "collection1", "{\"maxdoc\" : 5}", 0);
 
-    GRD_ResultSet *resultSet = nullptr;
-    Query query = { "{}", "{}" };
-    GRD_FindDoc(db, "collection1", query, 0, &resultSet);
+        GRD_ResultSet *resultSet = nullptr;
+        Query query = { "{}", "{}" };
+        GRD_FindDoc(db, "collection1", query, 0, &resultSet);
 
-    GRD_FreeResultSet(resultSet);
+        GRD_FreeResultSet(resultSet);
 
-    GRD_DBClose(db, GRD_DB_CLOSE);
+        GRD_DBClose(db, GRD_DB_CLOSE);
+    }
 
-    GRD_DBClose(db2, GRD_DB_CLOSE);
+    if (errCode == GRD_OK) {
+        GRD_DBClose(db2, GRD_DB_CLOSE);
+    }
 }
 
 void CreateCollectionFuzz(const uint8_t *data, size_t size)
@@ -1553,19 +1567,21 @@ void DbFlushFuzz(const uint8_t *data, size_t size)
 {
     GRD_DB *db = nullptr;
     GRD_DB *db2 = nullptr;
-    GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
-    GRD_Flush(db, 0);
-    GRD_Flush(db, 1);
+    int ret = GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
+    if (ret == GRD_OK) {
+        GRD_Flush(db, 0);
+        GRD_Flush(db, 1);
+        GRD_DBClose(db, GRD_DB_CLOSE);
+    }
     GRD_Flush(db2, 0);
     GRD_Flush(db2, 1);
-    GRD_DBClose(db, GRD_DB_CLOSE);
 }
 
 void TestGrdDbApGrdGetItem002Fuzz()
 {
     const char *config = CONFIG_STR;
     GRD_DB *db = nullptr;
-    GRD_DBOpen(TEST_DB_FILE, config, GRD_DB_OPEN_CREATE, &db);
+    DbOpenCloseFuzz(TEST_DB_FILE, config, db);
     GRD_IndexPreload(nullptr, COLLECTION_NAME);
     GRD_IndexPreload(nullptr, "invalid_name");
     GRD_IndexPreload(g_db, COLLECTION_NAME);
@@ -1610,7 +1626,7 @@ void TestGrdKvBatchCoupling003Fuzz()
 {
     const char *config = CONFIG_STR;
     GRD_DB *db = nullptr;
-    GRD_DBOpen(TEST_DB_FILE, config, GRD_DB_OPEN_CREATE, &db);
+    DbOpenCloseFuzz(TEST_DB_FILE, config, db);
 
     GRD_ResultSet *resultSet = nullptr;
     GRD_KVScan(g_db, COLLECTION_NAME, nullptr, KV_SCAN_PREFIX, &resultSet);
