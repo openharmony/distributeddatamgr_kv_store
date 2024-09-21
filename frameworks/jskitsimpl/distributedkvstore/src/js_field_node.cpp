@@ -100,7 +100,7 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     ASSERT_ERR(env, fieldNode != nullptr, Status::INVALID_ARGUMENT, "Parameter error:fieldNode is nullptr");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
-        ZLOGD("fieldNode finalize.");
+        ZLOGI("fieldNode finalize.");
         auto* fieldNode = reinterpret_cast<JsFieldNode*>(data);
         ASSERT_VOID(fieldNode != nullptr, "fieldNode is null!");
         delete fieldNode;
