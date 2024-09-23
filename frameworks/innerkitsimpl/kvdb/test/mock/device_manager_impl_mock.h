@@ -55,7 +55,6 @@ public:
 
     virtual int32_t GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
         std::string &uuid) override;
-
 private:
     DeviceManagerImpl() = default;
     ~DeviceManagerImpl() = default;
