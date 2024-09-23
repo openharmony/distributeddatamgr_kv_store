@@ -48,57 +48,17 @@ public:
 
     virtual int32_t GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo) = 0;
 
-    virtual int32_t GetDeviceInfo(const std::string &pkgName, const std::string networkId,
-        DmDeviceInfo &deviceInfo) = 0;
-
     virtual int32_t RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
         std::shared_ptr<DeviceStateCallback> callback) = 0;
 
     virtual int32_t RegisterDevStatusCallback(const std::string &pkgName, const std::string &extra,
         std::shared_ptr<DeviceStatusCallback> callback) = 0;
 
-    virtual int32_t UnRegisterDevStateCallback(const std::string &pkgName) = 0;
-
-    virtual int32_t UnRegisterDevStatusCallback(const std::string &pkgName) = 0;
-
-    virtual int32_t StartDeviceDiscovery(const std::string &pkgName, const DmSubscribeInfo &subscribeInfo,
-        const std::string &extra, std::shared_ptr<DiscoveryCallback> callback) = 0;
-
-    virtual int32_t StartDeviceDiscovery(const std::string &pkgName, uint64_t tokenId,
-        const std::string &filterOptions, std::shared_ptr<DiscoveryCallback> callback) = 0;
-
-    virtual int32_t StopDeviceDiscovery(const std::string &pkgName, uint16_t subscribeId) = 0;
-
-    virtual int32_t StopDeviceDiscovery(uint64_t tokenId, const std::string &pkgName) = 0;
-
-    virtual int32_t PublishDeviceDiscovery(const std::string &pkgName, const DmPublishInfo &publishInfo,
-        std::shared_ptr<PublishCallback> callback) = 0;
-
-    virtual int32_t UnPublishDeviceDiscovery(const std::string &pkgName, int32_t publishId) = 0;
-
-    virtual int32_t AuthenticateDevice(const std::string &pkgName, int32_t authType, const DmDeviceInfo &deviceInfo,
-        const std::string &extra, std::shared_ptr<AuthenticateCallback> callback) = 0;
-
-    virtual int32_t UnAuthenticateDevice(const std::string &pkgName, const DmDeviceInfo &deviceInfo) = 0;
-
-    virtual int32_t RegisterDeviceManagerFaCallback(const std::string &pkgName,
-        std::shared_ptr<DeviceManagerUiCallback> callback) = 0;
-
-    virtual int32_t UnRegisterDeviceManagerFaCallback(const std::string &pkgName) = 0;
-
-    virtual int32_t SetUserOperation(const std::string &pkgName, int32_t action, const std::string &params) = 0;
-
-    virtual int32_t GetUdidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &udid) = 0;
-
     virtual int32_t GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &uuid) = 0;
-
-    virtual int32_t NotifyEvent(const std::string &pkgName, const int32_t eventId, const std::string &event) = 0;
 
     virtual int32_t GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
         std::string &uuid) = 0;
 
-    virtual int32_t GenerateEncryptedUuid(const std::string &pkgName, const std::string &uuid, const std::string &appId,
-        std::string &encryptedUuid) = 0;
 };
 } // namespace DistributedHardware
 } // namespace OHOS
