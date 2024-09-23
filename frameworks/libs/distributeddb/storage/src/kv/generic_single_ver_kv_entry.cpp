@@ -439,6 +439,10 @@ int GenericSingleVerKvEntry::DeSerializeCompressedDatas(std::vector<SingleVerKvE
     // Get buffer length.
     uint32_t destLen = 0;
     (void)parcel.ReadUInt32(destLen);
+    if (destLen > DBConstant::MAX_SYNC_BLOCK_SIZE) {
+        LOGE("[GenericSingleVerKvEntry] Invalid compress data len %" PRIu32, destLen);
+        return -E_INVALID_ARGS;
+    }
 
     // Get compressed data.
     std::vector<uint8_t> srcData;
