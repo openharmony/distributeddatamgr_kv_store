@@ -66,7 +66,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
         KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
         auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
+        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId);
     }
     if (isCreate && options.persistent) {
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
