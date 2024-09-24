@@ -65,6 +65,12 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
     if (b != SQLITE_SELECT && b != SQLITE_READ && b != SQLITE_FUNCTION) {
         return SQLITE_DENY;
     }
+    if (b == SQLITE_FUNCTION) {
+        if (d != nullptr && (strcmp(d, "fts3_tokenizer") == 0)) {
+            LOGE("Deny fts3_tokenizer in remote query");
+            return SQLITE_DENY;
+        }
+    }
     return SQLITE_OK;
 }
 }
