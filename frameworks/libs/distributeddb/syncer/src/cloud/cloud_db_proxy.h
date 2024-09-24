@@ -76,6 +76,8 @@ public:
     bool IsExistCloudVersionCallback() const;
 
     std::pair<int, std::string> GetCloudVersion(const std::string &originVersion) const;
+
+    void SetPrepareTraceId(const std::string &traceId);
 protected:
     class CloudActionContext {
     public:
