@@ -48,7 +48,7 @@ int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const st
 }
 
 int32_t DeviceManager::GetAvailableDeviceList(const std::string &pkgName,
-        std::vector<DmDeviceBasicInfo> &deviceList)
+    std::vector<DmDeviceBasicInfo> &deviceList)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
@@ -66,13 +66,13 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
 }
 
 int32_t DeviceManager::RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStateCallback> callback)
+    std::shared_ptr<DeviceStateCallback> callback)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
 int32_t DeviceManager::RegisterDevStatusCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStatusCallback> callback)
+    std::shared_ptr<DeviceStatusCallback> callback)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }

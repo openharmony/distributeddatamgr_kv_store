@@ -17,7 +17,7 @@
 #include <gtest/gtest.h>
 #include "dev_manager.h"
 #include "device_manager.h"
-#include "device_manager_impl_mock.h"
+#include "device_manager_mock.h"
 #include "dm_device_info.h"
 #include "types.h"
 #include "log_print.h"
