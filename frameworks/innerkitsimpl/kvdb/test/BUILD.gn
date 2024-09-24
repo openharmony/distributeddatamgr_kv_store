@@ -220,13 +220,11 @@ ohos_unittest("DevManagerTest") {
 
 ohos_unittest("DevManagerMockTest") {
   module_out_path = module_output_path
-  include_dirs = [
-    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test",
-  ]
+  include_dirs = [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test" ]
   sources = [
-    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/device_manager_impl_mock.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/device_manager_mock.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
     "dev_manager_mock_test.cpp",
   ]
 
@@ -310,8 +308,8 @@ group("unittest") {
   deps = []
   deps += [
     ":BackupManagerTest",
-    ":DevManagerTest",
     ":DevManagerMockTest",
+    ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
     ":StoreFactoryTest",
