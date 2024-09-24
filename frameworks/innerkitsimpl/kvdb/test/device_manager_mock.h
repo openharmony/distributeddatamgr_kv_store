@@ -20,7 +20,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
 #include "dm_publish_info.h"
@@ -33,31 +32,38 @@ public:
     static DeviceManager &GetInstance();
 
 public:
-    virtual int32_t InitDeviceManager(const std::string &pkgName, std::shared_ptr<DmInitCallback> dmInitCallback) = 0;
+    virtual int32_t InitDeviceManager(const std::string &pkgName, std::shared_ptr<DmInitCallback> dmInitCallback);
 
-    virtual int32_t UnInitDeviceManager(const std::string &pkgName) = 0;
-
-    virtual int32_t GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-        std::vector<DmDeviceInfo> &deviceList) = 0;
+    virtual int32_t UnInitDeviceManager(const std::string &pkgName);
 
     virtual int32_t GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-        bool isRefresh, std::vector<DmDeviceInfo> &deviceList) = 0;
+        std::vector<DmDeviceInfo> &deviceList);
+
+    virtual int32_t GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
+        bool isRefresh, std::vector<DmDeviceInfo> &deviceList);
 
     virtual int32_t GetAvailableDeviceList(const std::string &pkgName,
-        std::vector<DmDeviceBasicInfo> &deviceList) = 0;
+        std::vector<DmDeviceBasicInfo> &deviceList);
 
-    virtual int32_t GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo) = 0;
+    virtual int32_t GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo);
 
     virtual int32_t RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStateCallback> callback) = 0;
+        std::shared_ptr<DeviceStateCallback> callback);
 
     virtual int32_t RegisterDevStatusCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStatusCallback> callback) = 0;
+        std::shared_ptr<DeviceStatusCallback> callback);
 
-    virtual int32_t GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &uuid) = 0;
+    virtual int32_t GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &uuid);
 
     virtual int32_t GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
-        std::string &uuid) = 0;
+        std::string &uuid);
+private:
+    DeviceManager() = default;
+    ~DeviceManager() = default;
+    DeviceManager(const DeviceManager &) = delete;
+    DeviceManager &operator=(const DeviceManager &) = delete;
+    DeviceManager(DeviceManager &&) = delete;
+    DeviceManager &operator=(DeviceManager &&) = delete;
 };
 } // namespace DistributedHardware
 } // namespace OHOS
