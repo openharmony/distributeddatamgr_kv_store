@@ -69,8 +69,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId);
     }
     if (isCreate && options.persistent) {
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
-            path, options.encrypt);
+        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
         if (service != nullptr) {
             // delay notify
