@@ -427,11 +427,18 @@ private:
 
     int BindAssetsToBlobStatement(const Assets &assets, int index, sqlite3_stmt *&stmt);
 
+    int GetAssetInfoOnTable(sqlite3_stmt *&stmt, const std::vector<Field> &assetFields, VBucket &assetInfo);
+
     int BindAssetFiledToBlobStatement(const TableSchema &tableSchema, const std::vector<Asset> &assetOfOneRecord,
         const std::vector<Assets> &assetsOfOneRecord, sqlite3_stmt *&stmt);
 
     int UpdateAssetsIdForOneRecord(const TableSchema &tableSchema, const std::string &sql,
         const std::vector<Asset> &assetOfOneRecord, const std::vector<Assets> &assetsOfOneRecord);
+
+    bool IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
+
+    bool IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt, const VBucket &vBucket, const Field &field,
+        VBucket &assetInfo);
 
     int UpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
 

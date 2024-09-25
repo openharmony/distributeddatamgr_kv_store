@@ -28,6 +28,7 @@
 #include "virtual_communicator_aggregator.h"
 #include "sqlite_relational_utils.h"
 #include "cloud/cloud_storage_utils.h"
+#include "cloud_db_sync_utils_test.h"
 
 namespace {
 using namespace testing::ext;
@@ -447,6 +448,44 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, T
 
     std::vector<size_t> expectCount = { 0, 2, 2, 2, 2 };
     CheckAssetsCount(expectCount);
+}
+
+/**
+ * @tc.name: SyncWithAssetOperation007
+ * @tc.desc: Test assetId fill when assetId changed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 5 records and sync.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 5;
+    std::string name = g_localAsset.name + std::to_string(0);
+    Assets expectAssets = GetAssets(name, {}, 3u); // contain 3 assets
+    expectAssets[0].hash.append("change"); // modify first asset
+    InsertUserTableRecord(tableName_, 0, actualCount, expectAssets.size(), expectAssets);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step2. modify data and sync.
+     * @tc.expected: step2. ok.
+     */
+    UpdateCloudTableRecord(0, 1, true);
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step3. check modified data cursor.
+     * @tc.expected: step3. ok.
+     */
+    std::string sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=1";
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(7), nullptr), SQLITE_OK);
+    sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=5";
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(5), nullptr), SQLITE_OK);
 }
 
 /**
