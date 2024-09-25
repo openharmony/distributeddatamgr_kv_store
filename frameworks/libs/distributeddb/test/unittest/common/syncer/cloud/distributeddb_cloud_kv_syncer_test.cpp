@@ -472,6 +472,28 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync003, TestSize.Level0)
 }
 
 /**
+ * @tc.name: UploadAbnormalSync004
+ * @tc.desc: Test sync errCode is not in [27328512, 27394048).
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Device A inserts data and synchronizes
+     * @tc.expected: step1 errCode outside DBStatus should be kept.
+     */
+    int errCode = 27394048;
+    virtualCloudDb_->SetActionStatus(static_cast<DBStatus>(errCode));
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS1_, static_cast<DBStatus>(errCode), g_CloudSyncoption);
+    virtualCloudDb_->SetActionStatus(OK);
+}
+
+/**
  * @tc.name: QueryParsingProcessTest001
  * @tc.desc: Test Query parsing process.
  * @tc.type: FUNC
@@ -515,6 +537,149 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
     std::vector<QueryNode> queryNodes;
     syncObject.ParserQueryNodes(bytes, queryNodes);
     ASSERT_EQ(queryNodes[0].type, QueryNodeType::IN);
+}
+
+/**
+ * @tc.name: UploadFinished001
+ * @tc.desc: Test upload update record when do update.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadFinished001, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    Value newValue = {'v', '1'};
+    // update [k,v] to [k,v1] when upload
+    virtualCloudDb_->ForkUpload([kvDelegatePtrS1 = kvDelegatePtrS1_, key, newValue](const std::string &, VBucket &) {
+        EXPECT_EQ(kvDelegatePtrS1->Put(key, newValue), OK);
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue;
+    // cloud download [k,v]
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    // sync again and get [k,v1]
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, newValue);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: SyncWithMultipleUsers001.
+ * @tc.desc: Test sync data with multiple users.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liufuchenxing
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers001, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.users.push_back(USER_ID_2);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    Value actualValue;
+    // cloud download [k,v]
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
+ * @tc.name: AbnormalCloudKvExecutorTest001
+ * @tc.desc: Check SqliteCloudKvExecutorUtils interfaces abnormal scene.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Call PutCloudData interface with different opType when para is invalid.
+     * @tc.expected: step1. return errCode.
+     */
+    SqliteCloudKvExecutorUtils cloudKvObj;
+    DownloadData downloadData;
+    downloadData.data = {{}};
+    int ret = cloudKvObj.PutCloudData(nullptr, true, downloadData);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    downloadData.opType = {OpType::UPDATE_VERSION};
+    ret = cloudKvObj.PutCloudData(nullptr, true, downloadData);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+
+    downloadData.opType = {OpType::UPDATE_TIMESTAMP};
+    ret = cloudKvObj.PutCloudData(nullptr, true, downloadData);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    downloadData.opType = {OpType::DELETE};
+    ret = cloudKvObj.PutCloudData(nullptr, true, downloadData);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step2. Call CountAllCloudData interface when para is invalid.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
+     */
+    QuerySyncObject querySyncObject;
+    std::pair<int, int64_t> res = cloudKvObj.CountAllCloudData({nullptr, true}, {}, "", true, querySyncObject);
+    EXPECT_EQ(res.first, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Call SqliteCloudKvExecutorUtils interfaces when db is nullptr.
+     * @tc.expected: step3. return -E_INVALID_DB.
+     */
+    res = cloudKvObj.CountCloudData(nullptr, true, 0, "", true);
+    EXPECT_EQ(res.first, -E_INVALID_DB);
+    std::pair<int, CloudSyncData> ver = cloudKvObj.GetLocalCloudVersion(nullptr, true, "");
+    EXPECT_EQ(ver.first, -E_INVALID_DB);
+    std::vector<VBucket> dataVector;
+    ret = cloudKvObj.GetCloudVersionFromCloud(nullptr, true, "", dataVector);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: AbnormalCloudKvExecutorTest002
+ * @tc.desc: Check FillCloudLog interface
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Call FillCloudLog interface when db and para is nullptr.
+     * @tc.expected: step1. return -E_INVALID_ARGS.
+     */
+    SqliteCloudKvExecutorUtils cloudKvObj;
+    sqlite3 *db = nullptr;
+    CloudSyncData data;
+    CloudUploadRecorder recorder;
+    int ret = cloudKvObj.FillCloudLog({db, true}, OpType::INSERT, data, "", recorder);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. open db and Call FillCloudLog.
+     * @tc.expected: step2. return E_OK.
+     */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/test.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    ASSERT_NE(db, nullptr);
+
+    data.isCloudVersionRecord = true;
+    ret = cloudKvObj.FillCloudLog({db, true}, OpType::INSERT, data, "", recorder);
+    EXPECT_EQ(ret, E_OK);
+    ret = cloudKvObj.FillCloudLog({db, true}, OpType::DELETE, data, "", recorder);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
 /**

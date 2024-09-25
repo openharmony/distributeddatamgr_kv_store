@@ -1721,6 +1721,52 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
 }
 
 /**
+ * @tc.name: FillAssetId022
+ * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level0)
+{
+    CloudSyncConfig config;
+    config.maxUploadCount = 200; // max upload 200
+    g_delegate->SetCloudSyncConfig(config);
+ 
+    /**
+     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+ 
+    /**
+     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
+     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     */
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId >= 25 && uploadFailId <= 27) { // 25-27 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+ 
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    int beginFailFillNum = 49;
+    int endFailFillNum = 54;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    g_virtualCloudDb->ForkUpload(nullptr);
+}
+
+/**
  * @tc.name: FillAssetId023
  * @tc.desc: Test if BatchUpdate with local assets missing
  * @tc.type: FUNC
@@ -2500,6 +2546,159 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, Test
      * @tc.expected: all is UNLOCKING.
      */
     CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+}
+
+/**
+ * @tc.name: RecordLockFuncTest002
+ * @tc.desc: Compensated synchronization, Locked data has not been synchronized. The first synchronization data is
+ * based on the cloud, and the last synchronization data is based on the device.
+ * @tc.type: FUNC
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init local data, modify data Status and initiate synchronization
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 120;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, true);
+    std::vector<std::vector<uint8_t>> hashKey;
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key >=100 ", db, hashKey);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::LOCK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. Check the synchronization result and log table status
+     * @tc.expected: step2.100-109 is LOCK_CHANGE.
+     */
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::LOCK);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1, 100, 109);
+    CheckLockStatus(db, 100, 109, LockStatus::LOCK_CHANGE);
+    CheckLockStatus(db, 110, 119, LockStatus::LOCK);
+
+    /**
+     * @tc.steps:step3. Synchronize and check the lock_change data status
+     * @tc.expected: step3.100-119 is LOCK_CHANGE.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::LOCK_CHANGE);
+
+    /**
+     * @tc.steps:step4. Unlock,the lock_change data status changes to unlocking
+     * @tc.expected: step4.100-119 is UNLOCKING.
+     */
+    EXPECT_EQ(UnLock(ASSETS_TABLE_NAME, hashKey, db), WAIT_COMPENSATED_SYNC);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::UNLOCKING);
+
+    /**
+     * @tc.steps:step5. Lock,the unlocking data status changes to lock_change
+     * @tc.expected: step5.100-119 is LOCK_CHANGE.
+     */
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::LOCK_CHANGE);
+
+    /**
+     * @tc.steps:step6. Synchronize and check the lock_change data status
+     * @tc.expected: step6.100-119 is LOCK_CHANGE.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::LOCK_CHANGE);
+
+    /**
+     * @tc.steps:step7. Unlock,the lock_change data status changes to unlocking
+     * @tc.expected: step7.100-119 is UNLOCKING.
+     */
+    EXPECT_EQ(UnLock(ASSETS_TABLE_NAME, hashKey, db), WAIT_COMPENSATED_SYNC);
+    CheckLockStatus(db, 100, 119, LockStatus::UNLOCKING);
+
+    /**
+     * @tc.steps:step8. Synchronize data
+     * @tc.expected: step8.return OK.
+     */
+    std::mutex mtx;
+    std::condition_variable cv;
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
+        LOGD("query index:%d", ++queryIdx);
+        if (queryIdx == 5) { // 5 is compensated sync
+            mtx.lock();
+            cv.notify_one();
+            mtx.unlock();
+            std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock);
+    }
+
+    /**
+     * @tc.steps:step9. check before compensated sync
+     * @tc.expected: 100-119 is UNLOCKING.
+     */
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
+    CheckLockStatus(db, 100, 119, LockStatus::UNLOCKING);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    /**
+     * @tc.steps:step10. check after compensated sync
+     * @tc.expected: all is UNLOCK.
+     */
+    CheckLockStatus(db, 0, 119, LockStatus::UNLOCK);
+}
+
+/**
+  * @tc.name: CloudTaskStatusTest001
+  * @tc.desc: Test get cloud task status
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. Sync and get cloud task status
+     * @tc.expected: step2. OK
+     */
+    g_virtualCloudDb->SetBlockTime(1000);
+    std::thread syncThread([&]() {
+        CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    SyncProcess process1 = g_delegate->GetCloudTaskStatus(1);
+    EXPECT_EQ(process1.errCode, OK);
+    syncThread.join();
+    /**
+     * @tc.steps:step3. Get cloud task status after sync finish
+     * @tc.expected: step3. NOT_FOUND
+     */
+    SyncProcess process2 = g_delegate->GetCloudTaskStatus(1);
+    EXPECT_EQ(process2.errCode, NOT_FOUND);
+
+    /**
+     * @tc.steps:step4. Get cloud task status after DB closed
+     * @tc.expected: step4. DB_ERROR
+     */
+    auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(g_delegate);
+    EXPECT_EQ(delegateImpl->Close(), DBStatus::OK);
+    SyncProcess process3 = g_delegate->GetCloudTaskStatus(1);
+    EXPECT_EQ(process3.errCode, DB_ERROR);
 }
 } // namespace
 #endif // RELATIONAL_STORE

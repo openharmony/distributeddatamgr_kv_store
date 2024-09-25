@@ -679,6 +679,157 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level0)
 }
 
 /**
+ * @tc.name: DownloadAssetStatusTest001
+ * @tc.desc: Test download assets status for INSERT
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud assert {a, b1, b2}
+     * @tc.expected: step1. return ok.
+     */
+    int count = 1;
+    InsertCloudDBData(0, count, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. sync
+     * @tc.expected: step2. assets status is INSERT before download.
+     */
+    g_virtualAssetLoader->ForkDownload([](std::map<std::string, Assets> &assets) {
+        for (const auto &item: assets) {
+            for (const auto &asset: item.second) {
+                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::INSERT));
+            }
+        }
+    });
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+    CheckAssetStatusNormal();
+    g_virtualAssetLoader->ForkDownload(nullptr);
+}
+
+/**
+ * @tc.name: DownloadAssetStatusTest002
+ * @tc.desc: Test download assets status for DELETE
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud assert {a, b1, b2} and sync to local
+     * @tc.expected: step1. return ok.
+     */
+    int count = 1;
+    InsertCloudDBData(0, count, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. change cloud assets {b1, b3}
+     * @tc.expected: step2. return ok.
+     */
+    Asset asset = {};
+    Asset b1 = ASSET_COPY;
+    b1.name = ASSET_COPY.name + std::string("0");
+    Asset b2 = ASSET_COPY;
+    b2.name = ASSET_COPY.name + std::string("0") + ASSET_SUFFIX;
+    Asset b3 = ASSET_COPY;
+    b3.name = ASSET_COPY.name + std::string("0") + ASSET_SUFFIX + ASSET_SUFFIX;
+    Assets assets = { b1, b3 };
+    UpdateCloudAssets(asset, assets, std::string("0")); // 1 is version
+    /**
+     * @tc.steps:step3. sync
+     * @tc.expected: step3. download status is a -> DELETE, b2 -> DELETE, b3 -> INSERT
+     */
+    g_virtualAssetLoader->ForkDownload([&b1, &b3](std::map<std::string, Assets> &assets) {
+        auto it = assets.find(COL_ASSETS);
+        ASSERT_EQ(it != assets.end(), true);
+        ASSERT_EQ(it->second.size(), 1u); // 1 is download size
+        for (const auto &b: it->second) {
+            if (b.name == b3.name) {
+                EXPECT_EQ(b.status, static_cast<uint32_t>(AssetStatus::INSERT));
+            }
+        }
+    });
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&b2](std::map<std::string, Assets> &assets) {
+        auto it = assets.find(COL_ASSET);
+        ASSERT_EQ(it != assets.end(), true);
+        ASSERT_EQ(it->second.size(), 1u);
+        EXPECT_EQ(it->second[0].status, static_cast<uint32_t>(AssetStatus::DELETE));
+        it = assets.find(COL_ASSETS);
+        ASSERT_EQ(it != assets.end(), true);
+        ASSERT_EQ(it->second.size(), 1u); // 1 is remove size
+        for (const auto &b: it->second) {
+            if (b.name == b2.name) {
+                EXPECT_EQ(b.status, static_cast<uint32_t>(AssetStatus::DELETE));
+            }
+        }
+    });
+    CallSync(option);
+    g_virtualAssetLoader->ForkDownload(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
+ * @tc.name: DownloadAssetStatusTest003
+ * @tc.desc: Test download assets status for UPDATE
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud assert {a, b1, b2} and sync to local
+     * @tc.expected: step1. return ok.
+     */
+    int count = 1;
+    InsertCloudDBData(0, count, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+    /**
+     * @tc.steps:step2. change cloud assets {a, b2}
+     * @tc.expected: step2. return ok.
+     */
+    Asset asset = ASSET_COPY;
+    asset.name = asset.name + "0";
+    asset.hash = "new_hash";
+    Asset b1 = ASSET_COPY;
+    b1.name = ASSET_COPY.name + std::string("0");
+    Asset b2 = ASSET_COPY;
+    b2.name = ASSET_COPY.name + std::string("0") + ASSET_SUFFIX;
+    b2.hash = "new_hash";
+    Assets assets = { b1, b2 };
+    UpdateCloudAssets(asset, assets, std::string("0")); // 1 is version
+    /**
+     * @tc.steps:step3. sync
+     * @tc.expected: step3. download status is a -> UPDATE, b2 -> UPDATE
+     */
+    g_virtualAssetLoader->ForkDownload([&b1, &b2](std::map<std::string, Assets> &assets) {
+        auto it = assets.find(COL_ASSET);
+        ASSERT_EQ(it != assets.end(), true);
+        ASSERT_EQ(it->second.size(), 1u);
+        EXPECT_EQ(it->second[0].status, static_cast<uint32_t>(AssetStatus::UPDATE));
+
+        it = assets.find(COL_ASSETS);
+        ASSERT_EQ(it != assets.end(), true);
+        ASSERT_EQ(it->second.size(), 1u); // 1 is download size
+        for (const auto &b: it->second) {
+            if (b.name == b2.name) {
+                EXPECT_EQ(b.status, static_cast<uint32_t>(AssetStatus::UPDATE));
+            }
+        }
+    });
+    CallSync(option);
+    g_virtualAssetLoader->ForkDownload(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
  * @tc.name: RecordConflictTest001
  * @tc.desc: Test the asset input param after download return CLOUD_RECORD_EXIST_CONFLICT
  * @tc.type: FUNC
@@ -807,6 +958,211 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
         " where data_key='0' and extend_field='name10' and cursor='32';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: UploadAbnormalSync001
+ * @tc.desc: Test upload update record, cloud returned record not found.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 1;
+    InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::DOWNLOAD);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. update local data and sync, cloud returned record not found.
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "update " + ASSETS_TABLE_NAME + " set name = 'xxx' where id = 0;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx == 1) { // 1 is index
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+        }
+    });
+    int doUpIdx = 0;
+    g_cloudStoreHook->SetDoUploadHook([&doUpIdx] {
+        LOGD("begin upload index:%d", ++doUpIdx);
+    });
+    int callCount = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&callCount, this]() {
+        LOGD("sync finish times:%d", ++callCount);
+        if (callCount == 1) { // 1 is the normal sync
+            CheckUploadAbnormal(OpType::UPDATE, 1L); // 1 is expected count
+        } else {
+            CheckUploadAbnormal(OpType::UPDATE, 1L, true); // 1 is expected count
+        }
+        g_processCondition.notify_all();
+    });
+    CallSync(option);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
+            [&callCount]() { return callCount == 2; }); // 2 is sync times
+        ASSERT_EQ(result, true);
+    }
+}
+
+/**
+ * @tc.name: UploadAbnormalSync002
+ * @tc.desc: Test upload insert record, cloud returned record already existed.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert a and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 1;
+    InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::DOWNLOAD);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. insert b and sync, cloud returned record not found.
+     * @tc.expected: step2. return ok.
+     */
+    InsertLocalData(cloudCount, cloudCount, ASSETS_TABLE_NAME, true);
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx == 2) { // 2 is index
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED);
+        }
+    });
+    int doUpIdx = 0;
+    g_cloudStoreHook->SetDoUploadHook([&doUpIdx, cloudCount, this] {
+        LOGD("begin upload index:%d", ++doUpIdx);
+        if (doUpIdx == 1) { // 1 is index
+            InsertCloudDBData(cloudCount, cloudCount, cloudCount, ASSETS_TABLE_NAME);
+        }
+    });
+    int callCount = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&callCount, this]() {
+        LOGD("sync finish times:%d", ++callCount);
+        if (callCount == 1) { // 1 is the normal sync
+            CheckUploadAbnormal(OpType::INSERT, 1L); // 1 is expected count
+        } else {
+            CheckUploadAbnormal(OpType::INSERT, 2L, true); // 1 is expected count
+        }
+        g_processCondition.notify_all();
+    });
+    CallSync(option);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
+            [&callCount]() { return callCount == 2; }); // 2 is sync times
+        ASSERT_EQ(result, true);
+    }
+}
+
+/**
+ * @tc.name: UploadAbnormalSync003
+ * @tc.desc: Test upload delete record, cloud returned record not found.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 1;
+    InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::DOWNLOAD);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. delete local data and sync, cloud returned record not found.
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "delete from " + ASSETS_TABLE_NAME + " where id = 0;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx == 2) { // 2 is index
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+        }
+    });
+    int doUpIdx = 0;
+    g_cloudStoreHook->SetDoUploadHook([&doUpIdx, cloudCount, this] {
+        LOGD("begin upload index:%d", ++doUpIdx);
+        if (doUpIdx == 1) { // 1 is index
+            DeleteCloudDBData(0, cloudCount, ASSETS_TABLE_NAME);
+        }
+    });
+    int callCount = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&callCount, this]() {
+        LOGD("sync finish times:%d", ++callCount);
+        if (callCount == 1) { // 1 is the normal sync
+            CheckUploadAbnormal(OpType::DELETE, 1L); // 1 is expected count
+        } else {
+            CheckUploadAbnormal(OpType::DELETE, 1L, true); // 1 is expected count
+        }
+        g_processCondition.notify_all();
+    });
+    CallSync(option);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
+            [&callCount]() { return callCount == 1; }); // 1 is sync times
+        ASSERT_EQ(result, true);
+    }
+}
+
+/**
+ * @tc.name: ReviseLocalModTimeTest001
+ * @tc.desc: test sync data with invalid timestamp.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, ReviseLocalModTimeTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local data
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 31; // 31 records
+    InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
+    /**
+     * @tc.steps:step2. Modify time and sync
+     * @tc.expected: step2. return ok.
+     */
+    uint64_t curTime = 0;
+    EXPECT_EQ(TimeHelper::GetSysCurrentRawTime(curTime), E_OK);
+    uint64_t invalidTime = curTime + curTime;
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " SET timestamp=" + std::to_string(invalidTime) + " where rowid>0";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+    /**
+     * @tc.steps:step3. Check modify time in log table
+     * @tc.expected: step3. return ok.
+     */
+    EXPECT_EQ(TimeHelper::GetSysCurrentRawTime(curTime), E_OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where timestamp < " + std::to_string(curTime);
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
 }
 } // namespace
 #endif // RELATIONAL_STORE

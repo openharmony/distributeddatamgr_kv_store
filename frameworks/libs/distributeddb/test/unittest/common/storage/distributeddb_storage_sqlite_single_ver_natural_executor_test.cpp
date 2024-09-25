@@ -739,6 +739,41 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest0
 }
 
 /**
+  * @tc.name: ConnectionTest006
+  * @tc.desc: Test force release engine
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open storage engine
+     * @tc.expected: step1. open ok
+     */
+    auto property = g_property;
+    property.SetStringProp(KvDBProperties::STORE_ID, "ConnectionTest006");
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, "ConnectionTest006ID");
+    int errCode = E_OK;
+    auto storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    /**
+     * @tc.steps: step2. inc ref count and release it
+     */
+    RefObject::IncObjRef(storageEngine);
+    const std::string identifier = property.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+    (void)StorageEngineManager::ForceReleaseStorageEngine(identifier);
+    /**
+     * @tc.steps: step3. try use engine api and dec ref count
+     * @tc.expected: step3. call api ok
+     */
+    EXPECT_FALSE(storageEngine->IsEngineCorrupted());
+    RefObject::DecObjRef(storageEngine);
+}
+
+/**
   * @tc.name: PragmaTest001
   * @tc.desc: Calling Pragma incorrectly
   * @tc.type: FUNC
