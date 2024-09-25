@@ -23,6 +23,7 @@
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
+
 RdSingleVerStorageEngine::RdSingleVerStorageEngine()
 {
     LOGD("[RdSingleVerStorageEngine] RdSingleVerStorageEngine Created");
@@ -52,24 +53,29 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
     }
     if (!option_.readOnly) {
         std::string tableMode = GetTableMode(option_.isHashTable);
-        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME, tableMode.c_str(), 0));
+        ret = RdCreateCollection(db, SYNC_COLLECTION_NAME, tableMode.c_str(), 0);
         if (ret != E_OK) {
             LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
+            (void)RdDBClose(db, GRD_DB_CLOSE_IGNORE_ERROR);
             return ret;
         }
     }
-    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME));
+    ret = IndexPreLoad(db, SYNC_COLLECTION_NAME);
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine] GRD_IndexPreload FAILED %d", ret);
+        (void)RdDBClose(db, GRD_DB_CLOSE_IGNORE_ERROR);
         return ret;
     }
     handle = new (std::nothrow) RdSingleVerStorageExecutor(db, isWrite);
     if (handle == nullptr) {
+        (void)RdDBClose(db, GRD_DB_CLOSE_IGNORE_ERROR);
         return -E_OUT_OF_MEMORY;
     }
     if (OS::CheckPathExistence(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
         OS::RemoveFile(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
         LOGE("Finish to create the complete database, but delete token fail! errCode = [E_SYSTEM_API_FAIL]");
+        delete handle;
+        handle = nullptr;
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
@@ -135,7 +141,7 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     }
     int errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
-        LOGE("Failed to open the main database [%d], uri: %s", errCode, (option_.uri).c_str());
+        LOGE("Failed to open the main database [%d]", errCode);
         return errCode;
     }
 
@@ -203,6 +209,15 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
 
 int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionName)
 {
-    return RdIndexPreload(db, collectionName);
+    int ret = E_OK;
+    if (isFirstTimeOpenDb_) {
+        ret = RdIndexPreload(db, collectionName);
+        if (ret != E_OK) {
+            LOGE("Unable to RdIndexPreload %d", ret);
+            return ret;
+        }
+        isFirstTimeOpenDb_ = false;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

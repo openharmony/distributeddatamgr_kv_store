@@ -16,6 +16,7 @@
 #ifndef ISYNC_PACKET_H
 #define ISYNC_PACKET_H
 
+#include <cstdint>
 #include "sync_types.h"
 
 namespace DistributedDB {

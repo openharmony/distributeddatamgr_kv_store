@@ -263,3 +263,126 @@ HWTEST_F(DistributedDBSqliteUtilsTest, KVLogUpgrade001, TestSize.Level0)
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(SqliteLogTableManager::CreateKvSyncLogTable(g_db), E_OK);
 }
+
+/**
+ * @tc.name: BindErr
+ * @tc.desc: Test bind err
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, BindErr, TestSize.Level1)
+{
+    NativeSqlite::ExecSql(g_db, "CREATE TABLE IF NOT EXISTS t1 (a INT, b TEXT);");
+
+    std::string text;
+    text.resize(0);
+    NativeSqlite::ExecSql(g_db, "INSERT INTO t1 VALUES(?, ?)", [&text](sqlite3_stmt *stmt) {
+        (void)SQLiteUtils::BindInt64ToStatement(stmt, 1, 1);
+        (void)SQLiteUtils::BindTextToStatement(stmt, 2, "text"); // 2: bind index
+        EXPECT_NE(SQLiteUtils::BindTextToStatement(stmt, 5, text), E_OK);
+        EXPECT_EQ(SQLiteUtils::BindTextToStatement(nullptr, 2, text), -E_INVALID_ARGS);
+        EXPECT_NE(SQLiteUtils::BindInt64ToStatement(nullptr, -6, 0), E_OK);
+        EXPECT_NE(SQLiteUtils::BindBlobToStatement(stmt, 7, {}), E_OK);
+        EXPECT_NE(SQLiteUtils::BindPrefixKey(stmt, 8, {}), E_OK);
+        EXPECT_NE(SQLiteUtils::BindPrefixKey(stmt, 2, {}), E_OK);
+        return E_OK;
+    }, nullptr);
+
+    NativeSqlite::ExecSql(g_db, "SELECT b FROM t1", nullptr, [&text](sqlite3_stmt *stmt) {
+        std::string val;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(nullptr, 0, val), -E_INVALID_ARGS);
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, val), E_OK);
+        EXPECT_EQ(val, text);
+        return E_OK;
+    });
+}
+
+/**
+ * @tc.name: AbnormalBranchErr
+ * @tc.desc: Test abnormal branch error
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalBranchErr, TestSize.Level1)
+{
+    CipherPassword passwd;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::SetKey(nullptr, CipherType::DEFAULT, passwd, true,
+        DBConstant::DEFAULT_ITER_TIMES));
+    EXPECT_EQ(-1, SQLiteUtils::AttachNewDatabaseInner(g_db, CipherType::DEFAULT, {}, "path", "asname ? "));
+    EXPECT_EQ(-E_SQLITE_CANT_OPEN, SQLiteUtils::CreateMetaDatabase("/axxbxxc/d sdsda"));
+
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::CheckIntegrity(nullptr, ""));
+    TableInfo table;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::AnalysisSchema(nullptr, "", table, true));
+    EXPECT_EQ(-E_NOT_SUPPORT, SQLiteUtils::AnalysisSchema(g_db, "###", table, true));
+    EXPECT_EQ(-E_NOT_FOUND, SQLiteUtils::AnalysisSchema(g_db, "t2", table, true));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::AnalysisSchemaFieldDefine(nullptr, "ttt", table));
+
+    int version;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::GetVersion(nullptr, version));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::SetUserVer(nullptr, version));
+    std::string mode;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::GetJournalMode(nullptr, mode));
+
+    EXPECT_EQ(-SQLITE_IOERR, SQLiteUtils::MapSQLiteErrno(SQLITE_IOERR));
+    int oldErr = errno;
+    errno = EKEYREVOKED;
+    EXPECT_EQ(-E_EKEYREVOKED, SQLiteUtils::MapSQLiteErrno(SQLITE_IOERR));
+    EXPECT_EQ(-E_EKEYREVOKED, SQLiteUtils::MapSQLiteErrno(SQLITE_ERROR));
+    errno = oldErr;
+    EXPECT_EQ(-E_SQLITE_CANT_OPEN, SQLiteUtils::MapSQLiteErrno(SQLITE_CANTOPEN));
+    std::string strSchema;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::SaveSchema(nullptr, strSchema));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::GetSchema(nullptr, strSchema));
+
+    IndexName name;
+    IndexInfo info;
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::IncreaseIndex(nullptr, name, info, SchemaType::JSON, 1));
+    EXPECT_EQ(-E_NOT_PERMIT, SQLiteUtils::IncreaseIndex(g_db, name, info, SchemaType::JSON, 1));
+    EXPECT_EQ(-E_NOT_PERMIT, SQLiteUtils::ChangeIndex(g_db, name, info, SchemaType::JSON, 1));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::ChangeIndex(nullptr, name, info, SchemaType::JSON, 1));
+
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::RegisterJsonFunctions(nullptr));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::CloneIndexes(nullptr, strSchema, strSchema));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::GetRelationalSchema(nullptr, strSchema));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::GetLogTableVersion(nullptr, strSchema));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::RegisterFlatBufferFunction(nullptr, strSchema));
+    EXPECT_EQ(-E_INTERNAL_ERROR, SQLiteUtils::RegisterFlatBufferFunction(g_db, strSchema));
+    EXPECT_EQ(-E_INVALID_ARGS, SQLiteUtils::ExpandedSql(nullptr, strSchema));
+    SQLiteUtils::ExecuteCheckPoint(nullptr);
+    
+    bool isEmpty;
+    EXPECT_EQ(-E_INVALID_ARGS, SQLiteUtils::CheckTableEmpty(nullptr, strSchema, isEmpty));
+    EXPECT_EQ(-E_INVALID_ARGS, SQLiteUtils::SetPersistWalMode(nullptr));
+    EXPECT_EQ(-1, SQLiteUtils::GetLastRowId(nullptr));
+    std::string tableName;
+    EXPECT_EQ(-1, SQLiteUtils::CheckTableExists(nullptr, tableName, isEmpty));
+}
+
+/**
+ * @tc.name: AbnormalBranchErrAfterClose
+ * @tc.desc: Test abnormal branch error after close db
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalBranchErrAfterClose, TestSize.Level1)
+{
+    int version;
+    std::string mode;
+    std::string strSchema;
+    std::string tableName;
+    bool isEmpty;
+
+    sqlite3_close_v2(g_db);
+    // After close db
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetVersion(g_db, version));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetJournalMode(g_db, mode));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::SaveSchema(g_db, strSchema));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetSchema(g_db, strSchema));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetRelationalSchema(g_db, strSchema));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetLogTableVersion(g_db, strSchema));
+    EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::CheckTableExists(g_db, tableName, isEmpty));
+}

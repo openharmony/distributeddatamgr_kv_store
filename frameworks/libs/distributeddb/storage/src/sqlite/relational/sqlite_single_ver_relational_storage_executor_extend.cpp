@@ -341,7 +341,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
             LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
             return errCode;
         }
-        errCode = CleanCloudDataOnLogTable(logTableName);
+        errCode = CleanCloudDataOnLogTable(logTableName, FLAG_ONLY);
         if (errCode != E_OK) {
             LOGE("[Storage Executor] failed to clean cloud data on log table, %d", errCode);
             return errCode;
@@ -364,7 +364,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx
         return;
     }
     context->cursor++;
-    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(context->cursor));
+    sqlite3_result_int64(ctx, static_cast<sqlite_int64>(context->cursor));
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,
@@ -468,7 +468,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             return errCode;
         }
         if (isLogicDelete_) {
-            errCode = SetDataOnUserTablWithLogicDelete(tableName, logTableName);
+            errCode = SetDataOnUserTableWithLogicDelete(tableName, logTableName);
         } else {
             errCode = CleanCloudDataAndLogOnUserTable(tableName, logTableName, localSchema);
         }
@@ -502,6 +502,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
             if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Get column blob value failed, %d", errCode);
                 goto END;
+            }
+            if (blobValue.empty()) {
+                SQLiteUtils::ResetStatement(selectStmt, true, ret);
+                continue;
             }
             Asset asset;
             errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
@@ -581,6 +585,23 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &
                 return errCode;
             }
         }
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::SetCursorIncFlag(bool flag)
+{
+    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " VALUES ('cursor_inc_flag', ";
+    if (flag) {
+        sql += "'true'";
+    } else {
+        sql += "'false'";
+    }
+    sql += ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        LOGE("set cursor inc flag fail, errCode = %d", errCode);
     }
     return errCode;
 }
@@ -1198,6 +1219,58 @@ int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string
 void SQLiteSingleVerRelationalStorageExecutor::SetTableSchema(const TableSchema &tableSchema)
 {
     tableSchema_ = tableSchema;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::ReviseLocalModTime(const std::string &tableName,
+    const std::vector<ReviseModTimeInfo> &revisedData)
+{
+    sqlite3_stmt *stmt = nullptr;
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
+        " SET timestamp=? where hash_key=? AND timestamp=?";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor][ReviseLocalModTime] Get stmt failed: %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[RDBExecutor][ReviseLocalModTime] Reset stmt failed %d", ret);
+        }
+    });
+    for (auto &data : revisedData) {
+        int resetCode = E_OK;
+        errCode = SQLiteUtils::BindInt64ToStatement(stmt, 1, data.curTime); // 1st bind modify time
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor][ReviseLocalModTime] Bind revised modify time failed: %d", errCode);
+            return errCode;
+        }
+        errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, data.hashKey); // 2nd bind hash key
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor][ReviseLocalModTime] Bind hash key failed: %d", errCode);
+            return errCode;
+        }
+        errCode = SQLiteUtils::BindInt64ToStatement(stmt, 3, data.invalidTime); // 3rd bind modify time
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor][ReviseLocalModTime] Bind modify time failed: %d", errCode);
+            return errCode;
+        }
+        errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            LOGE("[RDBExecutor][ReviseLocalModTime] Revise failed: %d", errCode);
+            return errCode;
+        }
+        LOGI("[RDBExecutor][ReviseLocalModTime] Local data mod time revised from %lld to %lld",
+            data.invalidTime, data.curTime);
+        SQLiteUtils::ResetStatement(stmt, false, resetCode);
+        if (resetCode != E_OK) {
+            LOGW("[RDBExecutor][ReviseLocalModTime] Reset stmt failed: %d", resetCode);
+            return resetCode;
+        }
+    }
+    return E_OK;
 }
 } // namespace DistributedDB
 #endif

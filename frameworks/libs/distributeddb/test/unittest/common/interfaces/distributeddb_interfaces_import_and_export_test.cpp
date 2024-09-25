@@ -1071,7 +1071,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, Te
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
 
     std::string singleExportFileName = g_exportFileDir + "/SeparaDbExportAndImport.$$";
-    std::string singleStoreId = "distributed_ExportSingle_010";
+    std::string singleStoreId = "distributed_ExportSingle_0101";
     KvStoreNbDelegate::Option option = {true, false, false};
     SecurityOption secOption{SecurityLabel::S3, SecurityFlag::SECE};
     option.secOption = secOption;

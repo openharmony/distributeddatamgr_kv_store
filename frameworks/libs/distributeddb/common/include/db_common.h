@@ -135,6 +135,8 @@ public:
 
     static bool IsNeedCompensatedForUpload(const VBucket &uploadExtend, const CloudWaterType &type);
 
+    static bool IsRecordIgnoredForReliability(const VBucket &uploadExtend, const CloudWaterType &type);
+
     static bool IsRecordSuccess(const VBucket &record);
 
     static std::string GenerateHashLabel(const DBInfo &dbInfo);

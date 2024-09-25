@@ -209,7 +209,7 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::HandleIfExistAndSameStatus
         if (dbAsset.name != cacheAsset.name) {
             continue;
         }
-        if (dbAsset.status == cacheAsset.status) {
+        if (dbAsset.status == cacheAsset.status && dbAsset.hash == cacheAsset.hash) {
             return AssetOpType::HANDLE;
         }
         return AssetOpType::NOT_HANDLE;

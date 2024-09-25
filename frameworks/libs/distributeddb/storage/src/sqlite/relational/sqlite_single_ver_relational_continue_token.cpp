@@ -188,7 +188,7 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, Cloud
     }
     std::string sql = helper.GetRelationalCloudQuerySql(tableSchema_.fields, cloudDataResult.isCloudForcePushStrategy,
         cloudDataResult.isCompensatedTask, cloudDataResult.mode);
-    errCode = helper.GetCloudQueryStatement(true, db, timeRange_.beginTime, sql, queryStmt_);
+    errCode = helper.GetCloudQueryStatement(true, db, sql, queryStmt_);
     if (errCode == E_OK) {
         queryStmt = queryStmt_;
     }

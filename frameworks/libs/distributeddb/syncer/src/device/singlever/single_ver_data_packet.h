@@ -16,6 +16,8 @@
 #ifndef SINGLE_VER_DATA_PACKET_NEW_H
 #define SINGLE_VER_DATA_PACKET_NEW_H
 
+#include <cstdint>
+#include <string>
 #include "icommunicator.h"
 #include "parcel.h"
 #include "query_sync_object.h"
@@ -160,7 +162,7 @@ public:
     DataAckPacket() {};
     virtual ~DataAckPacket() {};
 
-    void SetData(uint64_t data);
+    void SetData(const uint64_t data);
 
     uint64_t GetData() const;
 

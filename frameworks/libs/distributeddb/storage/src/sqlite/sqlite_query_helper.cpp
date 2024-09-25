@@ -527,7 +527,7 @@ int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery, b
         isNeedOrderbyKey_ = false; // Need order by timestamp.
     }
 
-    sql = AssembleSqlForSuggestIndex(((isCount == true && hasSubQuery == false) ?
+    sql = AssembleSqlForSuggestIndex(((isCount && !hasSubQuery) ?
         PRE_QUERY_COUNT_ITEM_SQL : PRE_QUERY_ITEM_SQL) + tableName_ + " ", FILTER_REMOTE_QUERY);
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
@@ -888,8 +888,7 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
     return errCode;
 }
 
-int SqliteQueryHelper::GetSubscribeSql(const std::string &subscribeId, TriggerModeEnum mode,
-    std::string &subscribeCondition)
+int SqliteQueryHelper::GetSubscribeSql(TriggerModeEnum mode, std::string &subscribeCondition)
 {
     if (!isValid_) {
         return -E_INVALID_QUERY_FORMAT;
@@ -1191,8 +1190,11 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
     if (isCloudForcePush) {
         sql += " (b.flag & 0x04 != 0x04)";
     } else {
-        // local data and flag is not upload finished.
-        sql += "(b.flag & 0x02 = 0x02) AND (b.flag & 0x400 != 0x400)";
+        sql += "(b.flag & 0x02 = 0x02)";
+        if (!isCompensatedTask) {
+            // local data and flag is not upload finished.
+            sql += " AND (b.flag & 0x400 != 0x400)";
+        }
     }
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
@@ -1230,8 +1232,8 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
     sql += isCloudForcePush ? " (b.flag & 0x04 != 0x04) AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";
 }
 
-int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime,
-    std::string &sql, sqlite3_stmt *&statement)
+int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql,
+    sqlite3_stmt *&statement)
 {
     querySql_.clear(); // clear local query sql format
     int errCode = ToQuerySyncSql(false, useTimestampAlias);

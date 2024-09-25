@@ -170,11 +170,11 @@ void SyncStateMachine::SwitchStateAndStep(uint8_t event)
     }
 }
 
-int SyncStateMachine::ExecNextTask()
+int SyncStateMachine::ExecNextTask(uint32_t timeout)
 {
     syncContext_->Clear();
     while (!syncContext_->IsTargetQueueEmpty()) {
-        int errCode = syncContext_->GetNextTarget();
+        int errCode = syncContext_->GetNextTarget(timeout);
         if (errCode != E_OK) {
             continue;
         }

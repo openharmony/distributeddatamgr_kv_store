@@ -1361,7 +1361,7 @@ void AbilitySync::InitAbilitySyncFinishStatus(ISyncTaskContext &context)
     LOGI("[AbilitySync] Mark ability sync finish from db status");
     syncFinished_ = true;
     if (context.GetRemoteSoftwareVersion() == 0u) { // LCOV_EXCL_BR_LINE
-        LOGI("[AbilitySync] Init remote version with default");
+        LOGD("[AbilitySync] Init remote version with default");
         context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_9_0); // remote version >= 109
     }
     InitRemoteDBAbility(context);

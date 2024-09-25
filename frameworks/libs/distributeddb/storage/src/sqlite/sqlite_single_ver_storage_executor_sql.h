@@ -263,15 +263,18 @@ namespace DistributedDB {
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
 
-    constexpr const char *REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL =
-        "DELETE FROM sync_data WHERE device=? AND key LIKE 'naturalbase_cloud_version_%';";
-
     constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0);";
 
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "DELETE FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
+    
+    constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_VERSION_SQL =
+        "DELETE FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' AND length(device)!=0;";
+
+    constexpr const char *REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND key LIKE 'naturalbase_cloud_version_%';";
 
     constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0) AND hash_key IN" \
@@ -346,6 +349,11 @@ namespace DistributedDB {
         "sync_data LEFT JOIN naturalbase_kv_aux_sync_data_log ON "
         "sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key ";
 
+    constexpr const char *QUERY_CLOUD_SYNC_DATA_LOG_WITH_USERID = "SELECT sync_data.rowid, flag, device, ori_device, "
+        "modify_time, create_time, cloud_gid, sync_data.hash_key, sync_data.key, version, cloud_flag FROM "
+        "sync_data LEFT JOIN (select * from naturalbase_kv_aux_sync_data_log where userid=?) as "
+        "naturalbase_kv_aux_sync_data_log ON sync_data.hash_key = naturalbase_kv_aux_sync_data_log.hash_key ";
+
     constexpr const char *QUERY_CLOUD_VERSION_RECORD_SQL_HEAD = "SELECT key, value, flag, device, sync_data.hash_key "
         "FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' ";
 
@@ -374,6 +382,10 @@ namespace DistributedDB {
         "SELECT key FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table on sync_data.hash_key"
         "= log_table.hash_key WHERE log_table.cloud_flag=log_table.cloud_flag|0x10";
 
+    constexpr const char *SELECT_COMPENSATE_SYNC_USERID_SQL =
+        "SELECT userid FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table on sync_data.hash_key"
+        "= log_table.hash_key WHERE log_table.cloud_flag=log_table.cloud_flag|0x10";
+
     constexpr const char *SELECT_CLOUD_GID_SQL =
         "SELECT cloud_gid FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table"
         " on sync_data.hash_key = log_table.hash_key WHERE log_table.userid=?";
@@ -384,6 +396,9 @@ namespace DistributedDB {
 
     constexpr const char *CHECK_DATA_CHANGED =
         "SELECT COUNT(1) FROM sync_data WHERE modify_time=? AND hash_key=?";
+
+    constexpr const char *CHECK_DATA_DELETE =
+        "SELECT COUNT(1) FROM sync_data WHERE modify_time!=? AND hash_key=? AND flag&0x01 != 0";
     
     constexpr const char *NATURALBASE_KV_AUX_SYNC_DATA_LOG_TABLE_NAME = "naturalbase_kv_aux_sync_data_log";
 

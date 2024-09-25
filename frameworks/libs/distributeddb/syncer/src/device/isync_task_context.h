@@ -66,9 +66,9 @@ public:
     virtual int GetMode() const = 0;
 
     // Move to next target to sync
-    virtual void MoveToNextTarget() = 0;
+    virtual void MoveToNextTarget(uint32_t timeout) = 0;
 
-    virtual int GetNextTarget() = 0;
+    virtual int GetNextTarget(uint32_t timeout) = 0;
 
     // Get the current task syncId
     virtual uint32_t GetSyncId() const = 0;

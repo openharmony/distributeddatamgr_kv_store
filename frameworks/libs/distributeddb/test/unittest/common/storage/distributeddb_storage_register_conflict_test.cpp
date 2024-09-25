@@ -61,8 +61,8 @@ namespace {
         bool newIsDeleted = false;
         bool oldIsNative = false;
         bool newIsNative = false;
-        int getoldValueErrCode = 0;
-        int getNewValueErrCode = 0;
+        DBStatus getoldValueErrCode = DBStatus::OK;
+        DBStatus getNewValueErrCode = DBStatus::OK;
         bool operator==(const SingleVerConflictData &comparedData) const
         {
             if (this->type == comparedData.type &&

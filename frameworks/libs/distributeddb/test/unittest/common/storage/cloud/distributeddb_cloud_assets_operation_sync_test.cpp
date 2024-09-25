@@ -25,6 +25,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include "sqlite_relational_utils.h"
 #include "cloud/cloud_storage_utils.h"
 
@@ -107,6 +108,7 @@ protected:
     std::shared_ptr<VirtualCloudDataTranslate> virtualTranslator_ = nullptr;
     std::shared_ptr<RelationalStoreManager> mgr_ = nullptr;
     std::string tableName_ = "DistributedDBCloudAssetsOperationSyncTest";
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudAssetsOperationSyncTest::SetUpTestCase()
@@ -141,6 +143,9 @@ void DistributedDBCloudAssetsOperationSyncTest::SetUp()
     virtualTranslator_ = std::make_shared<VirtualCloudDataTranslate>();
     DataBaseSchema dataBaseSchema = GetSchema();
     ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudAssetsOperationSyncTest::TearDown()
@@ -150,6 +155,9 @@ void DistributedDBCloudAssetsOperationSyncTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudAssetsOperationSyncTest::InitTestDir()
@@ -249,7 +257,7 @@ void DistributedDBCloudAssetsOperationSyncTest::UpdateCloudTableRecord(int64_t b
             asset.status = AssetStatus::UPDATE;
             assets.push_back(asset);
         }
-        data.insert_or_assign("assets", assets);
+        assetIsNull ? data.insert_or_assign("assets", Nil()) : data.insert_or_assign("assets", assets);
         record.push_back(data);
         VBucket log;
         log.insert_or_assign(CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
@@ -566,6 +574,13 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Leve
      * @tc.steps:step2. UpsertData and sync.
      * @tc.expected: step2. ok.
      */
+    int dataCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_) + " where cursor = 5";
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, 1);
     vector<VBucket> records;
     for (int i = 0; i < actualCount; i++) {
         VBucket record;
@@ -574,6 +589,13 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Leve
         records.push_back(record);
     }
     EXPECT_EQ(delegate_->UpsertData(tableName_, records), OK);
+    // check cursor has been increase
+    checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_) + " where cursor = 10";
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, 1);
     BlockSync(query, delegate_);
 
     /**
@@ -781,9 +803,9 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest001, TestSiz
     Query query = Query::Select().FromTable({ tableName_ });
     BlockSync(query, delegate_);
     for (const auto &table : lastProcess_.tableProcess) {
-        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.total, 9u);
         EXPECT_EQ(table.second.upLoadInfo.failCount, 3u);
-        EXPECT_EQ(table.second.upLoadInfo.successCount, 7u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 6u);
     }
     virtualCloudDb_->ForkUpload(nullptr);
 }

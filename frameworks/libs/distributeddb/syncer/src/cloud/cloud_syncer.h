@@ -339,13 +339,15 @@ protected:
 
     void ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info);
 
-    uint32_t GetLastUploadSuccessCount(const std::string &tableName);
+    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo);
 
     QuerySyncObject GetQuerySyncObject(const std::string &tableName);
 
     InnerProcessInfo GetInnerProcessInfo(const std::string &tableName, UploadParam &uploadParam);
 
     void NotifyUploadFailed(int errCode, InnerProcessInfo &info);
+
+    void UpdateProcessWhenUploadFailed(InnerProcessInfo &info);
 
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
@@ -405,7 +407,7 @@ protected:
     std::pair<int, Timestamp> GetLocalWater(const std::string &tableName, UploadParam &uploadParam);
 
     int HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info, CloudSyncData &uploadData,
-        ContinueToken &continueStmtToken);
+        ContinueToken &continueStmtToken, std::vector<ReviseModTimeInfo> &revisedData);
 
     bool IsNeedLock(const UploadParam &param);
 

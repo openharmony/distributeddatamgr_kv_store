@@ -236,21 +236,11 @@ int InsertId(JsonObject &cjsonObj, const std::string &jsonKey)
     return E_OK;
 }
 
-int ResultSet::CutJsonBranch(std::string &jsonKey, std::string &jsonData)
+int ResultSet::CutJsonBranchInner(JsonObject &cjsonObj, bool viewType, bool isIdExistInValue,
+    bool &isInsertIdflag)
 {
-    int errCode;
-    JsonObject cjsonObj = JsonObject::Parse(jsonData, errCode, true);
-    if (errCode != E_OK) {
-        GLOGE("jsonData Parsed failed");
-        return errCode;
-    }
-    bool isIdExistInValue = true; // if id exsit in the value string that get from db.
-    bool isInsertIdflag = false;
-    isIdExistInValue = cjsonObj.GetObjectItem("_id", errCode).IsNull() ? false : true;
-    if (context_->ifShowId && !isIdExistInValue) {
-        isInsertIdflag = true; // ifShowId is true,and then the data taken out does not have IDs, insert id.
-    }
-    if (context_->viewType) {
+    int errCode = E_OK;
+    if (viewType) {
         std::vector<std::string> singlePath;
         JsonObject cjsonObjChild = cjsonObj.GetChild();
         std::vector<std::vector<std::string>> allCutPath;
@@ -267,14 +257,7 @@ int ResultSet::CutJsonBranch(std::string &jsonKey, std::string &jsonData)
                 isInsertIdflag = true;
             }
         }
-    }
-    if (isInsertIdflag) {
-        errCode = InsertId(cjsonObj, jsonKey);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-    if (!context_->viewType) {
+    } else {
         for (const auto &singleCutPaht : context_->projectionPath) {
             cjsonObj.DeleteItemDeeplyOnTarget(singleCutPaht);
         }
@@ -282,6 +265,32 @@ int ResultSet::CutJsonBranch(std::string &jsonKey, std::string &jsonData)
             std::vector<std::string> idPath;
             idPath.emplace_back(KEY_ID);
             cjsonObj.DeleteItemDeeplyOnTarget(idPath);
+        }
+    }
+    return errCode;
+}
+int ResultSet::CutJsonBranch(std::string &jsonKey, std::string &jsonData)
+{
+    int errCode;
+    JsonObject cjsonObj = JsonObject::Parse(jsonData, errCode, true);
+    if (errCode != E_OK) {
+        GLOGE("jsonData Parsed failed");
+        return errCode;
+    }
+    bool isIdExistInValue = true; // if id exsit in the value string that get from db.
+    bool isInsertIdflag = false;
+    isIdExistInValue = cjsonObj.GetObjectItem("_id", errCode).IsNull() ? false : true;
+    if (context_->ifShowId && !isIdExistInValue) {
+        isInsertIdflag = true; // ifShowId is true,and then the data taken out does not have IDs, insert id.
+    }
+    errCode = CutJsonBranchInner(cjsonObj, context_->viewType, isIdExistInValue, isInsertIdflag);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (isInsertIdflag) {
+        errCode = InsertId(cjsonObj, jsonKey);
+        if (errCode != E_OK) {
+            return errCode;
         }
     }
     jsonData = cjsonObj.Print();

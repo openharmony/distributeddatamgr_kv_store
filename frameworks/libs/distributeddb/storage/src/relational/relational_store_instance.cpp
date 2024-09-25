@@ -132,6 +132,7 @@ IRelationalStore *RelationalStoreInstance::GetDataBase(const RelationalDBPropert
     bool isNeedIfOpened)
 {
     auto *db = GetFromCache(properties, errCode);
+
     if (db != nullptr && !isNeedIfOpened) {
         RefObject::DecObjRef(db);
         errCode = -E_ALREADY_OPENED;

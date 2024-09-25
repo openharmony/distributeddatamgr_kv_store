@@ -427,12 +427,27 @@ KvDBProperties &RdSingleVerNaturalStore::GetDbPropertyForUpdate()
     return MyProp();
 }
 
+static void SetStorageEngineAttr(StorageEngineAttr &poolSize, uint32_t minWriteNum, uint32_t maxWriteNum,
+    uint32_t minReadNum, uint32_t maxReadNum)
+{
+    poolSize.minWriteNum = minWriteNum;
+    poolSize.maxWriteNum = maxWriteNum;
+    poolSize.minReadNum = minReadNum;
+    poolSize.maxReadNum = maxReadNum;
+}
+
 int RdSingleVerNaturalStore::InitDatabaseContext(const KvDBProperties &kvDBProp)
 {
     OpenDbProperties option;
     InitDataBaseOption(kvDBProp, option);
 
-    StorageEngineAttr poolSize = {1, 1, 1, 16}; // at most 1 write 16 read.
+    StorageEngineAttr poolSize = { 0 };
+    bool isReadOnly = kvDBProp.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
+    if (isReadOnly) {
+        SetStorageEngineAttr(poolSize, 0, 1, 1, 16); // max 16 readNum
+    } else {
+        SetStorageEngineAttr(poolSize, 1, 1, 0, 16); // max 16 readNum
+    }
 
     storageEngine_->SetNotifiedCallback(
         [&](int eventType, KvDBCommitNotifyFilterAbleData *committedData) {
@@ -551,8 +566,8 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     option.isNeedRmCorruptedDb = kvDBProp.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false);
     bool isSharedMode = kvDBProp.GetBoolProp(KvDBProperties::SHARED_MODE, false);
     option.isHashTable = (IndexType)kvDBProp.GetIntProp(KvDBProperties::INDEX_TYPE, BTREE) == HASH;
-    int pageSize = kvDBProp.GetIntProp(KvDBProperties::PAGE_SIZE, 32);
-    int cacheSize = kvDBProp.GetIntProp(KvDBProperties::CACHE_SIZE, 2048);
+    uint32_t pageSize = kvDBProp.GetIntProp(KvDBProperties::PAGE_SIZE, 32u); // one page has 32KB
+    uint32_t cacheSize = kvDBProp.GetIntProp(KvDBProperties::CACHE_SIZE, 2048u); // max cache 2048KB
 
     std::string config = "{";
     config += InitRdConfig() + R"(, )";
@@ -560,7 +575,7 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
         R"("bufferPoolPolicy": "BUF_PRIORITY_NORMAL")" : R"("bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
     config += R"(, "pageSize":)" + std::to_string(pageSize) + R"(, )";
     config += R"("bufferPoolSize":)" + std::to_string(cacheSize) + R"(, )";
-    config += R"("redoPubBufSize":)" + std::to_string(cacheSize) + R"(, )";
+    config += R"("redoPubBufSize":)" + std::to_string(pageSize * REDO_BUF_ATOMIC_SIZE) + R"(, )";
     config += isSharedMode ? R"("sharedModeEnable": 1)" : R"("sharedModeEnable": 0)";
     config += "}";
     option.rdConfig = config;

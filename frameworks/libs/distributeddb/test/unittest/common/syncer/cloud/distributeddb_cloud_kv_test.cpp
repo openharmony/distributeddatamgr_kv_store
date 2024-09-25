@@ -16,12 +16,13 @@
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_db_constant.h"
+#include "db_base64_utils.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_virtual_device.h"
 #include "kv_store_nb_delegate.h"
-#include "platform_specific.h"
 #include "kv_store_nb_delegate_impl.h"
+#include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
 #include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
@@ -57,7 +58,10 @@ protected:
         bool invalidSchema = false);
     void CloseKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId);
     void BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus, CloudSyncOption option,
-        int expectSyncResult = OK);
+        DBStatus expectSyncResult = OK);
+    void SyncAndGetProcessInfo(KvStoreNbDelegate *delegate, CloudSyncOption option);
+    bool CheckUserSyncInfo(const vector<std::string> users, const vector<DBStatus> userStatus,
+        const vector<Info> userExpectInfo);
     static DataBaseSchema GetDataBaseSchema(bool invalidSchema);
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb2_ = nullptr;
@@ -65,6 +69,7 @@ protected:
     KvStoreNbDelegate* kvDelegatePtrS1_ = nullptr;
     KvStoreNbDelegate* kvDelegatePtrS2_ = nullptr;
     SyncProcess lastProcess_;
+    std::map<std::string, SyncProcess> lastSyncProcess_;
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     KvVirtualDevice *deviceB_ = nullptr;
 };
@@ -142,7 +147,7 @@ void DistributedDBCloudKvTest::TearDown()
 }
 
 void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus, CloudSyncOption option,
-    int expectSyncResult)
+    DBStatus expectSyncResult)
 {
     if (delegate == nullptr) {
         return;
@@ -163,7 +168,8 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
             {
                 std::lock_guard<std::mutex> autoLock(dataMutex);
                 notifyCnt++;
-                if (notifyCnt == option.users.size()) {
+                std::set<std::string> userSet(option.users.begin(), option.users.end());
+                if (notifyCnt == userSet.size()) {
                     finish = true;
                     last = item.second;
                     cv.notify_one();
@@ -206,6 +212,7 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema(bool invalidSchema)
     return schema;
 }
 
+
 DBStatus DistributedDBCloudKvTest::GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId,
     KvStoreNbDelegate::Option option, bool invalidSchema)
 {
@@ -236,6 +243,71 @@ void DistributedDBCloudKvTest::CloseKvStore(KvStoreNbDelegate *&delegate, const 
         LOGD("delete kv store status %d store %s", status, storeId.c_str());
         ASSERT_EQ(status, OK);
     }
+}
+
+void DistributedDBCloudKvTest::SyncAndGetProcessInfo(KvStoreNbDelegate *delegate, CloudSyncOption option)
+{
+    if (delegate == nullptr) {
+        return;
+    }
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool isFinish = false;
+    vector<std::map<std::string, SyncProcess>> lists;
+    auto callback = [&cv, &dataMutex, &isFinish, &option, &lists](const std::map<std::string, SyncProcess> &process) {
+        size_t notifyCnt = 0;
+        for (const auto &item: process) {
+            LOGD("user = %s, status = %d", item.first.c_str(), item.second.process);
+            if (item.second.process != DistributedDB::FINISHED) {
+                continue;
+            }
+            {
+                std::lock_guard<std::mutex> autoLock(dataMutex);
+                notifyCnt++;
+                std::set<std::string> userSet(option.users.begin(), option.users.end());
+                if (notifyCnt == userSet.size()) {
+                    isFinish = true;
+                    cv.notify_one();
+                }
+                lists.push_back(process);
+            }
+        }
+    };
+    auto ret = delegate->Sync(option, callback);
+    EXPECT_EQ(ret, OK);
+    if (ret == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&isFinish]() {
+            return isFinish;
+        });
+    }
+    lastSyncProcess_ = lists.back();
+}
+
+bool DistributedDBCloudKvTest::CheckUserSyncInfo(const vector<std::string> users, const vector<DBStatus> userStatus,
+    const vector<Info> userExpectInfo)
+{
+    uint32_t idx = 0;
+    for (auto &it: lastSyncProcess_) {
+        if ((idx >= users.size()) || (idx >= userStatus.size()) || (idx >= userExpectInfo.size())) {
+            return false;
+        }
+        string user = it.first;
+        if (user.compare(0, user.length(), users[idx]) != 0) {
+            return false;
+        }
+        SyncProcess actualSyncProcess = it.second;
+        EXPECT_EQ(actualSyncProcess.process, FINISHED);
+        EXPECT_EQ(actualSyncProcess.errCode, userStatus[idx]);
+        for (const auto &table : actualSyncProcess.tableProcess) {
+            EXPECT_EQ(table.second.upLoadInfo.total, userExpectInfo[idx].total);
+            EXPECT_EQ(table.second.upLoadInfo.successCount, userExpectInfo[idx].successCount);
+            EXPECT_EQ(table.second.upLoadInfo.insertCount, userExpectInfo[idx].insertCount);
+            EXPECT_EQ(table.second.upLoadInfo.failCount, userExpectInfo[idx].failCount);
+        }
+        idx++;
+    }
+    return true;
 }
 
 /**
@@ -289,6 +361,14 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
      * @tc.expected: step1. both put ok
      */
     communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    kvDelegatePtrS2_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
     Key key1 = {'k', '1'};
     Value expectValue1 = {'v', '1'};
     Key key2 = {'k', '2'};
@@ -320,6 +400,13 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
     LOGW("Store1 sync end");
     EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue2);
+    auto result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (const auto &item : result.second) {
+        EXPECT_EQ(DBBase64Utils::DecodeIfNeed(item.first), item.first);
+    }
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    kvDelegatePtrS2_->SetGenCloudVersionCallback(nullptr);
 }
 
 /**
@@ -945,7 +1032,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync022, TestSize.Level0)
     ASSERT_NE(memoryDB1, nullptr);
     /**
      * @tc.steps:step2. Sync without cloud schema.
-     * @tc.expected: step2 CLOUD_ERROR.
+     * @tc.expected: step2 SCHEMA_MISMATCH.
      */
     BlockSync(memoryDB1, OK, g_CloudSyncoption, CLOUD_ERROR);
     std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
@@ -1018,6 +1105,24 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync024, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync025
+ * @tc.desc: Test merge sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync025, TestSize.Level0)
+{
+    virtualCloudDb_->SetBlockTime(1000); // block query 1000ms
+    auto option = g_CloudSyncoption;
+    option.merge = false;
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(option, nullptr), OK);
+    option.merge = true;
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(option, nullptr), OK);
+    BlockSync(kvDelegatePtrS1_, CLOUD_SYNC_TASK_MERGED, option);
+}
+
+/**
  * @tc.name: NormalSync026
  * @tc.desc: Test delete when sync mode DEVICE_COLLABORATION.
  * @tc.type: FUNC
@@ -1051,7 +1156,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level0)
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
     /**
      * @tc.steps:step4. device1 sync.
-     * @tc.expected: The record was not covered by the cloud and cloud was covered.
+     * @tc.expected: step4. The record was not covered by the cloud and cloud was covered.
      */
     BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption);
     Value actualValue1;

@@ -535,8 +535,9 @@ Event SingleVerSyncStateMachine::DoSyncTaskFinished()
 {
     StopWatchDog();
     dataSync_->ClearSyncStatus();
+    auto timeout = communicator_->GetTimeout(syncContext_->GetDeviceId());
     RefObject::AutoLock lock(syncContext_);
-    int errCode = ExecNextTask();
+    int errCode = ExecNextTask(timeout);
     if (errCode == E_OK) {
         return Event::START_SYNC_EVENT;
     }

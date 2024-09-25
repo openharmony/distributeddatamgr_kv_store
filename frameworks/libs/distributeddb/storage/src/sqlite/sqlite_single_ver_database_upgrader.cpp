@@ -72,6 +72,10 @@ namespace {
     const constexpr char *DROP_META_TABLE_SQL = "DROP TABLE IF EXISTS main.meta_data;";
     const constexpr char *COPY_META_TABLE_SQL = "INSERT OR REPLACE INTO meta.meta_data SELECT * FROM meta_data "
         "where (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='main.meta_data') > 0;";
+
+    const constexpr char *DROP_META_DB_TABLE_SQL = "DROP TABLE IF EXISTS meta.meta_data;";
+    const constexpr char *COPY_META_DB_TABLE_SQL = "INSERT OR REPLACE INTO meta_data SELECT * FROM meta.meta_data "
+        "where (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='meta.meta_data') > 0;";
 }
 
 SQLiteSingleVerDatabaseUpgrader::SQLiteSingleVerDatabaseUpgrader(sqlite3 *db,
@@ -79,7 +83,8 @@ SQLiteSingleVerDatabaseUpgrader::SQLiteSingleVerDatabaseUpgrader(sqlite3 *db,
     : db_(db),
       secOpt_(secopt),
       isMemDB_(isMemDb),
-      isMetaUpgrade_(false)
+      isMetaUpgrade_(false),
+      isMigrateMetaDb_(false)
 {
 }
 
@@ -157,27 +162,7 @@ void SQLiteSingleVerDatabaseUpgrader::SetUpgradeSqls(int version, std::vector<st
     bool &isCreateUpgradeFile) const
 {
     if (version == 0) { // no write version.
-        if ((!isMemDB_) && ParamCheckUtils::IsS3SECEOpt(secOpt_)) {
-            sqls = {
-                CREATE_LOCAL_TABLE_SQL,
-                CREATE_SINGLE_META_TABLE_SQL,
-                CREATE_SYNC_TABLE_SQL,
-                CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
-            };
-        } else {
-            sqls = {
-                CREATE_LOCAL_TABLE_SQL,
-                CREATE_META_TABLE_SQL,
-                CREATE_SYNC_TABLE_SQL,
-                CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
-                CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
-            };
-        }
+        SetCreateSql(sqls);
     } else {
         if (version <= SINGLE_VER_STORE_VERSION_V1) {
             sqls = {
@@ -202,6 +187,9 @@ void SQLiteSingleVerDatabaseUpgrader::SetUpgradeSqls(int version, std::vector<st
             sqls.emplace_back("ALTER TABLE sync_data ADD modify_time INT DEFAULT 0");
             sqls.emplace_back("ALTER TABLE sync_data ADD create_time INT DEFAULT 0");
         }
+        if (isMigrateMetaDb_) {
+            sqls.emplace_back(CREATE_META_TABLE_SQL);
+        }
     }
 }
 
@@ -220,6 +208,9 @@ int SQLiteSingleVerDatabaseUpgrader::UpgradeFromDatabaseVersion(int version)
         }
     }
     InitTimeForUpgrade(version);
+    if (isMigrateMetaDb_) {
+        MigrateMetaFromMetaDB();
+    }
     if (isCreateUpgradeFile) {
         std::string secOptUpgradeFile = subDir_ + "/" + DBConstant::SET_SECOPT_POSTFIX;
         if (!OS::CheckPathExistence(secOptUpgradeFile) && (OS::CreateFileByFileName(secOptUpgradeFile) != E_OK)) {
@@ -252,11 +243,17 @@ void SQLiteSingleVerDatabaseUpgrader::SetMetaUpgrade(const SecurityOption &curre
 {
     std::string secOptUpgradeFile = subDir + "/" + DBConstant::SET_SECOPT_POSTFIX;
     // the same version should upgrade while user open db with s3sece.
-    if ((!OS::CheckPathExistence(secOptUpgradeFile)) && currentOpt.securityLabel == SecurityLabel::NOT_SET &&
-        ParamCheckUtils::IsS3SECEOpt(expectOpt)) {
+    bool isCurrentS3SECE = ParamCheckUtils::IsS3SECEOpt(currentOpt);
+    bool isOpenS3SECE = ParamCheckUtils::IsS3SECEOpt(expectOpt);
+    if ((!OS::CheckPathExistence(secOptUpgradeFile)) && !isCurrentS3SECE && isOpenS3SECE) {
         isMetaUpgrade_ = true;
     } else {
         isMetaUpgrade_ = false;
+    }
+    if (isCurrentS3SECE && !isOpenS3SECE) {
+        isMigrateMetaDb_ = true;
+    } else {
+        isMigrateMetaDb_ = false;
     }
 }
 
@@ -439,6 +436,52 @@ void SQLiteSingleVerDatabaseUpgrader::UpgradeTime(TimeOffset offset)
     int errCode = SQLiteUtils::ExecuteRawSQL(db_, updateSQL);
     if (errCode != E_OK) {
         LOGE("[SQLiteSinVerUp] Upgrade time failed %d", errCode);
+    }
+}
+
+void SQLiteSingleVerDatabaseUpgrader::MigrateMetaFromMetaDB()
+{
+    bool isCreate = false;
+    int errCode = SQLiteUtils::CheckTableExists(db_, "meta_data", isCreate, true);
+    if (errCode != E_OK || !isCreate) {
+        LOGW("[SQLiteSinVerUp] Check table in meta db errCode %d isCreate %d", errCode, static_cast<int>(isCreate));
+        return;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(db_, COPY_META_DB_TABLE_SQL);
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSinVerUp] Copy meta from meta db failed %d", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(db_, DROP_META_DB_TABLE_SQL);
+    if (errCode != E_OK) {
+        LOGW("[SQLiteSinVerUp] Drop meta in meta db failed %d", errCode);
+    } else {
+        LOGI("[SQLiteSinVerUp] Migrate meta from meta db success");
+    }
+}
+
+void SQLiteSingleVerDatabaseUpgrader::SetCreateSql(std::vector<std::string> &sql) const
+{
+    if ((!isMemDB_) && ParamCheckUtils::IsS3SECEOpt(secOpt_)) {
+        sql = {
+            CREATE_LOCAL_TABLE_SQL,
+            CREATE_SINGLE_META_TABLE_SQL,
+            CREATE_SYNC_TABLE_SQL,
+            CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
+        };
+    } else {
+        sql = {
+            CREATE_LOCAL_TABLE_SQL,
+            CREATE_META_TABLE_SQL,
+            CREATE_SYNC_TABLE_SQL,
+            CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
+            CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
+        };
     }
 }
 } // namespace DistributedDB

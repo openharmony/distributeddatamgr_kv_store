@@ -127,6 +127,33 @@ ohos_source_set("src_file") {
 
   sources = distributeddb_src
   sources += [
+    "../gaussdb_rd/src/common/src/collection_option.cpp",
+    "../gaussdb_rd/src/common/src/db_config.cpp",
+    "../gaussdb_rd/src/common/src/grd_api_manager.cpp",
+    "../gaussdb_rd/src/common/src/json_common.cpp",
+    "../gaussdb_rd/src/common/src/os_api.cpp",
+    "../gaussdb_rd/src/common/src/rd_log_print.cpp",
+    "../gaussdb_rd/src/executor/base/grd_db_api.cpp",
+    "../gaussdb_rd/src/executor/base/grd_db_api_inner.cpp",
+    "../gaussdb_rd/src/executor/document/check_common.cpp",
+    "../gaussdb_rd/src/executor/document/grd_document_api.cpp",
+    "../gaussdb_rd/src/executor/document/grd_document_api_inner.cpp",
+    "../gaussdb_rd/src/executor/document/grd_resultset_api.cpp",
+    "../gaussdb_rd/src/executor/document/grd_resultset_api_inner.cpp",
+    "../gaussdb_rd/src/executor/kv/grd_kv_api.cpp",
+    "../gaussdb_rd/src/executor/kv/grd_kv_api_inner.cpp",
+    "../gaussdb_rd/src/interface/src/collection.cpp",
+    "../gaussdb_rd/src/interface/src/doc_errno.cpp",
+    "../gaussdb_rd/src/interface/src/document_key.cpp",
+    "../gaussdb_rd/src/interface/src/document_store.cpp",
+    "../gaussdb_rd/src/interface/src/document_store_manager.cpp",
+    "../gaussdb_rd/src/interface/src/projection_tree.cpp",
+    "../gaussdb_rd/src/interface/src/result_set.cpp",
+    "../gaussdb_rd/src/interface/src/result_set_common.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/kv_store_manager.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/rd_json_object.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/rd_sqlite_utils.cpp",
+    "../gaussdb_rd/src/oh_adapter/src/sqlite_store_executor_impl.cpp",
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
@@ -168,7 +195,6 @@ ohos_source_set("src_file") {
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps += [
-    "../gaussdb_rd:gaussdb_rd",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]
@@ -207,7 +233,6 @@ template("distributeddb_unittest") {
     configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
     deps += [
-      "../gaussdb_rd:gaussdb_rd",
       "//third_party/jsoncpp:jsoncpp",
       "//third_party/openssl:libcrypto_shared",
     ]
@@ -611,7 +636,7 @@ distributeddb_unittest("DistributedInterfacesRelationalTest") {
   ]
 }
 
-distributeddb_unittest("DistributedInterfacesRelationalTrackerTableTest") {
+distributeddb_unittest("DistributedDBInterfacesRelationalTrackerTableTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_tracker_table_test.cpp" ]
 }
 
@@ -780,18 +805,11 @@ distributeddb_unittest("DistributedDBCloudTaskMergeTest") {
 
 distributeddb_unittest(
     "DistributedDBStorageMemoryRdSingleVerNaturalStoreTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_memory_rd_single_ver_naturall_store_test.cpp",
-    "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp",
-  ]
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBStorageRdRegisterObserverTest") {
   sources = [ "unittest/common/storage/distributeddb_storage_rd_register_observer_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBStorageRdResultAndJsonOptimizeTest") {
-  sources = [ "unittest/common/storage/distributeddb_storage_rd_resultset_and_json_optimize.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBStorageRdSingleVerNaturalExecutorTest") {
@@ -857,6 +875,7 @@ group("unittest") {
     ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",
     ":DistributedDBCloudInterfacesSetCloudSchemaTest",
+    ":DistributedDBCloudKvSyncerTest",
     ":DistributedDBCloudKvTest",
     ":DistributedDBCloudReferenceSyncTest",
     ":DistributedDBCloudSaveCloudDataTest",
@@ -868,11 +887,13 @@ group("unittest") {
     ":DistributedDBCloudSyncerUploadTest",
     ":DistributedDBCloudTableCompoundPrimaryKeySyncTest",
     ":DistributedDBCloudTableWithoutPrimaryKeySyncTest",
+    ":DistributedDBCloudTaskMergeTest",
     ":DistributedDBCommonTest",
     ":DistributedDBCommunicatorDeepTest",
     ":DistributedDBCommunicatorProxyTest",
     ":DistributedDBCommunicatorSendReceiveTest",
     ":DistributedDBCommunicatorTest",
+    ":DistributedDBDataCompressionTest",
     ":DistributedDBDeviceIdentifierTest",
     ":DistributedDBEventLoopTimerTest",
     ":DistributedDBFilePackageTest",
@@ -898,6 +919,7 @@ group("unittest") {
     ":DistributedDBInterfacesRelationalObserverTest",
     ":DistributedDBInterfacesRelationalRoutinesTest",
     ":DistributedDBInterfacesRelationalSyncTest",
+    ":DistributedDBInterfacesRelationalTrackerTableTest",
     ":DistributedDBInterfacesSchemaDatabaseUpgradeTest",
     ":DistributedDBInterfacesSpaceManagementTest",
     ":DistributedDBInterfacesTransactionOptimizationTest",
@@ -913,6 +935,7 @@ group("unittest") {
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",
+    ":DistributedDBRelationalMultiUserTest",
     ":DistributedDBRelationalRemoteQueryTest",
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
@@ -963,7 +986,6 @@ group("unittest") {
       ":DistributedDBInterfacesNBDelegateRdTest",
       ":DistributedDBStorageMemoryRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdRegisterObserverTest",
-      ":DistributedDBStorageRdResultAndJsonOptimizeTest",
       ":DistributedDBStorageRdSingleVerNaturalExecutorTest",
       ":DistributedDBStorageRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdSingleVerStorageEngineTest",

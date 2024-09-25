@@ -556,6 +556,13 @@ StorageExecutor *SQLiteSingleVerStorageEngine::NewSQLiteStorageExecutor(sqlite3 
         return executor;
     }
     executor->SetConflictResolvePolicy(option_.conflictReslovePolicy);
+
+    int errCode = executor->CreateCloudLogTable();
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageEngine] create cloud log table failed, errCode = [%d]", errCode);
+        delete executor;
+        executor = nullptr;
+    }
     return executor;
 }
 
@@ -719,7 +726,7 @@ void SQLiteSingleVerStorageEngine::ClearCorruptedFlag()
     isCorrupted_ = false;
 }
 
-int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
+int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt)
 {
     // Assume that create the write executor firstly and the write one we will not be released.
     // If the write one would be released in the future, should take care the pass through.
@@ -738,7 +745,6 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
     }
 
     // Get the existed database secure option.
-    SecurityOption existedSecOpt;
     errCode = GetExistedSecOption(existedSecOpt);
     if (errCode != E_OK) {
         return errCode;
@@ -773,7 +779,7 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
     return E_OK;
 }
 
-int SQLiteSingleVerStorageEngine::EndCreateExecutor(bool isWrite)
+int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, bool isWrite, bool isDetachMeta)
 {
     if (option_.isMemDb || !isWrite) {
         return E_OK;
@@ -797,27 +803,40 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(bool isWrite)
         LOGE("Finish to create the complete database, but delete token fail! errCode = [E_SYSTEM_API_FAIL]");
         return -E_SYSTEM_API_FAIL;
     }
+    if (isDetachMeta) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, "DETACH 'meta'");
+        if (errCode != E_OK) {
+            LOGE("Detach meta db failed %d", errCode);
+        } else {
+            LOGI("Detach meta db success");
+        }
+    }
     return errCode;
 }
 
-int SQLiteSingleVerStorageEngine::TryAttachMetaDb(sqlite3 *&dbHandle, bool &isAttachMeta)
+int SQLiteSingleVerStorageEngine::TryAttachMetaDb(const SecurityOption &existedSecOpt, sqlite3 *&dbHandle,
+    bool &isAttachMeta, bool &isNeedDetachMeta)
 {
+    bool isCurrentSESECE = ParamCheckUtils::IsS3SECEOpt(existedSecOpt);
+    bool isOpenSESECE = ParamCheckUtils::IsS3SECEOpt(option_.securityOpt);
     // attach or not depend on its true secOpt, but it's not permit while option_.secOpt different from true secOpt
-    if ((!option_.isMemDb) && (ParamCheckUtils::IsS3SECEOpt(option_.securityOpt))) {
+    if ((!option_.isMemDb) && (isOpenSESECE || (isNeedUpdateSecOpt_ && isCurrentSESECE))) {
         int errCode = AttachMetaDatabase(dbHandle, option_);
         if (errCode != E_OK) {
             (void)sqlite3_close_v2(dbHandle);
             dbHandle = nullptr;
             return errCode;
         }
-        isAttachMeta = true;
+        isAttachMeta = isOpenSESECE; // only open with S3 SECE need in attach mode
+        isNeedDetachMeta = !isOpenSESECE && isCurrentSESECE; // NOT S3 SECE no need meta.db
     }
     return E_OK;
 }
 
 int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
 {
-    int errCode = PreCreateExecutor(isWrite);
+    SecurityOption existedSecOpt;
+    int errCode = PreCreateExecutor(isWrite, existedSecOpt);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -829,7 +848,8 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
     }
 
     bool isAttachMeta = false;
-    errCode = TryAttachMetaDb(dbHandle, isAttachMeta);
+    bool isDetachMeta = false;
+    errCode = TryAttachMetaDb(existedSecOpt, dbHandle, isAttachMeta, isDetachMeta);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -842,7 +862,7 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
         return errCode;
     }
 
-    errCode = EndCreateExecutor(isWrite);
+    errCode = EndCreateExecutor(dbHandle, isWrite, isDetachMeta);
     if (errCode != E_OK) {
         LOGE("After create executor, set security option incomplete!");
         (void)sqlite3_close_v2(dbHandle);
@@ -1067,8 +1087,8 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
                 return;
             }
         }
-        if (entry.key.size() > DBConstant::MAX_KEY_SIZE || entry.value.size() >
-            DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
+        if (entry.key.size() > DBConstant::MAX_KEY_SIZE ||
+            entry.value.size() > DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
             iter++;
             continue;
         }

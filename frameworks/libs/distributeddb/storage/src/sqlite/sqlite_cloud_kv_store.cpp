@@ -19,6 +19,7 @@
 #include "db_base64_utils.h"
 #include "db_common.h"
 #include "query_utils.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_single_ver_continue_token.h"
@@ -180,8 +181,7 @@ int SqliteCloudKvStore::GetCloudData(const TableSchema &tableSchema, const Query
     const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
     SyncTimeRange timeRange;
-    // memory db use watermark
-    timeRange.beginTime = GetTransactionDbHandleAndMemoryStatus().second ? beginTime : 0;
+    timeRange.beginTime = 0;
     auto token = new (std::nothrow) SQLiteSingleVerContinueToken(timeRange, object);
     if (token == nullptr) {
         LOGE("[SqliteCloudKvStore] create token failed");
@@ -245,7 +245,7 @@ int SqliteCloudKvStore::GetInfoByPrimaryKeyOrGid([[gnu::unused]] const std::stri
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
-    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, isMemory, vBucket);
+    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, isMemory, vBucket, user_);
     return errCode;
 }
 
@@ -374,6 +374,11 @@ int SqliteCloudKvStore::SetLogTriggerStatus(bool status)
     return E_OK;
 }
 
+int SqliteCloudKvStore::SetCursorIncFlag(bool status)
+{
+    return E_OK;
+}
+
 int SqliteCloudKvStore::CheckQueryValid(const QuerySyncObject &query)
 {
     return E_OK;
@@ -422,7 +427,7 @@ int SqliteCloudKvStore::GetCloudVersion(const std::string &device, std::map<std:
     sqlite3 *db = nullptr;
     (void)handle->GetDbHandle(db);
     std::vector<VBucket> dataVector = {};
-    errCode = SqliteCloudKvExecutorUtils::GetCloudVersionFromCloud(db, handle->IsMemory(), user_, device, dataVector);
+    errCode = SqliteCloudKvExecutorUtils::GetCloudVersionFromCloud(db, handle->IsMemory(), device, dataVector);
     storageHandle_->RecycleStorageExecutor(handle);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvStore] get cloud version record failed %d", errCode);
@@ -564,17 +569,14 @@ bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const L
     }
     bool isLocal = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) ==
         static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
-    bool isLocalDelete = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
-        static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
     if (cloudInfoDev.empty()) {
         return !isLocal;
-    } else if (isLocalDelete) {
-        return cloudInfoDev != device;
     }
     return localInfoDev == cloudInfoDev && localInfoDev != device;
 }
 
-int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
+    std::vector<std::string> &users)
 {
     std::shared_ptr<DataBaseSchema> cloudSchema;
     (void)GetCloudDbSchema(cloudSchema);
@@ -592,8 +594,9 @@ int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &sy
     (void)transactionHandle_->GetDbHandle(db);
     for (const auto &table: cloudSchema->tables) {
         std::vector<VBucket> syncDataPk;
-        int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(db, transactionHandle_->IsMemory(),
-            syncDataPk);
+        std::vector<VBucket> syncDataUserId;
+        int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncData(db, transactionHandle_->IsMemory(),
+            syncDataPk, syncDataUserId);
         if (errCode != E_OK) {
             LOGW("[SqliteCloudKvStore] Get wait compensated sync date failed, continue! errCode=%d", errCode);
             continue;
@@ -608,7 +611,86 @@ int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &sy
             continue;
         }
         syncQuery.push_back(syncObject);
+        for (auto &oneRow : syncDataUserId) {
+            std::string user;
+            errCode = CloudStorageUtils::GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_USERID, oneRow, user);
+            if (errCode != E_OK) {
+                LOGW("[SqliteCloudKvStore] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
+                continue;
+            }
+            users.push_back(user);
+        }
     }
     return Commit();
+}
+
+int SqliteCloudKvStore::ReviseOneLocalModTime(sqlite3_stmt *stmt, const ReviseModTimeInfo &data, bool isMemory)
+{
+    int errCode = SQLiteUtils::BindInt64ToStatement(stmt, 1, data.curTime); // 1st bind modify time
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][ReviseOneLocalModTime] Bind revise modify time failed: %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, data.hashKey); // 2nd bind hash key
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][ReviseOneLocalModTime] Bind hash key failed: %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, 3, data.invalidTime); // 3rd bind modify time
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][ReviseOneLocalModTime] Bind modify time failed: %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemory);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("[SqliteCloudKvStore][ReviseOneLocalModTime] Revise failed: %d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int SqliteCloudKvStore::ReviseLocalModTime(const std::string &tableName,
+    const std::vector<ReviseModTimeInfo> &revisedData)
+{
+    auto [errCode, handle] = storageHandle_->GetStorageExecutor(true);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][ReviseLocalModTime] Get handle failed: %d", errCode);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    (void)handle->GetDbHandle(db);
+    sqlite3_stmt *stmt = nullptr;
+    std::string sql = "UPDATE " + tableName + " SET modify_time=? WHERE hash_key=? AND modify_time=?";
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][ReviseLocalModTime] Get stmt failed: %d", errCode);
+        storageHandle_->RecycleStorageExecutor(handle);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvStore][ReviseLocalModTime] Reset stmt failed %d", ret);
+        }
+    });
+    for (auto &data : revisedData) {
+        errCode = ReviseOneLocalModTime(stmt, data, handle->IsMemory());
+        if (errCode != E_OK) {
+            LOGE("[SqliteCloudKvStore][ReviseLocalModTime] Revise one record failed %d", errCode);
+            break;
+        }
+        LOGI("[SqliteCloudKvStore][ReviseLocalModTime] Local data mod time revised from %lld to %lld",
+            data.invalidTime, data.curTime);
+        int resetCode = E_OK;
+        SQLiteUtils::ResetStatement(stmt, false, resetCode);
+        if (resetCode != E_OK) {
+            LOGE("[SqliteCloudKvStore][ReviseLocalModTime] Reset stmt failed: %d", resetCode);
+            break;
+        }
+    }
+    storageHandle_->RecycleStorageExecutor(handle);
+    return errCode;
 }
 }

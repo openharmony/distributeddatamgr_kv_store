@@ -397,6 +397,7 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
     }
     // INSERT: for no primary key or composite primary key situation
     if (!param.isSinglePrimaryKey && opType == OpType::INSERT) {
+        param.info.downLoadInfo.insertCount++;
         param.withoutRowIdData.insertData.push_back(dataIndex);
         return E_OK;
     }
@@ -623,6 +624,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     CloudSyncer::CloudTaskInfo taskInfo = InitCompensatedSyncTaskInfo();
     taskInfo.callback = onProcess;
     taskInfo.devices = option.devices;
+    taskInfo.prepareTraceId = option.prepareTraceId;
     if (option.users.empty()) {
         taskInfo.users.push_back("");
     } else {
@@ -638,6 +640,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     taskInfo.users = oriTaskInfo.users;
     taskInfo.devices = oriTaskInfo.devices;
     taskInfo.storeId = oriTaskInfo.storeId;
+    taskInfo.prepareTraceId = oriTaskInfo.prepareTraceId;
     return taskInfo;
 }
 }

@@ -716,7 +716,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
      * @tc.expected: step6. success.
      */
     Query query = Query::Select(g_tableName);
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), OK);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
 
     /**
      * @tc.steps: step7. deviceA have {k1,v1}

@@ -136,7 +136,7 @@ HWTEST_F(DocumentDBApiTest, OpenDBTest004, TestSize.Level0)
     FILE *fp;
     fp = fopen("./test.txt", "w");
     fwrite("hello", 5, 5, fp);
-    fclose(fp);
+    (void)fclose(fp);
     GRD_DB *db = nullptr;
     int status = GRD_DBOpen(path.c_str(), nullptr, GRD_DB_OPEN_ONLY, &db);
     EXPECT_EQ(status, GRD_INVALID_FILE_FORMAT);
@@ -175,6 +175,21 @@ HWTEST_F(DocumentDBApiTest, OpenDBPathTest002, TestSize.Level0)
     std::string pathNoPerm = "/root/document.db";
     int status = GRD_DBOpen(pathNoPerm.c_str(), nullptr, GRD_DB_OPEN_CREATE, &db);
     EXPECT_EQ(status, GRD_FAILED_FILE_OPERATION);
+}
+
+/**
+ * @tc.name: OpenDBPathTest004
+ * @tc.desc: call GRD_DBOpen, input dbFile as existed menu
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DocumentDBApiTest, OpenDBPathTest004, TestSize.Level0)
+{
+    GRD_DB *db = nullptr;
+    std::string pathNoPerm = "../test";
+    int status = GRD_DBOpen(pathNoPerm.c_str(), nullptr, GRD_DB_OPEN_CREATE, &db);
+    EXPECT_EQ(status, GRD_INVALID_ARGS);
 }
 
 /**
@@ -276,9 +291,9 @@ HWTEST_F(DocumentDBApiTest, OpenDBConfigTest005, TestSize.Level0)
      * @tc.steps:step2. connection2 call GRD_DBOpen to open the db with the different configStr.
      * @tc.expected:step2. return GRD_CONFIG_OPTION_MISMATCH.
     */
-    const char *configStr_2 = R"({"pageSize":4})";
+    const char *configStr2 = R"({"pageSize":4})";
     GRD_DB *db2 = nullptr;
-    result = GRD_DBOpen(path.c_str(), configStr_2, GRD_DB_OPEN_ONLY, &db2);
+    result = GRD_DBOpen(path.c_str(), configStr2, GRD_DB_OPEN_ONLY, &db2);
     ASSERT_EQ(result, GRD_INVALID_ARGS);
 
     ASSERT_EQ(GRD_DBClose(db1, GRD_DB_CLOSE), GRD_OK);
@@ -379,12 +394,13 @@ HWTEST_F(DocumentDBApiTest, OpenDBConfigMaxConnNumTest004, TestSize.Level1)
     std::string config = "{\"maxConnNum\":" + std::to_string(maxCnt) + "}";
 
     std::vector<GRD_DB *> dbList;
-    while (maxCnt--) {
+    while (maxCnt > 0) {
         GRD_DB *db = nullptr;
         int status = GRD_DBOpen(path.c_str(), config.c_str(), GRD_DB_OPEN_CREATE, &db);
         EXPECT_EQ(status, GRD_OK);
         EXPECT_NE(db, nullptr);
         dbList.push_back(db);
+        maxCnt--;
     }
 
     GRD_DB *db = nullptr;

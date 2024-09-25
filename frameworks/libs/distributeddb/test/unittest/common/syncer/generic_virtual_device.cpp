@@ -201,7 +201,7 @@ int GenericVirtualDevice::StartResponseTask()
         return E_OK;
     }
     context_->SetTaskExecStatus(ISyncTaskContext::RUNNING);
-    context_->MoveToNextTarget();
+    context_->MoveToNextTarget(DBConstant::MIN_TIMEOUT);
     LOGI("[KvVirtualDevice] machine StartSync");
     context_->UnlockObj();
     int errCode = context_->StartStateMachine();

@@ -367,7 +367,7 @@ uint32_t DataRequestPacket::GetTotalDataCount() const
     return totalDataCount_;
 }
 
-void DataAckPacket::SetData(uint64_t data)
+void DataAckPacket::SetData(const uint64_t data)
 {
     data_ = data;
 }

@@ -20,7 +20,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include "cloud/cloud_db_types.h"
-#include "cloud/cloud_db_types.h"
 #include "cloud/icloud_db.h"
 #include "cloud/iAssetLoader.h"
 
@@ -76,6 +75,8 @@ public:
     bool IsExistCloudVersionCallback() const;
 
     std::pair<int, std::string> GetCloudVersion(const std::string &originVersion) const;
+
+    void SetPrepareTraceId(const std::string &traceId);
 protected:
     class CloudActionContext {
     public:

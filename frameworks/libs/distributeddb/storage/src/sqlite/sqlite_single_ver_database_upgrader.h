@@ -47,6 +47,8 @@ protected:
     void InitTimeForUpgrade(int version);
     std::pair<int, TimeOffset> GetLocalTimeOffset();
     void UpgradeTime(TimeOffset offset);
+    void MigrateMetaFromMetaDB();
+    void SetCreateSql(std::vector<std::string> &sql) const;
     static int MoveDatabaseToNewDir(const std::string &parentDir, const std::string &upgradeLockFile);
     static int GetDbVersion(const std::string &dbPath, const OpenDbProperties &option, int &version);
 
@@ -55,6 +57,7 @@ protected:
     bool isMemDB_;
     bool isMetaUpgrade_;
     std::string subDir_;
+    bool isMigrateMetaDb_; // need recreate meta table and migrate data from meta.meta
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_DATABASE_UPGRADER_H

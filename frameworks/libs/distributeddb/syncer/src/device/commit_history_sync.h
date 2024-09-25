@@ -17,6 +17,8 @@
 #define COMMIT_HISTORY_SYNC_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstdint>
+#include <string>
 #include <map>
 #include <vector>
 

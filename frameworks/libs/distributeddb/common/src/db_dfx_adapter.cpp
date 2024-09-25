@@ -91,7 +91,7 @@ void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
             .arraySize = 0},
         {.name = {"FUNC"},
             .t = HISYSEVENT_STRING,
-            .v = {.s = const_cast<char *>(reportTask.funcName.c_str())},
+            .v = {.s = const_cast<char *>(ORG_PKG_NAME.c_str())},
             .arraySize = 0},
         {.name = {"BIZ_SCENE"},
             .t = HISYSEVENT_INT32,
@@ -111,7 +111,7 @@ void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
             .arraySize = 0 },
         {.name = {"ERROR_CODE"},
             .t = HISYSEVENT_INT32,
-            .v = { .i32 = static_cast<int32_t>(dbDfxErrCode)},
+            .v = { .i32 = static_cast<int32_t>(reportTask.result)},
             .arraySize = 0 },
     };
     RuntimeContext::GetInstance()->ScheduleTask([=]() {

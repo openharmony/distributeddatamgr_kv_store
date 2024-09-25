@@ -36,12 +36,19 @@ struct CloudSyncBatch {
     std::vector<Bytes> hashKey;
 };
 
+struct ReviseModTimeInfo {
+    Bytes hashKey;
+    int64_t curTime;
+    int64_t invalidTime;
+};
+
 struct CloudSyncData {
     std::string tableName;
     CloudSyncBatch insData;
     CloudSyncBatch updData;
     CloudSyncBatch delData;
     CloudSyncBatch lockData;
+    std::vector<ReviseModTimeInfo> revisedData;
     bool isCloudForcePushStrategy = false;
     bool isCompensatedTask = false;
     bool isShared = false;

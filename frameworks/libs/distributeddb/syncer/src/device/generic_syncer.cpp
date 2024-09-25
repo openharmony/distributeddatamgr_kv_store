@@ -211,7 +211,7 @@ int GenericSyncer::CancelSync(uint32_t syncId)
         if (iter == syncOperationMap_.end()) {
             LOGE("[Syncer] Non-existent syncId %" PRIu32 "", syncId);
             RefObject::DecObjRef(engine);
-            return -E_NOT_SUPPORT;
+            return -E_NOT_FOUND;
         } else if (iter->second->CanCancel() == false) {
             RefObject::DecObjRef(engine);
             LOGE("[Syncer] Can't cancel syncId %" PRIu32 " %" PRIu32 "", syncId, iter->second->CanCancel());

@@ -276,7 +276,7 @@ void SyncOperation::ExeSyncProcessCallFun(const std::map<std::string, DeviceSync
     }
 }
 
-void SyncOperation::UpdateFinishedCount(const std::string &deviceId, uint32_t count)
+void SyncOperation::UpdateFinishedCount(std::string &deviceId, uint32_t count)
 {
     if (this->userSyncProcessCallback_) {
         std::map<std::string, DeviceSyncProcess> tmpMap;
@@ -293,7 +293,7 @@ void SyncOperation::UpdateFinishedCount(const std::string &deviceId, uint32_t co
     }
 }
 
-void SyncOperation::SetSyncProcessTotal(const std::string &deviceId, uint32_t total)
+void SyncOperation::SetSyncProcessTotal(std::string &deviceId, uint32_t total)
 {
     if (this->userSyncProcessCallback_) {
         {

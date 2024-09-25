@@ -149,12 +149,8 @@ bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &e
             return false;
         }
         for (size_t i = 0; i < fieldName.size(); i++) {
-            if (!((isalpha(fieldName[i])) || (isdigit(fieldName[i])) || (fieldName[i] == '_') ||
-                    (isFirstLevel && fieldName[i] == '.'))) {
-                errCode = -E_INVALID_ARGS;
-                return false;
-            }
-            if (i == 0 && (isdigit(fieldName[i]))) {
+            if ((i == 0 && (isdigit(fieldName[i]))) || !((isalpha(fieldName[i])) ||
+                (isdigit(fieldName[i])) || (fieldName[i] == '_') || (isFirstLevel && fieldName[i] == '.'))) {
                 errCode = -E_INVALID_ARGS;
                 return false;
             }
@@ -473,11 +469,6 @@ bool JsonNodeReplace(const JsonObject &src, const JsonFieldPath &itemPath, const
             return false;
         }
         fatherItem.ReplaceItemInObject(itemPath.back().c_str(), item, errCode);
-        if (errCode != E_OK) {
-            externErrCode = (externErrCode == E_OK ? errCode : externErrCode);
-            GLOGE("Find father item in source json object failed. %d", errCode);
-            return false;
-        }
     } else {
         JsonObject fatherItem = src.FindItem(fatherPath, errCode);
         if (errCode != E_OK) {
@@ -491,11 +482,11 @@ bool JsonNodeReplace(const JsonObject &src, const JsonFieldPath &itemPath, const
             return false;
         }
         fatherItem.ReplaceItemInObject(itemPath.back().c_str(), item, errCode);
-        if (errCode != E_OK) {
-            externErrCode = (externErrCode == E_OK ? errCode : externErrCode);
-            GLOGE("Find father item in source json object failed. %d", errCode);
-            return false;
-        }
+    }
+    if (errCode != E_OK) {
+        externErrCode = (externErrCode == E_OK ? errCode : externErrCode);
+        GLOGE("Find father item in source json object failed. %d", errCode);
+        return false;
     }
     return true;
 }

@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 
 namespace {
 using namespace testing::ext;
@@ -170,6 +171,7 @@ protected:
     void InsertCloudTableRecord(const std::string &tableName, int64_t begin, int64_t count, int64_t photoSize,
         bool assetIsNull);
     void DeleteUserTableRecord(int64_t id);
+    void DeleteUserTableRecord(int64_t begin, int64_t end);
     void DeleteCloudTableRecord(int64_t gid);
     void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
     void PriorityAndNormalSync(const Query &normalQuery, const Query &priorityQuery,
@@ -180,6 +182,8 @@ protected:
     void InitLogicDeleteDataEnv(int64_t dataCount, bool prioritySync = false);
     void CheckLocalCount(int64_t expectCount);
     void CheckLogCleaned(int64_t expectCount);
+    void CheckUploadInfo(const Info &actualUploadInfo, const Info &expectUploadInfo);
+    void CheckDownloadInfo(const Info &actualDownloadInfo, const Info &expectDownloadInfo);
     void SyncDataStatusTest(bool isCompensatedSyncOnly);
     std::string testDir_;
     std::string storePath_;
@@ -193,6 +197,7 @@ protected:
     std::string tableWithoutPrimaryName_ = "NonPrimaryKeyTable";
     std::string tableWithoutPrimaryNameShared_ = "NonPrimaryKeyTable_shared";
     std::string lowerTableName_ = "distributeddbCloudCheckSyncTest";
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudCheckSyncTest::SetUpTestCase()
@@ -227,6 +232,9 @@ void DistributedDBCloudCheckSyncTest::SetUp()
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
     ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudCheckSyncTest::TearDown()
@@ -238,6 +246,9 @@ void DistributedDBCloudCheckSyncTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudCheckSyncTest::InitTestDir()
@@ -349,6 +360,20 @@ void DistributedDBCloudCheckSyncTest::DeleteUserTableRecord(int64_t id)
 {
     ASSERT_NE(db_, nullptr);
     string sql = "DELETE FROM " + tableName_ + " WHERE id ='" + std::to_string(id) + "';";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+}
+
+void DistributedDBCloudCheckSyncTest::DeleteUserTableRecord(int64_t begin, int64_t end)
+{
+    ASSERT_NE(db_, nullptr);
+    string sql = "DELETE FROM " + tableName_ + " WHERE id IN (";
+    for (int64_t i = begin; i <= end; ++i) {
+        sql += "'" + std::to_string(i) + "',";
+    }
+    if (sql.back() == ',') {
+        sql.pop_back();
+    }
+    sql += ");";
     ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
 }
 
@@ -502,6 +527,28 @@ void DistributedDBCloudCheckSyncTest::CheckLogCleaned(int64_t expectCount)
         " where flag & 0x02 = 0;";
     EXPECT_EQ(sqlite3_exec(db_, sql3.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckUploadInfo(const Info &actualUploadInfo, const Info &expectUploadInfo)
+{
+    EXPECT_EQ(actualUploadInfo.batchIndex, expectUploadInfo.batchIndex);
+    EXPECT_EQ(actualUploadInfo.total, expectUploadInfo.total);
+    EXPECT_EQ(actualUploadInfo.successCount, expectUploadInfo.successCount);
+    EXPECT_EQ(actualUploadInfo.failCount, expectUploadInfo.failCount);
+    EXPECT_EQ(actualUploadInfo.insertCount, expectUploadInfo.insertCount);
+    EXPECT_EQ(actualUploadInfo.updateCount, expectUploadInfo.updateCount);
+    EXPECT_EQ(actualUploadInfo.deleteCount, expectUploadInfo.deleteCount);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckDownloadInfo(const Info &actualDownloadInfo, const Info &expectDownloadInfo)
+{
+    EXPECT_EQ(actualDownloadInfo.batchIndex, expectDownloadInfo.batchIndex);
+    EXPECT_EQ(actualDownloadInfo.total, expectDownloadInfo.total);
+    EXPECT_EQ(actualDownloadInfo.successCount, expectDownloadInfo.successCount);
+    EXPECT_EQ(actualDownloadInfo.failCount, expectDownloadInfo.failCount);
+    EXPECT_EQ(actualDownloadInfo.insertCount, expectDownloadInfo.insertCount);
+    EXPECT_EQ(actualDownloadInfo.updateCount, expectDownloadInfo.updateCount);
+    EXPECT_EQ(actualDownloadInfo.deleteCount, expectDownloadInfo.deleteCount);
 }
 
 /**

@@ -595,7 +595,7 @@ void SingleVerSyncTaskContext::StopFeedDogForGetData()
     stateMachine_->StopFeedDogForGetData();
 }
 
-void SingleVerSyncTaskContext::UpdateOperationFinishedCount(const std::string &deviceId, uint32_t count)
+void SingleVerSyncTaskContext::UpdateOperationFinishedCount(std::string &deviceId, uint32_t count)
 {
     std::lock_guard<std::mutex> lock(operationLock_);
     if (syncOperation_ != nullptr) {
@@ -603,7 +603,7 @@ void SingleVerSyncTaskContext::UpdateOperationFinishedCount(const std::string &d
     }
 }
 
-void SingleVerSyncTaskContext::SetOperationSyncProcessTotal(const std::string &deviceId, uint32_t total)
+void SingleVerSyncTaskContext::SetOperationSyncProcessTotal(std::string &deviceId, uint32_t total)
 {
     std::lock_guard<std::mutex> lock(operationLock_);
     if (syncOperation_ != nullptr) {

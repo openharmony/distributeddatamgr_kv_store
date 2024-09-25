@@ -171,13 +171,13 @@ void EventLoopEpoll::EpollWokenUp()
 uint32_t EventLoopEpoll::CalEpollEvents(EventsMask events) const
 {
     uint32_t epollEvents = 0;
-    if (events & IEvent::ET_READ) { // LCOV_EXCL_BR_LINE
+    if ((events & static_cast<uint32_t>(IEvent::ET_READ)) != 0) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLIN;
     }
-    if (events & IEvent::ET_WRITE) { // LCOV_EXCL_BR_LINE
+    if ((events & static_cast<uint32_t>(IEvent::ET_WRITE)) != 0) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLOUT;
     }
-    if (events & IEvent::ET_ERROR) { // LCOV_EXCL_BR_LINE
+    if ((events & static_cast<uint32_t>(IEvent::ET_ERROR)) != 0) { // LCOV_EXCL_BR_LINE
         epollEvents |= EPOLLERR;
     }
     return epollEvents;
@@ -186,13 +186,13 @@ uint32_t EventLoopEpoll::CalEpollEvents(EventsMask events) const
 EventsMask EventLoopEpoll::CalEventsMask(uint32_t epollEvents)
 {
     EventsMask events = 0;
-    if (epollEvents & EPOLLIN) { // LCOV_EXCL_BR_LINE
+    if ((epollEvents & EPOLLIN) != 0) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_READ;
     }
-    if (epollEvents & EPOLLOUT) { // LCOV_EXCL_BR_LINE
+    if ((epollEvents & EPOLLOUT) != 0) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_WRITE;
     }
-    if (epollEvents & EPOLLERR) { // LCOV_EXCL_BR_LINE
+    if ((epollEvents & EPOLLERR) != 0) { // LCOV_EXCL_BR_LINE
         events |= IEvent::ET_ERROR;
     }
     return events;

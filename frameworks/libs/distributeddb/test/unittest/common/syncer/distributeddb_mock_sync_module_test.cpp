@@ -473,7 +473,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, Clear()).WillRepeatedly([&syncTaskContext]() {
         syncTaskContext.SetLastRequestSessionId(0u);
     });
-    EXPECT_CALL(syncTaskContext, MoveToNextTarget()).WillRepeatedly(Return());
+    EXPECT_CALL(syncTaskContext, MoveToNextTarget(_)).WillRepeatedly(Return());
     EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped()).WillOnce(Return(true)).WillOnce(Return(false));
     // we expect machine don't change context status when queue not empty
     EXPECT_CALL(syncTaskContext, SetOperationStatus(_)).WillOnce(Return());
@@ -558,7 +558,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck006, TestSize.Level1)
         .WillOnce(Return(true));
     EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped())
         .WillRepeatedly(Return(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped()));
-    EXPECT_CALL(syncTaskContext, MoveToNextTarget()).WillOnce(Return());
+    EXPECT_CALL(syncTaskContext, MoveToNextTarget(_)).WillOnce(Return());
     // we expect machine don't change context status when queue not empty
     EXPECT_CALL(syncTaskContext, SetOperationStatus(_)).WillOnce(Return());
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).WillOnce(Return());
@@ -1780,7 +1780,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck005, TestSize.Leve
     });
     std::thread copyThread([context]() {
         for (int i = 0; i < 100; ++i) { // move 100 times
-            (void) context->MoveToNextTarget();
+            (void) context->MoveToNextTarget(DBConstant::MIN_TIMEOUT);
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     });
@@ -1825,7 +1825,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Leve
      * @tc.expected: retry time will be reset to zero
      */
     context->SetRetryTime(AUTO_RETRY_TIMES);
-    context->MoveToNextTarget();
+    context->MoveToNextTarget(DBConstant::MIN_TIMEOUT);
     EXPECT_EQ(context->GetRetryTime(), 0);
     context->Clear();
     RefObject::KillAndDecObjRef(context);

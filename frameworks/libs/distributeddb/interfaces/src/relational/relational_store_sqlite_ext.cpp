@@ -884,7 +884,8 @@ int GetTriggerSqls(sqlite3 *db, const std::map<std::string, bool> &tableInfos, s
     return E_OK;
 }
 
-int AuthorizerCallback(void *data, int operation, const char *tableNameChar, const char *, const char *, const char *)
+int AuthorizerCallback([[gnu::unused]] void *data, int operation, const char *tableNameChar, const char *, const char *,
+    const char *)
 {
     if (operation != SQLITE_CREATE_TABLE || tableNameChar == nullptr) {
         return SQLITE_OK;
@@ -1297,7 +1298,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         LOGE("get log table version failed. %d", errCode);
         return errCode;
     }
-    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01";
+    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x808) | 0x01";
     // sharing_resource is added after VERSION_5_3, this one is for compatibility
     if (logTableVersion >= DBConstant::LOG_TABLE_VERSION_5_3) {
         sql += ", sharing_resource = ''";

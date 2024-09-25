@@ -45,6 +45,8 @@ private:
     int CheckCutNode(JsonObject *node, std::vector<std::string> singleCutPath,
         std::vector<std::vector<std::string>> &allCutPath);
     int GetNextWithField();
+    int CutJsonBranchInner(JsonObject &cjsonObj, bool viewType, bool isIdExistInValue,
+        bool &isInsertIdflag);
 
     DocumentStore *store_ = nullptr;
     bool isCutBranch_ = false;

@@ -81,8 +81,7 @@ public:
     int GetSyncDataCheckSql(std::string &sql);
     int BindSyncDataCheckStmt(sqlite3_stmt *statement, const Key &hashKey) const;
 
-    int GetSubscribeSql(const std::string &subscribeId, TriggerMode::TriggerModeEnum mode,
-        std::string &subscribeCondition);
+    int GetSubscribeSql(TriggerMode::TriggerModeEnum mode, std::string &subscribeCondition);
 
     static SymbolType GetSymbolType(const QueryObjType &queryObjType);
 
@@ -110,8 +109,7 @@ public:
     std::string GetGidRelationalCloudQuerySql(const std::vector<Field> &fields, bool isCloudForcePush,
         bool isCompensatedTask);
 
-    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
-        sqlite3_stmt *&statement);
+    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql, sqlite3_stmt *&statement);
 
     int GetAndBindGidKvCloudQueryStatement(const std::string &user, sqlite3 *dbHandle, sqlite3_stmt *&stmt);
 

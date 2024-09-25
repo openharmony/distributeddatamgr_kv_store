@@ -752,4 +752,5 @@ HWTEST_F(DistributedDBParcelTest, ParcelErrTest, TestSize.Level1)
     EXPECT_EQ(ret, -E_PARSE_FAIL);
     EXPECT_EQ(parcel.ReadBlob("", 1), expectedVal);
 }
+
 #endif

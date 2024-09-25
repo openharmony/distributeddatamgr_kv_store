@@ -15,6 +15,7 @@
 
 #ifndef SPLICT_DEVICE_LOG_TABLE_MANAGER_H
 #define SPLICT_DEVICE_LOG_TABLE_MANAGER_H
+
 #include "sqlite_log_table_manager.h"
 
 namespace DistributedDB {

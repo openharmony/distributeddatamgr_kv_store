@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include "mock_asset_loader.h"
 
 using namespace testing::ext;
@@ -1087,6 +1088,7 @@ namespace {
         void TearDown();
     protected:
         sqlite3 *db = nullptr;
+        VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     };
 
 
@@ -1132,6 +1134,9 @@ namespace {
         DataBaseSchema dataBaseSchema;
         GetCloudDbSchema(dataBaseSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(communicatorAggregator_ != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     }
 
     void DistributedDBCloudInterfacesRelationalSyncTest::TearDown(void)
@@ -1140,6 +1145,9 @@ namespace {
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
         }
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+        communicatorAggregator_ = nullptr;
+        RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     }
 
 /**
@@ -1715,6 +1723,39 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestS
         EXPECT_EQ(std::get<int64_t>(data2[i]["age"]), 99); // 99 is the updated age field of cloud db
     }
 
+    CloseDb();
+}
+
+/*
+ * @tc.name: CloudSyncTest017
+ * @tc.desc: Test sync to push when local data deleted and not upload to cloud
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest017, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 20 records on local, 20 records on cloud
+     */
+    int64_t localCount = 20;
+    int64_t paddingSize = 20;
+    InsertCloudTableRecord(0, localCount, paddingSize, true);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    localCount = 10;
+    /**
+     * @tc.steps: step2. delete 10 local record before sync
+     */
+    DeleteUserTableRecord(db, 0, localCount);
+    callSync(g_tables, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    /**
+     * @tc.steps: step3. check local and cloud num
+     */
+    CheckCloudTotalCount({30L, 20L});
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where data_key=-1 and cloud_gid='';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(10), nullptr), SQLITE_OK);
     CloseDb();
 }
 

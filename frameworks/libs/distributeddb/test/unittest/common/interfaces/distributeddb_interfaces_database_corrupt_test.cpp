@@ -277,6 +277,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     g_mgr.GetKvStore("corrupt5", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
 
     /**
      * @tc.steps: step4. Modify the database file.
@@ -309,13 +311,13 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt4"), OK);
     infoSize++;
 #endif // OMIT_MULTI_VER
+    g_mgr.GetKvStore("corrupt5", nbOption, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
     ASSERT_NE(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
     infoSize++;
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
     EXPECT_TRUE(corruptInfo.GetDatabaseInfoSize() >= infoSize); // 2 more callback
     EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt5"), true);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt5"), OK);
 }
 
@@ -343,6 +345,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     g_mgr.GetKvStore("corrupt7", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
 
     /**
      * @tc.steps: step4. Modify the database file.
@@ -364,6 +368,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
      * @tc.steps: step5. Re-obtain the kvStore.
      * @tc.expected: step5. Returns null kvstore.
      */
+    g_mgr.GetKvStore("corrupt7", nbOption, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
     size_t infoSize = 0;
     ASSERT_NE(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
     infoSize++;
@@ -371,8 +377,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     EXPECT_EQ(corruptInfo.GetDatabaseInfoSize(), 0UL); // no callback
     EXPECT_TRUE(corruptInfoNew.GetDatabaseInfoSize() >= infoSize); // 2 more callback
     EXPECT_EQ(corruptInfoNew.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt7"), true);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt7"), OK);
 }
 

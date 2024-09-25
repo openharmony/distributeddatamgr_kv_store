@@ -16,6 +16,7 @@
 #ifndef SINGLE_VER_SYNC_TARGET_H
 #define SINGLE_VER_SYNC_TARGET_H
 
+#include <cstdint>
 #include "db_types.h"
 #include "query_sync_object.h"
 #include "sync_target.h"

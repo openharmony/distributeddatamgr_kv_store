@@ -170,7 +170,7 @@ int SQLiteSingleVerStorageExecutor::AddSubscribeTrigger(QueryObject &query, cons
     // Delete data API is actually an update operation, there is no need for DELETE trigger
     for (auto mode : {TriggerModeEnum::INSERT, TriggerModeEnum::UPDATE}) {
         std::string subscribeCondition;
-        errCode = helper.GetSubscribeSql(subscribeId, mode, subscribeCondition);
+        errCode = helper.GetSubscribeSql(mode, subscribeCondition);
         if (errCode != E_OK) {
             LOGE("Get subscribe trigger create sql failed. mode: %d, errCode: %d", static_cast<int>(mode),
                 errCode);

@@ -169,7 +169,8 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     uint32_t localDeleteFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
         static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
     deleteTrigger += "flag=(CASE WHEN cloud_gid='' THEN " + std::to_string(localDeleteFlag) + " ELSE " +
-        std::to_string(localDeleteFlag | static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY)) + " END),";
+        std::to_string(localDeleteFlag | static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY)) +
+        " END),";
     deleteTrigger += "timestamp=get_raw_sys_time()";
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);

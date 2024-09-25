@@ -79,7 +79,7 @@ int RdSingleVerStorageExecutor::OpenResultSet(const Key &beginKey, const Key &en
 {
     int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME, beginKey, endKey, resultSet);
     if (errCode != E_OK) {
-        LOGE("[RdSingleVerStorageExecutor][OpenResultSet] Can not open rd result set.");
+        LOGE("Can not open rd result set.");
     }
     return errCode;
 }
@@ -311,7 +311,7 @@ int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, const GRD_KvScanMo
             return -E_INVALID_ARGS;
     }
     if (ret != E_OK) {
-        LOGE("[RdSingleVerStorageExecutor][GetEntriesPrepare]ERROR %d", ret);
+        LOGE("[RdSingleVerStorageExecutor][GetEntries]ERROR %d", ret);
         return ret;
     }
     entries.clear();
@@ -407,7 +407,9 @@ int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entri
         }
     }
     std::vector<NotifyConflictAndObserverData> notifys;
-    ret = PrepareNotifyForEntries(entries, committedData, notifys, isDelete);
+    if (committedData != nullptr) {
+        ret = PrepareNotifyForEntries(entries, committedData, notifys, isDelete);
+    }
     if (ret != E_OK) {
         (void)RdKVBatchDestroy(batch);
         return ret;
@@ -421,7 +423,7 @@ int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entri
         (void)RdKVBatchDestroy(batch);
         LOGE("[RdSingleVerStorageExecutor][BatchSaveEntries] Can not put or delete batchly with mode %d", isDelete);
         return ret;
-    } else {
+    } else if (committedData != nullptr) {
         for (size_t i = 0; i < entries.size(); i++) {
             PutIntoCommittedData(entries[i].key, entries[i].value, notifys[i]);
         }
@@ -459,19 +461,23 @@ int RdSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &hashDev, 
 int RdSingleVerStorageExecutor::SaveSyncDataItem(const Entry &entry,
     SingleVerNaturalStoreCommitNotifyData *committedData, bool isDelete)
 {
-    NotifyConflictAndObserverData notify = {
-        .committedData = committedData
-    };
+    int errCode = E_OK;
+    NotifyConflictAndObserverData notify;
+    if (committedData != nullptr) {
+        notify = {
+            .committedData = committedData
+        };
 
-    int errCode = PrepareForNotifyConflictAndObserver(entry, notify, isDelete);
-    if (errCode != E_OK) {
-        return errCode;
+        errCode = PrepareForNotifyConflictAndObserver(entry, notify, isDelete);
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
-
     errCode = SaveSyncDataToDatabase(entry, isDelete);
-    if (errCode == E_OK) {
+    if (committedData != nullptr && errCode == E_OK) {
         PutIntoCommittedData(entry.key, entry.value, notify);
-    } else {
+    }
+    if (errCode != E_OK) {
         LOGE("Save sync data to db failed:%d", errCode);
     }
     return errCode;

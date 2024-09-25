@@ -115,7 +115,6 @@ private:
     void DecreaseConnectionCounter(uint64_t connectionId);
     int CheckDBMode();
     int GetSchemaFromMeta(RelationalSchemaObject &schema);
-    int SaveSchemaToMeta();
     int CheckTableModeFromMeta(DistributedTableMode mode, bool isUnSet);
     int SaveTableModeToMeta(DistributedTableMode mode);
     int CheckProperties(RelationalDBProperties properties);

@@ -144,7 +144,6 @@ public:
     void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data) override;
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
-
 private:
     int PreCheckRdImport(std::string &storePath);
 
@@ -158,6 +157,8 @@ private:
     mutable std::shared_mutex engineMutex_;
     RdSingleVerStorageEngine *storageEngine_;
     bool notificationEventsRegistered_;
+
+    static constexpr uint32_t REDO_BUF_ATOMIC_SIZE = 64u;
 };
 } // namespace DistributedDB
 #endif // RD_SINGLE_VER_NATURAL_STORE_H

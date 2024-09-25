@@ -16,6 +16,7 @@
 #ifndef SYNC_TARGET_H
 #define SYNC_TARGET_H
 
+#include <cstdint>
 #include "isync_target.h"
 
 namespace DistributedDB {

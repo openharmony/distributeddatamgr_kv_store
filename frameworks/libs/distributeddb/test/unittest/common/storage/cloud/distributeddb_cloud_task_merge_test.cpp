@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -113,6 +114,7 @@ protected:
     std::string tableNameC_ = "worker_c";
     std::string tableNameD_ = "worker_d";
     std::vector<std::string> tables_ = { tableNameA_, tableNameB_, tableNameC_, tableNameD_ };
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudTaskMergeTest::SetUpTestCase()
@@ -148,6 +150,9 @@ void DistributedDBCloudTaskMergeTest::SetUp()
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
     ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudTaskMergeTest::TearDown()
@@ -159,6 +164,9 @@ void DistributedDBCloudTaskMergeTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudTaskMergeTest::InitTestDir()
