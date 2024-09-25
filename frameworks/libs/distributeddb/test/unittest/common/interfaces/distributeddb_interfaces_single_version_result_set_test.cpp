@@ -532,3 +532,45 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
     EXPECT_EQ(entry.key, LOCAL_KEY_1);
     EXPECT_EQ(entry.value, VALUE_1);
 }
+
+/**
+  * @tc.name: SingleVerNaturalStoreTest
+  * @tc.desc: Test SingleVerNaturalStore interfaces with invalid db.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: suyue
+  */
+HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStoreTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call interfaces when db not open.
+     * @tc.expected: step1. return failInfo.
+     */
+    SQLiteSingleVerNaturalStore storeObj;
+    Key key;
+    Value value;
+    EXPECT_EQ(storeObj.GetMetaData(key, value), -E_INVALID_DB);
+    const std::string deviceName = "test";
+    ClearMode mode = ClearMode::DEFAULT;
+    EXPECT_EQ(storeObj.RemoveDeviceData("", ClearMode::DEFAULT), -E_INVALID_DB);
+    const std::string user = "";
+    EXPECT_EQ(storeObj.RemoveDeviceData(deviceName, user, mode), -E_INVALID_DB);
+    Timestamp stamp = 0;
+    storeObj.GetMaxTimestamp(stamp);
+    CloudSyncConfig config;
+    EXPECT_EQ(storeObj.SetCloudSyncConfig(config), -E_INTERNAL_ERROR);
+    std::map<std::string, std::string> versionMap;
+    EXPECT_EQ(storeObj.GetCloudVersion("", versionMap), -E_INTERNAL_ERROR);
+    EXPECT_EQ(storeObj.UnRegisterObserverAction(nullptr), -E_INTERNAL_ERROR);
+    ObserverAction action;
+    EXPECT_EQ(storeObj.RegisterObserverAction(nullptr, action), -E_INTERNAL_ERROR);
+    Key keyPrefix;
+    EXPECT_EQ(storeObj.DeleteMetaDataByPrefixKey(keyPrefix), -E_INVALID_ARGS);
+    keyPrefix.push_back(0);
+    EXPECT_EQ(storeObj.DeleteMetaDataByPrefixKey(keyPrefix), -E_INVALID_DB);
+    EXPECT_EQ(storeObj.GetAndIncreaseCacheRecordVersion(), static_cast<uint64_t>(0));
+    EXPECT_EQ(storeObj.TriggerToMigrateData(), E_OK);
+    storeObj.SetConnectionFlag(true);
+    EXPECT_EQ(storeObj.IsDataMigrating(), false);
+}
+

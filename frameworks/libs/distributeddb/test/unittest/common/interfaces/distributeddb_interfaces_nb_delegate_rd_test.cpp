@@ -2231,6 +2231,82 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Leve
     EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery005"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+/**
+  * @tc.name: RdRangeQuery006
+  * @tc.desc: Test GetEntries with rd kernel and the query filter is not Range.
+  * @tc.type: FUNC
+  * @tc.require: DTS2024022106199
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery006, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    std::vector<Entry> entries;
+    g_mgr.GetKvStore("RdRangeQuery006", g_option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    /**
+     * @tc.steps: step2. Use invalid range query conditions to obtain the resultset.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    Query inValidQuery = Query::Select();
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Use invalid range query conditions to obtain the resultset.
+     * @tc.expected: step3. return INVALID_ARGS.
+     */
+    Query inValidQuery2 = Query::Select().PrefixKey({});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, entries), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step4. Close and delete KV store
+     * @tc.expected: step4. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery006"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: RdGetWaterMarkInfo001
+  * @tc.desc:Test get watermark info func with rd.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetWaterMarkInfo001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdGetWaterMarkInfo001", g_option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Get watermark info
+     * @tc.expected: step2. Return NOT_SUPPORT.
+     */
+    auto [res, waterMark] = g_kvNbDelegatePtr->GetWatermarkInfo("device");
+    EXPECT_EQ(res, NOT_SUPPORT);
+    EXPECT_EQ(waterMark.sendMark, 0u);
+    EXPECT_EQ(waterMark.receiveMark, 0u);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdGetWaterMarkInfo001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
 
 /**
   * @tc.name: RdSync001
@@ -2317,6 +2393,38 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdSetCloudDB001, TestSize.Leve
      */
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
     EXPECT_EQ(g_mgr.DeleteKvStore("RdSetCloudDB001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: RdGetCloudVersion001
+  * @tc.desc:Test get cloud version func with rd.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetCloudVersion001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdGetCloudVersion001", g_option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Get cloud version
+     * @tc.expected: step2. Return NOT_SUPPORT.
+     */
+    auto [res, versionMap] = g_kvNbDelegatePtr->GetCloudVersion("device");
+    EXPECT_EQ(res, NOT_SUPPORT);
+    EXPECT_EQ(versionMap.size(), 0u);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdGetCloudVersion001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 }

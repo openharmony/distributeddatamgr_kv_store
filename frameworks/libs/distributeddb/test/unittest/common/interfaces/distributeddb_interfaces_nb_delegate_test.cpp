@@ -3009,6 +3009,40 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest002, TestSize.Le
 }
 
 /**
+  * @tc.name: SyncRangeQuery001
+  * @tc.desc: test sync query with range
+  * @tc.type: FUNC
+  * @tc.require: DTS2023112110763
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, SyncRangeQuery001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Create database with localOnly.
+     * @tc.expected: step1. Returns a non-null store.
+     */
+    InitVirtualDevice(DEVICE_B, g_deviceB, g_syncInterfaceB);
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Construct invalid query with range, Call sync async.
+     * @tc.expected: step2. returns NOT_SUPPORT.
+     */
+    std::vector<std::string> devices;
+    devices.emplace_back(DEVICE_B);
+    Query inValidQuery = Query::Select().Range({}, {});
+    DBStatus status = g_kvNbDelegatePtr->Sync(devices, SYNC_MODE_PULL_ONLY, nullptr, inValidQuery, true);
+    EXPECT_EQ(status, NOT_SUPPORT);
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+
+/**
   * @tc.name: OptionValidCheck001
   * @tc.desc: test validation of option mode
   * @tc.type: FUNC
@@ -3046,6 +3080,44 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
     }
 
     delete observer;
+}
+
+/**
+  * @tc.name: InvalidOption001
+  * @tc.desc: Test get kv store use invalid options info func with rd, need execute in manual.
+  * @tc.type: FUNC
+  * @tc.require: DTS2024042521804
+  * @tc.author: zhujinlin
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidOption001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    option.rdconfig.pageSize = 64u;
+    option.rdconfig.cacheSize = 4u * 1024u * 1024u;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
+    /**
+     * @tc.steps:step2. Get the nv delegate.
+     * @tc.expected: step2. Get results OK and non-null delegate.
+     */
+    option.rdconfig.cacheSize = (4u * 1024u * 1024u) - 64u;
+    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
+    EXPECT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step3. Close and delete KV store.
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("InvalidOption001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -3213,5 +3285,67 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreResultSetTest, Te
     EXPECT_EQ(kvStoreObj.IsColumnNull(columnIndex, isNull), NOT_SUPPORT);
     std::map<std::string, VariantData> data;
     EXPECT_EQ(kvStoreObj.GetRow(data), NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: AbnormalKvStoreTest003
+  * @tc.desc: Test SqliteCloudKvStore interface when para is invalid.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: suyue
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call defaule interfaces.
+     * @tc.expected: step1. return E_OK.
+     */
+    SqliteCloudKvStore kvStoreObj(nullptr);
+    DataBaseSchema schema;
+    EXPECT_EQ(kvStoreObj.SetCloudDbSchema(schema), E_OK);
+    EXPECT_EQ(kvStoreObj.Commit(), E_OK);
+    EXPECT_EQ(kvStoreObj.Rollback(), E_OK);
+    const TableName tableName = "test";
+    VBucket vBucket;
+    EXPECT_EQ(kvStoreObj.FillCloudAssetForDownload(tableName, vBucket, true), E_OK);
+    EXPECT_EQ(kvStoreObj.SetLogTriggerStatus(true), E_OK);
+    QuerySyncObject query;
+    EXPECT_EQ(kvStoreObj.CheckQueryValid(query), E_OK);
+    ContinueToken continueStmtToken = nullptr;
+    EXPECT_EQ(kvStoreObj.ReleaseCloudDataToken(continueStmtToken), E_OK);
+    std::vector<QuerySyncObject> syncQuery;
+    std::vector<std::string> users;
+    EXPECT_EQ(kvStoreObj.GetCompensatedSyncQuery(syncQuery, users), E_OK);
+
+    /**
+     * @tc.steps: step2. Call interfaces when class para is null.
+     * @tc.expected: step2. return failInfo.
+     */
+    DataInfoWithLog log;
+    EXPECT_EQ(kvStoreObj.GetInfoByPrimaryKeyOrGid(tableName, vBucket, log, vBucket), -E_INTERNAL_ERROR);
+    DownloadData downloadData;
+    EXPECT_EQ(kvStoreObj.PutCloudSyncData(tableName, downloadData), -E_INTERNAL_ERROR);
+    Timestamp timestamp = 0;
+    int64_t count = 0;
+    EXPECT_EQ(kvStoreObj.GetUploadCount(query, timestamp, true, true, count), -E_INTERNAL_ERROR);
+    std::vector<Timestamp> timestampVec;
+    EXPECT_EQ(kvStoreObj.GetAllUploadCount(query, timestampVec, true, true, count), -E_INTERNAL_ERROR);
+
+    /**
+     * @tc.steps: step3. Get and set Schema with different para when class para is null.
+     * @tc.expected: step3. return failInfo.
+     */
+    TableSchema tableSchema;
+    EXPECT_EQ(kvStoreObj.GetCloudTableSchema(tableName, tableSchema), -E_NOT_FOUND);
+    CloudSyncData cloudDataResult;
+    EXPECT_EQ(kvStoreObj.GetCloudDataNext(continueStmtToken, cloudDataResult), -E_INVALID_ARGS);
+    std::map<std::string, DataBaseSchema> schemaMap;
+    EXPECT_EQ(kvStoreObj.SetCloudDbSchema(schemaMap), -E_INVALID_SCHEMA);
+    schema.tables = {tableSchema, tableSchema};
+    schemaMap.insert(std::pair<std::string, DataBaseSchema>(tableName, schema));
+    EXPECT_EQ(kvStoreObj.SetCloudDbSchema(schemaMap), -E_INVALID_SCHEMA);
+    const std::string user = "user1";
+    kvStoreObj.SetUser(user);
+    EXPECT_EQ(kvStoreObj.GetCloudTableSchema(tableName, tableSchema), -E_SCHEMA_MISMATCH);
 }
 }
