@@ -1362,10 +1362,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
     std::this_thread::sleep_for(std::chrono::microseconds(millsecondsPerSecond));
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
 
-    std::mutex rekeyMtx;
-    std::unique_lock<std::mutex> lck(rekeyMtx);
-    backupVar.wait(lck, [&]{ return readyFlag.load(); });
-
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }

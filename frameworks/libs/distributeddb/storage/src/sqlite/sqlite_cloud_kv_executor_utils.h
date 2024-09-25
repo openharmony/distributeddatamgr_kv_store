@@ -59,8 +59,8 @@ public:
     static int GetWaitCompensatedSyncData(sqlite3 *db, bool isMemory, std::vector<VBucket> &data,
         std::vector<VBucket> &users);
 
-    static int QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user, QuerySyncObject &querySyncObject,
-        std::vector<std::string> &cloudGid);
+    static int QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
+        const QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid);
 private:
     using UploadDetail = std::pair<uint32_t, uint32_t>;
     static int GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
