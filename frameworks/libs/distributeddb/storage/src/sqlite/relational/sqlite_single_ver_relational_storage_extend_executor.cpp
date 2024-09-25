@@ -1482,6 +1482,9 @@ int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::strin
         // this is shared table, not need to update asset id.
         return E_OK;
     }
+    if (!IsNeedUpdateAssetId(tableSchema, dataKey, vBucket)) {
+        return E_OK;
+    }
     int errCode = UpdateAssetId(tableSchema, dataKey, vBucket);
     if (errCode != E_OK) {
         LOGE("[Storage Executor] failed to update assetId on table, %d.", errCode);
@@ -1537,6 +1540,31 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetsToBlobStatement(const As
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, blobValue, false);
     if (errCode != E_OK) {
         LOGE("Bind asset blob to statement failed, %d.", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *&stmt,
+    const std::vector<Field> &assetFields, VBucket &assetInfo)
+{
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
+        int index = 0;
+        for (const auto &field : assetFields) {
+            Type cloudValue;
+            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = PutVBucketByType(assetInfo, field, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
     }
     return errCode;
 }
@@ -1597,6 +1625,90 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetsIdForOneRecord(const T
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode != E_OK ? errCode : ret;
+}
+
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
+    const VBucket &vBucket, const Field &field, VBucket &assetInfo)
+{
+    if (field.type == TYPE_INDEX<Asset>) {
+        Asset asset;
+        UpdateLocalAssetId(vBucket, field.colName, asset);
+        Asset *assetDBPtr = std::get_if<Asset>(&assetInfo[field.colName]);
+        if (assetDBPtr == nullptr) {
+            return true;
+        }
+        Asset &assetDB = *assetDBPtr;
+        if (assetDB.assetId != asset.assetId) {
+            return true;
+        }
+    }
+    if (field.type == TYPE_INDEX<Assets>) {
+        Assets assets;
+        UpdateLocalAssetsId(vBucket, field.colName, assets);
+        Assets *assetsDBPtr = std::get_if<Assets>(&assetInfo[field.colName]);
+        if (assetsDBPtr == nullptr) {
+            return true;
+        }
+        Assets &assetsDB = *assetsDBPtr;
+        if (assets.size() != assetsDB.size()) {
+            return true;
+        }
+        for (uint32_t i = 0; i< assets.size(); ++i) {
+            if (assets[i].assetId != assetsDB[i].assetId) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey,
+    const VBucket &vBucket)
+{
+    std::vector<Field> assetFields;
+    for (const auto &field : tableSchema.fields) {
+        if (field.type == TYPE_INDEX<Asset>) {
+            assetFields.push_back(field);
+        }
+        if (field.type == TYPE_INDEX<Assets>) {
+            assetFields.push_back(field);
+        }
+    }
+    if (assetFields.empty()) {
+        return false;
+    }
+    sqlite3_stmt *selectStmt = nullptr;
+    std::string queryAssetsSql = "SELECT ";
+    for (const auto &field : assetFields) {
+        queryAssetsSql += field.colName + ",";
+    }
+    queryAssetsSql.pop_back();
+    queryAssetsSql += " FROM '" + tableSchema.name + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " +
+        std::to_string(dataKey) + ";";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        LOGE("Get select assets statement failed, %d.", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([selectStmt] {
+        sqlite3_stmt *statementInner = selectStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statementInner, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when get asset", ret);
+        }
+    });
+    VBucket assetInfo;
+    errCode = GetAssetInfoOnTable(selectStmt, assetFields, assetInfo);
+    if (errCode != E_OK) {
+        return true;
+    }
+    for (const auto &field : tableSchema.fields) {
+        if (IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetId(const TableSchema &tableSchema, int64_t dataKey,
