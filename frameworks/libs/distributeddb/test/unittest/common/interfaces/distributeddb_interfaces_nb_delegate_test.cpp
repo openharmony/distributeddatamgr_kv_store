@@ -364,6 +364,125 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
 }
 
 /**
+  * @tc.name: CombineTest002
+  * @tc.desc: Test the NbDelegate for combined operation, try to use GAUSSDB_RD.
+  * @tc.type: FUNC
+  * @tc.require: AR000CCPOM
+  * @tc.author: zhujinlin
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    g_mgr.GetKvStore("distributed_nb_delegate_test_rd", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    std::string keyStr("acd");
+    Key key(keyStr.begin(), keyStr.end());
+    std::string valueStr("acd");
+    Value value(valueStr.begin(), valueStr.end());
+    Value valueRead;
+    /**
+     * @tc.steps:step2. Try to get the data before put.
+     * @tc.expected: step2. Get returns NOT_FOUND.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), NOT_FOUND);
+    /**
+     * @tc.steps:step3. Put the local data.
+     * @tc.expected: step3. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step4. Check the local data.
+     * @tc.expected: step4. The get data is equal to the put data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), OK);
+    /**
+     * @tc.steps:step5. Delete the local data.
+     * @tc.expected: step5. Delete return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(key), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step6. Check the local data.
+     * @tc.expected: step6. Couldn't find the deleted data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), NOT_FOUND);
+    /**
+     * @tc.steps:step7. Close the kv store.
+     * @tc.expected: step7. Results OK and delete successfully.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: CombineTest003
+  * @tc.desc: Test the NbDelegate for combined operation, try to use GAUSSDB_RD and index type with hash.
+  * @tc.type: FUNC
+  * @tc.require: AR000CCPOM
+  * @tc.author: zhujinlin
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore("distributed_nb_delegate_test_rd_combine_003", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    std::string keyStr("acd");
+    Key key(keyStr.begin(), keyStr.end());
+    std::string valueStr("acd");
+    Value value(valueStr.begin(), valueStr.end());
+    Value valueRead;
+    /**
+     * @tc.steps:step2. Try to get the data before put.
+     * @tc.expected: step2. Get returns NOT_FOUND.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), NOT_FOUND);
+    /**
+     * @tc.steps:step3. Put the local data.
+     * @tc.expected: step3. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step4. Check the local data.
+     * @tc.expected: step4. The get data is equal to the put data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), OK);
+    /**
+     * @tc.steps:step5. Delete the local data.
+     * @tc.expected: step5. Delete return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(key), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
+     * @tc.steps:step6. Check the local data.
+     * @tc.expected: step6. Couldn't find the deleted data.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(key, valueRead), NOT_FOUND);
+    /**
+     * @tc.steps:step7. Close the kv store.
+     * @tc.expected: step7. Results OK and delete successfully.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd_combine_003"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
   * @tc.name: CreateMemoryDb001
   * @tc.desc: Create memory database after.
   * @tc.type: FUNC
