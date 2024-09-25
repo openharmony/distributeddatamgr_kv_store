@@ -172,7 +172,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
     }
     if (!isSharedTable) {
         ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
-        if (ret != errCode) {
+        if (ret != E_OK) {
             LOGW("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
