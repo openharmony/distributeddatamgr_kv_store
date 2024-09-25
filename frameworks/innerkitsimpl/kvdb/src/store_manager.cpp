@@ -73,6 +73,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             path, options.encrypt);
         std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
         if (service != nullptr) {
+            // delay notify
             service->AfterCreate(appId, storeId, options, pwd);
         }
         pwd.assign(pwd.size(), 0);
