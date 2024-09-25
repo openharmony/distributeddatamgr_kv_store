@@ -660,6 +660,190 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
     EXPECT_EQ(virtualCloudDb_->GetDataStatus("0", deleteStatus), OK);
     EXPECT_EQ(deleteStatus, true);
 }
+/**
+ * @tc.name: CloudSyncTest005
+ * @tc.desc: check device in process after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 20; // 20 is count of local
+    const int cloudCount = 10; // 10 is count of cloud
+    InsertUserTableRecord(tableName_, localCount);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 1 where data_key in (1,11);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
+
+    /**
+     * @tc.steps:step2. check device name in process
+     * @tc.expected: step2. ok.
+     */
+    Query query = Query::Select().FromTable({tableName_});
+    BlockPrioritySync(query, delegate_, false, OK, true);
+    EXPECT_EQ(lastProcess_.size(), 1u);
+    EXPECT_TRUE(lastProcess_.find("CLOUD") != lastProcess_.end());
+}
+
+/**
+ * @tc.name: CloudSyncTest006
+ * @tc.desc: check redownload when common sync pause.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 120; // 120 is count of local
+    const int cloudCount = 100; // 100 is count of cloud
+    InsertUserTableRecord(tableName_, localCount, 0);
+    InsertUserTableRecord(tableWithoutPrimaryName_, cloudCount, 0);
+    InsertCloudTableRecord(tableWithoutPrimaryName_, 80, cloudCount, 0, false);
+
+    /**
+     * @tc.steps:step2. common sync will pasue.
+     * @tc.expected: step2. ok.
+     */
+    std::vector<std::string> tableNames = {tableName_, tableWithoutPrimaryName_};
+    Query normalQuery = Query::Select().FromTable({tableNames});
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query priorityQuery = Query::Select().From(tableName_).In("id", idValue);
+    CloudSyncOption option;
+    CloudSyncOption priorityOption;
+    PrepareOption(option, normalQuery, false);
+    PrepareOption(priorityOption, priorityQuery, true);
+    bool isUpload = false;
+    uint32_t blockTime = 2000;
+    virtualCloudDb_->ForkUpload([&isUpload, &blockTime](const std::string &tableName, VBucket &extend) {
+        if (isUpload == false) {
+            isUpload = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(blockTime));
+        }
+    });
+    bool isFinsh = false;
+    bool priorityFinish = false;
+    auto normalCallback = [&isFinsh, &priorityFinish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                isFinsh = true;
+                ASSERT_EQ(priorityFinish, true);
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(option, normalCallback), OK);
+
+    /**
+     * @tc.steps:step3. wait common upload and pritority sync.
+     * @tc.expected: step3. ok.
+     */
+    while (isUpload == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    auto priorityCallback = [&priorityFinish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                priorityFinish = true;
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(priorityOption, priorityCallback), OK);
+    while (isFinsh == false || priorityFinish == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    
+
+    /**
+     * @tc.steps:step3. wait common upload and pritority sync.
+     * @tc.expected: step3. ok.
+     */
+    uint32_t times = virtualCloudDb_->GetQueryTimes(tableName_);
+    ASSERT_EQ(times, 3u);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: CloudSyncTest007
+ * @tc.desc: check process info when version conflict sync process.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 60;
+    InsertUserTableRecord(tableName_, localCount, 0);
+    Query query = Query::Select().FromTable({tableName_});
+    BlockSync(query, delegate_, g_actualDBStatus);
+
+    /**
+     * @tc.steps:step2. delete 30 - 59 records in user table, and set callback func.
+     * @tc.expected: step2. ok.
+     */
+    DeleteUserTableRecord(30, 59);
+    bool isUpload = false;
+    virtualCloudDb_->ForkUpload([&isUpload](const std::string &tableName, VBucket &extend) {
+        if (isUpload == false) {
+            isUpload = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        }
+    });
+    bool isFinsh = false;
+    std::map<std::string, TableProcessInfo> retSyncProcess;
+    auto normalCallback = [&isFinsh, &retSyncProcess](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                isFinsh = true;
+                ASSERT_EQ(process.empty(), false);
+                auto lastProcess = process.rbegin();
+                retSyncProcess = lastProcess->second.tableProcess;
+            }
+        }
+    };
+
+    /**
+     * @tc.steps:step3. sync.
+     * @tc.expected: step3. ok.
+     */
+    std::vector<std::string> tableNames = {tableName_};
+    Query normalQuery = Query::Select().FromTable({tableNames});
+    CloudSyncOption option;
+    PrepareOption(option, normalQuery, false);
+    ASSERT_EQ(delegate_->Sync(option, normalCallback), OK);
+
+    /**
+     * @tc.steps:step4. wait upload process and delete 30 record in cloud table.
+     * @tc.expected: step4. ok.
+     */
+    while (isUpload == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    DeleteCloudTableRecord(30);
+
+    /**
+     * @tc.steps:step5. wait sync process end and check data.
+     * @tc.expected: step5. ok.
+     */
+    while (isFinsh == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    ASSERT_EQ(retSyncProcess.empty(), false);
+    auto taskInfo = retSyncProcess.rbegin();
+    ASSERT_EQ(taskInfo->second.upLoadInfo.total, 30u);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
 
 /**
  * @tc.name: CloudSyncObserverTest001
@@ -1443,6 +1627,151 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest013, TestSize.Lev
     query = Query::Select().FromTable({"tableName"});
     BlockPrioritySync(query, delegate_, false, SCHEMA_MISMATCH);
     CheckCloudTableCount(tableName_, 0);
+}
+
+/**
+ * @tc.name: CloudPrioritySyncTest014
+ * @tc.desc: Check the uploadInfo after the normal sync is paused by the priority sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest014, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert data and sync pause.
+     * @tc.expected: step1. ok.
+     */
+    const int recordCount = 50; // 50 is count of data records
+    InsertUserTableRecord(tableName_, recordCount, 0);
+    Query normalQuery = Query::Select().FromTable({tableName_});
+    CloudSyncOption normalOption;
+    PrepareOption(normalOption, normalQuery, false);
+    bool isUpload = false;
+    uint32_t blockTime = 1000;
+    virtualCloudDb_->ForkUpload([&isUpload, &blockTime](const std::string &tableName, VBucket &extend) {
+        if (isUpload == false) {
+            isUpload = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(blockTime));
+        }
+    });
+    bool isFinish = false;
+    bool priorityFinish = false;
+    SyncProcess normalLast;
+    auto normalCallback = [&isFinish, &priorityFinish, &normalLast](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                isFinish = true;
+                ASSERT_EQ(priorityFinish, true);
+                normalLast = item.second;
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(normalOption, normalCallback), OK);
+
+    /**
+     * @tc.steps:step2. priority sync.
+     * @tc.expected: step2. ok.
+     */
+    while (isUpload == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    std::vector<std::string> idValues = {"0", "1", "2", "3", "4"};
+    Query priorityQuery = Query::Select().From(tableName_).In("id", idValues);
+    CloudSyncOption priorityOption;
+    PrepareOption(priorityOption, priorityQuery, true);
+    auto priorityCallback = [&priorityFinish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                priorityFinish = true;
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(priorityOption, priorityCallback), OK);
+    while (isFinish == false || priorityFinish == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    /**
+     * @tc.steps:step3. check uploadInfo after sync finished.
+     * @tc.expected: step3. ok.
+     */
+    const Info expectUploadInfo = {2u, recordCount, recordCount, 0u, recordCount, 0u, 0u};
+    for (const auto &table : normalLast.tableProcess) {
+        CheckUploadInfo(table.second.upLoadInfo, expectUploadInfo);
+        EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: CloudPrioritySyncTest015
+ * @tc.desc: Check the uploadInfo the downloadInfo after the normal sync is paused by the priority sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest015, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert data and sync pause.
+     * @tc.expected: step1. ok.
+     */
+    const int localCount = 10; // 10 is count of local data records
+    const int cloudCount = 50; // 50 is count of cloud data records
+    InsertUserTableRecord(tableName_, localCount, 0);
+    InsertCloudTableRecord(20, cloudCount, 0, false); // 20 is begin number
+    uint32_t blockTime = 500; // 500ms
+    virtualCloudDb_->SetBlockTime(blockTime);
+    Query normalQuery = Query::Select().FromTable({tableName_});
+    CloudSyncOption normalOption;
+    PrepareOption(normalOption, normalQuery, false);
+    bool isFinish = false;
+    bool priorityFinish = false;
+    SyncProcess normalLast;
+    auto normalCallback = [&isFinish, &priorityFinish, &normalLast](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                isFinish = true;
+                ASSERT_EQ(priorityFinish, true);
+                normalLast = item.second;
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(normalOption, normalCallback), OK);
+
+    /**
+     * @tc.steps:step2. priority sync.
+     * @tc.expected: step2. ok.
+     */
+    std::vector<std::string> idValues = {"10", "11", "12", "13", "14"};
+    Query priorityQuery = Query::Select().From(tableName_).In("id", idValues);
+    CloudSyncOption priorityOption;
+    PrepareOption(priorityOption, priorityQuery, true);
+    auto priorityCallback = [&priorityFinish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                priorityFinish = true;
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync(priorityOption, priorityCallback), OK);
+    while (isFinish == false || priorityFinish == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 50ms
+    }
+
+    /**
+     * @tc.steps:step3. check uploadInfo and downloadInfo after sync finished.
+     * @tc.expected: step3. ok.
+     */
+    const Info expectUploadInfo = {1u, localCount, localCount, 0u, localCount, 0u, 0u};
+    const Info expectDownloadInfo = {1u, cloudCount, cloudCount, 0u, cloudCount, 0u, 0u};
+    for (const auto &table : normalLast.tableProcess) {
+        CheckUploadInfo(table.second.upLoadInfo, expectUploadInfo);
+        CheckDownloadInfo(table.second.downLoadInfo, expectDownloadInfo);
+        EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+    }
+    CheckUserTableResult(db_, tableName_, 60);
 }
 
 /**

@@ -925,6 +925,63 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
 }
 
 /**
+ * @tc.name: GetCloudData008
+ * @tc.desc: GetCloudGid other table after GetCloudData.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. table1
+     * @tc.expected: step1. return ok.
+     */
+    CreateLogTable(g_tableName);
+    int64_t insCount = 10;
+    int64_t photoSize = 10;
+    InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
+    CreateAndInitUserTable(3 * insCount, photoSize, g_localAsset); // 3 is insert,update and delete type data
+
+    /**
+     * @tc.steps:step2. table2
+     * @tc.expected: step2. return ok.
+     */
+    std::string tableName2 = "cloudData2";
+    std::string logTblName2 = DBConstant::RELATIONAL_PREFIX + tableName2 + "_log";
+    CreateLogTable(tableName2);
+    InitLogData(insCount, insCount, insCount, insCount, logTblName2);
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    std::string createTable2Sql = "CREATE TABLE IF NOT EXISTS " + tableName2 + "(name TEXT ,age INT);";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, createTable2Sql), E_OK);
+    sqlite3_close(db);
+    const std::vector<Field> cloudField2 = {{"name", TYPE_INDEX<std::string>}, {"age", TYPE_INDEX<int64_t>}};
+    TableSchema tableSchema2;
+    tableSchema2.name = tableName2;
+    tableSchema2.sharedTableName = tableName2 + "_shared";
+    tableSchema2.fields = cloudField2;
+    DataBaseSchema dataBaseSchema;
+    dataBaseSchema.tables.push_back(g_tableSchema);
+    dataBaseSchema.tables.push_back(tableSchema2);
+    EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. GetCloudData from table1, then GetCloudGid from table2
+     * @tc.expected: step3. return ok.
+     */
+    ContinueToken token = nullptr;
+    CloudSyncData cloudSyncData(g_tableName);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
+    QuerySyncObject obj;
+    obj.SetTableName(tableName2);
+    std::vector<std::string> cloudGid;
+    EXPECT_EQ(g_storageProxy->GetCloudGid(obj, false, false, cloudGid), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+}
+
+/**
  * @tc.name: GetInfoByPrimaryKeyOrGid001
  * @tc.desc: Test the query of the GetInfoByPrimaryKeyOrGid interface to obtain assets.
  * @tc.type: FUNC
