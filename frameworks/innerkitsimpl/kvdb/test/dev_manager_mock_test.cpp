@@ -58,6 +58,7 @@ void DevManagerMockTest::TearDown(void)
 */
 HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 {
+    ZLOGI("GetLocalDevice begin.");
     auto devInfo = DevManager::GetInstance().GetLocalDevice();
     EXPECT_EQ(devInfo.uuid, "");
 }
@@ -71,6 +72,7 @@ HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 {
+    ZLOGI("GetUnEncryptedUuid001 begin.");
     auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     EXPECT_EQ(uuid, "");
 }
@@ -84,10 +86,8 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 {
-    std::string pkgName = "test";
-    OHOS::DistributedKv::DevManager instance(pkgName);
-    auto &devMgr = instance;
-    auto uuid = devMgr.GetUnEncryptedUuid();
+    ZLOGI("GetUnEncryptedUuid002 begin.");
+    auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     EXPECT_EQ(uuid, "");
 }
 
@@ -100,10 +100,8 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid003, TestSize.Level1)
 {
-    std::string pkgName = "demo";
-    OHOS::DistributedKv::DevManager instance(pkgName);
-    auto &devMgr = instance;
-    auto uuid = devMgr.GetUnEncryptedUuid();
+    ZLOGI("GetUnEncryptedUuid003 begin.");
+    auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     EXPECT_EQ(uuid, "");
 }
 
@@ -116,6 +114,7 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid003, TestSize.Level1)
 */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices, TestSize.Level1)
 {
+    ZLOGI("GetRemoteDevices begin.");
     auto detailInfo = DevManager::GetInstance().GetRemoteDevices();
     EXPECT_TRUE(detailInfo.empty());
 }

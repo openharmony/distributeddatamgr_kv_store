@@ -26,12 +26,13 @@
 #include "dm_subscribe_info.h"
 
 namespace OHOS {
+
 namespace DistributedHardware {
 class DeviceManager {
 public:
+    int32_t testDemo = 0;
     static DeviceManager &GetInstance();
 
-public:
     virtual int32_t InitDeviceManager(const std::string &pkgName, std::shared_ptr<DmInitCallback> dmInitCallback);
 
     virtual int32_t UnInitDeviceManager(const std::string &pkgName);

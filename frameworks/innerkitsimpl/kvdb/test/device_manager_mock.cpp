@@ -55,14 +55,17 @@ int32_t DeviceManager::GetAvailableDeviceList(const std::string &pkgName,
 
 int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo)
 {
-    if (pkgName == "demo_distributed_data") {
+    if (testDemo == 0) {
+        testDemo = 1;
+        return ERR_DM_IPC_SEND_REQUEST_FAILED;
+    } else if (testDemo == 1) {
+        testDemo = -1;
         deviceInfo.networkId[0] = 'a';
         return DM_OK;
-    }
-    if (pkgName == "test_distributed_data") {
+    } else {
+        testDemo = 0;
         return DM_OK;
     }
-    return ERR_DM_IPC_SEND_REQUEST_FAILED;
 }
 
 int32_t DeviceManager::RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
