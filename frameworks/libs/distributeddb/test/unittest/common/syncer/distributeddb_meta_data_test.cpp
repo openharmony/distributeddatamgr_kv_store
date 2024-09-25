@@ -327,4 +327,38 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest007, TestSize.Level0)
     RuntimeContext::GetInstance()->SetTimeChanged(false);
     RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
 }
+
+/**
+ * @tc.name: MetadataTest008
+ * @tc.desc: Test metadata deserialize v1 local meta.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMetaDataTest, MetadataTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert v1 local meta data.
+     * @tc.expected: step1.Insert OK.
+     */
+    std::string keyStr = "localMetaData";
+    Key key(keyStr.begin(), keyStr.end());
+    Value value;
+    value.resize(Parcel::GetUInt32Len() + Parcel::GetUInt64Len());
+    Parcel parcel(value.data(), value.size());
+    LocalMetaData expectLocalMetaData;
+    expectLocalMetaData.version = LOCAL_META_DATA_VERSION_V1;
+    expectLocalMetaData.localSchemaVersion = SOFTWARE_VERSION_RELEASE_9_0;
+    (void)parcel.WriteUInt32(expectLocalMetaData.version);
+    (void)parcel.WriteUInt64(expectLocalMetaData.localSchemaVersion);
+    ASSERT_FALSE(parcel.IsError());
+    ASSERT_EQ(storage_->PutMetaData(key, value, false), E_OK);
+    /**
+     * @tc.steps: step2. Read v1 local meta data.
+     * @tc.expected: step2.Read OK.
+     */
+    auto res = metadata_->GetLocalSchemaVersion();
+    EXPECT_EQ(res.first, E_OK);
+    EXPECT_EQ(res.second, expectLocalMetaData.localSchemaVersion);
+}
 }
