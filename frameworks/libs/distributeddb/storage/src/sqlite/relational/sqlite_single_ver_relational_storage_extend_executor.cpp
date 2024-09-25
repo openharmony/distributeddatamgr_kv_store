@@ -156,7 +156,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         LOGE("get update asset data cursor stmt failed %d.", errCode);
         return errCode;
     }
-    ResFinalizer finalizer([statement]() {
+    ResFinalizer finalizer([statement] {
         sqlite3_stmt *statementInner = statement;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
@@ -166,13 +166,11 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
     });
     int index = 1;
     errCode = SQLiteUtils::BindInt64ToStatement(statement, index++, cursor);
-    int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind cursor data stmt failed %d.", errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindTextToStatement(statement, index, gid);
-    ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind cursor gid data stmt failed %d.", errCode);
         return errCode;
@@ -305,7 +303,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetBeforeUpload, CloudStorageUtils::FillAssetsBeforeUpload);
     } else {
-        if (DBCommon::IsRecordError(data.extend.at(index))) {
+        if (DBCommon::IsRecordError(data.extend.at(index)) || DBCommon::IsRecordAssetsMissing(data.extend.at(index))) {
             CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
                 CloudStorageUtils::FillAssetForUploadFailed, CloudStorageUtils::FillAssetsForUploadFailed);
         } else {
@@ -511,7 +509,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInf
     return SetLogTriggerStatus(true);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable)
+int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag)
 {
     int errCode = E_OK;
     std::vector<std::string> dropSql = trackerTable.GetDropTempTriggerSql();
@@ -522,17 +520,17 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const Tracke
             return errCode;
         }
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp insert trigger failed %d.", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp update trigger failed %d.", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp delete trigger failed %d.", errCode);
     }
@@ -945,7 +943,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
         std::string val;
         if (CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD,
             cloudDataResult.insData.extend[i], val) != E_OK) {
-            errCode = -E_INVALID_DATA;
+            errCode = -E_CLOUD_ERROR;
             LOGE("[RDBExecutor] Can't get string gid from extend.");
             break;
         }
@@ -999,8 +997,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
     return E_OK;
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &logTable)
+std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table)
 {
+    std::string logTable = DBCommon::GetLogTableName(table);
     std::string sql;
     sql += " cloud_gid = '', version = '', ";
     if (isLogicDelete_) {
@@ -1012,6 +1011,13 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
     } else {
         sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
+        int cursor = GetCursor(table);
+        int errCode = SetCursor(table, cursor + 1);
+        if (errCode == E_OK) {
+            sql += ", cursor = " + std::to_string(cursor + 1) + " ";
+        } else {
+            LOGW("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+        }
     }
     return sql;
 }
@@ -1503,17 +1509,6 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsId(const VBucket
     }
 }
 
-void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsIdInner(const Assets &cloudAssets, Assets &assets)
-{
-    for (const auto &cloudAsset : cloudAssets) {
-        for (auto &asset : assets) {
-            if (asset.name == cloudAsset.name) {
-                asset.assetId = cloudAsset.assetId;
-            }
-        }
-    }
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::BindAssetToBlobStatement(const Asset &asset, int index,
     sqlite3_stmt *&stmt)
 {
@@ -1544,84 +1539,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetsToBlobStatement(const As
         LOGE("Bind asset blob to statement failed, %d.", errCode);
     }
     return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTableInner(sqlite3_stmt *&stmt, Asset &asset)
-{
-    int errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
-        std::vector<uint8_t> blobValue;
-        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("[RDBExecutor][GetAssetOnTableInner] Get column blob value failed, %d.", errCode);
-            return errCode;
-        }
-        errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("[RDBExecutor] Transfer blob to asset failed, %d.", errCode);
-        }
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
-        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d.", errCode);
-    }
-    return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string &tableName,
-    const std::string &fieldName, const int64_t dataKey, Asset &asset)
-{
-    sqlite3_stmt *selectStmt = nullptr;
-    std::string queryAssetSql = "SELECT " + fieldName + " FROM '" + tableName +
-        "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(dataKey) + ";";
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetSql, selectStmt);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("Get select asset statement failed, %d.", errCode);
-        return errCode;
-    }
-    errCode = GetAssetOnTableInner(selectStmt, asset);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(selectStmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTableInner(sqlite3_stmt *&stmt, Assets &assets)
-{
-    int errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
-        std::vector<uint8_t> blobValue;
-        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("[RDBExecutor][GetAssetsOnTableInner] Get column blob value failed, %d.", errCode);
-            return errCode;
-        }
-        errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("[RDBExecutor] Transfer blob to assets failed, %d.", errCode);
-        }
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
-        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
-    }
-    return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string &tableName,
-    const std::string &fieldName, const int64_t dataKey, Assets &assets)
-{
-    sqlite3_stmt *selectStmt = nullptr;
-    std::string queryAssetsSql = "SELECT " + fieldName + " FROM '" + tableName +
-        "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(dataKey) + ";";
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("Get select assets statement failed, %d.", errCode);
-        return errCode;
-    }
-    errCode = GetAssetsOnTableInner(selectStmt, assets);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(selectStmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindAssetFiledToBlobStatement(const TableSchema &tableSchema,
@@ -1733,13 +1650,13 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
 {
     if (putDataMode_ != PutDataMode::USER) {
         return static_cast<int64_t>(LogInfoFlag::FLAG_CLOUD) |
-            static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY);
+            static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
     }
     uint32_t flag = static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
     if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
         flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
-    flag |= static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY);
+    flag |= static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
     return static_cast<int64_t>(flag);
 }
 

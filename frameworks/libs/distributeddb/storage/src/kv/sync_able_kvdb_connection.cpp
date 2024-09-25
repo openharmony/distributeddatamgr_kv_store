@@ -154,13 +154,15 @@ int SyncAbleKvDBConnection::PragmaSyncAction(const PragmaSync *syncParameter)
     syncParam.onFinalize =  [this]() { DecObjRef(this); };
     if (syncParameter->onComplete_) {
         syncParam.onComplete = [this, onComplete = syncParameter->onComplete_, wait = syncParameter->wait_](
-            const std::map<std::string, int> &statuses) {
+            const std::map<std::string, int> &statuses
+        ) {
             OnSyncComplete(statuses, onComplete, wait);
         };
     }
     if (syncParameter->onSyncProcess_) {
         syncParam.onSyncProcess = [this, onSyncProcess = syncParameter->onSyncProcess_](
-            const std::map<std::string, DeviceSyncProcess> &syncRecordMap) {
+            const std::map<std::string, DeviceSyncProcess> &syncRecordMap
+        ) {
             OnDeviceSyncProcess(syncRecordMap, onSyncProcess);
         };
     }
@@ -185,7 +187,7 @@ int SyncAbleKvDBConnection::CancelDeviceSync(uint32_t syncId)
     {
         AutoLock lockGuard(this);
         if (IsKilled()) {
-            // If this happens, users are using a closed connection.
+            // if this happens, users are using a closed connection.
             LOGE("CancelDeviceSync on a closed connection.");
             return -E_STALE;
         }

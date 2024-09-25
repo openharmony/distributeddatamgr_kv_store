@@ -222,6 +222,8 @@ private:
 
     void AddQuerySubscribe(SyncGenericInterface *storage, const std::string &device, const QuerySyncObject &query);
 
+    uint32_t GetTimeout(const std::string &dev);
+
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
     std::function<void(const std::string &)> onRemoteDataChanged_;

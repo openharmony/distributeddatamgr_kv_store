@@ -25,6 +25,7 @@
 #include "mock_icloud_sync_storage_interface.h"
 #include "virtual_cloud_db.h"
 #include "virtual_cloud_syncer.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -114,6 +115,7 @@ public:
 
 protected:
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudDBProxyTest::SetUpTestCase()
@@ -128,11 +130,17 @@ void DistributedDBCloudDBProxyTest::SetUp()
 {
     DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudDBProxyTest::TearDown()
 {
     virtualCloudDb_ = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 /**

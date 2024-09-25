@@ -19,6 +19,7 @@
 #include "mock_icloud_sync_storage_interface.h"
 #include "time_helper.h"
 #include "types_export.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace testing;
@@ -35,6 +36,8 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+protected:
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 MockICloudSyncStorageInterface *g_iCloud = nullptr;
@@ -65,10 +68,16 @@ void DistributedDBCloudSyncerDownloadTest::TearDownTestCase(void)
 void DistributedDBCloudSyncerDownloadTest::SetUp(void)
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudSyncerDownloadTest::TearDown(void)
 {
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 std::vector<VBucket> GetRetCloudData(uint64_t cnt)

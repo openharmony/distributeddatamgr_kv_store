@@ -22,6 +22,7 @@
 #include "mock_asset_loader.h"
 #include "process_system_api_adapter_impl.h"
 #include "relational_store_client.h"
+#include "relational_store_delegate_impl.h"
 #include "relational_store_instance.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
@@ -31,6 +32,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -205,6 +207,20 @@ void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &a
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
+void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets, int32_t begin, int32_t end)
+{
+    int errCode;
+    std::vector<uint8_t> assetBlob;
+    const string sql = "update " + tableName + " set assets=? " + "where id>=" + std::to_string(begin) +
+        " and id<=" + std::to_string(end) + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
 void DeleteLocalRecord(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
 {
     ASSERT_NE(db, nullptr);
@@ -240,9 +256,9 @@ void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t v
 int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
 {
     auto status = static_cast<std::vector<int64_t> *>(data);
-    int base = 10;
+    const int decimal = 10;
     for (int i = 0; i < count; i++) {
-        status->push_back(strtol(colValue[0], nullptr, base));
+        status->push_back(strtol(colValue[0], nullptr, decimal));
     }
     return 0;
 }
@@ -412,6 +428,7 @@ protected:
     void DataStatusTest006();
     void DataStatusTest007();
     sqlite3 *db = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudSyncerDownloadAssetsTest::SetUpTestCase(void)
@@ -454,6 +471,9 @@ void DistributedDBCloudSyncerDownloadAssetsTest::SetUp(void)
     ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
     g_cloudStoreHook = (ICloudSyncStorageHook *) GetRelationalStore();
     ASSERT_NE(g_cloudStoreHook, nullptr);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::TearDown(void)
@@ -465,6 +485,9 @@ void DistributedDBCloudSyncerDownloadAssetsTest::TearDown(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocaLAssets(const std::string &tableName,
@@ -1776,50 +1799,82 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Le
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
- 
+
 /**
- * @tc.name: FillAssetId022
- * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure
+ * @tc.name: FillAssetId025
+ * @tc.desc: Test if BatchInsert with local assets missing and missing record added into successCount
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId025, TestSize.Level0)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
     g_delegate->SetCloudSyncConfig(config);
- 
     /**
-     * @tc.steps:step1. local insert assets and erase assets extends
+     * @tc.steps:step1. insert local data.
      * @tc.expected: step1. return OK.
      */
-    int localCount = 50;
+    int localCount = 40;
     InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
- 
+
     /**
-     * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
-     * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
+     * @tc.steps:step2. BatchInsert with local assets missing then sync, check the asseid.
+     * @tc.expected: step2. return OK.
      */
     int uploadFailId = 0;
     g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
         std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
         uploadFailId++;
-        if (uploadFailId >= 25 && uploadFailId <= 27) { // 25-27 is the middle record
+        if (uploadFailId == 25) { // 25 is the middle record
             extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
             return DBStatus::LOCAL_ASSET_NOT_FOUND;
         }
         return OK;
     });
- 
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    g_syncProcess = {};
+    Query query = Query::Select().FromTable({ ASSETS_TABLE_NAME });
+    std::vector<TableProcessInfo> expectProcess = {
+        { PROCESSING, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } },
+        { FINISHED, { 0, 0, 0, 0 }, { 1, 40, 40, 0 } } // 1 is index, 40 is count
+    };
+
+    /**
+     * @tc.steps:step3. Check if sync process consistent with exptectProcess
+     * @tc.expected: step3. return OK.
+     */
+    int index = 0;
+    CloudSyncStatusCallback callback = [&index, &expectProcess](const std::map<std::string, SyncProcess> &process) {
+        g_syncProcess = std::move(process.begin()->second);
+        ASSERT_LT(index, 2);
+        for (const auto &[tableName, info]: g_syncProcess.tableProcess) {
+            EXPECT_EQ(info.process, expectProcess[index].process);
+            EXPECT_EQ(info.upLoadInfo.batchIndex, expectProcess[index].upLoadInfo.batchIndex);
+            EXPECT_EQ(info.upLoadInfo.total, expectProcess[index].upLoadInfo.total);
+            EXPECT_EQ(info.upLoadInfo.successCount, expectProcess[index].upLoadInfo.successCount);
+            EXPECT_EQ(tableName, ASSETS_TABLE_NAME);
+        }
+        index++;
+        if (g_syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+            ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
+        }
+    };
+    ASSERT_EQ(g_delegate->Sync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, query, callback, SYNC_WAIT_TIME), OK);
+    WaitForSyncFinish(g_syncProcess, SYNC_WAIT_TIME);
+
+    /**
+     * @tc.steps:step4. Check assets results
+     * @tc.expected: step4. return OK.
+     */
     int beginFailFillNum = 49;
-    int endFailFillNum = 54;
-    std::set<int> index;
+    int endFailFillNum = 50;
+    std::set<int> indexes;
     for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
-        index.insert(i);
+        indexes.insert(i);
     }
-    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", indexes);
     g_virtualCloudDb->ForkUpload(nullptr);
 }
 

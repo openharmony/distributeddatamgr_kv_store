@@ -758,10 +758,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
 
     /**
      * @tc.steps: the field type does not match
-     * @tc.expected: return -E_INVALID_DATA.
+     * @tc.expected: return -E_CLOUD_ERROR.
      */
     syncData.tableName = g_tableName;
-    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_DATA);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_CLOUD_ERROR);
 
     /**
      * @tc.steps: missing field GID_FIELD

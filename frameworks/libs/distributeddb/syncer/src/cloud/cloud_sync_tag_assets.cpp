@@ -51,7 +51,7 @@ void TagSingleAssetForDownload(AssetOpType flag, Asset &asset, Assets &res, int 
     res.push_back(asset);
 }
 
-void TagSingleAssetForUpload(AssetOpType flag, Asset &asset, Assets &res, int &errCode)
+void TagSingleAssetForUpload(AssetOpType flag, Asset &asset, Assets &res)
 {
     uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
     if (lowBitStatus == static_cast<uint32_t>(AssetStatus::DELETE)) {
@@ -87,7 +87,7 @@ void TagAssetWithNormalStatus(const bool isNormalStatus, AssetOpType flag,
     Asset &asset, Assets &res, int &errCode)
 {
     if (isNormalStatus) {
-        TagSingleAssetForUpload(flag, asset, res, errCode);
+        TagSingleAssetForUpload(flag, asset, res);
         return;
     }
     TagSingleAssetForDownload(flag, asset, res, errCode);
@@ -124,10 +124,10 @@ bool IsDataContainField(const std::string &assetFieldName, const VBucket &data)
     return true;
 }
 
-void TagAssetWithSameHash(const bool setNormalStatus, Asset &beCoveredAsset, Asset &coveredAsset, Assets &res,
+void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asset &coveredAsset, Assets &res,
     int &errCode)
 {
-    TagAssetWithNormalStatus(setNormalStatus, (
+    TagAssetWithNormalStatus(isNormalStatus, (
         AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::DELETE ||
         AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::ABNORMAL ||
         beCoveredAsset.status == (AssetStatus::DOWNLOADING | DOWNLOAD_WITH_NULL)) ?
@@ -184,7 +184,9 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
             // fill asset id for upload data
             coveredAsset.assetId = beCoveredAsset.assetId;
         }
-        if (beCoveredAsset.hash != coveredAsset.hash) {
+        if (!setNormalStatus && !beCoveredAsset.hash.empty() && beCoveredAsset.hash != coveredAsset.hash) {
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
+        } else if (setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
             TagAssetWithSameHash(setNormalStatus, beCoveredAsset, coveredAsset, res, errCode);
@@ -205,6 +207,19 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         }
     }
     return res;
+}
+
+static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const bool setNormalStatus, Assets &res,
+    int &errCode)
+{
+    if (!setNormalStatus && beCovered.hash.empty()) {
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res, errCode);
+    } else if (covered.hash != beCovered.hash) {
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
+    } else {
+        Assets tmpAssets = {};
+        TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets, errCode);
+    }
 }
 
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
@@ -255,12 +270,7 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         // fill asset id for upload data
         covered.assetId = beCovered.assetId;
     }
-    if (covered.hash != beCovered.hash) {
-        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
-    } else {
-        Assets tmpAssets = {};
-        TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets, errCode);
-    }
+    TagCoveredAssetInner(covered, beCovered, setNormalStatus, res, errCode);
     return res;
 }
 

@@ -16,6 +16,8 @@
 #ifndef REMOTE_EXECUTOR_PACKET_H
 #define REMOTE_EXECUTOR_PACKET_H
 
+#include <cstdint>
+#include <string>
 #include "isync_packet.h"
 #include "message.h"
 #include "prepared_stmt.h"

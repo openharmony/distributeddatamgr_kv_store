@@ -31,6 +31,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include "cloud_db_sync_utils_test.h"
 
 using namespace testing::ext;
@@ -133,6 +134,7 @@ namespace {
         void InitCloudEnv();
         sqlite3 *db_ = nullptr;
         std::function<void(int64_t, VBucket &)> forkInsertFunc_;
+        VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     };
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::SetUpTestCase(void)
@@ -161,6 +163,9 @@ namespace {
         g_virtualCloudDb = std::make_shared<VirtualCloudDb>();
         ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
         ASSERT_EQ(g_delegate->SetIAssetLoader(std::make_shared<VirtualAssetLoader>()), DBStatus::OK);
+        communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(communicatorAggregator_ != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::TearDown(void)
@@ -170,6 +175,9 @@ namespace {
         g_delegate = nullptr;
         EXPECT_EQ(sqlite3_close_v2(db_), SQLITE_OK);
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+        communicatorAggregator_ = nullptr;
+        RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CreateUserDBAndTable()

@@ -16,6 +16,7 @@
 #ifndef SINGLE_VER_SYNC_ENGINE_H
 #define SINGLE_VER_SYNC_ENGINE_H
 
+#include <mutex>
 #include "sync_engine.h"
 
 namespace DistributedDB {

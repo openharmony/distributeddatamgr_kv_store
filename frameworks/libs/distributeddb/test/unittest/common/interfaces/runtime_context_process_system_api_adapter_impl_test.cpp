@@ -22,6 +22,7 @@
 #include "log_print.h"
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;

@@ -68,9 +68,9 @@ public:
     int GetMode() const override;
 
     // Move to next target to sync
-    void MoveToNextTarget() override;
+    void MoveToNextTarget(uint32_t timeout) override;
 
-    int GetNextTarget() override;
+    int GetNextTarget(uint32_t timeout) override;
 
     // Get the current task syncId
     uint32_t GetSyncId() const override;

@@ -230,12 +230,12 @@ int SyncTaskContext::GetMode() const
     return mode_;
 }
 
-void SyncTaskContext::MoveToNextTarget()
+void SyncTaskContext::MoveToNextTarget(uint32_t timeout)
 {
     ClearSyncOperation();
     TaskParam param;
     // call other system api without lock
-    param.timeout = communicator_->GetTimeout(deviceId_);
+    param.timeout = timeout;
     std::lock_guard<std::mutex> lock(targetQueueLock_);
     while (!requestTargetQueue_.empty() || !responseTargetQueue_.empty()) {
         ISyncTarget *tmpTarget = nullptr;
@@ -265,9 +265,9 @@ void SyncTaskContext::MoveToNextTarget()
     }
 }
 
-int SyncTaskContext::GetNextTarget()
+int SyncTaskContext::GetNextTarget(uint32_t timeout)
 {
-    MoveToNextTarget();
+    MoveToNextTarget(timeout);
     int checkErrCode = RunPermissionCheck(GetPermissionCheckFlag(IsAutoSync(), GetMode()));
     if (checkErrCode != E_OK) {
         SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
@@ -431,7 +431,7 @@ int SyncTaskContext::StartStateMachine()
 
 int SyncTaskContext::ReceiveMessageCallback(Message *inMsg)
 {
-    if (inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
+    if (GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_BASE && inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE) {
         uint16_t remoteVersion = 0;
         (void)communicator_->GetRemoteCommunicatorVersion(deviceId_, remoteVersion);
         SetRemoteSoftwareVersion(SOFTWARE_VERSION_EARLIEST + remoteVersion);
@@ -502,9 +502,6 @@ void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context,
 void SyncTaskContext::SetRemoteSoftwareVersion(uint32_t version)
 {
     std::lock_guard<std::mutex> lock(remoteSoftwareVersionLock_);
-    if (remoteSoftwareVersion_ == version) {
-        return;
-    }
     remoteSoftwareVersion_ = version;
     remoteSoftwareVersionId_++;
 }

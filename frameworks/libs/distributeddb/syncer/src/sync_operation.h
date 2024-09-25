@@ -137,9 +137,9 @@ public:
 
     void SetSyncProcessCallFun(DeviceSyncProcessCallback callBack);
 
-    void SetSyncProcessTotal(const std::string &deviceId, uint32_t total);
+    void SetSyncProcessTotal(std::string &deviceId, uint32_t total);
 
-    void UpdateFinishedCount(const std::string &deviceId, uint32_t count);
+    void UpdateFinishedCount(std::string &deviceId, uint32_t count);
 
 protected:
     virtual ~SyncOperation();
@@ -201,7 +201,7 @@ private:
     // The device id we syncProcess with
     std::map<std::string, DeviceSyncProcess> syncProcessMap_;
 
-    // Can be canceled
+    // Can be cancelled
     bool canCancel_ = false;
 
     void ExeSyncProcessCallFun(const std::map<std::string, DeviceSyncProcess> &syncProcessMap);

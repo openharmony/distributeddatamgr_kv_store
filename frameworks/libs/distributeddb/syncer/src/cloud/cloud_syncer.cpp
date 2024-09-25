@@ -320,8 +320,10 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
             continue;
         }
         errCode = PrepareAndUpload(taskInfo, i);
-        if (errCode == -E_TASK_PAUSED) { // should re download paused table
-            MarkDownloadFinishIfNeed(taskInfo.table[i], false);
+        if (errCode == -E_TASK_PAUSED) { // should re download [paused table, last table]
+            for (size_t j = i; j < taskInfo.table.size(); ++j) {
+                MarkDownloadFinishIfNeed(taskInfo.table[j], false);
+            }
         }
         if (errCode != E_OK) {
             break;
@@ -427,11 +429,14 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskId = currentContext_.currentTaskId;
         errCode = cloudTaskInfos_[currentContext_.currentTaskId].errCode;
-        cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
         currentUserIndex = currentContext_.currentUserIndex;
         userListSize = static_cast<int>(cloudTaskInfos_[taskId].users.size());
     }
     if (currentUserIndex >= userListSize) {
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
+        }
         DoFinished(taskId, errCode);
     } else {
         CloudTaskInfo taskInfo;
@@ -440,7 +445,11 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
             taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
         }
         taskInfo.status = ProcessStatus::FINISHED;
-        currentContext_.notifier->NotifyProcess(taskInfo, {});
+        currentContext_.notifier->NotifyProcess(taskInfo, {}, true);
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
+        }
     }
     return CloudSyncEvent::ALL_TASK_FINISHED_EVENT;
 }
@@ -1002,7 +1011,9 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData.field = param.pkColNames;
         param.changedData.type = ChangedDataType::DATA;
     }
+    (void)storageProxy_->SetCursorIncFlag(true);
     ret = SaveData(taskId, param);
+    (void)storageProxy_->SetCursorIncFlag(false);
     param.insertPk.clear();
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
@@ -1067,9 +1078,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
         param.downloadData.opType.resize(param.downloadData.data.size());
         param.downloadData.existDataKey.resize(param.downloadData.data.size());
         param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
-        (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
         ret = SaveDataInTransaction(taskId, param);
-        (void)storageProxy_->ClearAllTempSyncTrigger();
         if (ret != E_OK) {
             return ret;
         }
@@ -1112,7 +1121,9 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;
     }
+    (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param, isFirstDownload);
+    (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
         // No need to handle ret.
         int ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);

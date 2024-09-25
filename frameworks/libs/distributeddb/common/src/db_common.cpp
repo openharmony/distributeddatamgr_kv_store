@@ -642,7 +642,8 @@ bool DBCommon::IsRecordError(const VBucket &record)
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT) &&
            status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED) &&
-           status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+           status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND) &&
+           status != static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
 }
 
 bool DBCommon::IsIntTypeRecordError(const VBucket &record)
@@ -662,7 +663,8 @@ bool DBCommon::IsRecordIgnored(const VBucket &record)
         return false;
     }
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
-    return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+    return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT) ||
+            status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
 }
 
 bool DBCommon::IsRecordVersionConflict(const VBucket &record)
@@ -730,6 +732,13 @@ bool DBCommon::IsNeedCompensatedForUpload(const VBucket &uploadExtend, const Clo
         (DBCommon::IsCloudRecordNotFound(uploadExtend) && type == CloudWaterType::UPDATE);
 }
 
+bool DBCommon::IsRecordIgnoredForReliability(const VBucket &uploadExtend, const CloudWaterType &type)
+{
+    return (DBCommon::IsCloudRecordAlreadyExisted(uploadExtend) && type == CloudWaterType::INSERT) ||
+        (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
+        (type == CloudWaterType::UPDATE || type == CloudWaterType::DELETE));
+}
+
 bool DBCommon::IsRecordSuccess(const VBucket &record)
 {
     return record.find(CloudDbConstant::ERROR_FIELD) == record.end();
@@ -752,15 +761,15 @@ void DBCommon::LoadGrdLib(void)
 {
     static std::once_flag loadOnceFlag;
     std::call_once(loadOnceFlag, []() {
-        if (!g_isGrdLoaded) {
 #ifndef _WIN32
+        if (!g_isGrdLoaded) {
             if (dlopen("libarkdata_db_core.z.so", RTLD_LAZY) != NULL) {
                 g_isGrdLoaded = true;
             } else {
                 LOGW("[DBCommon] unable to load grd lib, errno: %d, %s", errno, dlerror());
             }
-#endif
         }
+#endif
     });
 }
 

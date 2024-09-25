@@ -94,7 +94,7 @@ int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
     return syncer_.Sync(parma, connectionId);
 }
 
-// Cancel a sync action.
+// Cancel a sync action
 int SyncAbleKvDB::CancelSync(uint32_t syncId)
 {
     if (!started_) {
@@ -553,7 +553,7 @@ TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {
-    QuerySyncObject query(option.query);
+    QuerySyncObject query(Query::Select());
     query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
     info.queryList.push_back(query);
     info.table.push_back(CloudDbConstant::CLOUD_KV_TABLE_NAME);

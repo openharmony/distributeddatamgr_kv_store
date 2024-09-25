@@ -143,6 +143,10 @@ public:
 
     virtual int SetLogTriggerStatus(bool status) = 0;
 
+    virtual int SetCursorIncFlag(bool flag)
+    {
+        return E_OK;
+    };
     virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
@@ -187,7 +191,8 @@ public:
         return E_OK;
     }
 
-    virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery)
+    virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery,
+        std::vector<std::string> &users)
     {
         return E_OK;
     }
@@ -228,6 +233,12 @@ public:
         SingleVerConflictResolvePolicy policy)
     {
         return false;
+    }
+
+    virtual int ReviseLocalModTime(const std::string &tableName,
+        const std::vector<ReviseModTimeInfo> &revisedData)
+    {
+        return E_OK;
     }
 };
 }

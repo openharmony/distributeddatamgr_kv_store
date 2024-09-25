@@ -297,6 +297,15 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
     return errCode;
 }
 
+int StorageProxy::SetCursorIncFlag(bool flag)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->SetCursorIncFlag(flag);
+}
+
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -569,13 +578,13 @@ int StorageProxy::UpdateRecordFlag(const std::string &tableName, bool recordConf
     return store_->UpdateRecordFlag(tableName, recordConflict, logInfo);
 }
 
-int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->GetCompensatedSyncQuery(syncQuery);
+    return store_->GetCompensatedSyncQuery(syncQuery, users);
 }
 
 int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
@@ -680,5 +689,14 @@ bool StorageProxy::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo
         return false;
     }
     return store_->IsTagCloudUpdateLocal(localInfo, cloudInfo, policy);
+}
+
+int StorageProxy::ReviseLocalModTime(const std::string &tableName,
+    const std::vector<ReviseModTimeInfo> &revisedData)
+{
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->ReviseLocalModTime(tableName, revisedData);
 }
 }

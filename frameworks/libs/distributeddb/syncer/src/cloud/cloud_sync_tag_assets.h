@@ -16,6 +16,7 @@
 #define CLOUD_SYNC_TAG_ASSETS_H
 
 #include <cstdint>
+#include <string>
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"

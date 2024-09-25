@@ -49,7 +49,7 @@ public:
 
     MOCK_CONST_METHOD0(GetTimerId, TimerId(void));
 
-    MOCK_METHOD0(MoveToNextTarget, void(void));
+    MOCK_METHOD1(MoveToNextTarget, void(uint32_t));
 
     MOCK_CONST_METHOD0(IsTargetQueueEmpty, bool(void));
 

@@ -1190,13 +1190,7 @@ int MultiVerNaturalStore::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
     return -E_NOT_SUPPORT;
 }
 
-void MultiVerNaturalStore::SetSendDataInterceptor(const PushDataInterceptor &interceptor)
-{
-    (void)interceptor;
-    return;
-}
-
-void MultiVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+void MultiVerNaturalStore::SetDataInterceptor(const PushDataInterceptor &interceptor)
 {
     (void)interceptor;
     return;

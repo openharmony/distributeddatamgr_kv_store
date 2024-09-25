@@ -100,6 +100,8 @@ public:
 
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
@@ -142,11 +144,11 @@ private:
 
     void ReleaseCommitData(SingleVerNaturalStoreCommitNotifyData *&committedData);
 
-    int StartTransactionInner(TransactType transType = TransactType::DEFERRED);
+    int StartTransactionInner(bool isCommitNotify, TransactType transType = TransactType::DEFERRED);
 
-    int StartTransactionNormally(TransactType transType = TransactType::DEFERRED);
+    int StartTransactionNormally(bool isCommitNotify, TransactType transType = TransactType::DEFERRED);
 
-    int CommitInner();
+    int CommitInner(bool isCommitNotify);
 
     int RollbackInner();
 
@@ -159,7 +161,7 @@ private:
 
     int DeleteBatchInner(const IOption &option, const std::vector<Key> &keys) override;
 
-    int DeleteSyncEntries(const std::vector<Key> &keys);
+    int SetBatchInner(const IOption &option, const std::vector<Entry> &entries, bool isDelete);
 
     bool IsSinglePutOrDelete(const std::vector<Entry> &entries)
     {

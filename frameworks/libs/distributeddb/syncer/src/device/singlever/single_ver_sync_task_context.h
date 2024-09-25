@@ -137,8 +137,8 @@ public:
     void StartFeedDogForGetData(uint32_t sessionId);
     void StopFeedDogForGetData();
 
-    void UpdateOperationFinishedCount(const std::string &deviceId, uint32_t count);
-    void SetOperationSyncProcessTotal(const std::string &deviceId, uint32_t total);
+    void UpdateOperationFinishedCount(std::string &deviceId, uint32_t count);
+    void SetOperationSyncProcessTotal(std::string &deviceId, uint32_t total);
 
     void SetInitWaterMark(WaterMark waterMark);
     WaterMark GetInitWaterMark() const;

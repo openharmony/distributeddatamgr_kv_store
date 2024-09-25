@@ -143,6 +143,7 @@ public:
     int FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data);
 
     int SetLogTriggerStatus(bool status);
+    int SetCursorIncFlag(bool flag);
 
     int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
     int CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade);
@@ -151,7 +152,7 @@ public:
 
     int GetClearWaterMarkTables(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         const RelationalSchemaObject &schema, std::set<std::string> &clearWaterMarkTables);
-    int CreateTempSyncTrigger(const TrackerTable &trackerTable);
+    int CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
@@ -206,20 +207,22 @@ public:
     int InitCursorToMeta(const std::string &tableName);
 
     void SetTableSchema(const TableSchema &tableSchema);
+
+    int ReviseLocalModTime(const std::string &tableName, const std::vector<ReviseModTimeInfo> &revisedData);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
     int DoCleanLogAndData(const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
-    int CleanCloudDataOnLogTable(const std::string &logTableName);
+    int CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode);
 
     int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName,
         const RelationalSchemaObject &localSchema);
 
     int ChangeCloudDataFlagOnLogTable(const std::string &logTableName);
 
-    int SetDataOnUserTablWithLogicDelete(const std::string &tableName, const std::string &logTableName);
+    int SetDataOnUserTableWithLogicDelete(const std::string &tableName, const std::string &logTableName);
 
     static void UpdateCursor(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
@@ -378,7 +381,7 @@ private:
 
     int BindStmtWithCloudGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid, sqlite3_stmt *&stmt);
 
-    std::string GetCloudDeleteSql(const std::string &logTable);
+    std::string GetCloudDeleteSql(const std::string &table);
 
     int RemoveDataAndLog(const std::string &tableName, int64_t dataKey);
 
@@ -420,21 +423,9 @@ private:
 
     void UpdateLocalAssetsId(const VBucket &vBucket, const std::string &fieldName, Assets &assets);
 
-    void UpdateLocalAssetsIdInner(const Assets &cloudAssets, Assets &assets);
-
     int BindAssetToBlobStatement(const Asset &asset, int index, sqlite3_stmt *&stmt);
 
     int BindAssetsToBlobStatement(const Assets &assets, int index, sqlite3_stmt *&stmt);
-
-    int GetAssetOnTableInner(sqlite3_stmt *&stmt, Asset &asset);
-
-    int GetAssetOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
-        Asset &asset);
-
-    int GetAssetsOnTableInner(sqlite3_stmt *&stmt, Assets &assets);
-
-    int GetAssetsOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
-        Assets &assets);
 
     int BindAssetFiledToBlobStatement(const TableSchema &tableSchema, const std::vector<Asset> &assetOfOneRecord,
         const std::vector<Assets> &assetsOfOneRecord, sqlite3_stmt *&stmt);

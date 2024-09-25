@@ -224,9 +224,9 @@ private:
         SET_TIME_CHANGE_MARK = 0x20,
     };
 
-    int ClearAllMetaDataValue(uint32_t innerAction);
+    int ClearAllMetaDataValue(uint32_t innerClearAction);
 
-    static void ClearMetaDataValue(uint32_t innerAction, MetaDataValue &metaDataValue);
+    static void ClearMetaDataValue(uint32_t innerClearAction, MetaDataValue &metaDataValue);
 
     static std::pair<int, Value> SerializeLocalMetaData(const LocalMetaData &localMetaData);
 

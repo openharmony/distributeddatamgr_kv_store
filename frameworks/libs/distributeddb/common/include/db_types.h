@@ -48,6 +48,7 @@ struct DataItem {
     Timestamp writeTimestamp = 0;
     std::string dev;
     bool neglect = false;
+    bool dataDelete = false;
     Key hashKey{};
     Timestamp modifyTime = 0;
     Timestamp createTime = 0;

@@ -23,6 +23,7 @@
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
+
 RdSingleVerStorageEngine::RdSingleVerStorageEngine()
 {
     LOGD("[RdSingleVerStorageEngine] RdSingleVerStorageEngine Created");
@@ -140,7 +141,7 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     }
     int errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
-        LOGE("Failed to open the main database [%d], uri: %s", errCode, (option_.uri).c_str());
+        LOGE("Failed to open the main database [%d]", errCode);
         return errCode;
     }
 

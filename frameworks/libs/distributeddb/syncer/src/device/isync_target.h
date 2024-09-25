@@ -16,6 +16,7 @@
 #ifndef I_SYNC_TARGET_H
 #define I_SYNC_TARGET_H
 
+#include <cstdint>
 #include "sync_operation.h"
 
 namespace DistributedDB {

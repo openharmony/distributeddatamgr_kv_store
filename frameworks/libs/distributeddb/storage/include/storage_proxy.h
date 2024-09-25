@@ -97,8 +97,9 @@ public:
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
-
     int SetLogTriggerStatus(bool status);
+
+    int SetCursorIncFlag(bool flag);
 
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data);
 
@@ -125,7 +126,7 @@ public:
 
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery);
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users);
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
@@ -154,6 +155,8 @@ public:
 
     bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
         SingleVerConflictResolvePolicy policy);
+
+    int ReviseLocalModTime(const std::string &tableName, const std::vector<ReviseModTimeInfo> &revisedData);
 protected:
     void Init();
 

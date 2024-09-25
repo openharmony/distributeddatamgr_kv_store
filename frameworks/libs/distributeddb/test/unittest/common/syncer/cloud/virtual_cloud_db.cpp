@@ -455,13 +455,13 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         AddAssetIdForExtend(record[i], extend[i]);
-        if (forkUploadFunc_) {
-            forkUploadFunc_(tableName, extend[i]);
-        }
         if (isDelete) {
             extend[i][g_deleteField] = true;
         } else {
             extend[i][g_deleteField] = false;
+        }
+        if (forkUploadFunc_) {
+            forkUploadFunc_(tableName, extend[i]);
         }
         CloudData cloudData = {
             .record = std::move(record[i]),

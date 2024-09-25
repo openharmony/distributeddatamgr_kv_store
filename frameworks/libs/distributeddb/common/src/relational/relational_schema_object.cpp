@@ -64,6 +64,8 @@ int RelationalSchemaObject::ParseFromSchemaString(const std::string &inSchemaStr
     schemaType_ = SchemaType::RELATIVE;
     schemaString_ = schemaObj.ToString();
     isValid_ = true;
+    GenerateReachableRef();
+    GenerateTableInfoReferenced();
     return E_OK;
 }
 

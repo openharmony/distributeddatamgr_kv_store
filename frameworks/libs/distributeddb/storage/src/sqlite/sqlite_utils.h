@@ -197,7 +197,7 @@ public:
     static void GetAndResetServerObserverData(const std::string &dbName, const std::string &tableName,
         ChangeProperties &changeProperties);
 
-    static int CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated);
+    static int CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated, bool isCheckMeta = false);
 
     static int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table);
 

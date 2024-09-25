@@ -35,19 +35,19 @@ int SchemaMgr::ChkSchema(const TableName &tableName, RelationalSchemaObject &loc
     }
     TableInfo tableInfo = localSchema.GetTable(tableName);
     if (tableInfo.Empty()) {
-        LOGE("Local schema does not contain certain table [ %s size = %d ]",
+        LOGE("Local schema does not contain certain table [%s size = %d]",
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return -E_SCHEMA_MISMATCH;
     }
     if (tableInfo.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION) {
-        LOGE("Sync type of local table [ %s size = %d ] is not CLOUD_COOPERATION",
+        LOGE("Sync type of local table [%s size = %d] is not CLOUD_COOPERATION",
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return -E_NOT_SUPPORT;
     }
     TableSchema cloudTableSchema;
     int ret = GetCloudTableSchema(tableName, cloudTableSchema);
     if (ret != E_OK) {
-        LOGE("Cloud schema does not contain certain table [ %s size = %d ]:%d",
+        LOGE("Cloud schema does not contain certain table [%s size = %d]:%d",
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), ret);
         return -E_SCHEMA_MISMATCH;
     }

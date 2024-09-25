@@ -157,34 +157,30 @@ int RdSingleVerResultSet::Move(int offset) const
     if (offset == 0) {
         return errCode;
     }
-    offset = offset > INT_MAX ? INT_MAX : offset;
-    offset = offset < INT_MIN ? INT_MIN : offset;
 
     while (offset > 0) {
         errCode = MoveToNext();
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        if (errCode != E_OK) {
+            if (errCode == -E_NOT_FOUND) {
+                LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds, position: %d", offset, position_);
+                return -E_INVALID_ARGS;
+            }
             LOGE("[RdSinResSet] move by offset failed, errCode=%d, offset=%d", errCode, offset);
             return errCode;
         }
         --offset;
-        if (errCode == -E_NOT_FOUND && offset >= 0) {
-            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds or result set empty, position: %d",
-                offset, position_);
-            return -E_INVALID_ARGS;
-        }
     }
     while (offset < 0) {
         errCode = MoveToPrev();
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        if (errCode != E_OK) {
+            if (errCode == -E_NOT_FOUND && offset <= 0) {
+                LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds, position: %d", offset, position_);
+                return -E_INVALID_ARGS;
+            }
             LOGE("[RdSinResSet] move by offset failed, errCode=%d, offset=%d", errCode, offset);
             return errCode;
         }
         ++offset;
-        if (errCode == -E_NOT_FOUND && offset <= 0) {
-            LOGE("[RdSingleVerStorageExecutor] move offset: %d, out of bounds or result set empty, position: %d",
-                offset, position_);
-            return -E_INVALID_ARGS;
-        }
     }
     return errCode;
 }
@@ -242,20 +238,22 @@ int RdSingleVerResultSet::MoveToPrev() const
     }
 
     errCode = handle_->MoveToPrev(resultSet_);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+    if (errCode != E_OK) {
+        if (errCode == -E_NOT_FOUND) {
+            LOGD("[RdSinResSet] move prev reach left end, errCode=%d.", errCode);
+            position_ = INIT_POSITION;
+            return errCode;
+        }
         LOGE("[RdSinResSet] move prev failed, errCode=%d.", errCode);
         return errCode;
     }
 
-    if (errCode == -E_NOT_FOUND) {
-        position_ = INIT_POSITION;
+    if (position_ <= 0) {
+        position_ = 0;
     } else {
-        if (position_ <= 0) {
-            position_ = 0;
-        } else {
-            --position_;
-        }
+        --position_;
     }
+
     return errCode;
 }
 
@@ -319,11 +317,10 @@ int RdSingleVerResultSet::MoveToLast()
 
 bool RdSingleVerResultSet::IsFirst() const
 {
-    int position = GetPosition();
     if (GetCount() == 0) {
         return false;
     }
-    if (position == 0) {
+    if (GetPosition() == 0) {
         return true;
     }
     return false;
@@ -331,12 +328,11 @@ bool RdSingleVerResultSet::IsFirst() const
 
 bool RdSingleVerResultSet::IsLast() const
 {
-    int position = GetPosition();
     int count = GetCount();
     if (count == 0) {
         return false;
     }
-    if (position == (count - 1)) {
+    if (GetPosition() == (count - 1)) {
         return true;
     }
     return false;
@@ -344,12 +340,10 @@ bool RdSingleVerResultSet::IsLast() const
 
 bool RdSingleVerResultSet::IsBeforeFirst() const
 {
-    int position = GetPosition();
-
     if (GetCount() == 0) {
         return true;
     }
-    if (position <= INIT_POSITION) {
+    if (GetPosition() <= INIT_POSITION) {
         return true;
     }
     return false;
@@ -357,12 +351,11 @@ bool RdSingleVerResultSet::IsBeforeFirst() const
 
 bool RdSingleVerResultSet::IsAfterLast() const
 {
-    int position = GetPosition();
     int count = GetCount();
     if (count == 0) {
         return true;
     }
-    if (position >= count) {
+    if (GetPosition() >= count) {
         return true;
     }
     return false;

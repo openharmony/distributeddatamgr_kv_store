@@ -44,8 +44,8 @@ static constexpr const char *FLAG_IS_CLOUD_CONSISTENCY = "FLAG & 0x20 = 0"; // s
 static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(CASE WHEN data_key = -1 and "
     "FLAG & 0x02 = 0x02 THEN (FLAG | 0x02) & (~0x10) & (~0x20) ELSE (FLAG | 0x02 | 0x20) & (~0x10) END)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
-// set data logic delete and exist passport
-static constexpr const char *SET_FLAG_LOGIC_DELETE = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x02)";
+// set data logic delete, exist passport, delete, not compensated and cloud
+static constexpr const char *SET_FLAG_LOGIC_DELETE = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x12)";
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const char *UPDATE_CURSOR_SQL = "cursor=update_cursor()";
 static constexpr const int SET_FLAG_ZERO_MASK = ~0x04; // clear 2th bit of flag
@@ -177,7 +177,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
     std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
-        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY));
+        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " + timeOffsetStr +
             " + " + rowid + ", " + timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', " +
@@ -564,13 +564,16 @@ static int GetLogData(sqlite3_stmt *logStatement, LogInfo &logInfo)
 }
 
 namespace {
-void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize)
+void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize,
+    int64_t &revisedTime, int64_t &invalidTime)
 {
     int64_t modifyTime = static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX));
     uint64_t curTime = 0;
     if (TimeHelper::GetSysCurrentRawTime(curTime) == E_OK) {
         if (modifyTime > static_cast<int64_t>(curTime)) {
+            invalidTime = modifyTime;
             modifyTime = static_cast<int64_t>(curTime);
+            revisedTime = modifyTime;
         }
     } else {
         LOGW("[Relational] get raw sys time failed.");
@@ -586,6 +589,14 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
             logInfo.insert_or_assign(CloudDbConstant::GID_FIELD, cloudGid);
             totalSize += cloudGid.size();
         }
+    }
+    if (revisedTime != 0) {
+        std::string cloudGid;
+        if (logInfo.count(CloudDbConstant::GID_FIELD) != 0) {
+            cloudGid = std::get<std::string>(logInfo[CloudDbConstant::GID_FIELD]);
+        }
+        LOGW("[Relational] Found invalid mod time: %lld, curTime: %lld, gid: %s", invalidTime, revisedTime,
+            DBCommon::StringMiddleMasking(cloudGid).c_str());
     }
     std::string version;
     SQLiteUtils::GetColumnTextValue(logStatement, VERSION_INDEX, version);
@@ -1580,7 +1591,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestam
     SqliteQueryHelper &helper, std::string &sql, int64_t &count)
 {
     sqlite3_stmt *stmt = nullptr;
-    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, timestamp, sql, stmt);
+    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
     if (errCode != E_OK) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;
@@ -1697,7 +1708,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     }
     std::string sql = helper.GetGidRelationalCloudQuerySql(tableSchema_.fields, isCloudForcePushStrategy,
         isCompensatedTask);
-    errCode = helper.GetCloudQueryStatement(false, dbHandle_, syncTimeRange.beginTime, sql, queryStmt);
+    errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, queryStmt);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1721,8 +1732,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(const CloudUpl
     VBucket log;
     VBucket extraLog;
     uint32_t preSize = totalSize;
-    GetCloudLog(statement, log, totalSize);
+    int64_t revisedTime = 0;
+    int64_t invalidTime = 0;
+    GetCloudLog(statement, log, totalSize, revisedTime, invalidTime);
     GetCloudExtraLog(statement, extraLog);
+    if (revisedTime != 0) {
+        Bytes hashKey = std::get<Bytes>(extraLog[CloudDbConstant::HASH_KEY]);
+        cloudDataResult.revisedData.push_back({hashKey, revisedTime, invalidTime});
+    }
 
     VBucket data;
     int64_t flag = 0;
@@ -1795,7 +1812,7 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSc
     localSchema_ = localSchema;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
+int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode)
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " +
         SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " + VERSION + " = '', " +
@@ -1814,7 +1831,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
         return errCode;
     }
     // set all flag logout and data upload is not finished.
-    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800 & ~0x400;";
+    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG;
+    if (mode == FLAG_ONLY) {
+        cleanLogSql += " = flag | 0x800 & ~0x400;";
+    } else {
+        cleanLogSql += " = flag & ~0x400;";
+    }
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
@@ -1850,7 +1872,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
         LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
         return errCode;
     }
-    errCode = CleanCloudDataOnLogTable(logTableName);
+    errCode = CleanCloudDataOnLogTable(logTableName, FLAG_AND_DATA);
     if (errCode != E_OK) {
         LOGE("Failed to clean gid on log table, %d.", errCode);
     }
@@ -1869,7 +1891,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ChangeCloudDataFlagOnLogTable(cons
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(const std::string &tableName,
     const std::string &logTableName)
 {
     UpdateCursorContext context;
@@ -1879,16 +1901,17 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(c
     std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_LOGIC_DELETE +
                       ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
                       SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
-                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD_CONSISTENCY + ");";
+                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD_CONSISTENCY +
+                      " AND NOT (" + DATA_IS_DELETE + ") " + " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to change cloud data flag on usertable, %d.", errCode);
         CreateFuncUpdateCursor(context, nullptr);
         return errCode;
     }
-    // deal when data is logicDelete
+    // clear some column when data is logicDelete or phyical delete
     sql = "UPDATE '" + logTableName + "' SET " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD +
-          " = '', " + SHARING_RESOURCE + " = '' WHERE " + FLAG_IS_LOGIC_DELETE + ";";
+          " = '', " + SHARING_RESOURCE + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR (" + DATA_IS_DELETE + ");";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to deal logic delete data flag on usertable, %d.", errCode);
@@ -1965,11 +1988,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
         updateLogSql += std::string(CloudDbConstant::TO_LOCAL_CHANGE) + ", cloud_gid = ?";
         updateColName.push_back(CloudDbConstant::GID_FIELD);
+        updateLogSql += ", version = ?";
+        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
     } else {
         updateLogSql += " device = 'cloud', timestamp = ?,";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
         if (opType == OpType::DELETE) {
-            updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
+            updateLogSql += GetCloudDeleteSql(tableSchema.name);
         } else {
             updateLogSql += GetUpdateDataFlagSql() + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);

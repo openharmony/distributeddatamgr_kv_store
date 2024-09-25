@@ -193,14 +193,14 @@ private:
     std::shared_ptr<DBStatusAdapter> GetDBStatusAdapter();
     std::shared_ptr<SubscribeRecorder> GetSubscribeRecorder();
 
-    int ScheduleTaskByThreadPool(const TaskAction &task) const __attribute__((no_sanitize("cfi")));
+    int ScheduleTaskByThreadPool(const TaskAction &task) const;
 
     int SetTimerByThreadPool(int milliSeconds, const TimerAction &action,
-        const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId) __attribute__((no_sanitize("cfi")));
+        const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId);
 
     int ModifyTimerByThreadPool(TimerId timerId, int milliSeconds);
 
-    void RemoveTimerByThreadPool(TimerId timerId, bool wait) __attribute__((no_sanitize("cfi")));
+    void RemoveTimerByThreadPool(TimerId timerId, bool wait);
 
     void ThreadPoolTimerAction(int milliSeconds, const TimerAction &action, TimerId timerId);
 

@@ -25,8 +25,8 @@
 #include "kvdb_observer_handle.h"
 #include "kvdb_pragma.h"
 #include "log_print.h"
-#include "store_types.h"
 #include "sqlite_single_ver_storage_engine.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 
@@ -127,26 +127,6 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, const
     resultSet = (IKvDBResultSet *)tmpResultSet;
     kvDbResultSets_.insert(resultSet);
     return E_OK;
-}
-
-static void PrintResultsetKeys(const QueryExpression &queryExpression)
-{
-    std::vector<uint8_t> beginKeyVec = queryExpression.GetBeginKey();
-    std::vector<uint8_t> endKeyVec = queryExpression.GetEndKey();
-    std::string beginKey;
-    std::string endKey;
-    if (beginKeyVec.size() == 0) {
-        beginKey = "NULL";
-    } else {
-        beginKey.assign(beginKeyVec.begin(), beginKeyVec.end());
-    }
-    if (endKeyVec.size() == 0) {
-        endKey = "NULL";
-    } else {
-        endKey.assign(endKeyVec.begin(), endKeyVec.end());
-    }
-
-    LOGD("begin key: %s, end key: %s", beginKey.c_str(), endKey.c_str());
 }
 
 int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option,
@@ -345,9 +325,6 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
         queryExpression.GetEndKey()), entries);
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTracing();
-    if (errCode != -E_NOT_FOUND) {
-        PrintResultsetKeys(queryExpression);
-    }
     return errCode;
 }
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
@@ -551,27 +528,32 @@ int RdSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<E
 
 int RdSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries)
 {
-    LOGD("PutBatchInner");
+    return SetBatchInner(option, entries, false);
+}
+
+int RdSingleVerNaturalStoreConnection::SetBatchInner(const IOption &option, const std::vector<Entry> &entries,
+    bool isDelete)
+{
     std::lock_guard<std::mutex> lock(transactionMutex_);
-    bool isAuto = false;
-    int errCode = E_OK;
     if (option.dataType != IOption::SYNC_DATA) {
         LOGE("LOCAL_DATA TYPE NOT SUPPORT in RD executor");
         return -E_NOT_SUPPORT;
     }
+    bool isAuto = false;
+    int errCode = E_OK;
+    bool isCommitNotify = !IsObserverEmpty();
     if (writeHandle_ == nullptr) {
         isAuto = true;
-        errCode = StartTransactionInner(TransactType::IMMEDIATE);
+        errCode = StartTransactionInner(isCommitNotify, TransactType::IMMEDIATE);
         if (errCode != E_OK) {
             return errCode;
         }
     }
-
-    errCode = SaveSyncEntries(entries, false);
+    errCode = SaveSyncEntries(entries, isDelete);
 
     if (isAuto) {
         if (errCode == E_OK) {
-            errCode = CommitInner();
+            errCode = CommitInner(isCommitNotify);
         } else {
             int innerCode = RollbackInner();
             errCode = (innerCode != E_OK) ? innerCode : errCode;
@@ -611,7 +593,7 @@ int RdSingleVerNaturalStoreConnection::SaveEntryNormally(const Entry &entry, boo
 {
     int errCode = writeHandle_->SaveSyncDataItem(entry, committedData_, isDelete);
     if (errCode != E_OK) {
-        LOGE("Save entry failed, err:%d", errCode);
+        LOGE("Save sync entry failed, err:%d", errCode);
     }
     return errCode;
 }
@@ -645,35 +627,35 @@ void RdSingleVerNaturalStoreConnection::ReleaseCommitData(SingleVerNaturalStoreC
     }
 }
 
-int RdSingleVerNaturalStoreConnection::StartTransactionInner(TransactType transType)
+int RdSingleVerNaturalStoreConnection::StartTransactionInner(bool isCommitNotify, TransactType transType)
 {
     if (IsExtendedCacheDBMode()) {
         return -E_NOT_SUPPORT;
     } else {
-        return StartTransactionNormally(transType);
+        return StartTransactionNormally(isCommitNotify, transType);
     }
 }
 
-int RdSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType transType)
+int RdSingleVerNaturalStoreConnection::StartTransactionNormally(bool isCommitNotify, TransactType transType)
 {
     int errCode = E_OK;
     RdSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
     if (handle == nullptr) {
         return errCode;
     }
-
     errCode = kvDB_->TryToDisableConnection(OperatePerm::NORMAL_WRITE);
     if (errCode != E_OK) {
         ReleaseExecutor(handle);
         LOGE("Start transaction failed, %d", errCode);
         return errCode;
     }
-
-    if (committedData_ == nullptr) {
-        committedData_ = new (std::nothrow) SingleVerNaturalStoreCommitNotifyData;
+    if (isCommitNotify) {
         if (committedData_ == nullptr) {
-            ReleaseExecutor(handle);
-            return -E_OUT_OF_MEMORY;
+            committedData_ = new (std::nothrow) SingleVerNaturalStoreCommitNotifyData;
+            if (committedData_ == nullptr) {
+                ReleaseExecutor(handle);
+                return -E_OUT_OF_MEMORY;
+            }
         }
     }
 
@@ -688,14 +670,15 @@ int RdSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType tra
     return E_OK;
 }
 
-int RdSingleVerNaturalStoreConnection::CommitInner()
+int RdSingleVerNaturalStoreConnection::CommitInner(bool isCommitNotify)
 {
     int errCode = writeHandle_->Commit();
     ReleaseExecutor(writeHandle_);
     writeHandle_ = nullptr;
-
-    CommitAndReleaseNotifyData(committedData_, true,
-        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+    if (isCommitNotify) {
+        CommitAndReleaseNotifyData(committedData_, true,
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+    }
     return errCode;
 }
 
@@ -740,55 +723,21 @@ int RdSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<Key>
 
 int RdSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
 {
-    DBDfxAdapter::StartTracing();
-    bool isAuto = false;
-    int errCode = E_OK;
-    if (option.dataType != IOption::SYNC_DATA) {
-        LOGE("LOCAL_DATA TYPE NOT SUPPORT in RD executor");
-        DBDfxAdapter::FinishTracing();
-        return -E_NOT_SUPPORT;
-    }
-    std::lock_guard<std::mutex> lock(transactionMutex_);
-    if (writeHandle_ == nullptr) {
-        isAuto = true;
-        errCode = StartTransactionInner(TransactType::IMMEDIATE);
-        if (errCode != E_OK) {
-            DBDfxAdapter::FinishTracing();
-            return errCode;
-        }
-    }
-
-    errCode = DeleteSyncEntries(keys);
-
-    if (isAuto) {
-        if (errCode == E_OK) {
-            errCode = CommitInner();
-        } else {
-            int innerCode = RollbackInner();
-            errCode = (innerCode != E_OK) ? innerCode : errCode;
-        }
-    }
-    DBDfxAdapter::FinishTracing();
-    return errCode;
-}
-
-int RdSingleVerNaturalStoreConnection::DeleteSyncEntries(const std::vector<Key> &keys)
-{
     std::vector<Entry> entries;
     for (const auto &key : keys) {
         Entry entry;
         entry.key = std::move(key);
         entries.emplace_back(std::move(entry));
     }
-
-    int errCode = SaveSyncEntries(entries, true);
-    if ((errCode != E_OK) && (errCode != -E_NOT_FOUND)) {
-        LOGE("[DeleteSyncEntries] Delete data err:%d", errCode);
-    }
-    return (errCode == -E_NOT_FOUND) ? E_OK : errCode;
+    return SetBatchInner(option, entries, true);
 }
 
 int RdSingleVerNaturalStoreConnection::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    return -E_NOT_SUPPORT;
+}
+
+int RdSingleVerNaturalStoreConnection::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
 {
     return -E_NOT_SUPPORT;
 }

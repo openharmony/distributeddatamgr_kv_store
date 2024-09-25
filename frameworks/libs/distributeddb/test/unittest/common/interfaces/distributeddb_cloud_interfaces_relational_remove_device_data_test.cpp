@@ -20,6 +20,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "process_system_api_adapter_impl.h"
+#include "relational_store_client.h"
 #include "relational_store_instance.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
@@ -30,6 +31,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include "mock_asset_loader.h"
 #include "cloud_db_sync_utils_test.h"
 
@@ -58,6 +60,7 @@ namespace {
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreObserverUnitTest *g_observer = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     SyncProcess g_syncProcess;
     using CloudSyncStatusCallback = std::function<void(const std::map<std::string, SyncProcess> &onProcess)>;
     const std::string CREATE_LOCAL_TABLE_SQL =
@@ -329,8 +332,21 @@ namespace {
     {
         int i = 0;
         for (const auto &tableName: tableList) {
-            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +" where device = 'cloud'";
-            sql += " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where device = 'cloud'" + " and cloud_gid is not null and cloud_gid != '' and " +
+                    "(flag & 0x2 = 0 or flag & 0x20 = 0);";
+            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
+            i++;
+        }
+    }
+
+    void CheckCompensatedNum(sqlite3 *&db, std::vector<std::string> tableList, std::vector<int> countList)
+    {
+        int i = 0;
+        for (const auto &tableName: tableList) {
+            std::string sql = "select count() from " + DBCommon::GetLogTableName(tableName) +
+                " where flag & 0x10 != 0;";
             EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
             i++;
@@ -592,6 +608,9 @@ namespace {
         DataBaseSchema dataBaseSchema;
         GetCloudDbSchema(dataBaseSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(communicatorAggregator_ != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     }
 
     void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::TearDown(void)
@@ -600,6 +619,9 @@ namespace {
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
         }
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+        communicatorAggregator_ = nullptr;
+        RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     }
 
 /*
@@ -1303,13 +1325,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 }
 
 /*
- * @tc.name: CleanCloudDataTest022
+ * @tc.name: CleanCloudDataTest021
  * @tc.desc: Test conflict, not dound, exis errCode will deal.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest022, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest021, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1318,7 +1340,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     auto data = static_cast<PragmaData>(&logicDelete);
     g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
     /**
-     * @tc.steps: step2. make data: 20 records on local.
+     * @tc.steps: step2. make data: 20 records on local
      */
     int64_t paddingSize = 20;
     int localCount = 20;

@@ -90,7 +90,7 @@ void PreSetData(uint8_t dataNum)
             validJsonData = R"({"field_name1":false,"field_name2":false,"field_name3":100})";
         }
         value.assign(validJsonData.begin(), validJsonData.end());
-        EXPECT_EQ(g_kvNbDelegatePtr->Put(keyA, value), E_OK);
+        EXPECT_EQ(g_kvNbDelegatePtr->Put(keyA, value), OK);
     }
 }
 
@@ -163,7 +163,7 @@ void CheckDataNumByKey(const std::string &storeId, const Key& key, size_t expSiz
     EXPECT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     std::vector<Entry> entries;
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(key, entries), E_OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(key, entries), OK);
     EXPECT_TRUE(entries.size() == expSize);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 }

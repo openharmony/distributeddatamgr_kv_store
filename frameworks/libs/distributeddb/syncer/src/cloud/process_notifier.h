@@ -36,7 +36,7 @@ public:
 
     void ResetUploadBatchIndex(const std::string &tableName);
 
-    uint32_t GetLastUploadSuccessCount(const std::string &tableName) const;
+    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo) const;
 
     void GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process);
 

@@ -808,6 +808,50 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync002, TestSize.Level1
     }
 }
 
+void DistributedDBSingleVerP2PSyncCheckTest::CancelTestInit(DeviceSyncOption &option, std::vector<Entry> &entries,
+    const uint32_t mtuSize)
+{
+    option.devices.push_back(g_deviceB->GetDeviceId());
+    option.devices.push_back(g_deviceC->GetDeviceId());
+    option.mode = SYNC_MODE_PULL_ONLY;
+    option.isQuery = false;
+    option.isWait = false;
+
+    std::vector<Key> keys;
+    const uint32_t entriesSize = 14000u;
+    DistributedDBUnitTest::GenerateRecords(entriesSize, entries, keys, KEY_LEN, mtuSize);
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        if (i % option.devices.size() == 0) {
+            g_deviceB->PutData(entries[i].key, entries[i].value, 0, 0);
+        } else {
+            g_deviceC->PutData(entries[i].key, entries[i].value, 0, 0);
+        }
+    }
+
+    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtuSize);
+}
+
+void DistributedDBSingleVerP2PSyncCheckTest::CancelTestEnd(std::vector<Entry> &entries, const uint32_t mtuSize)
+{
+    size_t syncSuccCount = 0;
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        Value value;
+        if (g_kvDelegatePtr->Get(entries[i].key, value) == OK) {
+            syncSuccCount++;
+            EXPECT_EQ(value, entries[i].value);
+        }
+    }
+    EXPECT_GT(syncSuccCount, static_cast<size_t>(0));
+    EXPECT_LT(syncSuccCount, entries.size());
+    uint32_t mtu = 5u;
+    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->RegBeforeDispatch(nullptr);
+}
+
 /**
  * @tc.name: BigDataSync003
  * @tc.desc: big data sync pushAndPull mode.
@@ -1132,7 +1176,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
      * @tc.steps: step1. deviceB sync to deviceA just for timeSync and abilitySync
      * @tc.expected: step1. should return OK.
      */
-    ASSERT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
+    ASSERT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
 
     /**
      * @tc.steps: step2. deviceA StartTransaction for prevent other sync action deviceB sync will fail
@@ -1149,7 +1193,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
     Timestamp currentTime;
     (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
     EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == E_OK);
-    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
 
     Value outValue;
     EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == NOT_FOUND);
@@ -1159,9 +1203,9 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
      * @tc.expected: step3. should return OK.
      */
     EXPECT_TRUE(g_kvDelegatePtr->Commit() == OK);
-    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
 
-    EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == E_OK);
+    EXPECT_TRUE(g_kvDelegatePtr->Get(key, outValue) == OK);
     EXPECT_EQ(outValue, value);
 }
 

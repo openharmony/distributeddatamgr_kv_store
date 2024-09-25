@@ -123,7 +123,7 @@ protected:
     virtual void SwitchStateAndStep(uint8_t event);
 
     // To Exec next sync task in context targetQueue
-    int ExecNextTask();
+    int ExecNextTask(uint32_t timeout = DBConstant::MIN_TIMEOUT);
 
     // Start a watchdog used for manual sync, when begin a manual sync
     int StartWatchDog();

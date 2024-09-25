@@ -661,6 +661,7 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
     if (IsKilled()) {
         return -E_OBJ_IS_KILLED;
     }
+    auto timeout = GetTimeout(context->GetDeviceId());
     AutoLock lockGuard(context);
     int status = context->GetTaskExecStatus();
     if ((status == SyncTaskContext::RUNNING) || context->IsKilled()) {
@@ -668,7 +669,7 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
     }
     context->SetTaskExecStatus(ISyncTaskContext::RUNNING);
     while (!context->IsTargetQueueEmpty()) {
-        int errCode = context->GetNextTarget();
+        int errCode = context->GetNextTarget(timeout);
         if (errCode != E_OK) {
             // current task execute failed, try next task
             context->ClearSyncOperation();
@@ -1315,5 +1316,22 @@ void SyncEngine::SetSyncInterface(ISyncInterface *syncInterface)
 {
     std::lock_guard<std::mutex> autoLock(storageMutex_);
     syncInterface_ = syncInterface;
+}
+
+uint32_t SyncEngine::GetTimeout(const std::string &dev)
+{
+    ICommunicator *communicator = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(communicatorProxyLock_);
+        if (communicatorProxy_ == nullptr) {
+            LOGW("[SyncEngine] Communicator is null when get %.3s timeout", dev.c_str());
+            return DBConstant::MIN_TIMEOUT;
+        }
+        communicator = communicatorProxy_;
+        RefObject::IncObjRef(communicator);
+    }
+    uint32_t timeout = communicator->GetTimeout(dev);
+    RefObject::DecObjRef(communicator);
+    return timeout;
 }
 } // namespace DistributedDB

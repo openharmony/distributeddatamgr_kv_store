@@ -1223,8 +1223,8 @@ int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
         RelationalSchemaObject newSchema;
         errCode = GetSchemaFromDB(newSchema);
         if (errCode != E_OK) {
-            LOGE("Get schema from db when check schema.");
-            return errCode;
+            LOGE("Get schema from db when check schema. err: %d", errCode);
+            return -E_SCHEMA_MISMATCH;
         }
         errCode = schemaMgr_.ChkSchema(tableName, newSchema);
     }
@@ -1370,6 +1370,20 @@ int RelationalSyncAbleStorage::SetLogTriggerStatus(bool status)
     return errCode;
 }
 
+int RelationalSyncAbleStorage::SetCursorIncFlag(bool flag)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->SetCursorIncFlag(flag);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const CloudSyncData &data, bool fillAsset,
     bool ignoreEmptyGid)
 {
@@ -1468,7 +1482,7 @@ int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableNam
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = CreateTempSyncTriggerInner(handle, tableName);
+    errCode = CreateTempSyncTriggerInner(handle, tableName, true);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
@@ -1895,7 +1909,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = rowId;
         logInfo.hashKey = updateData.hashKey[i];
-        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, DBCommon::IsRecordIgnored(record),
+        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(tableName, DBCommon::IsRecordIgnored(record),
             logInfo, record, type);
         int errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
         if (errCode != E_OK) {
@@ -1908,7 +1922,8 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
     return E_OK;
 }
 
-int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
+    std::vector<std::string> &users)
 {
     std::vector<TableSchema> tables;
     int errCode = GetCloudTableWithoutShared(tables);
@@ -1997,13 +2012,13 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
 }
 
 int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName)
+    const std::string &tableName, bool flag)
 {
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
     if (trackerTable.IsEmpty()) {
         trackerTable.SetTableName(tableName);
     }
-    return handle->CreateTempSyncTrigger(trackerTable);
+    return handle->CreateTempSyncTrigger(trackerTable, flag);
 }
 
 bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSchema &table)
@@ -2097,6 +2112,38 @@ void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName
     Timestamp localMark)
 {
     uploadRecorder_.ReleaseUploadRecord(tableName, type, localMark);
+}
+
+int RelationalSyncAbleStorage::ReviseLocalModTime(const std::string &tableName,
+    const std::vector<ReviseModTimeInfo> &revisedData)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[ReviseLocalModTime] Storage is null");
+        return -E_INVALID_DB;
+    }
+    int errCode = E_OK;
+    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+            storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
+    if (writeHandle == nullptr) {
+        LOGE("[ReviseLocalModTime] Get write handle fail: %d", errCode);
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[ReviseLocalModTime] Start Transaction fail: %d", errCode);
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->ReviseLocalModTime(tableName, revisedData);
+    if (errCode != E_OK) {
+        LOGE("[ReviseLocalModTime] Revise local modify time fail: %d", errCode);
+        writeHandle->Rollback();
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->Commit();
+    ReleaseHandle(writeHandle);
+    return errCode;
 }
 }
 #endif

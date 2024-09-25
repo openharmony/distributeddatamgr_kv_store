@@ -619,7 +619,7 @@ int OpenFile(const std::string &fileName, FileHandle *&fileHandle)
     }
     fileHandle->handle = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
     if (fileHandle->handle < 0) {
-        LOGE("[FileLock] can not open file when lock it:[%d], filename: %s", errno, fileName.c_str());
+        LOGE("[FileLock] can not open file when lock it:[%d]", errno);
         delete fileHandle;
         fileHandle = nullptr;
         return -E_SYSTEM_API_FAIL;

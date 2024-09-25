@@ -16,6 +16,9 @@
 #ifndef STORAGE_EXECUTOR_H
 #define STORAGE_EXECUTOR_H
 
+#include <cstdint>
+#include <string>
+
 #include "macro_utils.h"
 #include "single_ver_natural_store_commit_notify_data.h"
 #include "types_export.h"

@@ -177,6 +177,7 @@ public:
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
     int SetLogTriggerStatus(bool status) override;
+    int SetCursorIncFlag(bool flag) override;
 
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) override;
 
@@ -210,7 +211,7 @@ public:
 
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo) override;
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users) override;
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
@@ -244,6 +245,9 @@ protected:
 
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
+
+    int ReviseLocalModTime(const std::string &tableName,
+        const std::vector<ReviseModTimeInfo> &revisedData) override;
 
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
@@ -283,7 +287,8 @@ private:
     int GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
         const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery);
 
-    int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName);
+    int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        bool flag = false);
 
     bool CheckTableSupportCompensatedSync(const TableSchema &table);
 

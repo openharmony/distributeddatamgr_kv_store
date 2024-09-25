@@ -14,6 +14,7 @@
  */
 #include "cloud_db_proxy.h"
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -64,6 +65,32 @@ void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     std::unique_lock<std::shared_mutex> writeLock(assetLoaderMutex_);
     iAssetLoader_ = loader;
+}
+
+static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, uint8_t action)
+{
+    if (data.empty()) {
+        LOGI("[CloudDBProxy] sync data is empty");
+        return;
+    }
+
+    int64_t first = 0;
+    int errCode = CloudStorageUtils::GetValueFromVBucket<int64_t>(CloudDbConstant::MODIFY_FIELD, data[0], first);
+    if (errCode != E_OK) {
+        LOGE("get first modify time for bucket failed, %d", errCode);
+        return;
+    }
+
+    int64_t last = 0;
+    errCode = CloudStorageUtils::GetValueFromVBucket<int64_t>(CloudDbConstant::MODIFY_FIELD, data[data.size() - 1],
+        last);
+    if (errCode != E_OK) {
+        LOGE("get last modify time for bucket failed, %d", errCode);
+        return;
+    }
+
+    LOGI("[CloudDBProxy] sync action is %d and size is %d, sync data: first timestamp %lld, last timestamp %lld",
+        action, data.size(), first, last);
 }
 
 int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
@@ -138,6 +165,7 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
             DBCommon::RemoveDuplicateAssetsData(*assets);
         }
     }
+    RecordSyncDataTimeStampLog(data, QUERY);
     return errCode;
 }
 
@@ -308,6 +336,7 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     context->MoveOutRecordAndExtend(record, extend);
+    RecordSyncDataTimeStampLog(extend, action);
 
     switch (action) {
         case INSERT: {
@@ -570,13 +599,15 @@ bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
 
 bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status)
 {
+    if (DBCommon::IsRecordAssetsMissing(extend)) {
+        return false;
+    }
     if (extend.count(CloudDbConstant::GID_FIELD) == 0) {
         return true;
     }
     if (status != OK) {
         if (DBCommon::IsRecordError(extend) ||
-            (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordIgnored(extend) &&
-            !DBCommon::IsRecordVersionConflict(extend))) {
+            (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordVersionConflict(extend))) {
             return true;
         }
     }
@@ -607,7 +638,7 @@ void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBSta
         return;
     }
     for (auto &extend : extend_) {
-        if (DBCommon::IsNeedCompensatedForUpload(extend, type)) {
+        if (DBCommon::IsRecordIgnoredForReliability(extend, type) || DBCommon::IsRecordIgnored(extend)) {
             continue;
         }
         if (IsRecordActionFail(extend, type == CloudWaterType::INSERT, status)) {

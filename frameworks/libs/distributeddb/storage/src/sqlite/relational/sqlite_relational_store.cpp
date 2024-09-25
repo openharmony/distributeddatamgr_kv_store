@@ -124,7 +124,7 @@ int SQLiteRelationalStore::GetSchemaFromMeta(RelationalSchemaObject &schema)
         LOGE("Get relational schema from meta table failed. %d", errCode);
         return errCode;
     } else if (errCode == -E_NOT_FOUND || schemaVal.empty()) {
-        LOGW("No relational schema info was found. error %d size %zu", errCode, schemaVal.size());
+        LOGW("No relational schema info was found.");
         return -E_NOT_FOUND;
     }
 
@@ -198,19 +198,6 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
     }
 
     return E_OK;
-}
-
-int SQLiteRelationalStore::SaveSchemaToMeta()
-{
-    Key schemaKey;
-    DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, schemaKey);
-    Value schemaVal;
-    DBCommon::StringToVector(sqliteStorageEngine_->GetSchema().ToSchemaString(), schemaVal);
-    int errCode = storageEngine_->PutMetaData(schemaKey, schemaVal);
-    if (errCode != E_OK) {
-        LOGE("Save relational schema to meta table failed. %d", errCode);
-    }
-    return errCode;
 }
 
 int SQLiteRelationalStore::SaveTableModeToMeta(DistributedTableMode mode)
