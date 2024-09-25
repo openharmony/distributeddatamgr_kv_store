@@ -672,6 +672,31 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest014, TestSize.Level0)
 }
 
 /**
+  * @tc.name: SchemaMgrTest0015
+  * @tc.desc: Cloud schema has more fields than local schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: chenghuitao
+  */
+HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest0015, TestSize.Level0)
+{
+    FieldInfo field = SetField(FIELD_NAME_1, "int", true);
+    TableInfo table;
+    table.SetTableName(TABLE_NAME_1);
+    table.AddField(field);
+    table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+    RelationalSchemaObject localSchema;
+    localSchema.AddRelationalTable(table);
+
+    g_schemaMgr->SetCloudDbSchema(g_schema);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_1, localSchema), -E_SCHEMA_MISMATCH);
+
+    g_schemaMgr->SetCloudDbSchema(g_schema, localSchema);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_1, localSchema), E_OK);
+}
+
+/**
  * @tc.name: FieldInfo001
  * @tc.desc: Test Relational field info.
  * @tc.type: FUNC

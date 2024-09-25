@@ -147,6 +147,32 @@ bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, 
     return isLocalFieldPrimary == cloudField.primary;
 }
 
+void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaObject &localSchema)
+{
+    DataBaseSchema cloudSchema = schema;
+    for (TableSchema &table : cloudSchema.tables) {
+        std::string tableName = table.name;
+        TableInfo tableInfo = localSchema.GetTable(tableName);
+        if (tableInfo.Empty()) {
+            LOGD("Local schema does not contain certain table [%s size = %d]",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            continue;
+        }
+        FieldInfoMap localFields = tableInfo.GetFields();
+
+        // remove the fields that are not found in local schema from cloud schema
+        for (auto it = table.fields.begin(); it != table.fields.end();) {
+            if (localFields.find((*it).colName) == localFields.end()) {
+                it = table.fields.erase(it);
+                LOGI("Column name mismatch between local and cloud schema, colName: %s", (*it).colName.c_str());
+            } else {
+                ++it;
+            }
+        }
+    }
+    SetCloudDbSchema(cloudSchema);
+}
+
 void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
 {
     DataBaseSchema cloudSchema = schema;
