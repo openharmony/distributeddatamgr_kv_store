@@ -2377,6 +2377,25 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery012, TestSize.Level1)
 }
 
 /**
+* @tc.name: remote query 013
+* @tc.desc: Test rdb remote query deny fts3_tokenizer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery013, TestSize.Level0)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT hex(fts3_tokenizer('simple'))";
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_deviceB->RemoteQuery(DEVICE_A, condition, DBConstant::MIN_TIMEOUT, result), DB_ERROR);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
