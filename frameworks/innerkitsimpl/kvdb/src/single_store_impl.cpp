@@ -823,8 +823,14 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
-    KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId_);
+    if (status == SUCCESS) {
+        Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
+            .area = area_, .hapName = hapName_ };
+        KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
+        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
+        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
+        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId_);
+    }
     return status;
 }
 
