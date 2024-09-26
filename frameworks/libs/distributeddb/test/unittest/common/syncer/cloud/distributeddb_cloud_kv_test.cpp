@@ -311,6 +311,43 @@ bool DistributedDBCloudKvTest::CheckUserSyncInfo(const vector<std::string> users
 }
 
 /**
+ * @tc.name: SubUser001
+ * @tc.desc: Test get and delete db with sub user.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, SubUser001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Get db with subUser
+     * @tc.expected: step1.ok
+     */
+    KvStoreDelegateManager manager(APP_ID, USER_ID, "subUser");
+    KvStoreConfig subUserConfig = config_;
+    subUserConfig.dataDir = config_.dataDir + "/subUser";
+    OS::MakeDBDirectory(subUserConfig.dataDir);
+    manager.SetKvStoreConfig(subUserConfig);
+    KvStoreNbDelegate::Option option;
+    DBStatus openRet = OK;
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    manager.GetKvStore(STORE_ID_1, option,
+        [&openRet, &kvDelegatePtrS3_](DBStatus status, KvStoreNbDelegate *openDelegate) {
+        openRet = status;
+        kvDelegatePtrS3_ = openDelegate;
+    });
+    EXPECT_EQ(openRet, OK);
+    ASSERT_NE(kvDelegatePtrS3_, nullptr);
+    /**
+     * @tc.steps: step2. close and delete db
+     * @tc.expected: step2.ok
+     */
+    ASSERT_EQ(manager.CloseKvStore(kvDelegatePtrS3_), OK);
+    DBStatus status = manager.DeleteKvStore(STORE_ID_1);
+    EXPECT_EQ(status, OK);
+}
+
+/**
  * @tc.name: NormalSync001
  * @tc.desc: Test normal push sync for add data.
  * @tc.type: FUNC
@@ -1166,6 +1203,36 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync027
+ * @tc.desc: Test lock failed during data insert.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync027, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 1 record and sync.
+     * @tc.expected: step1 OK.
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    /**
+     * @tc.steps:step2. Lock cloud DB, and do sync.
+     * @tc.expected: step2 sync failed due to lock fail, and failCount is 1.
+     */
+    virtualCloudDb_->Lock();
+    BlockSync(kvDelegatePtrS1_, CLOUD_LOCK_ERROR, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 1u);
+    }
+    virtualCloudDb_->UnLock();
+}
+
+/**
  * @tc.name: NormalSync028
  * @tc.desc: Test multi user sync.
  * @tc.type: FUNC
@@ -1189,6 +1256,138 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync028, TestSize.Level0)
     option.users = {USER_ID, USER_ID_2};
     BlockSync(kvDelegatePtrS2_, OK, option);
     EXPECT_EQ(lastProcess_.tableProcess[USER_ID_2].downLoadInfo.total, 0u);
+}
+
+/**
+ * @tc.name: NormalSync029
+ * @tc.desc: Test lock failed during data insert.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync029, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. block virtual cloud.
+     */
+    virtualCloudDb_->SetBlockTime(1000); // block 1s
+    /**
+     * @tc.steps:step2. Call sync and let it run with block cloud.
+     * @tc.expected: step2 sync ok.
+     */
+    auto option = g_CloudSyncoption;
+    std::mutex finishMutex;
+    std::condition_variable cv;
+    std::vector<std::map<std::string, SyncProcess>> processRes;
+    auto callback = [&processRes, &finishMutex, &cv](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process != ProcessStatus::FINISHED) {
+                return;
+            }
+        }
+        {
+            std::lock_guard<std::mutex> autoLock(finishMutex);
+            processRes.push_back(process);
+        }
+        cv.notify_all();
+    };
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(option, callback), OK);
+    /**
+     * @tc.steps:step3. USER0 sync first and USER2 sync second.
+     * @tc.expected: step3 sync ok and USER2 task has been merged.
+     */
+    option.merge = true;
+    option.users = {USER_ID};
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(option, callback), OK);
+    option.users = {USER_ID_2};
+    EXPECT_EQ(kvDelegatePtrS1_->Sync(option, callback), OK);
+    /**
+     * @tc.steps:step4. Wait all task finished.
+     * @tc.expected: step4 Second sync task has USER0 and USER2.
+     */
+    virtualCloudDb_->SetBlockTime(0); // cancel block for test case run quickly
+    std::unique_lock<std::mutex> uniqueLock(finishMutex);
+    cv.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MAX_TIMEOUT), [&processRes]() {
+        return processRes.size() >= 3; // call sync 3 times
+    });
+    EXPECT_EQ(processRes[processRes.size() - 1].size(), 2u); // check the last process has 2 user
+}
+
+/**
+ * @tc.name: NormalSync030
+ * @tc.desc: Test sync while set null cloudDB
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync030, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create a database.
+     * @tc.expected: step1 OK.
+     */
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    DBStatus ret = OK;
+    g_mgr.GetKvStore(STORE_ID_3, option, [&ret, &kvDelegatePtrS3_](DBStatus status, KvStoreNbDelegate *openDelegate) {
+        ret = status;
+        kvDelegatePtrS3_ = openDelegate;
+    });
+    EXPECT_EQ(ret, OK);
+    ASSERT_NE(kvDelegatePtrS3_, nullptr);
+    /**
+     * @tc.steps:step2. Put {k, v}.
+     * @tc.expected: step2 OK.
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS3_->Put(key, value), OK);
+    /**
+     * @tc.steps:step3. Set null cloudDB.
+     * @tc.expected: step3 CLOUD_ERROR.
+     */
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, CLOUD_ERROR);
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+    cloudDbs[USER_ID] = nullptr;
+    cloudDbs[USER_ID_2] = virtualCloudDb2_;
+    EXPECT_EQ(kvDelegatePtrS3_->SetCloudDB(cloudDbs), INVALID_ARGS);
+    /**
+     * @tc.steps:step4. Sync while set null cloudDB.
+     * @tc.expected: step4 CLOUD_ERROR.
+     */
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, CLOUD_ERROR);
+    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegatePtrS3_), OK);
+}
+
+/**
+ * @tc.name: NormalSync031
+ * @tc.desc: Test sync with error local device
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync031, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 1 record and sync.
+     * @tc.expected: step1 OK.
+     */
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key, value), OK);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. Set local devices error and sync.
+     * @tc.expected: step2 sync fail.
+     */
+    communicatorAggregator_->MockGetLocalDeviceRes(-E_CLOUD_ERROR);
+    BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    communicatorAggregator_->MockGetLocalDeviceRes(E_OK);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.downLoadInfo.total, 0u);
+        EXPECT_EQ(table.second.downLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.total, 0u);
+    }
 }
 
 /**
@@ -1284,6 +1483,107 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync034
+ * @tc.desc: test sync data which size > maxUploadSize.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync034, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put data which size > maxUploadSize.
+     * @tc.expected: step1 ok.
+     */
+    CloudSyncConfig config;
+    int maxUploadSize = 1024000;
+    int maxUploadCount = 40;
+    config.maxUploadSize = maxUploadSize;
+    config.maxUploadCount = maxUploadCount;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    Key key = {'k'};
+    Value value = {'v'};
+    value.insert(value.end(), maxUploadSize, '0');
+    kvDelegatePtrS1_->Put(key, value);
+    /**
+     * @tc.steps:step2. put entries which count > maxUploadCount.
+     * @tc.expected: step2 ok.
+     */
+    vector<Entry> entries;
+    for (int i = 0; i < maxUploadCount; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    /**
+     * @tc.steps:step3. sync and check upLoadInfo.batchIndex.
+     * @tc.expected: step3 ok.
+     */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.batchIndex, 2u);
+    }
+}
+
+/**
+ * @tc.name: NormalSync035
+ * @tc.desc:test sync after export and import
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put local records {k1, v1} and sync to cloud.
+     * @tc.expected: step1 ok.
+     */
+    Key key1 = {'k', '1'};
+    Value value1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, value1), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue1), OK);
+    EXPECT_EQ(actualValue1, value1);
+    auto result = kvDelegatePtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "1");
+    }
+    /**
+     * @tc.steps:step2. export and import.
+     * @tc.expected: step2 export and import ok.
+     */
+    std::string singleExportFileName = g_testDir + "/NormalSync034.$$";
+    CipherPassword passwd;
+    EXPECT_EQ(kvDelegatePtrS1_->Export(singleExportFileName, passwd), OK);
+    EXPECT_EQ(kvDelegatePtrS1_->Import(singleExportFileName, passwd), OK);
+    /**
+     * @tc.steps:step3. put {k1, v2} and sync to cloud.
+     * @tc.expected: step3 ok.
+     */
+    Value value2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, value2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue2), OK);
+    EXPECT_EQ(actualValue2, value2);
+    result = kvDelegatePtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "11");
+    }
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+}
+
+/**
  * @tc.name: NormalSync036
  * @tc.desc: test sync data with SetCloudSyncConfig.
  * @tc.type: FUNC
@@ -1308,6 +1608,205 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
      * @tc.expected: step2 ok.
      */
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+}
+
+/**
+ * @tc.name: NormalSync037
+ * @tc.desc: test update sync data while local and cloud record device is same and not local device.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync037, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. deviceB sync to cloud.
+     * @tc.expected: step2. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    /**
+     * @tc.steps:step3. deviceA put {k1, v2} and sync to cloud.
+     * @tc.expected: step3. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step4. deviceB sync to cloud.
+     * @tc.expected: step4. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue2), OK);
+    EXPECT_EQ(actualValue2, expectValue2);
+}
+
+/**
+ * @tc.name: NormalSync038
+ * @tc.desc: test insert sync data while local and cloud record device is same and not local device.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync038, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. deviceB sync to cloud.
+     * @tc.expected: step2. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    /**
+     * @tc.steps:step3. deviceA put {k2, v2} and sync to cloud.
+     * @tc.expected: step3. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step4. deviceB sync to cloud.
+     * @tc.expected: step4. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    actualValue1.clear();
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key2, actualValue2), OK);
+    EXPECT_EQ(actualValue2, expectValue2);
+}
+
+/**
+ * @tc.name: NormalSync039
+ * @tc.desc: test delete sync data while local and cloud record device is same and not local device.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync039, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. deviceA put {k1, v1} {k2, v2} and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. deviceB sync to cloud.
+     * @tc.expected: step2. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key2, actualValue2), OK);
+    EXPECT_EQ(actualValue2, expectValue2);
+    /**
+     * @tc.steps:step3. deviceA delete {k2, v2} and sync to cloud.
+     * @tc.expected: step3. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(key2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step4. deviceB sync to cloud.
+     * @tc.expected: step4. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    actualValue1.clear();
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    actualValue2.clear();
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key2, actualValue2), NOT_FOUND);
+    EXPECT_NE(actualValue2, expectValue2);
+}
+
+/**
+ * @tc.name: NormalSync040
+ * @tc.desc: test update sync data while local and cloud record device is different and not local device.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync040, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. deviceB sync to cloud.
+     * @tc.expected: step2. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    /**
+     * @tc.steps:step3. deviceA put {k1, v2} and sync to cloud.
+     * @tc.expected: step3. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step4. deviceB put {k1, v3} sync to cloud.
+     * @tc.expected: step4. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    Value expectValue3 = {'v', '3'};
+    ASSERT_EQ(kvDelegatePtrS2_->Put(key, expectValue3), OK);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue2), OK);
+    EXPECT_NE(actualValue2, expectValue2);
+    EXPECT_EQ(actualValue2, expectValue3);
 }
 
 /**
@@ -1345,6 +1844,179 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync041, TestSize.Level1)
     });
     EXPECT_EQ(kvDelegatePtrS3_->Sync(g_CloudSyncoption, nullptr), OK);
     syncThread.join();
+}
+
+/**
+ * @tc.name: NormalSync042
+ * @tc.desc: Test some record upload fail in 1 batch and get cloud version successfully.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync042, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 10 records.
+     * @tc.expected: step1 ok.
+     */
+    vector<Entry> entries;
+    int count = 10; // put 10 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    /**
+     * @tc.steps:step2. sync and set the last record upload fail.
+     * @tc.expected: step2 sync fail and upLoadInfo.failCount is 1.
+     */
+    int uploadFailId = 0;
+    virtualCloudDb_->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId == 10) { // 10 is the last record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+            return CLOUD_ERROR;
+        }
+        return OK;
+    });
+    BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 9u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 9u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 1u);
+    }
+    /**
+     * @tc.steps:step3. get cloud version successfully.
+     * @tc.expected: step3 OK.
+     */
+    auto result = kvDelegatePtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "1");
+    }
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync043
+ * @tc.desc: Test some record upload fail in 1 batch and get cloud version failed.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. put 10 records.
+     * @tc.expected: step1 ok.
+     */
+    vector<Entry> entries;
+    int count = 10; // put 10 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    /**
+     * @tc.steps:step2. sync and set all record upload fail.
+     * @tc.expected: step2 sync fail and upLoadInfo.failCount is 10.
+     */
+    virtualCloudDb_->ForkInsertConflict([](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+        return CLOUD_ERROR;
+    });
+    BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 10u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 10u);
+    }
+    /**
+     * @tc.steps:step3. get cloud version failed.
+     * @tc.expected: step3 NOT_FOUND.
+     */
+    auto result = kvDelegatePtrS1_->GetCloudVersion("");
+    EXPECT_EQ(result.first, NOT_FOUND);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "");
+    }
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync044
+ * @tc.desc: Test RemoveDeviceData with FLAG_ONLY option
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync044, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. store1 put (k1,v1) and (k2,v2)
+     * @tc.expected: step1. both put ok
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
+        LOGW("origin is %s", origin.c_str());
+        return origin + "1";
+    });
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
+    /**
+     * @tc.steps: step2. DEVICE_A with store1 sync and DEVICE_B with store2 sync
+     * @tc.expected: step2. both sync ok, and store2 got (k1,v1) and (k2,v2)
+     */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    LOGW("Store1 sync end");
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    LOGW("Store2 sync end");
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue1);
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue2);
+    /**
+     * @tc.steps: step3. store2 RevoveDeviceData with FLAG_ONLY option
+     * @tc.expected: step3. store2 delete DEVICE_A's version CloudVersion data successfully
+     */
+    auto result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "1");
+    }
+    EXPECT_EQ(kvDelegatePtrS2_->RemoveDeviceData("DEVICES_A", ClearMode::FLAG_ONLY), OK);
+    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
+    result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, NOT_FOUND);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "");
+    }
 }
 
 /**
@@ -1387,1157 +2059,20 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
 }
 
 /**
- * @tc.name: SyncOptionCheck001
- * @tc.desc: Test sync without user.
+ * @tc.name: NormalSync046
+ * @tc.desc: Test RemoveDeviceData with FLAG_ONLY option and empty deviceName
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: liaoyonghuang
+ * @tc.author: chenghuitao
  */
-HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Device 1 inserts a piece of data.
-     * @tc.expected: step1 OK.
-     */
-    Key key = {'k'};
-    Value value = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
-    /**
-     * @tc.steps:step2. Set option without user, and attempt to sync
-     * @tc.expected: step2 return INVALID_ARGS.
-     */
-    CloudSyncOption option;
-    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
-    option.devices.push_back("cloud");
-    BlockSync(kvDelegatePtrS1_, OK, option, INVALID_ARGS);
-    /**
-     * @tc.steps:step3. Device 2 sync and attempt to get data.
-     * @tc.expected: step3 sync OK but data NOT_FOUND.
-     */
-    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), NOT_FOUND);
-}
-
-/**
- * @tc.name: SyncOptionCheck002
- * @tc.desc: Test sync with invalid waitTime.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck002, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Device 1 inserts a piece of data.
-     * @tc.expected: step1 OK.
-     */
-    Key key = {'k'};
-    Value value = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
-    /**
-     * @tc.steps:step2. Set invalid waitTime of sync option and sync.
-     * @tc.expected: step2 return INVALID_ARGS.
-     */
-    CloudSyncOption option;
-    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
-    option.users.push_back(USER_ID);
-    option.devices.push_back("cloud");
-    option.waitTime = -2; // -2 is invalid waitTime.
-    BlockSync(kvDelegatePtrS1_, OK, option, INVALID_ARGS);
-    /**
-     * @tc.steps:step3. Device 2 sync and attempt to get data.
-     * @tc.expected: step3 sync OK but data NOT_FOUND.
-     */
-    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), NOT_FOUND);
-}
-
-/**
- * @tc.name: SyncOptionCheck003
- * @tc.desc: Test sync with users which have not been sync to cloud.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck003, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Device 1 inserts a piece of data.
-     * @tc.expected: step1 OK.
-     */
-    Key key = {'k'};
-    Value value = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
-    /**
-     * @tc.steps:step2. Set user1 and user3 to option and sync.
-     * @tc.expected: step2 return INVALID_ARGS.
-     */
-    CloudSyncOption option;
-    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
-    option.users.push_back(USER_ID);
-    option.users.push_back(USER_ID_3);
-    option.devices.push_back("cloud");
-    BlockSync(kvDelegatePtrS1_, OK, option, INVALID_ARGS);
-    /**
-     * @tc.steps:step3. Device 2 sync and attempt to get data.
-     * @tc.expected: step3 sync OK but data NOT_FOUND.
-     */
-    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), NOT_FOUND);
-}
-
-/**
- * @tc.name: SyncOptionCheck004
- * @tc.desc: Test sync with user when schema is not same.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck004, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Device 1 inserts a piece of data.
-     * @tc.expected: step1 OK.
-     */
-    Key key = {'k'};
-    Value value = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
-    /**
-     * @tc.steps:step2. Set user1 to option and user2 to schema and sync.
-     * @tc.expected: step2 return SCHEMA_MISMATCH.
-     */
-    CloudSyncOption option;
-    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
-    option.users.push_back(USER_ID);
-    option.devices.push_back("cloud");
-    std::map<std::string, DataBaseSchema> schemas;
-    schemas[USER_ID_2] = GetDataBaseSchema(false);
-    kvDelegatePtrS1_->SetCloudDbSchema(schemas);
-    BlockSync(kvDelegatePtrS1_, OK, option, SCHEMA_MISMATCH);
-}
-
-/**
- * @tc.name: SyncOptionCheck005
- * @tc.desc: Testing registration of observer exceeded the upper limit.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck005, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Register MAX_OBSERVER_COUNT observers.
-     * @tc.expected: step1 OK.
-     */
-    std::vector<KvStoreObserverUnitTest *> observerList;
-    for (int i = 0; i < DBConstant::MAX_OBSERVER_COUNT; i++) {
-        auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
-        observerList.push_back(observer);
-        EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, observer), OK);
-    }
-    /**
-     * @tc.steps:step2. Register one more observer.
-     * @tc.expected: step2 Registration failed, return OVER_MAX_LIMITS.
-     */
-    auto *overMaxObserver = new (std::nothrow) KvStoreObserverUnitTest;
-    EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, overMaxObserver), OVER_MAX_LIMITS);
-    /**
-     * @tc.steps:step3. UnRegister all observers.
-     * @tc.expected: step3 OK.
-     */
-    EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(overMaxObserver), NOT_FOUND);
-    delete overMaxObserver;
-    overMaxObserver = nullptr;
-    for (auto &observer : observerList) {
-        EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(observer), OK);
-        delete observer;
-        observer = nullptr;
-    }
-}
-
-void DistributedDBCloudKvTest::SetFlag(const Key &key, LogInfoFlag flag)
-{
-    sqlite3 *db_;
-    uint64_t openFlag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, openFlag, nullptr) == SQLITE_OK);
-    int errCode = E_OK;
-    std::string sql = "UPDATE sync_data SET flag=? WHERE Key=?";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-    ASSERT_EQ(errCode, E_OK);
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, static_cast<int64_t>(flag)); // 1st arg.
-    ASSERT_EQ(errCode, E_OK);
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 2, key, true); // 2nd arg.
-    ASSERT_EQ(errCode, E_OK);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-}
-
-int DistributedDBCloudKvTest::CheckFlag(const Key &key, LogInfoFlag flag)
-{
-    sqlite3 *db_;
-    uint64_t openFlag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, openFlag, nullptr);
-    if (errCode != E_OK) {
-        return NOT_FOUND;
-    }
-    std::string sql = "SELECT * FROM sync_data WHERE Key =? AND (flag=?)";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    std::vector<uint8_t> keyVec(key.begin(), key.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyVec, true); // 1st arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 2, static_cast<int64_t>(flag)); // 2nd arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return NOT_FOUND; // cant find.
-    }
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return OK;
-    }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-    return NOT_FOUND;
-}
-
-int DistributedDBCloudKvTest::CheckWaterMark(const std::string &user)
-{
-    sqlite3 *db_;
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
-    if (errCode != E_OK) {
-        return NOT_FOUND;
-    }
-    std::string sql;
-    if (user.empty()) {
-        sql = "SELECT * FROM meta_data WHERE KEY LIKE 'naturalbase_cloud_meta_sync_data_%'";
-    } else {
-        sql = "SELECT * FROM meta_data WHERE KEY =?;";
-    }
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    if (!user.empty()) {
-        std::string waterMarkKey = HWM_HEAD + user;
-        std::vector<uint8_t> keyVec(waterMarkKey.begin(), waterMarkKey.end());
-        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyVec, true); // only one arg.
-        if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
-            return NOT_FOUND;
-        }
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return NOT_FOUND; // cant find.
-    }
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return OK;
-    }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-    return NOT_FOUND;
-}
-
-void DistributedDBCloudKvTest::SetDeviceId(const Key &key, const std::string &deviceId)
-{
-    sqlite3 *db_;
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr) == SQLITE_OK);
-    int errCode = E_OK;
-    std::string sql = "UPDATE sync_data SET device=? WHERE Key=?";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-    ASSERT_EQ(errCode, E_OK);
-    std::string hashDevice = DBCommon::TransferHashString(deviceId);
-    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
-    int bindIndex = 1;
-    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, deviceIdVec, true); // only one arg.
-    ASSERT_EQ(errCode, E_OK);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-    bindIndex++;
-    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, key, true); // only one arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-}
-
-int DistributedDBCloudKvTest::CheckLogTable(const std::string &deviceId)
-{
-    sqlite3 *db_;
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
-    if (errCode != E_OK) {
-        return NOT_FOUND;
-    }
-    std::string sql = "SELECT * FROM naturalbase_kv_aux_sync_data_log WHERE hash_key IN" \
-        "(SELECT hash_key FROM sync_data WHERE device =?);";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    std::string hashDevice = DBCommon::TransferHashString(deviceId);
-    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, deviceIdVec, true); // only one arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return NOT_FOUND;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return NOT_FOUND; // cant find.
-    }
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return OK;
-    }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-    return NOT_FOUND;
-}
-
-int DistributedDBCloudKvTest::ChangeUserId(const std::string &deviceId, const std::string &wantUserId)
-{
-    sqlite3 *db_;
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
-    if (errCode != E_OK) {
-        return INVALID_ARGS;
-    }
-    std::string sql = "UPDATE naturalbase_kv_aux_sync_data_log SET userid =? WHERE hash_key IN" \
-        "(SELECT hash_key FROM sync_data WHERE device =? AND (flag=0x100));";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return INVALID_ARGS;
-    }
-    int bindIndex = 1;
-    errCode = SQLiteUtils::BindTextToStatement(statement, bindIndex, wantUserId); // only one arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return INVALID_ARGS;
-    }
-    bindIndex++;
-    std::string hashDevice = DBCommon::TransferHashString(deviceId);
-    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, bindIndex, deviceIdVec, true); // only one arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return INVALID_ARGS;
-    }
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-    return INVALID_ARGS;
-}
-
-int DistributedDBCloudKvTest::ChangeHashKey(const std::string &deviceId)
-{
-    sqlite3 *db_;
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    std::string fileUrl = g_testDir + "/" \
-        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &db_, flag, nullptr);
-    if (errCode != E_OK) {
-        return INVALID_ARGS;
-    }
-    std::string updataLogTableSql = "UPDATE naturalbase_kv_aux_sync_data_log SET hash_Key ='99';";
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db_, updataLogTableSql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return INVALID_ARGS;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-    }
-
-    std::string sql = "UPDATE sync_data SET hash_Key ='99' WHERE device =? AND (flag=0x100);";
-    errCode = SQLiteUtils::GetStatement(db_, sql, statement);
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return INVALID_ARGS;
-    }
-    std::string hashDevice = DBCommon::TransferHashString(deviceId);
-    std::vector<uint8_t> deviceIdVec(hashDevice.begin(), hashDevice.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, deviceIdVec, true); // only one arg.
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        sqlite3_close_v2(db_);
-        return OK; // cant find.
-    }
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    EXPECT_EQ(errCode, E_OK);
-    sqlite3_close_v2(db_);
-    return INVALID_ARGS;
-}
-
-void DistributedDBCloudKvTest::InsertRecord(int num)
-{
-    for (int i = 0; i < num; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value value;
-        value.push_back('k');
-        value.push_back('0' + i);
-        ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
-        BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-}
-
-/**
- * @tc.name: RemoveDeviceTest001
- * @tc.desc: remove all log table record with empty deviceId and FLAG_ONLY flag
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest001, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
-     * (Key:k2, device:2, userId:0)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-        EXPECT_EQ(CheckFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE), OK);
-        EXPECT_EQ(CheckWaterMark(""), OK);
-    }
-    /**
-     * @tc.steps: step3. remove log data with empty deviceId.
-     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_ONLY), OK);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), NOT_FOUND);
-        EXPECT_EQ(CheckFlag(key, LogInfoFlag::FLAG_LOCAL), OK);
-        EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
-    }
-}
-
-/**
- * @tc.name: RemoveDeviceTest002
- * @tc.desc: remove all record with empty deviceId and FLAG_AND_DATA flag
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest002, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
-     * (Key:k2, device:2, userId:0)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-        EXPECT_EQ(CheckWaterMark(""), OK);
-    }
-    /**
-     * @tc.steps: step3. remove log data with empty deviceId.
-     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), NOT_FOUND);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), NOT_FOUND);
-        EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
-    }
-}
-
-/**
- * @tc.name: RemoveDeviceTest003
- * @tc.desc: remove record with deviceId
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest003, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user0),
-     * (Key:k2, device:2, userId:0)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-        EXPECT_EQ(CheckFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE), OK); // flag become 0x2;
-        EXPECT_EQ(CheckWaterMark(""), OK);
-    }
-    /**
-     * @tc.steps: step3. remove "2" deviceId log data with FLAG_AND_DATA, remove "1" with FLAG_ONLY.
-     * * @tc.expected: step3. remove OK
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("1", ClearMode::FLAG_ONLY), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("2", ClearMode::FLAG_AND_DATA), OK);
-    Key key1({'k', '1'});
-    std::string deviceId1 = "1";
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
-    EXPECT_EQ(CheckFlag(key1, LogInfoFlag::FLAG_LOCAL), OK); // flag become 0x2;
-    Key key2({'k', '2'});
-    std::string deviceId2 = "2";
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
-    EXPECT_EQ(CheckLogTable(deviceId2), NOT_FOUND);
-    EXPECT_EQ(CheckWaterMark(""), NOT_FOUND);
-}
-
-/**
- * @tc.name: RemoveDeviceTest004
- * @tc.desc: remove all record with userId and empty deviceId.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest004, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
-     * (Key:k2, device:2, userId:2)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    std::string userHead = "user";
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-        EXPECT_EQ(CheckFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE), OK);
-    }
-    EXPECT_EQ(CheckWaterMark(userHead + "0"), OK);
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-    }
-    /**
-     * @tc.steps: step3. remove "user1" userid log data with FLAG_AND_DATA, remove "user2" userid with FLAG_ONLY.
-     * * @tc.expected: step3. remove OK
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "user0", ClearMode::FLAG_ONLY), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "user2", ClearMode::FLAG_AND_DATA), OK);
-    Key key0({'k', '0'});
-    std::string deviceId1 = "0";
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key0, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
-    EXPECT_EQ(CheckFlag(key0, LogInfoFlag::FLAG_LOCAL), OK); // flag become 0x2;
-    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
-    Key key2({'k', '2'});
-    std::string deviceId2 = "2";
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
-    EXPECT_EQ(CheckLogTable(deviceId2), NOT_FOUND);
-}
-
-/**
- * @tc.name: RemoveDeviceTest005
- * @tc.desc: remove record with userId and deviceId.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest005, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
-     * (Key:k2, device:2, userId:2)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    std::string userHead = "user";
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-    EXPECT_EQ(CheckWaterMark(userHead + "0"), OK);
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-        EXPECT_EQ(CheckFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE), OK);
-    }
-    /**
-     * @tc.steps: step3. remove "user1" userid log data with FLAG_AND_DATA, remove "user0" userid with FLAG_ONLY.
-     * remove "user2" userid log data with dismatch deviceId, it cant not remove the data.
-     * * @tc.expected: step3. remove OK
-    */
-    std::string deviceId0 = "0";
-    std::string deviceId1 = "1";
-    std::string deviceId2 = "2";
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user0", ClearMode::FLAG_ONLY), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user1", ClearMode::FLAG_AND_DATA), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user2", ClearMode::FLAG_AND_DATA), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId0, "user2", ClearMode::FLAG_ONLY), OK);
-    Key key0({'k', '0'});
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key0, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId0), NOT_FOUND);
-    EXPECT_EQ(CheckFlag(key0, LogInfoFlag::FLAG_LOCAL), OK); // flag become 0x2;
-    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
-    Key key1({'k', '1'});
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), NOT_FOUND);
-    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
-    Key key2({'k', '2'});;
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId2), OK);
-}
-
-/**
- * @tc.name: RemoveDeviceTest006
- * @tc.desc: remove record with userId and deviceId, and there are same hashKey record in log table.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest006, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
-     * (Key:k2, device:2, userId:2)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    std::string userHead = "user";
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD_WRITE);
-        SetDeviceId(key, std::to_string(i));
-        ChangeUserId(std::to_string(i), userHead + std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-    }
-    /**
-     * @tc.steps: step3. Make log table all users's hashKey become same hashKey '99', and the hashKey in syncTable
-     *  where device is deviceId1 also become '99',remove data with FLAG_AND_DATA flag.
-     * * @tc.expected: step3. remove OK
-    */
-    std::string deviceId1 = "1";
-    std::string deviceId2 = "2";
-    std::string deviceId0 = "0";
-    DistributedDBCloudKvTest::ChangeHashKey(deviceId1);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user1", ClearMode::FLAG_AND_DATA), OK);
-    Key key1({'k', '1'});
-    Value actualValue;
-    // there are other users with same hash_key connect with this data in sync_data table, cant not remove the data.
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId1), OK); // match user2 and user0;
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user2", ClearMode::FLAG_AND_DATA), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), OK);
-    EXPECT_EQ(CheckLogTable(deviceId1), OK); // only user0 match the hash_key that same as device1.
-    EXPECT_EQ(CheckFlag(key1, LogInfoFlag::FLAG_CLOUD_WRITE), OK); // flag still 0x100;
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId1, "user0", ClearMode::FLAG_AND_DATA), OK);
-    // all log have been deleted, so data would also be deleted.
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key1, actualValue), NOT_FOUND);
-    EXPECT_EQ(CheckLogTable(deviceId1), NOT_FOUND);
-    EXPECT_EQ(CheckWaterMark(userHead + "0"), NOT_FOUND);
-}
-
-/**
- * @tc.name: RemoveDeviceTest007
- * @tc.desc: remove record with invalid deviceId and mode.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: mazhao
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest007, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Test removeDeviceData with invalid length deviceId.
-     * * @tc.expected:
-    */
-    std::string deviceId = std::string(128, 'a');
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, ClearMode::FLAG_AND_DATA), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "user1", ClearMode::FLAG_AND_DATA), OK);
-
-    std::string invaliDeviceId = std::string(129, 'a');
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(invaliDeviceId, ClearMode::FLAG_AND_DATA), INVALID_ARGS);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(invaliDeviceId, "user1", ClearMode::FLAG_AND_DATA), INVALID_ARGS);
-
-    /**
-     * @tc.steps: step2. Test removeDeviceData with invalid mode.
-     * * @tc.expected:
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, ClearMode::CLEAR_SHARED_TABLE), NOT_SUPPORT);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "user1", ClearMode::CLEAR_SHARED_TABLE), NOT_SUPPORT);
-}
-
-/**
- * @tc.name: RemoveDeviceTest008
- * @tc.desc: remove record without mode.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonnghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest008, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
-     * (Key:k2, device:2, userId:2)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD);
-        SetDeviceId(key, std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-    }
-    /**
-     * @tc.steps: step3. Remove data without mode.
-     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
-    */
-    for (int i = 0; i < recordNum; i++) {
-        EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(std::to_string(i)), OK);
-    }
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), NOT_FOUND);
-    }
-}
-
-/**
- * @tc.name: RemoveDeviceTest009
- * @tc.desc: remove record without mode FLAG_AND_DATA.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonnghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest009, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record (Key:k0, device:0, userId:user0), (Key:k1, device:1, userId:user1),
-     * (Key:k2, device:2, userId:2)
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        SetFlag(key, LogInfoFlag::FLAG_CLOUD);
-        SetDeviceId(key, std::to_string(i));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep for 100ms
-    }
-
-    /**
-     * @tc.steps: step2. Check three Log record whether exist or not;
-     * * @tc.expected: step2. record exist
-    */
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), OK);
-    }
-    /**
-     * @tc.steps: step3. Remove data without mode FLAG_AND_DATA.
-     * * @tc.expected: step3. remove OK, there are not user record exist in log table.
-    */
-    for (int i = 0; i < recordNum; i++) {
-        EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(std::to_string(i), ClearMode::FLAG_AND_DATA), OK);
-    }
-    for (int i = 0; i < recordNum; i++) {
-        Key key;
-        key.push_back('k');
-        key.push_back('0' + i);
-        Value actualValue;
-        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-        std::string deviceId = std::to_string(i);
-        EXPECT_EQ(CheckLogTable(deviceId), NOT_FOUND);
-    }
-}
-
-/**
- * @tc.name: RemoveDeviceTest010
- * @tc.desc: remove record with invalid mode.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest010, TestSize.Level0)
-{
-    std::string deviceId = std::string(128, 'a');
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "", ClearMode::FLAG_ONLY), INVALID_ARGS);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "", ClearMode::CLEAR_SHARED_TABLE), INVALID_ARGS);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "", ClearMode::FLAG_AND_DATA), INVALID_ARGS);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "", ClearMode::DEFAULT), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", "", ClearMode::DEFAULT), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::DEFAULT), OK);
-}
-
-/**
- * @tc.name: RemoveDeviceTest011
- * @tc.desc: remove record while conn is nullptr.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest011, TestSize.Level0)
-{
-    const KvStoreNbDelegate::Option option = {true, true};
-    KvStoreNbDelegate *kvDelegateInvalidPtrS1_ = nullptr;
-    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS1_, "RemoveDeviceTest011", option), OK);
-    ASSERT_NE(kvDelegateInvalidPtrS1_, nullptr);
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", ClearMode::FLAG_ONLY), DB_ERROR);
-    EXPECT_EQ(kvDelegateInvalidPtrS1_->RemoveDeviceData("", "", ClearMode::FLAG_ONLY), DB_ERROR);
-    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS1_), OK);
-}
-
-/**
- * @tc.name: RemoveDeviceTest012
- * @tc.desc: Test remove all data from other device.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudKvTest, RemoveDeviceTest012, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Insert three record, k0 from device sync, k1 from local write, k2 from cloud sync.
-     * * @tc.expected: step1. insert successfully
-    */
-    int recordNum = 3;
-    InsertRecord(recordNum);
-    SetFlag({'k', '0'}, LogInfoFlag::FLAG_CLOUD);
-    SetFlag({'k', '1'}, LogInfoFlag::FLAG_LOCAL);
-    /**
-     * @tc.steps: step2. Remove data from device sync and cloud sync, and remove log.
-     * * @tc.expected: step2. All data and log are removed except data from local write.
-    */
-    EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(), OK);
-    Value actualValue;
-    Value expectValue = {'k', '1'};
-    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '1'}, actualValue), OK);
-    EXPECT_EQ(actualValue, expectValue);
-    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '0'}, actualValue), NOT_FOUND);
-    EXPECT_EQ(kvDelegatePtrS1_->Get({'k', '2'}, actualValue), NOT_FOUND);
-}
-
-/**
- * @tc.name: NormalSyncInvalid001
- * @tc.desc: Test normal push not sync and get cloud version.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid001, TestSize.Level0)
-{
-    Key key = {'k'};
-    Value expectValue = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
-    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
-        LOGW("origin is %s", origin.c_str());
-        return origin + "1";
-    });
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
-    EXPECT_EQ(actualValue, expectValue);
-    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
-    auto result = kvDelegatePtrS1_->GetCloudVersion("");
-    EXPECT_EQ(result.first, NOT_FOUND);
-}
-
-/**
- * @tc.name: NormalSyncInvalid002
- * @tc.desc: Test normal push sync and use invalidDevice to get cloud version.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid002, TestSize.Level0)
-{
-    Key key = {'k'};
-    Value expectValue = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
-    kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
-        LOGW("origin is %s", origin.c_str());
-        return origin + "1";
-    });
-    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
-    for (const auto &table : lastProcess_.tableProcess) {
-        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
-        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
-    }
-    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
-    for (const auto &table : lastProcess_.tableProcess) {
-        EXPECT_EQ(table.second.downLoadInfo.total, 2u); // download 2 records
-        EXPECT_EQ(table.second.downLoadInfo.insertCount, 2u); // download 2 records
-    }
-    Value actualValue;
-    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
-    EXPECT_EQ(actualValue, expectValue);
-    kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
-    std::string invalidDevice = std::string(DBConstant::MAX_DEV_LENGTH + 1, '0');
-    auto result = kvDelegatePtrS2_->GetCloudVersion(invalidDevice);
-    EXPECT_EQ(result.first, INVALID_ARGS);
-}
-
-/**
- * @tc.name: NormalSyncInvalid003
- * @tc.desc: Test normal push sync for add data while conn is nullptr.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid003, TestSize.Level0)
-{
-    const KvStoreNbDelegate::Option option = {true, true};
-    KvStoreNbDelegate *kvDelegateInvalidPtrS1_ = nullptr;
-    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS1_, "NormalSyncInvalid003", option), OK);
-    ASSERT_NE(kvDelegateInvalidPtrS1_, nullptr);
-    Key key = {'k'};
-    Value expectValue = {'v'};
-    ASSERT_EQ(kvDelegateInvalidPtrS1_->Put(key, expectValue), OK);
-    kvDelegateInvalidPtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
-        LOGW("origin is %s", origin.c_str());
-        return origin + "1";
-    });
-    BlockSync(kvDelegateInvalidPtrS1_, OK, g_CloudSyncoption);
-    for (const auto &table : lastProcess_.tableProcess) {
-        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
-        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
-    }
-    Value actualValue;
-    EXPECT_EQ(kvDelegateInvalidPtrS1_->Get(key, actualValue), OK);
-    EXPECT_EQ(actualValue, expectValue);
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    kvDelegateInvalidPtrS1_->SetGenCloudVersionCallback(nullptr);
-    auto result = kvDelegateInvalidPtrS1_->GetCloudVersion("");
-    EXPECT_EQ(result.first, DB_ERROR);
-    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS1_), OK);
-}
-
-/**
- * @tc.name: NormalSyncInvalid004
- * @tc.desc: Test normal push sync use GetDeviceEntries while conn is nullptr.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid004, TestSize.Level0)
-{
-    const KvStoreNbDelegate::Option option = {true, true};
-    KvStoreNbDelegate *kvDelegateInvalidPtrS2_ = nullptr;
-    ASSERT_EQ(GetKvStore(kvDelegateInvalidPtrS2_, "NormalSyncInvalid004", option), OK);
-    ASSERT_NE(kvDelegateInvalidPtrS2_, nullptr);
-    /**
-     * @tc.steps: step1. store1 put (k1,v1) store2 put (k2,v2)
+     * @tc.steps:step1. store1 put (k1,v1) and (k2,v2)
      * @tc.expected: step1. both put ok
      */
     communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
     kvDelegatePtrS1_->SetGenCloudVersionCallback([](const std::string &origin) {
-        LOGW("origin is %s", origin.c_str());
-        return origin + "1";
-    });
-    kvDelegateInvalidPtrS2_->SetGenCloudVersionCallback([](const std::string &origin) {
         LOGW("origin is %s", origin.c_str());
         return origin + "1";
     });
@@ -2546,162 +2081,189 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid004, TestSize.Level0)
     Key key2 = {'k', '2'};
     Value expectValue2 = {'v', '2'};
     ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
-    ASSERT_EQ(kvDelegateInvalidPtrS2_->Put(key2, expectValue2), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
     /**
-     * @tc.steps: step2. both store1 and store2 sync while conn is nullptr
-     * @tc.expected: step2. both sync ok, and store2 got (k1,v1) store1 not exist (k2,v2)
+     * @tc.steps: step2. DEVICE_A with store1 sync and DEVICE_B with store2 sync
+     * @tc.expected: step2. both sync ok, and store2 got (k1,v1) and (k2,v2)
      */
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
     LOGW("Store1 sync end");
     communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
-    BlockSync(kvDelegateInvalidPtrS2_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
     LOGW("Store2 sync end");
     Value actualValue;
-    EXPECT_EQ(kvDelegateInvalidPtrS2_->Get(key1, actualValue), OK);
-
-    /**
-     * @tc.steps: step3. use GetDeviceEntries while conn is nullptr
-     * @tc.expected: step3. DB_ERROR
-     */
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegateInvalidPtrS2_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    std::vector<Entry> entries;
-    EXPECT_EQ(kvDelegateInvalidPtrS2_->GetDeviceEntries(std::string("DEVICES_A"), entries), DB_ERROR);
-    EXPECT_EQ(entries.size(), 0u); // 1 record
-    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key1, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue1);
-    EXPECT_EQ(kvDelegatePtrS1_->Get(key2, actualValue), NOT_FOUND);
-
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue2);
+    /**
+     * @tc.steps: step3. store2 RevoveDeviceData with FLAG_ONLY option
+     * @tc.expected: step3. store2 delete DEVICE_A's version CloudVersion data successfully
+     */
+    auto result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, OK);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "1");
+    }
+    EXPECT_EQ(kvDelegatePtrS2_->RemoveDeviceData("", ClearMode::FLAG_ONLY), OK);
     kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
-    kvDelegateInvalidPtrS2_->SetGenCloudVersionCallback(nullptr);
-    EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS2_), OK);
+    result = kvDelegatePtrS2_->GetCloudVersion("");
+    EXPECT_EQ(result.first, NOT_FOUND);
+    for (auto item : result.second) {
+        EXPECT_EQ(item.second, "");
+    }
 }
 
 /**
- * @tc.name: NormalSyncInvalid005
- * @tc.desc: Test normal sync with invalid parm.
+ * @tc.name: NormalSync047
+ * @tc.desc: Test multi users sync when user1 sync fail.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: caihaoting
+ * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level0)
 {
-    Key key = {'k'};
-    Value expectValue = {'v'};
-    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue), OK);
-    auto devices = g_CloudSyncoption.devices;
-    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, SyncMode::SYNC_MODE_CLOUD_MERGE, nullptr), NOT_SUPPORT);
-    Query query = Query::Select().Range({}, {});
-    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, SyncMode::SYNC_MODE_CLOUD_MERGE, nullptr, query, true), NOT_SUPPORT);
-    auto mode = g_CloudSyncoption.mode;
-    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr, query, true), NOT_SUPPORT);
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption, DB_ERROR);
-    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr), DB_ERROR);
-    EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr, query, true), DB_ERROR);
+    /**
+     * @tc.steps: step1. put 20 records.
+     * @tc.expected: step1. ok.
+     */
+    vector<Entry> entries;
+    int count = 20; // put 20 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+
+    /**
+     * @tc.steps: step2. multi users sync and set user1 fail.
+     * @tc.expected: step2. user1 sync fail and other user sync success.
+     */
+    int uploadFailId = 0;
+    virtualCloudDb_->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId > 15) { // the first 15 records success
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ERROR);
+            return CLOUD_ERROR;
+        }
+        return OK;
+    });
+    CloudSyncOption option;
+    option.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH;
+    option.users.push_back(USER_ID);
+    option.users.push_back(USER_ID_2);
+    option.devices.push_back("cloud");
+    SyncAndGetProcessInfo(kvDelegatePtrS1_, option);
+
+    vector<DBStatus> userStatus = {CLOUD_ERROR, OK};
+    vector<Info> userExpectInfo = {{1u, 20u, 15u, 5u, 15u, 0u, 0u}, {1u, 20u, 20u, 0u, 20u, 0u, 0u}};
+    EXPECT_TRUE(CheckUserSyncInfo(option.users, userStatus, userExpectInfo));
+    virtualCloudDb_->ForkUpload(nullptr);
 }
 
 /**
- * @tc.name: NormalSyncInvalid006
- * @tc.desc: Test normal sync set cloudDB while cloudDB is empty and conn is nullptr.
+ * @tc.name: NormalSync048
+ * @tc.desc: test sync data while cloud delete on record and local do not have this record.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: caihaoting
+ * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. set cloudDB while cloudDB is empty
-     * @tc.expected: step1. INVALID_ARGS
+     * @tc.steps: step1. deviceB put {k1, v1} {k2, v2} and sync to cloud
+     * @tc.expected: step1. ok.
      */
-    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDB(cloudDbs), INVALID_ARGS);
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    Key key1 = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    Key key2 = {'k', '2'};
+    Value expectValue2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
     /**
-     * @tc.steps: step2. set cloudDB while conn is nullptr
-     * @tc.expected: step2. DB_ERROR
+     * @tc.steps: step2. deviceB delete {k1, v1} and sync to cloud
+     * @tc.expected: step2. ok.
      */
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    cloudDbs[USER_ID] = virtualCloudDb_;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDB(cloudDbs), DB_ERROR);
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    ASSERT_EQ(kvDelegatePtrS1_->Delete(key1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps: step3. deviceA sync to cloud
+     * @tc.expected: step3. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue2;
+    ASSERT_EQ(kvDelegatePtrS2_->Get(key2, actualValue2), OK);
+    ASSERT_EQ(actualValue2, expectValue2);
 }
 
 /**
- * @tc.name: NormalSyncInvalid007
- * @tc.desc: Test normal sync set cloudDb schema while conn is nullptr.
+ * @tc.name: NormalSync049
+ * @tc.desc: test sync data with invalid modify_time.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: caihaoting
+ * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. set cloudDB schema while conn is nullptr
-     * @tc.expected: step1. DB_ERROR
+     * @tc.steps: step1. put {k, v}
+     * @tc.expected: step1. ok.
      */
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    std::map<std::string, DataBaseSchema> schemas;
-    schemas[USER_ID] = GetDataBaseSchema(true);
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudDbSchema(schemas), DB_ERROR);
-}
-
-/**
- * @tc.name: NormalSyncInvalid008
- * @tc.desc: Test SetCloudSyncConfig with invalid parm.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
-HWTEST_F(DistributedDBCloudKvTest, NormalSyncInvalid008, TestSize.Level0)
-{
+    vector<Entry> entries;
+    int count = 31; // put 31 records.
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        entries.push_back({key, value});
+    }
+    kvDelegatePtrS1_->PutBatch(entries);
     /**
-     * @tc.steps: step1. SetCloudSyncConfig with invalid maxUploadCount.
-     * @tc.expected: step1. INVALID_ARGS
+     * @tc.steps: step2. modify time in local and sync
+     * @tc.expected: step2. ok.
      */
-    CloudSyncConfig config;
-    int maxUploadCount = 0;
-    config.maxUploadCount = maxUploadCount;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
-    maxUploadCount = 2001;
-    config.maxUploadCount = maxUploadCount;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
-    maxUploadCount = 50;
-    config.maxUploadCount = maxUploadCount;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
-
+    sqlite3 *db_;
+    uint64_t openFlag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/" \
+        "2d23c8a0ffadafcaa03507a4ec2290c83babddcab07c0e2945fbba93efc7eec0/single_ver/main/gen_natural_store.db";
+    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, openFlag, nullptr) == SQLITE_OK);
+    std::string sql = "UPDATE sync_data SET modify_time = modify_time + modify_time where rowid>0";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
     /**
-     * @tc.steps: step2. SetCloudSyncConfig with invalid maxUploadSize.
-     * @tc.expected: step2. INVALID_ARGS
+     * @tc.steps: step3. put {k, v2} in another device
+     * @tc.expected: step3. ok.
      */
-    int maxUploadSize = 1023;
-    config.maxUploadSize = maxUploadSize;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
-    maxUploadSize = 128 * 1024 * 1024 + 1;
-    config.maxUploadSize = maxUploadSize;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
-    maxUploadSize = 10240;
-    config.maxUploadSize = maxUploadSize;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
-
+    Value newValue = {'v'};
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        entries.push_back({key, newValue});
+    }
+    kvDelegatePtrS2_->PutBatch(entries);
     /**
-     * @tc.steps: step3. SetCloudSyncConfig with invalid maxRetryConflictTimes.
-     * @tc.expected: step3. INVALID_ARGS
+     * @tc.steps: step4. sync and check data
+     * @tc.expected: step4. ok.
      */
-    int maxRetryConflictTimes = -2;
-    config.maxRetryConflictTimes = maxRetryConflictTimes;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), INVALID_ARGS);
-    maxRetryConflictTimes = 2;
-    config.maxRetryConflictTimes = maxRetryConflictTimes;
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), OK);
-
-    /**
-     * @tc.steps: step4. SetCloudSyncConfig while conn is nullptr
-     * @tc.expected: step4. DB_ERROR
-     */
-    auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
-    EXPECT_EQ(kvStoreImpl->Close(), OK);
-    EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), DB_ERROR);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    Value actualValue;
+    for (int i = 0; i < count; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
+        EXPECT_EQ(actualValue, newValue);
+    }
 }
 }

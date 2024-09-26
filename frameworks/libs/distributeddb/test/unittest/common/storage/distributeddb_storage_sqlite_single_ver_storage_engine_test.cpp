@@ -158,3 +158,68 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest002, Test
     storageEngine->Release();
     storageEngine = nullptr;
 }
+
+/**
+  * @tc.name: DataTest003
+  * @tc.desc: Test invalid SQLiteSingleVerNaturalStore and invalid SQLiteSingleVerNaturalStoreConnection
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps::step1. init invalid SQLiteSingleVerNaturalStore and invalid SQLiteSingleVerNaturalStoreConnection
+     * @tc.expected: step1. return OK.
+     */
+    SQLiteSingleVerNaturalStore *invalidStore = nullptr;
+    SQLiteSingleVerNaturalStoreConnection *invalidConnection = nullptr;
+    ASSERT_EQ(invalidStore, nullptr);
+    invalidConnection = new (std::nothrow) SQLiteSingleVerNaturalStoreConnection(invalidStore);
+    ASSERT_NE(invalidConnection, nullptr);
+    /**
+     * @tc.steps::step2. test RegisterObserver with invalid SQLiteSingleVerNaturalStore
+     * @tc.expected: step2. return -E_INVALID_CONNECTION.
+     */
+    int errCode = E_OK;
+    Key key;
+    key.push_back('a');
+    KvDBObserverAction func = [&](const KvDBCommitNotifyData &data) {};
+    invalidConnection->RegisterObserver(
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), key, func,
+        errCode);
+    EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
+    /**
+     * @tc.steps::step3. test UnRegisterObserver with invalid SQLiteSingleVerNaturalStore
+     * @tc.expected: step3. return -E_INVALID_CONNECTION.
+     */
+    auto observerHandle = g_connection->RegisterObserver(
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), key, func,
+        errCode);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = invalidConnection->UnRegisterObserver(observerHandle);
+    EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
+    /**
+     * @tc.steps::step4. test GetSecurityOption with invalid SQLiteSingleVerNaturalStore
+     * @tc.expected: step4. return -E_INVALID_CONNECTION.
+     */
+    int securityLabel = NOT_SET;
+    int securityFlag = ECE;
+    errCode = invalidConnection->GetSecurityOption(securityLabel, securityFlag);
+    EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
+    /**
+     * @tc.steps::step5. test Close with invalid SQLiteSingleVerNaturalStore
+     * @tc.expected: step5. return -E_INVALID_CONNECTION.
+     */
+    errCode = invalidConnection->Close();
+    EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
+    /**
+     * @tc.steps::step6. delete invalid SQLiteSingleVerNaturalStoreConnection
+     * @tc.expected: step6. return OK.
+     */
+    if (invalidConnection != nullptr) {
+        delete invalidConnection;
+        invalidConnection = nullptr;
+    }
+    ASSERT_EQ(invalidConnection, nullptr);
+}

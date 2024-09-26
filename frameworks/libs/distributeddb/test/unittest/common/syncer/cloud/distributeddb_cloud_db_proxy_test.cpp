@@ -286,6 +286,52 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CloudDBProxyTest004
+ * @tc.desc: Verify cloud db init and close function with multiple CloudDbs.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    CloudDBProxy proxy;
+    std::string syncUserA = "SyncUserA";
+    std::string syncUserB = "SyncUserB";
+    std::string syncUserC = "SyncUserC";
+    std::shared_ptr<VirtualCloudDb> virtualCloudDbB = std::make_shared<VirtualCloudDb>();
+    std::shared_ptr<VirtualCloudDb> virtualCloudDbC = std::make_shared<VirtualCloudDb>();
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDBs = {
+        {syncUserA, virtualCloudDb_}, {syncUserB, virtualCloudDbB}, {syncUserC, virtualCloudDbC}
+    };
+    proxy.SetCloudDB(cloudDBs);
+    /**
+     * @tc.steps: step2. proxy close cloud db with cloud error
+     * @tc.expected: step2. -E_CLOUD_ERROR
+     */
+    for (const auto &pair : cloudDBs) {
+        std::shared_ptr<ICloudDb> basePtr = pair.second;
+        auto vtrPtr = static_cast<VirtualCloudDb*>(basePtr.get());
+        vtrPtr->SetCloudError(true);
+    }
+    EXPECT_EQ(proxy.Close(), -E_CLOUD_ERROR);
+    /**
+     * @tc.steps: step3. proxy close cloud db again
+     * @tc.expected: step3. E_OK because cloud db has been set nullptr
+     */
+    EXPECT_EQ(proxy.Close(), E_OK);
+    for (const auto &pair : cloudDBs) {
+        std::shared_ptr<ICloudDb> basePtr = pair.second;
+        auto vtrPtr = static_cast<VirtualCloudDb*>(basePtr.get());
+        vtrPtr->SetCloudError(false);
+    }
+    EXPECT_EQ(proxy.Close(), E_OK);
+}
+
+/**
  * @tc.name: CloudDBProxyTest005
  * @tc.desc: Verify sync failed after cloud error.
  * @tc.type: FUNC
