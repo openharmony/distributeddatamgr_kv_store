@@ -185,6 +185,8 @@ protected:
     void CheckUploadInfo(const Info &actualUploadInfo, const Info &expectUploadInfo);
     void CheckDownloadInfo(const Info &actualDownloadInfo, const Info &expectDownloadInfo);
     void SyncDataStatusTest(bool isCompensatedSyncOnly);
+    void WaitCommonUpload();
+    void CheckUploadInfoAfterSync(const int recordCount, SyncProcess &normalLast);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;

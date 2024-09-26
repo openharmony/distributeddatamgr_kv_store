@@ -100,6 +100,7 @@ protected:
     void UpdateCloudTableRecord(int64_t begin, int64_t count, bool assetIsNull);
     void ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount, int &removeCount);
     std::vector<Asset> GetAssets(const std::string &baseName, const Assets &templateAsset, size_t assetCount);
+    void CheckAssetData();
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
