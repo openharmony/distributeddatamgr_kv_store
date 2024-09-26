@@ -805,11 +805,18 @@ distributeddb_unittest("DistributedDBCloudTaskMergeTest") {
 
 distributeddb_unittest(
     "DistributedDBStorageMemoryRdSingleVerNaturalStoreTest") {
-  sources = [ "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp" ]
+  sources = [
+    "unittest/common/storage/distributeddb_storage_memory_rd_single_ver_natural_store_test.cpp",
+    "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBStorageRdRegisterObserverTest") {
   sources = [ "unittest/common/storage/distributeddb_storage_rd_register_observer_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdResultAndJsonOptimizeTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_result_and_json_optimize_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBStorageRdSingleVerNaturalExecutorTest") {
@@ -992,6 +999,7 @@ group("unittest") {
       ":DistributedDBInterfacesNBDelegateRdTest",
       ":DistributedDBStorageMemoryRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdRegisterObserverTest",
+      ":DistributedDBStorageRdResultAndJsonOptimizeTest",
       ":DistributedDBStorageRdSingleVerNaturalExecutorTest",
       ":DistributedDBStorageRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdSingleVerStorageEngineTest",

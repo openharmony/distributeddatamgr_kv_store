@@ -300,3 +300,86 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSystemApiAdapterTest0
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
     EXPECT_TRUE(g_mgr.IsProcessSystemApiAdapterValid());
 }
+
+/**
+ * @tc.name: SecurityOptionUpgrade001
+ * @tc.desc: Test upgrade security label from s1 to s3.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set g_adapter and open with s1
+     * @tc.expected: step1. return true
+     */
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    EXPECT_TRUE(g_mgr.IsProcessSystemApiAdapterValid());
+    g_config.dataDir = g_testDir;
+    EXPECT_EQ(g_mgr.SetKvStoreConfig(g_config), OK);
+
+    const std::string storeId = "SecurityOptionUpgrade001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.secOption = { S1, ECE };
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    /**
+     * @tc.steps: step2. re open with s3
+     * @tc.expected: step2. open ok
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    option.secOption = { S3, SECE };
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    /**
+     * @tc.steps: step3. re open with s4
+     * @tc.expected: step3. open ok
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    option.secOption = { S4, SECE };
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
+
+/**
+ * @tc.name: SecurityOptionUpgrade002
+ * @tc.desc: Test upgrade security label from NOT_SET to s3.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set g_adapter and open with s1
+     * @tc.expected: step1. return true
+     */
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(new(std::nothrow) VirtualCommunicatorAggregator);
+    EXPECT_TRUE(g_mgr.IsProcessSystemApiAdapterValid());
+    g_config.dataDir = g_testDir;
+    EXPECT_EQ(g_mgr.SetKvStoreConfig(g_config), OK);
+
+    const std::string storeId = "SecurityOptionUpgrade002";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.secOption = { NOT_SET, ECE };
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    /**
+     * @tc.steps: step2. re open with s3
+     * @tc.expected: step2. open ok
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    option.secOption = { S3, SECE };
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}

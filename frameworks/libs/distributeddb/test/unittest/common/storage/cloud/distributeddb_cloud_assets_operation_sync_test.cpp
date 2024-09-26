@@ -100,6 +100,7 @@ protected:
     void UpdateCloudTableRecord(int64_t begin, int64_t count, bool assetIsNull);
     void ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount, int &removeCount);
     std::vector<Asset> GetAssets(const std::string &baseName, const Assets &templateAsset, size_t assetCount);
+    void CheckAssetData();
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -318,6 +319,27 @@ void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(DBSta
     });
 }
 
+void DistributedDBCloudAssetsOperationSyncTest::CheckAssetData()
+{
+    virtualCloudDb_->ForkUpload(nullptr);
+    std::vector<VBucket> allData;
+    auto dbSchema = GetSchema();
+    ASSERT_GT(dbSchema.tables.size(), 0u);
+    ASSERT_EQ(RelationalTestUtils::SelectData(db_, dbSchema.tables[0], allData), E_OK);
+    ASSERT_EQ(allData.size(), 60ul);
+    auto data = allData[54]; // update data
+    auto data1 = allData[55]; // no update data
+
+    Type colValue = data.at("asset");
+    auto translate = std::dynamic_pointer_cast<ICloudDataTranslate>(virtualTranslator_);
+    auto assets = RelationalTestUtils::GetAssets(colValue, translate, true);
+    ASSERT_EQ(assets[0].hash, std::string("123"));
+
+    Type colValue1 = data1.at("asset");
+    auto assets1 = RelationalTestUtils::GetAssets(colValue1, translate, true);
+    ASSERT_EQ(assets1[0].hash, std::string("DEC"));
+}
+
 /**
  * @tc.name: SyncWithAssetOperation001
  * @tc.desc: Delete Assets When Download
@@ -448,6 +470,106 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, T
 
     std::vector<size_t> expectCount = { 0, 2, 2, 2, 2 };
     CheckAssetsCount(expectCount);
+}
+
+/**
+ * @tc.name: SyncWithAssetOperation005
+ * @tc.desc: check asset when update in fill before upload sync process
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 60 records.
+     * @tc.expected: step1. ok.
+     */
+    InsertUserTableRecord(tableName_, 0, 60);
+    
+    /**
+     * @tc.steps:step2. Sync to cloud and wait in upload.
+     * @tc.expected: step2. ok.
+     */
+    bool isUpload = false;
+    virtualCloudDb_->ForkUpload([&isUpload](const std::string &tableName, VBucket &extend) {
+        if (isUpload == true) {
+            return;
+        }
+        isUpload = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    });
+    Query query = Query::Select().FromTable({tableName_});
+
+    bool finish = false;
+    auto callback = [&finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    finish = true;
+                }
+            }
+        }
+    };
+    ASSERT_EQ(delegate_->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), OK);
+
+    while (isUpload == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    /**
+     * @tc.steps:step3. update asset when sync upload.
+     * @tc.expected: step3. ok.
+     */
+    string sql = "UPDATE " + tableName_ + " SET asset = ? WHERE id = '54';";
+    Asset asset = g_localAsset;
+    asset.hash = "123";
+    asset.name = g_localAsset.name + std::to_string(54);
+    std::vector<uint8_t> assetBlob;
+    RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+    /**
+     * @tc.steps:step4. check asset data.
+     * @tc.expected: step4. ok.
+     */
+    while (finish == false) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    CheckAssetData();
+}
+
+/**
+ * @tc.name: SyncWithAssetOperation006
+ * @tc.desc: Remove Local Datas When local assets was empty
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation006, TestSize.Level0)
+{
+    const int actualCount = 5;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+
+    UpdateCloudTableRecord(0, 2, true);
+    BlockSync(query, delegate_);
+
+    int removeCount = 0;
+    virtualAssetLoader_->ForkRemoveLocalAssets([&removeCount](const std::vector<Asset> &assets) {
+        removeCount = assets.size();
+        return DBStatus::OK;
+    });
+    std::string device = "";
+    ASSERT_EQ(delegate_->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
+    ASSERT_EQ(9, removeCount);
+    virtualAssetLoader_->ForkRemoveLocalAssets(nullptr);
 }
 
 /**
@@ -778,6 +900,67 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSi
     delegate1 = nullptr;
     mgr1 = nullptr;
 }
+/**
+ * @tc.name: DownloadAssetStatusTest004
+ * @tc.desc: Test upload asset status
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, DownloadAssetStatusTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. cloud assets {0, 1}
+     * @tc.expected: step1. OK.
+     */
+    // cloud and local insert same data
+    // cloud assets {0, 1} local assets {0, 1, 2}
+    const int actualCount = 1;
+    RelationalTestUtils::InsertCloudRecord(0, actualCount, tableName_, virtualCloudDb_, 2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms for data conflict
+    /**
+     * @tc.steps:step2. local assets {0, 1, 2}, and change assert {0}
+     * @tc.expected: step2. OK.
+     */
+    std::string name = g_localAsset.name + std::to_string(0);
+    Assets expectAssets = GetAssets(name, {}, 3u); // contain 3 assets
+    expectAssets[0].hash.append("change"); // modify first asset
+    InsertUserTableRecord(tableName_, 0, actualCount, expectAssets.size(), expectAssets);
+    /**
+     * @tc.steps:step3. sync
+     * @tc.expected: step3. upload status is {UPDATE, NORMAL, INSERT}
+     */
+    std::vector<AssetStatus> expectStatus = {
+        AssetStatus::UPDATE, AssetStatus::NORMAL, AssetStatus::INSERT
+    };
+    // sync and local asset's status are normal
+    Query query = Query::Select().FromTable({ tableName_ });
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    auto dbSchema = GetSchema();
+    ASSERT_GT(dbSchema.tables.size(), 0u);
+    // cloud asset status is update normal insert
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = std::string("");
+    std::vector<VBucket> data;
+    ASSERT_EQ(virtualCloudDb_->Query(tableName_, extend, data), QUERY_END);
+    ASSERT_EQ(data.size(), static_cast<size_t>(actualCount));
+    Assets actualAssets;
+    ASSERT_EQ(CloudStorageUtils::GetValueFromType(data[0]["assets"], actualAssets), E_OK);
+    ASSERT_EQ(actualAssets.size(), expectStatus.size());
+    for (size_t i = 0; i < actualAssets.size(); ++i) {
+        EXPECT_EQ(actualAssets[i].status, expectStatus[i]);
+    }
+    /**
+     * @tc.steps:step4. check local assets status.
+     * @tc.expected: step4. all assets status is NORMAL.
+     */
+    auto assets = RelationalTestUtils::GetAllAssets(db_, dbSchema.tables[0], virtualTranslator_);
+    for (const auto &oneRow : assets) {
+        for (const auto &asset : oneRow) {
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+        }
+    }
+}
 
 /**
  * @tc.name: UploadAssetsTest001
@@ -923,6 +1106,54 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSiz
         EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
         EXPECT_EQ(table.second.upLoadInfo.successCount, 70u);
         EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: UploadAssetsTest004
+ * @tc.desc: Test batch delete return error CLOUD_RECORD_NOT_FOUND.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 100 records and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 100;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step2. delete 50 records in local.
+     * @tc.expected: step2. ok.
+     */
+    std::string sql = "delete from " + tableName_ + " where CAST(id AS INTEGER) >= " + std::to_string(actualCount / 2);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), SQLITE_OK);
+    /**
+     * @tc.steps:step3. set return error CLOUD_RECORD_NOT_FOUND in batch delete.
+     * @tc.expected: step3. ok.
+     */
+    int index = 0;
+    virtualCloudDb_->ForkUpload([&index](const std::string &tableName, VBucket &extend) {
+        if (extend.count(CloudDbConstant::DELETE_FIELD) != 0 && index % 2 == 0 &&
+            std::get<bool>(extend.at(CloudDbConstant::DELETE_FIELD))) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
+        }
+        index++;
+    });
+    /**
+     * @tc.steps:step4. sync and check result.
+     * @tc.expected: step4. ok.
+     */
+    BlockSync(query, delegate_);
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 25u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 25u);
     }
     virtualCloudDb_->ForkUpload(nullptr);
 }
