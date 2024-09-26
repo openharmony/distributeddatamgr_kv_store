@@ -109,7 +109,7 @@ protected:
 
         Info GetInfo();
 
-        void SetInfo(const CloudWaterType &type, DBStatus status);
+        void SetInfo(const CloudWaterType &type, DBStatus status, uint32_t size);
 
         void SetTableName(const std::string &tableName);
 

@@ -36,7 +36,7 @@ private:
     bool IsRecordFinish(int userIndex, const std::string &table,
         const std::map<int, std::map<std::string, bool>> &record) const;
     void RecordFinish(int userIndex, const std::string &table, bool finish,
-        std::map<int, std::map<std::string, bool>> &record);
+        std::map<int, std::map<std::string, bool>> &record) const;
 
     mutable std::mutex recordMutex_;
     std::map<int, std::map<std::string, bool>> downloadRecord_; // record table download finish

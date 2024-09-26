@@ -46,7 +46,7 @@ protected:
 
     bool IsIgnoreUpdate(const LogInfo &localInfo) const;
 
-    bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);
+    static bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
     SingleVerConflictResolvePolicy policy_;
 };

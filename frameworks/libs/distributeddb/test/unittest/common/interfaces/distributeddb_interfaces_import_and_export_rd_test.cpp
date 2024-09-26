@@ -1026,7 +1026,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, PasswordIndependence003, 
     /**
      * @tc.steps: step1. Back up the (passwd1) encryption single-version (passwd2) database.
      */
-    std::string singleExportFileName = g_exportFileDir + "/passwordIndependence003.$$";
     std::string singleStoreId = "distributed_ExportSingle_009";
     KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd2};
     option.storageEngineType = DistributedDB::GAUSSDB_RD;
@@ -1275,10 +1274,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
     const static int millsecondsPerSecond = 1000;
     std::this_thread::sleep_for(std::chrono::microseconds(millsecondsPerSecond));
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
-
-    std::mutex rekeyMtx;
-    std::unique_lock<std::mutex> lck(rekeyMtx);
-    backupVar.wait(lck, [&]{ return readyFlag.load(); });
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);

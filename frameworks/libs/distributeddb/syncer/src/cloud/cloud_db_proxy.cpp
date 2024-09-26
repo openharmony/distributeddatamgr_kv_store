@@ -36,11 +36,10 @@ void CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
 int CloudDBProxy::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
 {
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
-    for (const auto &item : cloudDBs) {
-        if (item.second == nullptr) {
-            LOGE("[CloudDBProxy] User %s setCloudDB with nullptr", item.first.c_str());
-            return -E_INVALID_ARGS;
-        }
+    auto it = std::find_if(cloudDBs.begin(), cloudDBs.end(), [](const auto &item) { return item.second == nullptr; });
+    if (it != cloudDBs.end()) {
+        LOGE("[CloudDBProxy] User %s setCloudDB with nullptr", it->first.c_str());
+        return -E_INVALID_ARGS;
     }
     cloudDbs_ = cloudDBs;
     return E_OK;
@@ -337,24 +336,25 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     std::vector<VBucket> extend;
     context->MoveOutRecordAndExtend(record, extend);
     RecordSyncDataTimeStampLog(extend, action);
+    uint32_t recordSize = record.size();
 
     switch (action) {
         case INSERT: {
             status = cloudDb->BatchInsert(context->GetTableName(), std::move(record), extend);
-            context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::INSERT, status);
+            context->MoveInExtend(extend);
+            context->SetInfo(CloudWaterType::INSERT, status, recordSize);
             break;
         }
         case UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
-            context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::UPDATE, status);
+            context->MoveInExtend(extend);
+            context->SetInfo(CloudWaterType::UPDATE, status, recordSize);
             break;
         }
         case DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
             context->MoveInRecordAndExtend(record, extend);
-            context->SetInfo(CloudWaterType::DELETE, status);
+            context->SetInfo(CloudWaterType::DELETE, status, recordSize);
             break;
         }
         default: {
@@ -628,13 +628,13 @@ bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend,
     return false;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBStatus status)
+void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBStatus status, uint32_t size)
 {
-    totalCount_ = record_.size();
+    totalCount_ = size;
 
-    // records_ size should be equal to extend_ or batch data failed.
-    if (record_.size() != extend_.size()) {
-        failedCount_ += record_.size();
+    // totalCount_ should be equal to extend_ or batch data failed.
+    if (totalCount_ != extend_.size()) {
+        failedCount_ += totalCount_;
         return;
     }
     for (auto &extend : extend_) {

@@ -1371,7 +1371,7 @@ uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
 {
     std::vector<uint8_t> key;
     std::vector<uint8_t> timeOffset;
-    uint64_t localTimeOffset = TimeHelper::BASE_OFFSET;
+    int64_t localTimeOffset = TimeHelper::BASE_OFFSET;
     DBCommon::StringToVector(std::string(DBConstant::LOCALTIME_OFFSET_KEY), key);
     int errCode = GetMetaData(key, timeOffset);
     if (errCode == E_OK) {
@@ -1384,7 +1384,14 @@ uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
         LOGW("GetTimestampFromDb::when sync not start get metadata from db failed,err=%d", errCode);
     }
     uint64_t currentSysTime = TimeHelper::GetSysCurrentTime();
-    return currentSysTime + localTimeOffset;
+    if (localTimeOffset < 0 && currentSysTime >= static_cast<uint64_t>(std::abs(localTimeOffset))) {
+        return currentSysTime - static_cast<uint64_t>(std::abs(localTimeOffset));
+    } else if (localTimeOffset >= 0 && (UINT64_MAX - currentSysTime >= static_cast<uint64_t>(localTimeOffset))) {
+        return currentSysTime + static_cast<uint64_t>(localTimeOffset);
+    } else {
+        LOGW("[GetTimestampFromDB] localTimeOffset plus currentSysTime overflow");
+        return currentSysTime;
+    }
 }
 
 Timestamp SQLiteSingleVerNaturalStore::GetCurrentTimestamp(bool needStartSync)

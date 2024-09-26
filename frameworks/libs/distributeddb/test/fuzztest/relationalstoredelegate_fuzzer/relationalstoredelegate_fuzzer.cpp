@@ -98,7 +98,7 @@ void TearDown()
 }
 
 void MultiCombineTest(const uint8_t *data, const std::string &tableName, const std::string &extendColName,
-    std::set<std::string> trackerColNames, bool isDeleted)
+    const std::set<std::string> &trackerColNames, const bool isDeleted)
 {
     TrackerSchema schema;
     schema.tableName = tableName;
@@ -128,11 +128,11 @@ void CombineTest(const uint8_t *data, size_t size)
         observer = nullptr;
         return;
     }
-    g_delegate->RegisterObserver(observer);
     if (g_delegate == nullptr) {
         LOGI("delegate is null");
         return;
     }
+    g_delegate->RegisterObserver(observer);
     FuzzerData fuzzerData(data, size);
     uint32_t len = fuzzerData.GetUInt32();
     const int lenMod = 30; // 30 is mod for string vector size

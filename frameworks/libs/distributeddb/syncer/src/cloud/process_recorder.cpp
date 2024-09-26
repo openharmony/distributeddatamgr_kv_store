@@ -57,7 +57,7 @@ bool ProcessRecorder::IsRecordFinish(int userIndex, const std::string &table,
 }
 
 void ProcessRecorder::RecordFinish(int userIndex, const std::string &table, bool finish,
-    std::map<int, std::map<std::string, bool>> &record)
+    std::map<int, std::map<std::string, bool>> &record) const
 {
     std::lock_guard<std::mutex> autoLock(recordMutex_);
     record[userIndex][table] = finish;

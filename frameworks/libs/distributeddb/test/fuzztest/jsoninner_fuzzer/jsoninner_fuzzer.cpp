@@ -142,7 +142,7 @@ std::string getMaxString()
 }
 } // namespace
 
-void InsertDocOneFuzz(const std::string documentData)
+void InsertDocOneFuzz(const std::string &documentData)
 {
     std::string document2 = "{\"_id\":2,\"field\":\"" + documentData + "\"}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document2.c_str(), 0);
@@ -192,7 +192,7 @@ void InsertDocOneFuzz(const std::string documentData)
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document20.c_str(), 0);
 }
 
-void InsertDocTwoFuzz(const std::string documentData)
+void InsertDocTwoFuzz(const std::string &documentData)
 {
     std::string documentPart1 = "{ \"_id\" : \"15\", \"textVal\" : \" ";
     std::string documentPart2 = "\" }";
@@ -236,7 +236,7 @@ void InsertDocTwoFuzz(const std::string documentData)
     GRD_InsertDocInner(g_db, collectionName5.c_str(), document30.c_str(), 0);
 }
 
-void InsertDocThreeFuzz(const std::string documentData)
+void InsertDocThreeFuzz(const std::string &documentData)
 {
     std::string collectionName5 = "gm_sys_collectionName";
     std::string document31 = "{\"_id\" : \"24_4\", \"name\" : \"" + documentData + "\"}";
@@ -288,7 +288,7 @@ void InsertDocThreeFuzz(const std::string documentData)
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document38.c_str(), 0);
 }
 
-void InsertDocFourFuzz(const std::string longId, const std::string documentData)
+void InsertDocFourFuzz(const std::string &longId, const std::string &documentData)
 {
     std::string document39 =
         "{\"_id\" : \"35\", \"A_aBdk_324_\" : \"" + documentData + "\", \"name\" : \"" + documentData + "\"}";
@@ -453,7 +453,7 @@ void TearDownTestCase()
     g_db = nullptr;
 }
 
-void FindDocResultSetFuzz(const char *collName, const std::string filter, const std::string projectionInfo)
+void FindDocResultSetFuzz(const char *collName, const std::string &filter, const std::string &projectionInfo)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -466,7 +466,7 @@ void FindDocResultSetFuzz(const char *collName, const std::string filter, const 
     GRD_FreeResultSetInner(resultSet);
 }
 
-void FindDocWithFlagFuzz(const std::string filter, const std::string projectionInfo, int flag)
+void FindDocWithFlagFuzz(const std::string &filter, const std::string &projectionInfo, int flag)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -478,7 +478,7 @@ void FindDocWithFlagFuzz(const std::string filter, const std::string projectionI
     GRD_FreeResultSetInner(resultSet);
 }
 
-void FindDocNextTwiceFuzz(const std::string filter, const std::string projectionInfo)
+void FindDocNextTwiceFuzz(const std::string &filter, const std::string &projectionInfo)
 {
     GRD_ResultSet *resultSet = nullptr;
     Query query = { filter.c_str(), projectionInfo.c_str() };
@@ -948,7 +948,7 @@ void FindDocFuzz(const uint8_t *data, size_t size)
     GRD_DropCollectionInner(g_db, COLLECTION_NAME, 0);
 }
 
-void UpdateDocOneFuzz(std::string s, const std::string input)
+void UpdateDocOneFuzz(std::string s, const std::string &input)
 {
     std::string inputJson = "{\"field5\": \"" + s + "\"}";
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
@@ -997,7 +997,7 @@ void UpdateDocOneFuzz(std::string s, const std::string input)
     GRD_UpdateDocInner(g_db, COLLECTION_NAME, "{\"name\":\"doc8\"}", "{\"c0.0\":\"ac\"}", 1);
 }
 
-void UpdateDocTwoFuzz(const char *newCollName, std::string s, const std::string input)
+void UpdateDocTwoFuzz(const char *newCollName, std::string s, const std::string &input)
 {
     std::string inputJson = "{\"field5\": \"" + s + "\"}";
     GRD_UpdateDocInner(g_db, newCollName, "{\"_id\":\"2\"}", inputJson.c_str(), 0);
@@ -1124,7 +1124,7 @@ void UpdateDocFuzz(const uint8_t *data, size_t size)
     UpdateDocFilterFuzz();
 }
 
-void UpsertDocNewFuzz(const std::string input, GRD_DB *db1)
+void UpsertDocNewFuzz(const std::string &input, GRD_DB *db1)
 {
     GRD_CreateCollectionInner(g_db, "student", "", 0);
     std::string documentNew =
@@ -1190,7 +1190,7 @@ void UpsertDocFuzz(const uint8_t *data, size_t size)
     UpsertDocNewFuzz(input, db1);
 }
 
-void DeleteDocResultFuzz(const std::string input)
+void DeleteDocResultFuzz(const std::string &input)
 {
     const char *filter = "{\"age\" : 15}";
     GRD_DeleteDocInner(g_db, COLLECTION_NAME, filter, 0);
@@ -1328,7 +1328,7 @@ void FindAndRelease(Query query)
 }
 } // namespace
 
-void FindAndReleaseFuzz(std::string document, std::string filter, Query query, const std::string input)
+void FindAndReleaseFuzz(std::string document, std::string filter, Query query, const std::string &input)
 {
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document.c_str(), 0);
     query.filter = filter.c_str();

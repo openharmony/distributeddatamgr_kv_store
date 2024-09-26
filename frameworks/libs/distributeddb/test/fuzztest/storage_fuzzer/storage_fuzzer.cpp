@@ -243,7 +243,7 @@ public:
     }
 };
 
-void ClientObserverFunc(ClientChangedData &clientChangedData)
+void ClientObserverFunc(const ClientChangedData &clientChangedData)
 {
     for (const auto &tableEntry : clientChangedData.tableData) {
         LOGD("client observer failed, table: %s", tableEntry.first.c_str());
@@ -257,7 +257,7 @@ void ClientObserverFunc(ClientChangedData &clientChangedData)
     g_cv.notify_one();
 }
 
-void CreateTableForStoreObserver(sqlite3 *db, const std::string tableName)
+void CreateTableForStoreObserver(sqlite3 *db, const std::string &tableName)
 {
     std::string sql = "create table " + tableName + "(id INTEGER primary key, name TEXT);";
     RdbTestUtils::ExecSql(db, sql);
@@ -308,7 +308,7 @@ void GetHashKey(const std::string &tableName, const std::string &condition, sqli
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
-void ClientObserverFuzz(std::string tableName)
+void ClientObserverFuzz(const std::string &tableName)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
     ClientObserver clientObserver = [](ClientChangedData &data) { return ClientObserverFunc(data); };
@@ -319,7 +319,7 @@ void ClientObserverFuzz(std::string tableName)
     sqlite3_close_v2(db);
 }
 
-void StoreObserverFuzz(std::string tableName)
+void StoreObserverFuzz(const std::string &tableName)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
     RdbTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;");

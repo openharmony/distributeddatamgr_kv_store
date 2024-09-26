@@ -1392,7 +1392,7 @@ int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncData(sqlite3 *db, bool isM
 }
 
 int SqliteCloudKvExecutorUtils::QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
-    QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid)
+    const QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid)
 {
     int errCode = E_OK;
     QuerySyncObject query = querySyncObject;
@@ -1471,6 +1471,10 @@ bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
 {
     sqlite3_stmt *checkStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(param.first, CHECK_DATA_CHANGED, checkStmt);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] check data changed get stmt failed %d", errCode);
+        return true;
+    }
     ResFinalizer finalizerData([checkStmt]() {
         sqlite3_stmt *statement = checkStmt;
         int ret = E_OK;
@@ -1543,6 +1547,10 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &para
 {
     sqlite3_stmt *logStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(param.first, MARK_UPLOAD_SUCCESS, logStmt);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] mark upload success inner get stmt failed %d", errCode);
+        return;
+    }
     ResFinalizer finalizerData([logStmt]() {
         sqlite3_stmt *statement = logStmt;
         int ret = E_OK;

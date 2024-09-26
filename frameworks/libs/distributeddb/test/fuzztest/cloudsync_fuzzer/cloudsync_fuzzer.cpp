@@ -405,7 +405,7 @@ public:
         context->WaitForFinish();
     }
 
-    void OptionBlockSync(std::vector<std::string> devices, SyncMode mode = SYNC_MODE_CLOUD_MERGE)
+    void OptionBlockSync(const std::vector<std::string> &devices, SyncMode mode = SYNC_MODE_CLOUD_MERGE)
     {
         Query query = Query::Select().FromTable({ g_table });
         auto context = std::make_shared<CloudSyncContext>();

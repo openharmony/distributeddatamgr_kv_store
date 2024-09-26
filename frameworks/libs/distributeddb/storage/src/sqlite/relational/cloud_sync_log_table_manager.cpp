@@ -155,7 +155,6 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
 std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, const std::string &identity)
 {
     (void)identity;
-    std::string logTblName = GetLogTableName(table);
     std::string tableName = table.GetTableName();
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + tableName + "_ON_DELETE BEFORE DELETE \n";
