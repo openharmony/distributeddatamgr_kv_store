@@ -318,6 +318,27 @@ void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(DBSta
     });
 }
 
+void DistributedDBCloudAssetsOperationSyncTest::CheckAssetData()
+{
+    virtualCloudDb_->ForkUpload(nullptr);
+    std::vector<VBucket> allData;
+    auto dbSchema = GetSchema();
+    ASSERT_GT(dbSchema.tables.size(), 0u);
+    ASSERT_EQ(RelationalTestUtils::SelectData(db_, dbSchema.tables[0], allData), E_OK);
+    ASSERT_EQ(allData.size(), 60ul);
+    auto data = allData[54]; // update data
+    auto data1 = allData[55]; // no update data
+
+    Type colValue = data.at("asset");
+    auto translate = std::dynamic_pointer_cast<ICloudDataTranslate>(virtualTranslator_);
+    auto assets = RelationalTestUtils::GetAssets(colValue, translate, true);
+    ASSERT_EQ(assets[0].hash, std::string("123"));
+
+    Type colValue1 = data1.at("asset");
+    auto assets1 = RelationalTestUtils::GetAssets(colValue1, translate, true);
+    ASSERT_EQ(assets1[0].hash, std::string("DEC"));
+}
+
 /**
  * @tc.name: SyncWithAssetOperation001
  * @tc.desc: Delete Assets When Download
@@ -519,23 +540,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation005, T
     while (finish == false) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    virtualCloudDb_->ForkUpload(nullptr);
-    std::vector<VBucket> allData;
-    auto dbSchema = GetSchema();
-    ASSERT_GT(dbSchema.tables.size(), 0u);
-    ASSERT_EQ(RelationalTestUtils::SelectData(db_, dbSchema.tables[0], allData), E_OK);
-    ASSERT_EQ(allData.size(), 60ul);
-    auto data = allData[54]; // update data
-    auto data1 = allData[55]; // no update data
-
-    Type colValue = data.at("asset");
-    auto translate = std::dynamic_pointer_cast<ICloudDataTranslate>(virtualTranslator_);
-    auto assets = RelationalTestUtils::GetAssets(colValue, translate, true);
-    ASSERT_EQ(assets[0].hash, std::string("123"));
-
-    Type colValue1 = data1.at("asset");
-    auto assets1 = RelationalTestUtils::GetAssets(colValue1, translate, true);
-    ASSERT_EQ(assets1[0].hash, std::string("DEC"));
+    CheckAssetData();
 }
 
 /**

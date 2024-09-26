@@ -551,6 +551,23 @@ void DistributedDBCloudCheckSyncTest::CheckDownloadInfo(const Info &actualDownlo
     EXPECT_EQ(actualDownloadInfo.deleteCount, expectDownloadInfo.deleteCount);
 }
 
+void DistributedDBCloudCheckSyncTest::WaitCommonUpload()
+{
+    uint32_t times = virtualCloudDb_->GetQueryTimes(tableName_);
+    ASSERT_EQ(times, 3u);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckUploadInfoAfterSync(const int recordCount, SyncProcess &normalLast)
+{
+    const Info expectUploadInfo = {2u, recordCount, recordCount, 0u, recordCount, 0u, 0u};
+    for (const auto &table : normalLast.tableProcess) {
+        CheckUploadInfo(table.second.upLoadInfo, expectUploadInfo);
+        EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+    }
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
 /**
  * @tc.name: CloudSyncTest001
  * @tc.desc: sync with device sync query
@@ -765,9 +782,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
      * @tc.steps:step3. wait common upload and pritority sync.
      * @tc.expected: step3. ok.
      */
-    uint32_t times = virtualCloudDb_->GetQueryTimes(tableName_);
-    ASSERT_EQ(times, 3u);
-    virtualCloudDb_->ForkUpload(nullptr);
+    WaitCommonUpload();
 }
 
 /**
@@ -1696,12 +1711,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest014, TestSize.Lev
      * @tc.steps:step3. check uploadInfo after sync finished.
      * @tc.expected: step3. ok.
      */
-    const Info expectUploadInfo = {2u, recordCount, recordCount, 0u, recordCount, 0u, 0u};
-    for (const auto &table : normalLast.tableProcess) {
-        CheckUploadInfo(table.second.upLoadInfo, expectUploadInfo);
-        EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
-    }
-    virtualCloudDb_->ForkUpload(nullptr);
+    CheckUploadInfoAfterSync(recordCount, normalLast);
 }
 
 /**
