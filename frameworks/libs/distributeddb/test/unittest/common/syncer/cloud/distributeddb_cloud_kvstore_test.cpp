@@ -146,8 +146,8 @@ void DistributedDBCloudKvStoreTest::TearDown()
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
-void DistributedDBCloudKvStoreTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus, CloudSyncOption option,
-    DBStatus expectSyncResult)
+void DistributedDBCloudKvStoreTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus expectDBStatus,
+    CloudSyncOption option, DBStatus expectSyncResult)
 {
     if (delegate == nullptr) {
         return;
@@ -284,8 +284,8 @@ void DistributedDBCloudKvStoreTest::SyncAndGetProcessInfo(KvStoreNbDelegate *del
     lastSyncProcess_ = lists.back();
 }
 
-bool DistributedDBCloudKvStoreTest::CheckUserSyncInfo(const vector<std::string> users, const vector<DBStatus> userStatus,
-    const vector<Info> userExpectInfo)
+bool DistributedDBCloudKvStoreTest::CheckUserSyncInfo(const vector<std::string> users,
+    const vector<DBStatus> userStatus, const vector<Info> userExpectInfo)
 {
     uint32_t idx = 0;
     for (auto &it: lastSyncProcess_) {
