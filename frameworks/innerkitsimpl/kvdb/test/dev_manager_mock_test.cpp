@@ -50,20 +50,6 @@ void DevManagerMockTest::TearDown(void)
 {}
 
 /**
-* @tc.name: GetLocalDevice
-* @tc.desc: test GetLocalDevice get local device info fail
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
-{
-    ZLOGI("GetLocalDevice begin.");
-    auto devInfo = DevManager::GetInstance().GetLocalDevice();
-    EXPECT_EQ(devInfo.uuid, "");
-}
-
-/**
 * @tc.name: GetUnEncryptedUuid
 * @tc.desc: test GetUnEncryptedUuid get local device info fail
 * @tc.type: FUNC
@@ -103,6 +89,20 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid003, TestSize.Level1)
     ZLOGI("GetUnEncryptedUuid003 begin.");
     auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     EXPECT_EQ(uuid, "");
+}
+
+/**
+* @tc.name: GetLocalDevice
+* @tc.desc: test GetLocalDevice get local device info fail
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
+{
+    ZLOGI("GetLocalDevice begin.");
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_EQ(devInfo.uuid, "");
 }
 
 /**
