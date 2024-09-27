@@ -36,6 +36,7 @@ ObserverBridge::~ObserverBridge()
 
 Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ != nullptr) {
         remote_->realType_ |= realType;
         return SUCCESS;
@@ -58,6 +59,7 @@ Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
 
 Status ObserverBridge::UnregisterRemoteObserver(uint32_t realType)
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ == nullptr) {
         return SUCCESS;
     }
@@ -129,6 +131,7 @@ std::vector<Entry> ObserverBridge::ConvertDB(const T &dbEntries, std::string &de
 
 void ObserverBridge::OnServiceDeath()
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ == nullptr) {
         return;
     }
