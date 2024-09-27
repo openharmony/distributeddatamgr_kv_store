@@ -731,41 +731,59 @@ int SQLiteSingleVerRelationalStorageExecutor::AppendUpdateLogRecordWhereSqlCondi
 
 int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const std::vector<std::string> &tableNameList)
 {
-    int ret = E_OK;
     int errCode = E_OK;
     for (const auto &tableName: tableNameList) {
-        std::string delDataSql = "DELETE FROM '" + tableName + "';";
-        sqlite3_stmt *statement = nullptr;
-        errCode = SQLiteUtils::GetStatement(dbHandle_, delDataSql, statement);
-        if (errCode != E_OK) {
-            LOGE("get clean shared data stmt failed %d.", errCode);
-            return errCode;
-        }
-        errCode = SQLiteUtils::StepWithRetry(statement);
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
+        if (isLogicDelete_) {
+            std::string logTableName = DBCommon::GetLogTableName(tableName);
+            errCode = SetDataOnShareTableWithLogicDelete(tableName, logTableName);
         } else {
-            LOGE("clean shared data failed: %d.", errCode);
-            break;
+            errCode = CleanShareTable(tableName);
         }
-        statement = nullptr;
-        std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
-        errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
         if (errCode != E_OK) {
-            LOGE("get clean shared log stmt failed %d.", errCode);
+            LOGE("clean shared table failed at table:%s, length:%d, deleteType:%d, errCode:%d",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), isLogicDelete_ ? 1 : 0, errCode);
             return errCode;
-        }
-        errCode = SQLiteUtils::StepWithRetry(statement);
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-        } else {
-            LOGE("clean shared log failed: %d.", errCode);
-            break;
         }
     }
-    return errCode == E_OK ? ret : errCode;
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string &tableName)
+{
+    int ret = E_OK;
+    int errCode = E_OK;
+    std::string delDataSql = "DELETE FROM '" + tableName + "';";
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, delDataSql, statement);
+    if (errCode != E_OK) {
+        LOGE("get clean shared data stmt failed %d.", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("clean shared data failed: %d.", errCode);
+        return errCode;
+    }
+    statement = nullptr;
+    std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
+    errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
+    if (errCode != E_OK) {
+        LOGE("get clean shared log stmt failed %d.", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("clean shared log failed: %d.", errCode);
+        return errCode;
+    }
+    // here errCode must be E_OK, just return ret
+    return ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetReferenceGid(const std::string &tableName,
@@ -1627,8 +1645,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetsIdForOneRecord(const T
     return errCode != E_OK ? errCode : ret;
 }
 
-bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
-    const VBucket &vBucket, const Field &field, VBucket &assetInfo)
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt, const VBucket &vBucket,
+    const Field &field, VBucket &assetInfo)
 {
     if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
@@ -1934,6 +1952,28 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
         }
     } while (errCode == E_OK);
     int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::string &tableName)
+{
+    std::string sql;
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET status = (CASE WHEN status == 1 AND flag & "+
+        "0x01 != 0 THEN 0 ELSE status END);";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Get stmt failed when clear unlocking status errCode = %d.", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[Storage Eexcute] Step update record status stmt failed, %d.", errCode);
+    }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;
 }

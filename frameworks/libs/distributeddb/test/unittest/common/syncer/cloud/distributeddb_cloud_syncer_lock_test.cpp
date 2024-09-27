@@ -961,6 +961,61 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
 }
 
 /**
+ * @tc.name: QueryCursorTest006
+ * @tc.desc: Test cursor increasing when remove assets fail and download assets success
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local and sync
+     * @tc.expected: step1. return ok.
+     */
+    InsertLocalData(0, 1, ASSETS_TABLE_NAME, false);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. change asset/assets and set RemoveLocalAssets fail
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "SELECT asset, assets FROM " + ASSETS_TABLE_NAME + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    Asset asset;
+    Assets assets;
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        ASSERT_EQ(sqlite3_column_type(stmt, 1), SQLITE_BLOB);
+        Type assetBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Asset>, 0, assetBlob), E_OK);
+        asset = g_virtualCloudDataTranslate->BlobToAsset(std::get<Bytes>(assetBlob));
+        Type assetsBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, assetsBlob), E_OK);
+        assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(assetsBlob));
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    asset.hash = "new_hash";
+    assets.pop_back();
+    UpdateCloudAssets(asset, assets, std::string("0"));
+    g_virtualAssetLoader->SetRemoveStatus(DBStatus::LOCAL_ASSET_NOT_FOUND);
+
+    /**
+     * @tc.steps:step3. sync and check cursor
+     * @tc.expected: step3. return ok.
+     */
+    CallSync(option);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where cursor='3';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+    g_virtualAssetLoader->SetRemoveStatus(DBStatus::OK);
+}
+
+/**
  * @tc.name: UploadAbnormalSync001
  * @tc.desc: Test upload update record, cloud returned record not found.
  * @tc.type: FUNC

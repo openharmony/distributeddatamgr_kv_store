@@ -990,22 +990,6 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
     return callStatus;
 }
 
-bool CheckStatusAndSyncProcess(DBStatus status, std::map<std::string, DeviceSyncProcess> &syncProcessMap)
-{
-    if (status != OK) {
-        return true;
-    }
-    if (syncProcessMap.empty()) {
-        return false;
-    }
-    for (const auto &entry : syncProcessMap) {
-        if (entry.second.process < ProcessStatus::FINISHED) {
-            return false;
-        }
-    }
-    return true;
-}
-
 DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, DeviceSyncOption option,
     std::map<std::string, DeviceSyncProcess> &syncProcessMap)
 {
@@ -1021,7 +1005,18 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
     if (!option.isWait) {
         std::unique_lock<std::mutex> lock(this->syncLock_);
         this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
-            return CheckStatusAndSyncProcess(status, syncProcessMap);
+            if (status != OK) {
+                return true;
+            }
+            if (syncProcessMap.empty()) {
+                return false;
+            }
+            for (const auto &entry : syncProcessMap) {
+                if (entry.second.process < ProcessStatus::FINISHED) {
+                    return false;
+                }
+            }
+            return true;
         });
     }
     return status;

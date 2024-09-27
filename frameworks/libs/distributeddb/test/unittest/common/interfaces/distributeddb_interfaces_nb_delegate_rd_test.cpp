@@ -2231,6 +2231,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Leve
     EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery005"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
 /**
   * @tc.name: RdRangeQuery006
   * @tc.desc: Test GetEntries with rd kernel and the query filter is not Range.

@@ -40,7 +40,7 @@ namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
 class CloudSyncer : public ICloudSyncer {
 public:
-    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy,
+    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isLocalDeleteUpload = false,
         SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
     void InitCloudSyncStateMachine();
     ~CloudSyncer() override = default;
@@ -295,6 +295,9 @@ protected:
     int CommitDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, int errCode);
 
+    void SeparateNormalAndFailAssets(const std::map<std::string, Assets> &assetsMap, VBucket &normalAssets,
+        VBucket &failedAssets);
+
     int GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
         std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
 
@@ -458,6 +461,7 @@ protected:
     std::map<TaskId, int32_t> failedHeartbeatCount_;
 
     std::string id_;
+    bool isLocalDeleteUpload_; // Whether upload to the cloud after delete local data that does not have a gid.
     std::atomic<SingleVerConflictResolvePolicy> policy_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;

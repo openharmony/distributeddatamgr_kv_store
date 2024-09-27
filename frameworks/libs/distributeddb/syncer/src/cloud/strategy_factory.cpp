@@ -19,8 +19,8 @@
 #include "strategy_factory.h"
 
 namespace DistributedDB {
-std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode mode,
-    SingleVerConflictResolvePolicy policy)
+std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(
+    SyncMode mode, bool isLocalDeleteUpload, SingleVerConflictResolvePolicy policy)
 {
     std::shared_ptr<CloudSyncStrategy> strategy;
     switch (mode) {
@@ -38,6 +38,7 @@ std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode m
             strategy = std::make_shared<CloudSyncStrategy>();
     }
     strategy->SetConflictResolvePolicy(policy);
+    strategy->SetIsLocalDeleteUpload(isLocalDeleteUpload);
     return strategy;
 }
 }

@@ -319,6 +319,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
             LOGE("[Storage Executor] Failed to do clean log and data when clean cloud data.");
             return errCode;
         }
+        notifyTableList = tableNameList;
     }
     errCode = SetLogTriggerStatus(true);
     if (errCode != E_OK) {
@@ -364,7 +365,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx
         return;
     }
     context->cursor++;
-    sqlite3_result_int64(ctx, static_cast<sqlite_int64>(context->cursor));
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(context->cursor));
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,

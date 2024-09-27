@@ -275,7 +275,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         // to guarantee the life cycle of sync module and syncAbleEngine_ are the same, then the sync module will not
         // be destructed when close store
         storageEngine_->SetSyncAbleEngine(syncAbleEngine_);
-        cloudSyncer_ = new (std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(storageEngine_));
+        cloudSyncer_ = new (std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(storageEngine_), false);
 
         errCode = CheckDBMode();
         if (errCode != E_OK) {

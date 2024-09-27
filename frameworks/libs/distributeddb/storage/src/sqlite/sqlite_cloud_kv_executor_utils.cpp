@@ -1472,7 +1472,7 @@ bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
     sqlite3_stmt *checkStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(param.first, CHECK_DATA_CHANGED, checkStmt);
     if (errCode != E_OK) {
-        LOGW("[SqliteCloudKvExecutorUtils] check data changed get stmt failed %d", errCode);
+        LOGW("[SqliteCloudKvExecutorUtils] check data change get stmt failed %d", errCode);
         return true;
     }
     ResFinalizer finalizerData([checkStmt]() {
@@ -1511,6 +1511,10 @@ bool SqliteCloudKvExecutorUtils::CheckDataDelete(const FillGidParam &param,
 {
     sqlite3_stmt *checkStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(param.first, CHECK_DATA_DELETE, checkStmt);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] check data delete get stmt failed %d", errCode);
+        return true;
+    }
     ResFinalizer finalizerData([checkStmt]() {
         sqlite3_stmt *statement = checkStmt;
         int ret = E_OK;

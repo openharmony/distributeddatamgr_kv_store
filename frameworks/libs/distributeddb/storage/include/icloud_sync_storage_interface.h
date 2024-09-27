@@ -170,10 +170,6 @@ public:
 
     virtual bool IsSharedTable(const std::string &tableName) = 0;
 
-    virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
-    {
-    }
-
     virtual std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets)
     {
@@ -193,6 +189,11 @@ public:
 
     virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery,
         std::vector<std::string> &users)
+    {
+        return E_OK;
+    }
+
+    virtual int ClearUnLockingNoNeedCompensated()
     {
         return E_OK;
     }
