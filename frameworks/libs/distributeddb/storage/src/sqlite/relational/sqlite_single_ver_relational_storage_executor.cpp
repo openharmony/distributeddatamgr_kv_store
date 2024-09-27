@@ -1587,115 +1587,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::
         isMemDb_, devices);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestamp &timestamp,
-    SqliteQueryHelper &helper, std::string &sql, int64_t &count)
-{
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        LOGE("failed to get count statement %d", errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        errCode = E_OK;
-    } else {
-        LOGE("Failed to get the count to be uploaded. %d", errCode);
-    }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
-    bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
-{
-    int errCode;
-    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask,
-        CloudWaterType::DELETE);
-    return GetUploadCountInner(timestamp, helper, sql, count);
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vector<Timestamp> &timestampVec,
-    bool isCloudForcePush, bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
-{
-    std::vector<CloudWaterType> typeVec = DBCommon::GetWaterTypeVec();
-    if (timestampVec.size() != typeVec.size()) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode;
-    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    count = 0;
-    for (size_t i = 0; i < typeVec.size(); i++) {
-        std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask, typeVec[i]);
-        int64_t tempCount = 0;
-        helper.AppendCloudQueryToGetDiffData(sql, typeVec[i]);
-        errCode = GetUploadCountInner(timestampVec[i], helper, sql, tempCount);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        count += tempCount;
-    }
-    return E_OK;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncData &cloudDataResult,
-    bool ignoreEmptyGid)
-{
-    if (cloudDataResult.insData.extend.empty() || cloudDataResult.insData.rowid.empty() ||
-        cloudDataResult.insData.extend.size() != cloudDataResult.insData.rowid.size()) {
-        return -E_INVALID_ARGS;
-    }
-    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(cloudDataResult.tableName)
-        + "' SET cloud_gid = ? WHERE data_key = ? ";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = BindStmtWithCloudGid(cloudDataResult, ignoreEmptyGid, stmt);
-    int resetCode = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, resetCode);
-    return errCode == E_OK ? resetCode : errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUploadRecorder &uploadRecorder,
-    CloudSyncData &cloudDataResult, SQLiteSingleVerRelationalContinueToken &token)
-{
-    token.GetCloudTableSchema(tableSchema_);
-    sqlite3_stmt *queryStmt = nullptr;
-    bool isStepNext = false;
-    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult, queryStmt, isStepNext);
-    if (errCode != E_OK) {
-        (void)token.ReleaseCloudStatement();
-        return errCode;
-    }
-    uint32_t totalSize = 0;
-    uint32_t stepNum = -1;
-    do {
-        if (isStepNext) {
-            errCode = SQLiteUtils::StepNext(queryStmt, isMemDb_);
-            if (errCode != E_OK) {
-                errCode = (errCode == -E_FINISHED ? E_OK : errCode);
-                break;
-            }
-        }
-        isStepNext = true;
-        errCode = GetCloudDataForSync(uploadRecorder, queryStmt, cloudDataResult, ++stepNum, totalSize);
-    } while (errCode == E_OK);
-    if (errCode != -E_UNFINISHED) {
-        (void)token.ReleaseCloudStatement();
-    }
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &query,
     const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
     bool isCompensatedTask, std::vector<std::string> &cloudGid)
@@ -1774,34 +1665,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(const CloudUpl
         stepNum--;
     }
     return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
-{
-    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
-        Asset asset;
-        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        if (!CloudStorageUtils::CheckAssetStatus({asset})) {
-            return -E_CLOUD_ERROR;
-        }
-        vBucket.insert_or_assign(field.colName, asset);
-    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
-        Assets assets;
-        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets) || !CloudStorageUtils::CheckAssetStatus(assets)) {
-            return -E_CLOUD_ERROR;
-        }
-        vBucket.insert_or_assign(field.colName, assets);
-    } else {
-        vBucket.insert_or_assign(field.colName, cloudValue);
-    }
-    return E_OK;
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSchemaObject &localSchema)
@@ -1963,7 +1826,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
         return errCode;
     }
     LOGI("removeData on shareTable:%s length:%d finish and cursor is, %d.",
-    DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
     return SetCursor(tableName, context.cursor);
 }
 

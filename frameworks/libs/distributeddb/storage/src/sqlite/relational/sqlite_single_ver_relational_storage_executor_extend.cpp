@@ -1273,5 +1273,329 @@ int SQLiteSingleVerRelationalStorageExecutor::ReviseLocalModTime(const std::stri
     }
     return E_OK;
 }
+
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
+    const VBucket &vBucket, const Field &field, VBucket &assetInfo)
+{
+    if (field.type == TYPE_INDEX<Asset>) {
+        Asset asset;
+        UpdateLocalAssetId(vBucket, field.colName, asset);
+        Asset *assetDBPtr = std::get_if<Asset>(&assetInfo[field.colName]);
+        if (assetDBPtr == nullptr) {
+            return true;
+        }
+        Asset &assetDB = *assetDBPtr;
+        if (assetDB.assetId != asset.assetId) {
+            return true;
+        }
+    }
+    if (field.type == TYPE_INDEX<Assets>) {
+        Assets assets;
+        UpdateLocalAssetsId(vBucket, field.colName, assets);
+        Assets *assetsDBPtr = std::get_if<Assets>(&assetInfo[field.colName]);
+        if (assetsDBPtr == nullptr) {
+            return true;
+        }
+        Assets &assetsDB = *assetsDBPtr;
+        if (assets.size() != assetsDB.size()) {
+            return true;
+        }
+        for (uint32_t i = 0; i< assets.size(); ++i) {
+            if (assets[i].assetId != assetsDB[i].assetId) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey,
+    const VBucket &vBucket)
+{
+    std::vector<Field> assetFields;
+    for (const auto &field : tableSchema.fields) {
+        if (field.type == TYPE_INDEX<Asset>) {
+            assetFields.push_back(field);
+        }
+        if (field.type == TYPE_INDEX<Assets>) {
+            assetFields.push_back(field);
+        }
+    }
+    if (assetFields.empty()) {
+        return false;
+    }
+    sqlite3_stmt *selectStmt = nullptr;
+    std::string queryAssetsSql = "SELECT ";
+    for (const auto &field : assetFields) {
+        queryAssetsSql += field.colName + ",";
+    }
+    queryAssetsSql.pop_back();
+    queryAssetsSql += " FROM '" + tableSchema.name + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " +
+        std::to_string(dataKey) + ";";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        LOGE("Get select assets statement failed, %d.", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([selectStmt] {
+        sqlite3_stmt *statementInner = selectStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statementInner, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when get asset", ret);
+        }
+    });
+    VBucket assetInfo;
+    errCode = GetAssetInfoOnTable(selectStmt, assetFields, assetInfo);
+    if (errCode != E_OK) {
+        return true;
+    }
+    for (const auto &field : tableSchema.fields) {
+        if (IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::string &tableName,
+    const DownloadData &downloadData, const std::set<std::string> &gidFilters)
+{
+    if (downloadData.data.size() != downloadData.opType.size()) {
+        LOGE("The num of data:%zu an opType:%zu is not equal.", downloadData.data.size(), downloadData.opType.size());
+        return -E_CLOUD_ERROR;
+    }
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
+        " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get mark flag as consistent stmt failed, %d.", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    int index = 0;
+    for (const auto &data: downloadData.data) {
+        SQLiteUtils::ResetStatement(stmt, false, ret);
+        OpType opType = downloadData.opType[index++];
+        if (opType == OpType::NOT_HANDLE || opType == OpType::LOCKED_NOT_HANDLE) {
+            continue;
+        }
+        errCode = CloudStorageUtils::BindStepConsistentFlagStmt(stmt, data, gidFilters);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
+    const CloudSyncBatch &batchData)
+{
+    if (batchData.extend.empty()) {
+        return E_OK;
+    }
+    if (batchData.hashKey.empty() || batchData.extend.size() != batchData.hashKey.size()) {
+        LOGE("invalid sync data for filling version.");
+        return -E_INVALID_ARGS;
+    }
+    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(tableName) +
+        "' SET version = ? WHERE hash_key = ? ";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int ret = E_OK;
+    for (size_t i = 0; i < batchData.extend.size(); ++i) {
+        errCode = BindUpdateVersionStatement(batchData.extend[i], batchData.hashKey[i], stmt);
+        if (errCode != E_OK) {
+            LOGE("bind update version stmt failed.");
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return errCode;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return ret;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::QueryCount(const std::string &tableName, int64_t &count)
+{
+    return SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::string &tableName)
+{
+    int64_t dataCount = 0;
+    int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
+    if (errCode != E_OK) {
+        LOGE("Query count failed.", errCode);
+        return errCode;
+    }
+    return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestamp &timestamp,
+    SqliteQueryHelper &helper, std::string &sql, int64_t &count)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("failed to get count statement %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        errCode = E_OK;
+    } else {
+        LOGE("Failed to get the count to be uploaded. %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
+    bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
+{
+    int errCode;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask,
+        CloudWaterType::DELETE);
+    return GetUploadCountInner(timestamp, helper, sql, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vector<Timestamp> &timestampVec,
+    bool isCloudForcePush, bool isCompensatedTask, QuerySyncObject &query, int64_t &count)
+{
+    std::vector<CloudWaterType> typeVec = DBCommon::GetWaterTypeVec();
+    if (timestampVec.size() != typeVec.size()) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode;
+    SqliteQueryHelper helper = query.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    count = 0;
+    for (size_t i = 0; i < typeVec.size(); i++) {
+        std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask, typeVec[i]);
+        int64_t tempCount = 0;
+        helper.AppendCloudQueryToGetDiffData(sql, typeVec[i]);
+        errCode = GetUploadCountInner(timestampVec[i], helper, sql, tempCount);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        count += tempCount;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncData &cloudDataResult,
+    bool ignoreEmptyGid)
+{
+    if (cloudDataResult.insData.extend.empty() || cloudDataResult.insData.rowid.empty() ||
+        cloudDataResult.insData.extend.size() != cloudDataResult.insData.rowid.size()) {
+        return -E_INVALID_ARGS;
+    }
+    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(cloudDataResult.tableName)
+        + "' SET cloud_gid = ? WHERE data_key = ? ";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = BindStmtWithCloudGid(cloudDataResult, ignoreEmptyGid, stmt);
+    int resetCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, resetCode);
+    return errCode == E_OK ? resetCode : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUploadRecorder &uploadRecorder,
+    CloudSyncData &cloudDataResult, SQLiteSingleVerRelationalContinueToken &token)
+{
+    token.GetCloudTableSchema(tableSchema_);
+    sqlite3_stmt *queryStmt = nullptr;
+    bool isStepNext = false;
+    int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult, queryStmt, isStepNext);
+    if (errCode != E_OK) {
+        (void)token.ReleaseCloudStatement();
+        return errCode;
+    }
+    uint32_t totalSize = 0;
+    uint32_t stepNum = -1;
+    do {
+        if (isStepNext) {
+            errCode = SQLiteUtils::StepNext(queryStmt, isMemDb_);
+            if (errCode != E_OK) {
+                errCode = (errCode == -E_FINISHED ? E_OK : errCode);
+                break;
+            }
+        }
+        isStepNext = true;
+        errCode = GetCloudDataForSync(uploadRecorder, queryStmt, cloudDataResult, ++stepNum, totalSize);
+    } while (errCode == E_OK);
+    if (errCode != -E_UNFINISHED) {
+        (void)token.ReleaseCloudStatement();
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
+{
+    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Asset asset;
+        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!CloudStorageUtils::CheckAssetStatus({asset})) {
+            return -E_CLOUD_ERROR;
+        }
+        vBucket.insert_or_assign(field.colName, asset);
+    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Assets assets;
+        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets) || !CloudStorageUtils::CheckAssetStatus(assets)) {
+            return -E_CLOUD_ERROR;
+        }
+        vBucket.insert_or_assign(field.colName, assets);
+    } else {
+        vBucket.insert_or_assign(field.colName, cloudValue);
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *&stmt,
+    const std::vector<Field> &assetFields, VBucket &assetInfo)
+{
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
+        int index = 0;
+        for (const auto &field : assetFields) {
+            Type cloudValue;
+            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = PutVBucketByType(assetInfo, field, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
+    }
+    return errCode;
+}
 } // namespace DistributedDB
 #endif
