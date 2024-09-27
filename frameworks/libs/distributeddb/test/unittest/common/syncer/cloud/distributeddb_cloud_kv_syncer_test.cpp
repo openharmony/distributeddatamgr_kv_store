@@ -595,6 +595,28 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers001, TestSize.Leve
     EXPECT_EQ(actualValue, value);
 }
 
+#define TEST_SYNCWITHMULTIPLEUSER002_ENTRISE_NUM 200
+#define TEST_SYNCWITHMULTIPLEUSER002_KEY_NUM 100
+static void SetEntryDataForSyncWithMultipleUsers002(std::vector<Entry> &entries, std::vector<Key> &keys)
+{
+    for (int i = 0; i < TEST_SYNCWITHMULTIPLEUSER002_ENTRISE_NUM; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        Entry entry;
+        entry.key = key;
+        entry.value = value;
+        entries.push_back(entry);
+    }
+
+    for (int i = 0; i < TEST_SYNCWITHMULTIPLEUSER002_KEY_NUM; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        keys.push_back(key);
+    }
+}
+
 /**
  * @tc.name: SyncWithMultipleUsers002.
  * @tc.desc: test whether upload to the cloud after delete local data that does not have a gid.
@@ -609,16 +631,8 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
      * @tc.expected: step1. return ok.
      */
     std::vector<Entry> entries;
-    for (int i = 0; i < 200; i++) {
-        std::string keyStr = "k_" + std::to_string(i);
-        std::string valueStr = "v_" + std::to_string(i);
-        Key key(keyStr.begin(), keyStr.end());
-        Value value(valueStr.begin(), valueStr.end());
-        Entry entry;
-        entry.key = key;
-        entry.value = value;
-        entries.push_back(entry);
-    }
+    std::vector<Key> keys;
+    SetEntryDataForSyncWithMultipleUsers002(entries, keys);
 
     ASSERT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
     CloudSyncOption syncOption;
@@ -640,12 +654,6 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
      * @tc.steps: step3. kvDelegatePtrS2_ delete 100 data.
      * @tc.expected: step3. return ok.
      */
-    std::vector<Key> keys;
-    for (int i = 0; i < 100; i++) {
-        std::string keyStr = "k_" + std::to_string(i);
-        Key key(keyStr.begin(), keyStr.end());
-        keys.push_back(key);
-    }
     ASSERT_EQ(kvDelegatePtrS2_->DeleteBatch(keys), OK);
 
     /**
@@ -663,7 +671,6 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
     auto callback = [&](const std::map<std::string, SyncProcess> &process) {
         size_t notifyCnt = 0;
         for (const auto &item : process) {
-            LOGD("user = %s, status = %d, errCode=%d", item.first.c_str(), item.second.process, item.second.errCode);
             if (item.second.process != DistributedDB::FINISHED) {
                 continue;
             }

@@ -1957,6 +1957,21 @@ void RegisterNewObserver(RelationalStoreDelegate *rdb1, RelationalStoreObserverU
     rdb1 = nullptr;
 }
 
+static void SetAutoLaunchParamForObserver008(AutoLaunchParam &param)
+{
+    param.path    = g_dbDir;
+    param.appId   = APP_ID;
+    param.userId  = USER_ID;
+    param.storeId = STORE_ID_1;
+    param.option.storeObserver = autoObserver;
+#ifndef OMIT_ENCRYPT
+    param.option.isEncryptedDb = true;
+    param.option.cipher = CipherType::DEFAULT;
+    param.option.passwd = g_correctPasswd;
+    param.option.iterateTimes = DEFAULT_ITER;
+#endif
+}
+
 /**
 * @tc.name: relation observer 008
 * @tc.desc: Test multi rdb observer
@@ -1981,17 +1996,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
         if (g_id != identifier) {
             return false;
         }
-        param.path    = g_dbDir;
-        param.appId   = APP_ID;
-        param.userId  = USER_ID;
-        param.storeId = STORE_ID_1;
-        param.option.storeObserver = autoObserver;
-#ifndef OMIT_ENCRYPT
-        param.option.isEncryptedDb = true;
-        param.option.cipher = CipherType::DEFAULT;
-        param.option.passwd = g_correctPasswd;
-        param.option.iterateTimes = DEFAULT_ITER;
-#endif
+        SetAutoLaunchParamForObserver008(param);
         return true;
     };
     g_mgr.SetAutoLaunchRequestCallback(callback);

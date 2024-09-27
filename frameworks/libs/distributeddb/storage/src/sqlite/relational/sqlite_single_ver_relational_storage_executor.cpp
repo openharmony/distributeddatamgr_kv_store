@@ -1963,7 +1963,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
         return errCode;
     }
     LOGI("removeData on shareTable:%s length:%d finish and cursor is, %d.",
-        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);    
+    DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
     return SetCursor(tableName, context.cursor);
 }
 

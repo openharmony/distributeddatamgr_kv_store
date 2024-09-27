@@ -1645,8 +1645,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetsIdForOneRecord(const T
     return errCode != E_OK ? errCode : ret;
 }
 
-bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt, const VBucket &vBucket,
-    const Field &field, VBucket &assetInfo)
+bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
+    const VBucket &vBucket, const Field &field, VBucket &assetInfo)
 {
     if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;

@@ -577,7 +577,7 @@ int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuer
     return store_->GetCompensatedSyncQuery(syncQuery, users);
 }
 
-int StorageProxy::ClearUnLockingNoNeedCompensated() 
+int StorageProxy::ClearUnLockingNoNeedCompensated()
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
