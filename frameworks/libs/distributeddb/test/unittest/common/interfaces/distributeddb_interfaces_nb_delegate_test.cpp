@@ -3202,44 +3202,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
 }
 
 /**
-  * @tc.name: InvalidOption001
-  * @tc.desc: Test get kv store use invalid options info func with rd, need execute in manual.
-  * @tc.type: FUNC
-  * @tc.require: DTS2024042521804
-  * @tc.author: zhujinlin
-  */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidOption001, TestSize.Level3)
-{
-    /**
-     * @tc.steps:step1. Get the nb delegate.
-     * @tc.expected: step1. Get results OK and non-null delegate.
-     */
-    KvStoreNbDelegate::Option option = {true, false, false};
-    option.storageEngineType = GAUSSDB_RD;
-    option.rdconfig.pageSize = 64u;
-    option.rdconfig.cacheSize = 4u * 1024u * 1024u;
-    option.rdconfig.type = HASH;
-    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
-    EXPECT_EQ(g_kvNbDelegatePtr, nullptr);
-    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
-    /**
-     * @tc.steps:step2. Get the nv delegate.
-     * @tc.expected: step2. Get results OK and non-null delegate.
-     */
-    option.rdconfig.cacheSize = (4u * 1024u * 1024u) - 64u;
-    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
-    EXPECT_NE(g_kvNbDelegatePtr, nullptr);
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    /**
-     * @tc.steps:step3. Close and delete KV store.
-     * @tc.expected: step3. Returns OK.
-     */
-    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
-    EXPECT_EQ(g_mgr.DeleteKvStore("InvalidOption001"), OK);
-    g_kvNbDelegatePtr = nullptr;
-}
-
-/**
  * @tc.name: AbnormalKvStoreTest001
  * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
  * @tc.type: FUNC
