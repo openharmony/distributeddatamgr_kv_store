@@ -667,4 +667,13 @@ void StorageProxy::ReleaseUploadRecord(const std::string &table, const CloudWate
     }
     store_->ReleaseUploadRecord(table, type, localWaterMark);
 }
+
+bool StorageProxy::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
+    SingleVerConflictResolvePolicy policy)
+{
+    if (store_ == nullptr) {
+        return false;
+    }
+    return store_->IsTagCloudUpdateLocal(localInfo, cloudInfo, policy);
+}
 }
