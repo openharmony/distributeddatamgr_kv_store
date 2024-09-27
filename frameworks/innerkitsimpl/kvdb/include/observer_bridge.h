@@ -55,6 +55,7 @@ private:
     std::shared_ptr<DistributedKv::KvStoreObserver> observer_;
     sptr<ObserverClient> remote_;
     const Convertor &convert_;
+    std::mutex mutex_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_OBSERVER_BRIDGE_H
