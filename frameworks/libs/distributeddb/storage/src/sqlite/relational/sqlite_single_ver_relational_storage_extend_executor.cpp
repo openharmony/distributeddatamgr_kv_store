@@ -755,7 +755,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string 
     std::string delDataSql = "DELETE FROM '" + tableName + "';";
     sqlite3_stmt *statement = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, delDataSql, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || statement == nullptr) {
         LOGE("get clean shared data stmt failed %d.", errCode);
         return errCode;
     }
@@ -770,7 +770,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string 
     statement = nullptr;
     std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
     errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || statement == nullptr) {
         LOGE("get clean shared log stmt failed %d.", errCode);
         return errCode;
     }
@@ -1854,7 +1854,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::st
         "0x01 != 0 THEN 0 ELSE status END);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || stmt == nullptr) {
         LOGE("[RDBExecutor] Get stmt failed when clear unlocking status errCode = %d.", errCode);
         return errCode;
     }
@@ -1863,7 +1863,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::st
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("[Storage Eexcute] Step update record status stmt failed, %d.", errCode);
+        LOGE("[Storage Execute] Step update record status stmt failed, %d.", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;

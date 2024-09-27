@@ -1333,7 +1333,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     queryAssetsSql += " FROM '" + tableSchema.name + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " +
         std::to_string(dataKey) + ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+    if (errCode != E_OK || selectStmt == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("Get select assets statement failed, %d.", errCode);
         return errCode;
     }
@@ -1369,7 +1369,7 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
         " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || stmt == nullptr) {
         LOGE("Get mark flag as consistent stmt failed, %d.", errCode);
         return errCode;
     }
@@ -1404,7 +1404,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const st
         "' SET version = ? WHERE hash_key = ? ";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || stmt == nullptr) {
         return errCode;
     }
     int ret = E_OK;
@@ -1441,7 +1441,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestam
 {
     sqlite3_stmt *stmt = nullptr;
     int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || stmt == nullptr) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;
     }
@@ -1506,7 +1506,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncD
         + "' SET cloud_gid = ? WHERE data_key = ? ";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || stmt == nullptr) {
         return errCode;
     }
     errCode = BindStmtWithCloudGid(cloudDataResult, ignoreEmptyGid, stmt);
@@ -1522,7 +1522,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUpload
     sqlite3_stmt *queryStmt = nullptr;
     bool isStepNext = false;
     int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult, queryStmt, isStepNext);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || queryStmt == nullptr) {
         (void)token.ReleaseCloudStatement();
         return errCode;
     }

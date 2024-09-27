@@ -1963,7 +1963,6 @@ static void SetAutoLaunchParamForObserver008(AutoLaunchParam &param)
     param.appId   = APP_ID;
     param.userId  = USER_ID;
     param.storeId = STORE_ID_1;
-    param.option.storeObserver = autoObserver;
 #ifndef OMIT_ENCRYPT
     param.option.isEncryptedDb = true;
     param.option.cipher = CipherType::DEFAULT;
@@ -1997,6 +1996,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
             return false;
         }
         SetAutoLaunchParamForObserver008(param);
+        param.option.storeObserver = autoObserver;
         return true;
     };
     g_mgr.SetAutoLaunchRequestCallback(callback);

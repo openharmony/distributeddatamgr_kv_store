@@ -1949,7 +1949,7 @@ int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
         return E_OK;
     }
     auto *handle = GetHandle(true, errCode);
-    if (errCode != E_OK) {
+    if (errCode != E_OK || handle == nullptr) {
         return errCode;
     }
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
