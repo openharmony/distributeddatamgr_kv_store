@@ -70,7 +70,8 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
     bool isCloudDelete, bool isLocalDelete)
 {
     if (localInfo.cloudGid.empty()) {
-        return isCloudDelete ? OpType::NOT_HANDLE : (isLocalDelete ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
+        return isCloudDelete ? OpType::NOT_HANDLE
+                : ((isLocalDelete && !JudgeLocalDeleteUpload()) ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
     }
     if (isCloudDelete) {
         return OpType::CLEAR_GID;

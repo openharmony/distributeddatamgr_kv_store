@@ -200,8 +200,6 @@ public:
 
     void SetLogicDelete(bool logicDelete);
 
-    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
-
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets) override;
 
@@ -212,6 +210,8 @@ public:
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo) override;
 
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users) override;
+
+    int ClearUnLockingNoNeedCompensated() override;
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
@@ -321,7 +321,6 @@ private:
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
 
     std::atomic<bool> logicDelete_ = false;
-    std::atomic<bool> allowLogicDelete_ = false;
 
     std::function<void (void)> syncFinishFunc_;
     std::function<void (void)> uploadStartFunc_;

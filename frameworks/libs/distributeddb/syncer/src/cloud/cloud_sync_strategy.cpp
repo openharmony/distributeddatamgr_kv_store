@@ -20,6 +20,11 @@ CloudSyncStrategy::CloudSyncStrategy() : policy_(SingleVerConflictResolvePolicy:
 {
 }
 
+void CloudSyncStrategy::SetIsLocalDeleteUpload(bool isLocalDeleteUpload)
+{
+    isLocalDeleteUpload_ = isLocalDeleteUpload;
+}
+
 void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy)
 {
     policy_ = policy;
@@ -39,6 +44,11 @@ bool CloudSyncStrategy::JudgeUpdateCursor()
 bool CloudSyncStrategy::JudgeUpload()
 {
     return false;
+}
+
+bool CloudSyncStrategy::JudgeLocalDeleteUpload()
+{
+    return isLocalDeleteUpload_;
 }
 
 bool CloudSyncStrategy::IsDelete(const LogInfo &info)

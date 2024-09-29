@@ -83,6 +83,7 @@ namespace {
     std::string g_dbDir;
     std::string g_storePath;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
+    RelationalStoreObserverUnitTest *g_observer = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
     std::shared_ptr<VirtualCloudDb> g_virtualCloudDb = nullptr;
     std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
@@ -157,8 +158,10 @@ namespace {
         db_ = RelationalTestUtils::CreateDataBase(g_storePath);
         ASSERT_NE(db_, nullptr);
         CreateUserDBAndTable();
-        DBStatus status = g_mgr.OpenStore(g_storePath, STORE_ID, {}, g_delegate);
-        ASSERT_EQ(status, OK);
+        g_observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+        ASSERT_NE(g_observer, nullptr);
+        ASSERT_EQ(g_mgr.OpenStore(g_storePath, STORE_ID, RelationalStoreDelegate::Option { .observer = g_observer },
+            g_delegate), DBStatus::OK);
         ASSERT_NE(g_delegate, nullptr);
         g_virtualCloudDb = std::make_shared<VirtualCloudDb>();
         ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
@@ -268,6 +271,23 @@ namespace {
             + " where sharing_resource like 'uri%'";
     }
 
+    std::string QueryLogicDeleteCountSql(const std::string &tableName)
+    {
+        return "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(tableName)
+            + " where flag&0x08!=0";
+    }
+
+    std::string QueryAllCountSql(const std::string &tableName)
+    {
+        return "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(tableName);
+    }
+
+    std::string QueryByCursorCountSql(const std::string &tableName, int cursor)
+    {
+        return "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(tableName)
+            + " where cursor > " + std::to_string(cursor) + " and sharing_resource='' and cloud_gid=''";
+    }
+
     void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertCloudTableRecord(int64_t begin, int64_t count,
         bool isShare, int64_t beginGid)
     {
@@ -357,6 +377,9 @@ namespace {
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CloseDb()
     {
+        g_delegate->UnRegisterObserver(g_observer);
+        delete g_observer;
+        g_observer = nullptr;
         g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
@@ -1860,7 +1883,200 @@ namespace {
         EXPECT_EQ(DropLogicDeletedData(db_, g_tableName2, 0u), OK);
         sql = "SELECT COUNT(*) FROM " + DBCommon::GetLogTableName(g_tableName2) + " where sharing_resource=''";
         EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync014
+     * @tc.desc: Test shared table logic delete
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wangxiangdong
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync014, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. Set data is logicDelete
+         * @tc.expected: step1. return OK
+         */
+        bool logicDelete = true;
+        auto data = static_cast<PragmaData>(&logicDelete);
+        g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+        /**
+         * @tc.steps:step2. init cloud data and sync
+         * @tc.expected: step2. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. delete cloud data
+         * @tc.expected: step3. return OK
+         */
+        int beginGid = 0;
+        int delCount = 5;
+        DeleteCloudTableRecord(beginGid, delCount, false);
+        DeleteCloudTableRecord(cloudCount, delCount);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step4. sync and check count
+         * @tc.expected: step4. return OK
+         */
+        std::string sql = QueryLogicDeleteCountSql(g_tableName2);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+        sql = QueryLogicDeleteCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync015
+     * @tc.desc: Test shared table logic delete
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wangxiangdong
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync015, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. Set data is logicDelete
+         * @tc.expected: step1. return OK
+         */
+        bool logicDelete = true;
+        auto data = static_cast<PragmaData>(&logicDelete);
+        g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+        /**
+         * @tc.steps:step2. init cloud data and sync
+         * @tc.expected: step2. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. delete cloud data
+         * @tc.expected: step3. return OK
+         */
+        int beginGid = 0;
+        int delCount = 5;
+        DeleteCloudTableRecord(beginGid, delCount, false);
+        DeleteCloudTableRecord(cloudCount, delCount);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step4. sync and check count
+         * @tc.expected: step4. return OK
+         */
+        std::string sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryLogicDeleteCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+
+        /**
+         * @tc.steps:step6. drop logic data, check sharing_resource
+         * @tc.expected: step6. return OK
+         */
+        g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
+        sql = QueryResourceCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
+        sql = QueryAllCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+        sql = QueryByCursorCountSql(g_sharedTableName1, 15);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount - delCount), nullptr), SQLITE_OK);
+
+        /**
+         * @tc.steps:step6. drop logic data and check count
+         * @tc.expected: step6. return OK
+         */
+        EXPECT_EQ(DropLogicDeletedData(db_, g_sharedTableName1, 0u), OK);
+        sql = QueryAllCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
+    }
+
+    /**
+     * @tc.name: SharedTableSync016
+     * @tc.desc: Test remove device data of shared table and notify
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wangxiangdong
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync016, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. Set data is logicDelete
+         * @tc.expected: step1. return OK
+         */
+        bool logicDelete = true;
+        auto data = static_cast<PragmaData>(&logicDelete);
+        g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+        /**
+         * @tc.steps:step2. init cloud data and sync
+         * @tc.expected: step2. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. delete cloud data
+         * @tc.expected: step3. return OK
+         */
+        int beginGid = 0;
+        int delCount = 5;
+        DeleteCloudTableRecord(beginGid, delCount, false);
+        DeleteCloudTableRecord(cloudCount, delCount);
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step4. removeDeviceData and check notify
+         * @tc.expected: step4. return OK
+         */
+        g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
+        ChangedData changedData;
+        changedData.type = ChangedDataType::DATA;
+        changedData.tableName = g_sharedTableName1;
+        std::vector<DistributedDB::Type> dataVec;
+        DistributedDB::Type type = std::string(CloudDbConstant::FLAG_AND_DATA_MODE_NOTIFY);
+        dataVec.push_back(type);
+        changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
+        g_observer->SetExpectedResult(changedData);
+        EXPECT_EQ(g_observer->IsAllChangedDataEq(), true);
+
+        /**
+         * @tc.steps:step5. drop logic delete data and check count
+         * @tc.expected: step5. return OK
+         */
+        EXPECT_EQ(DropLogicDeletedData(db_, g_sharedTableName1, 0u), OK);
+        std::string sql = QueryAllCountSql(g_sharedTableName1);
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0L), nullptr), SQLITE_OK);
     }
 
     /**

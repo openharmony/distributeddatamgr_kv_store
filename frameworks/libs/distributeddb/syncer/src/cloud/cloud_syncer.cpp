@@ -34,12 +34,14 @@
 #include "version.h"
 
 namespace DistributedDB {
-CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerConflictResolvePolicy policy)
+CloudSyncer::CloudSyncer(
+    std::shared_ptr<StorageProxy> storageProxy, bool isLocalDeleteUpload, SingleVerConflictResolvePolicy policy)
     : lastTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
       timerId_(0u),
+      isLocalDeleteUpload_(isLocalDeleteUpload),
       policy_(policy)
 {
     if (storageProxy_ != nullptr) {
@@ -1512,7 +1514,8 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, policy_);
+        currentContext_.strategy =
+            StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, isLocalDeleteUpload_, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
@@ -1905,6 +1908,11 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         info = std::move(cloudTaskInfos_[taskId]);
         cloudTaskInfos_.erase(taskId);
         resumeTaskInfos_.erase(taskId);
+    }
+    int err = storageProxy_->ClearUnLockingNoNeedCompensated();
+    if (err != E_OK) {
+        // if clear unlocking failed, no return to avoid affecting the entire process
+        LOGW("[CloudSyncer] clear unlocking status failed! errCode = %d", err);
     }
     contextCv_.notify_one();
     if (info.errCode == E_OK) {

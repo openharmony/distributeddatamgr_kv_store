@@ -1868,8 +1868,9 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, GetSyncDataFail002, TestSize.
      * @tc.steps: step2. device B sync to device A and check data
      * * @tc.expected: step2. interface return ok
     */
-    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10 sec
+    std::vector<std::string> devices = { g_deviceB->GetDeviceId() };
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
     Value actualValue;
     for (int j = 1u; j <= totalSize; j++) {
         if (j > totalSize / 2) {

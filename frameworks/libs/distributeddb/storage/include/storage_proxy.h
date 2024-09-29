@@ -117,8 +117,6 @@ public:
 
     void FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data);
 
-    void SetCloudTaskConfig(const CloudTaskConfig &config);
-
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
         const Bytes &hashKey, VBucket &assets);
 
@@ -127,6 +125,8 @@ public:
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
 
     int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users);
+
+    int ClearUnLockingNoNeedCompensated();
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);

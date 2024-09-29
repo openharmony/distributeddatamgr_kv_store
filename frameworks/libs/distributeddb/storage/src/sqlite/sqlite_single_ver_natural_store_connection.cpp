@@ -1533,7 +1533,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
     }
     // check whether sync started to get SystemTime
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-    if (naturalStore != nullptr) {
+    if (naturalStore == nullptr) {
         naturalStore->WakeUpSyncer();
     }
 

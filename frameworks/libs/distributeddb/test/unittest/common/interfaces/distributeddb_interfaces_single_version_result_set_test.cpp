@@ -573,4 +573,3 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStor
     storeObj.SetConnectionFlag(true);
     EXPECT_EQ(storeObj.IsDataMigrating(), false);
 }
-

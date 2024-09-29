@@ -37,6 +37,8 @@ public:
 
     void SetDownloadStatus(DBStatus status);
 
+    void SetRemoveStatus(DBStatus status);
+
     void ForkDownload(const DownloadCallBack &callback);
 
     void ForkRemoveLocalAssets(const RemoveAssetsCallBack &callback);
@@ -45,6 +47,7 @@ public:
 private:
     std::mutex dataMutex_;
     DBStatus downloadStatus_ = OK;
+    DBStatus removeStatus_ = OK;
     DownloadCallBack downloadCallBack_;
     RemoveAssetsCallBack removeAssetsCallBack_;
     RemoveLocalAssetsCallBack removeLocalAssetsCallBack_;

@@ -901,7 +901,7 @@ void CommunicatorAggregator::NotifyConnectChange(const std::string &srcTarget,
         // Ignore nonactivated communicator
         if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
             LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
-                VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
+                 VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
             commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
         }
     }

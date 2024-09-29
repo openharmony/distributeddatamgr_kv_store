@@ -39,6 +39,12 @@ KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
 CloudSyncOption g_CloudSyncoption;
 const std::string USER_ID_2 = "user2";
 const std::string USER_ID_3 = "user3";
+const Key KEY_1 = {'k', '1'};
+const Key KEY_2 = {'k', '2'};
+const Key KEY_3 = {'k', '3'};
+const Value VALUE_1 = {'v', '1'};
+const Value VALUE_2 = {'v', '2'};
+const Value VALUE_3 = {'v', '3'};
 class DistributedDBCloudKvTest : public testing::Test {
 public:
     static void SetUpTestCase();

@@ -1708,15 +1708,9 @@ void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
     LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
 }
 
-void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config)
-{
-    allowLogicDelete_ = config.allowLogicDelete;
-    LOGD("[RelationalSyncAbleStorage] allow logic delete %d", static_cast<int>(config.allowLogicDelete));
-}
-
 bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
 {
-    return allowLogicDelete_ && logicDelete_;
+    return logicDelete_;
 }
 
 std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,
@@ -1939,6 +1933,40 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObje
         return errCode;
     }
     errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
+{
+    std::vector<TableSchema> tables;
+    int errCode = GetCloudTableWithoutShared(tables);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (tables.empty()) {
+        LOGI("[RDBStorage] Table is empty, no need to clear unlocking status");
+        return E_OK;
+    }
+    auto *handle = GetHandle(true, errCode);
+    if (errCode != E_OK || handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    for (const auto &table : tables) {
+        errCode = handle->ClearUnLockingStatus(table.name);
+        if (errCode != E_OK) {
+            LOGW("[ClearUnLockingNoNeedCompensated] clear unlocking status failed, continue! errCode=%d", errCode);
+        }
+    }
+    errCode = handle->Commit();
+    if (errCode != E_OK) {
+        LOGE("[ClearUnLockingNoNeedCompensated] commit failed %d when clear unlocking status", errCode);
+    }
     ReleaseHandle(handle);
     return errCode;
 }

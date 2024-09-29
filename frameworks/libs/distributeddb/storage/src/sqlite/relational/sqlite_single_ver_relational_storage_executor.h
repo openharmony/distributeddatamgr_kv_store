@@ -195,6 +195,8 @@ public:
 
     int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
 
+    int ClearUnLockingStatus(const std::string &tableName);
+
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
@@ -365,6 +367,8 @@ private:
 
     int BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey, sqlite3_stmt *&stmt);
     int DoCleanShareTableDataAndLog(const std::vector<std::string> &tableNameList);
+    int SetDataOnShareTableWithLogicDelete(const std::string &tableName, const std::string &logTableName);
+    int CleanShareTable(const std::string &tableName);
 
     int GetReferenceGidInner(const std::string &sourceTable, const std::string &targetTable,
         const CloudSyncBatch &syncBatch, const std::vector<TableReferenceProperty> &targetTableReference,

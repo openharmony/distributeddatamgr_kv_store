@@ -50,13 +50,6 @@ void CloudSyncer::ReloadCloudWaterMarkIfNeed(const std::string &tableName, std::
 void CloudSyncer::ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info)
 {
     info.upLoadInfo.total = static_cast<uint32_t>(param.count);
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (!cloudTaskInfos_[taskId].resume) {
-            return;
-        }
-    }
-
     Info lastUploadInfo;
     GetLastUploadInfo(info.tableName, lastUploadInfo);
     info.upLoadInfo.total += lastUploadInfo.successCount;
@@ -172,7 +165,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
     }
     if (!isSharedTable) {
         ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
-        if (ret != E_OK) {
+        if (ret != errCode) {
             LOGW("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
@@ -409,6 +402,33 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
     return errCode;
 }
 
+void CloudSyncer::SeparateNormalAndFailAssets(const std::map<std::string, Assets> &assetsMap, VBucket &normalAssets,
+    VBucket &failedAssets)
+{
+    for (auto &[key, assets] : assetsMap) {
+        Assets tempFailedAssets;
+        Assets tempNormalAssets;
+        int32_t otherStatusCnt = 0;
+        for (auto &asset : assets) {
+            if (asset.status == AssetStatus::NORMAL) {
+                tempNormalAssets.push_back(asset);
+            } else if (asset.status == AssetStatus::ABNORMAL) {
+                tempFailedAssets.push_back(asset);
+            } else {
+                otherStatusCnt++;
+            }
+        }
+        LOGD("[CloudSyncer] download asset times, normalCount %d, abnormalCount %d, otherStatusCnt %d",
+            tempNormalAssets.size(), tempFailedAssets.size(), otherStatusCnt);
+        if (tempFailedAssets.size() > 0) {
+            failedAssets[key] = std::move(tempFailedAssets);
+        }
+        if (tempNormalAssets.size() > 0) {
+            normalAssets[key] = std::move(tempNormalAssets);
+        }
+    }
+}
+
 int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
@@ -425,9 +445,12 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
         VBucket failedAssets;
         normalAssets[CloudDbConstant::GID_FIELD] = gid;
         failedAssets[CloudDbConstant::GID_FIELD] = gid;
-        VBucket &assets = setAllNormal ? normalAssets : failedAssets;
-        for (auto &[key, asset] : assetsMap) {
-            assets[key] = std::move(asset);
+        if (setAllNormal) {
+            for (auto &[key, asset] : assetsMap) {
+                normalAssets[key] = std::move(asset);
+            }
+        } else {
+            SeparateNormalAndFailAssets(assetsMap, normalAssets, failedAssets);
         }
         if (!downloadItem.recordConflict) {
             errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
@@ -541,14 +564,6 @@ int CloudSyncer::PrepareAndDownload(const std::string &table, const CloudTaskInf
     if (errCode != E_OK) {
         return errCode;
     }
-    bool isShared = false;
-    errCode = storageProxy_->IsSharedTable(table, isShared);
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] check shared table failed %d", errCode);
-        return errCode;
-    }
-    // shared table not allow logic delete
-    storageProxy_->SetCloudTaskConfig({ !isShared });
     errCode = CheckTaskIdValid(taskInfo.taskId);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] task is invalid, abort sync");

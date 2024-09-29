@@ -27,6 +27,8 @@ public:
     CloudSyncStrategy();
     virtual ~CloudSyncStrategy() = default;
 
+    void SetIsLocalDeleteUpload(bool isLocalDeleteUpload);
+
     void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
     virtual OpType TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
@@ -35,6 +37,8 @@ public:
     virtual bool JudgeUpdateCursor();
 
     virtual bool JudgeUpload();
+
+    bool JudgeLocalDeleteUpload();
 
     static bool IsDelete(const LogInfo &info);
 
@@ -49,6 +53,8 @@ protected:
     static bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
     SingleVerConflictResolvePolicy policy_;
+
+    bool isLocalDeleteUpload_ = false;  // Whether upload to the cloud after delete local data that does not have a gid
 };
 }
 #endif // CLOUD_SYNC_STRATEGY_H

@@ -1379,7 +1379,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Le
      * @tc.expected: step2. return OK.
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    CheckCursorData(ASSETS_TABLE_NAME, localCount + 1);
+    CheckCursorData(ASSETS_TABLE_NAME, 1);
 }
 
 /**
@@ -1719,7 +1719,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
     g_virtualCloudDb->ForkUpload(nullptr);
 }
-
+ 
 /**
  * @tc.name: FillAssetId022
  * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure

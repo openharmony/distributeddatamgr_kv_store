@@ -911,15 +911,6 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
     LOGD("TearDown FINISH");
 }
 
-void WaitCallCount(RelationalStoreObserverUnitTest *observer1)
-{
-    int reTry = 5;
-    while (observer1->GetCallCount() != 1u && reTry > 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        reTry--;
-    }
-}
-
 /**
 * @tc.name: Normal Sync 001
 * @tc.desc: Test normal push sync for add data.
@@ -1966,6 +1957,20 @@ void RegisterNewObserver(RelationalStoreDelegate *rdb1, RelationalStoreObserverU
     rdb1 = nullptr;
 }
 
+static void SetAutoLaunchParamForObserver008(AutoLaunchParam &param)
+{
+    param.path    = g_dbDir;
+    param.appId   = APP_ID;
+    param.userId  = USER_ID;
+    param.storeId = STORE_ID_1;
+#ifndef OMIT_ENCRYPT
+    param.option.isEncryptedDb = true;
+    param.option.cipher = CipherType::DEFAULT;
+    param.option.passwd = g_correctPasswd;
+    param.option.iterateTimes = DEFAULT_ITER;
+#endif
+}
+
 /**
 * @tc.name: relation observer 008
 * @tc.desc: Test multi rdb observer
@@ -1990,17 +1995,8 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
         if (g_id != identifier) {
             return false;
         }
-        param.path    = g_dbDir;
-        param.appId   = APP_ID;
-        param.userId  = USER_ID;
-        param.storeId = STORE_ID_1;
+        SetAutoLaunchParamForObserver008(param);
         param.option.storeObserver = autoObserver;
-#ifndef OMIT_ENCRYPT
-        param.option.isEncryptedDb = true;
-        param.option.cipher = CipherType::DEFAULT;
-        param.option.passwd = g_correctPasswd;
-        param.option.iterateTimes = DEFAULT_ITER;
-#endif
         return true;
     };
     g_mgr.SetAutoLaunchRequestCallback(callback);
@@ -2041,7 +2037,11 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
      * @tc.steps: step6. Call sync expect sync successful and device A check observer
      */
     EXPECT_EQ(autoObserver->GetCallCount(), 1u);
-    WaitCallCount(observer1);
+    int reTry = 5;
+    while (observer1->GetCallCount() != 1u && reTry > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        reTry--;
+    }
     EXPECT_EQ(observer1->GetCallCount(), 1u);
     EXPECT_EQ(autoObserver->GetDataChangeDevice(), DEVICE_B);
     CheckIdentify(autoObserver);

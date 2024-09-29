@@ -534,16 +534,6 @@ void StorageProxy::FillCloudGidIfSuccess(const OpType opType, const CloudSyncDat
     }
 }
 
-void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)
-{
-    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        LOGW("[StorageProxy] fill gid failed with store invalid");
-        return;
-    }
-    store_->SetCloudTaskConfig(config);
-}
-
 std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
     const Bytes &hashKey, VBucket &assets)
 {
@@ -585,6 +575,15 @@ int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuer
         return -E_INVALID_DB;
     }
     return store_->GetCompensatedSyncQuery(syncQuery, users);
+}
+
+int StorageProxy::ClearUnLockingNoNeedCompensated()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->ClearUnLockingNoNeedCompensated();
 }
 
 int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
