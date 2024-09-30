@@ -577,8 +577,70 @@ int SingleVerDataSyncUtils::SchemaVersionMatchCheck(const SingleVerSyncTaskConte
     return E_OK;
 }
 
+int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
+    uint32_t &total)
+{
+    SyncTimeRange waterRange;
+    WaterMark startMark = context->GetInitWaterMark();
+    if ((waterRange.endTime == 0) || (startMark > waterRange.endTime)) {
+        return E_OK;
+    }
+
+    waterRange.beginTime = startMark;
+    waterRange.deleteBeginTime = context->GetInitDeletedMark();
+    return GetUnsyncTotal(context, storage, waterRange, total);
+}
+
+int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
+    SyncTimeRange &waterMarkInfo, uint32_t &total)
+{
+    int errCode;
+    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
+    if (curType != SyncType::QUERY_SYNC_TYPE) {
+        errCode = storage->GetUnSyncTotal(waterMarkInfo.beginTime, waterMarkInfo.endTime, total);
+    } else {
+        QuerySyncObject queryObj = context->GetQuery();
+        errCode = storage->GetUnSyncTotal(queryObj, waterMarkInfo, total);
+    }
+    if (errCode != E_OK) {
+        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed,errCode=%d", errCode);
+    }
+    return errCode;
+}
+
 bool SingleVerDataSyncUtils::IsSupportRequestTotal(uint32_t version)
 {
     return version >= SOFTWARE_VERSION_RELEASE_10_0;
+}
+
+void SingleVerDataSyncUtils::UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
+{
+    const std::vector<SendDataItem> &data = packet->GetData();
+    uint32_t dataSize = std::count_if(data.begin(), data.end(), [](SendDataItem item) {
+        return (item->GetFlag() & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) == 0;
+    });
+
+    LOGD("[DataSync][UpdateSyncProcess] mode=%d, total=%" PRIu64 ", size=%" PRIu64, packet->GetMode(),
+        packet->GetTotalDataCount(), dataSize);
+    if (packet->GetMode() == SyncModeType::PUSH || packet->GetMode() == SyncModeType::QUERY_PUSH) {
+        // save total count to sync process
+        if (packet->GetTotalDataCount() > 0) {
+            context->SetOperationSyncProcessTotal(context->GetDeviceId(), packet->GetTotalDataCount());
+        }
+        context->UpdateOperationFinishedCount(context->GetDeviceId(), dataSize);
+    }
+}
+
+void SingleVerDataSyncUtils::CacheInitWaterMark(SingleVerSyncTaskContext *context, SingleVerDataSync *dataSync)
+{
+    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
+    WaterMark startMark = 0;
+    dataSync->GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
+    context->SetInitWaterMark(startMark);
+
+    WaterMark deletedMark = 0;
+    dataSync->GetLocalDeleteSyncWaterMark(context, deletedMark);
+    context->SetInitDeletedMark(deletedMark);
+    LOGI("[SingleVerDataSync][CacheInitWaterMark] startMark %" PRIu64 " deletedMark %" PRIu64, startMark, deletedMark);
 }
 }

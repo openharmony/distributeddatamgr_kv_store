@@ -71,8 +71,6 @@ public:
 
     void ClearSyncStatus();
 
-    void CacheInitWaterMark(SingleVerSyncTaskContext *context);
-
     int PushStart(SingleVerSyncTaskContext *context);
 
     int PushPullStart(SingleVerSyncTaskContext *context);
@@ -119,6 +117,11 @@ public:
 
     void ClearDataMsg();
 
+    void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
+        WaterMark &waterMark) const;
+    
+    void GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context, WaterMark &waterMark) const;
+
 protected:
     static const int SEND_FINISHED = 0xff;
     static const int LOCAL_WATER_MARK_NOT_INIT = 0xaa;
@@ -161,8 +164,6 @@ protected:
     int GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize);
     int GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
         DataSizeSpecInfo syncDataSizeInfo, SyncTimeRange &waterMarkInfo);
-    int GetUnsyncTotal(const SingleVerSyncTaskContext *context, uint32_t &total);
-    int GetUnsyncTotal(const SingleVerSyncTaskContext *context, SyncTimeRange &waterMarkInfo, uint32_t &total);
 
     int GetNextUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize);
 
@@ -172,15 +173,10 @@ protected:
     int SaveLocalWaterMark(SyncType syncType, const SingleVerSyncTaskContext *context,
         SyncTimeRange dataTimeRange, bool isCheckBeforUpdate = false) const;
 
-    void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
-        WaterMark &waterMark) const;
-
     void GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify, const DeviceID &deviceId,
         WaterMark &waterMark) const;
 
     void GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &waterMark);
-
-    void GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context, WaterMark &waterMark) const;
 
     int RemoveDeviceDataHandle(SingleVerSyncTaskContext *context, const Message *message, WaterMark maxSendDataTime);
 
@@ -256,7 +252,6 @@ protected:
     int QuerySyncCheck(SingleVerSyncTaskContext *context);
 
     void RemoveSubscribeIfNeed(const std::string &queryId, const std::shared_ptr<SubscribeManager> &subscribeManager);
-    void UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);
 
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;

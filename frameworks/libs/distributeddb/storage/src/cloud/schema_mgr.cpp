@@ -149,13 +149,15 @@ bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, 
 
 void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaObject &localSchema)
 {
+    uint32_t missingTables = 0u;
+    std::string msg;
     DataBaseSchema cloudSchema = schema;
     for (TableSchema &table : cloudSchema.tables) {
         std::string tableName = table.name;
         TableInfo tableInfo = localSchema.GetTable(tableName);
         if (tableInfo.Empty()) {
-            LOGD("Local schema does not contain certain table [%s size = %d]",
-                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+                msg += ("[" + DBCommon::StringMiddleMasking(tableName) + ", " + std::to_string(tableName.size()) + "]");
+                missingTables++;
             continue;
         }
         FieldInfoMap localFields = tableInfo.GetFields();
@@ -169,6 +171,9 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
                 ++it;
             }
         }
+    }
+    if (missingTables > 0u) {
+        LOGD("Local schema does not contain following %" PRIu32 " tables: %s", missingTables, msg.c_str());
     }
     SetCloudDbSchema(cloudSchema);
 }

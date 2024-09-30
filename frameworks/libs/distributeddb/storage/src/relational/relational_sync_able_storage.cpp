@@ -556,6 +556,15 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
+    // To prevent certain abnormal scenarios from deleting the table,
+    // check if the table exists before each synchronization.
+    // If the table does not exist, create it.
+    // Because it is a fallback scenario, if the table creation fails, no failure will be returned
+    errCode = handle->CreateDistributedDeviceTable(deviceName,
+        storageEngine_->GetSchema().GetTable(query.GetTableName()), info);
+    if (errCode != E_OK) {
+        LOGW("[RelationalSyncAbleStorage::SaveSyncDataItems] Create distributed device table fail %d", errCode);
+    }
     DBDfxAdapter::StartTracing();
 
     errCode = handle->SaveSyncItems(inserter);
