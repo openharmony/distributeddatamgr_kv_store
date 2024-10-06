@@ -188,6 +188,8 @@ public:
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const override;
+
+    DatabaseStatus GetDatabaseStatus() const override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

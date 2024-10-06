@@ -130,6 +130,7 @@ public:
 
     virtual void ResetSyncStatus();
 
+    void MarkRebuild() override;
 protected:
     // Create a connection object, no DB ref increased.
     virtual GenericKvDBConnection *NewConnection(int &errCode) = 0;
@@ -192,6 +193,7 @@ private:
     OperatePerm operatePerm_;
     mutable std::mutex regFuncCountMutex_;
     std::vector<uint32_t> registerFunctionCount_;
+    std::atomic<bool> isRebuild_;
 };
 } // namespace DistributedDB
 

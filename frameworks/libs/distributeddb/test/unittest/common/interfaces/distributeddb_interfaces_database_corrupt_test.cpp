@@ -525,6 +525,43 @@ void TestDatabaseIntegrityCheckOption(const std::string &storeId, bool isEncrypt
 }
 
 /**
+  * @tc.name: DatabaseRebuildTest001
+  * @tc.desc: Test DB rebuild.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseRebuildTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Get the kv store
+     * @tc.expected: step1. Returns OK.
+     */
+    KvStoreNbDelegate::Option nbOption;
+    nbOption.isNeedIntegrityCheck = false;
+    nbOption.isNeedRmCorruptedDb = true;
+    std::string storeId = "DatabaseRebuildTest001";
+    auto filePath = GetKvStoreDirectory(storeId, DBConstant::DB_TYPE_SINGLE_VER);
+    g_mgr.GetKvStore(storeId, nbOption, g_kvNbDelegateCallback);
+    ASSERT_EQ(g_kvNbDelegateStatus, OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    /**
+     * @tc.steps: step2. Modify database file and get the kv store
+     * @tc.expected: step2. Check database status OK.
+     */
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath, 0, MODIFY_SIZE, MODIFY_VALUE);
+    g_mgr.GetKvStore(storeId, nbOption, g_kvNbDelegateCallback);
+    ASSERT_EQ(g_kvNbDelegateStatus, OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    KvStoreNbDelegate::DatabaseStatus actualStatus = g_kvNbDelegatePtr->GetDatabaseStatus();
+    EXPECT_EQ(actualStatus.isRebuild, true);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+}
+
+/**
   * @tc.name: DatabaseIntegrityCheck001
   * @tc.desc: Test the integrity check option.
   * @tc.type: FUNC
