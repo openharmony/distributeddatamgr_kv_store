@@ -60,6 +60,9 @@ public:
         std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
         Rdconfig rdconfig;
     };
+    struct DatabaseStatus {
+        bool isRebuild = false;
+    };
 
     DB_API virtual ~KvStoreNbDelegate() {}
 
@@ -286,6 +289,11 @@ public:
     // Get Entries by the device(uuid) in sync_data.
     // If device is empty, it would return all the entries which was written by local device.
     DB_API virtual DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
+
+    DB_API virtual DatabaseStatus GetDatabaseStatus() const
+    {
+        return {};
+    }
 };
 } // namespace DistributedDB
 
