@@ -1347,8 +1347,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SaveNonexistDevdata1, TestSize.Leve
     query = QueryObject(Query::Select(tableName));
     const DeviceID deviceID = "deviceA";
     SetRemoteSchema(store, deviceID);
-    EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID),
-        -1);  // -1 means error
+    EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
 
     sqlite3_close(db);

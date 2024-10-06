@@ -137,9 +137,9 @@ public:
 
     void SetSyncProcessCallFun(DeviceSyncProcessCallback callBack);
 
-    void SetSyncProcessTotal(std::string &deviceId, uint32_t total);
+    void SetSyncProcessTotal(const std::string &deviceId, uint32_t total);
 
-    void UpdateFinishedCount(std::string &deviceId, uint32_t count);
+    void UpdateFinishedCount(const std::string &deviceId, uint32_t count);
 
 protected:
     virtual ~SyncOperation();

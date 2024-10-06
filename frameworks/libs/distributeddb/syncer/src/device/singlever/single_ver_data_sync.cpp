@@ -63,19 +63,6 @@ int SingleVerDataSync::Initialize(ISyncInterface *inStorage, ICommunicator *inCo
     return E_OK;
 }
 
-void SingleVerDataSync::CacheInitWaterMark(SingleVerSyncTaskContext *context)
-{
-    SyncType curType = context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
-    WaterMark startMark = 0;
-    GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
-    context->SetInitWaterMark(startMark);
-
-    WaterMark deletedMark = 0;
-    GetLocalDeleteSyncWaterMark(context, deletedMark);
-    context->SetInitDeletedMark(deletedMark);
-    LOGI("[SingleVerDataSync][CacheInitWaterMark] startMark %u deletedMark %u", startMark, deletedMark);
-}
-
 int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
 {
     std::lock_guard<std::mutex> lock(lock_);
@@ -96,7 +83,7 @@ int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
     } else if (tmpMode == SyncModeType::PULL) {
         errCode = PullRequestStart(context);
     } else {
-        CacheInitWaterMark(context);
+        SingleVerDataSyncUtils::CacheInitWaterMark(context, this);
         errCode = PullResponseStart(context);
     }
     if (context->IsSkipTimeoutError(errCode)) {
@@ -396,36 +383,6 @@ int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vec
     context->SetContinueToken(token);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         LOGE("[DataSync][GetUnsyncData] get unsync data failed,errCode=%d", errCode);
-    }
-    return errCode;
-}
-
-int SingleVerDataSync::GetUnsyncTotal(const SingleVerSyncTaskContext *context, uint32_t &total)
-{
-    SyncTimeRange waterRange;
-    WaterMark startMark = context->GetInitWaterMark();
-    if (waterRange.endTime == 0 || startMark > waterRange.endTime) {
-        return E_OK;
-    }
-
-    waterRange.beginTime = startMark;
-    waterRange.deleteBeginTime = context->GetInitDeletedMark();
-    return GetUnsyncTotal(context, waterRange, total);
-}
-
-int SingleVerDataSync::GetUnsyncTotal(const SingleVerSyncTaskContext *context,
-    SyncTimeRange &waterMarkInfo, uint32_t &total)
-{
-    int errCode = E_OK;
-    SyncType curType = (context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE);
-    if (curType != SyncType::QUERY_SYNC_TYPE) {
-        errCode = storage_->GetUnSyncTotal(waterMarkInfo.beginTime, waterMarkInfo.endTime, total);
-    } else {
-        QuerySyncObject queryObj = context->GetQuery();
-        errCode = storage_->GetUnSyncTotal(queryObj, waterMarkInfo, total);
-    }
-    if (errCode != E_OK) {
-        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed, errCode=%d", errCode);
     }
     return errCode;
 }
@@ -1027,24 +984,6 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
     return errCode;
 }
 
-void SingleVerDataSync::UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
-{
-    const std::vector<SendDataItem> &data = packet->GetData();
-    uint32_t dataSize = std::count_if(data.begin(), data.end(), [](SendDataItem item) {
-        return (item->GetFlag() & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) == 0;
-    });
-
-    LOGI("[DataSync][UpdateSyncProcess] mode=%d, total=%u, size=%u", packet->GetMode(), packet->GetTotalDataCount(),
-        dataSize);
-    if (packet->GetMode() == SyncModeType::PUSH || packet->GetMode() == SyncModeType::QUERY_PUSH) {
-        // save total count to sync process
-        if (packet->GetTotalDataCount() > 0) {
-            context->SetOperationSyncProcessTotal(deviceId_, packet->GetTotalDataCount());
-        }
-        context->UpdateOperationFinishedCount(deviceId_, dataSize);
-    }
-}
-
 int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const Message *message,
     WaterMark &pullEndWatermark)
 {
@@ -1076,7 +1015,7 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
         (void)SendDataAck(context, message, errCode, dataTime.endTime);
         return errCode;
     }
-    UpdateSyncProcess(context, packet);
+    SingleVerDataSyncUtils::UpdateSyncProcess(context, packet);
 
     if (pullEndWatermark > 0 && !storage_->IsReadable()) { // pull mode
         pullEndWatermark = 0;
@@ -1153,7 +1092,7 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
     if ((ackCode == E_OK || ackCode == SEND_FINISHED) &&
         SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
         uint32_t total = 0u;
-        (void)GetUnsyncTotal(context, total);
+        (void)SingleVerDataSyncUtils::GetUnsyncTotal(context, storage_, total);
         LOGD("[SendPullResponseDataPkt] GetUnsyncTotal total=%u", total);
         packet->SetTotalDataCount(total);
     }
@@ -1833,7 +1772,7 @@ void SingleVerDataSync::FillRequestReSendPacketV2(const SingleVerSyncTaskContext
     if (context->GetMode() == SyncModeType::RESPONSE_PULL &&
         SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
         uint32_t total = 0u;
-        (void)GetUnsyncTotal(context, total);
+        (void)SingleVerDataSyncUtils::GetUnsyncTotal(context, storage_, total);
         packet->SetTotalDataCount(total);
     }
 }

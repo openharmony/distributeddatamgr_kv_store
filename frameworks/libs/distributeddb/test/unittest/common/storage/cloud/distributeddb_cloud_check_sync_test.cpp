@@ -58,7 +58,6 @@ const Asset g_cloudAsset = {
 };
 
 std::vector<DBStatus> g_actualDBStatus;
-std::map<std::string, SyncProcess> lastProcess_;
 
 void CreateUserDBAndTable(sqlite3 *&db)
 {
@@ -114,8 +113,7 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    std::map<std::string, SyncProcess> last;
-    auto callback = [&last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
@@ -125,7 +123,6 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
                 cv.notify_one();
             }
         }
-        last = process;
     };
     CloudSyncOption option;
     PrepareOption(option, query, isPriority, isCompensatedSyncOnly);
@@ -136,7 +133,37 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
             return finish;
         });
     }
-    lastProcess_ = last;
+}
+
+void BlockCompensatedSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus expectResult,
+    const std::function<void(const std::map<std::string, SyncProcess> &syncProcess)> &processCallback)
+{
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&processCallback, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                cv.notify_one();
+            }
+        }
+        if (processCallback != nullptr) {
+            processCallback(process);
+        }
+    };
+    CloudSyncOption option;
+    PrepareOption(option, query, false, true);
+    ASSERT_EQ(delegate->Sync(option, callback), expectResult);
+    if (expectResult == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&finish]() {
+            return finish;
+        });
+    }
 }
 
 int QueryCountCallback(void *data, int count, char **colValue, char **colName)
@@ -704,9 +731,10 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest005, TestSize.Level0)
      * @tc.expected: step2. ok.
      */
     Query query = Query::Select().FromTable({tableName_});
-    BlockPrioritySync(query, delegate_, false, OK, true);
-    EXPECT_EQ(lastProcess_.size(), 1u);
-    EXPECT_TRUE(lastProcess_.find("CLOUD") != lastProcess_.end());
+    auto callback = [](const std::map<std::string, SyncProcess> &syncProcess) {
+        EXPECT_TRUE(syncProcess.find("CLOUD") != syncProcess.end());
+    };
+    BlockCompensatedSync(query, delegate_, OK, callback);
 }
 
 /**

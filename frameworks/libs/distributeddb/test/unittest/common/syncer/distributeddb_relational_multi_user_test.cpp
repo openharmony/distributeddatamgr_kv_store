@@ -1247,3 +1247,58 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
     PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
+
+/**
+ * @tc.name: DropDistributedTableTest001
+ * @tc.desc: Test sync after drop distributed table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Prepare db1 and db2.
+     * @tc.expected: step1. success.
+     */
+    OpenStore1();
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    CloseStore();
+    OpenStore2();
+    PrepareEnvironment(g_tableName, g_storePath2, g_rdbDelegatePtr2);
+    /**
+     * @tc.steps: step2. Do 1st sync to create distributed table
+     * @tc.expected: step2. success.
+     */
+    std::vector<RelationalVirtualDevice *> remoteDev;
+    remoteDev.push_back(g_deviceB);
+    PrepareVirtualDeviceEnv(g_tableName, g_storePath1, remoteDev);
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    /**
+     * @tc.steps: step3. Drop distributed table
+     * @tc.expected: step3. success.
+     */
+    std::string distributedTableName = DBCommon::GetDistributedTableName(DEVICE_B, g_tableName);
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db, g_storePath2), SQLITE_OK);
+    EXPECT_EQ(DropTable(db, distributedTableName), SQLITE_OK);
+    sqlite3_close(db);
+    /**
+     * @tc.steps: step4. Do 2nd sync and check result.
+     * @tc.expected: step4. success.
+     */
+    VirtualRowData virtualRowData;
+    DataValue d1;
+    d1 = (int64_t)1;
+    virtualRowData.objectData.PutDataValue("id", d1);
+    DataValue d2;
+    d2.SetText("hello");
+    virtualRowData.objectData.PutDataValue("name", d2);
+    virtualRowData.logInfo.timestamp = 1;
+    g_deviceB->PutData(g_tableName, {virtualRowData});
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    CheckDataInRealDevice();
+    g_currentStatus = 0;
+    CloseStore();
+}
