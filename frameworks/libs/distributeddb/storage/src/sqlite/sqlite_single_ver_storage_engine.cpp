@@ -689,17 +689,15 @@ int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
     return errCode;
 }
 
-int SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
+void SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
 {
     if (!(secOption == option_.securityOpt) && (secOption.securityLabel > option_.securityOpt.securityLabel) &&
         secOption.securityLabel != SecurityLabel::NOT_SET &&
         option_.securityOpt.securityLabel != SecurityLabel::NOT_SET) {
-        LOGE("[SQLiteSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
+        LOGW("[SQLiteSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
             secOption.securityLabel, secOption.securityFlag, option_.securityOpt.securityLabel,
             option_.securityOpt.securityFlag);
-        return -E_SECURITY_OPTION_CHECK_ERROR;
     }
-    return E_OK;
 }
 
 int SQLiteSingleVerStorageEngine::CreateNewDirsAndSetSecOpt() const
@@ -738,10 +736,7 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
         return errCode;
     }
 
-    errCode = CheckDatabaseSecOpt(existedSecOpt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
+    CheckDatabaseSecOpt(existedSecOpt);
 
     // Judge whether need update the security option of the engine.
     // Should update the security in the import or rekey scene(inner) or exist is not set.
@@ -1095,11 +1090,7 @@ bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &e
     if (isNeedUpdateSecOpt_) {
         return false;
     }
-    if (existedSecOpt.securityLabel != openSecOpt.securityLabel &&
-        existedSecOpt.securityLabel == SecurityLabel::NOT_SET) {
-        return false;
-    }
-    if (existedSecOpt.securityLabel < openSecOpt.securityLabel) {
+    if (existedSecOpt.securityLabel != openSecOpt.securityLabel) {
         return false;
     }
     return true;
