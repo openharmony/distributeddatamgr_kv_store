@@ -108,7 +108,7 @@ private:
 
     // For secOpt.
     int CreateNewDirsAndSetSecOpt() const;
-    int CheckDatabaseSecOpt(const SecurityOption &secOption) const;
+    void CheckDatabaseSecOpt(const SecurityOption &secOption) const;
     int GetExistedSecOption(SecurityOption &secOption) const;
 
     void ClearCorruptedFlag() override;
