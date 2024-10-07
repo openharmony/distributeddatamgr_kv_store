@@ -288,17 +288,10 @@ int SQLiteSingleVerDatabaseUpgrader::SetPathSecOptWithCheck(const std::string &p
         if (!OS::CheckPathExistence(dbItemFilePath)) {
             continue;
         }
-        if (OS::CheckPathExistence(dbItemFilePath) && dbOpt.securityLabel == NOT_SET) {
-            int errCode = RuntimeContext::GetInstance()->SetSecurityOption(dbItemFilePath, secOption);
-            if (errCode != E_OK) {
-                LOGE("[SetPathSecOptWithCheck] SetSecurityOption failed.");
-                return errCode;
-            }
-        } else if (dbOpt == secOption) {
-            LOGI("[SetPathSecOptWithCheck] already set secoption");
-        } else {
-            LOGE("[SetPathSecOptWithCheck] already set secoption,but different from early option.");
-            return -E_INVALID_ARGS;
+        int errCode = RuntimeContext::GetInstance()->SetSecurityOption(dbItemFilePath, secOption);
+        if (errCode != E_OK) {
+            LOGE("[SetPathSecOptWithCheck] SetSecurityOption failed.");
+            return errCode;
         }
     }
     return E_OK;
