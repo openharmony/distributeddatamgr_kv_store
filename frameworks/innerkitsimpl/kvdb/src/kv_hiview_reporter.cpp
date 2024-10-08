@@ -22,13 +22,17 @@
 #include <sstream>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "hisysevent_c.h"
 #include "log_print.h"
 #include "types.h"
 #include "store_util.h"
 
 namespace OHOS::DistributedKv {
-
+static constexpr int MAX_TIME_BUF_LEN = 32;
+static constexpr int MILLISECONDS_LEN = 3;
+static constexpr int NANO_TO_MILLI = 1000000;
+static constexpr int MILLI_PRE_SEC = 1000;
 static constexpr const char *EVENT_NAME = "DATABASE_CORRUPTED";
 static constexpr const char *DISTRIBUTED_DATAMGR = "DISTDATAMGR";
 constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
@@ -70,9 +74,11 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
         ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
         ReportCommonFault(eventInfo);
     } else if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
+        CreateCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
+        auto corruptedTime = GetFileStatInfo(eventInfo.appendix);
+        eventInfo.appendix = corruptedTime;
         ZLOGI("db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
         ReportCommonFault(eventInfo);
-        CreateCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
     }
 }
 
@@ -96,6 +102,38 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     std::stringstream oss;
     oss << std::put_time(tm, "%Y-%m-%d %H:%M:%S.") << std::setfill('0') << std::setw(width)
         << ((timestamp / offset) % offset) << "." << std::setfill('0') << std::setw(width) << (timestamp % offset);
+    return oss.str();
+}
+
+std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
+{
+    std::string fileTimeInfo;
+    for (auto &suffix : FILE_SUFFIXES) {
+        if (suffix.name_ == nullptr) {
+            continue;
+        }
+        auto file = dbPath + defaultPath + suffix.suffix_;
+        struct stat fileStat;
+        if (stat(file.c_str(), &fileStat) != 0) {
+            continue;
+        }
+        std::stringstream oss;
+        oss << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
+            << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
+            << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
+        fileTimeInfo += "\n" + std::string(suffix.name_) + " :" + oss.str();
+    }
+    return fileTimeInfo;
+}
+
+std::string KVDBFaultHiViewReporter::GetTimeWithMilliseconds(time_t sec, int64_t nsec)
+{
+    std::stringstream oss;
+    char buffer[MAX_TIME_BUF_LEN] = { 0 };
+    std::tm local_time;
+    localtime_r(&sec, &local_time);
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &local_time);
+    oss << buffer << "." << std::setfill('0') << std::setw(MILLISECONDS_LEN) << (nsec / NANO_TO_MILLI) % MILLI_PRE_SEC;
     return oss.str();
 }
 

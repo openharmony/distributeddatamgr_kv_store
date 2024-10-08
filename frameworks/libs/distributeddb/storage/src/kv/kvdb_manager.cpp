@@ -404,7 +404,10 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
             ExecuteRemoveDatabase(property);
             kvDB = OpenNewDatabase(property, errCode);
             if (kvDB != nullptr) {
+                LOGE("lyh set rebuild: %p", kvDB);
                 kvDB->MarkRebuild();
+            } else {
+                LOGE("lyh kvdb is nullptr");
             }
         }
         return kvDB;

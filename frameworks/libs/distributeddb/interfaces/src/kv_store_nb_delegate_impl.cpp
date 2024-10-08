@@ -1335,7 +1335,7 @@ KvStoreNbDelegate::DatabaseStatus KvStoreNbDelegateImpl::GetDatabaseStatus() con
         return status;
     }
     status.isRebuild = conn_->IsRebuild();
-    LOGI("[KvStoreNbDelegate] rebuild %d", static_cast<int>(status.isRebuild));
+    LOGI("[KvStoreNbDelegate] rebuild %d, conn_ = %p", static_cast<int>(status.isRebuild), conn_);
     return status;
 }
 } // namespace DistributedDB

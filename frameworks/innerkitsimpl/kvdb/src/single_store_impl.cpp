@@ -1066,6 +1066,12 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
     return status;
 }
 
+bool SingleStoreImpl::IsRebuild()
+{
+    auto databaseStatus = dbStore_->GetDatabaseStatus();
+    return databaseStatus.isRebuild;
+}
+
 void SingleStoreImpl::ReportDBCorruptedFault(Status status) const
 {
     if (status == CRYPT_ERROR) {

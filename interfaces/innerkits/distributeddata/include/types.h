@@ -469,7 +469,7 @@ struct Options {
     /**
      * Set Whether rebuild the database.
     */
-    bool rebuild = false;
+    bool rebuild = true;
     /**
      * Set Whether the database is public.
     */
