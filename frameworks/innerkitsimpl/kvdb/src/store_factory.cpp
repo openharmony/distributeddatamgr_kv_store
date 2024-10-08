@@ -67,6 +67,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             kvStore = stores[storeId];
             kvStore->AddRef();
             status = SUCCESS;
+            ZLOGE("lyh get store cache %{public}s", storeId.storeId.c_str());
             return !stores.empty();
         }
         std::string path = options.GetDatabaseDir();
@@ -102,6 +103,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 SetDbConfig(dbStore);
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
+                ZLOGE("lyh get new store");
             });
         if (dbStatus == DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB) {
             status = DATA_CORRUPTED;
