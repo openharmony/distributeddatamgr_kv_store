@@ -38,7 +38,13 @@ int32_t DeviceManager::UnInitDeviceManager(const std::string &pkgName)
 int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
     std::vector<DmDeviceInfo> &deviceList)
 {
-    return ERR_DM_INPUT_PARA_INVALID;
+    if (testDemo == 0) {
+        testDemo = 1;
+        return ERR_DM_IPC_SEND_REQUEST_FAILED;
+    } else {
+        testDemo = 0;
+        return DM_OK;
+    }
 }
 
 int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
@@ -60,10 +66,10 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
         return ERR_DM_IPC_SEND_REQUEST_FAILED;
     } else if (testDemo == 1) {
         testDemo = -1;
-        deviceInfo.networkId[0] = 'a';
         return DM_OK;
     } else {
         testDemo = 0;
+        deviceInfo.networkId[0] = 'a';
         return DM_OK;
     }
 }

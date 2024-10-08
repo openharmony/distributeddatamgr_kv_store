@@ -16,9 +16,7 @@
 #define LOG_TAG "DevManagerMockTest"
 #include <gtest/gtest.h>
 #include "dev_manager.h"
-#include "device_manager.h"
 #include "device_manager_mock.h"
-#include "dm_device_info.h"
 #include "types.h"
 #include "log_print.h"
 namespace OHOS::Test {
@@ -106,15 +104,29 @@ HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetRemoteDevices
-* @tc.desc: test GetRemoteDevices get trusted device
+* @tc.name: GetRemoteDevices001
+* @tc.desc: test GetRemoteDevices get trusted device fail
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: SQL
 */
-HWTEST_F(DevManagerMockTest, GetRemoteDevices, TestSize.Level1)
+HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
 {
-    ZLOGI("GetRemoteDevices begin.");
+    ZLOGI("GetRemoteDevices001 begin.");
+    auto detailInfo = DevManager::GetInstance().GetRemoteDevices();
+    EXPECT_TRUE(detailInfo.empty());
+}
+
+/**
+* @tc.name: GetRemoteDevices002
+* @tc.desc: test GetRemoteDevices get trusted device no remote device
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: SQL
+*/
+HWTEST_F(DevManagerMockTest, GetRemoteDevices002, TestSize.Level1)
+{
+    ZLOGI("GetRemoteDevices002 begin.");
     auto detailInfo = DevManager::GetInstance().GetRemoteDevices();
     EXPECT_TRUE(detailInfo.empty());
 }
