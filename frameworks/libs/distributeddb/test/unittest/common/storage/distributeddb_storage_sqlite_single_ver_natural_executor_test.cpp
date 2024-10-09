@@ -1131,7 +1131,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
  * @tc.name: AbnormalSqlExecutorTest001
  * @tc.desc: Check SQLiteStorageExecutor interfaces abnormal scene.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest001, TestSize.Level1)
@@ -1164,7 +1164,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExec
  * @tc.name: AbnormalSqlExecutorTest002
  * @tc.desc: Check SQLiteSingleVerStorageExecutor interfaces abnormal scene.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest002, TestSize.Level1)
@@ -1204,7 +1204,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExec
  * @tc.name: AbnormalSqlExecutorTest003
  * @tc.desc: Check SQLiteSingleVerStorageExecutor interfaces abnormal scene.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExecutorTest003, TestSize.Level1)

@@ -815,7 +815,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest002, TestSize.Level0)
  * @tc.name: CloudDBProxyTest013
  * @tc.desc: Verify CloudDBProxy interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
@@ -864,7 +864,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
  * @tc.name: CloudSyncUtilsTest
  * @tc.desc: Verify CloudSyncUtils interfaces
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncUtilsTest, TestSize.Level0)

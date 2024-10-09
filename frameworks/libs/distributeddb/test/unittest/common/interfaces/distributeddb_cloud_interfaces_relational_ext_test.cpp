@@ -1725,7 +1725,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
  * @tc.name: AbnormalDelegateImplTest001
  * @tc.desc: Test delegateImpl interface after delegate is closed
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest001, TestSize.Level0)
@@ -1783,7 +1783,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
  * @tc.name: AbnormalDelegateImplTest002
  * @tc.desc: Test delegate interface after delegate is closed
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest002, TestSize.Level0)

@@ -205,7 +205,7 @@ namespace {
     * @tc.name: AbnormalStorageProxyTest001
     * @tc.desc: Check StorageProxy interfaces when para is invalid.
     * @tc.type: FUNC
-    * @tc.require: DTS2024073106613
+    * @tc.require:
     * @tc.author: suyue
     */
     HWTEST_F(DistributedDBCloudMetaDataTest, AbnormalStorageProxyTest001, TestSize.Level0)
@@ -264,7 +264,7 @@ namespace {
     * @tc.name: AbnormalStorageProxyTest002
     * @tc.desc: Check StorageProxy interfaces when para is invalid.
     * @tc.type: FUNC
-    * @tc.require: DTS2024073106613
+    * @tc.require:
     * @tc.author: suyue
     */
     HWTEST_F(DistributedDBCloudMetaDataTest, AbnormalStorageProxyTest002, TestSize.Level0)
@@ -304,7 +304,7 @@ namespace {
      * @tc.name: AbnormalSyncAbleStorageTest001
      * @tc.desc: Check RelationalSyncAbleStorage interfaces.
      * @tc.type: FUNC
-     * @tc.require: DTS2024073106613
+     * @tc.require:
      * @tc.author: suyue
      */
     HWTEST_F(DistributedDBCloudMetaDataTest, AbnormalSyncAbleStorageTest001, TestSize.Level0)
@@ -357,7 +357,7 @@ namespace {
      * @tc.name: AbnormalSyncAbleStorageTest002
      * @tc.desc: Check RelationalSyncAbleStorage interfaces.
      * @tc.type: FUNC
-     * @tc.require: DTS2024073106613
+     * @tc.require:
      * @tc.author: suyue
      */
     HWTEST_F(DistributedDBCloudMetaDataTest, AbnormalSyncAbleStorageTest002, TestSize.Level0)
