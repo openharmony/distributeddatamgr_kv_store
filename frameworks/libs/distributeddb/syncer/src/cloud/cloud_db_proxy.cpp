@@ -690,7 +690,7 @@ std::pair<int, std::string> CloudDBProxy::GetCloudVersion(const std::string &ori
     return {E_OK, version};
 }
 
-void CloudDBProxy::SetPrepareTraceId(const std::string &traceId)
+void CloudDBProxy::SetPrepareTraceId(const std::string &traceId) const
 {
     std::shared_ptr<ICloudDb> iCloudDb = nullptr;
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
