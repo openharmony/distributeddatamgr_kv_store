@@ -682,7 +682,7 @@ HWTEST_F(DistributedDBParcelTest, WriteString006, TestSize.Level2)
  * @tc.name: WriteBoolTest
  * @tc.desc: write and read a bool.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBParcelTest, WriteBoolTest, TestSize.Level1)
@@ -717,7 +717,7 @@ HWTEST_F(DistributedDBParcelTest, WriteBoolTest, TestSize.Level1)
  * @tc.name: ParcelErrTest
  * @tc.desc: write and read a bool.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBParcelTest, ParcelErrTest, TestSize.Level1)

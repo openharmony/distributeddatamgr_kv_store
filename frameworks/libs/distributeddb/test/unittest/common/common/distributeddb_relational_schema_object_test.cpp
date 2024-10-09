@@ -843,7 +843,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.
  * @tc.name: FieldInfoCompareTest
  * @tc.desc: Test field info compare
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize.Level1)
@@ -870,7 +870,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize
  * @tc.name: TableInfoInterfacesTest
  * @tc.desc: Test TableInfo interfaces
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableInfoInterfacesTest, TestSize.Level1)
@@ -899,7 +899,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableInfoInterfacesTest, TestS
  * @tc.name: SchemaTableCompareTest
  * @tc.desc: Test LiteSchemaTable Compare
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, SchemaTableCompareTest, TestSize.Level1)

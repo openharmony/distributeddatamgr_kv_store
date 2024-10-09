@@ -1092,7 +1092,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField002, TestSize.Level1)
  * @tc.name: SchemaObjectErrTest
  * @tc.desc: Parse Schema Object err scene
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest001, TestSize.Level1)
@@ -1133,7 +1133,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest001, TestSize.Level1)
  * @tc.name: SchemaObjectErrTest002
  * @tc.desc: Parse Schema Object err scene
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest002, TestSize.Level1)

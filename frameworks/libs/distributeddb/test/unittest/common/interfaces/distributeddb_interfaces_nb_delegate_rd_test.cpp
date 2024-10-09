@@ -1864,7 +1864,7 @@ void PutRangeDataIntoDB()
   * @tc.name: RdRangeQuery001
   * @tc.desc: Test GetEntries and the out of the parameter is entries.
   * @tc.type: FUNC
-  * @tc.require: AR.SR.IR20230714002092.017.001
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level1)
@@ -1948,7 +1948,7 @@ void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
   * @tc.name: RdRangeQuery002
   * @tc.desc:Test GetEntries and the out of the parameter is resultSet.
   * @tc.type: FUNC
-  * @tc.require: AR.SR.IR20230714002092.017.001
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level1)
@@ -2028,7 +2028,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
   * @tc.name: RdRangeQuery003
   * @tc.desc: Test GetEntries and the in put paramter is invalid.
   * @tc.type: FUNC
-  * @tc.require: AR.SR.IR20230714002092.017.001
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level1)
@@ -2107,7 +2107,7 @@ void ChkRangeResultSetMoveFuc(KvStoreResultSet *resultSet, int beginNum, int end
   * @tc.name: RdRangeQuery004
   * @tc.desc: Test resultSet fuction.
   * @tc.type: FUNC
-  * @tc.require: AR.SR.IR20230714002092.017.001
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level1)

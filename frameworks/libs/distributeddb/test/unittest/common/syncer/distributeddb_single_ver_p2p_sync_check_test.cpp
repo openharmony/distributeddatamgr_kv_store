@@ -519,7 +519,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck008, TestSize.Lev
  * @tc.name: SyncProcess001
  * @tc.desc: sync process pull mode.
  * @tc.type: FUNC
- * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.require:
  * @tc.author: chenghuitao
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess001, TestSize.Level1)
@@ -580,7 +580,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess001, TestSize.Level1
  * @tc.name: SyncProcess002
  * @tc.desc: sync process pull mode.
  * @tc.type: FUNC
- * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.require:
  * @tc.author: chenghuitao
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess002, TestSize.Level1)
@@ -650,7 +650,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess002, TestSize.Level1
  * @tc.name: SyncProcess003
  * @tc.desc: sync process pull mode with QUERY.
  * @tc.type: FUNC
- * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.require:
  * @tc.author: chenghuitao
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess003, TestSize.Level1)
@@ -808,130 +808,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync002, TestSize.Level1
     }
 }
 
-void DistributedDBSingleVerP2PSyncCheckTest::CancelTestInit(DeviceSyncOption &option, std::vector<Entry> &entries,
-    const uint32_t mtuSize)
-{
-    option.devices.push_back(g_deviceB->GetDeviceId());
-    option.devices.push_back(g_deviceC->GetDeviceId());
-    option.mode = SYNC_MODE_PULL_ONLY;
-    option.isQuery = false;
-    option.isWait = false;
-
-    std::vector<Key> keys;
-    const uint32_t entriesSize = 14000u;
-    DistributedDBUnitTest::GenerateRecords(entriesSize, entries, keys, KEY_LEN, mtuSize);
-    for (uint32_t i = 0; i < entries.size(); i++) {
-        if (i % option.devices.size() == 0) {
-            g_deviceB->PutData(entries[i].key, entries[i].value, 0, 0);
-        } else {
-            g_deviceC->PutData(entries[i].key, entries[i].value, 0, 0);
-        }
-    }
-
-    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtuSize);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtuSize);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtuSize);
-}
-
-void DistributedDBSingleVerP2PSyncCheckTest::CancelTestEnd(std::vector<Entry> &entries, const uint32_t mtuSize)
-{
-    size_t syncSuccCount = 0;
-    for (uint32_t i = 0; i < entries.size(); i++) {
-        Value value;
-        if (g_kvDelegatePtr->Get(entries[i].key, value) == OK) {
-            syncSuccCount++;
-            EXPECT_EQ(value, entries[i].value);
-        }
-    }
-    EXPECT_GT(syncSuccCount, static_cast<size_t>(0));
-    EXPECT_LT(syncSuccCount, entries.size());
-    uint32_t mtu = 5u;
-    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtu * mtuSize * mtuSize);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtu * mtuSize * mtuSize);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtu * mtuSize * mtuSize);
-    g_communicatorAggregator->RegBeforeDispatch(nullptr);
-}
-
-/**
- * @tc.name: CancelSyncProcess001
- * @tc.desc: cancel data sync process pull mode.
- * @tc.type: FUNC
- * @tc.require: AR.SR.IR-20075207.007.001
- * @tc.author: lijun
- */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.Level1)
-{
-    DeviceSyncOption option;
-    std::vector<Entry> entries;
-    const uint32_t mtuSize = 1024u;
-    /**
-     * @tc.steps: step1. deviceB deviceC put data
-    */
-    CancelTestInit(option, entries, mtuSize);
-    uint32_t syncId;
-    std::mutex tempMutex;
-    bool isFirst = true;
-    g_communicatorAggregator->RegBeforeDispatch([&](const std::string &dstTarget, const Message *msg) {
-        if (dstTarget == "real_device" && msg->GetMessageType() == TYPE_REQUEST &&
-            msg->GetMessageId() == DATA_SYNC_MESSAGE) {
-            tempMutex.lock();
-            if (isFirst == true) {
-                isFirst = false;
-                /**
-                * @tc.steps: step3. cancel sync
-                * @tc.expected: step3. should return OK.
-                */
-                ASSERT_TRUE(g_kvDelegatePtr->CancelSync(syncId) == OK);
-                tempMutex.unlock();
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-                return;
-            }
-            tempMutex.unlock();
-        }
-    });
-
-    std::mutex cancelMtx;
-    std::condition_variable cancelCv;
-    bool cancalFinished = false;
-
-    DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
-        bool isAllCancel = true;
-        for (auto &process: processMap) {
-            syncId = process.second.syncId;
-            if (process.second.errCode != COMM_FAILURE) {
-                isAllCancel = false;
-            }
-        }
-        if (isAllCancel) {
-            std::unique_lock<std::mutex> lock(cancelMtx);
-            cancalFinished = true;
-            cancelCv.notify_all();
-        }
-    };
-    /**
-     * @tc.steps: step2. deviceA call pull sync
-     * @tc.expected: step2. sync should return OK.
-     */
-    ASSERT_TRUE(g_kvDelegatePtr->Sync(option, onProcess) == OK);
-
-    // Wait onProcess complete.
-    {
-        std::unique_lock<std::mutex> lock2(cancelMtx);
-        cancelCv.wait(lock2, [&cancalFinished]() {return cancalFinished;});
-    }
-    // Wait until all the packets arrive.
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    /**
-     * @tc.steps: step4. Cancel abnormal syncId.
-     * @tc.expected: step4. return NOT_FOUND.
-     */
-    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(syncId) == NOT_FOUND);
-    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(0) == NOT_FOUND);
-    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(4294967295) == NOT_FOUND); // uint32_t max value 4294967295
-    CancelTestEnd(entries, mtuSize);
-}
-
 /**
  * @tc.name: BigDataSync003
  * @tc.desc: big data sync pushAndPull mode.
@@ -999,6 +875,131 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync003, TestSize.Level1
     }
 }
 #endif
+
+void DistributedDBSingleVerP2PSyncCheckTest::CancelTestInit(DeviceSyncOption &option, std::vector<Entry> &entries,
+    const uint32_t mtuSize)
+{
+    option.devices.push_back(g_deviceB->GetDeviceId());
+    option.devices.push_back(g_deviceC->GetDeviceId());
+    option.mode = SYNC_MODE_PULL_ONLY;
+    option.isQuery = false;
+    option.isWait = false;
+
+    std::vector<Key> keys;
+    const uint32_t entriesSize = 14000u;
+    const int keySize = 20;
+    DistributedDBUnitTest::GenerateRecords(entriesSize, entries, keys, keySize, mtuSize);
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        if (i % option.devices.size() == 0) {
+            g_deviceB->PutData(entries[i].key, entries[i].value, 0, 0);
+        } else {
+            g_deviceC->PutData(entries[i].key, entries[i].value, 0, 0);
+        }
+    }
+
+    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtuSize);
+}
+
+void DistributedDBSingleVerP2PSyncCheckTest::CancelTestEnd(std::vector<Entry> &entries, const uint32_t mtuSize)
+{
+    size_t syncSuccCount = 0;
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        Value value;
+        if (g_kvDelegatePtr->Get(entries[i].key, value) == OK) {
+            syncSuccCount++;
+            EXPECT_EQ(value, entries[i].value);
+        }
+    }
+    EXPECT_GT(syncSuccCount, static_cast<size_t>(0));
+    EXPECT_LT(syncSuccCount, entries.size());
+    uint32_t mtu = 5u;
+    g_communicatorAggregator->SetDeviceMtuSize("real_device", mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_C, mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, mtu * mtuSize * mtuSize);
+    g_communicatorAggregator->RegBeforeDispatch(nullptr);
+}
+
+/**
+ * @tc.name: CancelSyncProcess001
+ * @tc.desc: cancel data sync process pull mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lijun
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.Level0)
+{
+    DeviceSyncOption option;
+    std::vector<Entry> entries;
+    const uint32_t mtuSize = 8u;
+    /**
+     * @tc.steps: step1. deviceB deviceC put data
+    */
+    CancelTestInit(option, entries, mtuSize);
+    uint32_t syncId;
+    std::mutex tempMutex;
+    bool isFirst = true;
+    g_communicatorAggregator->RegBeforeDispatch([&](const std::string &dstTarget, const Message *msg) {
+        if (dstTarget == "real_device" && msg->GetMessageType() == TYPE_REQUEST &&
+            msg->GetMessageId() == DATA_SYNC_MESSAGE) {
+            tempMutex.lock();
+            if (isFirst == true) {
+                isFirst = false;
+                /**
+                * @tc.steps: step3. cancel sync
+                * @tc.expected: step3. should return OK.
+                */
+                ASSERT_TRUE(g_kvDelegatePtr->CancelSync(syncId) == OK);
+                tempMutex.unlock();
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                return;
+            }
+            tempMutex.unlock();
+        }
+    });
+
+    std::mutex cancelMtx;
+    std::condition_variable cancelCv;
+    bool cancalFinished = false;
+
+    DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
+        bool isAllCancel = true;
+        for (auto &process: processMap) {
+            syncId = process.second.syncId;
+            if (process.second.errCode != COMM_FAILURE) {
+                isAllCancel = false;
+            }
+        }
+        if (isAllCancel) {
+            std::unique_lock<std::mutex> lock(cancelMtx);
+            cancalFinished = true;
+            cancelCv.notify_all();
+        }
+    };
+    /**
+     * @tc.steps: step2. deviceA call pull sync
+     * @tc.expected: step2. sync should return OK.
+     */
+    ASSERT_TRUE(g_kvDelegatePtr->Sync(option, onProcess) == OK);
+
+    // Wait onProcess complete.
+    {
+        std::unique_lock<std::mutex> lock2(cancelMtx);
+        cancelCv.wait(lock2, [&cancalFinished]() {return cancalFinished;});
+    }
+    // Wait until all the packets arrive.
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    /**
+     * @tc.steps: step4. Cancel abnormal syncId.
+     * @tc.expected: step4. return NOT_FOUND.
+     */
+    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(syncId) == NOT_FOUND);
+    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(0) == NOT_FOUND);
+    ASSERT_TRUE(g_kvDelegatePtr->CancelSync(4294967295) == NOT_FOUND); // uint32_t max value 4294967295
+    CancelTestEnd(entries, mtuSize);
+}
 
 /**
  * @tc.name: PushFinishedNotify 001

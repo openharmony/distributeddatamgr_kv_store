@@ -3052,7 +3052,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
   * @tc.name: InvalidQueryTest001
   * @tc.desc: Test GetEntries with range query filter by sqlite
   * @tc.type: FUNC
-  * @tc.require: AR.SR.IR20230714002092.017.001
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, InvalidQueryTest001, TestSize.Level1)
@@ -3205,7 +3205,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OptionModeValidCheck001, TestSiz
  * @tc.name: AbnormalKvStoreTest001
  * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest001, TestSize.Level1)
@@ -3263,7 +3263,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest001, TestSize
  * @tc.name: AbnormalKvStoreTest002
  * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest002, TestSize.Level1)
@@ -3319,7 +3319,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreTest002, TestSize
  * @tc.name: AbnormalKvStoreResultSetTest
  * @tc.desc: Test KvStoreResultSetImpl interface when class para is nullptr.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, AbnormalKvStoreResultSetTest, TestSize.Level1)

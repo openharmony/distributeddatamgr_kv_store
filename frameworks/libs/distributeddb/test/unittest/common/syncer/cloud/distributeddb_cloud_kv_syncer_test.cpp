@@ -705,7 +705,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
  * @tc.name: AbnormalCloudKvExecutorTest001
  * @tc.desc: Check SqliteCloudKvExecutorUtils interfaces abnormal scene.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest001, TestSize.Level0)
@@ -755,7 +755,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest001, TestSiz
  * @tc.name: AbnormalCloudKvExecutorTest002
  * @tc.desc: Check FillCloudLog interface
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest002, TestSize.Level0)

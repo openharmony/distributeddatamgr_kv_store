@@ -516,7 +516,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckFieldPath002, TestSize.Level1)
  * @tc.name: ParseTrackerSchemaAndName
  * @tc.desc: Correctly identify illegal shema index fields
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBSchemalTest, ParseTrackerSchemaAndName, TestSize.Level1)

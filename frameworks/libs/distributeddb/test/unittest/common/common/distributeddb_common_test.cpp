@@ -575,7 +575,7 @@ HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest001, TestSize.Level1)
  * @tc.name: PerformanceAnalysisTest002
  * @tc.desc: Test PerformanceAnalysis interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest002, TestSize.Level1)
@@ -605,7 +605,7 @@ HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest002, TestSize.Level1)
  * @tc.name: UserChangeMonitorTest
  * @tc.desc: Test UserChangeMonitor interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, UserChangeMonitorTest, TestSize.Level1)
@@ -642,7 +642,7 @@ HWTEST_F(DistributedDBCommonTest, UserChangeMonitorTest, TestSize.Level1)
  * @tc.name: ValueObjectConstructorTest
  * @tc.desc: Test ValueObjectTest.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, ValueObjectConstructorTest, TestSize.Level1)
@@ -667,7 +667,7 @@ HWTEST_F(DistributedDBCommonTest, ValueObjectConstructorTest, TestSize.Level1)
  * @tc.name: TimeTickMonitorTest
  * @tc.desc: Test TimeTickMonitor interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, TimeTickMonitorTest, TestSize.Level1)
@@ -707,7 +707,7 @@ HWTEST_F(DistributedDBCommonTest, TimeTickMonitorTest, TestSize.Level1)
  * @tc.name: LockStatusObserverTest
  * @tc.desc: Test LockStatusObserver interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, LockStatusObserverTest, TestSize.Level1)
@@ -742,7 +742,7 @@ HWTEST_F(DistributedDBCommonTest, LockStatusObserverTest, TestSize.Level1)
  * @tc.name: TaskQueueTest
  * @tc.desc: Test TaskQueue interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, TaskQueueTest, TestSize.Level1)
@@ -770,7 +770,7 @@ HWTEST_F(DistributedDBCommonTest, TaskQueueTest, TestSize.Level1)
  * @tc.name: AbnormalTrackerTableTest
  * @tc.desc: Test LockStatusObserver interfaces.
  * @tc.type: FUNC
- * @tc.require: DTS2024073106613
+ * @tc.require:
  * @tc.author: suyue
  */
 HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)

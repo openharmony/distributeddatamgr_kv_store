@@ -370,6 +370,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
         return origin + "1";
     });
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    EXPECT_EQ(virtualCloudDb_->GetPrepareTraceId(), std::string(""));
     for (const auto &table : lastProcess_.tableProcess) {
         EXPECT_EQ(table.second.upLoadInfo.total, 1u);
         EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
