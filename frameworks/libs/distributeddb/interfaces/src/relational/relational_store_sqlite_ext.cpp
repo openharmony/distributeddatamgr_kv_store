@@ -1277,6 +1277,8 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
 
 int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
 {
+    LOGI("DropLogicDeleteData on table:%s length:%d cursor:%" PRIu64,
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), cursor);
     std::string logTblName = DBCommon::GetLogTableName(tableName);
     std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
         " VALUES ('log_trigger_switch', 'false')";

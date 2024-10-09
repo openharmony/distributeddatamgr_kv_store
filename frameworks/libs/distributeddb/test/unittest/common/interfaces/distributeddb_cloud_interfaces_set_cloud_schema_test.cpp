@@ -2080,6 +2080,63 @@ namespace {
     }
 
     /**
+     * @tc.name: SharedTableSync017
+     * @tc.desc: Test Inconsistent Data Between Devices and Clouds after Remove Device Data.
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: luoguo
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync017, TestSize.Level0)
+    {
+        /**
+         * @tc.steps: step1. Set data is logicDelete
+         * @tc.expected: step1. return OK
+         */
+        bool logicDelete = true;
+        auto data = static_cast<PragmaData>(&logicDelete);
+        g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+        /**
+         * @tc.steps:step2. init cloud share data and sync
+         * @tc.expected: step2. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 20;
+        forkInsertFunc_ = InsertSharingUri;
+        InsertCloudTableRecord(0, cloudCount, false);
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        forkInsertFunc_ = nullptr;
+
+        /**
+         * @tc.steps:step3. update local share data
+         * @tc.expected: step3. return OK
+         */
+        InsertLocalSharedTableRecords(11, 10, g_sharedTableName1, true);
+
+        /**
+         * @tc.steps:step4. insert local share data
+         * @tc.expected: step4. return OK
+         */
+        InsertLocalSharedTableRecords(21, 10, g_sharedTableName1);
+
+        /**
+         * @tc.steps:step5. remove device data and check notify
+         * @tc.expected: step5. return OK
+         */
+        g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
+        std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_sharedTableName1) +
+        " where flag & 0x08 == 0x08;";
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(20), nullptr), SQLITE_OK);
+        sql = "select count(*) from " + DBCommon::GetLogTableName(g_sharedTableName1) +
+        " where flag & 0x800 == 0x800;";
+        EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(20), nullptr), SQLITE_OK);
+    }
+
+    /**
      * @tc.name: SetCloudDbSchemaTest018
      * @tc.desc: Check SetCloudDBSchema while conn is nullptr.
      * @tc.type: FUNC
