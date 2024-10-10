@@ -62,12 +62,11 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
         status = CRYPT_ERROR;
     }
-    if (options.rebuild && status == SUCCESS) {
+    if (kvStore != nullptr && status == SUCCESS && kvStore->IsRebuild()) {
         ZLOGI("rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
         KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
         auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
+        KVDBFaultHiViewReporter::ReportKVDBRebuild(options, status, errno, tuple, repoterDir);
     }
     if (isCreate && options.persistent) {
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
