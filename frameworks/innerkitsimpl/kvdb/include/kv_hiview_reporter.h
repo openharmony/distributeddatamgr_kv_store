@@ -43,6 +43,8 @@ public:
         const KvStoreTuple &storeTuple, const std::string &appendix);
 
     static std::string GetDBPath(const std::string &path, const std::string &storeId);
+
+    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
@@ -56,7 +58,6 @@ private:
 
     static std::string GetTimeWithMilliseconds(time_t sec, int64_t nsec);
 
-    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H
