@@ -151,6 +151,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
             status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
             ZLOGE("Data has corrupted, rebuild db");
         }
+
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
         ctxt->kvStore->SetKvStorePtr(kvStore);
