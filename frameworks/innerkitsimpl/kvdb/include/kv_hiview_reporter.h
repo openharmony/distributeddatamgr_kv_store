@@ -57,7 +57,6 @@ private:
     static std::string GetFileStatInfo(const std::string &dbPath);
 
     static std::string GetTimeWithMilliseconds(time_t sec, int64_t nsec);
-
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H
