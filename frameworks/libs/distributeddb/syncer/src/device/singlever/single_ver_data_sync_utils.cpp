@@ -616,18 +616,21 @@ bool SingleVerDataSyncUtils::IsSupportRequestTotal(uint32_t version)
 void SingleVerDataSyncUtils::UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet)
 {
     const std::vector<SendDataItem> &data = packet->GetData();
-    uint32_t dataSize = std::count_if(data.begin(), data.end(), [](SendDataItem item) {
+    int32_t dataSize = std::count_if(data.begin(), data.end(), [](SendDataItem item) {
         return (item->GetFlag() & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) == 0;
     });
+    if (dataSize < 0) {
+        return;
+    }
 
-    LOGD("[DataSync][UpdateSyncProcess] mode=%d, total=%" PRIu64 ", size=%" PRIu64, packet->GetMode(),
+    LOGD("[DataSync][UpdateSyncProcess] mode=%d, total=%" PRIu64 ", size=%d", packet->GetMode(),
         packet->GetTotalDataCount(), dataSize);
     if (packet->GetMode() == SyncModeType::PUSH || packet->GetMode() == SyncModeType::QUERY_PUSH) {
         // save total count to sync process
         if (packet->GetTotalDataCount() > 0) {
             context->SetOperationSyncProcessTotal(context->GetDeviceId(), packet->GetTotalDataCount());
         }
-        context->UpdateOperationFinishedCount(context->GetDeviceId(), dataSize);
+        context->UpdateOperationFinishedCount(context->GetDeviceId(), static_cast<uint32_t>(dataSize));
     }
 }
 

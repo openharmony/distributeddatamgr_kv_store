@@ -311,7 +311,7 @@ void GetHashKey(const std::string &tableName, const std::string &condition, sqli
 void ClientObserverFuzz(const std::string &tableName)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
-    ClientObserver clientObserver = [](ClientChangedData &data) { return ClientObserverFunc(data); };
+    ClientObserver clientObserver = [](const ClientChangedData &data) { return ClientObserverFunc(data); };
     RegisterClientObserver(db, clientObserver);
     std::string sql = "insert into " + tableName + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
     RdbTestUtils::ExecSql(db, sql);

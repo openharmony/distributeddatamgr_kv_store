@@ -209,9 +209,8 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
 
 int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionName)
 {
-    int ret = E_OK;
     if (isFirstTimeOpenDb_) {
-        ret = RdIndexPreload(db, collectionName);
+        int ret = RdIndexPreload(db, collectionName);
         if (ret != E_OK) {
             LOGE("Unable to RdIndexPreload %d", ret);
             return ret;

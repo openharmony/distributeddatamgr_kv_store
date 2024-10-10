@@ -566,8 +566,8 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     option.isNeedRmCorruptedDb = kvDBProp.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false);
     bool isSharedMode = kvDBProp.GetBoolProp(KvDBProperties::SHARED_MODE, false);
     option.isHashTable = (IndexType)kvDBProp.GetIntProp(KvDBProperties::INDEX_TYPE, BTREE) == HASH;
-    uint32_t pageSize = kvDBProp.GetIntProp(KvDBProperties::PAGE_SIZE, 32u); // one page has 32KB
-    uint32_t cacheSize = kvDBProp.GetIntProp(KvDBProperties::CACHE_SIZE, 2048u); // max cache 2048KB
+    uint32_t pageSize = kvDBProp.GetUIntProp(KvDBProperties::PAGE_SIZE, 32u); // one page has 32KB
+    uint32_t cacheSize = kvDBProp.GetUIntProp(KvDBProperties::CACHE_SIZE, 2048u); // max cache 2048KB
 
     std::string config = "{";
     config += InitRdConfig() + R"(, )";

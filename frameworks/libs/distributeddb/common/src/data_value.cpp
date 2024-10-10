@@ -76,6 +76,8 @@ int Blob::WriteBlob(const uint8_t *ptrArray, const uint32_t &size)
     }
     errno_t errCode = memcpy_s(ptr_, size, ptrArray, size);
     if (errCode != EOK) {
+        delete[] ptr_;
+        ptr_ = nullptr;
         return -E_SECUREC_ERROR;
     }
     size_ = size;
