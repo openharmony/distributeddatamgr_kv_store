@@ -70,15 +70,33 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    if (errorCode == 0 && appendix == DATABASE_REBUILD) {
-        ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
-        ReportCommonFault(eventInfo);
-    } else if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
+    if (IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
         CreateCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
         auto corruptedTime = GetFileStatInfo(eventInfo.appendix);
         eventInfo.appendix = corruptedTime;
         ZLOGI("db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
         ReportCommonFault(eventInfo);
+    }
+}
+
+void KVDBFaultHiViewReporter::ReportKVDBRebuild(
+    const Options &options, uint32_t errorCode, int32_t systemErrorNo,
+    const KvStoreTuple &storeTuple, const std::string &appendix)
+{
+    KVDBCorruptedEvent eventInfo(options);
+    eventInfo.errorCode = errorCode;
+    eventInfo.systemErrorNo = systemErrorNo;
+    eventInfo.appendix = appendix;
+    eventInfo.storeName = storeTuple.storeId;
+    eventInfo.bundleName = storeTuple.appId;
+    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
+    if (errorCode == 0) {
+        ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
+        auto corruptedTime = GetFileStatInfo(eventInfo.appendix);
+        corruptedTime += "\n" + std::string(DATABASE_REBUILD);
+        eventInfo.appendix = corruptedTime;
+        ReportCommonFault(eventInfo);
+        DeleteCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
     }
 }
 
@@ -108,6 +126,7 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
 std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
 {
     std::string fileTimeInfo;
+    const uint32_t permission = 0777;
     for (auto &suffix : FILE_SUFFIXES) {
         if (suffix.name_ == nullptr) {
             continue;
@@ -118,7 +137,9 @@ std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
             continue;
         }
         std::stringstream oss;
-        oss << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
+        oss << " dev:0x" << std::hex << fileStat.st_dev << " ino:0x" << std::hex << fileStat.st_ino;
+        oss << " mode:0" << std::oct << (fileStat.st_mode & permission) << " size:" << std::dec << fileStat.st_size
+            << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
             << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
             << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
         fileTimeInfo += "\n" + std::string(suffix.name_) + " :" + oss.str();

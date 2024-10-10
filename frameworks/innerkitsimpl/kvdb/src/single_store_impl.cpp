@@ -779,9 +779,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
             .area = area_, .hapName = hapName_ };
         KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
         auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
-        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId_);
+        KVDBFaultHiViewReporter::ReportKVDBRebuild(options, status, errno, tuple, repoterDir);
     }
     return status;
 }
