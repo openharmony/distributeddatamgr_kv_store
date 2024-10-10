@@ -114,12 +114,20 @@ std::string SQLiteUtils::Anonymous(const std::string &name)
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 
+bool IsNeedSkipLog(const unsigned int errType, const char *msg)
+{
+    return errType == SQLITE_ERROR && strstr(msg, "\"?\": syntax error in \"PRAGMA user_ve") != nullptr;
+}
+
 void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
 {
     bool verboseLog = (data != nullptr);
     auto errType = static_cast<unsigned int>(err);
     std::string logMsg = msg == nullptr ? "NULL" : msg;
     errType &= 0xFF;
+    if (IsNeedSkipLog(errType, logMsg.c_str())) {
+        return;
+    }
     if (errType == 0 || errType == SQLITE_CONSTRAINT || errType == SQLITE_SCHEMA ||
         errType == SQLITE_NOTICE || err == SQLITE_WARNING_AUTOINDEX) {
         if (verboseLog) {
