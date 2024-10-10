@@ -71,7 +71,6 @@ IKvDBConnection *GenericKvDB::GetDBConnection(int &errCode)
         IncreaseConnectionCounter();
         if (isRebuild_) {
             connection->MarkRebuild();
-            LOGE("lyh set conn rebuild: %p", connection);
         }
     }
     return connection;
