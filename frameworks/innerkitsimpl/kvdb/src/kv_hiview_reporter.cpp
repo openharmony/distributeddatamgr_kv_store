@@ -92,11 +92,11 @@ void KVDBFaultHiViewReporter::ReportKVDBRebuild(
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     if (errorCode == 0) {
         ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
+        DeleteCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
         auto corruptedTime = GetFileStatInfo(eventInfo.appendix);
         corruptedTime += "\n" + std::string(DATABASE_REBUILD);
         eventInfo.appendix = corruptedTime;
         ReportCommonFault(eventInfo);
-        DeleteCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
     }
 }
 
