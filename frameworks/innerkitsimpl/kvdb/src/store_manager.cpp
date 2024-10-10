@@ -66,7 +66,6 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         ZLOGI("rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
         KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
         auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
         KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
         KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
     }
