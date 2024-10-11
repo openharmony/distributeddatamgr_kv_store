@@ -35,6 +35,11 @@ public:
         uint64_t syncId = 0;
         int32_t triggerMode = 0;
     };
+    enum PasswordType {
+        BACKUP_SECRET_KEY = 0,
+        SECRET_KEY = 1,
+        BUTTON,
+    };
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
     API_EXPORT KVDBService() = default;
@@ -61,7 +66,7 @@ public:
     virtual Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
-        const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
+        const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password, int32_t passwordType) = 0;
     virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) = 0;
     virtual Status PutSwitch(const AppId &appId, const SwitchData &data) = 0;

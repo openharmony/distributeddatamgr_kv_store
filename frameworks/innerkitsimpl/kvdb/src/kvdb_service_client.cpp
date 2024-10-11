@@ -339,11 +339,11 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
 }
 
 Status KVDBServiceClient::GetBackupPassword(
-    const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password)
+    const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password, int32_t passwordType)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_GET_PASSWORD),
-                              reply, appId, storeId);
+                              reply, appId, storeId, passwordType);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
