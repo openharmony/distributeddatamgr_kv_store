@@ -1759,5 +1759,57 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseDb();
 }
+
+/*
+ * @tc.name: CleanCloudDataTest025
+ * @tc.desc: Test sync after dropping logic deleted device data, cursor do not decrease.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest025, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+    /**
+     * @tc.steps: step2. insert 10 records locally, then sync to cloud
+     */
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+
+    /*
+     * @tc.steps: step3. logic delete record 1 and 2 from cloud, then sync
+     */
+    DeleteCloudTableRecordByGid(0, 2);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+
+    /*
+     * @tc.steps: step4. clear logically deleted data
+     */
+    DropLogicDeletedData(db, g_tables[0], 0);
+
+    /*
+     * @tc.steps: step5. logic delete record 3 from cloud, then sync
+     */
+    DeleteCloudTableRecordByGid(3, 1);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+
+    /**
+     * @tc.steps: step6. check cursor
+     */
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where cursor='13';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE
