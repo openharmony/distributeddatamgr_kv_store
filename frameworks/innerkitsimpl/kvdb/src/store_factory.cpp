@@ -86,7 +86,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                     StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
-            if (dbPassword.isKeyOutdated) {
+            if (dbPassword.isKeyOutdated && options.autoRekey) {
                 ReKey(storeId, path, dbPassword, dbManager, options);
             }
         }
@@ -103,7 +103,11 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
-        status = StoreUtil::ConvertStatus(dbStatus);
+        if (dbStatus == DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB) {
+            status = DATA_CORRUPTED;
+        } else {
+            status = StoreUtil::ConvertStatus(dbStatus);
+        }
         if (kvStore == nullptr) {
             ZLOGE("failed! status:%{public}d appId:%{public}s storeId:%{public}s path:%{public}s", dbStatus,
                 appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());

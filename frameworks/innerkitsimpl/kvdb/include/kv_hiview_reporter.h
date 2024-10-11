@@ -20,21 +20,7 @@
 #include "types.h"
 
 namespace OHOS::DistributedKv {
-constexpr const char* OPEN_STORE = "OPEN_STORE";
-constexpr const char* PUT = "PUT";
-constexpr const char* PUTBATCH = "PUTBATCH";
-constexpr const char* DEL = "DELETE";
-constexpr const char* DELETEBATCH = "DELETEBATCH";
-constexpr const char* STARTTRANSACTION = "STARTTRANSACTION";
-constexpr const char* COMMIT = "COMMIT";
-constexpr const char* ROLLBACK = "ROLLBACK";
-constexpr const char* GET = "GET";
-constexpr const char* GETDEVICEENTRIES = "GETDEVICEENTRIES";
-constexpr const char* GETCOUNT = "GETCOUNT";
-constexpr const char* GETSECURITYLEVEL = "GETSECURITYLEVEL";
-constexpr const char* REMOVEDEVICEDATA = "REMOVEDEVICEDATA";
-constexpr const char* GETENTRIES = "GETENTRIES";
-
+constexpr const char* DATABASE_REBUILD = "REBUILD";
 struct KVDBCorruptedEvent;
 class KVDBFaultHiViewReporter {
 public:
@@ -42,10 +28,17 @@ public:
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
         const KvStoreTuple &storeTuple, const std::string &appendix);
 
+    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
+
+    static std::string GetDBPath(const std::string &path, const std::string &storeId);
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
     static std::string GetCurrentMicrosecondTimeFormat();
+
+    static bool IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId);
+
+    static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H

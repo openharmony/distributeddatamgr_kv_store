@@ -48,7 +48,6 @@ public:
     virtual Status Delete(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Close(const AppId &appId, const StoreId &storeId) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo) = 0;
-    virtual Status SyncExt(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo) = 0;
     virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;
     virtual Status UnregServiceNotifier(const AppId &appId) = 0;
     virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) = 0;

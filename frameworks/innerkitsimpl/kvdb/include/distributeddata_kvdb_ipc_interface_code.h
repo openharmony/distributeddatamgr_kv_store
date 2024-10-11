@@ -39,7 +39,6 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_SUB,
     TRANS_UNSUB,
     TRANS_GET_PASSWORD,
-    TRANS_SYNC_EXT,
     TRANS_CLOUD_SYNC,
     TRANS_NOTIFY_DATA_CHANGE,
     TRANS_SET_CONFIG,

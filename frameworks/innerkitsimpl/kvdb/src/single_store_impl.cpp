@@ -38,6 +38,7 @@ SingleStoreImpl::SingleStoreImpl(
     : convertor_(cvt), dbStore_(std::move(dbStore))
 {
     std::string path = options.GetDatabaseDir();
+    path_ = path;
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
@@ -100,7 +101,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKey, &value]() { return dbStore_->Put(dbKey, value); });
-    ReportDBCorruptedFault(status, PUT);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
@@ -133,7 +134,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
     }
 
     auto status = RetryWithCheckPoint([this, &dbEntries]() { return dbStore_->PutBatch(dbEntries); });
-    ReportDBCorruptedFault(status, PUTBATCH);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
@@ -158,7 +159,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKey]() { return dbStore_->Delete(dbKey); });
-    ReportDBCorruptedFault(status, DEL);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -187,7 +188,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     }
 
     auto status = RetryWithCheckPoint([this, &dbKeys]() { return dbStore_->DeleteBatch(dbKeys); });
-    ReportDBCorruptedFault(status, DELETEBATCH);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
@@ -206,7 +207,7 @@ Status SingleStoreImpl::StartTransaction()
     }
 
     auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
-    ReportDBCorruptedFault(status, STARTTRANSACTION);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -224,7 +225,7 @@ Status SingleStoreImpl::Commit()
 
     auto dbStatus = dbStore_->Commit();
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, COMMIT);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -242,7 +243,7 @@ Status SingleStoreImpl::Rollback()
 
     auto dbStatus = dbStore_->Rollback();
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, ROLLBACK);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
@@ -355,7 +356,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     auto dbStatus = dbStore_->Get(dbKey, dbValue);
     value = std::move(dbValue);
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, GET);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -380,53 +381,6 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
     onResult(status, std::move(entries));
 }
 
-Status SingleStoreImpl::SyncExt(const std::string &networkId, uint64_t sequenceId)
-{
-    auto clientUuid = DevManager::GetInstance().ToUUID(networkId);
-    if (clientUuid.empty()) {
-        ZLOGE("clientUuid is empty");
-        return INVALID_ARGUMENT;
-    }
-    KVDBService::SyncInfo syncInfo;
-    syncInfo.mode = SyncMode::PULL;
-    syncInfo.seqId = sequenceId;
-    syncInfo.devices = { networkId };
-    auto status = DoSyncExt(syncInfo, shared_from_this());
-    if (status != SUCCESS) {
-        ZLOGE("sync ext failed, status:%{public}d networkId:%{public}s app:%{public}s store:%{public}s", status,
-            StoreUtil::Anonymous(networkId).c_str(), appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-        return status;
-    }
-    return SUCCESS;
-}
-
-void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
-{
-    AsyncFunc asyncFunc;
-    auto exist = asyncFuncs_.ComputeIfPresent(sequenceId, [&asyncFunc](const auto &key, const auto &value) -> bool {
-        asyncFunc = value;
-        return false;
-    });
-    if (!exist) {
-        ZLOGD("not exist, sequenceId:%{public}" PRIu64, sequenceId);
-        return ;
-    }
-    if (asyncFunc.toGet) {
-        Value value;
-        auto status = Get(asyncFunc.key, value);
-        asyncFunc.toGet(status, std::move(value));
-        return;
-    }
-    if (asyncFunc.toGetEntries) {
-        std::vector<Entry> entries;
-        auto status = GetEntries(asyncFunc.key, entries);
-        asyncFunc.toGetEntries(status, std::move(entries));
-        return;
-    }
-    ZLOGW("sync ext completed, but do nothing, key:%{public}s, sequenceId:%{public}" PRIu64,
-        StoreUtil::Anonymous(asyncFunc.key.ToString()).c_str(), sequenceId);
-}
-
 bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
 {
     auto clientUuid = DevManager::GetInstance().ToUUID(deviceId);
@@ -443,9 +397,6 @@ bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
     }
     return serviceAgent->IsChanged(clientUuid, static_cast<DataType>(dataType_));
 }
-
-void SingleStoreImpl::SyncCompleted(const std::map<std::string, Status> &results)
-{}
 
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
@@ -509,6 +460,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     }
     std::vector<DBEntry> dbEntries;
     std::string devId;
+
     DBStatus dbStatus = DBStatus::DB_ERROR;
     auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     if (device == uuid) {
@@ -517,6 +469,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     } else {
         dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
     }
+
     entries.resize(dbEntries.size());
     auto it = entries.begin();
     for (auto &dbEntry : dbEntries) {
@@ -527,7 +480,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     }
 
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, GETDEVICEENTRIES);
+    ReportDBCorruptedFault(status);
     if (status == NOT_FOUND) {
         status = SUCCESS;
     }
@@ -573,7 +526,7 @@ Status SingleStoreImpl::GetCount(const DataQuery &query, int &result) const
     DBQuery dbQuery = convertor_.GetDBQuery(query);
     auto dbStatus = dbStore_->GetCount(dbQuery, result);
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, GETCOUNT);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x query:%{public}s", status, StoreUtil::Anonymous(query.ToString()).c_str());
     }
@@ -593,7 +546,7 @@ Status SingleStoreImpl::GetSecurityLevel(SecurityLevel &secLevel) const
     auto dbStatus = dbStore_->GetSecurityOption(option);
     secLevel = static_cast<SecurityLevel>(StoreUtil::GetSecLevel(option));
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, GETSECURITYLEVEL);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x security:[%{public}d]", status, option.securityLabel);
     }
@@ -614,7 +567,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
     }
 
     Status status = service->RemoveDeviceData({ appId_ }, { storeId_ }, device);
-    ReportDBCorruptedFault(status, REMOVEDEVICEDATA);
+    ReportDBCorruptedFault(status);
     if (status != SUCCESS) {
         ZLOGE("status:%{public}d device:%{public}s", status, StoreUtil::Anonymous(device).c_str());
     }
@@ -822,6 +775,14 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
+    if (status == SUCCESS) {
+        Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
+            .area = area_, .hapName = hapName_ };
+        KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
+        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, DATABASE_REBUILD);
+        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
+        KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId_);
+    }
     return status;
 }
 
@@ -946,7 +907,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
     }
 
     auto status = StoreUtil::ConvertStatus(dbStatus);
-    ReportDBCorruptedFault(status, GETENTRIES);
+    ReportDBCorruptedFault(status);
     if (status == NOT_FOUND) {
         status = SUCCESS;
     }
@@ -1008,26 +969,6 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
         ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
         return ERROR;
     }
-}
-
-Status SingleStoreImpl::DoSyncExt(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
-{
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        return SERVER_UNAVAILABLE;
-    }
-    auto serviceAgent = service->GetServiceAgent({ appId_ });
-    if (serviceAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!",
-            appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-        return ILLEGAL_STATE;
-    }
-    serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
-    auto status = service->SyncExt({ appId_ }, { storeId_ }, syncInfo);
-    if (status != Status::SUCCESS) {
-        serviceAgent->DeleteSyncCallback(syncInfo.seqId);
-    }
-    return status;
 }
 
 Status SingleStoreImpl::SetConfig(const StoreConfig &storeConfig)
@@ -1125,13 +1066,14 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
     return status;
 }
 
-void SingleStoreImpl::ReportDBCorruptedFault(Status status, const std::string &appendIX) const
+void SingleStoreImpl::ReportDBCorruptedFault(Status status) const
 {
     if (status == CRYPT_ERROR) {
         Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
             .area = area_, .hapName = hapName_ };
         KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, appendIX);
+        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
+        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
     }
 }
 } // namespace OHOS::DistributedKv

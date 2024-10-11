@@ -49,7 +49,7 @@ private:
 
         void OnRemoteDied(const wptr<IRemoteObject> &remote) override;
     };
-    static KvStoreServiceDeathNotifier* GetInstance();
+    static KvStoreServiceDeathNotifier& GetInstance();
 
     static std::mutex instanceMutex_;
     static KvStoreServiceDeathNotifier *instance_;
