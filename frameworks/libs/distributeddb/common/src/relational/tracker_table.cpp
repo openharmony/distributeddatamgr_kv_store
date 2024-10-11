@@ -201,8 +201,9 @@ const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     if (IsEmpty() && incFlag) {
-        sql += "SELECT 1:\n";
+        sql += "SELECT 1;\n";
         sql += "\nEND;";
+        return sql;
     }
     if (!incFlag) {
         sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
