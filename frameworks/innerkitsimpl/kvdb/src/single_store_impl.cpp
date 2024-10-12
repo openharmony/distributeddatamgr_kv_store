@@ -915,6 +915,11 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 
 Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
     auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
         if (observer == nullptr) {
             return;
@@ -1056,6 +1061,11 @@ void SingleStoreImpl::Register()
 Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::string &appId,
     const std::string &storeId, const std::vector<std::string> &tagretDev)
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
     auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(accountId, appId, storeId);
     auto dbStatus = dbStore_->SetEqualIdentifier(syncIdentifier, tagretDev);
     auto status = StoreUtil::ConvertStatus(dbStatus);
@@ -1067,6 +1077,11 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
 
 bool SingleStoreImpl::IsRebuild()
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return false;
+    }
     auto databaseStatus = dbStore_->GetDatabaseStatus();
     return databaseStatus.isRebuild;
 }
