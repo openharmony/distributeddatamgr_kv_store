@@ -914,7 +914,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 }
 
 Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
-{  
+{
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
         ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
