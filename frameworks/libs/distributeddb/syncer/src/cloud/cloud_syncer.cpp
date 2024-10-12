@@ -1986,16 +1986,21 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
 
 int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
 {
+    int ret = E_OK;
     if (IsCurrentTableResume(taskId, false)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (resumeTaskInfos_[taskId].syncParam.tableName == currentContext_.tableName) {
             param = resumeTaskInfos_[taskId].syncParam;
             resumeTaskInfos_[taskId].syncParam = {};
+            ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
+            if (ret != E_OK) {
+                LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data when table is resume: %d.", ret);
+            }
             LOGD("[CloudSyncer] Get sync param from cache");
             return E_OK;
         }
     }
-    int ret = GetCurrentTableName(param.tableName);
+    ret = GetCurrentTableName(param.tableName);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Invalid table name for syncing: %d", ret);
         return ret;
@@ -2019,7 +2024,6 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
     }
-    ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
 }
