@@ -1807,8 +1807,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
     }
     std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_WHEN_LOGOUT +
                       ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
-                      SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
-                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND NOT (" +  DATA_IS_DELETE + ") " +
+                      SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL + " WHERE (NOT (" + DATA_IS_DELETE + ") " +
                       " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     // here just clear updateCursor func, fail will not influence other function
