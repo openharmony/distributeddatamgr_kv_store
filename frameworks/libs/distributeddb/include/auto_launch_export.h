@@ -42,6 +42,7 @@ struct AutoLaunchOption {
     StoreObserver *storeObserver = nullptr;
     bool syncDualTupleMode = false; // communicator label use dualTuple hash or not
     uint32_t iterateTimes = 0;
+    int conflictResolvePolicy = LAST_WIN;
 };
 
 struct AutoLaunchParam {

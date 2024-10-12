@@ -53,6 +53,7 @@ int KvDBUtils::RemoveKvDB(const std::string &dir, const std::string &dbName)
     dbFileName += DBConstant::DB_EXTENSION;
     int errCode = E_OK;
     if (OS::CheckPathExistence(dbFileName)) {
+        DBCommon::SetOrClearFSMonitorFlag(dbFileName, DBCommon::CLEAR_FLAG);
         errCode = DBCommon::RemoveAllFilesOfDirectory(dir, true);
         if (errCode != E_OK) {
             LOGE("Failed to delete the db file! errno[%d], errCode[%d]", errno, errCode);

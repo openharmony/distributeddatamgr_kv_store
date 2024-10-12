@@ -685,4 +685,112 @@ HWTEST_F(DistributedDBCloudDBProxyTest, SameBatchTest002, TestSize.Level0)
     // index start with zero
     EXPECT_EQ(CloudSyncUtils::CalOpType(param, param.downloadData.data.size() - 1), OpType::UPDATE);
 }
+
+/**
+ * @tc.name: CloudDBProxyTest013
+ * @tc.desc: Verify CloudDBProxy interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. call CloudDBProxy interfaces when ICloudDb is nullptr.
+     * @tc.expected: step1. return -E_CLOUD_ERROR.
+     */
+    CloudDBProxy proxy;
+    int ret = proxy.UnLock();
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    ret = proxy.HeartBeat();
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    VBucket extend;
+    const std::string tableName = "test";
+    std::vector<VBucket> record;
+    ret = proxy.Query(tableName, extend, record);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    Info info;
+    ret = proxy.BatchInsert(tableName, record, record, info);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    ret = proxy.BatchUpdate(tableName, record, record, info);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    ret = proxy.BatchDelete(tableName, record, record, info);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    std::pair<int, uint64_t> res = proxy.Lock();
+    EXPECT_EQ(res.first, -E_CLOUD_ERROR);
+    std::pair<int, std::string> cursor = proxy.GetEmptyCursor(tableName);
+    EXPECT_EQ(cursor.first, -E_CLOUD_ERROR);
+
+    /**
+     * @tc.steps: step2. call CloudDBProxy interfaces when para is err.
+     * @tc.expected: step2. return fail.
+     */
+    std::pair<int, std::string> ver = proxy.GetCloudVersion("test");
+    EXPECT_EQ(ver.first, -E_NOT_SUPPORT);
+    std::vector<Asset> assets = {{}};
+    ret = proxy.RemoveLocalAssets(assets);
+    EXPECT_EQ(ret, -E_OK);
+}
+
+/**
+ * @tc.name: CloudSyncUtilsTest
+ * @tc.desc: Verify CloudSyncUtils interfaces
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncUtilsTest, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Test type translation interfaces.
+     * @tc.expected: step1. success.
+     */
+    CloudSyncUtils utilsObj;
+    EXPECT_EQ(utilsObj.StatusToFlag(AssetStatus::INSERT), AssetOpType::INSERT);
+    EXPECT_EQ(utilsObj.StatusToFlag(AssetStatus::DELETE), AssetOpType::DELETE);
+    EXPECT_EQ(utilsObj.StatusToFlag(AssetStatus::UPDATE), AssetOpType::UPDATE);
+    EXPECT_EQ(utilsObj.StatusToFlag(AssetStatus::NORMAL), AssetOpType::NO_CHANGE);
+    EXPECT_EQ(utilsObj.StatusToFlag(AssetStatus::DOWNLOADING), AssetOpType::NO_CHANGE);
+    EXPECT_EQ(utilsObj.OpTypeToChangeType(OpType::ONLY_UPDATE_GID), ChangeType::OP_BUTT);
+
+    /**
+     * @tc.steps: step2. call CloudSyncUtils interfaces when para is err.
+     * @tc.expected: step2. return false.
+     */
+    const std::vector<DeviceID> devices = {"test"};
+    int mode = 10; // set metaMode to 10 not in enum class MetaMode
+    int ret = utilsObj.CheckParamValid(devices, static_cast<SyncMode>(mode));
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+    VBucket record;
+    const std::vector<std::string> pkColNames;
+    std::vector<Type> cloudPkVals = {{}};
+    ret = utilsObj.GetCloudPkVals(record, pkColNames, 0, cloudPkVals);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+    Assets assets = {{}};
+    utilsObj.StatusToFlagForAssets(assets);
+    std::vector<Field> fields = {{"test", TYPE_INDEX<Assets>, true, true}};
+    utilsObj.StatusToFlagForAssetsInRecord(fields, record);
+    Timestamp timestamp;
+    CloudSyncData uploadData;
+    const int64_t count = 0;
+    ret = utilsObj.UpdateExtendTime(uploadData, count, 0, timestamp);
+    EXPECT_EQ(ret, -E_INTERNAL_ERROR);
+    CloudSyncBatch data;
+    data.assets = {{}};
+    ret = utilsObj.FillAssetIdToAssets(data, 0, CloudWaterType::UPDATE);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+
+    /**
+     * @tc.steps: step3. call IsChangeDataEmpty interface when para is different.
+     * @tc.expected: step3. success.
+     */
+    ChangedData changedData;
+    EXPECT_EQ(utilsObj.IsChangeDataEmpty(changedData), true);
+    changedData.primaryData[OP_INSERT] = {{}};
+    EXPECT_EQ(utilsObj.IsChangeDataEmpty(changedData), true);
+    changedData.primaryData[OP_UPDATE] = {{}};
+    EXPECT_EQ(utilsObj.IsChangeDataEmpty(changedData), true);
+    changedData.primaryData[OP_DELETE] = {{}};
+    EXPECT_EQ(utilsObj.IsChangeDataEmpty(changedData), false);
+}
 }

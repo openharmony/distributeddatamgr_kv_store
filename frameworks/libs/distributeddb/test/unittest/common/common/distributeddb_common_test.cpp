@@ -18,8 +18,13 @@
 #include "db_errno.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
+#include "lock_status_observer.h"
 #include "log_print.h"
 #include "platform_specific.h"
+#include "task_queue.h"
+#include "time_tick_monitor.h"
+#include "user_change_monitor.h"
+#include "runtime_context_impl.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -570,5 +575,256 @@ HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest001, TestSize.Level1)
     }
     EXPECT_EQ(count1, count1);
     EXPECT_EQ(count1, threadCount);
+}
+
+/**
+ * @tc.name: PerformanceAnalysisTest002
+ * @tc.desc: Test PerformanceAnalysis interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get PerformanceAnalysis instance and call interfaces.
+     * @tc.expected: step1. success.
+     */
+    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance(5); // 5 is stepNum
+    ASSERT_NE(performance, nullptr);
+    performance->SetFileName("test");
+    performance->OpenPerformanceAnalysis();
+    performance->TimeRecordStart();
+    performance->TimeRecordEnd();
+
+    /**
+     * @tc.steps: step2. Call interfaces with the para is greater than stepNum.
+     * @tc.expected: step2. success;
+     */
+    performance->StepTimeRecordStart(RECORD_ACK_RECV_TO_USER_CALL_BACK);
+    performance->StepTimeRecordEnd(RECORD_ACK_RECV_TO_USER_CALL_BACK);
+    performance->ClosePerformanceAnalysis();
+    performance->GetStatistics();
+}
+
+/**
+ * @tc.name: UserChangeMonitorTest
+ * @tc.desc: Test UserChangeMonitor interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, UserChangeMonitorTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Start UserChangeMonitor.
+     * @tc.expected: step1. success.
+     */
+    UserChangeMonitor monitor;
+    EXPECT_EQ(monitor.Start(), E_OK);
+    monitor.NotifyUserChanged();
+
+    /**
+     * @tc.steps: step2. Call RegisterUserChangedListener with null action.
+     * @tc.expected: step2. -E_INVALID_ARGS.
+     */
+    int errCode = E_OK;
+    DistributedDB::UserChangedAction action = nullptr;
+    NotificationChain::Listener *ptr = monitor.RegisterUserChangedListener(action,
+        monitor.USER_ACTIVE_TO_NON_ACTIVE_EVENT, errCode);
+    ASSERT_EQ(ptr, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Second start UserChangeMonitor.
+     * @tc.expected: step3. success.
+     */
+    EXPECT_EQ(monitor.Start(), E_OK);
+    monitor.Stop();
+    monitor.NotifyUserChanged();
+}
+
+/**
+ * @tc.name: ValueObjectConstructorTest
+ * @tc.desc: Test ValueObjectTest.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, ValueObjectConstructorTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call the default constructor of ValueObject.
+     * @tc.expected: step1. success.
+     */
+    ValueObject valueObj;
+    EXPECT_EQ(valueObj.IsValid(), false);
+
+    /**
+     * @tc.steps: step2. Call constructor of ValueObject.
+     * @tc.expected: step2. success.
+     */
+    ValueObject valueObj1(valueObj);
+    EXPECT_EQ(valueObj1.IsValid(), false);
+    valueObj = valueObj1;
+}
+
+/**
+ * @tc.name: TimeTickMonitorTest
+ * @tc.desc: Test TimeTickMonitor interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, TimeTickMonitorTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Start TimeTickMonitor.
+     * @tc.expected: step1. success.
+     */
+    TimeTickMonitor monitor;
+    EXPECT_EQ(monitor.StartTimeTickMonitor(), E_OK);
+
+    /**
+     * @tc.steps: step2. Call RegisterTimeChangedLister with null para.
+     * @tc.expected: step2. -E_INVALID_ARGS.
+     */
+    int errCode = E_OK;
+    DistributedDB::UserChangedAction action = nullptr;
+    TimeFinalizeAction finalize = nullptr;
+    NotificationChain::Listener *ptr = monitor.RegisterTimeChangedLister(action, finalize, errCode);
+    ASSERT_EQ(ptr, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Call RegisterTimeChangedLister after Stop TimeTickMonitor.
+     * @tc.expected: step3. success;
+     */
+    EXPECT_EQ(monitor.StartTimeTickMonitor(), E_OK);
+    monitor.StopTimeTickMonitor();
+    monitor.NotifyTimeChange(0);
+
+    ptr = monitor.RegisterTimeChangedLister(action, finalize, errCode);
+    ASSERT_EQ(ptr, nullptr);
+    EXPECT_EQ(errCode, -E_NOT_INIT);
+}
+
+/**
+ * @tc.name: LockStatusObserverTest
+ * @tc.desc: Test LockStatusObserver interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, LockStatusObserverTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call RegisterLockStatusChangedLister with null para.
+     * @tc.expected: step1. -E_INVALID_ARGS.
+     */
+    LockStatusObserver observer;
+    EXPECT_EQ(observer.Start(), E_OK);
+
+    int errCode = E_OK;
+    DistributedDB::UserChangedAction action = nullptr;
+    NotificationChain::Listener *ptr = observer.RegisterLockStatusChangedLister(action, errCode);
+    ASSERT_EQ(ptr, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. Call RegisterLockStatusChangedLister after stop observer.
+     * @tc.expected: step2. -E_NOT_INIT.
+     */
+    EXPECT_EQ(observer.Start(), E_OK);
+    observer.Stop();
+    observer.OnStatusChange(true);
+
+    ptr = observer.RegisterLockStatusChangedLister(action, errCode);
+    ASSERT_EQ(ptr, nullptr);
+    EXPECT_EQ(errCode, -E_NOT_INIT);
+}
+
+/**
+ * @tc.name: TaskQueueTest
+ * @tc.desc: Test TaskQueue interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, TaskQueueTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create TaskQueue object whose para is true.
+     * @tc.expected: step1. Create success.
+     */
+    TaskQueue taskObj1(true);
+    const Task task1;
+    taskObj1.PutTask(task1);
+    EXPECT_EQ(taskObj1.IsEmptyAndUnlocked(), true);
+    EXPECT_EQ(taskObj1.CanGetTask(), false);
+
+    /**
+     * @tc.steps: step2. Create TaskQueue object whose para is false.
+     * @tc.expected: step2. Create success.
+     */
+    TaskQueue taskObj2(false);
+    EXPECT_EQ(taskObj2.IsEmptyAndUnlocked(), true);
+    EXPECT_EQ(taskObj2.CanGetTask(), false);
+}
+
+/**
+ * @tc.name: AbnormalTrackerTableTest
+ * @tc.desc: Test LockStatusObserver interfaces.
+ * @tc.type: FUNC
+ * @tc.require: DTS2024073106613
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Call GetDiffIncCursorSql interface when TrackerTable is not init.
+     * @tc.expected: step1. return empty string.
+     */
+    TrackerTable trackerObj1;
+    std::string str = trackerObj1.GetDiffIncCursorSql("test1");
+    const std::string emptyStr = "";
+    EXPECT_TRUE(str.compare(0, str.length(), emptyStr) == 0);
+
+    /**
+     * @tc.steps: step2. Call GetCreateTempTriggerSql interface when para is NONE.
+     * @tc.expected: step2. return empty string.
+     */
+    std::string str1 = trackerObj1.GetCreateTempTriggerSql(TriggerMode::TriggerModeEnum::DELETE);
+    EXPECT_TRUE(str1.compare(0, str1.length(), emptyStr) != 0);
+    std::string str2 = trackerObj1.GetCreateTempTriggerSql(TriggerMode::TriggerModeEnum::NONE);
+    EXPECT_TRUE(str2.compare(0, str2.length(), emptyStr) == 0);
+
+    /**
+     * @tc.steps: step3. Call ReBuildTempTrigger interface when db is nullptr.
+     * @tc.expected: step3. return -E_INVALID_DB.
+     */
+    int ret = trackerObj1.ReBuildTempTrigger(nullptr, TriggerMode::TriggerModeEnum::NONE, nullptr);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step4. Test IsChanging interface after setting schema info.
+     * @tc.expected: step4. return true.
+     */
+    const TrackerSchema schema = {
+        .tableName = "table1",
+        .extendColName = "extendCol1",
+        .trackerColNames = {"trackerCol1"},
+    };
+    trackerObj1.Init(schema);
+    EXPECT_EQ(trackerObj1.IsChanging(schema), false);
+
+    const std::set<std::string> trackerNames = {"trackerCol"};
+    trackerObj1.SetTrackerNames(trackerNames);
+    EXPECT_EQ(trackerObj1.IsChanging(schema), true);
+    const std::string colName = "col";
+    trackerObj1.SetExtendName(colName);
+    std::string str3 = trackerObj1.GetExtendName();
+    EXPECT_TRUE(str3.compare(0, str3.length(), colName) == 0);
+    EXPECT_EQ(trackerObj1.IsChanging(schema), true);
 }
 }

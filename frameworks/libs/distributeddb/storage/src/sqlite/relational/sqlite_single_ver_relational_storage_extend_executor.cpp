@@ -21,6 +21,7 @@
 #include "db_common.h"
 #include "log_table_manager_factory.h"
 #include "res_finalizer.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "simple_tracker_log_table_manager.h"
 #include "sqlite_relational_utils.h"
@@ -185,6 +186,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
     if (errCode != E_OK) {
         LOGE("Upgrade cursor failed after asset download success %d.", errCode);
     }
+    return errCode;
     return errCode;
 }
 

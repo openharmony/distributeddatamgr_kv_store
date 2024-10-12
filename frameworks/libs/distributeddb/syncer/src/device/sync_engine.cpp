@@ -72,10 +72,8 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
     if ((syncInterface == nullptr) || (metadata == nullptr)) {
         return -E_INVALID_ARGS;
     }
-    syncInterface_ = syncInterface;
-    int errCode = StartAutoSubscribeTimer();
+    int errCode = StartAutoSubscribeTimer(*syncInterface);
     if (errCode != OK) {
-        syncInterface_ = nullptr;
         return errCode;
     }
 
@@ -85,19 +83,18 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
         // There need to set nullptr. other wise, syncInterface will be
         // DecRef in th destroy-method.
         StopAutoSubscribeTimer();
-        syncInterface_ = nullptr;
         return errCode;
     }
     onRemoteDataChanged_ = callbackParam.onRemoteDataChanged;
     offlineChanged_ = callbackParam.offlineChanged;
     queryAutoSyncCallback_ = callbackParam.queryAutoSyncCallback;
-    errCode = InitInnerSource(callbackParam.onRemoteDataChanged, callbackParam.offlineChanged);
+    errCode = InitInnerSource(callbackParam.onRemoteDataChanged, callbackParam.offlineChanged, syncInterface);
     if (errCode != E_OK) {
         // reset ptr if initialize device manager failed
-        syncInterface_ = nullptr;
         StopAutoSubscribeTimer();
         return errCode;
     }
+    SetSyncInterface(syncInterface);
     if (subManager_ == nullptr) {
         subManager_ = std::make_shared<SubscribeManager>();
     }
@@ -231,7 +228,7 @@ void SyncEngine::GetOnlineDevices(std::vector<std::string> &devices) const
 }
 
 int SyncEngine::InitInnerSource(const std::function<void(std::string)> &onRemoteDataChanged,
-    const std::function<void(std::string)> &offlineChanged)
+    const std::function<void(std::string)> &offlineChanged, ISyncInterface *syncInterface)
 {
     deviceManager_ = new (std::nothrow) DeviceManager();
     if (deviceManager_ == nullptr) {
@@ -260,7 +257,7 @@ int SyncEngine::InitInnerSource(const std::function<void(std::string)> &onRemote
             LOGE("[SyncEngine] deviceManager init failed! err %d", errCode);
             break;
         }
-        errCode = executor->Initialize(syncInterface_, communicator_);
+        errCode = executor->Initialize(syncInterface, communicator_);
     } while (false);
     if (errCode != E_OK) {
         delete deviceManager_;
@@ -626,32 +623,33 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContextAndInc(const std::string &device
 
 ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, int &errCode)
 {
-    ISyncTaskContext *context = CreateSyncTaskContext();
+    auto storage = GetAndIncSyncInterface();
+    if (storage == nullptr) {
+        errCode = -E_INVALID_DB;
+        LOGE("[SyncEngine] SyncTaskContext alloc failed with null db");
+        return nullptr;
+    }
+    ISyncTaskContext *context = CreateSyncTaskContext(*storage);
     if (context == nullptr) {
         errCode = -E_OUT_OF_MEMORY;
         LOGE("[SyncEngine] SyncTaskContext alloc failed, may be no memory available!");
         return nullptr;
     }
-    errCode = context->Initialize(deviceId, syncInterface_, metadata_, communicatorProxy_);
+    errCode = context->Initialize(deviceId, storage, metadata_, communicatorProxy_);
     if (errCode != E_OK) {
         LOGE("[SyncEngine] context init failed err %d, dev %s", errCode, STR_MASK(deviceId));
         RefObject::DecObjRef(context);
+        storage->DecRefCount();
         context = nullptr;
         return nullptr;
     }
     syncTaskContextMap_.insert(std::pair<std::string, ISyncTaskContext *>(deviceId, context));
     // IncRef for SyncEngine to make sure SyncEngine is valid when context access
     RefObject::IncObjRef(this);
-    auto storage = syncInterface_;
-    if (storage != nullptr) {
-        storage->IncRefCount();
-    }
     context->OnLastRef([this, deviceId, storage]() {
         LOGD("[SyncEngine] SyncTaskContext for id %s finalized", STR_MASK(deviceId));
         RefObject::DecObjRef(this);
-        if (storage != nullptr) {
-            storage->DecRefCount();
-        }
+        storage->DecRefCount();
     });
     context->RegOnSyncTask(std::bind(&SyncEngine::ExecSyncTask, this, context));
     return context;
@@ -990,7 +988,7 @@ void SyncEngine::GetQueryAutoSyncParam(const std::string &device, const QuerySyn
     outParam.syncQuery = query;
 }
 
-int SyncEngine::StartAutoSubscribeTimer()
+int SyncEngine::StartAutoSubscribeTimer([[gnu::unused]] const ISyncInterface &syncInterface)
 {
     return E_OK;
 }
@@ -1007,10 +1005,7 @@ int SyncEngine::SubscribeLimitCheck(const std::vector<std::string> &devices, Que
 
 void SyncEngine::ClearInnerResource()
 {
-    if (syncInterface_ != nullptr) {
-        syncInterface_->DecRefCount();
-        syncInterface_ = nullptr;
-    }
+    ClearSyncInterface();
     if (deviceManager_ != nullptr) {
         delete deviceManager_;
         deviceManager_ = nullptr;
@@ -1280,5 +1275,35 @@ int32_t SyncEngine::GetResponseTaskCount()
         taskCount += static_cast<int32_t>(execTaskCount_);
     }
     return taskCount;
+}
+
+void SyncEngine::ClearSyncInterface()
+{
+    ISyncInterface *syncInterface = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(storageMutex_);
+        if (syncInterface_ == nullptr) {
+            return;
+        }
+        syncInterface = syncInterface_;
+        syncInterface_ = nullptr;
+    }
+    syncInterface->DecRefCount();
+}
+
+ISyncInterface *SyncEngine::GetAndIncSyncInterface()
+{
+    std::lock_guard<std::mutex> autoLock(storageMutex_);
+    if (syncInterface_ == nullptr) {
+        return nullptr;
+    }
+    syncInterface_->IncRefCount();
+    return syncInterface_;
+}
+
+void SyncEngine::SetSyncInterface(ISyncInterface *syncInterface)
+{
+    std::lock_guard<std::mutex> autoLock(storageMutex_);
+    syncInterface_ = syncInterface;
 }
 } // namespace DistributedDB

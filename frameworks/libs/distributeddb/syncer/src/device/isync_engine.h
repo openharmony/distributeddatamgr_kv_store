@@ -72,7 +72,7 @@ public:
     virtual void SetEqualIdentifierMap(const std::string &identifier, const std::vector<std::string> &targets) = 0;
 
     // Add auto subscribe timer when start sync engine, used for auto subscribe failed subscribe task when db online
-    virtual int StartAutoSubscribeTimer() = 0;
+    virtual int StartAutoSubscribeTimer(const ISyncInterface &syncInterface) = 0;
 
     // Stop auto subscribe timer when start sync engine
     virtual void StopAutoSubscribeTimer() = 0;

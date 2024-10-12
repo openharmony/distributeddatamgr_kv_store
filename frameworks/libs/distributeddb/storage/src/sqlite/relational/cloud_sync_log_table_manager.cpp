@@ -109,8 +109,10 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
-    insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName);
-    insertTrigger += ", '', '', 0);\n";
+    insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
+    insertTrigger += "(SELECT CASE WHEN version IS NULL THEN '' ELSE version END FROM " + logTblName;
+    insertTrigger += " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    insertTrigger += "), '', 0);\n";
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";

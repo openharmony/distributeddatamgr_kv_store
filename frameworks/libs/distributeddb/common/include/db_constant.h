@@ -173,7 +173,8 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_6 = "5.06"; // upgrade trigger for simple tracker log table
     static constexpr const char *LOG_TABLE_VERSION_5_7 = "5.07"; // trigger slow sql optimization
     static constexpr const char *LOG_TABLE_VERSION_5_8 = "5.08"; // migrate cursor to meta table
-    static const std::string LOG_TABLE_VERSION_CURRENT;
+    static constexpr const char *LOG_TABLE_VERSION_5_9 = "5.09"; // insert retains the old version
+    static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_9;
 
     static const std::string LOG_TABLE_VERSION_KEY;
 

@@ -101,6 +101,8 @@ public:
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
 private:
+    int CheckRdMonoStatus(OperatePerm perm);
+
     int GetEntriesInner(bool isGetValue, const IOption &option,
         const Key &keyPrefix, std::vector<Entry> &entries) const;
 
@@ -161,6 +163,7 @@ private:
     SingleVerNaturalStoreCommitNotifyData *committedData_; // used for transaction
 
     mutable std::mutex transactionMutex_;
+    std::mutex importMutex_;
     RdSingleVerStorageExecutor *writeHandle_; // only existed while in transaction.
 };
 }

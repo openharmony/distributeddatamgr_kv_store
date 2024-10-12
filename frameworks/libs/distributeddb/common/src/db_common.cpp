@@ -18,6 +18,11 @@
 #include <climits>
 #include <cstdio>
 #include <queue>
+#ifndef OS_TYPE_WINDOWS
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
@@ -27,6 +32,14 @@
 #include "hash.h"
 #include "runtime_context.h"
 #include "value_hash_calc.h"
+
+#ifndef OS_TYPE_WINDOWS
+constexpr unsigned int HMFS_MONITOR_FL = 0x00000002;
+// This ioctl cmd is used to get the flags' information of a file or folder.
+#define HMFS_IOCTL_HW_GET_FLAGS _IOR(0xf5, 70, unsigned int)
+// This ioctl cmd is used to set the flags' information of a file or folder.
+#define HMFS_IOCTL_HW_SET_FLAGS _IOR(0xf5, 71, unsigned int)
+#endif
 
 namespace DistributedDB {
 namespace {
@@ -763,5 +776,105 @@ bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
 std::string DBCommon::GetCursorKey(const std::string &tableName)
 {
     return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
+}
+
+void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
+{
+    std::unordered_map<std::string, size_t> indexMap;
+    size_t vectorSize = assets.size();
+    std::vector<size_t> arr(vectorSize, 0);
+    for (std::vector<DistributedDB::Asset>::size_type i = 0; i < assets.size(); ++i) {
+        DistributedDB::Asset asset = assets.at(i);
+        auto it = indexMap.find(asset.name);
+        if (it == indexMap.end()) {
+            indexMap[asset.name] = i;
+            continue;
+        }
+        size_t prevIndex = it->second;
+        Asset &prevAsset = assets.at(prevIndex);
+        if (prevAsset.assetId.empty()) {
+            arr[prevIndex] = 1;
+            indexMap[asset.name] = i;
+            continue;
+        }
+        if (asset.assetId.empty()) {
+            arr[i] = 1;
+            indexMap[asset.name] = prevIndex;
+            continue;
+        }
+        if (std::all_of(asset.modifyTime.begin(), asset.modifyTime.end(), ::isdigit) &&
+            std::all_of(prevAsset.modifyTime.begin(), prevAsset.modifyTime.end(), ::isdigit) &&
+            !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
+            auto modifyTime = std::stoll(asset.modifyTime);
+            auto prevModifyTime = std::stoll(prevAsset.modifyTime);
+            arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
+            indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
+            continue;
+        }
+        arr[i] = 1;
+        indexMap[asset.name] = prevIndex;
+    }
+    indexMap.clear();
+    size_t arrIndex = 0;
+    for (auto it = assets.begin(); it != assets.end();) {
+        if (arr[arrIndex] == 1) {
+            it = assets.erase(it);
+        } else {
+            it++;
+        }
+        arrIndex++;
+    }
+}
+
+void DBCommon::SetOrClearFSMonitorFlag(const std::string &fileName, FileControlType fileControlType)
+{
+#ifndef OS_TYPE_WINDOWS
+    int fd = open(fileName.c_str(), O_RDONLY, S_IRWXU | S_IRWXG);
+    if (fd < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to open file, errno: %d, controlType: %d", errno,
+            fileControlType);
+        return;
+    }
+    unsigned int flags = 0u;
+    int ret = ioctl(fd, HMFS_IOCTL_HW_GET_FLAGS, &flags);
+    if (ret < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to get flags, errno: %d, controlType: %d", errno,
+            fileControlType);
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == SET_FLAG && (flags & HMFS_MONITOR_FL)) {
+        LOGD("[SetOrClearFSMonitorFlag] Delete control flag is already set");
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == CLEAR_FLAG && !(flags & HMFS_MONITOR_FL)) {
+        LOGD("[SetOrClearFSMonitorFlag] Delete control flag has been cleared");
+        close(fd);
+        return;
+    }
+
+    if (fileControlType == SET_FLAG) {
+        flags |= HMFS_MONITOR_FL;
+    } else {
+        flags &= ~HMFS_MONITOR_FL;
+    }
+
+    ret = ioctl(fd, HMFS_IOCTL_HW_SET_FLAGS, &flags);
+    if (ret < 0) {
+        LOGE("[SetOrClearFSMonitorFlag] Failed to set flags, errno: %d, controlType: %d", errno,
+            fileControlType);
+        close(fd);
+        return;
+    }
+
+    LOGD("[SetOrClearFSMonitorFlag] File control operation success type: %d", fileControlType);
+    close(fd);
+#else
+    (void)fileName;
+    (void)fileControlType;
+#endif
 }
 } // namespace DistributedDB

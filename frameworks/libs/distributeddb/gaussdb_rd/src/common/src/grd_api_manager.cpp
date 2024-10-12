@@ -77,6 +77,8 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
 #ifndef _WIN32
     GRD_DBApiInfo.DBOpenApi = (DBOpen)dlsym(g_library, "GRD_DBOpen");
     GRD_DBApiInfo.DBCloseApi = (DBClose)dlsym(g_library, "GRD_DBClose");
+    GRD_DBApiInfo.DBBackupApi = (DBBackup)dlsym(g_library, "GRD_DBBackup");
+    GRD_DBApiInfo.DBRestoreApi = (DBRestore)dlsym(g_library, "GRD_DBRestore");
     GRD_DBApiInfo.FlushApi = (DBFlush)dlsym(g_library, "GRD_Flush");
     GRD_DBApiInfo.IndexPreloadApi = (IndexPreload)dlsym(g_library, "GRD_IndexPreload");
     GRD_DBApiInfo.CreateCollectionApi = (CreateCollection)dlsym(g_library, "GRD_CreateCollection");

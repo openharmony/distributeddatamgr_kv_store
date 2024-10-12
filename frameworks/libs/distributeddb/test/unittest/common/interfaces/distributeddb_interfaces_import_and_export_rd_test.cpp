@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) Huawei Device Co., Ltd. 2024. All rights reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifdef USE_RD_KERNEL
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 #include <fcntl.h>
@@ -82,15 +83,16 @@ namespace {
     }
 }
 
-class DistributedDBInterfacesImportAndExportTest : public testing::Test {
+class DistributedDBInterfacesImportAndExportRdTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+    int ModifyDataInPage(int modifyPos, char newVal, const char *modifyFile);
 };
 
-void DistributedDBInterfacesImportAndExportTest::SetUpTestCase(void)
+void DistributedDBInterfacesImportAndExportRdTest::SetUpTestCase(void)
 {
     g_mgr.SetProcessLabel("6666", "8888");
     g_mgr.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>());
@@ -114,7 +116,7 @@ void DistributedDBInterfacesImportAndExportTest::SetUpTestCase(void)
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
 }
 
-void DistributedDBInterfacesImportAndExportTest::TearDownTestCase(void)
+void DistributedDBInterfacesImportAndExportRdTest::TearDownTestCase(void)
 {
     OS::RemoveDBDirectory(g_exportFileDir);
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
@@ -123,7 +125,7 @@ void DistributedDBInterfacesImportAndExportTest::TearDownTestCase(void)
     RuntimeContext::GetInstance()->StopTaskPool(); // wait for all thread exit
 }
 
-void DistributedDBInterfacesImportAndExportTest::SetUp(void)
+void DistributedDBInterfacesImportAndExportRdTest::SetUp(void)
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_junkFilesList.clear();
@@ -134,7 +136,7 @@ void DistributedDBInterfacesImportAndExportTest::SetUp(void)
 #endif // OMIT_MULTI_VER
 }
 
-void DistributedDBInterfacesImportAndExportTest::TearDown(void)
+void DistributedDBInterfacesImportAndExportRdTest::TearDown(void)
 {
     RemoveJunkFile(g_junkFilesList);
 }
@@ -143,17 +145,18 @@ void DistributedDBInterfacesImportAndExportTest::TearDown(void)
   * @tc.name: NormalExport001
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, NormalExport001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Pre-create folder dir
      */
     std::string singleExportFileName = g_exportFileDir + "/singleNormalExport001.$$";
-    std::string singleStoreId = "distributed_ExportSingle_001";
+    std::string singleStoreId = "distributed_SingleNormalExport_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -166,7 +169,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.L
     EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
 #ifndef OMIT_MULTI_VER
     std::string mulitExportFileName = g_exportFileDir + "/mulitNormalExport001.$$";
-    std::string multiStoreId = "distributed_ExportMulit_001";
+    std::string multiStoreId = "distributed_MultiNormalExport_001";
     g_mgr.GetKvStore(multiStoreId, g_option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -188,16 +191,145 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.L
 }
 
 /**
+  * @tc.name: ImportTxtFile001
+  * @tc.desc: Check Txt file type when import
+  * @tc.type: FUNC
+  * @tc.author: chenguoliang
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTxtFile001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleExportFileName = g_exportFileDir + "/importTxtFile001.$$";
+    std::string singleStoreId = "import_TxtFile_001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2. Import a.txt in the right path.
+     * @tc.expected: step2. Returns INVALID_FILE
+     */
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
+
+    std::string filePath = g_exportFileDir + "/a.txt";
+    ofstream createFile(filePath);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(filePath, passwd), INVALID_FILE);
+
+    if (createFile) {
+        createFile << '1' << endl;
+        createFile.close();
+    }
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(filePath, passwd), INVALID_FILE);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+}
+
+/**
+  * @tc.name: ImportDamagedFile001
+  * @tc.desc: Test import damaged file.
+  * @tc.type: FUNC
+  * @tc.author: chenguoliang
+  */
+int DistributedDBInterfacesImportAndExportRdTest::ModifyDataInPage(int modifyPos, char newVal, const char *modifyFile)
+{
+    FILE *fp = fopen(modifyFile, "rb+");
+    if (fp == nullptr) {
+        printf("Failed to open file");
+        return 1;
+    }
+    (void)fseek(fp, modifyPos, SEEK_SET);
+    (void)fwrite(&newVal, sizeof(char), 1, fp);
+    (void)fclose(fp);
+    return 0;
+}
+
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportDamagedFile001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleExportFileName = g_exportFileDir + "/importDamagedFile001.$$";
+    std::string singleStoreId = "import_DamagedFile_001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2. Specify the path to export the non-encrypted board database.
+     * @tc.expected: step2. Returns OK
+     */
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
+
+    /**
+     * @tc.steps: step3. Import damaged file.
+     * @tc.expected: step3. Returns INVALID_FILE
+     */
+    ModifyDataInPage(50086, '0', singleExportFileName.c_str());
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), INVALID_FILE);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+}
+
+/**
+  * @tc.name: ReadOnlyNotExport001
+  * @tc.desc: Export is not supported when option.rdconfig.type is true.
+  * @tc.type: FUNC
+  * @tc.author: chenguoliang
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ReadOnlyNotExport001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleExportFileName = g_exportFileDir + "/readOnlyNotExport001.$$";
+    std::string singleStoreId = "distributed_readOnlyNotExport_001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    /**
+     * @tc.steps: step2. Specify the path to export the non-encrypted board database.
+     * @tc.expected: step2. Returns OK
+     */
+
+    option.rdconfig.readOnly = true;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), READ_ONLY);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+}
+
+/**
   * @tc.name: UndisturbedlSingleExport001
   * @tc.desc: Check that the export action is an independent transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlSingleExport001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, UndisturbedlSingleExport001, TestSize.Level1)
 {
-    std::string singleStoreId = "distributed_ExportSingle_002";
+    std::string singleStoreId = "undistributed_SingleExport_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -264,12 +396,11 @@ static void GetSnapshotUnitTest(KvStoreDelegate *&kvDelegatePtr, KvStoreSnapshot
   * @tc.name: UndisturbedlMultiExport001
   * @tc.desc: Check that the export action is an independent transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, UndisturbedlMultiExport001, TestSize.Level1)
 {
-    std::string multiStoreId = "distributed_Exportmulit_001";
+    std::string multiStoreId = "undistributed_MultiExport_001";
     g_mgr.GetKvStore(multiStoreId, g_option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -336,13 +467,14 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001,
   * @tc.name: ExportParameterCheck001
   * @tc.desc: Check the verification of abnormal interface parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExportParameterCheck001, TestSize.Level1)
 {
-    std::string singleStoreId = "distributed_ExportSingle_003";
+    std::string singleStoreId = "distributed_ParameterCheck_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -372,32 +504,14 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, Te
     errCode = passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
     std::string singleExportFileName = g_exportFileDir + "/ExportParameterCheck001.$$";
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
-    // Check export FILE_ALREADY_EXISTED
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), FILE_ALREADY_EXISTED);
-
-    /**
-     * @tc.steps: step4. Delete the database.
-     */
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), NOT_SUPPORT);
 
     /**
      * @tc.steps: step5. Use the password to import the file again,
      * @tc.expected: step5. Return OK.
      */
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), OK);
-    Value readValue;
-    g_kvNbDelegatePtr->Get(KEY_1, readValue);
-    EXPECT_EQ(readValue, VALUE_1);
-
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-    g_junkFilesList.push_back(singleExportFileName);
 }
 
 #ifndef OMIT_MULTI_VER
@@ -405,12 +519,11 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, Te
   * @tc.name: ExportParameterCheck002
   * @tc.desc: Check the verification of abnormal interface parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExportParameterCheck002, TestSize.Level1)
 {
-    std::string multiStoreId = "distributed_ExportMulti_003";
+    std::string multiStoreId = "distributed_ParameterCheck_002";
     g_mgr.GetKvStore(multiStoreId, g_option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -440,54 +553,73 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, Te
     errCode = passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
     std::string multiExportFileName = g_exportFileDir + "/ExportParameterCheck002.$$";
-    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, passwd), OK);
-    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, passwd), FILE_ALREADY_EXISTED); // Check export INVALID_FILE
+    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, passwd), NOT_SUPPORT);
 
     /**
-     * @tc.steps: step4. Delete the database.
+     * @tc.steps: step4. Use the password to import the file again,
+     * @tc.expected: step4. Return OK.
      */
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
+}
+#endif // OMIT_MULTI_VER
 
-    g_mgr.GetKvStore(multiStoreId, g_option, g_kvDelegateCallback);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+/**
+  * @tc.name: ReadOnlyNotImport001
+  * @tc.desc: Import is not supported when option.rdconfig.readOnly is true.
+  * @tc.type: FUNC
+  * @tc.author: chenguoliang
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ReadOnlyNotImport001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleExportFileName = g_exportFileDir + "/readOnlyNotImport001.$$";
+    std::string singleStoreId = "distributed_readOnlyNotImport_001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
     /**
-     * @tc.steps: step5. Use the password to import the file again,
-     * @tc.expected: step5. Return OK.
+     * @tc.steps: step2. Import an authorized path with an incorrect password.
+     * @tc.expected: step2. Return INVALID_FILE.
      */
-    EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, passwd), OK);
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
-    KvStoreSnapshotDelegate *snapshotDelegatePtr = nullptr;
-    GetSnapshotUnitTest(g_kvDelegatePtr, snapshotDelegatePtr);
-    ASSERT_TRUE(snapshotDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step3. Import a permission path without a password.
+     * @tc.expected: step3. Return OK.
+     */
+    option.rdconfig.readOnly = true;
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), READ_ONLY);
 
-    snapshotDelegatePtr->Get(KEY_1, g_valueCallback);
-    EXPECT_EQ(g_valueStatus, OK);
-    EXPECT_EQ(g_value, VALUE_1);
-
-    EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
-    snapshotDelegatePtr = nullptr;
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
-    g_junkFilesList.push_back(multiExportFileName);
+    // clear resource
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
-#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: NormalImport001
   * @tc.desc: Normal import capability for single version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, NormalImport001, TestSize.Level1)
 {
     std::string singleExportFileName = g_exportFileDir + "/NormalImport001.$$";
     std::string singleStoreId = "distributed_Importmulti_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -510,7 +642,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.L
     vector<uint8_t> passwdBuffer(MAX_PASSWD_SIZE, MAX_PASSWD_SIZE);
     int errCode = passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), INVALID_FILE);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), NOT_SUPPORT);
 
     /**
      * @tc.steps: step3. Import a permission path without a password.
@@ -539,10 +671,9 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.L
   * @tc.name: NormalImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, NormalImport002, TestSize.Level1)
 {
     std::string multiExportFileName = g_exportFileDir + "/NormalImport002.$$";
     std::string multiStoreId = "distributed_ImportSingle_002";
@@ -605,14 +736,15 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.L
   * @tc.name: ExceptionFileImport001
   * @tc.desc: Normal import capability for single version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExceptionFileImport001, TestSize.Level1)
 {
     std::string singleExportFileName = g_exportFileDir + "/ExceptionFileImport001.$$";
     std::string singleStoreId = "distributed_ImportExceptionsigle_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -658,10 +790,9 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport001, Tes
   * @tc.name: ExceptionFileImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport002, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExceptionFileImport002, TestSize.Level1)
 {
     std::string multiExportFileName = g_exportFileDir + "/ExceptionFileImport002.$$";
     std::string multiStoreId = "distributed_ImportExceptionMulti_001";
@@ -690,14 +821,15 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport002, Tes
   * @tc.name: ExceptionFileImport003
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport003, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExceptionFileImport003, TestSize.Level1)
 {
     std::string singleExportFileName = g_exportFileDir + "/singleExceptionFileImport003.$$";
     std::string singleStoreId = "distributed_ExportSingle_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
@@ -746,65 +878,18 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport003, Tes
 }
 #endif // OMIT_MULTI_VER
 
-/**
-  * @tc.name: ExceptionFileImport004
-  * @tc.desc: The data of the current version of the board is exported and the package file is single.
-  * @tc.type: FUNC
-  * @tc.require: AR000D487A
-  * @tc.author: sunpeng
-  */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport004, TestSize.Level1)
-{
-    std::string singleExportFileName = g_exportFileDir + "/singleExceptionFileImport004.$$";
-    std::string singleStoreId = "distributed_ExportSingle_004";
-    KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd1};
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, g_passwd2), OK);
-
-    std::string mulitExportFileName = g_exportFileDir + "/mulitExceptionFileImport004.$$";
-    std::string multiStoreId = "distributed_ExportMulit_004";
-#ifndef OMIT_MULTI_VER
-    KvStoreDelegate::Option multiOption = {true, false, true, CipherType::DEFAULT, g_passwd1};
-    g_mgr.GetKvStore(multiStoreId, multiOption, g_kvDelegateCallback);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    EXPECT_EQ(g_kvDelegatePtr->Export(mulitExportFileName, g_passwd2), OK);
-#endif // OMIT_MULTI_VER
-    /**
-     * @tc.steps: step1. Use the diff passwd, try to import database.
-     */
-    CipherPassword passwd;
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), INVALID_FILE);
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd1), INVALID_FILE);
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd2), OK);
-#ifndef OMIT_MULTI_VER
-    EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, passwd), INVALID_FILE);
-    EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, g_passwd1), INVALID_FILE);
-    EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, g_passwd2), OK);
-
-    // clear resource
-    g_junkFilesList.push_back(mulitExportFileName);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
-#endif // OMIT_MULTI_VER
-    g_junkFilesList.push_back(singleExportFileName);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-}
-
 static void TryDbForPasswordIndependence001()
 {
-    std::string singleStoreIdNoPasswd = "distributed_ExportSingle_005";
-    std::string singleStoreId = "distributed_ExportSingle_006";
+    std::string singleStoreIdNoPasswd = "distributed_DbForPasswordIndependence_001";
+    std::string singleStoreId = "distributed_DbForPasswordIndependence_001";
 
     /**
      * @tc.steps: step4. Run the p3 command to open the database db1.
      * @tc.expected: step4. Return ERROR.
      */
     KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd3};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreIdNoPasswd, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
     EXPECT_NE(g_kvDelegateStatus, OK);
@@ -851,61 +936,32 @@ static void TryDbForPasswordIndependence001()
   * @tc.name: PasswordIndependence001
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, PasswordIndependence001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Back up a single database db1 No password backup password p3
      */
-    std::string singleExportFileNameNoPasswd = g_exportFileDir + "/singleNoPasswdIndependence001.$$";
-    std::string singleStoreIdNoPasswd = "distributed_ExportSingle_005";
+    std::string singleExportFileNameNoPasswd = g_exportFileDir + "/passwordIndependence001.$$";
+    std::string singleStoreIdNoPasswd = "distributed_PasswordIndependence_001";
+
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreIdNoPasswd, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     g_kvNbDelegatePtrWithoutPasswd = g_kvNbDelegatePtr;
 
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileNameNoPasswd, g_passwd3), OK);
-
-    /**
-     * @tc.steps: step2. Back up the database of the single version db2 Password p2 Backup file password p4
-     */
-    std::string singleExportFileName = g_exportFileDir + "/singleIndependence001.$$";
-    std::string singleStoreId = "distributed_ExportSingle_006";
-    option = {true, false, true, CipherType::DEFAULT, g_passwd2};
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, g_passwd4), OK);
-
-    /**
-     * @tc.steps: step3. Recover the backup file.
-     */
-    EXPECT_EQ(g_kvNbDelegatePtrWithoutPasswd->Import(singleExportFileNameNoPasswd, g_passwd3), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd4), OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrWithoutPasswd), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-
-    (void)TryDbForPasswordIndependence001();
-
-    // clear resource
-    g_junkFilesList.push_back(singleExportFileName);
-    g_junkFilesList.push_back(singleExportFileNameNoPasswd);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrWithoutPasswd), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreIdNoPasswd), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileNameNoPasswd, g_passwd3), NOT_SUPPORT);
 }
 
 #ifndef OMIT_MULTI_VER
 static void TryDbForPasswordIndependence002()
 {
-    std::string multiStoreIdNoPasswd = "distributed_ExportMulti_007";
-    std::string multiStoreId = "distributed_ExportMulti_008";
+    std::string multiStoreIdNoPasswd = "distributed_DbForPasswordIndependence_002";
+    std::string multiStoreId = "distributed_DbForPasswordIndependence_002";
 
     KvStoreDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd3};
     g_mgr.GetKvStore(multiStoreIdNoPasswd, option, g_kvDelegateCallback);
@@ -938,57 +994,24 @@ static void TryDbForPasswordIndependence002()
   * @tc.name: PasswordIndependence002
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence002, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, PasswordIndependence002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Back up a single database db1 No password backup password p3
      */
-    std::string multiExportFileNameNoPasswd = g_exportFileDir + "/multiNoPasswdIndependence001.$$";
-    std::string multiStoreIdNoPasswd = "distributed_ExportMulti_007";
+    std::string multiExportFileNameNoPasswd = g_exportFileDir + "/passwordIndependence002.$$";
+    std::string multiStoreIdNoPasswd = "distributed_PasswordIndependence_002";
     KvStoreDelegate::Option option;
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(multiStoreIdNoPasswd, option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     g_kvDelegatePtrWithoutPasswd = g_kvDelegatePtr;
 
-    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileNameNoPasswd, g_passwd3), OK);
-
-    /**
-     * @tc.steps: step2. Back up the database of the single version db2 Password p2 Backup file password p4
-     */
-    std::string multiExportFileName = g_exportFileDir + "/multiIndependence001.$$";
-    std::string multiStoreId = "distributed_ExportMulti_008";
-    option = {true, false, true, CipherType::DEFAULT, g_passwd2};
-    g_mgr.GetKvStore(multiStoreId, option, g_kvDelegateCallback);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-
-    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, g_passwd4), OK);
-
-    /**
-     * @tc.steps: step3. Recover the backup file.
-     */
-    EXPECT_EQ(g_kvDelegatePtrWithoutPasswd->Import(multiExportFileNameNoPasswd, g_passwd3), OK);
-    EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, g_passwd4), OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtrWithoutPasswd), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-
-    /**
-     * @tc.steps: step4. Try diff passwd.
-     */
-    (void)TryDbForPasswordIndependence002();
-
-    // clear resource
-    g_junkFilesList.push_back(multiExportFileName);
-    g_junkFilesList.push_back(multiExportFileNameNoPasswd);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtrWithoutPasswd), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreIdNoPasswd), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileNameNoPasswd, g_passwd3), NOT_SUPPORT);
 }
 #endif // OMIT_MULTI_VER
 
@@ -996,75 +1019,29 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence002, Te
   * @tc.name: PasswordIndependence002
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence003, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, PasswordIndependence003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Back up the (passwd1) encryption single-version (passwd2) database.
      */
-    std::string singleExportFileName = g_exportFileDir + "/singleIndependence003.$$";
+    std::string singleExportFileName = g_exportFileDir + "/passwordIndependence003.$$";
     std::string singleStoreId = "distributed_ExportSingle_009";
     KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd2};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, g_passwd1), OK);
-
-    /**
-     * @tc.steps: step2. Rekey The password by passwd3
-     */
-    g_kvNbDelegatePtr->Rekey(g_passwd3);
-
-    /**
-     * @tc.steps: step3. Import the database using passwd3.
-     * @tc.expected: step3. Return INVALID_FILE.
-     */
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd3), INVALID_FILE);
-
-    /**
-     * @tc.steps: step4. Import the database using passwd1.
-     * @tc.expected: step4. Return OK.
-     */
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd1), OK);
-
-#ifndef OMIT_MULTI_VER
-    /**
-     * @tc.steps: step5. Repeat step 1 - 4.
-     */
-    std::string multiExportFileName = g_exportFileDir + "/multiIndependence003.$$";
-    std::string multiStoreId = "distributed_ExportMulti_010";
-    KvStoreDelegate::Option multiOption = {true, false, true, CipherType::DEFAULT, g_passwd2};
-    g_mgr.GetKvStore(multiStoreId, multiOption, g_kvDelegateCallback);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-
-    EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, g_passwd1), OK);
-
-    EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, g_passwd3), INVALID_FILE);
-    EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, g_passwd1), OK);
-
-    // clear resource
-    g_junkFilesList.push_back(multiExportFileName);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
-#endif // OMIT_MULTI_VER
-    g_junkFilesList.push_back(singleExportFileName);
-    remove(singleExportFileName.c_str());
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
 }
 
 /**
   * @tc.name: SeparaDbExportAndImport
   * @tc.desc: Import and export after Separate database.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, SeparaDbExportAndImport, TestSize.Level1)
 {
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     EXPECT_TRUE(adapter != nullptr);
@@ -1073,6 +1050,8 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, Te
     std::string singleExportFileName = g_exportFileDir + "/SeparaDbExportAndImport.$$";
     std::string singleStoreId = "distributed_ExportSingle_010";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     SecurityOption secOption{SecurityLabel::S3, SecurityFlag::SECE};
     option.secOption = secOption;
 
@@ -1095,7 +1074,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, Te
     EXPECT_EQ(valueRead, VALUE_1);
     g_kvNbDelegatePtr->Put(KEY_3, VALUE_3);
 
-    EXPECT_EQ(g_kvNbDelegatePtr->Rekey(g_passwd1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Rekey(g_passwd1), NOT_SUPPORT);
     g_kvNbDelegatePtr->Get(KEY_3, valueRead);
     EXPECT_EQ(valueRead, VALUE_3);
 
@@ -1104,48 +1083,34 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, Te
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
 
     option.passwd = g_passwd1;
     option.isEncryptedDb = true;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
 }
 
 /**
   * @tc.name: SeparaDbExportAndImport
   * @tc.desc: Import and export after Separate database.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
-  * @tc.author: sunpeng
+  * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbNoPasswdRekey, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, SeparaDbNoPasswdRekey, TestSize.Level1)
 {
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     EXPECT_TRUE(adapter != nullptr);
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
 
     KvStoreNbDelegate::Option option = {true, false, true};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     SecurityOption secOption{SecurityLabel::S3, SecurityFlag::SECE};
     option.secOption = secOption;
     option.passwd = g_passwd1;
     g_mgr.GetKvStore("SeparaDbNoPasswdRekey", option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Rekey(g_passwd2), OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    option.passwd = g_passwd2;
-    g_mgr.GetKvStore("SeparaDbNoPasswdRekey", option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore("SeparaDbNoPasswdRekey"), OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
 }
 
 /**
@@ -1155,9 +1120,11 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbNoPasswdRekey, Test
   * @tc.require:
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ForceExportTest001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ForceExportTest001, TestSize.Level1)
 {
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore("ForceExportTest001", option, g_kvNbDelegateCallback);
     EXPECT_EQ(g_kvDelegateStatus, OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
@@ -1201,75 +1168,20 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ForceExportTest001, TestSiz
 }
 
 /**
-  * @tc.name: ImportWithTimeChange001
-  * @tc.desc: Import DB after time changed.
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: lianhuix
-  */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportWithTimeChange001, TestSize.Level1)
-{
-    KvStoreNbDelegate::Option option = {true, false, false};
-    std::string storeId = "ImportWithTimeChange001";
-    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
-
-    // fake entry timestamp
-    std::string origId = USER_ID + "-" + APP_ID + "-" + storeId;
-    std::string identifier = DBCommon::TransferHashString(origId);
-    std::string hexDir = DBCommon::TransferStringToHex(identifier);
-    std::string dbPath = g_testDir + "/" + hexDir + "/single_ver/main/gen_natural_store.db";
-    sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
-    ASSERT_NE(db, nullptr);
-    std::string fakeSql = "UPDATE sync_data SET timestamp = 3270281552768731970, w_timestamp = 3270281552768731970";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, fakeSql), OK);
-    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
-    db = nullptr;
-
-    // prepare import file with timestamp later then current
-    CipherPassword passwd;
-    std::string exportFileName = g_exportFileDir + storeId + ".back";
-    EXPECT_EQ(g_kvNbDelegatePtr->Export(exportFileName, passwd, true), OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvNbDelegatePtr = nullptr;
-    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
-
-    // import
-    g_mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
-    EXPECT_EQ(g_kvDelegateStatus, OK);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Import(exportFileName, passwd), OK);
-
-    // check crud normal
-    EXPECT_EQ(g_kvNbDelegatePtr->Delete(KEY_1), OK);
-    Value val;
-    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, val), NOT_FOUND);
-
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_2, val), OK);
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvNbDelegatePtr = nullptr;
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID_1), OK);
-}
-
-/**
   * @tc.name: abortHandle001
   * @tc.desc: Intercept obtaining new write handles during Import.
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, abortHandle001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, abortHandle001, TestSize.Level1)
 {
     std::string singleStoreId = "ExportAbortHandle_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
@@ -1320,7 +1232,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, abortHandle001, TestSize.Le
   * @tc.require:
   * @tc.author: chenguoliang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Pre-create folder dir
@@ -1328,6 +1240,8 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
     std::string singleFileName = g_exportFileDir + "/ImportTest001.$$";
     std::string singleStoreId = "distributed_ImportSingle_001";
     KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = DistributedDB::GAUSSDB_RD;
+    option.rdconfig.type = HASH;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
 
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
@@ -1370,3 +1284,4 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 #endif // OMIT_ENCRYPT
+#endif // USE_RD_KERNEL
