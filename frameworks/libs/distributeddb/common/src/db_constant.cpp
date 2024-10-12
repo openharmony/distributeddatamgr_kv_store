@@ -32,6 +32,4 @@ const std::string DBConstant::UPDATE_META_FUNC = "update_meta_within_trigger";
 const std::string DBConstant::SINGLE_VER_DATA_STORE = "gen_natural_store";
 const std::string DBConstant::SINGLE_VER_META_STORE = "meta";
 const std::string DBConstant::SINGLE_VER_CACHE_STORE = "cache";
-
-const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_8;
 }
