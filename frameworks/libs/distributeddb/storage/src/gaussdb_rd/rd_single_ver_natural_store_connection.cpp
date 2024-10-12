@@ -600,7 +600,6 @@ int RdSingleVerNaturalStoreConnection::SaveEntryNormally(const Entry &entry, boo
 
 RdSingleVerStorageExecutor *RdSingleVerNaturalStoreConnection::GetExecutor(bool isWrite, int &errCode) const
 {
-    LOGD("[RdSingleVerNaturalStoreConnection] Getting Executor ");
     RdSingleVerNaturalStore *naturalStore = GetDB<RdSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
         errCode = -E_NOT_INIT;

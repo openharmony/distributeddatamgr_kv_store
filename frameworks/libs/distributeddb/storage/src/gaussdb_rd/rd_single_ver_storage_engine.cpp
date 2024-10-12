@@ -92,7 +92,7 @@ int RdSingleVerStorageEngine::InitRdStorageEngine(const StorageEngineAttr &poolS
     option_ = option;
     identifier_ = identifier;
     hashIdentifier_ = DBCommon::TransferStringToHex(identifier_);
-    int errCode = Init();
+    int errCode = Init(true);
     if (errCode != E_OK) {
         LOGI("Storage engine init fail! errCode = [%d]", errCode);
     }

@@ -43,7 +43,7 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(StorageEngine);
 
-    int Init();
+    int Init(bool isEnhance = false);
 
     virtual int ReInit();
 
@@ -127,6 +127,8 @@ protected:
     std::function<int(void)> schemaChangedFunc_;
 
     bool isSchemaChanged_;
+
+    bool isEnhance_;
 
 private:
     StorageExecutor *FetchStorageExecutor(bool isWrite, std::list<StorageExecutor *> &idleList,
