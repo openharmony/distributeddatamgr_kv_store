@@ -178,7 +178,7 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
         syncProcess = multiSyncProcess_[user_];
     }
     
-    if (syncProcess.tableProcess.find(process.tableName) == syncProcess.tableProcess.end()) {
+    if (syncProcess.tableProcess.find(process.tableName) != syncProcess.tableProcess.end()) {
         process.downLoadInfo = syncProcess.tableProcess[process.tableName].downLoadInfo;
     }
 }

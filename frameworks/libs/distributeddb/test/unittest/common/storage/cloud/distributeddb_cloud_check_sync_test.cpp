@@ -201,8 +201,13 @@ protected:
     void DeleteUserTableRecord(int64_t begin, int64_t end);
     void DeleteCloudTableRecord(int64_t gid);
     void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
+    bool CheckSyncCount(const Info actualInfo, const Info expectInfo);
+    bool CheckSyncProcessInner(SyncProcess &actualSyncProcess, SyncProcess &expectSyncProcess);
+    bool CheckSyncProcess(std::vector<std::map<std::string, SyncProcess>> &actualSyncProcess,
+        vector<SyncProcess> &expectSyncProcessV);
     void PriorityAndNormalSync(const Query &normalQuery, const Query &priorityQuery,
-        RelationalStoreDelegate *delegate);
+        RelationalStoreDelegate *delegate, std::vector<std::map<std::string, SyncProcess>> &prioritySyncProcess,
+        bool isCheckProcess);
     void DeleteCloudDBData(int64_t begin, int64_t count);
     void SetForkQueryForCloudPrioritySyncTest007(std::atomic<int> &count);
     void SetForkQueryForCloudPrioritySyncTest008(std::atomic<int> &count);
@@ -430,31 +435,98 @@ void DistributedDBCloudCheckSyncTest::CheckCloudTableCount(const std::string &ta
     EXPECT_EQ(realCount, expectCount); // ExpectCount represents the total amount of cloud data.
 }
 
+bool DistributedDBCloudCheckSyncTest::CheckSyncCount(const Info actualInfo, const Info expectInfo)
+{
+    if (actualInfo.batchIndex != expectInfo.batchIndex) {
+        return false;
+    }
+    if (actualInfo.total != expectInfo.total) {
+        return false;
+    }
+    if (actualInfo.successCount != expectInfo.successCount) {
+        return false;
+    }
+    if (actualInfo.failCount != expectInfo.failCount) {
+        return false;
+    }
+    return true;
+}
+
+bool DistributedDBCloudCheckSyncTest::CheckSyncProcessInner(
+    SyncProcess &actualSyncProcess, SyncProcess &expectSyncProcess)
+{
+    for (const auto &itInner : actualSyncProcess.tableProcess) {
+        std::string tableName = itInner.first;
+        if (expectSyncProcess.tableProcess.find(tableName) == expectSyncProcess.tableProcess.end()) {
+            return false;
+        }
+        TableProcessInfo actualTableProcessInfo = itInner.second;
+        TableProcessInfo expectTableProcessInfo = expectSyncProcess.tableProcess.find(tableName)->second;
+        if (!CheckSyncCount(actualTableProcessInfo.downLoadInfo, expectTableProcessInfo.downLoadInfo)) {
+            return false;
+        }
+        if (!CheckSyncCount(actualTableProcessInfo.upLoadInfo, expectTableProcessInfo.upLoadInfo)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool DistributedDBCloudCheckSyncTest::CheckSyncProcess(
+    std::vector<std::map<std::string, SyncProcess>> &actualSyncProcess, vector<SyncProcess> &expectSyncProcessV)
+{
+    vector<map<string, SyncProcess>> expectSyncProcess;
+    for (auto syncProcess : expectSyncProcessV) {
+        map<string, SyncProcess> expectSyncProcessMap = {{"CLOUD", syncProcess}};
+        expectSyncProcess.emplace_back(expectSyncProcessMap);
+    }
+    for (int i = 0; i < (int) actualSyncProcess.size(); i++) {
+        map<string, SyncProcess> actualSyncProcessMap = actualSyncProcess[i];
+        map<string, SyncProcess> expectSyncProcessMap = expectSyncProcess[i];
+        for (auto &it : actualSyncProcessMap) {
+            string mapKey = it.first;
+            if (expectSyncProcessMap.find(mapKey) == expectSyncProcessMap.end()) {
+                return false;
+            }
+            SyncProcess actualSyncProcess = it.second;
+            SyncProcess expectSyncProcess = expectSyncProcessMap.find(mapKey)->second;
+            if (!CheckSyncProcessInner(actualSyncProcess, expectSyncProcess)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void DistributedDBCloudCheckSyncTest::PriorityAndNormalSync(const Query &normalQuery, const Query &priorityQuery,
-    RelationalStoreDelegate *delegate)
+    RelationalStoreDelegate *delegate, std::vector<std::map<std::string, SyncProcess>> &prioritySyncProcess,
+    bool isCheckProcess)
 {
     std::mutex dataMutex;
     std::condition_variable cv;
     bool normalFinish = false;
     bool priorityFinish = false;
-    auto normalCallback = [&cv, &dataMutex, &normalFinish, &priorityFinish](
+    auto normalCallback = [&cv, &dataMutex, &normalFinish, &priorityFinish, &prioritySyncProcess, &isCheckProcess](
         const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
-            if (item.second.process == DistributedDB::FINISHED) {
-                normalFinish = true;
-                ASSERT_EQ(priorityFinish, true);
-                cv.notify_one();
+            for (const auto &item: process) {
+                if (item.second.process == DistributedDB::FINISHED) {
+                    normalFinish = true;
+                    ASSERT_EQ(isCheckProcess ? priorityFinish : true, true);
+                    cv.notify_one();
+                }
             }
-        }
-    };
-    auto priorityCallback = [&cv, &priorityFinish](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
-            if (item.second.process == DistributedDB::FINISHED) {
-                priorityFinish = true;
-                cv.notify_one();
+            prioritySyncProcess.emplace_back(process);
+        };
+    auto priorityCallback = [&cv, &priorityFinish, &prioritySyncProcess](
+        const std::map<std::string, SyncProcess> &process) {
+            for (const auto &item: process) {
+                if (item.second.process == DistributedDB::FINISHED) {
+                    priorityFinish = true;
+                    cv.notify_one();
+                }
             }
-        }
-    };
+            prioritySyncProcess.emplace_back(process);
+        };
     CloudSyncOption option;
     PrepareOption(option, normalQuery, false);
     virtualCloudDb_->SetBlockTime(500); // 500 ms
@@ -1132,7 +1204,8 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest003, TestSize.Lev
     Query normalQuery = Query::Select().FromTable({tableName_});
     std::vector<std::string> idValue = {"0", "1", "2"};
     Query priorityQuery = Query::Select().From(tableName_).In("id", idValue);
-    PriorityAndNormalSync(normalQuery, priorityQuery, delegate_);
+    std::vector<std::map<std::string, SyncProcess>> prioritySyncProcess;
+    PriorityAndNormalSync(normalQuery, priorityQuery, delegate_, prioritySyncProcess, true);
     EXPECT_EQ(virtualCloudDb_->GetLockCount(), 2);
     virtualCloudDb_->Reset();
     EXPECT_EQ(virtualCloudDb_->GetLockCount(), 0);
@@ -1812,6 +1885,48 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest015, TestSize.Lev
         EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
     }
     CheckUserTableResult(db_, tableName_, 60);
+}
+
+/**
+ * @tc.name: CloudPrioritySyncTest016
+ * @tc.desc: priority sync when normal syncing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest016, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert cloud table record.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 60; // 60 is count of records
+    InsertCloudTableRecord(0, actualCount, 0, false);
+    InsertUserTableRecord(tableName_, 10);
+ 
+    /**
+     * @tc.steps:step2. begin normal sync and priority sync.
+     * @tc.expected: step2. ok.
+     */
+    Query normalQuery = Query::Select().FromTable({tableName_});
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query priorityQuery = Query::Select().From(tableName_).In("id", idValue);
+    std::vector<std::map<std::string, SyncProcess>> prioritySyncProcess;
+    PriorityAndNormalSync(normalQuery, priorityQuery, delegate_, prioritySyncProcess, false);
+    virtualCloudDb_->Reset();
+    CheckCloudTableCount(tableName_, 60); // 10 is count of cloud records
+    /**
+     * @tc.steps:step3. check sync process result.
+     * @tc.expected: step3. ok.
+     */
+    std::vector<DistributedDB::SyncProcess> expectSyncResult = {
+                {PROCESSING, OK, {{tableName_, {PROCESSING, {1, 60, 60, 0, 50, 0, 0}, {0, 0, 0, 0, 0, 0, 0}}}}},
+                {PROCESSING, OK, {{tableName_, {PROCESSING, {1, 3, 3, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}}}}},
+                {FINISHED, OK, {{tableName_, {FINISHED, {1, 3, 3, 0, 0, 0, 0}, {1, 3, 3, 0, 0, 3, 0}}}}},
+                {PROCESSING, OK, {{tableName_, {PROCESSING, {2, 63, 63, 0, 50, 0, 0}, {0, 0, 0, 0, 0, 0, 0}}}}},
+                {FINISHED, OK, {{tableName_, {FINISHED, {2, 63, 63, 0, 50, 0, 0}, {1, 7, 7, 0, 0, 7, 0}}}}}
+        };
+    EXPECT_EQ(CheckSyncProcess(prioritySyncProcess, expectSyncResult), true);
 }
 
 /**
