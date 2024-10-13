@@ -983,7 +983,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
 int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(const std::string &tableName)
 {
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    std::string sql = "UPDATE " + logTable + " SET extend_field = NULL, cursor = NULL where flag&0x01=0x01;";
+    std::string sql = "DELETE FROM " + logTable + " where flag&0x01=0x01;";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("update extend field and cursor failed %d.", errCode);
