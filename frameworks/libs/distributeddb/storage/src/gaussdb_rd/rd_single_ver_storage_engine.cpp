@@ -52,13 +52,13 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
     }
     if (!option_.readOnly) {
         std::string tableMode = GetTableMode(option_.isHashTable);
-        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME.c_str(), tableMode.c_str(), 0));
+        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME, tableMode.c_str(), 0));
         if (ret != E_OK) {
             LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
             return ret;
         }
     }
-    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME.c_str()));
+    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME));
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine] GRD_IndexPreload FAILED %d", ret);
         return ret;
@@ -100,7 +100,7 @@ int RdSingleVerStorageEngine::GetExistedSecOption(SecurityOption &secOption) con
 
 int RdSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
 {
-    if (!(secOption == option_.securityOpt) &&
+    if (!(secOption == option_.securityOpt) && (secOption.securityLabel > option_.securityOpt.securityLabel) &&
         secOption.securityLabel != SecurityLabel::NOT_SET &&
         option_.securityOpt.securityLabel != SecurityLabel::NOT_SET) {
         LOGE("[RdSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
@@ -196,8 +196,6 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
             LOGE("[RdSingleVerStorageEngine] database is corrupted");
             return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         }
-    } else if (errCode == E_OK) {
-        DBCommon::SetOrClearFSMonitorFlag(option.uri, DBCommon::SET_FLAG);
     }
     return errCode;
 }

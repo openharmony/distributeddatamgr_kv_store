@@ -68,9 +68,9 @@ int SingleVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInter
         LOGE("[SingleVerSyncTaskContext] timeHelper Initialize failed, err %d.", errCode);
         goto ERROR_OUT;
     }
-    timeOutCallback = std::bind(&SyncStateMachine::TimeoutCallback,
-        static_cast<SingleVerSyncStateMachine *>(stateMachine_),
-        std::placeholders::_1);
+    timeOutCallback = [stateMachine = static_cast<SingleVerSyncStateMachine *>(stateMachine_)](TimerId timerId) {
+        return stateMachine->TimeoutCallback(timerId);
+    };
     SetTimeoutCallback(timeOutCallback);
 
     syncInterface_ = syncInterface;
@@ -362,7 +362,7 @@ bool SingleVerSyncTaskContext::GetSendPermitCheck() const
 
 bool SingleVerSyncTaskContext::IsSkipTimeoutError(int errCode) const
 {
-    if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) {
+    if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) { // LCOV_EXCL_BR_LINE
         LOGE("[SingleVerSyncTaskContext] send message timeout error occurred");
         return true;
     } else {

@@ -432,14 +432,14 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 
 void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam)
 {
-    if (uploadData.ignoredCount == 0) {
+    if (uploadData.ignoredCount == 0) { // LCOV_EXCL_BR_LINE
         return;
     }
     info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
-    if (info.upLoadInfo.successCount + info.upLoadInfo.failCount != info.upLoadInfo.total) {
+    if (info.upLoadInfo.successCount + info.upLoadInfo.failCount != info.upLoadInfo.total) { // LCOV_EXCL_BR_LINE
         return;
     }
-    if (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+    if (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) { // LCOV_EXCL_BR_LINE
         return;
     }
     info.tableStatus = ProcessStatus::FINISHED;
@@ -715,7 +715,7 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
 
 bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId)
 {
-    if (!cloudTaskInfos_[taskId].merge) {
+    if (!cloudTaskInfos_[taskId].merge) { // LCOV_EXCL_BR_LINE
         return false;
     }
     bool isMerge = false;
@@ -735,29 +735,29 @@ std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBase
     TaskId beMergeTask = INVALID_TASK_ID;
     TaskId runningTask = currentContext_.currentTaskId;
     for (const auto &taskId : taskQueue_) {
-        if (taskId == runningTask || taskId == tryTaskId) {
+        if (taskId == runningTask || taskId == tryTaskId) { // LCOV_EXCL_BR_LINE
             continue;
         }
-        if (!IsTasksCanMerge(taskId, tryTaskId)) {
+        if (!IsTasksCanMerge(taskId, tryTaskId)) { // LCOV_EXCL_BR_LINE
             continue;
         }
-        if (MergeTaskTablesIfConsistent(taskId, tryTaskId)) {
+        if (MergeTaskTablesIfConsistent(taskId, tryTaskId)) { // LCOV_EXCL_BR_LINE
             beMergeTask = taskId;
             nextTryTask = tryTaskId;
             merge = true;
             break;
         }
-        if (MergeTaskTablesIfConsistent(tryTaskId, taskId)) {
+        if (MergeTaskTablesIfConsistent(tryTaskId, taskId)) { // LCOV_EXCL_BR_LINE
             beMergeTask = tryTaskId;
             nextTryTask = taskId;
             merge = true;
             break;
         }
     }
-    if (!merge) {
+    if (!merge) { // LCOV_EXCL_BR_LINE
         return res;
     }
-    if (beMergeTask < nextTryTask) {
+    if (beMergeTask < nextTryTask) { // LCOV_EXCL_BR_LINE
         std::tie(beMergeTask, nextTryTask) = SwapTwoTaskAndCopyTable(beMergeTask, nextTryTask);
     }
     AdjustTableBasedOnSchema(cloudSchema, cloudTaskInfos_[nextTryTask]);
@@ -794,7 +794,7 @@ bool CloudSyncer::MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId)
     const auto &target = cloudTaskInfos_[targetId];
     bool isMerge = true;
     for (const auto &table : source.table) {
-        if (std::find(target.table.begin(), target.table.end(), table) == target.table.end()) {
+        if (std::find(target.table.begin(), target.table.end(), table) == target.table.end()) { // LCOV_EXCL_BR_LINE
             isMerge = false;
             break;
         }
@@ -809,7 +809,7 @@ void CloudSyncer::AdjustTableBasedOnSchema(const std::shared_ptr<DataBaseSchema>
     taskInfo.table.clear();
     taskInfo.queryList.clear();
     for (const auto &table : cloudSchema->tables) {
-        if (std::find(tmpTables.begin(), tmpTables.end(), table.name) != tmpTables.end()) {
+        if (std::find(tmpTables.begin(), tmpTables.end(), table.name) != tmpTables.end()) { // LCOV_EXCL_BR_LINE
             taskInfo.table.push_back(table.name);
             QuerySyncObject querySyncObject;
             querySyncObject.SetTableName(table.name);

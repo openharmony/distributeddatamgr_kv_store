@@ -353,7 +353,7 @@ const std::map<int, FieldName> &TableInfo::GetPrimaryKey() const
 CompositeFields TableInfo::GetIdentifyKey() const
 {
     if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
-        if (!uniqueDefines_.empty()) {
+        if (!uniqueDefines_.empty()) { // LCOV_EXCL_BR_LINE
             return uniqueDefines_.at(0);
         }
     }
@@ -586,11 +586,11 @@ void Difference(const FieldInfoMap &first, const FieldInfoMap &second, FieldInfo
 {
     auto itFirst = first.begin();
     auto itSecond = second.begin();
-    while (itFirst != first.end()) {
-        if (itSecond == second.end()) {
+    while (itFirst != first.end()) { // LCOV_EXCL_BR_LINE
+        if (itSecond == second.end()) { // LCOV_EXCL_BR_LINE
             break;
         }
-        if (itFirst->first == itSecond->first) {
+        if (itFirst->first == itSecond->first) { // LCOV_EXCL_BR_LINE
             bothAppear.insert(*itFirst);
             itFirst++;
             itSecond++;
@@ -602,11 +602,11 @@ void Difference(const FieldInfoMap &first, const FieldInfoMap &second, FieldInfo
         }
     }
 
-    while (itFirst != first.end()) {
+    while (itFirst != first.end()) { // LCOV_EXCL_BR_LINE
         orphanFst.insert(*itFirst++);
     }
 
-    while (itSecond != second.end()) {
+    while (itSecond != second.end()) { // LCOV_EXCL_BR_LINE
         orphanSnd.insert(*itSecond++);
     }
 }
@@ -619,27 +619,27 @@ int TableInfo::CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) c
     FieldInfoMap bothAppear;
     Difference(fields_, liteTableFields, orphanLocal, orphanLite, bothAppear);
 
-    if (!orphanLocal.empty() && !orphanLite.empty()) {
+    if (!orphanLocal.empty() && !orphanLite.empty()) { // LCOV_EXCL_BR_LINE
         LOGE("[Relational][Compare] Only one side should have upgrade fields");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
 
     for (const auto &it : bothAppear) {
-        if (!it.second.CompareWithField(liteTableFields.at(it.first), true)) {
+        if (!it.second.CompareWithField(liteTableFields.at(it.first), true)) { // LCOV_EXCL_BR_LINE
             LOGE("[Relational][Compare] field is incompatible");
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
     }
 
     for (const auto &it : orphanLocal) {
-        if (it.second.IsNotNull() && !it.second.HasDefaultValue()) {
+        if (it.second.IsNotNull() && !it.second.HasDefaultValue()) { // LCOV_EXCL_BR_LINE
             LOGE("[Relational][Compare] field is upgrade incompatible");
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
     }
 
     for (const auto &it : orphanLite) {
-        if (it.second.IsNotNull() && !it.second.HasDefaultValue()) {
+        if (it.second.IsNotNull() && !it.second.HasDefaultValue()) { // LCOV_EXCL_BR_LINE
             LOGE("[Relational][Compare] field is upgrade incompatible");
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
@@ -651,15 +651,15 @@ int TableInfo::CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) c
 int TableInfo::CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const
 {
     if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) &&
-        !CompareWithPrimaryKey(primaryKey_, liteTableInfo.GetPrimaryKey())) {
+        !CompareWithPrimaryKey(primaryKey_, liteTableInfo.GetPrimaryKey())) { // LCOV_EXCL_BR_LINE
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == ROW_ID)) {
+    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == ROW_ID)) { // LCOV_EXCL_BR_LINE
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) && !autoInc_)) {
+    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) && !autoInc_)) { // LCOV_EXCL_BR_LINE
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }

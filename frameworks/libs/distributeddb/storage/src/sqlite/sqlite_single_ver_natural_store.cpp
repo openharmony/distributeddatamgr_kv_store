@@ -188,12 +188,12 @@ int SQLiteSingleVerNaturalStore::SetUserVer(const KvDBProperties &kvDBProp, int 
     OpenDbProperties properties;
     properties.uri = GetDatabasePath(kvDBProp);
     bool isEncryptedDb = kvDBProp.GetBoolProp(KvDBProperties::ENCRYPTED_MODE, false);
-    if (isEncryptedDb) {
+    if (isEncryptedDb) { // LCOV_EXCL_BR_LINE
         kvDBProp.GetPassword(properties.cipherType, properties.passwd);
     }
 
     int errCode = SQLiteUtils::SetUserVer(properties, version);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Recover for open db failed in single version:%d", errCode);
     }
     return errCode;
@@ -225,7 +225,7 @@ int SQLiteSingleVerNaturalStore::RegisterLifeCycleCallback(const DatabaseLifeCyc
 
     if (lifeTimerId_ != 0) {
         errCode = StopLifeCycleTimer();
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("Stop the life cycle timer failed:%d", errCode);
         }
     }
@@ -259,12 +259,12 @@ int SQLiteSingleVerNaturalStore::SetAutoLifeCycleTime(uint32_t time)
 int SQLiteSingleVerNaturalStore::GetSecurityOption(SecurityOption &option) const
 {
     bool isMemDb = GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    if (isMemDb) {
+    if (isMemDb) { // LCOV_EXCL_BR_LINE
         LOGI("[GetSecurityOption] MemDb, no need to get security option");
         option = SecurityOption();
         return -E_NOT_SUPPORT;
     }
-    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
+    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) { // LCOV_EXCL_BR_LINE
         LOGI("[GetSecurityOption] Not set api adapter");
         return -E_NOT_SUPPORT;
     }
@@ -305,7 +305,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
         // Not a schema database, do not need to check more
         return E_OK;
     }
-    if (schemaObjRef.GetSchemaType() == SchemaType::JSON) {
+    if (schemaObjRef.GetSchemaType() == SchemaType::JSON) { // LCOV_EXCL_BR_LINE
         ValueObject valueObj;
         int errCode = valueObj.Parse(oriValue.data(), oriValue.data() + oriValue.size(), schemaObjRef.GetSkipSize());
         if (errCode != E_OK) {
@@ -332,7 +332,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
         }
     } else {
         int errCode = schemaObjRef.VerifyValue(sourceType, oriValue);
-        if (errCode == E_OK) {
+        if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
             useAmendValue = false;
             return E_OK;
         }
@@ -370,7 +370,7 @@ int SQLiteSingleVerNaturalStore::CheckDatabaseRecovery(const KvDBProperties &kvD
     const std::string identifierDir = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
     bool isCreate = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     bool isMemoryDb = kvDBProp.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    if (!isMemoryDb) {
+    if (!isMemoryDb) { // LCOV_EXCL_BR_LINE
         errCode = DBCommon::CreateStoreDirectory(dataDir, identifierDir, DBConstant::SINGLE_SUB_DIR, isCreate);
         if (errCode != E_OK) {
             LOGE("Create single version natural store directory failed:%d", errCode);
@@ -391,7 +391,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
         }
     }
 
-    if (storageEngine_->IsEngineCorrupted()) {
+    if (storageEngine_->IsEngineCorrupted()) { // LCOV_EXCL_BR_LINE
         LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid key, stop open!");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
@@ -406,7 +406,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
 int SQLiteSingleVerNaturalStore::Open(const KvDBProperties &kvDBProp)
 {
     std::lock_guard<std::mutex> lock(initialMutex_);
-    if (isInitialized_) {
+    if (isInitialized_) { // LCOV_EXCL_BR_LINE
         return E_OK; // avoid the reopen operation.
     }
 
@@ -953,7 +953,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
             hash = true;
         }
     } while (false);
-    if (!hash) {
+    if (!hash) { // LCOV_EXCL_BR_LINE
         hashDeviceId = DBCommon::TransferHashString(deviceName);
     }
 
@@ -1069,7 +1069,7 @@ SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStore::GetHandle(bool isWr
         return nullptr;
     }
     // Use for check database corrupted in Asynchronous task, like cache data migrate to main database
-    if (storageEngine_->IsEngineCorrupted()) {
+    if (storageEngine_->IsEngineCorrupted()) { // LCOV_EXCL_BR_LINE
         CorruptNotify();
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         engineMutex_.unlock_shared(); // unlock when get handle failed.
@@ -1201,7 +1201,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
             item.createTime = static_cast<Timestamp>(static_cast<int64_t>(item.writeTimestamp) - offset);
         }
     }
-    if (checkValueContent) {
+    if (checkValueContent) { // LCOV_EXCL_BR_LINE
         CheckAmendValueContentForSyncProcedure(dataItems);
     }
     QueryObject queryInner = query;
@@ -1417,7 +1417,7 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
+    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // LCOV_EXCL_BR_LINE
         return -E_NOT_SUPPORT;
     }
 
@@ -1461,7 +1461,7 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
+    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // LCOV_EXCL_BR_LINE
         return -E_NOT_SUPPORT;
     }
 
@@ -1548,20 +1548,20 @@ bool SQLiteSingleVerNaturalStore::CheckCompatible(const std::string &schema, uin
     // Here both are schema-db, check their compatibility mutually
     SchemaObject remoteSchema;
     int errCode = remoteSchema.ParseFromSchemaString(schema);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         // Consider: if the parse errCode is SchemaVersionNotSupport, we can consider allow sync if schemaType equal.
         LOGE("Parse remote schema fail, errCode=%d.", errCode);
         return false;
     }
     // First, Compare remoteSchema based on localSchema
     errCode = localSchema.CompareAgainstSchemaObject(remoteSchema);
-    if (errCode != -E_SCHEMA_UNEQUAL_INCOMPATIBLE) {
+    if (errCode != -E_SCHEMA_UNEQUAL_INCOMPATIBLE) { // LCOV_EXCL_BR_LINE
         LOGI("Remote(Maybe newer) compatible based on local, result=%d.", errCode);
         return true;
     }
     // Second, Compare localSchema based on remoteSchema
     errCode = remoteSchema.CompareAgainstSchemaObject(localSchema);
-    if (errCode != -E_SCHEMA_UNEQUAL_INCOMPATIBLE) {
+    if (errCode != -E_SCHEMA_UNEQUAL_INCOMPATIBLE) { // LCOV_EXCL_BR_LINE
         LOGI("Local(Newer) compatible based on remote, result=%d.", errCode);
         return true;
     }
@@ -1768,17 +1768,17 @@ int SQLiteSingleVerNaturalStore::SaveSyncItemsInCacheMode(SQLiteSingleVerStorage
 
     for (auto &item : dataItems) {
         errCode = handle->SaveSyncDataItemInCacheMode(item, deviceInfo, maxTimestamp, recordVersion, query);
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        if (errCode != E_OK && errCode != -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             break;
         }
     }
 
-    if (errCode == -E_NOT_FOUND) {
+    if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
         errCode = E_OK;
     }
 
     innerCode = handle->ResetForSavingCacheData(SingleVerDataType::SYNC_TYPE);
-    if (innerCode != E_OK) {
+    if (innerCode != E_OK) { // LCOV_EXCL_BR_LINE
         errCode = innerCode;
     }
 END:

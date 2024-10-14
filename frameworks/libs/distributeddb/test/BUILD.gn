@@ -981,6 +981,8 @@ group("distributeddatamgr_fuzztest") {
     "fuzztest/fileoper_fuzzer:fuzztest",
     "fuzztest/importfile_fuzzer:fuzztest",
     "fuzztest/iprocesscommunicator_fuzzer:fuzztest",
+    "fuzztest/json_fuzzer:fuzztest",
+    "fuzztest/jsoninner_fuzzer:fuzztest",
     "fuzztest/kvdelegatemanager_fuzzer:fuzztest",
     "fuzztest/kvstoreresultset_fuzzer:fuzztest",
     "fuzztest/nbdelegate_fuzzer:fuzztest",

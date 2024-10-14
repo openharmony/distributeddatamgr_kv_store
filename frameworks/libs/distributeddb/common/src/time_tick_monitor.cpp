@@ -50,7 +50,7 @@ int TimeTickMonitor::StartTimeTickMonitor()
 
     lastMonotonicTime_ = GetMonotonicTime();
     lastSystemTime_ = GetSysCurrentTime();
-    monitorCallback_ = std::bind(&TimeTickMonitor::TimeTick, this, std::placeholders::_1);
+    monitorCallback_ = [this](TimerId timerId) { return TimeTick(timerId); };
     runtimeCxt_ = RuntimeContext::GetInstance();
     monitorTimerId_ = 0;
     errCode = runtimeCxt_->SetTimer(MONITOR_INTERVAL, monitorCallback_, nullptr, monitorTimerId_);

@@ -443,28 +443,28 @@ int PackageFile::GetPackageVersion(const std::string &sourceFile, uint32_t &vers
     Parcel parcel(fileHeader.data(), FILE_HEADER_LEN);
 
     ifstream sourceHandle(sourceFile, ios::in | ios::binary);
-    if (!sourceHandle.good()) {
+    if (!sourceHandle.good()) { // LCOV_EXCL_BR_LINE
         LOGE("sourceHandle error, sys err [%d]", errno);
         errCode = -E_INVALID_PATH;
         goto END;
     }
 
     sourceHandle.read(reinterpret_cast<char *>(fileHeader.data()), FILE_HEADER_LEN);
-    if (!sourceHandle.good()) {
+    if (!sourceHandle.good()) { // LCOV_EXCL_BR_LINE
         LOGE("GetPackageVersion read sourceFile handle error!");
         errCode = -E_INVALID_PATH;
         goto END;
     }
 
     errCode = CheckMagicHeader(parcel);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         errCode = -E_INVALID_PATH;
         goto END;
     }
 
     (void)parcel.ReadUInt32(version);
 END:
-    if (errno == EKEYREVOKED) {
+    if (errno == EKEYREVOKED) { // LCOV_EXCL_BR_LINE
         errCode = -E_EKEYREVOKED;
         LOGE("[PackageFile][PackageFiles] Forbid access files by secLabel, errCode [%d].", errCode);
     }

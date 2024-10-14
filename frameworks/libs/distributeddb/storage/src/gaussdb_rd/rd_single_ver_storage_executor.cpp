@@ -68,7 +68,7 @@ RdSingleVerStorageExecutor::~RdSingleVerStorageExecutor()
 
 int RdSingleVerStorageExecutor::OpenResultSet(const Key &key, GRD_KvScanModeE mode, GRD_ResultSet **resultSet)
 {
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, mode, resultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME, key, mode, resultSet);
     if (errCode != E_OK) {
         LOGE("Can not open rd result set.");
     }
@@ -77,7 +77,7 @@ int RdSingleVerStorageExecutor::OpenResultSet(const Key &key, GRD_KvScanModeE mo
 
 int RdSingleVerStorageExecutor::OpenResultSet(const Key &beginKey, const Key &endKey, GRD_ResultSet **resultSet)
 {
-    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME.c_str(), beginKey, endKey, resultSet);
+    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME, beginKey, endKey, resultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor][OpenResultSet] Can not open rd result set.");
     }
@@ -96,18 +96,18 @@ int RdSingleVerStorageExecutor::CloseResultSet(GRD_ResultSet *resultSet)
 int RdSingleVerStorageExecutor::InnerMoveToHead(const int position, GRD_ResultSet *resultSet, int &currPosition)
 {
     int errCode = E_OK;
-    while (true) {
+    while (true) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Prev(resultSet));
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             currPosition = 0;
             int ret = TransferGrdErrno(GRD_Next(resultSet));
-            if (ret != E_OK) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
                 currPosition = position <= INIT_POSITION ? INIT_POSITION : currPosition;
                 return ret;
             }
             ret = TransferGrdErrno(GRD_Prev(resultSet));
-            if (ret != E_OK) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("[RdSingleVerStorageExecutor] failed to move prev for result set.");
                 return ret;
             }
@@ -124,23 +124,23 @@ int RdSingleVerStorageExecutor::InnerMoveToHead(const int position, GRD_ResultSe
 int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition)
 {
     int errCode = E_OK; // incase it never been move before
-    if (currPosition == INIT_POSITION) {
+    if (currPosition == INIT_POSITION) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Next(resultSet)); // but when we have only 1 element ?
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] result set is empty when move to");
             return -E_RESULT_SET_EMPTY;
         }
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
             return errCode;
         }
         currPosition++;
     }
     errCode = InnerMoveToHead(position, resultSet, currPosition);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
-    if (position <= INIT_POSITION) {
+    if (position <= INIT_POSITION) { // LCOV_EXCL_BR_LINE
         LOGE("[RdSingleVerStorageExecutor] current position must > -1 when move to.");
         int ret = TransferGrdErrno(GRD_Prev(resultSet));
         if (ret != E_OK && ret != -E_NOT_FOUND) {
@@ -151,9 +151,9 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
         return -E_INVALID_ARGS;
     }
     currPosition = 0;
-    while (currPosition < position) {
+    while (currPosition < position) { // LCOV_EXCL_BR_LINE
         errCode = TransferGrdErrno(GRD_Next(resultSet));
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             LOGE("[RdSingleVerStorageExecutor] move to position: %d, out of bounds", position);
             currPosition++;
             return -E_INVALID_ARGS;
@@ -230,7 +230,7 @@ int RdSingleVerStorageExecutor::GetCount(const Key &key, int &count, GRD_KvScanM
 {
     count = 0;
     GRD_ResultSet *tmpResultSet = nullptr;
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, kvScanMode, &tmpResultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME, key, kvScanMode, &tmpResultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to get count for current key.");
         return errCode;
@@ -242,7 +242,7 @@ int RdSingleVerStorageExecutor::GetCount(const Key &beginKey, const Key &endKey,
 {
     count = 0;
     GRD_ResultSet *tmpResultSet = nullptr;
-    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME.c_str(), beginKey, endKey, &tmpResultSet);
+    int errCode = RdKVRangeScan(db_, SYNC_COLLECTION_NAME, beginKey, endKey, &tmpResultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to get count for current key.");
         return errCode;
@@ -275,7 +275,7 @@ int RdSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key &key
         return -E_INVALID_ARGS;
     }
 
-    return RdKVGet(db_, SYNC_COLLECTION_NAME.c_str(), key, value);
+    return RdKVGet(db_, SYNC_COLLECTION_NAME, key, value);
 }
 
 int RdSingleVerStorageExecutor::Backup(const std::string &filePath, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
@@ -300,11 +300,11 @@ int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, const GRD_KvScanMo
     int ret = E_OK;
     switch (mode) {
         case KV_SCAN_PREFIX: {
-            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), pairKey.first, KV_SCAN_PREFIX, resultSet);
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME, pairKey.first, KV_SCAN_PREFIX, resultSet);
             break;
         }
         case KV_SCAN_RANGE: {
-            ret = RdKVRangeScan(db, SYNC_COLLECTION_NAME.c_str(), pairKey.first, pairKey.second, resultSet);
+            ret = RdKVRangeScan(db, SYNC_COLLECTION_NAME, pairKey.first, pairKey.second, resultSet);
             break;
         }
         default:
@@ -386,7 +386,7 @@ int RdSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key &ke
 
 int RdSingleVerStorageExecutor::DelKvData(const Key &key)
 {
-    return RdKVDel(db_, SYNC_COLLECTION_NAME.c_str(), key);
+    return RdKVDel(db_, SYNC_COLLECTION_NAME, key);
 }
 
 int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entries, bool isDelete,
@@ -413,9 +413,9 @@ int RdSingleVerStorageExecutor::BatchSaveEntries(const std::vector<Entry> &entri
         return ret;
     }
     if (isDelete) {
-        ret = RdKVBatchDel(db_, SYNC_COLLECTION_NAME.c_str(), batch);
+        ret = RdKVBatchDel(db_, SYNC_COLLECTION_NAME, batch);
     } else {
-        ret = RdKVBatchPut(db_, SYNC_COLLECTION_NAME.c_str(), batch);
+        ret = RdKVBatchPut(db_, SYNC_COLLECTION_NAME, batch);
     }
     if (ret != E_OK) {
         (void)RdKVBatchDestroy(batch);

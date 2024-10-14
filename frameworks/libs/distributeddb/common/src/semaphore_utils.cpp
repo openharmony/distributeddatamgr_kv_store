@@ -34,7 +34,7 @@ bool SemaphoreUtils::WaitSemaphore(int waitSecond)
 {
     unique_lock<mutex> lock(lockMutex_);
     bool result = cv_.wait_for(lock, std::chrono::seconds(waitSecond),
-        std::bind(&SemaphoreUtils::CompareCount, this));
+        [this] { return CompareCount(); });
     if (result == true) {
         --count_;
     }
@@ -44,7 +44,7 @@ bool SemaphoreUtils::WaitSemaphore(int waitSecond)
 void SemaphoreUtils::WaitSemaphore()
 {
     unique_lock<mutex> lock(lockMutex_);
-    cv_.wait(lock, std::bind(&SemaphoreUtils::CompareCount, this));
+    cv_.wait(lock, [this] { return CompareCount(); });
     --count_;
 }
 

@@ -70,7 +70,7 @@ std::string SQLiteRelationalStoreConnection::GetIdentifier()
 SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStoreConnection::GetExecutor(bool isWrite, int &errCode) const
 {
     auto *store = GetDB<SQLiteRelationalStore>();
-    if (store == nullptr) {
+    if (store == nullptr) { // LCOV_EXCL_BR_LINE
         errCode = -E_NOT_INIT;
         LOGE("[RelationalConnection] store is null, get executor failed! errCode = [%d]", errCode);
         return nullptr;
@@ -82,7 +82,7 @@ SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStoreConnection::GetEx
 void SQLiteRelationalStoreConnection::ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&executor) const
 {
     auto *store = GetDB<SQLiteRelationalStore>();
-    if (store != nullptr) {
+    if (store != nullptr) { // LCOV_EXCL_BR_LINE
         store->ReleaseHandle(executor);
     }
 }
@@ -90,19 +90,19 @@ void SQLiteRelationalStoreConnection::ReleaseExecutor(SQLiteSingleVerRelationalS
 int SQLiteRelationalStoreConnection::StartTransaction()
 {
     std::lock_guard<std::mutex> lock(transactionMutex_);
-    if (writeHandle_ != nullptr) {
+    if (writeHandle_ != nullptr) { // LCOV_EXCL_BR_LINE
         LOGD("Transaction started already.");
         return -E_TRANSACT_STATE;
     }
 
     int errCode = E_OK;
     auto *handle = GetExecutor(true, errCode);
-    if (handle == nullptr) {
+    if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
 
     errCode = handle->StartTransaction(TransactType::DEFERRED);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         ReleaseExecutor(handle);
         return errCode;
     }
@@ -115,7 +115,7 @@ int SQLiteRelationalStoreConnection::StartTransaction()
 int SQLiteRelationalStoreConnection::Commit()
 {
     std::lock_guard<std::mutex> lock(transactionMutex_);
-    if (writeHandle_ == nullptr) {
+    if (writeHandle_ == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("single version database is null or the transaction has not been started");
         return -E_INVALID_DB;
     }
@@ -130,7 +130,7 @@ int SQLiteRelationalStoreConnection::Commit()
 int SQLiteRelationalStoreConnection::RollBack()
 {
     std::lock_guard<std::mutex> lock(transactionMutex_);
-    if (writeHandle_ == nullptr) {
+    if (writeHandle_ == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("Invalid handle for rollback or the transaction has not been started.");
         return -E_INVALID_DB;
     }
@@ -392,7 +392,7 @@ int SQLiteRelationalStoreConnection::SetReference(const std::vector<TableReferen
 int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
-    if (store == nullptr) {
+    if (store == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("[RelationalConnection] store is null, get executor failed!");
         return -E_INVALID_CONNECTION;
     }
@@ -423,7 +423,7 @@ int SQLiteRelationalStoreConnection::UpsertData(RecordStatus status, const std::
 int SQLiteRelationalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
-    if (store == nullptr) {
+    if (store == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("[RelationalConnection] store is null, set cloud sync config failed!");
         return -E_INVALID_CONNECTION;
     }

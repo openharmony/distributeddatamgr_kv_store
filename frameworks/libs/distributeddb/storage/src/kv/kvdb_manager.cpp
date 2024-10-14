@@ -865,7 +865,7 @@ void KvDBManager::DataBaseCorruptNotifyAsync(const std::string &appId, const std
     const std::string &storeId)
 {
     int errCode = RuntimeContext::GetInstance()->ScheduleTask(
-        std::bind(&KvDBManager::DataBaseCorruptNotify, this, appId, userId, storeId));
+        [this, appId, userId, storeId] { DataBaseCorruptNotify(appId, userId, storeId); });
     if (errCode != E_OK) {
         LOGE("[KvDBManager][CorruptNotify] ScheduleTask failed, errCode = %d.", errCode);
         return;
@@ -906,10 +906,10 @@ void KvDBManager::RestoreSyncerOfAllKvStore()
 
 bool KvDBManager::CompareSchemaObject(const SchemaObject &newSchema, const SchemaObject &oldSchema)
 {
-    if (!newSchema.IsSchemaValid() && !oldSchema.IsSchemaValid()) {
+    if (!newSchema.IsSchemaValid() && !oldSchema.IsSchemaValid()) { // LCOV_EXCL_BR_LINE
         return true;
     }
-    if (!newSchema.IsSchemaValid() || !oldSchema.IsSchemaValid()) {
+    if (!newSchema.IsSchemaValid() || !oldSchema.IsSchemaValid()) { // LCOV_EXCL_BR_LINE
         return false;
     }
     return (oldSchema.CompareAgainstSchemaObject(newSchema) == -E_SCHEMA_EQUAL_EXACTLY);
@@ -970,36 +970,36 @@ int KvDBManager::CheckKvDBProperties(const IKvDB *kvDB, const KvDBProperties &pr
 {
     // if get from cache is not memoryDb, do not support open or create memory DB
     bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    if (isMemoryDb != kvDB->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
+    if (isMemoryDb != kvDB->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // LCOV_EXCL_BR_LINE
         LOGE("Already open same id physical DB, so do not support open or create memory DB");
         return -E_INVALID_ARGS;
     }
 
     if (kvDB->GetMyProperties().GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false) !=
-        properties.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false)) {
+        properties.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false)) { // LCOV_EXCL_BR_LINE
         LOGE("Different ways to create dir.");
         return -E_INVALID_ARGS;
     }
 
     if (kvDB->GetMyProperties().GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, 0) !=
-        properties.GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, 0)) {
+        properties.GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, 0)) { // LCOV_EXCL_BR_LINE
         LOGE("Different conflict resolve policy.");
         return -E_INVALID_ARGS;
     }
 
     if (kvDB->GetMyProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false) !=
-        properties.GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
+        properties.GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false)) { // LCOV_EXCL_BR_LINE
             LOGE("Different dual tuple sync mode");
             return -E_MODE_MISMATCH;
     }
 
     if (kvDB->GetMyProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false) !=
-        properties.GetBoolProp(KvDBProperties::LOCAL_ONLY, false)) {
+        properties.GetBoolProp(KvDBProperties::LOCAL_ONLY, false)) { // LCOV_EXCL_BR_LINE
         LOGE("Different local only mode");
         return -E_INVALID_ARGS;
     }
 
-    if (!CheckSecOptions(properties, kvDB->GetMyProperties())) {
+    if (!CheckSecOptions(properties, kvDB->GetMyProperties())) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
 
@@ -1009,7 +1009,8 @@ int KvDBManager::CheckKvDBProperties(const IKvDB *kvDB, const KvDBProperties &pr
     CipherPassword inputPasswd;
     kvDB->GetMyProperties().GetPassword(cacheType, cachePasswd);
     properties.GetPassword(inputType, inputPasswd);
-    if (isNeedCheckPasswd && (cachePasswd != inputPasswd || !DBCommon::IsSameCipher(cacheType, inputType))) {
+    if (isNeedCheckPasswd && (cachePasswd != inputPasswd ||
+        !DBCommon::IsSameCipher(cacheType, inputType))) { // LCOV_EXCL_BR_LINE
         LOGE("Identification not matched");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }

@@ -120,13 +120,13 @@ int SyncAbleEngine::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedAct
     if (isSyncDualTupleMode && isCheckSyncActive && !isNeedActive && (userChangeListener_ == nullptr)) {
         // active to non_active
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
-            std::bind(&SyncAbleEngine::ChangeUserListener, this), UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
+            [this](void *) { ChangeUserListener(); }, UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
         LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener", label.c_str());
     } else if (isSyncDualTupleMode && (userChangeListener_ == nullptr)) {
         EventType event = isNeedActive ?
             UserChangeMonitor::USER_ACTIVE_EVENT : UserChangeMonitor::USER_NON_ACTIVE_EVENT;
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
-            std::bind(&SyncAbleEngine::UserChangeHandle, this), event);
+            [this](void *) { UserChangeHandle(); }, event);
         LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener event=%d", label.c_str(), event);
     }
     return errCode;
@@ -197,7 +197,7 @@ void SyncAbleEngine::ChangeUserListener()
         userChangeListener_ = nullptr;
     }
     userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
-        std::bind(&SyncAbleEngine::UserChangeHandle, this), UserChangeMonitor::USER_NON_ACTIVE_EVENT);
+        [this](void *) { UserChangeHandle(); }, UserChangeMonitor::USER_NON_ACTIVE_EVENT);
     std::string label = store_->GetDbProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     LOGI("[ChangeUserListener] [%.3s] After RegisterUserChangedListener", label.c_str());
 }

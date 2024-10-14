@@ -168,11 +168,13 @@ TimeSync::~TimeSync()
 int TimeSync::RegisterTransformFunc()
 {
     TransformFunc func;
-    func.computeFunc = std::bind(&TimeSync::CalculateLen, std::placeholders::_1);
-    func.serializeFunc = std::bind(&TimeSync::Serialization, std::placeholders::_1,
-                                   std::placeholders::_2, std::placeholders::_3);
-    func.deserializeFunc = std::bind(&TimeSync::DeSerialization, std::placeholders::_1,
-                                     std::placeholders::_2, std::placeholders::_3);
+    func.computeFunc = [](const Message *inMsg) { return CalculateLen(inMsg); };
+    func.serializeFunc = [](uint8_t *buffer, uint32_t length, const Message *inMsg) {
+        return Serialization(buffer, length, inMsg);
+    };
+    func.deserializeFunc = [](const uint8_t *buffer, uint32_t length, Message *inMsg) {
+        return DeSerialization(buffer, length, inMsg);
+    };
     return MessageTransform::RegTransformFunction(TIME_SYNC_MESSAGE, func);
 }
 
@@ -198,7 +200,7 @@ int TimeSync::Initialize(ICommunicator *communicator, const std::shared_ptr<Meta
         return errCode;
     }
     dbId_ = storage->GetIdentifier();
-    driverCallback_ = std::bind(&TimeSync::TimeSyncDriver, this, std::placeholders::_1);
+    driverCallback_ = [this](TimerId timerId) { return TimeSyncDriver(timerId); };
     errCode = RuntimeContext::GetInstance()->SetTimer(TIME_SYNC_INTERVAL, driverCallback_, nullptr, driverTimerId_);
     if (errCode != E_OK) {
         return errCode;
@@ -500,7 +502,7 @@ int TimeSync::TimeSyncDriver(TimerId timerId)
     }
     std::lock_guard<std::mutex> lock(timeDriverLock_);
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
-        CommErrHandler handler = std::bind(&TimeSync::CommErrHandlerFunc, std::placeholders::_1, this);
+        CommErrHandler handler = [this](int ret) { CommErrHandlerFunc(ret, this); };
         (void)this->SyncStart(handler);
         std::lock_guard<std::mutex> innerLock(this->timeDriverLock_);
         this->timeDriverLockCount_--;
@@ -521,7 +523,7 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
             std::lock_guard<std::mutex> lock(cvLock_);
             isAckReceived_ = false;
         }
-        CommErrHandler handler = std::bind(&TimeSync::CommErrHandlerFunc, std::placeholders::_1, this);
+        CommErrHandler handler = [this](int ret) { CommErrHandlerFunc(ret, this); };
         int errCode = SyncStart(handler, sessionId);
         LOGD("TimeSync::GetTimeOffset start, current time = %" PRIu64 ", errCode = %d, timeout = %" PRIu32 " ms",
             TimeHelper::GetSysCurrentTime(), errCode, timeout);

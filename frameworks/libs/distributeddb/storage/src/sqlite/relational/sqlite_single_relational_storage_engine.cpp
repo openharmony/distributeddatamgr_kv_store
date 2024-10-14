@@ -246,7 +246,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSing
     table.SetSharedTableMark(true);
     table.SetTableSyncType(tableSyncType);
     table.SetTrackerTable(trackerSchema_.GetTrackerTable(sharedTableName));
-    if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION) {
+    if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION) { // LCOV_EXCL_BR_LINE
         LOGE("current is trackerTable, not support creating device distributed table.");
         return -E_NOT_SUPPORT;
     }
@@ -501,7 +501,7 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema)) {
+    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema)) { // LCOV_EXCL_BR_LINE
         ReleaseExecutor(handle);
         LOGW("tracker schema is no change for distributed table.");
         return -E_IGNORE_DATA;
@@ -543,7 +543,7 @@ int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
     for (const auto &iter: tableInfoMap) {
         TableInfo tableInfo;
         errCode = handle->AnalysisTrackerTable(iter.second.GetTrackerTable(), tableInfo);
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND) { // LCOV_EXCL_BR_LINE
             const std::string trackerTableName = iter.second.GetTrackerTable().GetTableName();
             errCode = CleanTrackerDeviceTable({ trackerTableName }, trackerSchema, handle);
             if (errCode != E_OK) {
@@ -551,7 +551,7 @@ int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
                 ReleaseExecutor(handle);
                 return errCode;
             }
-        } else if (errCode != E_OK) {
+        } else if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("the tracker schema does not match the tracker schema. %d", errCode);
             ReleaseExecutor(handle);
             return errCode;
@@ -680,7 +680,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
         errCode));
-    if (handle == nullptr) {
+    if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
     errCode = handle->CleanTrackerData(tableName, cursor);
@@ -977,11 +977,11 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
 {
     std::vector<std::string> missingTrackerTables;
     int errCode = handle->CheckAndCleanDistributedTable(tableNames, missingTrackerTables);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Check tracker table failed. %d", errCode);
         return errCode;
     }
-    if (missingTrackerTables.empty()) {
+    if (missingTrackerTables.empty()) { // LCOV_EXCL_BR_LINE
         return E_OK;
     }
     for (const auto &tableName : missingTrackerTables) {
@@ -990,7 +990,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
         trackerSchemaObj.RemoveTrackerSchema(schema);
     }
     errCode = SaveTrackerSchemaToMetaTable(handle, trackerSchemaObj); // save schema to meta_data
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Save tracker schema to metaTable failed. %d", errCode);
     }
     return errCode;

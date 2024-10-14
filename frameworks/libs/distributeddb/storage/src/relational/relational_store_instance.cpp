@@ -128,10 +128,16 @@ IRelationalStore *RelationalStoreInstance::OpenDatabase(const RelationalDBProper
     return db;
 }
 
-IRelationalStore *RelationalStoreInstance::GetDataBase(const RelationalDBProperties &properties, int &errCode)
+IRelationalStore *RelationalStoreInstance::GetDataBase(const RelationalDBProperties &properties, int &errCode,
+    bool isNeedIfOpened)
 {
     auto *db = GetFromCache(properties, errCode);
-    if (db != nullptr) {
+    if (db != nullptr && !isNeedIfOpened) {
+        RefObject::DecObjRef(db);
+        errCode = -E_ALREADY_OPENED;
+        LOGI("Database has already been opened.");
+        return nullptr;
+    } else if (db != nullptr) {
         LOGD("Get db from cache.");
         return db;
     }
@@ -185,7 +191,7 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
 }
 
 RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const RelationalDBProperties &properties,
-    int &errCode)
+    int &errCode, bool isNeedIfOpened)
 {
     std::string identifier = properties.GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     LOGD("Begin to get [%s] database connection.", STR_MASK(DBCommon::TransferStringToHex(identifier)));
@@ -196,7 +202,7 @@ RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const 
     }
     manager->EnterDBOpenCloseProcess(properties.GetStringProp(DBProperties::IDENTIFIER_DATA, ""));
     RelationalStoreConnection *connection = nullptr;
-    IRelationalStore *db = GetDataBase(properties, errCode);
+    IRelationalStore *db = GetDataBase(properties, errCode, isNeedIfOpened);
     if (db == nullptr) {
         DBDfxAdapter::ReportBehavior(
             {__func__, Scene::OPEN_CONN, State::BEGIN, Stage::GET_DB, StageResult::FAIL, errCode});

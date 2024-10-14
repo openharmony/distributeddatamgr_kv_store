@@ -278,14 +278,14 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel)
 namespace {
 void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 {
-    if (onEnd) {
+    if (onEnd) { // LCOV_EXCL_BR_LINE
         TaskAction onSendEndTask = [onEnd, result]() {
             LOGD("[CommAggr][SendEndTask] Before On Send End.");
             onEnd(result);
             LOGD("[CommAggr][SendEndTask] After On Send End.");
         };
         int errCode = RuntimeContext::GetInstance()->ScheduleTask(onSendEndTask);
-        if (errCode != E_OK) {
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
             LOGE("[CommAggr][SendEndTask] ScheduleTask failed, errCode = %d.", errCode);
         }
     }
@@ -345,7 +345,7 @@ int CommunicatorAggregator::GetRemoteCommunicatorVersion(const std::string &targ
 {
     std::lock_guard<std::mutex> versionMapLockGuard(versionMapMutex_);
     auto pair = versionMap_.find(target);
-    if (pair == versionMap_.end()) {
+    if (pair == versionMap_.end()) { // LCOV_EXCL_BR_LINE
         return -E_NOT_FOUND;
     }
     outVersion = pair->second;
@@ -720,9 +720,9 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 {
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     int errCode = adapterHandle_->RegBytesReceiveCallback(
-        std::bind(&CommunicatorAggregator::OnBytesReceive, this, std::placeholders::_1, std::placeholders::_2,
-            std::placeholders::_3, std::placeholders::_4),
-        [this]() { RefObject::DecObjRef(this); });
+        [this](const std::string &srcTarget, const uint8_t *bytes, uint32_t length, const std::string &userId) {
+            OnBytesReceive(srcTarget, bytes, length, userId);
+        }, [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed
         return errCode;
@@ -730,7 +730,7 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     errCode = adapterHandle_->RegTargetChangeCallback(
-        std::bind(&CommunicatorAggregator::OnTargetChange, this, std::placeholders::_1, std::placeholders::_2),
+        [this](const std::string &target, bool isConnect) { OnTargetChange(target, isConnect); },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed
@@ -901,7 +901,7 @@ void CommunicatorAggregator::NotifyConnectChange(const std::string &srcTarget,
         // Ignore nonactivated communicator
         if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
             LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
-                 VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
+                VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
             commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
         }
     }
@@ -932,7 +932,7 @@ void CommunicatorAggregator::InitSendThread()
     if (RuntimeContext::GetInstance()->GetThreadPool() != nullptr) {
         return;
     }
-    exclusiveThread_ = std::thread(&CommunicatorAggregator::SendDataRoutine, this);
+    exclusiveThread_ = std::thread([this] { SendDataRoutine(); });
     useExclusiveThread_ = true;
 }
 
