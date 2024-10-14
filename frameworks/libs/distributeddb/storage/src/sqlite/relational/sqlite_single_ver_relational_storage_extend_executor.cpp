@@ -1018,18 +1018,18 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
 std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table)
 {
     std::string logTable = DBCommon::GetLogTableName(table);
+    int cursor = GetCursor(table);
     std::string sql;
     sql += " cloud_gid = '', version = '', ";
     if (isLogicDelete_) {
+        // cursor already increased by DeleteCloudData, can be assigned directly here
         // 1001 which is logicDelete|cloudForcePush|local|delete
         sql += "flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
-            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = (SELECT CASE WHEN (MAX(cursor) is "
-            "null) THEN 1 ELSE MAX(cursor) + 1 END FROM " + logTable + ")";
+            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = " + std::to_string(cursor) + " ";
     } else {
         sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
-        int cursor = GetCursor(table);
         int errCode = SetCursor(table, cursor + 1);
         if (errCode == E_OK) {
             sql += ", cursor = " + std::to_string(cursor + 1) + " ";
