@@ -97,7 +97,7 @@ int TransferGrdErrno(int err)
     return -E_INTERNAL_ERROR;
 }
 
-std::vector<uint8_t> KvItemToBlob(GRD_KVItemT &item)
+static inline std::vector<uint8_t> KvItemToBlob(GRD_KVItemT &item)
 {
     return std::vector<uint8_t>((uint8_t *)item.data, (uint8_t *)item.data + item.dataLen);
 }

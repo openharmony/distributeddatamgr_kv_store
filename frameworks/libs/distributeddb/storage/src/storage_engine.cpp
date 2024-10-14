@@ -32,6 +32,7 @@ StorageEngine::StorageEngine()
       commitNotifyFunc_(nullptr),
       schemaChangedFunc_(nullptr),
       isSchemaChanged_(false),
+      isEnhance_(false),
       isInitialized_(false),
       perm_(OperatePerm::NORMAL_PERM),
       operateAbort_(false),
@@ -98,12 +99,13 @@ int StorageEngine::InitReadWriteExecutors()
 }
 
 
-int StorageEngine::Init()
+int StorageEngine::Init(bool isEnhance)
 {
     if (isInitialized_.load()) {
         LOGD("Storage engine has been initialized!");
         return E_OK;
     }
+    isEnhance_ = isEnhance;
 
     int errCode = InitReadWriteExecutors();
     if (errCode == E_OK) {
@@ -234,7 +236,9 @@ void StorageEngine::Recycle(StorageExecutor *&handle)
     if (handle == nullptr) {
         return;
     }
-    LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), hashIdentifier_.c_str());
+    if (!isEnhance_) {
+        LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), hashIdentifier_.c_str());
+    }
     if (handle->GetWritable()) {
         std::unique_lock<std::mutex> lock(writeMutex_);
         auto iter = std::find(writeUsingList_.begin(), writeUsingList_.end(), handle);
@@ -456,7 +460,9 @@ StorageExecutor *StorageEngine::FetchStorageExecutor(bool isWrite, std::list<Sto
     auto item = idleList.front();
     usingList.push_back(item);
     idleList.remove(item);
-    LOGD("Get executor[%d] from [%.3s]", isWrite, hashIdentifier_.c_str());
+    if (!isEnhance_) {
+        LOGD("Get executor[%d] from [%.3s]", isWrite, hashIdentifier_.c_str());
+    }
     errCode = E_OK;
     return item;
 }

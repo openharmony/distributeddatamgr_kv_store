@@ -37,8 +37,6 @@ std::string InitRdConfig();
 
 int TransferGrdErrno(int err);
 
-std::vector<uint8_t> KvItemToBlob(GRD_KVItemT &item);
-
 int GetCollNameFromType(SingleVerDataType type, std::string &collName);
 
 int RdKVPut(GRD_DB *db, const char *collectionName, const Key &key, const Value &value);
