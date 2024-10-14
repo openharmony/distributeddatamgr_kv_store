@@ -117,11 +117,6 @@ public:
 
     void ClearDataMsg();
 
-    void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
-        WaterMark &waterMark) const;
-    
-    void GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context, WaterMark &waterMark) const;
-
 protected:
     static const int SEND_FINISHED = 0xff;
     static const int LOCAL_WATER_MARK_NOT_INIT = 0xaa;
@@ -234,8 +229,6 @@ protected:
 
     void FillRequestReSendPacket(const SingleVerSyncTaskContext *context, DataRequestPacket *packet,
         DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode);
-    
-    void FillRequestReSendPacketV2(SingleVerSyncTaskContext *context, DataRequestPacket *packet);
 
     void UpdateMtuSize();
 

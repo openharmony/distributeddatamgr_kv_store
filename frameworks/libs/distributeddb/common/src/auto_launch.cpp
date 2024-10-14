@@ -1120,12 +1120,12 @@ int AutoLaunch::RegisterLifeCycleCallback(AutoLaunchItem &autoLaunchItem, const 
     int errCode = E_OK;
     DatabaseLifeCycleNotifier notifier;
     if (isExt) {
-        notifier = [this](const std::string &identifierExt, const std::string &userId) {
-            ExtConnectionLifeCycleCallback(identifierExt, userId);
+        notifier = [this](const std::string &identifier, const std::string &userId) {
+            ExtConnectionLifeCycleCallback(identifier, userId);
         };
     } else {
-        notifier = [this](const std::string &identifierExt, const std::string &userId) {
-            ConnectionLifeCycleCallback(identifierExt, userId);
+        notifier = [this](const std::string &identifier, const std::string &userId) {
+            ConnectionLifeCycleCallback(identifier, userId);
         };
     }
     switch (autoLaunchItem.type) {

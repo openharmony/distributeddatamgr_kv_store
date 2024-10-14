@@ -129,6 +129,15 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, QUERY);
     context->MoveOutQueryExtendAndData(extend, data);
+    for (auto &item : data) {
+        for (auto &row : item) {
+            auto assets = std::get_if<Assets>(&row.second);
+            if (assets == nullptr) {
+                continue;
+            }
+            DBCommon::RemoveDuplicateAssetsData(*assets);
+        }
+    }
     return errCode;
 }
 

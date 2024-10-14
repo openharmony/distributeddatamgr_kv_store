@@ -731,15 +731,9 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
         return E_OK;
     }
 
-    // check sqlite open ok
-    int errCode = CheckStoreStatus(option_);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
     // Get the existed database secure option.
     SecurityOption existedSecOpt;
-    errCode = GetExistedSecOption(existedSecOpt);
+    int errCode = GetExistedSecOption(existedSecOpt);
     if (errCode != E_OK) {
         return errCode;
     }

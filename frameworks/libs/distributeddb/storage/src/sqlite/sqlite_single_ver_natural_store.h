@@ -128,7 +128,7 @@ public:
 
     bool CheckCompatible(const std::string &schema, uint8_t type) const override;
 
-    Timestamp GetCurrentTimestamp() override;
+    Timestamp GetCurrentTimestamp(bool needStartSync = true) override;
 
     SchemaObject GetSchemaObject() const;
 
@@ -219,6 +219,8 @@ public:
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    uint64_t GetTimestampFromDB() override;
 
     // for test mock
     const SqliteCloudKvStore* GetCloudKvStore()

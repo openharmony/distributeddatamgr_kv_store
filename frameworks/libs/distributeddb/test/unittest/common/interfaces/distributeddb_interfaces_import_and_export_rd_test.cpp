@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 #include <fcntl.h>
@@ -1295,4 +1294,3 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 #endif // OMIT_ENCRYPT
-#endif // USE_RD_KERNEL

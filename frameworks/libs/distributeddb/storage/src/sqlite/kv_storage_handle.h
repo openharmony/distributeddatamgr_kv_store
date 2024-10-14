@@ -33,7 +33,7 @@ public:
 
     virtual TimeOffset GetLocalTimeOffsetForCloud() = 0;
 
-    virtual Timestamp GetCurrentTimestamp() = 0;
+    virtual Timestamp GetCurrentTimestamp(bool needStartSync = true) = 0;
 };
 }
 #endif // I_STORAGE_HANDLE_H

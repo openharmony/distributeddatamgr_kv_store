@@ -443,6 +443,13 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
             LOGE("[VirtualCloudDb] Update data should have gid");
             return DB_ERROR;
         }
+        if (forkUploadConflictFunc_) {
+            DBStatus ret = forkUploadConflictFunc_(tableName, extend[i], record[i], cloudData_[tableName]);
+            if (ret != OK) {
+                res = ret;
+                continue;
+            }
+        }
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
         }

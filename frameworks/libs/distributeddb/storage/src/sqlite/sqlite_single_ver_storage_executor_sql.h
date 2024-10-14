@@ -242,7 +242,7 @@ namespace DistributedDB {
 
     constexpr const char *REMOVE_ALL_DEV_SYNC_DATA_SQL =
         "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
-    
+
     constexpr const char *REMOVE_DEV_SYNC_DATA_BY_DEV_ID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 

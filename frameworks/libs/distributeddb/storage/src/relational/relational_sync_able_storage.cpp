@@ -2096,10 +2096,5 @@ void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName
 {
     uploadRecorder_.ReleaseUploadRecord(tableName, type, localMark);
 }
-
-bool RelationalSyncAbleStorage::IsSameCloudLocalDeviceAndNotLocal(const LogInfo &localInfo, const LogInfo &cloudInfo)
-{
-    return false;
-}
 }
 #endif

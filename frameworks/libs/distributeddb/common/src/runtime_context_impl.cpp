@@ -1148,6 +1148,7 @@ int RuntimeContextImpl::BlobToAssets(const std::vector<uint8_t> &blob, Assets &a
         return -E_NOT_INIT;
     }
     assets = dataTranslate_->BlobToAssets(blob);
+    DBCommon::RemoveDuplicateAssetsData(assets);
     return E_OK;
 }
 
