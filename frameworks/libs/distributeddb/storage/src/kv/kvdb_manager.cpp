@@ -403,9 +403,13 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
             LOGI("Remove the corrupted database while open");
             ExecuteRemoveDatabase(property);
             kvDB = OpenNewDatabase(property, errCode);
+            if (kvDB != nullptr) {
+                kvDB->MarkRebuild();
+            }
         }
         return kvDB;
     }
+    bool rebuild = false;
     if (property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false) &&
         databaseType != KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
         int integrityStatus = kvDB->CheckIntegrity();
@@ -418,8 +422,12 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
                 LOGI("Remove the corrupted database for the integrity check");
                 ExecuteRemoveDatabase(property);
                 kvDB = OpenNewDatabase(property, errCode);
+                rebuild = true;
             }
         }
+    }
+    if (kvDB != nullptr && rebuild) {
+        kvDB->MarkRebuild();
     }
     return kvDB;
 }

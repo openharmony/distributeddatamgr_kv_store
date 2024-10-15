@@ -28,7 +28,8 @@ namespace DistributedDB {
 GenericKvDBConnection::GenericKvDBConnection(GenericKvDB *kvDB)
     : kvDB_(kvDB),
       isExclusive_(false),
-      isSafeDeleted_(false)
+      isSafeDeleted_(false),
+      isRebuild_(false)
 {
 }
 
@@ -444,5 +445,15 @@ int GenericKvDBConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
 int GenericKvDBConnection::GetEntries(const std::string &device, std::vector<Entry> &entries) const
 {
     return -E_NOT_SUPPORT;
+}
+
+void GenericKvDBConnection::MarkRebuild()
+{
+    isRebuild_ = true;
+}
+
+bool GenericKvDBConnection::IsRebuild() const
+{
+    return isRebuild_;
 }
 }

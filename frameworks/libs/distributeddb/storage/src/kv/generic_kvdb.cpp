@@ -32,7 +32,8 @@ GenericKvDB::GenericKvDB()
       eventNotifyCounter_(0),
       connectionCount_(0),
       notificationChain_(nullptr),
-      operatePerm_(OperatePerm::NORMAL_PERM)
+      operatePerm_(OperatePerm::NORMAL_PERM),
+      isRebuild_(false)
 {}
 
 GenericKvDB::~GenericKvDB()
@@ -68,6 +69,9 @@ IKvDBConnection *GenericKvDB::GetDBConnection(int &errCode)
     if (connection != nullptr) {
         IncObjRef(this);
         IncreaseConnectionCounter();
+        if (isRebuild_) {
+            connection->MarkRebuild();
+        }
     }
     return connection;
 }
@@ -405,5 +409,10 @@ void GenericKvDB::Dump(int fd)
 
 void GenericKvDB::ResetSyncStatus()
 {
+}
+
+void GenericKvDB::MarkRebuild()
+{
+    isRebuild_ = true;
 }
 } // namespace DistributedDB

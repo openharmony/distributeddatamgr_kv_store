@@ -1254,4 +1254,16 @@ DBStatus KvStoreNbDelegateImpl::GetDeviceEntries(const std::string &device, std:
     LOGE("[KvStoreNbDelegate] Get the entries failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
+
+KvStoreNbDelegate::DatabaseStatus KvStoreNbDelegateImpl::GetDatabaseStatus() const
+{
+    KvStoreNbDelegate::DatabaseStatus status;
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return status;
+    }
+    status.isRebuild = conn_->IsRebuild();
+    LOGI("[KvStoreNbDelegate] rebuild %d", static_cast<int>(status.isRebuild));
+    return status;
+}
 } // namespace DistributedDB
