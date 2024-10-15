@@ -108,6 +108,10 @@ public:
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     int GetEntries(const std::string &device, std::vector<Entry> &entries) const override;
+
+    void MarkRebuild() override;
+
+    bool IsRebuild() const override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>
@@ -141,6 +145,8 @@ private:
     bool isSafeDeleted_;
     std::mutex observerListLock_;
     std::list<KvDBObserverHandle *> observerList_;
+
+    std::atomic<bool> isRebuild_;
 };
 }
 
