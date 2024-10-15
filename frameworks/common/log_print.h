@@ -137,7 +137,7 @@ namespace ConnectInner {
         }                                                                 \
         ((void)HILOG_IMPL(lable.type, LOG_ERROR, lable.domain, lable.tag, \
             LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
-    } while (0)
+    } while (0)                                   \
 
 #else
     #error // unknown system

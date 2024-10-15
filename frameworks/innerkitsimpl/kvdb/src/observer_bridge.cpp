@@ -16,6 +16,7 @@
 #include "kvdb_service_client.h"
 #include "kvstore_observer_client.h"
 namespace OHOS::DistributedKv {
+constexpr uint32_t INVALID_SUBSCRIBE_TYPE = 0;
 ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Observer> observer, const Convertor &cvt)
     : appId_(std::move(appId)), storeId_(std::move(store)), observer_(std::move(observer)), convert_(cvt)
 {
@@ -35,6 +36,7 @@ ObserverBridge::~ObserverBridge()
 
 Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ != nullptr) {
         remote_->realType_ |= realType;
         return SUCCESS;
@@ -57,6 +59,7 @@ Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
 
 Status ObserverBridge::UnregisterRemoteObserver(uint32_t realType)
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ == nullptr) {
         return SUCCESS;
     }
@@ -87,7 +90,7 @@ void ObserverBridge::OnChange(const DBChangedData &data)
 }
 
 ObserverBridge::ObserverClient::ObserverClient(std::shared_ptr<Observer> observer, const Convertor &cvt)
-    : KvStoreObserverClient(observer), convert_(cvt)
+    : KvStoreObserverClient(observer), convert_(cvt), realType_(INVALID_SUBSCRIBE_TYPE)
 {
 }
 
@@ -128,6 +131,7 @@ std::vector<Entry> ObserverBridge::ConvertDB(const T &dbEntries, std::string &de
 
 void ObserverBridge::OnServiceDeath()
 {
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (remote_ == nullptr) {
         return;
     }

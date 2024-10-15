@@ -314,7 +314,10 @@ ohos_unittest("DeviceKvStoreTest") {
 ohos_unittest("BlobTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/blob_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/blob_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -334,7 +337,10 @@ ohos_unittest("BlobTest") {
 ohos_unittest("TypesUtilTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/types_util_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/types_util_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
@@ -400,7 +406,10 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 ohos_unittest("DistributedDataMgrTest") {
   module_out_path = module_output_path
 
-  sources = [ "unittest/distributed_data_mgr_test.cpp" ]
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/distributed_data_mgr_test.cpp",
+  ]
 
   configs = [ ":module_private_config" ]
 
