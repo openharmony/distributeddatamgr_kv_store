@@ -23,13 +23,14 @@
 
 namespace DistributedDB {
 #ifdef USE_FFRT
+using TaskHandle = ffrt::task_handle;
 #define ADAPTER_AUTO_LOCK(n, m)
 #define ADAPTER_WAIT(x) ffrt::wait({x})
 #else
+using TaskHandle = void *;
 #define ADAPTER_AUTO_LOCK(n, m) std::lock_guard<decltype(m)> n(m)
 #define ADAPTER_WAIT(x) (void)(x)
 #endif
-using TaskHandle = void *;
 using Dependence = void *;
 class ConcurrentAdapter {
 public:
