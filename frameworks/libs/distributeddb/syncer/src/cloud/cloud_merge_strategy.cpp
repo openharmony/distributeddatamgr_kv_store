@@ -20,13 +20,13 @@ namespace DistributedDB {
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
     const LogInfo &cloudInfo)
 {
-    if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
-        return OpType::LOCKED_NOT_HANDLE;
-    }
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
     if (isCloudWin) {
         return TagCloudUpdateLocal(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
+    }
+    if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
+        return OpType::LOCKED_NOT_HANDLE;
     }
     if (!existInLocal) {
         return TagLocalNotExist(isCloudDelete);

@@ -57,6 +57,7 @@ const Asset g_cloudAsset = {
 };
 
 std::vector<DBStatus> g_actualDBStatus;
+std::map<std::string, SyncProcess> lastProcess_;
 
 void CreateUserDBAndTable(sqlite3 *&db)
 {
@@ -112,7 +113,8 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    std::map<std::string, SyncProcess> last;
+    auto callback = [&last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
@@ -122,6 +124,7 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
                 cv.notify_one();
             }
         }
+        last = process;
     };
     CloudSyncOption option;
     PrepareOption(option, query, isPriority, isCompensatedSyncOnly);
@@ -132,6 +135,7 @@ void BlockPrioritySync(const Query &query, RelationalStoreDelegate *delegate, bo
             return finish;
         });
     }
+    lastProcess_ = last;
 }
 
 int QueryCountCallback(void *data, int count, char **colValue, char **colName)
@@ -1861,8 +1865,8 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync002, TestSize.Level1)
     Timestamp now = TimeHelper::GetSysCurrentTime();
     VBucket data;
     std::vector<uint8_t> photo(0, 'v');
-    data.insert_or_assign("id", "0");
-    data.insert_or_assign("name", "Cloud");
+    data.insert_or_assign("id", std::string("0"));
+    data.insert_or_assign("name", std::string("Cloud"));
     data.insert_or_assign("height", 166.0); // 166.0 is random double value
     data.insert_or_assign("married", false);
     data.insert_or_assign("photo", photo);
@@ -1876,9 +1880,9 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync002, TestSize.Level1)
     log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
         now / CloudDbConstant::TEN_THOUSAND));
     log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, "1");
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("1"));
     extend.push_back(log);
-    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, "2");
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("2"));
     extend.push_back(log);
     ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName_, std::move(record), extend), DBStatus::OK);
 

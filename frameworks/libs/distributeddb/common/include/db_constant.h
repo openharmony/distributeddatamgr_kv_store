@@ -115,7 +115,6 @@ public:
     static constexpr const char *TRIGGER_REFERENCES_OLD = "OLD.";
 
     static const std::string UPDATE_META_FUNC;
-    static const std::string SYSTEM_TABLE_PREFIX;
 
     // Prefix Key in meta db
     static constexpr const char *DEVICEID_PREFIX_KEY = "deviceId";
@@ -153,6 +152,7 @@ public:
     static constexpr int MAX_OBSERVER_COUNT = 8;
 
     // For relational
+    static const std::string SYSTEM_TABLE_PREFIX;
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;
     static constexpr const char *LOG_POSTFIX = "_log";

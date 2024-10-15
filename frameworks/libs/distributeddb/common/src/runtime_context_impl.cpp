@@ -153,6 +153,7 @@ int RuntimeContextImpl::GetLocalIdentity(std::string &outTarget)
     if (communicatorAggregator_ != nullptr) {
         return communicatorAggregator_->GetLocalIdentity(outTarget);
     }
+    LOGW("[RuntimeContextImpl] Get local id without communicatorAggregator");
     return -E_NOT_INIT;
 }
 
@@ -1147,6 +1148,7 @@ int RuntimeContextImpl::BlobToAssets(const std::vector<uint8_t> &blob, Assets &a
         return -E_NOT_INIT;
     }
     assets = dataTranslate_->BlobToAssets(blob);
+    DBCommon::RemoveDuplicateAssetsData(assets);
     return E_OK;
 }
 

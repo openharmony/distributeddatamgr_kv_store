@@ -483,12 +483,12 @@ bool CommunicatorLinker::TriggerLabelExchangeEvent(bool checkAdapter)
     if (checkAdapter && statusAdapter_ != nullptr && !statusAdapter_->IsSendLabelExchange()) {
         return false;
     }
-    bool everFail = false;
     std::set<std::string> totalOnlineTargets;
     {
         std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
         totalOnlineTargets = remoteOnlineTarget_;
     }
+    bool everFail = false;
     for (auto &entry : totalOnlineTargets) {
         if (TriggerLabelExchangeEvent(entry) != E_OK) {
             everFail = true;

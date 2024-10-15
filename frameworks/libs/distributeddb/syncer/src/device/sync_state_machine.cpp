@@ -143,7 +143,7 @@ int SyncStateMachine::SwitchMachineState(uint8_t event)
     const std::map<uint8_t, EventToState> &table = (*tableIter).switchTable;
     auto eventToStateIter = table.find(currentState_);
     if (eventToStateIter == table.end()) {
-        LOGE("[SyncStateMachine][SwitchState] Can't find EventToState with currentSate %u",
+        LOGW("[SyncStateMachine][SwitchState] Can't find EventToState with currentSate %u",
             currentState_);
         SetCurStateErrStatus();
         return E_OK;

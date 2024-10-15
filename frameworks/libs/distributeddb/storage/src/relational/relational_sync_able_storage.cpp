@@ -1165,6 +1165,7 @@ int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
     QuerySyncObject query = querySyncObject;
     query.SetSchema(GetSchemaInfo());
+    handle->SetTableSchema(tableSchema);
     errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, isCompensatedTask, cloudGid);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
@@ -1188,11 +1189,46 @@ int RelationalSyncAbleStorage::ReleaseCloudDataToken(ContinueToken &continueStmt
     return errCode;
 }
 
+int RelationalSyncAbleStorage::GetSchemaFromDB(RelationalSchemaObject &schema)
+{
+    Key schemaKey;
+    DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, schemaKey);
+    Value schemaVal;
+    int errCode = GetMetaData(schemaKey, schemaVal);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("Get relational schema from DB failed. %d", errCode);
+        return errCode;
+    } else if (errCode == -E_NOT_FOUND || schemaVal.empty()) {
+        LOGW("No relational schema info was found. error %d size %zu", errCode, schemaVal.size());
+        return -E_NOT_FOUND;
+    }
+    std::string schemaStr;
+    DBCommon::VectorToString(schemaVal, schemaStr);
+    errCode = schema.ParseFromSchemaString(schemaStr);
+    if (errCode != E_OK) {
+        LOGE("Parse schema string from DB failed.");
+        return errCode;
+    }
+    storageEngine_->SetSchema(schema);
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
 {
     std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
     RelationalSchemaObject localSchema = GetSchemaInfo();
-    return schemaMgr_.ChkSchema(tableName, localSchema);
+    int errCode = schemaMgr_.ChkSchema(tableName, localSchema);
+    if (errCode == -E_SCHEMA_MISMATCH) {
+        LOGI("Get schema by tableName %s failed.", DBCommon::STR_MASK(tableName));
+        RelationalSchemaObject newSchema;
+        errCode = GetSchemaFromDB(newSchema);
+        if (errCode != E_OK) {
+            LOGE("Get schema from db when check schema.");
+            return errCode;
+        }
+        errCode = schemaMgr_.ChkSchema(tableName, newSchema);
+    }
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
@@ -2028,6 +2064,31 @@ bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
         return false;
     }
     return !tableReference.empty();
+}
+
+bool RelationalSyncAbleStorage::IsTableExistReferenceOrReferenceBy(const std::string &table)
+{
+    // check whether reference or reference by exist
+    if (storageEngine_ == nullptr) {
+        LOGE("[IsTableExistReferenceOrReferenceBy] storage is null when get reference gid");
+        return false;
+    }
+    RelationalSchemaObject schema = storageEngine_->GetSchema();
+    auto referenceProperty = schema.GetReferenceProperty();
+    if (referenceProperty.empty()) {
+        return false;
+    }
+    auto [sourceTableName, errCode] = GetSourceTableName(table);
+    if (errCode != E_OK) {
+        return false;
+    }
+    for (const auto &property : referenceProperty) {
+        if (DBCommon::CaseInsensitiveCompare(property.sourceTableName, sourceTableName) ||
+            DBCommon::CaseInsensitiveCompare(property.targetTableName, sourceTableName)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type,

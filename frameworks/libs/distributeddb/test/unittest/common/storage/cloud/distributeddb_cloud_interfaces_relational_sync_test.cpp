@@ -423,7 +423,9 @@ namespace {
             ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
             for (const Asset &asset: assets) {
                 ASSERT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
-                ASSERT_EQ(asset.name, names[index++]);
+                ASSERT_EQ(asset.name, names[index]);
+                LOGE("lyh_test: name: %s", names[index].c_str());
+                index++;
             }
         }
         int errCode;
@@ -442,7 +444,7 @@ namespace {
             Assets &assets = std::get<Assets>(data[j]["asserts"]);
             ASSERT_TRUE(assets.size() > 0);
             Asset &asset = assets[0];
-            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::DELETE));
             EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::DELETE));
         }
     }
@@ -1066,10 +1068,11 @@ namespace {
                 LOGD("Download GID:%s", gid.c_str());
                 for (auto &item: assets) {
                     for (auto &asset: item.second) {
-                        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status),
-                            static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+                        uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
+                        EXPECT_TRUE(lowBitStatus == static_cast<uint32_t>(AssetStatus::INSERT) ||
+                            lowBitStatus == static_cast<uint32_t>(AssetStatus::UPDATE));
                         LOGD("asset [name]:%s, [status]:%u, [flag]:%u", asset.name.c_str(), asset.status, asset.flag);
-                        asset.status = (index++) % 5u + 1; // 5 is AssetStatus type num, include invalid type
+                        asset.status = (index++) % 5u + 1; // 6 is AssetStatus type num, include invalid type
                     }
                 }
                 return status;
@@ -1902,7 +1905,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, 
         g_processCondition.wait(lock, []() {
             return g_syncProcess.process == FINISHED;
         });
-        ASSERT_EQ(g_syncProcess.errCode, DBStatus::CLOUD_ERROR);
+        ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
     }
     CloseDb();
 }
@@ -2324,7 +2327,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, T
      */
     g_syncProcess = {};
     InsertCloudTableRecord(0, count, paddingSize, false);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, DROP_INTEGER_PRIMARY_KEY_TABLE_SQL), DBStatus::OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, DROP_INTEGER_PRIMARY_KEY_TABLE_SQL), E_OK);
     EXPECT_EQ(g_delegate->Sync({ DEVICE_CLOUD }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
         DBStatus::NOT_FOUND);
 

@@ -24,6 +24,9 @@ class DBBase64Utils {
 public:
     static std::string Encode(const std::vector<uint8_t> &source);
     static std::vector<uint8_t> Decode(const std::string &encoded);
+
+    static std::string Encode(const std::string &source);
+    static std::string DecodeIfNeed(const std::string &source);
 };
 }
 #endif // DB_BASE64_UTILS_H

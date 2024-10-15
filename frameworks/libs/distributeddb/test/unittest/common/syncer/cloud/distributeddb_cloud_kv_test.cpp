@@ -952,7 +952,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync022, TestSize.Level0)
     cloudDbs[USER_ID] = virtualCloudDb_;
     cloudDbs[USER_ID_2] = virtualCloudDb2_;
     memoryDB1->SetCloudDB(cloudDbs);
-    BlockSync(memoryDB1, OK, g_CloudSyncoption, CLOUD_ERROR);
+    BlockSync(memoryDB1, OK, g_CloudSyncoption, SCHEMA_MISMATCH);
     EXPECT_EQ(g_mgr.CloseKvStore(memoryDB1), OK);
 }
 

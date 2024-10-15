@@ -200,7 +200,7 @@ namespace {
         EXPECT_EQ(g_storageProxy->GetLocalWaterMark(TABLE_NAME_2, retLocalMark), E_OK);
         EXPECT_EQ(retLocalMark, 0u);
     }
-        
+
     /**
     * @tc.name: AbnormalStorageProxyTest001
     * @tc.desc: Check StorageProxy interfaces when para is invalid.

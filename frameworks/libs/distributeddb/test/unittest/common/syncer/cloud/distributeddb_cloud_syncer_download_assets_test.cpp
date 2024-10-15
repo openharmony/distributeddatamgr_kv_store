@@ -240,9 +240,9 @@ void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t v
 int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
 {
     auto status = static_cast<std::vector<int64_t> *>(data);
+    int base = 10;
     for (int i = 0; i < count; i++) {
-        const int decimal = 10;
-        status->push_back(strtol(colValue[0], nullptr, decimal));
+        status->push_back(strtol(colValue[0], nullptr, base));
     }
     return 0;
 }
@@ -315,7 +315,7 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
 {
     for (auto &item : assets) {
         for (auto &asset : item.second) {
-            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::INSERT));
             if (index < 4) { // 1-4 is inserted
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
             }
@@ -370,17 +370,13 @@ void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
 
 void CheckConsistentCount(sqlite3 *db, int64_t expectCount)
 {
-    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x20=0;";
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    EXPECT_EQ(sqlite3_exec(db, QUERY_CONSISTENT_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
 void CheckCompensatedCount(sqlite3 *db, int64_t expectCount)
 {
-    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x10!=0;";
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+    EXPECT_EQ(sqlite3_exec(db, QUERY_COMPENSATED_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
@@ -1699,6 +1695,86 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
     }
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
     g_virtualCloudDb->ForkUpload(nullptr);
+}
+
+/**
+ * @tc.name: FillAssetId023
+ * @tc.desc: Test if BatchUpdate with local assets missing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId023, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set extend size missing then sync, check the asseid.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    std::atomic<int> count = 1;
+    g_virtualCloudDb->SetClearExtend(count);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. set extend size normal and BatchUpdate with local assets missing then sync, check the asseid.
+     * @tc.expected: step2. return OK.
+     */
+    g_virtualCloudDb->SetClearExtend(0);
+
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId == 25) { // 25 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId024
+ * @tc.desc: Test if BatchUpdate with multiple local assets missing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangtao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set extend size missing then sync, check the asseid.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    std::atomic<int> count = 1;
+    g_virtualCloudDb->SetClearExtend(count);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. set extend size normal and BatchUpdate with 3 local assets missing then sync, check the asseid.
+     * @tc.expected: step2. return OK.
+     */
+    g_virtualCloudDb->SetClearExtend(0);
+
+    int uploadFailId = 0;
+    g_virtualCloudDb->ForkInsertConflict([&uploadFailId](const std::string &tableName, VBucket &extend, VBucket &record,
+        std::vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        uploadFailId++;
+        if (uploadFailId >= 25 && uploadFailId <= 27) { // 25-27 is the middle record
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+            return DBStatus::LOCAL_ASSET_NOT_FOUND;
+        }
+        return OK;
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
  
 /**

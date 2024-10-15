@@ -123,9 +123,9 @@ void DistributedDBInterfacesSingleVersionResultSetTest::SetUp(void)
     IOption option;
     option.dataType = IOption::SYNC_DATA;
     g_connection->Clear(option);
-    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_1, VALUE_1), OK);
-    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_2, VALUE_2), OK);
-    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_3, VALUE_3), OK);
+    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_1, VALUE_1), E_OK);
+    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_2, VALUE_2), E_OK);
+    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_3, VALUE_3), E_OK);
 
     EXPECT_EQ(errCode, E_OK);
     g_rawCursor = new (std::nothrow) SQLiteSingleVerForwardCursor(g_store, KEY_PREFIX);
@@ -383,7 +383,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
      */
     IOption option;
     option.dataType = IOption::SYNC_DATA;
-    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_4, VALUE_4), OK);
+    ASSERT_EQ(g_connection->Put(option, LOCAL_KEY_4, VALUE_4), E_OK);
 
     /**
      * @tc.steps:step4. Get the total count.

@@ -156,6 +156,8 @@ public:
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
+    int GetSchemaFromDB(RelationalSchemaObject &schema) override;
+
     int ChkSchema(const TableName &tableName) override;
 
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
@@ -218,6 +220,8 @@ public:
     void SetCloudSyncConfig(const CloudSyncConfig &config);
 
     bool IsTableExistReference(const std::string &table) override;
+
+    bool IsTableExistReferenceOrReferenceBy(const std::string &table) override;
 
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
 protected:

@@ -141,6 +141,10 @@ public:
 
     static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
 
+    static void LoadGrdLib(void);
+
+    static bool IsGrdLibLoaded(void);
+
     static bool CheckCloudSyncConfigValid(const CloudSyncConfig &config);
 
     static std::string GetCursorKey(const std::string &tableName);

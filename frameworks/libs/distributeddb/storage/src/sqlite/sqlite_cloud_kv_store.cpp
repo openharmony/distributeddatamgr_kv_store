@@ -72,7 +72,7 @@ int SqliteCloudKvStore::GetCloudTableSchema(const TableName &tableName,
     std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (schema_.find(user_) == schema_.end()) {
         LOGE("[SqliteCloudKvStore] not set cloud schema");
-        return -E_NOT_FOUND;
+        return -E_SCHEMA_MISMATCH;
     }
     auto it = std::find_if(schema_[user_].tables.begin(), schema_[user_].tables.end(), [&](const auto &table) {
         return table.name == tableName;
@@ -429,12 +429,12 @@ int SqliteCloudKvStore::GetCloudVersion(const std::string &device, std::map<std:
         return errCode;
     }
     for (VBucket &data : dataVector) {
-        auto res = CloudStorageUtils::GetDataItemFromCloudVersionData(data);
-        auto &[errCodeNext, dataItem] = res;
+        auto [errCodeNext, dataItem] = CloudStorageUtils::GetDataItemFromCloudVersionData(data);
         if (errCodeNext != E_OK) {
             LOGE("[SqliteCloudKvStore] get dataItem failed %d", errCodeNext);
             return errCodeNext;
         }
+        dataItem.dev = DBBase64Utils::DecodeIfNeed(dataItem.dev);
         std::vector<uint8_t> blob = dataItem.value;
         std::string version = std::string(blob.begin(), blob.end());
         std::pair<std::string, std::string> versionPair = std::pair<std::string, std::string>(dataItem.dev, version);

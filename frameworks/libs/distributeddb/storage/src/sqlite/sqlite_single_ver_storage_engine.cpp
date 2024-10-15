@@ -610,7 +610,7 @@ int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption
 {
     int errCode = TryToOpenMainDatabase(isWrite, dbHandle);
     LOGD("Finish to open the main database, write[%d], label[%d], flag[%d], id[%.6s], errCode[%d]",  isWrite,
-        secOpt.securityLabel, secOpt.securityFlag, DBCommon::TransferStringToHex(identifier_).c_str(), errCode);
+        secOpt.securityLabel, secOpt.securityFlag, hashIdentifier_.c_str(), errCode);
     if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
         return errCode;
     }
@@ -861,6 +861,8 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
 int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 {
     if (isUpdated_ || GetEngineState() == EngineState::CACHEDB) {
+        LOGI("Storage engine [%.6s] is in cache status or has been upgraded[%d]!",
+            DBCommon::TransferStringToHex(identifier_).c_str(), isUpdated_);
         return E_OK;
     }
 
@@ -1061,8 +1063,8 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
                 return;
             }
         }
-        if (entry.key.size() > DBConstant::MAX_KEY_SIZE ||
-            entry.value.size() > DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
+        if (entry.key.size() > DBConstant::MAX_KEY_SIZE || entry.value.size() >
+            DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
             iter++;
             continue;
         }

@@ -15,8 +15,13 @@
 
 #include "db_common.h"
 
+#include <atomic>
 #include <climits>
 #include <cstdio>
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+#include <mutex>
 #include <queue>
 
 #include "cloud/cloud_db_constant.h"
@@ -30,11 +35,11 @@
 
 namespace DistributedDB {
 namespace {
-    const int32_t HEAD_SIZE = 3;
-    const int32_t END_SIZE = 3;
-    const int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
-    const char *REPLACE_CHAIN = "***";
-    const char *DEFAULT_ANONYMOUS = "******";
+    constexpr const int32_t HEAD_SIZE = 3;
+    constexpr const int32_t END_SIZE = 3;
+    constexpr const int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    constexpr const char *REPLACE_CHAIN = "***";
+    constexpr const char *DEFAULT_ANONYMOUS = "******";
 
     void RemoveFiles(const std::list<OS::FileAttr> &fileList, OS::FileType type)
     {
@@ -64,6 +69,8 @@ namespace {
     const std::string HEX_CHAR_MAP = "0123456789abcdef";
     const std::string CAP_HEX_CHAR_MAP = "0123456789ABCDEF";
 }
+
+static std::atomic_bool g_isGrdLoaded = false;
 
 int DBCommon::CreateDirectory(const std::string &directory)
 {
@@ -739,6 +746,27 @@ std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
 uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 {
     return origin & (~eraseBit);
+}
+
+void DBCommon::LoadGrdLib(void)
+{
+    static std::once_flag loadOnceFlag;
+    std::call_once(loadOnceFlag, []() {
+        if (!g_isGrdLoaded) {
+#ifndef _WIN32
+            if (dlopen("libarkdata_db_core.z.so", RTLD_LAZY) != NULL) {
+                g_isGrdLoaded = true;
+            } else {
+                LOGW("[DBCommon] unable to load grd lib, errno: %d, %s", errno, dlerror());
+            }
+#endif
+        }
+    });
+}
+
+bool DBCommon::IsGrdLibLoaded(void)
+{
+    return g_isGrdLoaded;
 }
 
 bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)

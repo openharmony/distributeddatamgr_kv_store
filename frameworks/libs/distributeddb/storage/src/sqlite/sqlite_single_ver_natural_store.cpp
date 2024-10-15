@@ -35,6 +35,7 @@
 #include "single_ver_utils.h"
 #include "storage_engine_manager.h"
 #include "sqlite_single_ver_natural_store_connection.h"
+#include "time_helper.h"
 #include "value_hash_calc.h"
 
 namespace DistributedDB {
@@ -1312,9 +1313,36 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     return errCode;
 }
 
-Timestamp SQLiteSingleVerNaturalStore::GetCurrentTimestamp()
+uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
 {
-    return GetTimestamp();
+    std::vector<uint8_t> key;
+    std::vector<uint8_t> timeOffset;
+    int64_t localTimeOffset = TimeHelper::BASE_OFFSET;
+    DBCommon::StringToVector(std::string(DBConstant::LOCALTIME_OFFSET_KEY), key);
+    int errCode = GetMetaData(key, timeOffset);
+    if (errCode == E_OK) {
+        std::string timeOffsetString(timeOffset.begin(), timeOffset.end());
+        int64_t result = std::strtoll(timeOffsetString.c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
+        if (errno != ERANGE && result != LLONG_MIN && result != LLONG_MAX) {
+            localTimeOffset = result;
+        }
+    } else {
+        LOGW("GetTimestampFromDb::when sync not start get metadata from db failed,err=%d", errCode);
+    }
+    uint64_t currentSysTime = TimeHelper::GetSysCurrentTime();
+    if (localTimeOffset < 0 && currentSysTime >= static_cast<uint64_t>(std::abs(localTimeOffset))) {
+        return currentSysTime - static_cast<uint64_t>(std::abs(localTimeOffset));
+    } else if (localTimeOffset >= 0 && (UINT64_MAX - currentSysTime >= static_cast<uint64_t>(localTimeOffset))) {
+        return currentSysTime + static_cast<uint64_t>(localTimeOffset);
+    } else {
+        LOGW("[GetTimestampFromDB] localTimeOffset plus currentSysTime overflow");
+        return currentSysTime;
+    }
+}
+
+Timestamp SQLiteSingleVerNaturalStore::GetCurrentTimestamp(bool needStartSync)
+{
+    return GetTimestamp(needStartSync);
 }
 
 int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBProp, bool isNeedUpdateSecOpt)
@@ -1479,7 +1507,7 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
     if (errCode != E_OK) {
         return errCode;
     }
-    StopSyncer(true);
+    StopSyncer(true, true);
     std::this_thread::sleep_for(std::chrono::milliseconds(5)); // wait for 5 ms
     std::unique_ptr<SingleVerDatabaseOper> operation;
 
@@ -1953,6 +1981,16 @@ std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSc
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     return sqliteCloudKvStore_->GetDataBaseSchemas();
+}
+
+bool SQLiteSingleVerNaturalStore::CheckSchemaSupportForCloudSync() const
+{
+    auto schemaType = GetSchemaObject().GetSchemaType();
+    if (schemaType != SchemaType::NONE) {
+        LOGE("un support schema type %d for cloud sync", static_cast<int>(schemaType));
+        return false;
+    }
+    return true;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

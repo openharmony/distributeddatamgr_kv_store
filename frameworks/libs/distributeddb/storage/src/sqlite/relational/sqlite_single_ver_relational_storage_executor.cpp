@@ -1815,13 +1815,6 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
     }
     // set all flag logout
     cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800;";
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
-    if (errCode != E_OK) {
-        LOGE("delete cloud log failed, %d", errCode);
-        return errCode;
-    }
-    // set all flag logout
-    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800;";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
@@ -1899,7 +1892,6 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(c
     if (errCode != E_OK) {
         CreateFuncUpdateCursor(context, nullptr);
         LOGE("set new cursor after removeData error %d.", errCode);
-        return errCode;
         return errCode;
     }
     errCode = CreateFuncUpdateCursor(context, nullptr);
@@ -1988,5 +1980,5 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     }
     return errCode;
 }
-} // namespace DistributedDB.
+} // namespace DistributedDB
 #endif

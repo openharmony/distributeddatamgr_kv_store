@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 #include <fcntl.h>
@@ -244,9 +243,20 @@ int DistributedDBInterfacesImportAndExportRdTest::ModifyDataInPage(int modifyPos
         printf("Failed to open file");
         return 1;
     }
-    (void)fseek(fp, modifyPos, SEEK_SET);
-    (void)fwrite(&newVal, sizeof(char), 1, fp);
-    (void)fclose(fp);
+    if (fseek(fp, modifyPos, SEEK_SET) != 0) {
+        printf("Failed to seek to position");
+        fclose(fp);
+        return 1;
+    }
+    size_t ret = fwrite(&newVal, sizeof(char), 1, fp);
+    if (ret != 1) {
+        printf("Failed to write file");
+        return 1;
+    }
+    if (fclose(fp) == EOF) {
+        printf("Failed to close file");
+        return 1;
+    }
     return 0;
 }
 
@@ -1284,4 +1294,3 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 #endif // OMIT_ENCRYPT
-#endif // USE_RD_KERNEL

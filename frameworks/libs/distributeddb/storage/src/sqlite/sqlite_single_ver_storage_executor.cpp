@@ -21,13 +21,13 @@
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "log_print.h"
+#include "log_table_manager_factory.h"
 #include "parcel.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
 #include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
-#include "log_print.h"
-#include "log_table_manager_factory.h"
 
 namespace DistributedDB {
 namespace {
@@ -1703,11 +1703,18 @@ END:
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName)
 {
     int errCode = E_OK;
+    bool isCreate = false;
+    int ret = SQLiteUtils::CheckTableExists(dbHandle_, NATURALBASE_KV_AUX_SYNC_DATA_LOG_TABLE_NAME, isCreate);
+    bool isTableExists = (ret == E_OK && isCreate);
     if (deviceName.empty()) {
-        CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_LOG_DATA_SQL, "", "");
+        if (isTableExists) {
+            CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_LOG_DATA_SQL, "", "");
+        }
         errCode = CloudExcuteRemoveOrUpdate(REMOVE_ALL_DEV_DATA_SQL, "", "");
     } else {
-        CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "");
+        if (isTableExists) {
+            CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_LOG_DATA_BY_DEVID_SQL, deviceName, "");
+        }
         errCode = CloudExcuteRemoveOrUpdate(REMOVE_DEV_DATA_SQL, deviceName, "");
     }
     return CheckCorruptedStatus(errCode);

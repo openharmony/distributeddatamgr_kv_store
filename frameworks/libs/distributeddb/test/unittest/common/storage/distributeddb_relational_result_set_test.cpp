@@ -165,23 +165,23 @@ HWTEST_F(DistributedDBRelationalResultSetTest, SerializeAndDeserialize, TestSize
 
     // test the second row. if the second row ok, the first row is likely ok
     StorageType type = StorageType::STORAGE_TYPE_NONE;
-    EXPECT_EQ(rowDataSet2.Get(1)->GetType(0, type), DBStatus::OK);
+    EXPECT_EQ(rowDataSet2.Get(1)->GetType(0, type), E_OK);
     EXPECT_EQ(type, StorageType::STORAGE_TYPE_NULL);
 
     vector<uint8_t> desBlob;
-    EXPECT_EQ(rowDataSet2.Get(1)->Get(1, desBlob), DBStatus::OK);
+    EXPECT_EQ(rowDataSet2.Get(1)->Get(1, desBlob), E_OK);
     EXPECT_EQ(desBlob, BLOB_VALUE);
 
     double desDoub;
-    EXPECT_EQ(rowDataSet2.Get(1)->Get(2, desDoub), DBStatus::OK);
+    EXPECT_EQ(rowDataSet2.Get(1)->Get(2, desDoub), E_OK);
     EXPECT_EQ(desDoub, DOUBLE_VALUE);
 
     int64_t desInt64;
-    EXPECT_EQ(rowDataSet2.Get(1)->Get(3, desInt64), DBStatus::OK);
+    EXPECT_EQ(rowDataSet2.Get(1)->Get(3, desInt64), E_OK);
     EXPECT_EQ(desInt64, INT64_VALUE);
 
     std::string desStr;
-    EXPECT_EQ(rowDataSet2.Get(1)->Get(4, desStr), DBStatus::OK);
+    EXPECT_EQ(rowDataSet2.Get(1)->Get(4, desStr), E_OK);
     EXPECT_EQ(desStr, STR_VALUE);
 }
 

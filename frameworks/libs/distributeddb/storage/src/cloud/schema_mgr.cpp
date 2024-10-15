@@ -20,7 +20,6 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "cloud/cloud_store_types.h"
-#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 namespace DistributedDB {
@@ -36,17 +35,20 @@ int SchemaMgr::ChkSchema(const TableName &tableName, RelationalSchemaObject &loc
     }
     TableInfo tableInfo = localSchema.GetTable(tableName);
     if (tableInfo.Empty()) {
-        LOGE("Local schema does not contain certain table");
+        LOGE("Local schema does not contain certain table [ %s size = %d ]",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return -E_SCHEMA_MISMATCH;
     }
     if (tableInfo.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION) {
-        LOGE("Sync type of local table is not CLOUD_COOPERATION");
+        LOGE("Sync type of local table [ %s size = %d ] is not CLOUD_COOPERATION",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return -E_NOT_SUPPORT;
     }
     TableSchema cloudTableSchema;
     int ret = GetCloudTableSchema(tableName, cloudTableSchema);
     if (ret != E_OK) {
-        LOGE("Cloud schema does not contain certain table:%d", ret);
+        LOGE("Cloud schema does not contain certain table [ %s size = %d ]:%d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), ret);
         return -E_SCHEMA_MISMATCH;
     }
     std::map<int, FieldName> primaryKeys = tableInfo.GetPrimaryKey();

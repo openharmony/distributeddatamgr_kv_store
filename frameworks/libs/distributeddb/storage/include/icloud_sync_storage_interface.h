@@ -214,6 +214,11 @@ public:
         return false;
     }
 
+    virtual bool IsTableExistReferenceOrReferenceBy(const std::string &table)
+    {
+        return false;
+    }
+
     virtual void ReleaseUploadRecord([[gnu::unused]] const std::string &tableName,
         [[gnu::unused]] const CloudWaterType &type, Timestamp localMark)
     {

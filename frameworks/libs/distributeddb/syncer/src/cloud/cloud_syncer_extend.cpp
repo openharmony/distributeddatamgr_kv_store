@@ -167,7 +167,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
     if (!isSharedTable) {
         ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
         if (ret != errCode) {
-            LOGE("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
+            LOGW("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
     if (errCode != E_OK) {
@@ -212,12 +212,12 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
     if (!isSharedTable) {
         ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode, CloudWaterType::UPDATE);
         if (ret != E_OK) {
-            LOGE("[CloudSyncer][BatchUpdate] FillAssetIdToAssets with error, ret is %d.", ret);
+            LOGW("[CloudSyncer][BatchUpdate] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
-        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
+        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.updData.extend);
         if (isSkip) {
             LOGI("[CloudSyncer][BatchUpdate] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
             return E_OK;
@@ -294,10 +294,12 @@ std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const Inne
     return res;
 }
 
-std::map<std::string, Assets> CloudSyncer::BackFillAssetsAfterDownload(std::map<std::string, Assets> tmpAssets,
-    std::map<std::string, std::vector<uint32_t>> tmpFlags, int downloadCode)
+std::map<std::string, Assets>& CloudSyncer::BackFillAssetsAfterDownload(int downloadCode, int deleteCode,
+    std::map<std::string, std::vector<uint32_t>> &tmpFlags, std::map<std::string, Assets> &tmpAssetsToDownload,
+    std::map<std::string, Assets> &tmpAssetsToDelete)
 {
-    for (auto &[col, assets] : tmpAssets) {
+    std::map<std::string, Assets> &downloadAssets = tmpAssetsToDownload;
+    for (auto &[col, assets] : tmpAssetsToDownload) {
         int i = 0;
         for (auto &asset : assets) {
             asset.flag = tmpFlags[col][i++];
@@ -311,55 +313,93 @@ std::map<std::string, Assets> CloudSyncer::BackFillAssetsAfterDownload(std::map<
             }
         }
     }
-    return tmpAssets;
+    for (auto &[col, assets] : tmpAssetsToDelete) {
+        for (auto &asset : assets) {
+            asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
+            if (deleteCode == E_OK) {
+                asset.status = NORMAL;
+            } else {
+                asset.status = ABNORMAL;
+            }
+            downloadAssets[col].push_back(asset);
+        }
+    }
+    return downloadAssets;
+}
+
+int CloudSyncer::IsNeedSkipDownload(bool isSharedTable, int &errCode, const InnerProcessInfo &info,
+    const DownloadItem &downloadItem, VBucket &dbAssets)
+{
+    auto [tmpCode, status] = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
+    if (tmpCode == -E_CLOUD_GID_MISMATCH) {
+        LOGW("[CloudSyncer] skip download asset because gid mismatch");
+        errCode = E_OK;
+        return true;
+    }
+    if (CloudStorageUtils::IsDataLocked(status)) {
+        LOGI("[CloudSyncer] skip download asset because data lock:%u", status);
+        errCode = E_OK;
+        return true;
+    }
+    if (tmpCode != E_OK) {
+        errCode = (errCode != E_OK) ? errCode : tmpCode;
+        return true;
+    }
+    return false;
+}
+
+bool CloudSyncer::CheckDownloadOrDeleteCode(int &errCode, int downloadCode, int deleteCode, DownloadItem &downloadItem)
+{
+    if (downloadCode == -E_CLOUD_RECORD_EXIST_CONFLICT || deleteCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
+        downloadItem.recordConflict = true;
+        errCode = E_OK;
+        return false;
+    }
+    errCode = (errCode != E_OK) ? errCode : deleteCode;
+    errCode = (errCode != E_OK) ? errCode : downloadCode;
+    if (downloadCode == -E_NOT_SET || deleteCode == -E_NOT_SET) {
+        return false;
+    }
+    return true;
 }
 
 int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
     DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
 {
     int errCode = E_OK;
-    std::map<std::string, Assets> tmpAssets;
+    std::map<std::string, Assets> tmpAssetsToDownload;
+    std::map<std::string, Assets> tmpAssetsToDelete;
     std::map<std::string, std::vector<uint32_t>> tmpFlags;
     for (auto &[col, assets] : downloadAssets) {
         for (auto &asset : assets) {
             VBucket dbAssets;
-            auto [tmpCode, status] = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
-            if (tmpCode == -E_CLOUD_GID_MISMATCH) {
-                LOGW("[CloudSyncer] skip download asset because gid mismatch");
-                errCode = E_OK;
+            if (IsNeedSkipDownload(isSharedTable, errCode, info, downloadItem, dbAssets)) {
                 break;
             }
-            if (CloudStorageUtils::IsDataLocked(status)) {
-                LOGI("[CloudSyncer] skip download asset because data lock:%u", status);
-                errCode = E_OK;
-                break;
-            }
-            if (tmpCode != E_OK) {
-                errCode = (errCode != E_OK) ? errCode : tmpCode;
-                break;
-            }
-            if (!isSharedTable && AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
+            if (!isSharedTable && asset.flag == static_cast<uint32_t>(AssetOpType::DELETE)) {
+                asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
+                tmpAssetsToDelete[col].push_back(asset);
+            } else if (!isSharedTable && AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
                 AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
-                tmpAssets[col].push_back(asset);
+                asset.status = asset.flag == static_cast<uint32_t>(AssetOpType::INSERT) ?
+                    static_cast<uint32_t>(AssetStatus::INSERT) : static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAssetsToDownload[col].push_back(asset);
                 tmpFlags[col].push_back(asset.flag);
             } else {
                 LOGD("[CloudSyncer] skip download asset...");
-                continue;
             }
         }
     }
-    auto downloadCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssets);
-    if (downloadCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
-        downloadItem.recordConflict = true;
-        return E_OK;
-    }
-    errCode = (errCode != E_OK) ? errCode : downloadCode;
-    if (downloadCode == -E_NOT_SET) {
+    auto deleteCode = cloudDB_.RemoveLocalAssets(info.tableName, downloadItem.gid, downloadItem.prefix,
+        tmpAssetsToDelete);
+    auto downloadCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssetsToDownload);
+    if (!CheckDownloadOrDeleteCode(errCode, downloadCode, deleteCode, downloadItem)) {
         return errCode;
     }
 
     // copy asset back
-    downloadAssets = BackFillAssetsAfterDownload(tmpAssets, tmpFlags, downloadCode);
+    downloadAssets = BackFillAssetsAfterDownload(downloadCode, deleteCode, tmpFlags, tmpAssetsToDownload,
+        tmpAssetsToDelete);
     return errCode;
 }
 
@@ -633,7 +673,8 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
         std::string table;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
-            if (currentContext_.isDownloadFinished[currentContext_.currentUserIndex][taskInfo.table[i]] == true) {
+            if (currentContext_.processRecorder->IsDownloadFinish(currentContext_.currentUserIndex,
+                taskInfo.table[i])) {
                 continue;
             }
             LOGD("[CloudSyncer] try download table, index: %zu", i);
@@ -703,12 +744,14 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
     if (cloudTaskInfos_[lastTaskId_].priorityTask) {
         priorityTaskQueue_.push_back(lastTaskId_);
-    } else {
-        if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
-            taskQueue_.push_back(lastTaskId_);
-            LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64,
-                cloudTaskInfos_[lastTaskId_].storeId.c_str(), cloudTaskInfos_[lastTaskId_].taskId);
-        }
+        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, taskId %" PRIu64,
+            cloudTaskInfos_[lastTaskId_].storeId.c_str(), cloudTaskInfos_[lastTaskId_].taskId);
+        return E_OK;
+    }
+    if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
+        taskQueue_.push_back(lastTaskId_);
+        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64,
+            cloudTaskInfos_[lastTaskId_].storeId.c_str(), cloudTaskInfos_[lastTaskId_].taskId);
     }
     return E_OK;
 }
@@ -822,6 +865,10 @@ std::pair<TaskId, TaskId> CloudSyncer::SwapTwoTaskAndCopyTable(TaskId source, Ta
 {
     cloudTaskInfos_[source].table = cloudTaskInfos_[target].table;
     cloudTaskInfos_[source].queryList = cloudTaskInfos_[target].queryList;
+    std::set<std::string> users;
+    users.insert(cloudTaskInfos_[source].users.begin(), cloudTaskInfos_[source].users.end());
+    users.insert(cloudTaskInfos_[target].users.begin(), cloudTaskInfos_[target].users.end());
+    cloudTaskInfos_[source].users = std::vector<std::string>(users.begin(), users.end());
     return {target, source};
 }
 
@@ -843,7 +890,7 @@ std::pair<int, Timestamp> CloudSyncer::GetLocalWater(const std::string &tableNam
 {
     std::pair<int, Timestamp> res = { E_OK, 0u };
     if (IsNeedGetLocalWater(uploadParam.taskId)) {
-        res.first = storageProxy_->GetLocalWaterMarkByMode(tableName, res.second, uploadParam.mode);
+        res.first = storageProxy_->GetLocalWaterMarkByMode(tableName, uploadParam.mode, res.second);
     }
     uploadParam.localMark = res.second;
     return res;
@@ -860,6 +907,7 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
         if (ret != E_OK) {
             break;
         }
+        info.upLoadInfo.batchIndex = ++batchIndex;
         if (IsNeedLock(uploadParam) && !isLocked) {
             ret = LockCloudIfNeed(uploadParam.taskId);
             if (ret != E_OK) {
@@ -867,10 +915,8 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
             }
             isLocked = true;
         }
-        info.upLoadInfo.batchIndex = ++batchIndex;
         ret = DoBatchUpload(uploadData, uploadParam, info);
         if (ret != E_OK) {
-            NotifyUploadFailed(ret, info);
             break;
         }
         uploadData = CloudSyncData(uploadData.tableName, uploadParam.mode);
@@ -886,6 +932,9 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
         }
         ChkIgnoredProcess(info, uploadData, uploadParam);
     }
+    if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
+        NotifyUploadFailed(ret, info);
+    }
     if (isLocked && IsNeedLock(uploadParam)) {
         UnlockIfNeed();
     }
@@ -896,14 +945,19 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
 {
     InnerProcessInfo info = GetInnerProcessInfo(tableName, uploadParam);
     static std::vector<CloudWaterType> waterTypes = DBCommon::GetWaterTypeVec();
+    int errCode = E_OK;
     for (const auto &waterType: waterTypes) {
         uploadParam.mode = waterType;
-        int errCode = DoUploadByMode(tableName, uploadParam, info);
+        errCode = DoUploadByMode(tableName, uploadParam, info);
         if (errCode != E_OK) {
-            return errCode;
+            break;
         }
     }
-    return UploadVersionRecordIfNeed(uploadParam);
+    int ret = E_OK;
+    if (info.upLoadInfo.successCount > 0) {
+        ret = UploadVersionRecordIfNeed(uploadParam);
+    }
+    return errCode != E_OK ? errCode : ret;
 }
 
 int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
@@ -946,10 +1000,10 @@ int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
     return errCode != E_OK ? errCode : ret;
 }
 
-int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
+void CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
 {
     if (!IsDataContainAssets()) {
-        return E_OK;
+        return;
     }
     std::vector<Field> assetFields;
     {
@@ -959,15 +1013,14 @@ int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
 
     for (size_t i = 0; i < uploadData.insData.extend.size(); i++) {
         for (const Field &assetField : assetFields) {
-            (void)TagAssetsInSingleCol(assetField, uploadData.insData.record[i], true);
+            (void)TagAssetsInSingleCol(assetField, true, uploadData.insData.record[i]);
         }
     }
     for (size_t i = 0; i < uploadData.updData.extend.size(); i++) {
         for (const Field &assetField : assetFields) {
-            (void)TagAssetsInSingleCol(assetField, uploadData.updData.record[i], false);
+            (void)TagAssetsInSingleCol(assetField, false, uploadData.updData.record[i]);
         }
     }
-    return E_OK;
 }
 
 bool CloudSyncer::IsLockInDownload()
@@ -1025,14 +1078,14 @@ CloudSyncEvent CloudSyncer::SyncMachineDoRepeatCheck()
     return CloudSyncEvent::REPEAT_DOWNLOAD_EVENT;
 }
 
-void CloudSyncer::MarkDownloadFinishIfNeed(const std::string &downloadTable)
+void CloudSyncer::MarkDownloadFinishIfNeed(const std::string &downloadTable, bool isFinish)
 {
     // table exist reference should download every times
-    if (IsLockInDownload() || storageProxy_->IsTableExistReference(downloadTable)) {
+    if (IsLockInDownload() || storageProxy_->IsTableExistReferenceOrReferenceBy(downloadTable)) {
         return;
     }
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    currentContext_.isDownloadFinished[currentContext_.currentUserIndex][downloadTable] = true;
+    currentContext_.processRecorder->MarkDownloadFinish(currentContext_.currentUserIndex, downloadTable, isFinish);
 }
 
 int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploadParam, InnerProcessInfo &info)
@@ -1060,6 +1113,22 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
         storageProxy_->ReleaseContinueToken(continueStmtToken);
     }
     return ret;
+}
+
+bool CloudSyncer::IsTableFinishInUpload(const std::string &table)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return currentContext_.processRecorder->IsUploadFinish(currentContext_.currentUserIndex, table);
+}
+
+void CloudSyncer::MarkUploadFinishIfNeed(const std::string &table)
+{
+    // table exist reference should upload every times
+    if (storageProxy_->IsTableExistReference(table)) {
+        return;
+    }
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.processRecorder->MarkUploadFinish(currentContext_.currentUserIndex, table, true);
 }
 
 bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)

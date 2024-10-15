@@ -51,8 +51,11 @@ public:
     // Stop a sync action in progress.
     void StopSync(uint64_t connectionId);
 
+    // Get The current virtual timestamp from db
+    virtual uint64_t GetTimestampFromDB();
+
     // Get The current virtual timestamp
-    uint64_t GetTimestamp();
+    uint64_t GetTimestamp(bool needStartSync = true);
 
     void WakeUpSyncer() override;
 
@@ -122,7 +125,7 @@ protected:
     int StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActive);
 
     // Stop syncer
-    void StopSyncer(bool isClosedOperation = false);
+    void StopSyncer(bool isClosedOperation = false, bool isStopTaskOnly = false);
 
     void StopSyncerWithNoLock(bool isClosedOperation = false);
 
@@ -140,8 +143,10 @@ protected:
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
-
+protected:
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
+
+    virtual bool CheckSchemaSupportForCloudSync() const;
 private:
     int RegisterEventType(EventType type);
 

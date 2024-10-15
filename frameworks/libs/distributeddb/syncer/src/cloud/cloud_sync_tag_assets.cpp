@@ -124,10 +124,10 @@ bool IsDataContainField(const std::string &assetFieldName, const VBucket &data)
     return true;
 }
 
-void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asset &coveredAsset, Assets &res,
+void TagAssetWithSameHash(const bool setNormalStatus, Asset &beCoveredAsset, Asset &coveredAsset, Assets &res,
     int &errCode)
 {
-    TagAssetWithNormalStatus(isNormalStatus, (
+    TagAssetWithNormalStatus(setNormalStatus, (
         AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::DELETE ||
         AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::ABNORMAL ||
         beCoveredAsset.status == (AssetStatus::DOWNLOADING | DOWNLOAD_WITH_NULL)) ?
@@ -264,24 +264,26 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
     return res;
 }
 
-void MarkAssetForUpload(Asset &asset, bool isInsert)
+void MarkAssetForUpload(bool isInsert, Asset &asset)
 {
-    uint32_t newStatus = static_cast<uint32_t>(AssetStatus::NORMAL);
     uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
     if (lowBitStatus == AssetStatus::DELETE) {
         asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
     } else if (isInsert) {
         asset.flag = static_cast<uint32_t>(AssetOpType::INSERT);
+        lowBitStatus = static_cast<uint32_t>(AssetStatus::INSERT);
     } else if (asset.status == AssetStatus::NORMAL) {
         asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
     } else if (asset.assetId.empty()) {
         asset.flag = static_cast<uint32_t>(AssetOpType::INSERT);
+        lowBitStatus = static_cast<uint32_t>(AssetStatus::INSERT);
     } else if (!asset.assetId.empty()) {
         asset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+        lowBitStatus = static_cast<uint32_t>(AssetStatus::UPDATE);
     } else {
         asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
     }
-    asset.status = newStatus;
+    asset.status = lowBitStatus;
     Timestamp timestamp;
     int errCode = OS::GetCurrentSysTimeInMicrosecond(timestamp);
     if (errCode != E_OK) {
@@ -291,24 +293,24 @@ void MarkAssetForUpload(Asset &asset, bool isInsert)
     asset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
 }
 
-void TagAssetsForUpload(const std::string &filedName, VBucket &coveredData, bool isInsert)
+void TagAssetsForUpload(const std::string &filedName, bool isInsert, VBucket &coveredData)
 {
     if (!IsDataContainField<Assets>(filedName, coveredData)) {
         return;
     }
     Assets &covered = std::get<Assets>(GetAssetsCaseInsensitive(filedName, coveredData));
     for (auto &asset: covered) {
-        MarkAssetForUpload(asset, isInsert);
+        MarkAssetForUpload(isInsert, asset);
     }
 }
 
-void TagAssetForUpload(const std::string &filedName, VBucket &coveredData, bool isInsert)
+void TagAssetForUpload(const std::string &filedName, bool isInsert, VBucket &coveredData)
 {
     if (!IsDataContainField<Asset>(filedName, coveredData)) {
         return;
     }
     Asset &asset = std::get<Asset>(GetAssetsCaseInsensitive(filedName, coveredData));
-    MarkAssetForUpload(asset, isInsert);
+    MarkAssetForUpload(isInsert, asset);
 }
 } // namespace
 
@@ -343,15 +345,15 @@ Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBuck
     return vBucket[assetFieldName];
 }
 
-void TagAssetsInSingleCol(const Field &assetField, VBucket &coveredData, bool isInsert)
+void TagAssetsInSingleCol(const Field &assetField, bool isInsert, VBucket &coveredData)
 {
     switch (assetField.type) {
         case TYPE_INDEX<Assets>: {
-            TagAssetsForUpload(assetField.colName, coveredData, isInsert);
+            TagAssetsForUpload(assetField.colName, isInsert, coveredData);
             break;
         }
         case TYPE_INDEX<Asset>: {
-            TagAssetForUpload(assetField.colName, coveredData, isInsert);
+            TagAssetForUpload(assetField.colName, isInsert, coveredData);
             break;
         }
         default:

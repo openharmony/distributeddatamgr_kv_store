@@ -213,6 +213,7 @@ distributeddb_src = [
   "${distributeddb_path}/syncer/src/cloud/cloud_sync_tag_assets.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_sync_utils.cpp",
   "${distributeddb_path}/syncer/src/cloud/process_notifier.cpp",
+  "${distributeddb_path}/syncer/src/cloud/process_recorder.cpp",
   "${distributeddb_path}/syncer/src/cloud/strategy_factory.cpp",
   "${distributeddb_path}/syncer/src/device/ability_sync.cpp",
   "${distributeddb_path}/syncer/src/device/commit_history_sync.cpp",

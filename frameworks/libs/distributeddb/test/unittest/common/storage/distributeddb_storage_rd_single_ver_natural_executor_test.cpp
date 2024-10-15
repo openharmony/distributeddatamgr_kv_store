@@ -446,8 +446,8 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaTest003, Test
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_SET_MAX_LOG_LIMIT, &limit), -E_NOT_SUPPORT);
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_RM_DEVICE_DATA, nullptr), -E_NOT_SUPPORT);
     CipherPassword pw;
-    EXPECT_EQ(emptyConn->Import("/a.b", pw), -E_NOT_SUPPORT);
-    EXPECT_EQ(emptyConn->Export("/a.b", pw), -E_NOT_SUPPORT);
+    EXPECT_EQ(emptyConn->Import("/a.b", pw), -E_INVALID_DB);
+    EXPECT_EQ(emptyConn->Export("/a.b", pw), -E_INVALID_DB);
     DatabaseLifeCycleNotifier notifier;
     EXPECT_EQ(emptyConn->RegisterLifeCycleCallback(notifier), -E_NOT_SUPPORT);
 

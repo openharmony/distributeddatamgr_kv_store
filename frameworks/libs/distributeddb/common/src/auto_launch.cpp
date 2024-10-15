@@ -593,7 +593,7 @@ void AutoLaunch::GetConnInDoOpenMapInner(std::pair<const std::string, std::map<s
         int errCode = RuntimeContext::GetInstance()->ScheduleTask([&sema, &iter, &items, this] {
             int ret = OpenOneConnection(iter.second);
             LOGI("[AutoLaunch] GetConnInDoOpenMap GetOneConnection errCode:%d", ret);
-            if (iter.second.conn == nullptr) {
+            if (ret != E_OK) { // LCOV_EXCL_BR_LINE
                 sema.SendSemaphore();
                 LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
                 return;

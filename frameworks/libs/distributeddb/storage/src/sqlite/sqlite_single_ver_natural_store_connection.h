@@ -168,8 +168,8 @@ private:
 
     int UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp);
 
-    int UnpublishInner(SingleVerNaturalStoreCommitNotifyData *&committedData, const SingleVerRecord &syncRecord,
-        bool updateTimestamp, int &innerErrCode);
+    int UnpublishInner(std::pair<Key, Key> &keyPair, SingleVerNaturalStoreCommitNotifyData *&committedData,
+        SingleVerRecord &syncRecord, bool updateTimestamp, int &innerErrCode);
 
     int UnpublishOper(SingleVerNaturalStoreCommitNotifyData *&committedData, const SingleVerRecord &syncRecord,
         bool updateTimestamp, int operType);

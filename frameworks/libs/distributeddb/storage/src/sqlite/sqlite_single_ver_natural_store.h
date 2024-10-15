@@ -128,7 +128,7 @@ public:
 
     bool CheckCompatible(const std::string &schema, uint8_t type) const override;
 
-    Timestamp GetCurrentTimestamp() override;
+    Timestamp GetCurrentTimestamp(bool needStartSync = true) override;
 
     SchemaObject GetSchemaObject() const;
 
@@ -220,6 +220,8 @@ public:
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
+    uint64_t GetTimestampFromDB() override;
+
     // for test mock
     const SqliteCloudKvStore* GetCloudKvStore()
     {
@@ -233,6 +235,8 @@ protected:
     ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
 
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas() override;
+
+    bool CheckSchemaSupportForCloudSync() const override;
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);

@@ -26,12 +26,10 @@ RuntimeContext *RuntimeContext::GetInstance()
     if (instPtr == nullptr) {
         std::lock_guard<std::mutex> lock(instLock_);
         if (instPtr == nullptr) {
-            // Use instPtr to make sure this singleton not free before other object.
-            instPtr = new (std::nothrow) RuntimeContextImpl;
+            instPtr = new RuntimeContextImpl();
             LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING);
         }
     }
     return instPtr;
 }
 } // namespace DistributedDB
-

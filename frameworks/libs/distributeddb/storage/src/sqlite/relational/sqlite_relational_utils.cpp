@@ -31,14 +31,12 @@ int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, 
     int errCode = E_OK;
     int storageType = sqlite3_column_type(statement, cid);
     switch (storageType) {
-        case SQLITE_INTEGER: {
+        case SQLITE_INTEGER:
             value = static_cast<int64_t>(sqlite3_column_int64(statement, cid));
             break;
-        }
-        case SQLITE_FLOAT: {
+        case SQLITE_FLOAT:
             value = sqlite3_column_double(statement, cid);
             break;
-        }
         case SQLITE_BLOB: {
             std::vector<uint8_t> blobValue;
             errCode = SQLiteUtils::GetColumnBlobValue(statement, cid, blobValue);
@@ -51,11 +49,14 @@ int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, 
             }
             blob->WriteBlob(blobValue.data(), static_cast<uint32_t>(blobValue.size()));
             errCode = value.Set(blob);
+            if (errCode != E_OK) {
+                delete blob;
+                blob = nullptr;
+            }
             break;
         }
-        case SQLITE_NULL: {
+        case SQLITE_NULL:
             break;
-        }
         case SQLITE3_TEXT: {
             std::string str;
             (void)SQLiteUtils::GetColumnTextValue(statement, cid, str);
@@ -65,9 +66,8 @@ int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, 
             }
             break;
         }
-        default: {
+        default:
             break;
-        }
     }
     return errCode;
 }

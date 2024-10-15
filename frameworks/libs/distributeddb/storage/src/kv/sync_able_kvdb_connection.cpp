@@ -373,7 +373,7 @@ int32_t SyncAbleKvDBConnection::GetTaskCount()
     SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
     if (kvDB == nullptr) {
         LOGW("[SyncAbleKvDBConnection] Get task count with null db");
-        return 0;
+        return -1;
     }
     return kvDB->GetTaskCount();
 }

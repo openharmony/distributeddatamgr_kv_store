@@ -20,6 +20,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include "cloud/cloud_db_types.h"
+#include "cloud/cloud_db_types.h"
 #include "cloud/icloud_db.h"
 #include "cloud/iAssetLoader.h"
 
@@ -66,6 +67,9 @@ public:
         std::map<std::string, Assets> &assets);
 
     int RemoveLocalAssets(const std::vector<Asset> &assets);
+
+    int RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets);
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 

@@ -1867,7 +1867,7 @@ void PutRangeDataIntoDB()
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
@@ -1951,7 +1951,7 @@ void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate,  and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
@@ -2031,7 +2031,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -2110,7 +2110,7 @@ void ChkRangeResultSetMoveFuc(KvStoreResultSet *resultSet, int beginNum, int end
   * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
@@ -2229,6 +2229,94 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Leve
      */
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
     EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery005"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: RdSync001
+  * @tc.desc:Test sync func with rd.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdSync001", g_option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Sync
+     * @tc.expected: step2. Return NOT_SUPPORT.
+     */
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                cv.notify_one();
+            }
+        }
+    };
+    CloudSyncOption syncOption = {
+        .devices = {"deviceName"},
+        .mode = SYNC_MODE_CLOUD_MERGE,
+        .query = {},
+        .waitTime = 0,
+        .priorityTask = false,
+        .compensatedSyncOnly = false,
+        .users = {USER_ID}
+    };
+    auto res = g_kvNbDelegatePtr->Sync(syncOption, callback);
+    EXPECT_EQ(res, NOT_SUPPORT);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdSync001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: RdSetCloudDB001
+  * @tc.desc:Test set cloudDB func with rd.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdSetCloudDB001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdSetCloudDB001", g_option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Set cloudDB
+     * @tc.expected: step2. Return NOT_SUPPORT.
+     */
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = std::make_shared<VirtualCloudDb>();
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+    cloudDbs[USER_ID] = virtualCloudDb;
+    auto res = g_kvNbDelegatePtr->SetCloudDB(cloudDbs);
+    EXPECT_EQ(res, NOT_SUPPORT);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdSetCloudDB001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 }

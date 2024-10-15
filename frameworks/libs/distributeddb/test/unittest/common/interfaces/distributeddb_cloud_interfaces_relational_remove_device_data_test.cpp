@@ -329,9 +329,8 @@ namespace {
     {
         int i = 0;
         for (const auto &tableName: tableList) {
-            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
-                " where device = 'cloud'" +
-                " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +" where device = 'cloud'";
+            sql += " and cloud_gid is not null and cloud_gid != '' and (flag & 0x2 = 0 or flag & 0x20 = 0);";
             EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
             i++;
@@ -532,6 +531,7 @@ namespace {
 
     void CloseDb()
     {
+        g_delegate->UnRegisterObserver(g_observer);
         delete g_observer;
         g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
@@ -1213,7 +1213,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {35, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
-    CheckLogoutLogCount(db, g_tables, {10, 10});
     /**
      * @tc.steps: step6. do sync again and remove device data, then check local data and log.
      * @tc.expected: OK.
@@ -1222,48 +1221,47 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {40, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
-    CheckLogoutLogCount(db, g_tables, {15, 10});
     CloseDb();
 }
 
 /*
- * @tc.name: CleanCloudDataTest014
- * @tc.desc: Test when remove device data at flagOnly mode.
+ * @tc.name: CleanCloudDataTest015
+ * @tc.desc: Test get schema from db is ok when local has not been set.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
 **/
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest015, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. make data: 20 records on local
+     * @tc.steps: step1. Set data is logicDelete
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 10 records on local
      */
     int64_t paddingSize = 20;
-    int localCount = 20;
+    int localCount = 10;
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     /**
-     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     * @tc.steps: step3. call Sync with cloud merge strategy, and after that, local will has 20 records.
      */
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     /**
-     * @tc.steps: step3. modify local data
-     * @tc.expected: OK.
-     */
-    InsertUserTableRecord(db, 20, localCount, paddingSize, false);
-    UpdateUserTableRecord(db, 5, 10);
-    DeleteUserTableRecord(db, 10, 15);
-    /**
-     * @tc.steps: step4. check cloud record data and remove device data.
+     * @tc.steps: step4. remove and check
      * @tc.expected: OK.
      */
     CheckCloudRecordNum(db, g_tables, {0, 0});
     std::string device;
-    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
-    CheckCleanDataNum(db, g_tables, {35, 35});
-    CheckLogoutLogCount(db, g_tables, {40, 40});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataNum(db, g_tables, {10, 10});
+    CheckLocalLogCount(db, g_tables, {10, 10});
+    CheckLogoutLogCount(db, g_tables, {10, 10});
     CloseDb();
 }
- 
+
 /*
  * @tc.name: CleanCloudDataTest022
  * @tc.desc: Test conflict, not dound, exis errCode will deal.

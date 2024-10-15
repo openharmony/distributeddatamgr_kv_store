@@ -15,8 +15,11 @@
 
 #include "iprocesscommunicator_fuzzer.h"
 #include <list>
-#include "iprocess_communicator.h"
 #include "distributeddb_tools_test.h"
+#include "db_info_handle.h"
+#include "iprocess_communicator.h"
+#include "iprocess_system_api_adapter.h"
+#include "runtime_config.h"
 
 using namespace DistributedDB;
 using namespace DistributedDBTest;
@@ -97,13 +100,65 @@ private:
     DistributedDB::OnDataReceive onDataReceive_ = nullptr;
 };
 
-void CommunicatorFuzzer(const uint8_t* data, size_t size)
+class ProcessSystemApiAdapterFuzzTest : public DistributedDB::IProcessSystemApiAdapter {
+public:
+    ~ProcessSystemApiAdapterFuzzTest() {}
+    DistributedDB::DBStatus RegOnAccessControlledEvent(const OnAccessControlledEvent &callback) override
+    {
+        callback_ = callback;
+        return DistributedDB::OK;
+    }
+
+    bool IsAccessControlled() const override
+    {
+        return true;
+    }
+
+    DistributedDB::DBStatus SetSecurityOption(const std::string &filePath, const SecurityOption &option) override
+    {
+        return DistributedDB::OK;
+    }
+
+    DistributedDB::DBStatus GetSecurityOption(const std::string &filePath, SecurityOption &option) const override
+    {
+        return DistributedDB::OK;
+    }
+
+    bool CheckDeviceSecurityAbility(const std::string &devId, const SecurityOption &option) const override
+    {
+        return true;
+    }
+private:
+    DistributedDB::OnAccessControlledEvent callback_;
+};
+
+class DBInfoHandleFuzzTest : public DistributedDB::DBInfoHandle {
+public:
+    ~DBInfoHandleFuzzTest() {}
+    bool IsSupport() override
+    {
+        return true;
+    }
+
+    bool IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+        const DistributedDB::DeviceInfos &devInfo) override
+    {
+        return true;
+    }
+};
+
+void CommunicatorFuzzer(const uint8_t *data, size_t size)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
     std::string rawString(reinterpret_cast<const char*>(data), size);
     KvStoreDelegateManager::SetProcessLabel(rawString, "defaut");
     auto communicator = std::make_shared<ProcessCommunicatorFuzzTest>();
     KvStoreDelegateManager::SetProcessCommunicator(communicator);
+    RuntimeConfig::SetProcessCommunicator(communicator);
+    auto adapter = std::make_shared<ProcessSystemApiAdapterFuzzTest>();
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+    auto handleTest = std::make_shared<DBInfoHandleFuzzTest>();
+    RuntimeConfig::SetDBInfoHandle(handleTest);
     std::string testDir;
     DistributedDBToolsTest::TestDirInit(testDir);
     KvStoreConfig config;
@@ -127,7 +182,7 @@ void CommunicatorFuzzer(const uint8_t* data, size_t size)
 }
 
 /* Fuzzer entry point */
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     // 4 bytes is required
     if (size < 4) {

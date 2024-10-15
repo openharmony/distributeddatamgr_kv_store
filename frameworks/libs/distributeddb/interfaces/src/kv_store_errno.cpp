@@ -82,11 +82,15 @@ namespace {
         { -E_WITH_INVENTORY_DATA, WITH_INVENTORY_DATA },
         { -E_WAIT_COMPENSATED_SYNC, WAIT_COMPENSATED_SYNC },
         { -E_CLOUD_SYNC_TASK_MERGED, CLOUD_SYNC_TASK_MERGED },
+        { -E_SQLITE_CANT_OPEN, SQLITE_CANT_OPEN },
     };
 }
 
-DBStatus TransferDBErrno(int err)
+DBStatus TransferDBErrno(int err, bool isPass)
 {
+    if (isPass && err > 0) {
+        return static_cast<DBStatus>(err);
+    }
     for (const auto &item : ERRNO_MAP) {
         if (item.errCode == err) {
             return item.status;

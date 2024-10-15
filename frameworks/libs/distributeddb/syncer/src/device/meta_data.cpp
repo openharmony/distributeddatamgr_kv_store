@@ -890,6 +890,7 @@ std::pair<int, Value> Metadata::SerializeLocalMetaData(const LocalMetaData &loca
     value.resize(CalculateLocalMetaDataLength());
     Parcel parcel(value.data(), value.size());
     (void)parcel.WriteUInt32(localMetaData.version);
+    parcel.EightByteAlign();
     (void)parcel.WriteUInt64(localMetaData.localSchemaVersion);
     if (parcel.IsError()) {
         LOGE("[Metadata] Serialize localMetaData failed");
@@ -906,11 +907,13 @@ std::pair<int, LocalMetaData> Metadata::DeSerializeLocalMetaData(const Value &va
     auto &[errCode, meta] = res;
     if (value.empty()) {
         errCode = E_OK;
-        meta.version = SOFTWARE_VERSION_RELEASE_8_0;
         return res;
     }
     Parcel parcel(const_cast<uint8_t *>(value.data()), value.size());
     parcel.ReadUInt32(meta.version);
+    if (meta.version >= LOCAL_META_DATA_VERSION_V2) {
+        parcel.EightByteAlign();
+    }
     parcel.ReadUInt64(meta.localSchemaVersion);
     if (parcel.IsError()) {
         LOGE("[Metadata] DeSerialize localMetaData failed");
@@ -923,6 +926,7 @@ std::pair<int, LocalMetaData> Metadata::DeSerializeLocalMetaData(const Value &va
 uint64_t Metadata::CalculateLocalMetaDataLength()
 {
     uint64_t length = Parcel::GetUInt32Len(); // version
+    length = Parcel::GetEightByteAlign(length);
     length += Parcel::GetUInt64Len(); // local schema version
     return length;
 }
@@ -952,7 +956,7 @@ int Metadata::InitLocalMetaData()
     if (localMetaData.localSchemaVersion != 0) {
         return E_OK;
     }
-    uint64_t curTime = 0;
+    uint64_t curTime = 0u;
     errCode = OS::GetCurrentSysTimeInMicrosecond(curTime);
     if (errCode != E_OK) {
         LOGW("[Metadata] get system time failed when init schema version!");

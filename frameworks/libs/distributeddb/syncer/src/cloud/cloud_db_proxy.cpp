@@ -35,6 +35,12 @@ void CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
 int CloudDBProxy::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
 {
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
+    for (const auto &item : cloudDBs) {
+        if (item.second == nullptr) {
+            LOGE("[CloudDBProxy] User %s setCloudDB with nullptr", item.first.c_str());
+            return -E_INVALID_ARGS;
+        }
+    }
     cloudDbs_ = cloudDBs;
     return E_OK;
 }
@@ -123,6 +129,15 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, QUERY);
     context->MoveOutQueryExtendAndData(extend, data);
+    for (auto &item : data) {
+        for (auto &row : item) {
+            auto assets = std::get_if<Assets>(&row.second);
+            if (assets == nullptr) {
+                continue;
+            }
+            DBCommon::RemoveDuplicateAssetsData(*assets);
+        }
+    }
     return errCode;
 }
 
@@ -158,11 +173,10 @@ int CloudDBProxy::Close()
     std::vector<std::shared_ptr<ICloudDb>> waitForClose;
     {
         std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
-        if (iCloudDb_ == nullptr) {
-            return E_OK;
+        if (iCloudDb_ != nullptr) {
+            iCloudDb = iCloudDb_;
+            iCloudDb_ = nullptr;
         }
-        iCloudDb = iCloudDb_;
-        iCloudDb_ = nullptr;
         for (const auto &item : cloudDbs_) {
             if (iCloudDb == item.second) {
                 iCloudDb = nullptr;
@@ -179,6 +193,9 @@ int CloudDBProxy::Close()
     for (const auto &item : waitForClose) {
         DBStatus ret = item->Close();
         status = (status == OK ? ret : status);
+    }
+    if (status != OK) {
+        LOGW("[CloudDBProxy] cloud db close failed %d", static_cast<int>(status));
     }
     waitForClose.clear();
     LOGD("[CloudDBProxy] call cloudDb close end");
@@ -206,13 +223,13 @@ bool CloudDBProxy::IsNotExistCloudDB() const
 int CloudDBProxy::Download(const std::string &tableName, const std::string &gid, const Type &prefix,
     std::map<std::string, Assets> &assets)
 {
+    if (assets.empty()) {
+        return E_OK;
+    }
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
     if (iAssetLoader_ == nullptr) {
         LOGE("Asset loader has not been set %d", -E_NOT_SET);
         return -E_NOT_SET;
-    }
-    if (assets.empty()) {
-        return E_OK;
     }
     DBStatus status = iAssetLoader_->Download(tableName, gid, prefix, assets);
     if (status != OK) {
@@ -223,12 +240,34 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
 
 int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
 {
+    if (assets.empty()) {
+        return E_OK;
+    }
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
     if (iAssetLoader_ == nullptr) {
         LOGW("Asset loader has not been set");
         return E_OK;
     }
     DBStatus status = iAssetLoader_->RemoveLocalAssets(assets);
+    if (status != OK) {
+        LOGE("[CloudDBProxy] remove local asset failed %d", static_cast<int>(status));
+        return -E_REMOVE_ASSETS_FAILED;
+    }
+    return E_OK;
+}
+
+int CloudDBProxy::RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+    std::map<std::string, Assets> &assets)
+{
+    if (assets.empty()) {
+        return E_OK;
+    }
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("Asset loader has not been set %d", -E_NOT_SET);
+        return -E_NOT_SET;
+    }
+    DBStatus status = iAssetLoader_->RemoveLocalAssets(tableName, gid, prefix, assets);
     if (status != OK) {
         LOGE("[CloudDBProxy] remove local asset failed %d", static_cast<int>(status));
         return -E_REMOVE_ASSETS_FAILED;
@@ -380,6 +419,9 @@ DBStatus CloudDBProxy::InnerActionGetEmptyCursor(const std::shared_ptr<CloudActi
 
 int CloudDBProxy::GetInnerErrorCode(DBStatus status)
 {
+    if (status < DB_ERROR || status >= BUTT_STATUS) {
+        return static_cast<int>(status);
+    }
     switch (status) {
         case OK:
             return E_OK;

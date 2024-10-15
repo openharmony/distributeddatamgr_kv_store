@@ -55,6 +55,7 @@ private:
     int IndexPreLoad(GRD_DB *&db, const char *collectionName);
 
     std::atomic<bool> crcCheck_ = false;
+    std::atomic<bool> isFirstTimeOpenDb_ = true;
 };
 } // namespace DistributedDB
 #endif // RD_SINGLE_VER_STORAGE_ENGINE_H

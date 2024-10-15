@@ -242,7 +242,7 @@ namespace DistributedDB {
 
     constexpr const char *REMOVE_ALL_DEV_SYNC_DATA_SQL =
         "DELETE FROM sync_data WHERE (flag&0x02=0) AND (flag&0x100=0);";
-    
+
     constexpr const char *REMOVE_DEV_SYNC_DATA_BY_DEV_ID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0) AND (flag&0x100=0);";
 
@@ -254,6 +254,9 @@ namespace DistributedDB {
 
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
+
+    constexpr const char *REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND key LIKE 'naturalbase_cloud_version_%';";
 
     constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0);";
@@ -373,6 +376,8 @@ namespace DistributedDB {
 
     constexpr const char *CHECK_DATA_CHANGED =
         "SELECT COUNT(1) FROM sync_data WHERE modify_time=? AND hash_key=?";
+    
+    constexpr const char *NATURALBASE_KV_AUX_SYNC_DATA_LOG_TABLE_NAME = "naturalbase_kv_aux_sync_data_log";
 
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;

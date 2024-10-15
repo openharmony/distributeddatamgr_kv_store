@@ -46,6 +46,22 @@ DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::vector<Asset> &assets)
     return DBStatus::OK;
 }
 
+DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+    std::map<std::string, Assets> &assets)
+{
+    if (removeLocalAssetsCallBack_) {
+        removeLocalAssetsCallBack_(assets);
+    }
+    LOGD("RemoveLocalAssets GID:%s", gid.c_str());
+    for (auto &item: assets) {
+        for (auto &asset: item.second) {
+            LOGD("asset [name]:%s, [status]:%u, [flag]:%u", asset.name.c_str(), asset.status, asset.flag);
+            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+        }
+    }
+    return DBStatus::OK;
+}
+
 void VirtualAssetLoader::SetDownloadStatus(DBStatus status)
 {
     std::lock_guard<std::mutex> autoLock(dataMutex_);
@@ -61,5 +77,10 @@ void VirtualAssetLoader::ForkDownload(const DownloadCallBack &callback)
 void VirtualAssetLoader::ForkRemoveLocalAssets(const RemoveAssetsCallBack &callback)
 {
     removeAssetsCallBack_ = callback;
+}
+
+void VirtualAssetLoader::SetRemoveLocalAssetsCallback(const RemoveLocalAssetsCallBack &callback)
+{
+    removeLocalAssetsCallBack_ = callback;
 }
 }

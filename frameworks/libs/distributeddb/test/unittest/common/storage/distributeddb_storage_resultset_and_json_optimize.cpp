@@ -104,7 +104,7 @@ void DistributedDBStorageResultAndJsonOptimizeTest::SetUp(void)
     for (int i = 1; i < INSERT_NUMBER + 1; i++) {
         insertKey.clear();
         insertKey.push_back(i);
-        ASSERT_EQ(g_connection->Put(option, insertKey, VALUE_1), OK);
+        ASSERT_EQ(g_connection->Put(option, insertKey, VALUE_1), E_OK);
     }
     ASSERT_EQ(g_connection->Commit(), E_OK);
 }
@@ -409,7 +409,7 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetTest002, TestSi
     for (int i = 1; i < INSERT_NUMBER + 1; i++) {
         insertKey.clear();
         insertKey.push_back(i);
-        ASSERT_EQ(g_connection->Delete(option, insertKey), OK);
+        ASSERT_EQ(g_connection->Delete(option, insertKey), E_OK);
     }
     ASSERT_EQ(g_connection->Commit(), E_OK);
     resultSet2->Open(true);
