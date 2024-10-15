@@ -341,6 +341,7 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedBeforeChangeKeyFile, TestSize.Level1)
 HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
 {
     Status status = DB_ERROR;
+    options.autoRekey = false;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
 
@@ -353,6 +354,9 @@ HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
     ASSERT_EQ(isKeyExist, false);
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
-    ASSERT_EQ(status, CRYPT_ERROR);
+    ASSERT_EQ(status, SUCCESS);
+
+    isKeyExist = StoreUtil::IsFileExist(keyFileName);
+    ASSERT_EQ(isKeyExist, true);
 }
 }

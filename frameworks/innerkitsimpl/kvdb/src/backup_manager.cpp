@@ -205,7 +205,7 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(
             return dbPassword;
         }
         std::vector<uint8_t> pwd;
-        service->GetBackupPassword({ appId }, { storeId }, pwd);
+        service->GetBackupPassword({ appId }, { storeId }, pwd, KVDBService::PasswordType::BACKUP_SECRET_KEY);
         dbPassword.SetValue(pwd.data(), pwd.size());
         pwd.assign(pwd.size(), 0);
     } else {
