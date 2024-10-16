@@ -486,4 +486,8 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
 {
     return SERVER_UNAVAILABLE;
 }
+bool SingleStoreImpl::IsRebuild()
+{
+    return false;
+}
 } // namespace OHOS::DistributedKv

@@ -77,7 +77,7 @@ public:
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     void OnRemoteDied() override;
-
+    bool IsRebuild() override;
     // normal function
     int32_t Close(bool isForce = false);
     int32_t AddRef();

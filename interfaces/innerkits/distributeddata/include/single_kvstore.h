@@ -331,6 +331,15 @@ public:
     {
         return Status::SUCCESS;
     }
+
+    /**
+     * @brief get database status.
+     * @return Return true for db rebuild.
+     */
+    virtual bool IsRebuild()
+    {
+        return false;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

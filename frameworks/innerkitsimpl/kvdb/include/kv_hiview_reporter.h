@@ -20,7 +20,17 @@
 #include "types.h"
 
 namespace OHOS::DistributedKv {
-constexpr const char* DATABASE_REBUILD = "REBUILD";
+constexpr const char* DATABASE_REBUILD = "RestoreType:Rebuild";
+struct Suffix {
+    const char *suffix_ = nullptr;
+    const char *name_ = nullptr;
+};
+static constexpr Suffix FILE_SUFFIXES[] = {
+    {"", "DB"},
+    {"-shm", "SHM"},
+    {"-wal", "WAL"},
+};
+static constexpr const char *defaultPath = "single_ver/main/gen_natural_store.db";
 struct KVDBCorruptedEvent;
 class KVDBFaultHiViewReporter {
 public:
@@ -28,9 +38,13 @@ public:
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
         const KvStoreTuple &storeTuple, const std::string &appendix);
 
-    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
+    static void ReportKVDBRebuild(
+        const Options &options, uint32_t errorCode, int32_t systemErrorNo,
+        const KvStoreTuple &storeTuple, const std::string &appendix);
 
     static std::string GetDBPath(const std::string &path, const std::string &storeId);
+
+    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
@@ -39,6 +53,10 @@ private:
     static bool IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId);
 
     static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
+
+    static std::string GetFileStatInfo(const std::string &dbPath);
+
+    static std::string GetTimeWithMilliseconds(time_t sec, int64_t nsec);
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H

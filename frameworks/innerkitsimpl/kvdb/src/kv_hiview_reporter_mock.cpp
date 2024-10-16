@@ -45,14 +45,14 @@ void KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(
     const Options &options, uint32_t errorCode, int32_t systemErrorNo,
     const KvStoreTuple &storeTuple, const std::string &path)
 {
-    KVDBCorruptedEvent eventInfo(options);
-    eventInfo.errorCode = errorCode;
-    eventInfo.systemErrorNo = systemErrorNo;
-    eventInfo.appendix = path;
-    eventInfo.storeName = storeTuple.storeId;
-    eventInfo.bundleName = storeTuple.appId;
-    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    ReportCommonFault(eventInfo);
+    return;
+}
+
+void KVDBFaultHiViewReporter::ReportKVDBRebuild(
+    const Options &options, uint32_t errorCode, int32_t systemErrorNo,
+    const KvStoreTuple &storeTuple, const std::string &appendix)
+{
+    return;
 }
 
 std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
