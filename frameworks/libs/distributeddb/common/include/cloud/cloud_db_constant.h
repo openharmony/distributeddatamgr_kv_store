@@ -74,6 +74,8 @@ public:
 
     static constexpr const char *FLAG_AND_DATA_MODE_NOTIFY = "DELETE#ALL_CLOUDDATA";
 
+    static constexpr const char *FLAG_ONLY_MODE_NOTIFY = "RESERVE#ALL_CLOUDDATA";
+
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
     static constexpr uint32_t TEN_THOUSAND = 10000;
