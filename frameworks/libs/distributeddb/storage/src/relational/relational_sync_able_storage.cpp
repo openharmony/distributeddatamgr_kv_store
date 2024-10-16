@@ -1280,7 +1280,12 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
             changedData.type = ChangedDataType::DATA;
             changedData.tableName = notifyTableName;
             std::vector<DistributedDB::Type> dataVec;
-            DistributedDB::Type type = std::string(CloudDbConstant::FLAG_AND_DATA_MODE_NOTIFY);
+            DistributedDB::Type type;
+            if (mode == FLAG_ONLY) {
+                type = std::string(CloudDbConstant::FLAG_ONLY_MODE_NOTIFY);
+            } else {
+                type = std::string(CloudDbConstant::FLAG_AND_DATA_MODE_NOTIFY);
+            }
             dataVec.push_back(type);
             changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
             TriggerObserverAction("CLOUD", std::move(changedData), true);
