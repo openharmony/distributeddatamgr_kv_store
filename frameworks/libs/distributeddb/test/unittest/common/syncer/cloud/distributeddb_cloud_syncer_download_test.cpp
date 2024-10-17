@@ -771,6 +771,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest008, TestSize.Lev
     g_cloudSyncer->SetCloudWaterMarks(param.tableName, param.cloudWaterMark);
     ICloudSyncer::SyncParam actualParam;
     EXPECT_EQ(g_cloudSyncer->CallGetSyncParamForDownload(taskId, actualParam), E_OK);
+    expectCloudWaterMark = "";
     EXPECT_EQ(actualParam.cloudWaterMark, expectCloudWaterMark);
 
     g_cloudSyncer->SetTaskResume(taskId, false);

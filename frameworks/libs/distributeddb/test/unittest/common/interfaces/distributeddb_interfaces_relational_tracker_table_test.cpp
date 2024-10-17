@@ -1132,7 +1132,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
     sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
         " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(num + num), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();
 }
 
