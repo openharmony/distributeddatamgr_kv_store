@@ -1067,6 +1067,11 @@ Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::s
 
 bool SingleStoreImpl::IsRebuild()
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return false;
+    }
     auto databaseStatus = dbStore_->GetDatabaseStatus();
     return databaseStatus.isRebuild;
 }
