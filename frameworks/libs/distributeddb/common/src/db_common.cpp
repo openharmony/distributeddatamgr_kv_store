@@ -803,7 +803,7 @@ std::string DBCommon::GetCursorKey(const std::string &tableName)
     return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
 }
 
-bool DBCommon::ConvertToInt(const std::string &str, int &value)
+bool DBCommon::ConvertToUInt(const std::string &str, uint64_t &value)
 {
     auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
     return errCode == std::errc{} && ptr == str.data() + str.size();
@@ -833,9 +833,9 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
             indexMap[asset.name] = prevIndex;
             continue;
         }
-        int modifyTime = 0;
-        int prevModifyTime = 0;
-        if (ConvertToInt(asset.modifyTime, modifyTime) && ConvertToInt(prevAsset.modifyTime, prevModifyTime) &&
+        uint64_t modifyTime = 0;
+        uint64_t prevModifyTime = 0;
+        if (ConvertToUInt(asset.modifyTime, modifyTime) && ConvertToUInt(prevAsset.modifyTime, prevModifyTime) &&
             !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
             arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
             indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
