@@ -69,7 +69,10 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
         return DM_OK;
     } else {
         testDemo = 0;
-        deviceInfo.networkId[0] = 'a';
+        DmDeviceInfo info;
+        info.networkId[0] = 'a';
+        DmDeviceInfo& infos = info;
+        deviceInfo = infos;
         return DM_OK;
     }
 }
@@ -89,7 +92,6 @@ int32_t DeviceManager::RegisterDevStatusCallback(const std::string &pkgName, con
 int32_t DeviceManager::GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId,
     std::string &uuid)
 {
-    uuid = "";
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
