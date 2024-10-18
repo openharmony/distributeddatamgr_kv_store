@@ -225,6 +225,7 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
         status = kvDataManager_.GetSingleKvStore(options, appId, storeId, kvStore);
         LOGE("Data has corrupted, rebuild db");
     }
+
     errCode = ConvertCJErrCode(status);
     if (errCode != 0) {
         return 0;
