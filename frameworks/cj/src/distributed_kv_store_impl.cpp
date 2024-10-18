@@ -220,12 +220,15 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
     options.hapName = param_->hapName;
     std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
     Status status = kvDataManager_.GetSingleKvStore(options, appId, storeId, kvStore);
-    if (status == CRYPT_ERROR) {
+    if (status == DATA_CORRUPTED) {
         options.rebuild = true;
         status = kvDataManager_.GetSingleKvStore(options, appId, storeId, kvStore);
         LOGE("Data has corrupted, rebuild db");
     }
-
+    if (status == DATA_CORRUPTED) {
+        status = CRYPT_ERROR;
+        ZLOGE("rebuild db failed.");
+    }
     errCode = ConvertCJErrCode(status);
     if (errCode != 0) {
         return 0;
