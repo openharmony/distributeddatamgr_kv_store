@@ -18,14 +18,13 @@
 #include <mutex>
 
 namespace OHOS {
-template<typename T>
+template<typename T, typename Dur = std::chrono::seconds>
 class BlockData {
 public:
     explicit BlockData(uint32_t interval, const T &invalid = T()) : INTERVAL(interval), data_(invalid) {}
 
     ~BlockData() {}
 
-public:
     void SetValue(const T &data)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -37,7 +36,7 @@ public:
     T GetValue()
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait_for(lock, std::chrono::seconds(INTERVAL), [this]() {
+        cv_.wait_for(lock, Dur(INTERVAL), [this]() {
             return isSet_;
         });
         T data = data_;
