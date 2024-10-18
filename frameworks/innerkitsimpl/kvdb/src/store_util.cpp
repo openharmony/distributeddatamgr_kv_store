@@ -158,6 +158,8 @@ Status StoreUtil::ConvertStatus(DBStatus status)
             return Status::SECURITY_LEVEL_ERROR;
         case DBStatus::LOG_OVER_LIMITS:
             return Status::WAL_OVER_LIMITS;
+        case DBStatus::SQLITE_CANT_OPEN:
+            return Status::DB_CANT_OPEN;
         default:
             ZLOGE("unknown db error:0x%{public}x", status);
             break;
