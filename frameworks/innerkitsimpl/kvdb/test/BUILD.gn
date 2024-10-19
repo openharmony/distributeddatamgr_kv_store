@@ -229,11 +229,6 @@ ohos_unittest("DevManagerMockTest") {
 
   configs = [ ":module_private_config" ]
 
-  cflags = [
-    "-Dprivate=public",
-    "-Dprotected=public",
-  ]
-
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
