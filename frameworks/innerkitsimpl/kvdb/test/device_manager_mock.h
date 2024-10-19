@@ -60,11 +60,11 @@ public:
         std::string &uuid);
 private:
     DeviceManager() = default;
-    ~DeviceManager() = default;
-    DeviceManager(const DeviceManager &) = delete;
-    DeviceManager &operator=(const DeviceManager &) = delete;
-    DeviceManager(DeviceManager &&) = delete;
-    DeviceManager &operator=(DeviceManager &&) = delete;
+    virtual ~DeviceManager() = default;
+    // DeviceManager(const DeviceManager &) = delete;
+    // DeviceManager &operator=(const DeviceManager &) = delete;
+    // DeviceManager(DeviceManager &&) = delete;
+    // DeviceManager &operator=(DeviceManager &&) = delete;
 };
 } // namespace DistributedHardware
 } // namespace OHOS
