@@ -151,7 +151,7 @@ public:
 
     static std::string GetCursorKey(const std::string &tableName);
 
-    static bool ConvertToInt(const std::string &str, int &value);
+    static bool ConvertToUInt(const std::string &str, uint64_t &value);
 
     static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
 private:
