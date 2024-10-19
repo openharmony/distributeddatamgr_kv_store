@@ -79,14 +79,14 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
             return !stores.empty();
         }
-        if (options.encrypt) {
+        if (options.encrypt && options.autoRekey) {
             status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
             if (status != SUCCESS) {
                 ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
                     StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
-            if (dbPassword.isKeyOutdated && options.autoRekey) {
+            if (dbPassword.isKeyOutdated) {
                 ReKey(storeId, path, dbPassword, dbManager, options);
             }
         }
