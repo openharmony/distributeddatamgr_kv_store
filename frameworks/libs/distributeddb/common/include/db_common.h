@@ -149,6 +149,8 @@ public:
 
     static std::string GetCursorKey(const std::string &tableName);
 
+    static bool ConvertToUInt64(const std::string &str, uint64_t &value);
+
     static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
