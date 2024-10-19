@@ -1538,7 +1538,8 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const CipherPassword &passwd)
+int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const CipherPassword &passwd,
+    bool isNeedIntegrityCheck)
 {
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
@@ -1579,7 +1580,7 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
     operation = std::make_unique<SingleVerDatabaseOper>(this, storageEngine_);
     operation->SetLocalDevId(localDev);
-    errCode = operation->Import(filePath, passwd);
+    errCode = operation->Import(filePath, passwd, isNeedIntegrityCheck);
     if (errCode != E_OK) {
         goto END;
     }

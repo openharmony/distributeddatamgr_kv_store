@@ -57,6 +57,13 @@ SingleStoreImpl::SingleStoreImpl(
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
+        HapTokenInfo hapTokenInfo;
+        auto ret = AccessTokenKit::GetHapTokenInfo(tokenId, hapTokenInfo);
+        if (ret == 0) {
+            apiVersion_ = hapTokenInfo.apiVersion;
+        } else {
+            ZLOGE("GetHapTokenInfo fail, tokenId:%{public}d, ret:%{public}d", tokenId, ret);
+        }
     }
 }
 
@@ -755,7 +762,15 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    auto status = BackupManager::GetInstance().Backup(file, baseDir, storeId_, dbStore_);
+    if (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION)) {
+        auto dbStatus = dbStore_->CheckIntegrity();
+        if (dbStatus != DistributedDB::DBStatus::OK) {
+            ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
+            return StoreUtil::ConvertStatus(dbStatus);
+        }
+    }
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_ };
+    auto status = BackupManager::GetInstance().Backup(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
@@ -770,7 +785,12 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (service != nullptr) {
         service->Close({ appId_ }, { storeId_ });
     }
-    auto status = BackupManager::GetInstance().Restore(file, baseDir, appId_, storeId_, dbStore_);
+    bool isCheckIntegrity = false;
+    if (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION)) {
+        isCheckIntegrity = true;
+    }
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_ };
+    auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());

@@ -28,7 +28,8 @@ public:
 
     virtual int Rekey(const CipherPassword &passwd) = 0;
 
-    virtual int Import(const std::string &filePath, const CipherPassword &passwd) = 0;
+    virtual int Import(const std::string &filePath, const CipherPassword &passwd,
+        bool isNeedIntegrityCheck = false) = 0;
 
     virtual int Export(const std::string &filePath, const CipherPassword &passwd) const = 0;
 
@@ -59,11 +60,13 @@ protected:
     static int RemoveFile(const std::string &fileName);
 
     // import begin
-    int ExecuteImport(const std::string &filePath, const CipherPassword &passwd, const KvDBProperties &property) const;
+    int ExecuteImport(const std::string &filePath, const CipherPassword &passwd, const KvDBProperties &property,
+        bool isNeedIntegrityCheck = false) const;
 
     virtual int BackupCurrentDatabase(const ImportFileInfo &info) const = 0;
 
-    virtual int ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd) const = 0;
+    virtual int ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd,
+        bool isNeedIntegrityCheck = false) const = 0;
 
     virtual int ImportPostHandle() const = 0;
 

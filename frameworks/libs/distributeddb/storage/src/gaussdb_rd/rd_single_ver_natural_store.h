@@ -78,7 +78,7 @@ public:
 
     int Export(const std::string &filePath, const CipherPassword &passwd) override;
 
-    int Import(const std::string &filePath, const CipherPassword &passwd) override;
+    int Import(const std::string &filePath, const CipherPassword &passwd, bool isNeedIntegrityCheck = false) override;
 
     RdSingleVerStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;

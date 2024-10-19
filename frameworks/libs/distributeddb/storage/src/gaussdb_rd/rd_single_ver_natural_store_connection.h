@@ -77,7 +77,7 @@ public:
 
     int Export(const std::string &filePath, const CipherPassword &passwd) override;
 
-    int Import(const std::string &filePath, const CipherPassword &passwd) override;
+    int Import(const std::string &filePath, const CipherPassword &passwd, bool isNeedIntegrityCheck = false) override;
 
     // Get the result set
     int GetResultSet(const IOption &option, const Key &keyPrefix, IKvDBResultSet *&resultSet) const override;

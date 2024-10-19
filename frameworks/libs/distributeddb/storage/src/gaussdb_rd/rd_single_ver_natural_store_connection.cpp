@@ -392,7 +392,8 @@ int RdSingleVerNaturalStoreConnection::Export(const std::string &filePath, const
     return kvDB_->Export(filePath, passwd);
 }
 
-int RdSingleVerNaturalStoreConnection::Import(const std::string &filePath, const CipherPassword &passwd)
+int RdSingleVerNaturalStoreConnection::Import(const std::string &filePath, const CipherPassword &passwd,
+    bool isNeedIntegrityCheck)
 {
     // not support passwd
     if (passwd.GetSize() != 0) {
@@ -405,7 +406,7 @@ int RdSingleVerNaturalStoreConnection::Import(const std::string &filePath, const
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = kvDB_->Import(filePath, passwd);
+    errCode = kvDB_->Import(filePath, passwd, isNeedIntegrityCheck);
     if ((errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) || (errCode == -E_UNEXPECTED_DATA)) {
         errCode = -E_INVALID_FILE; // import damaged file or txt file, return -E_INVALID_FILE
     }

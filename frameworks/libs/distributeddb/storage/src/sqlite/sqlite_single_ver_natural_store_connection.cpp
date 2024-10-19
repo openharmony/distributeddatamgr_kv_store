@@ -509,7 +509,8 @@ int SQLiteSingleVerNaturalStoreConnection::Export(const std::string &filePath, c
     return kvDB_->Export(filePath, passwd);
 }
 
-int SQLiteSingleVerNaturalStoreConnection::Import(const std::string &filePath, const CipherPassword &passwd)
+int SQLiteSingleVerNaturalStoreConnection::Import(const std::string &filePath, const CipherPassword &passwd,
+    bool isNeedIntegrityCheck)
 {
     if (IsFileAccessControlled()) {
         LOGE("Forbid Import when screen locked and security label [%d]!", kvDB_->GetMyProperties().GetSecLabel());

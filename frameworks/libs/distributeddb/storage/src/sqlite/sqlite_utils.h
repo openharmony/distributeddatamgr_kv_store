@@ -142,6 +142,8 @@ public:
 
     static int CreateMetaDatabase(const std::string &metaDbPath);
 
+    static int CheckIntegrity(const std::string dbFile, CipherType type, const CipherPassword &passwd);
+
     static int CheckIntegrity(sqlite3 *db, const std::string &sql);
 #ifdef RELATIONAL_STORE
     static int RegisterCalcHash(sqlite3 *db);

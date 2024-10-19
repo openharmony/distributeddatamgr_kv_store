@@ -116,6 +116,7 @@ private:
             (std::chrono::steady_clock::now() + std::chrono::milliseconds(offset)).time_since_epoch())
             .count();
     }
+    static constexpr int32_t INTEGRITY_CHECK_API_VERSION = 14;
     static constexpr uint32_t NOTIFY_INTERVAL = 200; // ms
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
@@ -134,6 +135,7 @@ private:
     void Register();
     void ReportDBCorruptedFault(Status status) const;
 
+    int32_t apiVersion_ = -1;
     bool isApplication_ = false;
     bool autoSync_ = false;
     bool cloudAutoSync_ = false;

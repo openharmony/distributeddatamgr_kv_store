@@ -32,6 +32,7 @@
 #include "value_object.h"
 #include "schema_utils.h"
 #include "schema_constant.h"
+#include "sqlite_single_ver_storage_executor_sql.h"
 #include "time_helper.h"
 #include "platform_specific.h"
 #include "sqlite_relational_utils.h"
@@ -641,6 +642,25 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     }
     return errCode;
 }
+
+int SQLiteUtils::CheckIntegrity(const std::string dbFile, CipherType type, const CipherPassword &passwd)
+{
+    std::vector<std::string> createTableSqls;
+    OpenDbProperties option = {dbFile, true, false, createTableSqls, type, passwd};
+    sqlite3 *db = nullptr;
+    int errCode = SQLiteUtils::OpenDatabase(option, db);
+    if (errCode != E_OK) {
+        LOGE("CheckIntegrity, open db error:%d", errCode);
+        return errCode;
+    }
+    errCode = CheckIntegrity(db, CHECK_DB_INTEGRITY_SQL);
+    if (db != nullptr) {
+        (void)sqlite3_close_v2(db);
+        db = nullptr;
+    }
+    return errCode;
+}
+
 int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 {
     sqlite3_stmt *statement = nullptr;

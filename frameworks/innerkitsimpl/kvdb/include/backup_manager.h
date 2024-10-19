@@ -28,6 +28,12 @@ class BackupManager {
 public:
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
+    struct BackupInfo {
+        std::string name;
+        std::string baseDir;
+        std::string appId;
+        std::string storeId;
+    };
     struct ResidueInfo {
         size_t tmpBackupSize;
         size_t tmpKeySize;
@@ -46,10 +52,8 @@ public:
     static BackupManager &GetInstance();
     void Init(const std::string &baseDir);
     void Prepare(const std::string &path, const std::string &storeId);
-    Status Backup(const std::string &name, const std::string &baseDir,
-        const std::string &storeId, std::shared_ptr<DBStore> dbStore);
-    Status Restore(const std::string &name, const std::string &baseDir,
-        const std::string &appId, const std::string &storeId, std::shared_ptr<DBStore> dbStore);
+    Status Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore);
+    Status Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
     Status DeleteBackup(std::map<std::string, Status> &deleteList,
         const std::string &baseDir, const std::string &storeId);
 private:

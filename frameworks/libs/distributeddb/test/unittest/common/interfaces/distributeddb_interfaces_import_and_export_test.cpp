@@ -1299,7 +1299,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, abortHandle001, TestSize.Le
         threads.emplace_back(thread([&]() {
             g_kvNbDelegatePtr->CheckIntegrity();
         }));
-        threads.emplace_back(&KvStoreNbDelegate::Import, g_kvNbDelegatePtr, singleExportFileName, passwd);
+        threads.emplace_back(&KvStoreNbDelegate::Import, g_kvNbDelegatePtr, singleExportFileName, passwd, false);
         threads.emplace_back(thread([&i]() {
             std::this_thread::sleep_for(std::chrono::milliseconds(i));
             g_kvNbDelegatePtr->CheckIntegrity();

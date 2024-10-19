@@ -62,13 +62,13 @@ int SingleVerDatabaseOper::Rekey(const CipherPassword &passwd)
     return ExecuteRekey(passwd, singleVerNaturalStore_->GetDbProperties());
 }
 
-int SingleVerDatabaseOper::Import(const std::string &filePath, const CipherPassword &passwd)
+int SingleVerDatabaseOper::Import(const std::string &filePath, const CipherPassword &passwd, bool isNeedIntegrityCheck)
 {
     if (singleVerNaturalStore_ == nullptr || storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
 
-    return ExecuteImport(filePath, passwd, singleVerNaturalStore_->GetDbProperties());
+    return ExecuteImport(filePath, passwd, singleVerNaturalStore_->GetDbProperties(), isNeedIntegrityCheck);
 }
 
 int SingleVerDatabaseOper::Export(const std::string &filePath, const CipherPassword &passwd) const
@@ -325,7 +325,7 @@ int SingleVerDatabaseOper::ClearCurrentDatabase(const ImportFileInfo &info) cons
 }
 
 int SingleVerDatabaseOper::ImportUnpackedMainDatabase(const ImportFileInfo &info,
-    const CipherPassword &srcPasswd) const
+    const CipherPassword &srcPasswd, bool isNeedIntegrityCheck) const
 {
     std::string unpackedMainFile = info.unpackedDir + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
         DBConstant::DB_EXTENSION;
@@ -346,6 +346,14 @@ int SingleVerDatabaseOper::ImportUnpackedMainDatabase(const ImportFileInfo &info
 
     int errCode = E_OK;
     if (isMainDbExisted) {
+        if (isNeedIntegrityCheck) {
+            // Check integrity before import
+            errCode = SQLiteUtils::CheckIntegrity(unpackedMainFile, cipherType, srcPasswd);
+            if (errCode != E_OK) {
+                LOGE("Check main file integrity error:%d", errCode);
+                return -E_INVALID_FILE;
+            }
+        }
         errCode = SQLiteUtils::ExportDatabase(unpackedMainFile, cipherType, srcPasswd, currentMainFile, passwd);
         if (errCode != E_OK) {
             LOGE("Export the unpacked main database to current error:%d", errCode);
@@ -354,6 +362,14 @@ int SingleVerDatabaseOper::ImportUnpackedMainDatabase(const ImportFileInfo &info
     }
 
     if (isOldMainDbExisted) {
+        if (isNeedIntegrityCheck) {
+            // Check integrity before import
+            errCode = SQLiteUtils::CheckIntegrity(unpackedOldMainFile, cipherType, srcPasswd);
+            if (errCode != E_OK) {
+                LOGE("Check old main file integrity error:%d", errCode);
+                return -E_INVALID_FILE;
+            }
+        }
         errCode = SQLiteUtils::ExportDatabase(unpackedOldMainFile, cipherType, srcPasswd, currentMainFile, passwd);
         if (errCode != E_OK) {
             LOGE("Export the unpacked old version(<3) main database to current error:%d", errCode);
@@ -379,7 +395,8 @@ int SingleVerDatabaseOper::ImportUnpackedMetaDatabase(const ImportFileInfo &info
     return errCode;
 }
 
-int SingleVerDatabaseOper::ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd) const
+int SingleVerDatabaseOper::ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd,
+    bool isNeedIntegrityCheck) const
 {
     std::string unpackedMetaFile = info.unpackedDir + DBConstant::METADB_DIR + "/" +
         DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
@@ -389,7 +406,7 @@ int SingleVerDatabaseOper::ImportUnpackedDatabase(const ImportFileInfo &info, co
         return errCode;
     }
 
-    errCode = ImportUnpackedMainDatabase(info, srcPasswd);
+    errCode = ImportUnpackedMainDatabase(info, srcPasswd, isNeedIntegrityCheck);
     if (errCode != E_OK) {
         LOGE("import unpacked mainDb fail, errCode = [%d]", errCode);
         return errCode;
