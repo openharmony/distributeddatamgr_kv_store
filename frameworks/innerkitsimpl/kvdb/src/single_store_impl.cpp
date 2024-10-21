@@ -1088,7 +1088,7 @@ bool SingleStoreImpl::IsRebuild()
 
 void SingleStoreImpl::ReportDBCorruptedFault(Status status) const
 {
-    if (status == CRYPT_ERROR) {
+    if (status == DATA_CORRUPTED) {
         Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
             .area = area_, .hapName = hapName_ };
         KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
