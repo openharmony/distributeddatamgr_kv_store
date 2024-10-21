@@ -54,7 +54,6 @@
         "libuv",
         "openssl",
         "sqlite",
-        "zlib",
         "googletest"
       ],
       "kernel_special": {},
@@ -77,7 +76,8 @@
         "napi",
         "safwk",
         "samgr",
-        "file_api"
+        "file_api",
+        "zlib"
       ]
     },
     "build": {
