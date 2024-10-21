@@ -119,13 +119,10 @@ uint32_t StoreUtil::Anonymous(const void *ptr)
 
 Status StoreUtil::ConvertStatus(DBStatus status)
 {
-    if (status == DBStatus::BUSY || status == DBStatus::DB_ERROR) {
-        return Status::DB_ERROR;
-    }
-    if (status == DBStatus::EKEYREVOKED_ERROR || status == DBStatus::SECURITY_OPTION_CHECK_ERROR) {
-        return Status::SECURITY_LEVEL_ERROR;
-    }
     switch (status) {
+        case DBStatus::BUSY: // fallthrough
+        case DBStatus::DB_ERROR:
+            return Status::DB_ERROR;
         case DBStatus::OK:
             return Status::SUCCESS;
         case DBStatus::INVALID_ARGS:
@@ -156,6 +153,9 @@ Status StoreUtil::ConvertStatus(DBStatus status)
             return Status::SCHEMA_MISMATCH;
         case DBStatus::INVALID_SCHEMA:
             return Status::INVALID_SCHEMA;
+        case DBStatus::EKEYREVOKED_ERROR: // fallthrough
+        case DBStatus::SECURITY_OPTION_CHECK_ERROR:
+            return Status::SECURITY_LEVEL_ERROR;
         case DBStatus::LOG_OVER_LIMITS:
             return Status::WAL_OVER_LIMITS;
         case DBStatus::SQLITE_CANT_OPEN:
