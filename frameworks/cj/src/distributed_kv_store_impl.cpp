@@ -227,7 +227,7 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
     }
     if (status == DATA_CORRUPTED) {
         status = CRYPT_ERROR;
-        ZLOGE("rebuild db failed.");
+        LOGE("rebuild db failed.");
     }
     errCode = ConvertCJErrCode(status);
     if (errCode != 0) {
