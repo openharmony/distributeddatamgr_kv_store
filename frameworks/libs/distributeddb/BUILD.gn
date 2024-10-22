@@ -112,13 +112,13 @@ ohos_shared_library("distributeddb") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "zlib:shared_libz",
   ]
 
   public_external_deps = [
     "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
-    "zlib:shared_libz",
   ]
 
   subsystem_name = "distributeddatamgr"
