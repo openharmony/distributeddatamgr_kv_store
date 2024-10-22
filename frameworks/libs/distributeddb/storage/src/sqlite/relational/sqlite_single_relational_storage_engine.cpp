@@ -386,6 +386,21 @@ int SQLiteSingleRelationalStorageEngine::CleanDistributedDeviceTable(std::vector
         return errCode;
     }
 
+    // go fast to check missing tables without transaction
+    errCode = handle->CheckAndCleanDistributedTable(schema_.GetTableNames(), missingTables);
+    if (errCode == E_OK) {
+        if (missingTables.empty()) {
+            LOGI("Check missing distributed table is empty.");
+            ReleaseExecutor(handle);
+            return errCode;
+        }
+    } else {
+        LOGE("Get missing distributed table failed. %d", errCode);
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    missingTables.clear();
+
     std::lock_guard lock(schemaMutex_);
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {

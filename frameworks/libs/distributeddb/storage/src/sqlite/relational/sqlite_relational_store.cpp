@@ -190,6 +190,9 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
         LOGE("Get distributed table mode from meta failed. errcode=%d", errCode);
         return errCode;
     }
+    if (!isSchemaEmpty) {
+        return errCode;
+    }
 
     errCode = SaveTableModeToMeta(mode);
     if (errCode != E_OK) {
@@ -216,9 +219,20 @@ int SQLiteRelationalStore::SaveLogTableVersionToMeta()
 {
     LOGD("save log table version to meta table, version: %s", DBConstant::LOG_TABLE_VERSION_CURRENT);
     const Key logVersionKey(DBConstant::LOG_TABLE_VERSION_KEY.begin(), DBConstant::LOG_TABLE_VERSION_KEY.end());
+    Value logVersion;
+    int errCode = storageEngine_->GetMetaData(logVersionKey, logVersion);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("Get log version from meta table failed. %d", errCode);
+        return errCode;
+    }
     std::string versionStr(DBConstant::LOG_TABLE_VERSION_CURRENT);
     Value logVersionVal(versionStr.begin(), versionStr.end());
-    int errCode = storageEngine_->PutMetaData(logVersionKey, logVersionVal);
+    // log version is same, no need to update
+    if (errCode == E_OK && !logVersion.empty() && logVersionVal == logVersion) {
+        return errCode;
+    }
+    // If the log version does not exist or is different, update the log version
+    errCode = storageEngine_->PutMetaData(logVersionKey, logVersionVal);
     if (errCode != E_OK) {
         LOGE("save log table version to meta table failed. %d", errCode);
     }
