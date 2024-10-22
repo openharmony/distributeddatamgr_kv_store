@@ -20,6 +20,7 @@
 #include <queue>
 #include <thread>
 #include "priority_queue.h"
+#include "active_boottime.h"
 
 namespace OHOS {
 class Executor : public std::enable_shared_from_this<Executor> {
@@ -103,7 +104,7 @@ private:
                 }
                 waits_ = nullptr;
             } while (running_ == RUNNING &&
-                     condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
+                     condition_.wait_until(lock, Boottime::Now() + TIME_OUT, [this]() {
                          return waits_ != nullptr;
                      }));
         } while (!release_(self_, running_ == IS_STOPPING));
