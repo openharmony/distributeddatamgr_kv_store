@@ -30,7 +30,6 @@ namespace OHOS {
 namespace DistributedHardware {
 class DeviceManager {
 public:
-    int32_t testDemo = 0;
     static DeviceManager &GetInstance();
 
     virtual int32_t InitDeviceManager(const std::string &pkgName, std::shared_ptr<DmInitCallback> dmInitCallback);
@@ -59,6 +58,7 @@ public:
     virtual int32_t GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
         std::string &uuid);
 private:
+    int32_t testDemo = 0;
     DeviceManager() = default;
     virtual ~DeviceManager() = default;
 };
