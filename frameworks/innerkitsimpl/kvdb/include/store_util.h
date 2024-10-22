@@ -32,6 +32,10 @@ public:
         size_t size;
         time_t modifyTime;
     };
+    struct ErrorCodePair {
+        DBStatus dbStatus;
+        Status kvStatus;
+    };
     static DBSecurity GetDBSecurity(int32_t secLevel);
     static DBIndexType GetDBIndexType(IndexType type);
     static int32_t GetSecLevel(DBSecurity dbSec);
