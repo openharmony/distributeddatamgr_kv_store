@@ -52,6 +52,9 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     }
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+    if (status == DATA_CORRUPTED && options.encrypt && GetSecretKeyFromService(appId, storeId, path) == SUCCESS) {
+        kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+    }
     if (status == DATA_CORRUPTED) {
         ZLOGW("database is corrupt, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
         KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
