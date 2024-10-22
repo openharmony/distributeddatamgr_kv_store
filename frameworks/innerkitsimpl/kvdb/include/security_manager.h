@@ -49,6 +49,32 @@ public:
         }
     };
 
+    class KeyFiles {
+    public:
+        KeyFiles(const std::string &name, const std::string &path, bool openFile = true);
+        ~KeyFiles();
+        const std::string &GetKeyFilePath();
+        int32_t Lock();
+        int32_t UnLock();
+        int32_t DestroyLock();
+    private:
+        int32_t FileLock(int32_t lockType);
+        int32_t lockFd_ = -1;
+        std::string keyPath_;
+        std::string lockFile_;
+    };
+
+    class KeyFilesAutoLock {
+    public:
+        explicit KeyFilesAutoLock(KeyFiles& keyFiles);
+        ~KeyFilesAutoLock();
+        KeyFilesAutoLock(const KeyFilesAutoLock&) = delete;
+        KeyFilesAutoLock& operator=(const KeyFilesAutoLock&) = delete;
+        int32_t UnLockAndDestroy();
+    private:
+        KeyFiles& keyFiles_;
+    };
+
     static SecurityManager &GetInstance();
     DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
     bool SaveDBPassword(const std::string &name, const std::string &path, const DistributedDB::CipherPassword &key);
@@ -58,6 +84,10 @@ private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
     static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
+    static constexpr const char *SUFFIX_KEY = ".key";
+    static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
+    static constexpr const char *KEY_DIR = "/key";
+    static constexpr const char *SLASH = "/";
     static constexpr int KEY_SIZE = 32;
     static constexpr int HOURS_PER_YEAR = (24 * 365);
 

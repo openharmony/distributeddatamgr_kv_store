@@ -76,6 +76,10 @@ typedef struct GRD_FilterOption {
     GRD_KVItem end;
 } GRD_FilterOptionT;
 
+typedef struct GRD_CipherInfo {
+    const char *hexPassword;
+} GRD_CipherInfoT;
+
 typedef struct GRD_ResultSet GRD_ResultSet;
 typedef struct GRD_DB GRD_DB;
 typedef struct GRD_KVBatch GRD_KVBatchT;
