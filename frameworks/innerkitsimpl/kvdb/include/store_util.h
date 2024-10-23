@@ -32,10 +32,6 @@ public:
         size_t size;
         time_t modifyTime;
     };
-    struct ErrorCodePair {
-        DBStatus dbStatus;
-        Status kvStatus;
-    };
     static DBSecurity GetDBSecurity(int32_t secLevel);
     static DBIndexType GetDBIndexType(IndexType type);
     static int32_t GetSecLevel(DBSecurity dbSec);
@@ -56,6 +52,7 @@ public:
     static bool RemoveRWXForOthers(const std::string &path);
 private:
     static std::atomic<uint64_t> sequenceId_;
+    static std::map<DBStatus, Status> statusMap_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H

@@ -32,7 +32,7 @@ constexpr const char *DEFAULT_ANONYMOUS = "******";
 constexpr int32_t SERVICE_GID = 3012;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 using DBStatus = DistributedDB::DBStatus;
-static constexpr StoreUtil::ErrorCodePair KV_ERROR_MAP[] = {
+std::map<DBStatus, Status> StoreUtil::statusMap_ = {
     { DBStatus::BUSY, Status::DB_ERROR },
     { DBStatus::DB_ERROR, Status::DB_ERROR },
     { DBStatus::OK, Status::SUCCESS },
@@ -144,13 +144,12 @@ uint32_t StoreUtil::Anonymous(const void *ptr)
 
 Status StoreUtil::ConvertStatus(DBStatus status)
 {
-    for (const auto &item : KV_ERROR_MAP) {
-        if (item.dbStatus == status) {
-            return item.kvStatus;
-        }
+    auto iter = statusMap_.find();
+    if (iter == statusMap_.end()) {
+        ZLOGE("unknown db error:0x%{public}x", status);
+        return Status::ERROR;
     }
-    ZLOGE("unknown db error:0x%{public}x", status);
-    return Status::ERROR;
+    return iter->second;
 }
 
 bool StoreUtil::InitPath(const std::string &path)
