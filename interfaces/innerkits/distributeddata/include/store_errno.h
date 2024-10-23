@@ -203,7 +203,12 @@ enum Status : int32_t {
    /**
     * Cloud disabled.
     */
-    CLOUD_DISABLED = DISTRIBUTEDDATAMGR_ERR_OFFSET + 41
+    CLOUD_DISABLED = DISTRIBUTEDDATAMGR_ERR_OFFSET + 41,
+    
+    /**
+     * database can not open.
+    */
+    DB_CANT_OPEN = DISTRIBUTEDDATAMGR_ERR_OFFSET + 42
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_INTERFACES_DISTRIBUTEDDATA_STORE_ERRNO_H
