@@ -41,26 +41,27 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         status = INVALID_ARGUMENT;
         return nullptr;
     }
-
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
         status = service->BeforeCreate(appId, storeId, options);
     }
-
     if (status == STORE_META_CHANGED) {
         ZLOGE("appId:%{public}s, storeId:%{public}s type:%{public}d encrypt:%{public}d", appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
-
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
     if (status == DATA_CORRUPTED) {
-        ZLOGW("database is corrupt, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
-        KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
-        status = CRYPT_ERROR;
+        if (options.encrypt && GetSecretKeyFromService(appId, storeId, path) == SUCCESS) {
+            kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+        } else {
+            ZLOGW("database is corrupt, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
+            KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
+            auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+            KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
+            status = CRYPT_ERROR;
+        }
     }
     if (kvStore != nullptr && status == SUCCESS && kvStore->IsRebuild()) {
         ZLOGI("rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -79,6 +80,34 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         pwd.assign(pwd.size(), 0);
     }
     return kvStore;
+}
+
+Status StoreManager::GetSecretKeyFromService(const AppId &appId, const StoreId &storeId, const std::string &path)
+{
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        ZLOGE("get service failed! appId:%{public}s, storeId:%{public}s",
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
+        return Status::SERVER_UNAVAILABLE;
+    }
+    std::vector<uint8_t> key;
+    auto status = service->GetBackupPassword(appId, storeId, key, KVDBService::PasswordType::SECRET_KEY);
+    if (status != Status::SUCCESS) {
+        key.assign(key.size(), 0);
+        ZLOGE("get password from service failed! status:%{public}d, appId:%{public}s storeId:%{public}s",
+            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
+        return status;
+    }
+    if (key.empty()) {
+        ZLOGE("service secret key is empty! status:%{public}d, appId:%{public}s storeId:%{public}s",
+            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
+        return Status::ERROR;
+    }
+    SecurityManager::DBPassword dbPassword;
+    dbPassword.SetValue(key.data(), key.size());
+    key.assign(key.size(), 0);
+    SecurityManager::GetInstance().SaveDBPassword(storeId.storeId, path, dbPassword.password);
+    return Status::SUCCESS;
 }
 
 Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
