@@ -144,7 +144,7 @@ uint32_t StoreUtil::Anonymous(const void *ptr)
 
 Status StoreUtil::ConvertStatus(DBStatus status)
 {
-    auto iter = statusMap_.find();
+    auto iter = statusMap_.find(status);
     if (iter == statusMap_.end()) {
         ZLOGE("unknown db error:0x%{public}x", status);
         return Status::ERROR;
