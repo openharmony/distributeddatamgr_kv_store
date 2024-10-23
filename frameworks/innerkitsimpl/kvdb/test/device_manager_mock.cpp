@@ -69,7 +69,11 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
         return DM_OK;
     } else {
         testDemo = 0;
-        deviceInfo.networkId[0] = 'a';
+        DmDeviceInfo info;
+        info.networkId[0] = '1';
+        info.networkId[1] = '1';
+        DmDeviceInfo& infos = info;
+        deviceInfo = infos;
         return DM_OK;
     }
 }
