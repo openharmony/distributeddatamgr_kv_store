@@ -29,6 +29,7 @@ public:
     explicit SchemaMgr();
     ~SchemaMgr() =default;
     void SetCloudDbSchema(const DataBaseSchema &schema);
+    void SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaObject &localSchema);
     std::shared_ptr<DataBaseSchema> GetCloudDbSchema();
     int GetCloudTableSchema(const TableName &tableName, TableSchema &retSchema);
     int ChkSchema(const TableName &tableName, RelationalSchemaObject &localSchema);

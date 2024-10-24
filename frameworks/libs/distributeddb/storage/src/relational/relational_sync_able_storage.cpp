@@ -1234,7 +1234,8 @@ int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
 int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
 {
     std::unique_lock<std::shared_mutex> writeLock(schemaMgrMutex_);
-    schemaMgr_.SetCloudDbSchema(schema);
+    RelationalSchemaObject localSchema = GetSchemaInfo();
+    schemaMgr_.SetCloudDbSchema(schema, localSchema);
     return E_OK;
 }
 
