@@ -90,7 +90,7 @@ void KVDBFaultHiViewReporter::ReportKVDBRebuild(
     eventInfo.storeName = storeTuple.storeId;
     eventInfo.bundleName = storeTuple.appId;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    if (errorCode == 0) {
+    if (!IsReportCorruptedFault(eventInfo.appendix, storeTuple.storeId)) {
         ZLOGI("db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(storeTuple.storeId).c_str());
         DeleteCorruptedFlag(eventInfo.appendix, storeTuple.storeId);
         auto corruptedTime = GetFileStatInfo(eventInfo.appendix);
