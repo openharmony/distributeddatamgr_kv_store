@@ -1247,6 +1247,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.lockAction = option.lockAction;
     info.merge = option.merge;
     info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
+    info.prepareTraceId = option.prepareTraceId;
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)

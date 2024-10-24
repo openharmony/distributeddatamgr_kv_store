@@ -44,6 +44,7 @@ public:
         LockAction lockAction = LockAction::INSERT;
         bool merge = false;
         std::string storeId;
+        std::string prepareTraceId;
     };
 
     struct InnerProcessInfo {

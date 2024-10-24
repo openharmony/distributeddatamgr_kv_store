@@ -227,6 +227,9 @@ int CloudSyncer::DoSync(TaskId taskId)
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskInfo = cloudTaskInfos_[taskId];
+        cloudDB_.SetPrepareTraceId(taskInfo.prepareTraceId); // SetPrepareTraceId before task started
+        LOGD("[CloudSyncer] DoSync get taskInfo, taskId is: %llu, prepareTraceId is:%s.",
+            static_cast<unsigned long long>(taskInfo.taskId), taskInfo.prepareTraceId.c_str());
     }
     bool needUpload = true;
     bool isNeedFirstDownload = false;
