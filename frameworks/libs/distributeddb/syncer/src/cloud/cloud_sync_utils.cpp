@@ -623,6 +623,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     CloudSyncer::CloudTaskInfo taskInfo = InitCompensatedSyncTaskInfo();
     taskInfo.callback = onProcess;
     taskInfo.devices = option.devices;
+    taskInfo.prepareTraceId = option.prepareTraceId;
     if (option.users.empty()) {
         taskInfo.users.push_back("");
     } else {
@@ -638,6 +639,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     taskInfo.users = oriTaskInfo.users;
     taskInfo.devices = oriTaskInfo.devices;
     taskInfo.storeId = oriTaskInfo.storeId;
+    taskInfo.prepareTraceId = oriTaskInfo.prepareTraceId;
     return taskInfo;
 }
 }

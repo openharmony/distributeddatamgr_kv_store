@@ -156,6 +156,7 @@ struct CloudSyncOption {
     bool merge = false;
     // default, upload insert need lock
     LockAction lockAction = LockAction::INSERT;
+    std::string prepareTraceId;
 };
 
 enum class QueryNodeType : uint32_t {
