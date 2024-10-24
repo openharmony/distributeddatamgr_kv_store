@@ -564,7 +564,7 @@ HWTEST_F(DocumentDBInsertTest, DocumentDBInsertTest025, TestSize.Level1)
      * @tc.expected:step1.GRD_OK.
      */
     const char *document1 = "{\"_id\" : \"25_0\", \"level1\" : {\"level2\" : {\"level3\" :\
-        {\"level4\" : \"level4Val\"}}} , \"level1_2\" : \"level1_2Val\" }";
+        {\"level4\" : \"level4Val\"}}}, \"level1_2\" : \"level1_2Val\" }";
     EXPECT_EQ(GRD_InsertDoc(g_db, RIGHT_COLLECTION_NAME, document1, 0), GRD_OK);
     /**
      * @tc.steps:step2.documents JSON depth is exactly 4.

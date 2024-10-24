@@ -16,6 +16,7 @@
 #include "db_common.h"
 
 #include <atomic>
+#include <charconv>
 #include <climits>
 #include <cstdio>
 #ifndef _WIN32
@@ -793,6 +794,12 @@ std::string DBCommon::GetCursorKey(const std::string &tableName)
     return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
 }
 
+bool DBCommon::ConvertToUInt64(const std::string &str, uint64_t &value)
+{
+    auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
+    return errCode == std::errc{} && ptr == str.data() + str.size();
+}
+
 void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
 {
     std::unordered_map<std::string, size_t> indexMap;
@@ -817,11 +824,10 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
             indexMap[asset.name] = prevIndex;
             continue;
         }
-        if (std::all_of(asset.modifyTime.begin(), asset.modifyTime.end(), ::isdigit) &&
-            std::all_of(prevAsset.modifyTime.begin(), prevAsset.modifyTime.end(), ::isdigit) &&
+        uint64_t modifyTime = 0;
+        uint64_t prevModifyTime = 0;
+        if (ConvertToUInt64(asset.modifyTime, modifyTime) && ConvertToUInt64(prevAsset.modifyTime, prevModifyTime) &&
             !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
-            auto modifyTime = std::stoll(asset.modifyTime);
-            auto prevModifyTime = std::stoll(prevAsset.modifyTime);
             arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
             indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
             continue;

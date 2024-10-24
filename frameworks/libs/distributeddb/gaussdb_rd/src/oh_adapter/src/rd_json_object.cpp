@@ -20,19 +20,11 @@
 #include <queue>
 
 #include "doc_errno.h"
+#include "json_common.h"
 #include "rd_log_print.h"
 
 namespace DocumentDB {
 #ifndef OMIT_cJSON
-namespace {
-bool IsNumber(const std::string &str)
-{
-    return std::all_of(str.begin(), str.end(), [](char c) {
-        return std::isdigit(c);
-    });
-}
-} // namespace
-
 ValueObject::ValueObject(bool val)
 {
     valueType = ValueType::VALUE_BOOL;
@@ -351,7 +343,8 @@ int JsonObject::AddItemToObject(const std::string &fieldName, const JsonObject &
             child = child->next;
             n++;
         }
-        if (IsNumber(fieldName) && n <= std::stoi(fieldName)) {
+        int intFieldName = 0;
+        if (JsonCommon::ConvertToInt(fieldName, intFieldName) && n <= intFieldName) {
             GLOGE("Add item object to array over size.");
             return -E_NO_DATA;
         }
@@ -374,7 +367,8 @@ int JsonObject::AddItemToObject(const std::string &fieldName)
             child = child->next;
             n++;
         }
-        if (IsNumber(fieldName) && n <= std::stoi(fieldName)) {
+        int intFieldName = 0;
+        if (JsonCommon::ConvertToInt(fieldName, intFieldName) && n <= intFieldName) {
             GLOGE("Add item object to array over size.");
             return -E_NO_DATA;
         }
@@ -496,11 +490,12 @@ cJSON *GetChild(cJSON *cjson, const std::string &field, bool caseSens)
             return cJSON_GetObjectItem(cjson, field.c_str());
         }
     } else if (cjson->type == cJSON_Array) {
-        if (!IsNumber(field)) {
+        int intField = 0;
+        if (!JsonCommon::ConvertToInt(field, intField)) {
             GLOGW("Invalid json field path, expect array index.");
             return nullptr;
         }
-        return cJSON_GetArrayItem(cjson, std::stoi(field));
+        return cJSON_GetArrayItem(cjson, intField);
     }
 
     GLOGW("Invalid json field type, expect object or array.");
@@ -521,7 +516,8 @@ cJSON *GetChildPowerMode(cJSON *cjson, const std::string &field, bool caseSens)
     }
 
     // type is cJSON_Array
-    if (!IsNumber(field)) {
+    int intField = 0;
+    if (!JsonCommon::ConvertToInt(field, intField)) {
         cjson = cjson->child;
         while (cjson != nullptr) {
             cJSON *resultItem = GetChild(cjson, field, caseSens);
@@ -532,7 +528,7 @@ cJSON *GetChildPowerMode(cJSON *cjson, const std::string &field, bool caseSens)
         }
         return nullptr;
     }
-    return cJSON_GetArrayItem(cjson, std::stoi(field));
+    return cJSON_GetArrayItem(cjson, intField);
 }
 
 cJSON *MoveToPath(cJSON *cjson, const JsonFieldPath &jsonPath, bool caseSens)
@@ -654,11 +650,12 @@ int JsonObject::DeleteItemDeeplyOnTarget(const JsonFieldPath &path)
             }
         }
     } else if (nodeFather->type == cJSON_Array) {
-        if (!IsNumber(fieldName)) {
+        int intFieldName = 0;
+        if (!JsonCommon::ConvertToInt(fieldName, intFieldName)) {
             GLOGW("Invalid json field path, expect array index.");
             return -E_JSON_PATH_NOT_EXISTS;
         }
-        cJSON_DeleteItemFromArray(nodeFather, std::stoi(fieldName));
+        cJSON_DeleteItemFromArray(nodeFather, intFieldName);
         if (nodeFather->child == nullptr && path.size() > 1) {
             JsonFieldPath fatherPath(path.begin(), path.end() - 1);
             DeleteItemDeeplyOnTarget(fatherPath);
