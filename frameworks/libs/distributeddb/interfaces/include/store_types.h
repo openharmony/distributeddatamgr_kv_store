@@ -215,6 +215,7 @@ struct TrackerSchema {
     std::string tableName;
     std::string extendColName;
     std::set<std::string> trackerColNames;
+    bool isForceUpgrade = false;
 };
 
 struct TableReferenceProperty {
