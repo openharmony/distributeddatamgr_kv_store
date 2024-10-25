@@ -327,11 +327,14 @@ group("unittest") {
     ":BackupManagerTest",
     ":DevManagerMockTest",
     ":DevManagerTest",
-    ":SecurityManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
     ":StoreFactoryTest",
     ":StoreUtilTest",
   ]
+
+  if (!use_libfuzzer) {
+    deps += [ ":SecurityManagerTest" ]
+  }
 }
 ###############################################################################
