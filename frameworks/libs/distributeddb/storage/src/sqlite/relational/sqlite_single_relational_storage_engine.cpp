@@ -683,7 +683,14 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
-    errCode = handle->CleanTrackerData(tableName, cursor);
+    TrackerTable trackerTable = GetTrackerSchema().GetTrackerTable(tableName);
+    bool isOnlyTrackTable = false;
+    RelationalSchemaObject schema = GetSchema();
+    if (!trackerTable.IsTableNameEmpty() &&
+        !DBCommon::CaseInsensitiveCompare(schema.GetTable(tableName).GetTableName(), tableName)) {
+        isOnlyTrackTable = true;
+    }
+    errCode = handle->CleanTrackerData(tableName, cursor, isOnlyTrackTable);
     ReleaseExecutor(handle);
     return errCode;
 }
