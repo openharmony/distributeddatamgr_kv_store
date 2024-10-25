@@ -237,7 +237,7 @@ private:
         const DataOperStatus &dataStatus, SingleVerNaturalStoreCommitNotifyData *commitData);
 
     DataOperStatus JudgeSyncSaveType(DataItem &dataItem, const DataItem &itemGet,
-        const std::string &devName, bool isHashKeyExisted, bool isPermitForceWrite = true);
+        const DeviceInfo &deviceInfo, bool isHashKeyExisted, bool isPermitForceWrite = true);
 
     static std::string GetOriginDevName(const DataItem &dataItem, const std::string &origDevGet);
 
