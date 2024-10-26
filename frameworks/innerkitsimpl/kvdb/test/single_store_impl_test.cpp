@@ -24,8 +24,17 @@
 #include "store_manager.h"
 #include "sys/stat.h"
 #include "types.h"
+#include "single_store_impl.h"
+#include "store_factory.h"
+#include "dm_device_info.h"
+#include "device_manager.h"
+
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+using DBStatus = DistributedDB::DBStatus;
+using DBStore = DistributedDB::KvStoreNbDelegate;
+using SyncCallback = KvStoreSyncCallback;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
 namespace OHOS::Test {
 
 std::vector<uint8_t> Random(int32_t len)
@@ -65,6 +74,7 @@ public:
     void TearDown();
 
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
+    std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false);
     std::shared_ptr<SingleKvStore> kvStore_;
     static constexpr int MAX_RESULTSET_SIZE = 8;
 };
@@ -121,6 +131,37 @@ std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string st
     StoreId storeId = { storeIdTest };
     Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
     return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+}
+
+std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosync)
+{
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DestructorTest" };
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S2;
+    options.area = EL1;
+    options.autoSync = autosync;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    StoreFactory storeFactory;
+    auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
+    auto dbPassword =
+        SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+    DBStatus dbStatus = DBStatus::DB_ERROR;
+        dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
+            [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
+                dbStatus = status;
+                if (store == nullptr) {
+                    return;
+                }
+                auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
+                auto dbStore = std::shared_ptr<DBStore>(store, release);
+                storeFactory.SetDbConfig(dbStore);
+                const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
+                kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
+            });
+    return kvStore;
 }
 
 /**
@@ -221,6 +262,45 @@ HWTEST_F(SingleStoreImplTest, PutBatch, TestSize.Level0)
     }
     auto status = kvStore_->PutBatch(entries);
     ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetStoreId
+ * @tc.desc: test IsRebuild
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, IsRebuild, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->IsRebuild();
+    ASSERT_EQ(status, false);
+}
+
+/**
+ * @tc.name: PutBatch001
+ * @tc.desc: entry.value.Size() > MAX_VALUE_LENGTH
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, PutBatch001, TestSize.Level1)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    size_t totalLength = SingleStoreImpl::MAX_VALUE_LENGTH + 1; // create an out-of-limit large number
+    char fillChar = 'a';
+    std::string longString(totalLength, fillChar);
+    std::vector<Entry> entries;
+    Entry entry;
+    entry.key = "PutBatch001_test";
+    entry.value = longString;
+    entries.push_back(entry);
+    auto status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    entries.clear();
+    Entry entrys;
+    entrys.key = "";
+    entrys.value = "PutBatch001_test_value";
+    entries.push_back(entrys);
+    status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
 /**
@@ -410,6 +490,22 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
     observer = std::make_shared<TestObserver>();
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
     ASSERT_EQ(status, OVER_MAX_LIMITS);
+}
+
+/**
+ * @tc.name: SubscribeKvStore003
+ * @tc.desc: isClientSync_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SubscribeKvStore003, TestSize.Level0)
+{
+    auto observer = std::make_shared<TestObserver>();
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    kvStore->isClientSync_ = true;
+    auto status = kvStore->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
@@ -720,6 +816,20 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
     ASSERT_EQ(outputTmp->IsAfterLast(), false);
     Entry entry;
     ASSERT_EQ(outputTmp->GetEntry(entry), ALREADY_CLOSED);
+}
+
+/**
+ * @tc.name: CloseResultSet001
+ * @tc.desc: output = nullptr;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseResultSet001, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::shared_ptr<KvStoreResultSet> output;
+    output = nullptr;
+    auto status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
 /**
@@ -1794,5 +1904,129 @@ HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
     StoreConfig storeConfig;
     storeConfig.cloudConfig.enableCloud = true;
     ASSERT_EQ(kvStore->SetConfig(storeConfig), Status::SUCCESS);
+}
+
+/**
+ * @tc.name: GetDeviceEntries001
+ * @tc.desc:
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
+{
+    std::string PKG_NAME_EX = "_distributed_data";
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    std::vector<Entry> output;
+    std::string device = DevManager::GetInstance().GetUnEncryptedUuid();
+    std::string devices = "GetDeviceEntriestest";
+    auto status = kvStore->GetDeviceEntries("", output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore->GetDeviceEntries(device, output);
+    ASSERT_EQ(status, SUCCESS);
+    DevInfo devinfo;
+    std::string PKG_NAME = std::to_string(getpid()) + PKG_NAME_EX;
+    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, devinfo);
+    ASSERT_NE(std::string(devinfo.deviceId), "");
+    status = kvStore->GetDeviceEntries(std::string(devinfo.deviceId), output);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    EXPECT_NE(kvStore, nullptr) << "kvStorePtr is null.";
+    std::string deviceId = "no_exist_device_id";
+    std::vector<std::string> deviceIds = { deviceId };
+    uint32_t allowedDelayMs = 200;
+    kvStore->isClientSync_ = false;
+    auto syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    kvStore->isClientSync_ = true;
+    kvStore->syncObserver_ = nullptr;
+    syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+}
+
+/**
+ * @tc.name: SetCapabilityEnabled001
+ * @tc.desc: enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SetCapabilityEnabled001, TestSize.Level1)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->SetCapabilityEnabled(true);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SetCapabilityEnabled(false);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DoClientSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoClientSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.mode = SyncMode::PULL;
+    syncInfo.seqId = 10; // syncInfo seqId
+    syncInfo.devices = { "networkId" };
+    std::shared_ptr<SyncCallback> observer;
+    observer = nullptr;
+    auto status = kvStore->DoClientSync(syncInfo, observer);
+    ASSERT_EQ(status, DB_ERROR);
+}
+
+/**
+ * @tc.name: DoNotifyChange001
+ * @tc.desc: called within timeout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoNotifyChange001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    EXPECT_NE(kvStore, nullptr) << "kvStorePtr is null.";
+    auto status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(kvStore->notifyExpiredTime_, 0);
+    kvStore->cloudAutoSync_ = true;
+    status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    auto notifyExpiredTime = kvStore->notifyExpiredTime_;
+    ASSERT_NE(notifyExpiredTime, 0);
+    status = kvStore->Put({ "Put Test1" }, { "Put Value1" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(notifyExpiredTime, kvStore->notifyExpiredTime_);
+    sleep(1);
+    status = kvStore->Put({ "Put Test2" }, { "Put Value2" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(notifyExpiredTime, kvStore->notifyExpiredTime_);
+}
+
+/**
+ * @tc.name: DoAutoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoAutoSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore(true);
+    ASSERT_NE(kvStore, nullptr);
+    kvStore->isApplication_ = true;
+    auto status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(!kvStore->autoSync_ || !kvStore->isApplication_, false);
 }
 } // namespace OHOS::Test
