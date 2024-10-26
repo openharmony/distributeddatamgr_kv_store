@@ -1081,7 +1081,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
     std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
         " where extend_field is NULL;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(num / HALF), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();
 }
 
@@ -1809,6 +1809,44 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027,
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     schema.trackerColNames = {};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest030
+  * @tc.desc: Test clean trackTable when table is distributedTable
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: wangxiangdong
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest030, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2), OK);
+
+    /**
+     * @tc.steps:step2. Insert data to table2
+     * @tc.expected: step2. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    BatchDeleteTableName2Data(num / HALF);
+
+    /**
+     * @tc.steps:step3. CleanTrackerData
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
+    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+        " where extend_field is NULL;";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
     CloseStore();
 }
 
