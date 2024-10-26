@@ -593,7 +593,7 @@ HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest002, TestSize.Level1)
 
     /**
      * @tc.steps: step2. Call interfaces with the para is greater than stepNum.
-     * @tc.expected: step2. success;
+     * @tc.expected: step2. success.
      */
     performance->StepTimeRecordStart(RECORD_ACK_RECV_TO_USER_CALL_BACK);
     performance->StepTimeRecordEnd(RECORD_ACK_RECV_TO_USER_CALL_BACK);
@@ -692,7 +692,7 @@ HWTEST_F(DistributedDBCommonTest, TimeTickMonitorTest, TestSize.Level1)
 
     /**
      * @tc.steps: step3. Call RegisterTimeChangedLister after Stop TimeTickMonitor.
-     * @tc.expected: step3. success;
+     * @tc.expected: step3. success.
      */
     EXPECT_EQ(monitor.StartTimeTickMonitor(), E_OK);
     monitor.StopTimeTickMonitor();
@@ -714,7 +714,7 @@ HWTEST_F(DistributedDBCommonTest, LockStatusObserverTest, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Call RegisterLockStatusChangedLister with null para.
-     * @tc.expected: step1. -E_INVALID_ARGS.
+     * @tc.expected: step1. return -E_INVALID_ARGS.
      */
     LockStatusObserver observer;
     EXPECT_EQ(observer.Start(), E_OK);
@@ -727,7 +727,7 @@ HWTEST_F(DistributedDBCommonTest, LockStatusObserverTest, TestSize.Level1)
 
     /**
      * @tc.steps: step2. Call RegisterLockStatusChangedLister after stop observer.
-     * @tc.expected: step2. -E_NOT_INIT.
+     * @tc.expected: step2. return -E_NOT_INIT.
      */
     EXPECT_EQ(observer.Start(), E_OK);
     observer.Stop();

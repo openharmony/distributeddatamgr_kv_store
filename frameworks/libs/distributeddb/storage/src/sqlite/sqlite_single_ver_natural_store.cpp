@@ -1381,7 +1381,7 @@ uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
             localTimeOffset = result;
         }
     } else {
-        LOGW("GetTimestampFromDb::when sync not start get metadata from db failed,err=%d", errCode);
+        LOGW("[GetTimestampFromDB] when sync not start get metadata from db failed, err=%d", errCode);
     }
     uint64_t currentSysTime = TimeHelper::GetSysCurrentTime();
     if (localTimeOffset < 0 && currentSysTime >= static_cast<uint64_t>(std::abs(localTimeOffset))) {

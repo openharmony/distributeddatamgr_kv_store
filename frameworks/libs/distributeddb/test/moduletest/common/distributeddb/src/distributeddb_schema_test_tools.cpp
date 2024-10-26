@@ -311,16 +311,15 @@ void DistributedDBSchemaTestTools::GenerateSpecificSchemaEntries(const int start
     int switchFactor;
     vector<Key> keys;
     vector<string> schemasValue;
-    std::string indexNumStr, field1, field3, field5, field7, field8, value, switchFactorStr;
     for (int indexNum = startPoint; indexNum < startPoint + recordNumber; indexNum++) {
-        indexNumStr = std::to_string(indexNum);
-        field1 = "\"field1\":\"SubscribeRemoteQueryTest" + indexNumStr + "\"";
-        field3 = "\"field3\":false";
-        field5 = "\"field5\":" + indexNumStr;
-        field7 = "\"field7\":" + indexNumStr;
-        field8 = "\"field8\":" + indexNumStr + ".1234";
+        std::string indexNumStr = std::to_string(indexNum);
+        std::string field1 = "\"field1\":\"SubscribeRemoteQueryTest" + indexNumStr + "\"";
+        std::string field3 = "\"field3\":false";
+        std::string field5 = "\"field5\":" + indexNumStr;
+        std::string field7 = "\"field7\":" + indexNumStr;
+        std::string field8 = "\"field8\":" + indexNumStr + ".1234";
         for (auto &iter : values) {
-            switchFactorStr = iter[INDEX_ZEROTH];
+            std::string switchFactorStr = iter[INDEX_ZEROTH];
             switchFactor = switchFactorStr.back() - '0';
             switch (switchFactor) {
                 case 1: // field 1 has assigned value
@@ -343,7 +342,7 @@ void DistributedDBSchemaTestTools::GenerateSpecificSchemaEntries(const int start
                     break;
             }
         }
-        value = "{" + field1 + ",\"field2\":{" + field3 + ",\"field4\":{" + field5 + ",\"field6\":{"
+        std::string value = "{" + field1 + ",\"field2\":{" + field3 + ",\"field4\":{" + field5 + ",\"field6\":{"
             + field7 + "," + field8 + "}}}}";
         indexNumStr = "k" + indexNumStr;
         Key key(indexNumStr.begin(), indexNumStr.end());

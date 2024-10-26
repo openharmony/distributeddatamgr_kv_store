@@ -40,7 +40,7 @@ namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
 class CloudSyncer : public ICloudSyncer {
 public:
-    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isLocalDeleteUpload = false,
+    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isKvScene = false,
         SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
     void InitCloudSyncStateMachine();
     ~CloudSyncer() override = default;
@@ -295,9 +295,6 @@ protected:
     int CommitDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, int errCode);
 
-    void SeparateNormalAndFailAssets(const std::map<std::string, Assets> &assetsMap, VBucket &normalAssets,
-        VBucket &failedAssets);
-
     int GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
         std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
 
@@ -342,7 +339,7 @@ protected:
 
     void ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info);
 
-    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo);
+    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo, UploadRetryInfo &retryInfo);
 
     QuerySyncObject GetQuerySyncObject(const std::string &tableName);
 
@@ -378,6 +375,9 @@ protected:
 
     int CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
         DownloadCommitList &commitList, uint32_t &successCount);
+
+    void SeparateNormalAndFailAssets(const std::map<std::string, Assets> &assetsMap, VBucket &normalAssets,
+        VBucket &failedAssets);
 
     void ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam);
 
@@ -436,6 +436,8 @@ protected:
 
     int GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo);
 
+    void ProcessVersionConflictInfo(InnerProcessInfo &innerProcessInfo, uint32_t retryCount);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
@@ -461,7 +463,11 @@ protected:
     std::map<TaskId, int32_t> failedHeartbeatCount_;
 
     std::string id_;
-    bool isLocalDeleteUpload_; // Whether upload to the cloud after delete local data that does not have a gid.
+
+    // isKvScene_ is used to distinguish between the KV and RDB in the following scenarios:
+    // 1. Whether upload to the cloud after delete local data that does not have a gid.
+    // 2. Whether the local data need update for different flag when the local time is larger.
+    bool isKvScene_;
     std::atomic<SingleVerConflictResolvePolicy> policy_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;

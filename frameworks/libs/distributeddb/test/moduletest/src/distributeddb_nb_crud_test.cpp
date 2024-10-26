@@ -1410,29 +1410,27 @@ HWTEST_F(DistributeddbNbCrudTest, Pressure006, TestSize.Level1)
 
 vector<Value> GenerateDataForBatch(vector<Key> &KeyCrud)
 {
-    DistributedDB::Key key1, key2, key3, key4, key5, key6, key7, key8;
-    key1 = {'a', 'b', 'c'};
-    key2 = {'a', 'b', 'c', 'd', 'e'};
-    key3 = {'a', 'b', 'c'};
-    key4 = {'a', 'b', 'c', 'd', 'a', 's', 'd'};
-    key5 = {'a', 'b', 'c', 'd', 's'};
-    key6 = {'b', 'c'};
-    key7 = {'d', 'a', 'b'};
-    key8 = {'d', 'a', 'b', 'c'};
+    DistributedDB::Key key1 = {'a', 'b', 'c'};
+    DistributedDB::Key key2 = {'a', 'b', 'c', 'd', 'e'};
+    DistributedDB::Key key3 = {'a', 'b', 'c'};
+    DistributedDB::Key key4 = {'a', 'b', 'c', 'd', 'a', 's', 'd'};
+    DistributedDB::Key key5 = {'a', 'b', 'c', 'd', 's'};
+    DistributedDB::Key key6 = {'b', 'c'};
+    DistributedDB::Key key7 = {'d', 'a', 'b'};
+    DistributedDB::Key key8 = {'d', 'a', 'b', 'c'};
     KeyCrud = {
         key1, key2, key3,
         key4, key5, key6,
         key7, key8
     };
-    DistributedDB::Value value1, value2, value3, value4, value5, value6, value7, value8;
-    value1 = {'l', 'o', 'c', 'a', 'l', 'V', '1'};
-    value2 = {'l', 'o', 'c', 'a', 'l', 'V', '2'};
-    value3 = {'s', 'y', 'n', 'V', '1'};
-    value4 = {'s', 'y', 'n', 'V', '2'};
-    value5 = {'s', 'y', 'n', 'V', '3'};
-    value6 = {'s', 'y', 'n', 'V', '4'};
-    value7 = {'s', 'y', 'n', 'V', '5'};
-    value8 = {'s', 'y', 'n', 'V', '6'};
+    DistributedDB::Value value1 = {'l', 'o', 'c', 'a', 'l', 'V', '1'};
+    DistributedDB::Value value2 = {'l', 'o', 'c', 'a', 'l', 'V', '2'};
+    DistributedDB::Value value3 = {'s', 'y', 'n', 'V', '1'};
+    DistributedDB::Value value4 = {'s', 'y', 'n', 'V', '2'};
+    DistributedDB::Value value5 = {'s', 'y', 'n', 'V', '3'};
+    DistributedDB::Value value6 = {'s', 'y', 'n', 'V', '4'};
+    DistributedDB::Value value7 = {'s', 'y', 'n', 'V', '5'};
+    DistributedDB::Value value8 = {'s', 'y', 'n', 'V', '6'};
     vector<Value> ValueCrud = {
         value1, value2, value3,
         value4, value5, value6,
@@ -1703,9 +1701,12 @@ HWTEST_F(DistributeddbNbCrudTest, Concurrency002, TestSize.Level3)
 void StartThreadForLongReadWrite(vector<Entry> &entriesBatch)
 {
     std::vector<std::thread> threads;
-    std::random_device randDevReadKeyNo, randDevWriteKeyNo, randDevTag;
-    std::mt19937 genRandReadKeyNo(randDevReadKeyNo()), genRandWriteKeyNo(randDevWriteKeyNo()),
-        genRandTag(randDevTag());
+    std::random_device randDevReadKeyNo;
+    std::random_device randDevWriteKeyNo;
+    std::random_device randDevTag;
+    std::mt19937 genRandReadKeyNo(randDevReadKeyNo());
+    std::mt19937 genRandWriteKeyNo(randDevWriteKeyNo());
+    std::mt19937 genRandTag(randDevTag());
     std::uniform_int_distribution<unsigned long> disRandReadKeyNo(READ_RECORDS_NUM_START, READ_RECORDS_NUM_END);
     std::uniform_int_distribution<unsigned long> disRandWriteKeyNo(WRITE_RECORDS_NUM_START, WRITE_RECORDS_NUM_END);
     std::uniform_int_distribution<unsigned long> disRandTag(READ, WRITE);
@@ -1800,13 +1801,17 @@ void JudgeInLongWriteWrite(vector<Entry> &entriesBatch, ConcurParam *threadParam
 void StartThreadForLongWriteWrite(vector<Entry> &entriesBatch)
 {
     std::vector<std::thread> threads;
-    std::random_device randDevWriteKeyNo, randDevDeleteKeyNo, randDevTag;
-    std::mt19937 genRandWriteKeyNo(randDevWriteKeyNo()), genRandDeleteKeyNo(randDevDeleteKeyNo()),
-        genRandTag(randDevTag());
+    std::random_device randDevWriteKeyNo;
+    std::random_device randDevDeleteKeyNo;
+    std::random_device randDevTag;
+    std::mt19937 genRandWriteKeyNo(randDevWriteKeyNo());
+    std::mt19937 genRandDeleteKeyNo(randDevDeleteKeyNo());
+    std::mt19937 genRandTag(randDevTag());
     std::uniform_int_distribution<unsigned long> disRandWriteKeyNo(WRITE_RECORDS_NUM_START, WRITE_RECORDS_NUM_END);
     std::uniform_int_distribution<unsigned long> disRandDeleteKeyNo(DELETE_RECORDS_NUM_START, DELETE_RECORDS_NUM_END);
     std::uniform_int_distribution<unsigned long> disRandTag(WRITE, DELETE);
-    unsigned long randKeyNo, randRandTag;
+    unsigned long randKeyNo = 0;
+    unsigned long randRandTag = 0;
     unsigned int threadCurId = 0;
 
     SysTime start;

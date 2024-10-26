@@ -81,10 +81,10 @@ struct PragmaSync {
 
     PragmaSync(const DeviceSyncOption &option, const QuerySyncObject &query, const DeviceSyncProcessCallback &onProcess)
         : devices_(option.devices),
-        mode_(option.mode),
-        wait_(option.isWait),
-        isQuerySync_(option.isQuery),
-        onSyncProcess_(onProcess)
+          mode_(option.mode),
+          wait_(option.isWait),
+          isQuerySync_(option.isQuery),
+          onSyncProcess_(onProcess)
     {
         if (!isQuerySync_) {
             return;
@@ -93,12 +93,12 @@ struct PragmaSync {
     }
 
     PragmaSync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
-        :devices_(option.devices),
-        mode_(option.mode),
-        wait_(option.isWait),
-        isQuerySync_(false),
-        query_(Query::Select()),
-        onSyncProcess_(onProcess)
+        : devices_(option.devices),
+          mode_(option.mode),
+          wait_(option.isWait),
+          isQuerySync_(false),
+          query_(Query::Select()),
+          onSyncProcess_(onProcess)
     {
     }
 

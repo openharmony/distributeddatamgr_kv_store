@@ -990,7 +990,7 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
     return callStatus;
 }
 
-static bool CheckSyncCondVarWaitResult(DBStatus status, std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+static bool WaitUntilReady(DBStatus status, const std::map<std::string, DeviceSyncProcess> &syncProcessMap)
 {
     if (status != OK) {
         return true;
@@ -998,10 +998,11 @@ static bool CheckSyncCondVarWaitResult(DBStatus status, std::map<std::string, De
     if (syncProcessMap.empty()) {
         return false;
     }
-    for (const auto &entry : syncProcessMap) {
-        if (entry.second.process < ProcessStatus::FINISHED) {
-            return false;
-        }
+    auto item = std::find_if(syncProcessMap.begin(), syncProcessMap.end(), [](const auto &entry) {
+        return entry.second.process < ProcessStatus::FINISHED;
+    });
+    if (item != syncProcessMap.end()) {
+        return false;
     }
     return true;
 }
@@ -1013,7 +1014,7 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
     DeviceSyncProcessCallback onProcess =
         [&syncProcessMap, this](const std::map<std::string, DeviceSyncProcess> &processMap) {
             syncProcessMap = processMap;
-            std::unique_lock<std::mutex> innerLock(this->syncLock_);
+            std::unique_lock<std::mutex> innerlock(this->syncLock_);
             this->syncCondVar_.notify_one();
         };
     DBStatus status = delegate->Sync(option, onProcess);
@@ -1021,7 +1022,7 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
     if (!option.isWait) {
         std::unique_lock<std::mutex> lock(this->syncLock_);
         this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
-            return CheckSyncCondVarWaitResult(status, syncProcessMap);
+            return WaitUntilReady(status, syncProcessMap);
         });
     }
     return status;

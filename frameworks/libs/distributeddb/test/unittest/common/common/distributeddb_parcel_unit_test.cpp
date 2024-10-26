@@ -694,7 +694,7 @@ HWTEST_F(DistributedDBParcelTest, WriteBoolTest, TestSize.Level1)
     bool writeData = true;
     uint32_t len = Parcel::GetBoolLen();
     len = Parcel::GetEightByteAlign(len);
-    uint8_t *buf = new(nothrow) uint8_t[len];
+    uint8_t *buf = new (nothrow) uint8_t[len];
     ASSERT_NE(buf, nullptr);
 
     Parcel writeParcel(buf, len);
@@ -745,7 +745,7 @@ HWTEST_F(DistributedDBParcelTest, ParcelErrTest, TestSize.Level1)
     EXPECT_EQ(parcel.ReadBlob(nullptr, 0), expectedVal);
 
     /**
-     * @tc.steps:step3. WriteDouble when Parcel para is null;
+     * @tc.steps: step3. WriteDouble when Parcel para is null;
      * @tc.expected: step3. return -E_PARSE_FAIL;
      */
     ret = parcel.WriteBlob("", 1);

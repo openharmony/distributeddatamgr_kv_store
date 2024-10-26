@@ -20,9 +20,9 @@ CloudSyncStrategy::CloudSyncStrategy() : policy_(SingleVerConflictResolvePolicy:
 {
 }
 
-void CloudSyncStrategy::SetIsLocalDeleteUpload(bool isLocalDeleteUpload)
+void CloudSyncStrategy::SetIsKvScene(bool isKvScene)
 {
-    isLocalDeleteUpload_ = isLocalDeleteUpload;
+    isKvScene_ = isKvScene;
 }
 
 void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy)
@@ -46,9 +46,9 @@ bool CloudSyncStrategy::JudgeUpload()
     return false;
 }
 
-bool CloudSyncStrategy::JudgeLocalDeleteUpload()
+bool CloudSyncStrategy::JudgeKvScene()
 {
-    return isLocalDeleteUpload_;
+    return isKvScene_;
 }
 
 bool CloudSyncStrategy::IsDelete(const LogInfo &info)

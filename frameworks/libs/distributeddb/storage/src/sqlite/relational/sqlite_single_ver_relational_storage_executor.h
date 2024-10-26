@@ -146,7 +146,7 @@ public:
     int SetCursorIncFlag(bool flag);
 
     int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
-    int CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade);
+    int CreateTrackerTable(const TrackerTable &trackerTable, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 
@@ -155,7 +155,7 @@ public:
     int CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
-    int CleanTrackerData(const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
     int CreateSharedTable(const TableSchema &schema);
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);

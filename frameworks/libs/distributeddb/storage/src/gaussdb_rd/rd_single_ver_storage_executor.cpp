@@ -18,11 +18,11 @@
 #include <string>
 
 #include "db_common.h"
-#include "grd_db_api.h"
-#include "grd_document_api.h"
-#include "grd_error.h"
-#include "grd_resultset_api.h"
-#include "grd_type_export.h"
+#include "grd_base/grd_db_api.h"
+#include "grd_document/grd_document_api.h"
+#include "grd_base/grd_error.h"
+#include "grd_base/grd_resultset_api.h"
+#include "grd_base/grd_type_export.h"
 #include "ikvdb_result_set.h"
 #include "rd_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"

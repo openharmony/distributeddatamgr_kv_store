@@ -20,7 +20,7 @@
 
 namespace DistributedDB {
 std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(
-    SyncMode mode, bool isLocalDeleteUpload, SingleVerConflictResolvePolicy policy)
+    SyncMode mode, bool isKvScene, SingleVerConflictResolvePolicy policy)
 {
     std::shared_ptr<CloudSyncStrategy> strategy;
     switch (mode) {
@@ -38,7 +38,7 @@ std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(
             strategy = std::make_shared<CloudSyncStrategy>();
     }
     strategy->SetConflictResolvePolicy(policy);
-    strategy->SetIsLocalDeleteUpload(isLocalDeleteUpload);
+    strategy->SetIsKvScene(isKvScene);
     return strategy;
 }
 }

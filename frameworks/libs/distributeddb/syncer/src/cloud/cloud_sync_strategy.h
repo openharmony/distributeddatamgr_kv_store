@@ -27,7 +27,7 @@ public:
     CloudSyncStrategy();
     virtual ~CloudSyncStrategy() = default;
 
-    void SetIsLocalDeleteUpload(bool isLocalDeleteUpload);
+    void SetIsKvScene(bool isKvScene);
 
     void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
@@ -38,7 +38,7 @@ public:
 
     virtual bool JudgeUpload();
 
-    bool JudgeLocalDeleteUpload();
+    bool JudgeKvScene();
 
     static bool IsDelete(const LogInfo &info);
 
@@ -54,7 +54,10 @@ protected:
 
     SingleVerConflictResolvePolicy policy_;
 
-    bool isLocalDeleteUpload_ = false;  // Whether upload to the cloud after delete local data that does not have a gid
+    // isKvScene_ is used to distinguish between the KV and RDB in the following scenarios:
+    // 1. Whether upload to the cloud after delete local data that does not have a gid.
+    // 2. Whether the local data need update for different flag when the local time is larger.
+    bool isKvScene_ = false;
 };
 }
 #endif // CLOUD_SYNC_STRATEGY_H

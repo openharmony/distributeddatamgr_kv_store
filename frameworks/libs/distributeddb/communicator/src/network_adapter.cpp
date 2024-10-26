@@ -238,7 +238,7 @@ int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes
         // Since this thread is the sending_thread of the CommunicatorAggregator,
         // We need an async task which bring about dependency on the lifecycle of this NetworkAdapter Object.
         CheckDeviceOfflineAfterSendFail(dstDevInfo);
-        return -E_PERIPHERAL_INTERFACE_FAIL;
+        return static_cast<int>(errCode);
     }
     return E_OK;
 }

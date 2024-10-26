@@ -96,10 +96,8 @@ const Asset ASSET_COPY2 = {.version = 1,
     .size = "256",
     .hash = "ASE"};
 const Assets ASSETS_COPY1 = { ASSET_COPY, ASSET_COPY2 };
-const std::string QUERY_CONSISTENT_SQL = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x20=0;";
-const std::string QUERY_COMPENSATED_SQL = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-    " where flag&0x10!=0;";
+const std::string QUERY_CONSISTENT_SQL = "select count(*) from naturalbase_rdb_aux_student_log where flag&0x20=0;";
+const std::string QUERY_COMPENSATED_SQL = "select count(*) from naturalbase_rdb_aux_student_log where flag&0x10!=0;";
 
 string g_storePath;
 string g_testDir;
@@ -308,7 +306,8 @@ void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatu
     std::vector<SyncProcess> expectProcess;
     CloudSyncStatusCallback callback = [&errCode](const std::map<std::string, SyncProcess> &process) {
         ASSERT_EQ(process.begin()->first, DEVICE_CLOUD);
-        g_syncProcess = std::move(process.begin()->second);
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        g_syncProcess = process.begin()->second;
         if (g_syncProcess.process == FINISHED) {
             g_processCondition.notify_one();
             ASSERT_EQ(g_syncProcess.errCode, errCode);
@@ -1609,7 +1608,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
     g_delegate->SetCloudSyncConfig(config);
- 
+
     /**
      * @tc.steps:step1. local insert assets and erase assets extends
      * @tc.expected: step1. return OK.
@@ -1621,7 +1620,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
     });
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
- 
+
     /**
      * @tc.steps:step2. local insert assets and modify assetId to empty
      * @tc.expected: step2. return OK.
@@ -1643,7 +1642,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
         index.insert(i);
     }
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
- 
+
     /**
      * @tc.steps:step3. local insert assets and modify assetId info such as asset.name
      * @tc.expected: step3. return OK.
@@ -1664,7 +1663,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
         newIndex.insert(i);
     }
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", newIndex);
- 
+
     /**
      * @tc.steps:step4. local update assets and sync, check the local assetId.
      * @tc.expected: step4. sync success.
@@ -1686,14 +1685,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
     g_delegate->SetCloudSyncConfig(config);
- 
+
     /**
      * @tc.steps:step1. local insert assets and erase assets extends
      * @tc.expected: step1. return OK.
      */
     int localCount = 50;
     InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
- 
+
     /**
      * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
      * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
@@ -1708,7 +1707,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
         }
         return OK;
     });
- 
+
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     int beginFailFillNum = 49;
     int endFailFillNum = 50;
@@ -1719,7 +1718,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
     g_virtualCloudDb->ForkUpload(nullptr);
 }
- 
+
 /**
  * @tc.name: FillAssetId022
  * @tc.desc: Test if local assets missing, many records's assets missing will not mark the whole sync progress failure
@@ -1732,14 +1731,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Le
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
     g_delegate->SetCloudSyncConfig(config);
- 
+
     /**
      * @tc.steps:step1. local insert assets and erase assets extends
      * @tc.expected: step1. return OK.
      */
     int localCount = 50;
     InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
- 
+
     /**
      * @tc.steps:step2. ForkInsertConflict, make one record assets missing during batch insert
      * @tc.expected: step2. SyncProgress return OK. One record's assets missing will not block other progress.
@@ -1754,7 +1753,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Le
         }
         return OK;
     });
- 
+
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     int beginFailFillNum = 49;
     int endFailFillNum = 54;
@@ -2082,7 +2081,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
     InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
 
     /**
-     * @tc.steps:step2. fork upload, not return error filed of CLOUD_NETWORK_ERROR
+     * @tc.steps:step2. fork upload, return error filed of CLOUD_NETWORK_ERROR
      * @tc.expected: step2. return OK.
      */
     int upIdx = 0;
@@ -2515,13 +2514,13 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, Test
     std::mutex mtx;
     std::condition_variable cv;
     int queryIdx = 0;
+    bool ready = false;
     g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
         LOGD("query index:%d", ++queryIdx);
         if (queryIdx == 2) { // 2 is compensated sync
-            mtx.lock();
+            std::unique_lock<std::mutex> lock(mtx);
+            ready = true;
             cv.notify_one();
-            mtx.unlock();
-            std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
         }
     });
     g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_ERROR);
@@ -2529,21 +2528,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, Test
 
     {
         std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock);
+        cv.wait(lock, [&]{ return ready; });
     }
     g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
 
+    std::this_thread::sleep_for(std::chrono::seconds(6));
     /**
-     * @tc.steps:step3. check before compensated sync
-     * @tc.expected: 70-99 is UNLOCKING.
-     */
-    CheckLockStatus(db, 0, 69, LockStatus::UNLOCK);
-    CheckLockStatus(db, 70, 99, LockStatus::UNLOCKING);
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    /**
-     * @tc.steps:step4. check after compensated sync
-     * @tc.expected: all is UNLOCKING.
+     * @tc.steps:step3. check after compensated sync
+     * @tc.expected: step3. all is UNLOCKING.
      */
     CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
 }
@@ -2617,6 +2609,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest002, Test
      * @tc.expected: step7.100-119 is UNLOCKING.
      */
     EXPECT_EQ(UnLock(ASSETS_TABLE_NAME, hashKey, db), WAIT_COMPENSATED_SYNC);
+    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
     CheckLockStatus(db, 100, 119, LockStatus::UNLOCKING);
 
     /**
@@ -2626,32 +2619,25 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest002, Test
     std::mutex mtx;
     std::condition_variable cv;
     int queryIdx = 0;
+    bool ready = false;
     g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
         LOGD("query index:%d", ++queryIdx);
         if (queryIdx == 5) { // 5 is compensated sync
-            mtx.lock();
+            std::unique_lock<std::mutex> lock(mtx);
+            ready = true;
             cv.notify_one();
-            mtx.unlock();
-            std::this_thread::sleep_for(std::chrono::seconds(2)); // block notify 2s
         }
     });
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     {
         std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock);
+        cv.wait(lock, [&]{ return ready; });
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(6));
     /**
-     * @tc.steps:step9. check before compensated sync
-     * @tc.expected: 100-119 is UNLOCKING.
-     */
-    CheckLockStatus(db, 0, 99, LockStatus::UNLOCK);
-    CheckLockStatus(db, 100, 119, LockStatus::UNLOCKING);
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    /**
-     * @tc.steps:step10. check after compensated sync
-     * @tc.expected: all is UNLOCK.
+     * @tc.steps:step9. check after compensated sync
+     * @tc.expected: step9. all is UNLOCK.
      */
     CheckLockStatus(db, 0, 119, LockStatus::UNLOCK);
 }

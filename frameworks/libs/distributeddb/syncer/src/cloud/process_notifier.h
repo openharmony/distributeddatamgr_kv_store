@@ -36,7 +36,10 @@ public:
 
     void ResetUploadBatchIndex(const std::string &tableName);
 
-    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo) const;
+    void UpdateUploadRetryInfo(const ICloudSyncer::InnerProcessInfo &process);
+
+    void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo,
+        ICloudSyncer::UploadRetryInfo &retryInfo) const;
 
     void GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process);
 
@@ -52,9 +55,13 @@ protected:
     std::vector<std::string> devices_;
     ICloudSyncer *syncer_;
     std::string user_;
+    std::map<std::string, uint32_t> processRetryInfo_;
 private:
     static void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
     bool IsMultiUser() const;
+
+    /* update success count of previous upload batch after download retry. */
+    void UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessInfo &process);
 };
 }
 #endif // PROCESS_NOTIFIER_H

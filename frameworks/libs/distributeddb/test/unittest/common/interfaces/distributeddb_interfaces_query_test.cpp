@@ -228,12 +228,12 @@ HWTEST_F(DistributedDBInterfacesQueryTest, Query003, TestSize.Level1)
 }
 
 /**
- * @tc.name: Query004
- * @tc.desc: Check QueryExpression abnormal scene
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
+  * @tc.name: Query004
+  * @tc.desc: Check QueryExpression abnormal scene
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: suyue
+  */
 HWTEST_F(DistributedDBInterfacesQueryTest, Query004, TestSize.Level1)
 {
     /**

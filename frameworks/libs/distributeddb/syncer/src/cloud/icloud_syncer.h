@@ -47,11 +47,17 @@ public:
         std::string prepareTraceId;
     };
 
+    struct UploadRetryInfo {
+        uint32_t uploadBatchRetryCount = 0;
+        uint32_t downloadBatchOpCount = 0;
+    };
+
     struct InnerProcessInfo {
         std::string tableName;
         ProcessStatus tableStatus = ProcessStatus::PREPARED;
         Info downLoadInfo;
         Info upLoadInfo;
+        UploadRetryInfo retryInfo;
     };
 
     struct WithoutRowIdData {

@@ -156,7 +156,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         LOGE("get update asset data cursor stmt failed %d.", errCode);
         return errCode;
     }
-    ResFinalizer finalizer([statement] {
+    ResFinalizer finalizer([statement]() {
         sqlite3_stmt *statementInner = statement;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
@@ -327,7 +327,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
     return SQLiteRelationalUtils::AnalysisTrackerTable(dbHandle_, trackerTable, tableInfo);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade)
+int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable, bool checkData)
 {
     TableInfo table;
     table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
@@ -336,7 +336,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         return errCode;
     }
     auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
-    if (trackerTable.GetTrackerColNames().empty()) {
+    if (trackerTable.IsEmpty()) {
         // drop trigger
         return tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
     }
@@ -352,12 +352,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         return errCode;
     }
     std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
-    if (isUpgrade) {
-        errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
-        if (errCode != E_OK) {
-            LOGE("clean tracker log info for deleted data failed %d.", errCode);
-            return errCode;
-        }
+    errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
+    if (errCode != E_OK) {
+        LOGE("clean tracker log info for deleted data failed %d.", errCode);
+        return errCode;
     }
     errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
     if (errCode != E_OK) {
@@ -372,7 +370,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
     if (errCode != E_OK) {
         return errCode;
     }
-    if (!isUpgrade) {
+    if (checkData) {
         return CheckInventoryData(DBCommon::GetLogTableName(table.GetTableName()));
     }
     return E_OK;
@@ -578,16 +576,10 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor,
-    bool isOnlyTrackTable)
+int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor)
 {
-    std::string sql;
-    if (isOnlyTrackTable) {
-        sql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    } else {
-        sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log SET extend_field = NULL";
-    }
-    sql += " where data_key = -1 and cursor <= ?;";
+    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    sql += " SET extend_field = NULL where data_key = -1 and cursor <= ?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
@@ -746,7 +738,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
             errCode = CleanShareTable(tableName);
         }
         if (errCode != E_OK) {
-            LOGE("clean shared table failed at table:%s, length:%d, deleteType:%d, errCode:%d",
+            LOGE("clean share table failed at table:%s, length:%d, deleteType:%d, errCode:%d.",
                 DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), isLogicDelete_ ? 1 : 0, errCode);
             return errCode;
         }
@@ -761,7 +753,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string 
     std::string delDataSql = "DELETE FROM '" + tableName + "';";
     sqlite3_stmt *statement = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, delDataSql, statement);
-    if (errCode != E_OK || statement == nullptr) {
+    if (errCode != E_OK) {
         LOGE("get clean shared data stmt failed %d.", errCode);
         return errCode;
     }
@@ -776,7 +768,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string 
     statement = nullptr;
     std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
     errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
-    if (errCode != E_OK || statement == nullptr) {
+    if (errCode != E_OK) {
         LOGE("get clean shared log stmt failed %d.", errCode);
         return errCode;
     }
@@ -1856,11 +1848,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
 int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::string &tableName)
 {
     std::string sql;
-    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET status = (CASE WHEN status == 1 AND flag & "+
-        "0x01 != 0 THEN 0 ELSE status END);";
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET status = (CASE WHEN status == 1 "+
+        "AND (cloud_gid = '' AND flag & 0x01 != 0) THEN 0 ELSE status END);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK || stmt == nullptr) {
+    if (errCode != E_OK) {
         LOGE("[RDBExecutor] Get stmt failed when clear unlocking status errCode = %d.", errCode);
         return errCode;
     }
@@ -1869,7 +1861,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::st
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("[Storage Execute] Step update record status stmt failed, %d.", errCode);
+        LOGE("[Storage Executor] Step update record status stmt failed, %d.", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;
@@ -1928,6 +1920,5 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
     }
     return errCode;
 }
-
 } // namespace DistributedDB
 #endif

@@ -54,6 +54,7 @@ SyncTaskContext::SyncTaskContext()
       remoteSoftwareVersionId_(0),
       isCommNormal_(true),
       taskErrCode_(E_OK),
+      commErrCode_(E_OK),
       syncTaskRetryStatus_(false),
       isSyncRetry_(false),
       negotiationCount_(0),
@@ -541,6 +542,11 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId)
         }
     }
     LOGE("[SyncTaskContext][CommErr] errCode %d", errCode);
+    if (errCode > 0) {
+        SetCommFailErrCode(static_cast<int>(COMM_FAILURE));
+    } else {
+        SetCommFailErrCode(errCode);
+    }
     stateMachine_->CommErrAbort(sessionId);
 }
 
@@ -570,6 +576,7 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
     taskErrCode_ = E_OK;
     packetId_ = 0;
     isCommNormal_ = true; // reset comm status here
+    commErrCode_ = E_OK;
     syncTaskRetryStatus_ = isSyncRetry_;
     timeout_ = static_cast<int>(taskParam.timeout);
     negotiationCount_ = 0;
@@ -839,5 +846,15 @@ int32_t SyncTaskContext::GetResponseTaskCount()
 {
     std::lock_guard<std::mutex> autoLock(targetQueueLock_);
     return static_cast<int32_t>(responseTargetQueue_.size());
+}
+
+int SyncTaskContext::GetCommErrCode() const
+{
+    return commErrCode_;
+}
+
+void SyncTaskContext::SetCommFailErrCode(int errCode)
+{
+    commErrCode_ = errCode;
 }
 } // namespace DistributedDB

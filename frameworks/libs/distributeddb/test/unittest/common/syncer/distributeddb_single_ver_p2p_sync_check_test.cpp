@@ -532,7 +532,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess001, TestSize.Level1
      * @tc.steps: step1. deviceB deviceC put bigData
      */
     std::vector<Entry> entries;
-    const uint32_t dataCount = 10;
+    const int dataCount = 10;
     DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
 
     for (uint32_t i = 0; i < entries.size(); i++) {
@@ -570,8 +570,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess001, TestSize.Level1
             entry.second.errCode, entry.second.pullInfo.total, entry.second.pullInfo.finishedCount);
         EXPECT_EQ(entry.second.errCode, OK);
         EXPECT_EQ(entry.second.process, ProcessStatus::FINISHED);
-        EXPECT_EQ(entry.second.pullInfo.total, dataCount/2);
-        EXPECT_EQ(entry.second.pullInfo.finishedCount, dataCount/2);
+        EXPECT_EQ(entry.second.pullInfo.total, static_cast<uint32_t>(dataCount / 2));
+        EXPECT_EQ(entry.second.pullInfo.finishedCount, static_cast<uint32_t>(dataCount / 2));
         ASSERT_TRUE(entry.second.syncId > 0);
     }
 }
@@ -589,7 +589,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess002, TestSize.Level1
      * @tc.steps: step1. deviceA put bigData
      */
     std::vector<Entry> entries;
-    const uint32_t dataCount = 10;
+    const int dataCount = 10;
     DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
 
     for (uint32_t i = 0; i < entries.size(); i++) {
@@ -640,8 +640,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess002, TestSize.Level1
             entry.second.errCode, entry.second.pullInfo.total, entry.second.pullInfo.finishedCount);
         EXPECT_EQ(entry.second.errCode, DBStatus::OK);
         EXPECT_EQ(entry.second.process, ProcessStatus::FINISHED);
-        EXPECT_EQ(entry.second.pullInfo.total, dataCount);
-        EXPECT_EQ(entry.second.pullInfo.finishedCount, dataCount);
+        EXPECT_EQ(entry.second.pullInfo.total, static_cast<uint32_t>(dataCount));
+        EXPECT_EQ(entry.second.pullInfo.finishedCount, static_cast<uint32_t>(dataCount));
         ASSERT_TRUE(entry.second.syncId > 0);
     }
 }
@@ -659,7 +659,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess003, TestSize.Level1
      * @tc.steps: step1. deviceA put bigData
      */
     std::vector<Entry> entries;
-    const uint32_t dataCount = 10;
+    const int dataCount = 10;
     DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
 
     for (uint32_t i = 0; i < entries.size(); i++) {

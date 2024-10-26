@@ -34,8 +34,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin,
     if (IsIgnoreUpdate(localInfo)) {
         return OpType::NOT_HANDLE;
     }
-    if ((localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) != 0 &&
-        localInfo.timestamp > cloudInfo.timestamp) {
+    if (JudgeLocallyNewer(localInfo, cloudInfo)) {
         return TagLocallyNewer(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
     }
     if (isCloudDelete) {
@@ -71,7 +70,7 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
 {
     if (localInfo.cloudGid.empty()) {
         return isCloudDelete ? OpType::NOT_HANDLE
-                : ((isLocalDelete && !JudgeLocalDeleteUpload()) ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
+                : ((isLocalDelete && !JudgeKvScene()) ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
     }
     if (isCloudDelete) {
         return OpType::CLEAR_GID;
@@ -101,5 +100,12 @@ OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
         return OpType::NOT_HANDLE;
     }
     return OpType::INSERT;
+}
+
+bool CloudMergeStrategy::JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo)
+{
+    return (localInfo.timestamp > cloudInfo.timestamp) &&
+        ((JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE)) == 0) ||
+        ((!JudgeKvScene()) && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) != 0));
 }
 }

@@ -1295,7 +1295,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         return errCode;
     }
     sql = "DELETE FROM " + logTblName + " WHERE (flag&0x08=0x08" +
-         (cursor == 0 ? ");" : " AND cursor <= '" + std::to_string(cursor) + "');");
+        (cursor == 0 ? ");" : " AND cursor <= '" + std::to_string(cursor) + "');");
     errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("delete logic delete log failed. %d", errCode);
