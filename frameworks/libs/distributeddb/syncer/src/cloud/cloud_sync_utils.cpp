@@ -630,6 +630,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     } else {
         taskInfo.users = option.users;
     }
+    taskInfo.lockAction = option.lockAction;
     return taskInfo;
 }
 

@@ -16,7 +16,9 @@
 #include <gtest/gtest.h>
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
+#include "cloud/cloud_sync_utils.h"
 #include "cloud_db_sync_utils_test.h"
+#include "cloud_syncer.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "log_print.h"
@@ -2168,6 +2170,34 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest008, TestSize.Level
      */
     EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: LockActionTest001
+ * @tc.desc: InitCompensatedSyncTaskInfo and check lockAction.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LockActionTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. InitCompensatedSyncTaskInfo and check.
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.query = Query::Select().FromTable({ tableName_ });
+    option.waitTime = g_syncWaitTime;
+    auto action = static_cast<uint32_t>(LockAction::INSERT) | static_cast<uint32_t>(LockAction::UPDATE)
+                      | static_cast<uint32_t>(LockAction::DELETE);
+    option.lockAction = static_cast<LockAction>(action);
+    option.priorityTask = true;
+    option.compensatedSyncOnly = true;
+    const SyncProcessCallback onProcess;
+    CloudSyncer::CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo(option, onProcess);
+    EXPECT_EQ(taskInfo.lockAction, option.lockAction);
 }
 
 /**
