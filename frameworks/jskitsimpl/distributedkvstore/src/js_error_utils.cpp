@@ -30,9 +30,9 @@ static constexpr JsErrorCode JS_ERROR_CODE_MSGS[] = {
     { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
     { Status::PERMISSION_DENIED, 202, "Permission denied" },
     { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
-    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
     { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
     { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
+    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
