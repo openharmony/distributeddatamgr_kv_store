@@ -146,7 +146,7 @@ public:
     int SetCursorIncFlag(bool flag);
 
     int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
-    int CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade);
+    int CreateTrackerTable(const TrackerTable &trackerTable, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 

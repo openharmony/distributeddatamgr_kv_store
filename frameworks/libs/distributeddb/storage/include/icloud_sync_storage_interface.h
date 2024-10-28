@@ -147,6 +147,7 @@ public:
     {
         return E_OK;
     };
+
     virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
@@ -188,7 +189,7 @@ public:
     }
 
     virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery,
-        std::vector<std::string> &users)
+        [[gnu::unused]] std::vector<std::string> &users)
     {
         return E_OK;
     }

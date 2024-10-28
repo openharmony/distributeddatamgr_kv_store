@@ -16,7 +16,7 @@
 #ifndef RD_SINGLE_VER_RESULT_SET_H
 #define RD_SINGLE_VER_RESULT_SET_H
 #include "ikvdb_result_set.h"
-#include "grd_resultset_api.h"
+#include "grd_base/grd_resultset_api.h"
 #include "rd_single_ver_natural_store.h"
 #include "rd_single_ver_storage_executor.h"
 

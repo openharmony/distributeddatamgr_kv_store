@@ -97,6 +97,7 @@ public:
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
+
     int SetLogTriggerStatus(bool status);
 
     int SetCursorIncFlag(bool flag);

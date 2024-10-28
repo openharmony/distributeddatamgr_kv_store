@@ -154,8 +154,8 @@ void PerformanceAnalysis::StepTimeRecordEnd(uint32_t step)
     timePair.endTime = curTime;
     LOGD("[performance_analysis] StepTimeRecordEnd step:%" PRIu32 ", curTime:%" PRIu64, step, curTime);
 
-    if ((timePair.endTime < timePair.startTime) || (timePair.startTime == 0)
-        || (timePair.endTime == 0)) { // LCOV_EXCL_BR_LINE
+    if ((timePair.endTime < timePair.startTime) || (timePair.startTime == 0) ||
+        (timePair.endTime == 0)) { // LCOV_EXCL_BR_LINE
         return;
     }
     Timestamp offset = timePair.endTime - timePair.startTime;
@@ -177,8 +177,8 @@ void PerformanceAnalysis::StepTimeRecordEnd(uint32_t step)
 std::string PerformanceAnalysis::GetStatistics()
 {
     std::string result;
-    for (size_t i = 0; i < stepTimeRecordInfo_.size(); i++) {
-        if (stepTimeRecordInfo_[i].max != 0) { // LCOV_EXCL_BR_LINE
+    for (size_t i = 0; i < stepTimeRecordInfo_.size(); i++) { // LCOV_EXCL_BR_LINE
+        if (stepTimeRecordInfo_[i].max != 0) {
             result += "\nstep : " + std::to_string(i) + "\n";
             result += "max:                 " + std::to_string(stepTimeRecordInfo_[i].max) + "\n";
             result += "min:                 " + std::to_string(stepTimeRecordInfo_[i].min) + "\n";

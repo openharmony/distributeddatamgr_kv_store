@@ -40,13 +40,13 @@ public:
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
-        std::vector<VBucket> &extend, Info &uploadInfo);
+        std::vector<VBucket> &extend, Info &uploadInfo, uint32_t &retryCount);
 
     int BatchUpdate(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
-        Info &uploadInfo);
+        Info &uploadInfo, uint32_t &retryCount);
 
     int BatchDelete(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
-        Info &uploadInfo);
+        Info &uploadInfo, uint32_t &retryCount);
 
     int Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data);
 
@@ -114,10 +114,12 @@ protected:
         void SetTableName(const std::string &tableName);
 
         std::string GetTableName();
+
+        uint32_t GetRetryCount();
     private:
         static bool IsEmptyAssetId(const Assets &assets);
 
-        static bool IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status);
+        static bool IsRecordActionFail(const VBucket &extend, const CloudWaterType &type, DBStatus status);
 
         std::mutex actionMutex_;
         std::condition_variable actionCv_;
@@ -126,6 +128,7 @@ protected:
         uint32_t totalCount_;
         uint32_t successCount_;
         uint32_t failedCount_;
+        uint32_t retryCount_;
 
         std::string tableName_;
         std::vector<VBucket> record_;

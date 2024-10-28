@@ -966,7 +966,8 @@ void DistributeddbNbCursorTestcase::ResultSetDb013(KvStoreNbDelegate *delegate, 
     std::vector<DistributedDB::Entry> entries;
     EntrySize entrySize = {KEY_SIX_BYTE, VALUE_HUNDRED_K_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries, entrySize, ONE_HUNDRED_RECORDS);
-    Entry entry4M, entry2M;
+    Entry entry4M;
+    Entry entry2M;
     entry4M.key.assign(KEY_SIX_BYTE, 'k');
     entry4M.value.assign(FOUR_M_LONG_STRING, 'v');
     entry2M.key.assign(KEY_THIRTYTWO_BYTE, 'k');
@@ -1256,8 +1257,10 @@ void DistributeddbNbCursorTestcase::ResultSetDb018(KvStoreNbDelegate *delegate, 
 {
     ASSERT_TRUE(delegate != nullptr);
     SetResultSetCacheMode(delegate, isRowIdMode);
-    vector<Entry> entriesKA, entriesKB;
-    vector<Key> allKeysKA, allKeysKB;
+    vector<Entry> entriesKA;
+    vector<Entry> entriesKB;
+    vector<Key> allKeysKA;
+    vector<Key> allKeysKB;
     std::vector<uint8_t> ka = { 'k', 'a' };
     std::vector<uint8_t> kb = { 'k', 'b' };
     GenerateRecords(ONE_HUNDRED_RECORDS, DEFAULT_START, allKeysKA, entriesKA, ka);
@@ -2033,7 +2036,8 @@ void DistributeddbNbCursorTestcase::ResultSetDb027(bool isRowIdMode)
     ASSERT_TRUE(managers[INDEX_ZEROTH] != nullptr && delegates[INDEX_ZEROTH] != nullptr);
     SetResultSetCacheMode(delegates[INDEX_ZEROTH], isRowIdMode);
 
-    vector<Entry> entriesKA, entriesKB;
+    vector<Entry> entriesKA;
+    vector<Entry> entriesKB;
     std::vector<uint8_t> ka = { 'k', 'a' };
     std::vector<uint8_t> kb = { 'k', 'b' };
     EntrySize entrySizeKA = { FIVE_BYTE_KEY, ONE_K_LONG_STRING };

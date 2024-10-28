@@ -81,7 +81,7 @@ public:
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
     int GetDeletedSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendLength, Timestamp begin,
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
-    
+
     int GetUnSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const;
 
     int GetDeletedSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const;
@@ -237,7 +237,7 @@ private:
         const DataOperStatus &dataStatus, SingleVerNaturalStoreCommitNotifyData *commitData);
 
     DataOperStatus JudgeSyncSaveType(DataItem &dataItem, const DataItem &itemGet,
-        const std::string &devName, bool isHashKeyExisted, bool isPermitForceWrite = true);
+        const DeviceInfo &deviceInfo, bool isHashKeyExisted, bool isPermitForceWrite = true);
 
     static std::string GetOriginDevName(const DataItem &dataItem, const std::string &origDevGet);
 
@@ -249,10 +249,10 @@ private:
 
     int PrepareForSyncDataByTime(Timestamp begin, Timestamp end, sqlite3_stmt *&statement, bool getDeletedData = false)
         const;
-    
+
     int PrepareForUnSyncTotalByTime(Timestamp begin, Timestamp end, sqlite3_stmt *&statement,
         bool getDeletedData = false) const;
-    
+
     int GetCountValue(sqlite3_stmt *&countStatement, uint32_t &total) const;
 
     int StepForResultEntries(bool isGetValue, sqlite3_stmt *statement, std::vector<Entry> &entries) const;

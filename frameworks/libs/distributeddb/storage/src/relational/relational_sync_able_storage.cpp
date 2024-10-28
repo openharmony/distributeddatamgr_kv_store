@@ -1963,7 +1963,7 @@ int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
         return E_OK;
     }
     auto *handle = GetHandle(true, errCode);
-    if (errCode != E_OK || handle == nullptr) {
+    if (errCode != E_OK) {
         return errCode;
     }
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
@@ -2022,7 +2022,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         std::vector<VBucket> syncDataPk;
         errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
         if (errCode != E_OK) {
-            LOGW("[RDBStorageEngine] Get wait compensated sync date failed, continue! errCode=%d", errCode);
+            LOGW("[RDBStorageEngine] Get wait compensated sync data failed, continue! errCode=%d", errCode);
             errCode = E_OK;
             continue;
         }

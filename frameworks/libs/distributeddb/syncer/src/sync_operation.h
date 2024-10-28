@@ -78,7 +78,7 @@ public:
     void SetOnSyncFinished(const OnSyncFinished &callback);
 
     // Set the sync status, running or finished
-    void SetStatus(const std::string &deviceId, int status);
+    void SetStatus(const std::string &deviceId, int status, int commErrCode = E_OK);
 
     // Set the unfinished devices sync status, running or finished
     void SetUnfinishedDevStatus(int status);
@@ -153,6 +153,8 @@ private:
 
     static std::string GetFinishDetailMsg(const std::map<std::string, int> &finishStatus);
 
+    void ReplaceCommErrCode(std::map<std::string, int> &finishStatus);
+
     // The device list
     const std::vector<std::string> devices_;
 
@@ -176,6 +178,9 @@ private:
 
     // The device id we sync with
     std::map<std::string, int> statuses_;
+
+    // passthrough errCode
+    std::map<std::string, int> commErrCodeMap_;
 
     // Is this operation is a block sync
     volatile bool isBlockSync_;

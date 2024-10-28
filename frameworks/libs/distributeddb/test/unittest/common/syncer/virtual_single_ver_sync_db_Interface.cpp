@@ -154,7 +154,7 @@ int VirtualSingleVerSyncDBInterface::GetUnSyncTotal(QueryObject &query, const Sy
     if (getDataDelayTime_ > 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(getDataDelayTime_));
     }
-    int errCode  = DataControl();
+    int errCode = DataControl();
     if (errCode != E_OK) {
         return errCode;
     }
@@ -177,7 +177,7 @@ int VirtualSingleVerSyncDBInterface::GetUnSyncTotal(QueryObject &query, const Sy
         } else {
             if (data.timestamp >= timeRange.beginTime && data.timestamp < timeRange.endTime &&
                 data.key >= startKey && data.key <= endKey) {
-                    total++;
+                total++;
             }
         }
     }

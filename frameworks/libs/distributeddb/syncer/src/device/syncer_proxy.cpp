@@ -74,7 +74,7 @@ int SyncerProxy::Sync(const SyncParma &parma, uint64_t connectionId)
 
 int SyncerProxy::CancelSync(uint32_t syncId)
 {
-    if (syncer_ == nullptr) {
+    if (syncer_ == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_NOT_INIT;
     }
     return syncer_->CancelSync(syncId);
@@ -82,7 +82,7 @@ int SyncerProxy::CancelSync(uint32_t syncId)
 
 int SyncerProxy::RemoveSyncOperation(int syncId)
 {
-    if (syncer_ == nullptr) { // LCOV_EXCL_BR_LINE
+    if (syncer_ == nullptr) {
         return -E_NOT_INIT;
     }
     return syncer_->RemoveSyncOperation(syncId);

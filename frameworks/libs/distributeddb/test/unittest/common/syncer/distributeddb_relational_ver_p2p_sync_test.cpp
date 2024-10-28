@@ -797,6 +797,17 @@ namespace {
         observer = nullptr;
     }
 
+    void SetOption(StoreObserver *observer, RelationalStoreDelegate::Option &option)
+    {
+        option.observer = observer;
+#ifndef OMIT_ENCRYPT
+        option.isEncryptedDb = true;
+        option.iterateTimes = DEFAULT_ITER;
+        option.passwd = g_isAfterRekey ? g_rekeyPasswd : g_correctPasswd;
+        option.cipher = CipherType::DEFAULT;
+#endif
+    }
+
 class DistributedDBRelationalVerP2PSyncTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -1265,7 +1276,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync002, TestSize.Leve
     Query query = Query::Select(g_tableName);
     SyncOperation::UserCallback callBack = [](const std::map<std::string, int> &statusMap) {
         for (const auto &entry : statusMap) {
-            EXPECT_EQ(entry.second, static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
+            EXPECT_EQ(entry.second, -E_NOT_FOUND);
         }
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, callBack, true), E_OK);
@@ -1307,7 +1318,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync003, TestSize.Leve
     Query query = Query::Select(g_tableName);
     SyncOperation::UserCallback callBack = [](const std::map<std::string, int> &statusMap) {
         for (const auto &entry : statusMap) {
-            EXPECT_EQ(entry.second, static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
+            EXPECT_EQ(entry.second, -E_NOT_FOUND);
         }
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, callBack, true), E_OK);
@@ -1500,6 +1511,23 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync004, TestSize.Level1)
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PULL_ONLY, query, callBack, true), E_OK);
     EXPECT_EQ(res, static_cast<int>(SyncOperation::Status::OP_SCHEMA_INCOMPATIBLE));
+}
+
+/**
+* @tc.name: Ability Sync 005
+* @tc.desc: Test ability sync fail when SendMessage err.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: suyue
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync005, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    std::vector<FieldInfo> localFieldInfo;
+    GetFieldInfo(localFieldInfo, g_storageType);
+    g_communicatorAggregator->DisableCommunicator();
+    PrepareEnvironment(dataMap, localFieldInfo, localFieldInfo, {g_deviceB});
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, DB_ERROR, {DEVICE_B});
 }
 
 /**
@@ -1957,20 +1985,6 @@ void RegisterNewObserver(RelationalStoreDelegate *rdb1, RelationalStoreObserverU
     rdb1 = nullptr;
 }
 
-static void SetAutoLaunchParamForObserver008(AutoLaunchParam &param)
-{
-    param.path    = g_dbDir;
-    param.appId   = APP_ID;
-    param.userId  = USER_ID;
-    param.storeId = STORE_ID_1;
-#ifndef OMIT_ENCRYPT
-    param.option.isEncryptedDb = true;
-    param.option.cipher = CipherType::DEFAULT;
-    param.option.passwd = g_correctPasswd;
-    param.option.iterateTimes = DEFAULT_ITER;
-#endif
-}
-
 /**
 * @tc.name: relation observer 008
 * @tc.desc: Test multi rdb observer
@@ -1995,8 +2009,17 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
         if (g_id != identifier) {
             return false;
         }
-        SetAutoLaunchParamForObserver008(param);
+        param.path    = g_dbDir;
+        param.appId   = APP_ID;
+        param.userId  = USER_ID;
+        param.storeId = STORE_ID_1;
         param.option.storeObserver = autoObserver;
+#ifndef OMIT_ENCRYPT
+        param.option.isEncryptedDb = true;
+        param.option.cipher = CipherType::DEFAULT;
+        param.option.passwd = g_correctPasswd;
+        param.option.iterateTimes = DEFAULT_ITER;
+#endif
         return true;
     };
     g_mgr.SetAutoLaunchRequestCallback(callback);
@@ -2017,13 +2040,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
     auto observer1 = new (std::nothrow) RelationalStoreObserverUnitTest();
     ASSERT_NE(observer1, nullptr);
     RelationalStoreDelegate::Option option;
-    option.observer = observer1;
-#ifndef OMIT_ENCRYPT
-    option.isEncryptedDb = true;
-    option.iterateTimes = DEFAULT_ITER;
-    option.passwd = g_isAfterRekey ? g_rekeyPasswd : g_correctPasswd;
-    option.cipher = CipherType::DEFAULT;
-#endif
+    SetOption(observer1, option);
     RelationalStoreDelegate *rdb1 = nullptr;
     g_mgr.OpenStore(g_dbDir, STORE_ID_1, option, rdb1);
     ASSERT_TRUE(rdb1 != nullptr);
@@ -2039,8 +2056,8 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
     EXPECT_EQ(autoObserver->GetCallCount(), 1u);
     int reTry = 5;
     while (observer1->GetCallCount() != 1u && reTry > 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
         reTry--;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     EXPECT_EQ(observer1->GetCallCount(), 1u);
     EXPECT_EQ(autoObserver->GetDataChangeDevice(), DEVICE_B);

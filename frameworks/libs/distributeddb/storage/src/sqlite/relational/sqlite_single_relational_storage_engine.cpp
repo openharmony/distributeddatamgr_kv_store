@@ -473,16 +473,16 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         LOGW("tracker schema is no change.");
         return E_OK;
     }
-    bool isUpgrade = !tracker.GetTrackerTable(schema.tableName).IsEmpty();
+    bool isCheckData = tracker.GetTrackerTable(schema.tableName).GetTableName().empty() || schema.isForceUpgrade;
     tracker.InsertTrackerSchema(schema);
-    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
+    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isCheckData);
     if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
         return ret;
     }
 
-    if (schema.trackerColNames.empty()) {
+    if (schema.trackerColNames.empty() && !schema.isTrackAction) {
         tracker.RemoveTrackerSchema(schema);
     }
     errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
@@ -521,7 +521,7 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         LOGW("tracker schema is no change for distributed table.");
         return -E_IGNORE_DATA;
     }
-    isFirstCreate = tracker.GetTrackerTable(schema.tableName).IsEmpty();
+    isFirstCreate = tracker.GetTrackerTable(schema.tableName).GetTableName().empty();
     tracker.InsertTrackerSchema(schema);
     tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
     errCode = tableInfo.CheckTrackerTable();

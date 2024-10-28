@@ -24,6 +24,7 @@
 #include "executor.h"
 #include "pool.h"
 #include "priority_queue.h"
+#include "active_boottime.h"
 namespace OHOS {
 class ExecutorPool {
 public:
@@ -106,7 +107,7 @@ public:
         innerTask.interval = interval;
         innerTask.times = times;
         innerTask.taskId = GenTaskId();
-        return Schedule(std::move(innerTask), std::chrono::steady_clock::now() + delay);
+        return Schedule(std::move(innerTask), Boottime::Now() + delay);
     }
 
     bool Remove(TaskId taskId, bool wait = false)
@@ -129,7 +130,7 @@ public:
             if (task.interval != INVALID_INTERVAL) {
                 task.interval = interval;
             }
-            auto time = std::chrono::steady_clock::now() + interval;
+            auto time = Boottime::Now() + interval;
             return std::pair{ task.interval != INVALID_INTERVAL, time };
         });
         return updated ? taskId : INVALID_TASK_ID;
@@ -202,7 +203,7 @@ private:
     static std::pair<bool, Time> NextTimer(InnerTask &task)
     {
         if (task.interval != INVALID_INTERVAL && --task.times > 0) {
-            auto time = std::chrono::steady_clock::now() + task.interval;
+            auto time = Boottime::Now() + task.interval;
             return { true, time };
         }
         return { false, INVALID_TIME };

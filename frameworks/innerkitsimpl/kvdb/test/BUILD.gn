@@ -136,6 +136,11 @@ ohos_unittest("SingleStoreImplTest") {
     "samgr:samgr_proxy",
   ]
 
+  cflags = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -327,11 +332,14 @@ group("unittest") {
     ":BackupManagerTest",
     ":DevManagerMockTest",
     ":DevManagerTest",
-    ":SecurityManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
     ":StoreFactoryTest",
     ":StoreUtilTest",
   ]
+
+  if (!use_libfuzzer) {
+    deps += [ ":SecurityManagerTest" ]
+  }
 }
 ###############################################################################

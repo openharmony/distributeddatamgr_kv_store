@@ -437,6 +437,10 @@ int RelationalSchemaObject::ParseCheckTrackerTable(const JsonObject &inJsonObjec
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
+    errCode = ParseCheckTrackerAction(inJsonObject, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     trackerTables_[table.GetTableName()].SetTrackerTable(table);
     return E_OK;
 }
@@ -1115,6 +1119,22 @@ void RelationalSchemaObject::CalculateTableWeight(const std::set<std::string> &s
             tableWeight_[table] = std::max(tableWeight_[table], weight);
         }
     }
+}
+
+int RelationalSchemaObject::ParseCheckTrackerAction(const JsonObject &inJsonObject, TrackerTable &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "TRACKER_ACTION", FieldType::LEAF_FIELD_BOOL,
+        false, fieldValue);
+    if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
+        resultTable.SetTrackerAction(fieldValue.boolValue);
+    } else if (errCode == -E_NOT_FOUND) {
+        fieldValue.boolValue = false;
+        errCode = E_OK;
+    } else {
+        LOGE("[RelationalSchema][Parse] get TRACKER_ACTION failed %d", errCode);
+    }
+    return errCode;
 }
 }
 #endif

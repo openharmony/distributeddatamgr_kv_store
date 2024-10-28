@@ -17,7 +17,7 @@
 #define RD_SINGLE_VER_STORAGE_ENGINE_H
 
 #include "db_common.h"
-#include "grd_db_api.h"
+#include "grd_base/grd_db_api.h"
 #include "param_check_utils.h"
 #include "platform_specific.h"
 #include "runtime_context.h"

@@ -51,8 +51,8 @@ namespace {
         "type='table' AND (tbl_name=? COLLATE NOCASE));";
     const constexpr char *CHECK_META_DB_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM meta.sqlite_master WHERE " \
         "type='table' AND (tbl_name=? COLLATE NOCASE));";
-
 }
+
 struct ValueParseCache {
     ValueObject valueParsed;
     std::vector<uint8_t> valueOriginal;

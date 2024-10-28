@@ -54,11 +54,13 @@ public:
     bool IsEmpty() const;
     bool IsChanging(const TrackerSchema &schema);
     int ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action);
+    void SetTrackerAction(bool isTrackerAction);
 
 private:
     std::string tableName_;
     std::string extendColName_;
     std::set<std::string> trackerColNames_;
+    bool isTrackerAction_ = false;
 };
 
 } // namespace DistributedDB

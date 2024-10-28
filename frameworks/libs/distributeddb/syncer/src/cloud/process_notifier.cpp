@@ -53,6 +53,15 @@ void ProcessNotifier::InitSyncProcess(const std::vector<std::string> &tableName,
     }
 }
 
+void ProcessNotifier::UpdateUploadRetryInfo(const ICloudSyncer::InnerProcessInfo &process)
+{
+    if (process.tableName.empty()) {
+        return;
+    }
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    processRetryInfo_[process.tableName] = process.retryInfo.uploadBatchRetryCount;
+}
+
 void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &process)
 {
     if (process.tableName.empty()) {
@@ -86,6 +95,7 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
         syncProcess_.process = taskInfo.status;
         multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode, true);
         multiSyncProcess_[user_].process = taskInfo.status;
+        UpdateUploadInfoIfNeeded(process);
         if (user_.empty()) {
             for (const auto &device : devices_) {
                 // make sure only one device
@@ -154,11 +164,15 @@ void ProcessNotifier::ResetUploadBatchIndex(const std::string &tableName)
     }
 }
 
-void ProcessNotifier::GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo) const
+void ProcessNotifier::GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo,
+    ICloudSyncer::UploadRetryInfo &retryInfo) const
 {
     Info lastInfo;
     std::lock_guard<std::mutex> autoLock(processMutex_);
     auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
+    if (processRetryInfo_.find(tableName) != processRetryInfo_.end()) {
+        retryInfo.uploadBatchRetryCount = processRetryInfo_.at(tableName);
+    }
     if (syncProcess.tableProcess.find(tableName) != syncProcess_.tableProcess.end()) {
         lastInfo = syncProcess.tableProcess.at(tableName).upLoadInfo;
     }
@@ -177,7 +191,7 @@ void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo 
     } else {
         syncProcess = multiSyncProcess_[user_];
     }
-    
+
     if (syncProcess.tableProcess.find(process.tableName) != syncProcess.tableProcess.end()) {
         process.downLoadInfo = syncProcess.tableProcess[process.tableName].downLoadInfo;
     }
@@ -210,5 +224,17 @@ std::map<std::string, TableProcessInfo> ProcessNotifier::GetCurrentTableProcess(
 {
     std::lock_guard<std::mutex> autoLock(processMutex_);
     return syncProcess_.tableProcess;
+}
+
+void ProcessNotifier::UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessInfo &process)
+{
+    auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
+    auto tableProcess = syncProcess.tableProcess.find(process.tableName);
+    auto retryInfo = processRetryInfo_.find(process.tableName);
+    if (tableProcess != syncProcess.tableProcess.end() && retryInfo != processRetryInfo_.end()) {
+        uint32_t downloadOpCount = process.retryInfo.downloadBatchOpCount;
+        uint32_t uploadRetryCount = retryInfo->second;
+        tableProcess->second.upLoadInfo.successCount += std::min(uploadRetryCount, downloadOpCount);
+    }
 }
 }

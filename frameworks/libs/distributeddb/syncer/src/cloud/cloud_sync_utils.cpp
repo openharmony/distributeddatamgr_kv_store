@@ -405,10 +405,12 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
         // INSERT: only for single primary key situation
         case OpType::INSERT:
             param.info.downLoadInfo.insertCount++;
+            param.info.retryInfo.downloadBatchOpCount++;
             return CloudSyncUtils::SaveChangedDataByType(
                 param.downloadData.data[dataIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_INSERT);
         case OpType::UPDATE:
             param.info.downLoadInfo.updateCount++;
+            param.info.retryInfo.downloadBatchOpCount++;
             if (CloudSyncUtils::NeedSaveData(dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo)) {
                 return CloudSyncUtils::SaveChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
                     dataInfo.localInfo, ChangeType::OP_UPDATE);
@@ -416,6 +418,7 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
             return E_OK;
         case OpType::DELETE:
             param.info.downLoadInfo.deleteCount++;
+            param.info.retryInfo.downloadBatchOpCount++;
             return CloudSyncUtils::SaveChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
                 dataInfo.localInfo, ChangeType::OP_DELETE);
         default:

@@ -202,19 +202,20 @@ bool CheckSchemaNotExist(KvStoreNbDelegate *&delegate)
 {
     bool result = true;
     vector<Entry> entries;
-    bool valueBool = true; // boolean true
     int valueInt = 10; // int value 10
     int64_t valueLong = 15; // long value 15
     double valueDouble = 10.5; // double value 10.5
 
     string fieldStr = "$.field1";
-    vector<Query> queries1, queries2, queries3;
+    vector<Query> queries1;
+    vector<Query> queries2;
+    vector<Query> queries3;
     bool functionChoiceComp1[INTERFACE_QTY_6] = {true, false, false, false, false, false};
-    QueryGenerate<bool>::Instance().GenerateQueryComp(queries1, functionChoiceComp1, fieldStr, valueBool);
+    QueryGenerate<bool>::Instance().GenerateQueryComp(queries1, functionChoiceComp1, fieldStr, true);
     bool functionChoiceComp2[INTERFACE_QTY_6] = {false, true, false, false, false, false};
-    QueryGenerate<bool>::Instance().GenerateQueryComp(queries2, functionChoiceComp2, fieldStr, valueBool);
+    QueryGenerate<bool>::Instance().GenerateQueryComp(queries2, functionChoiceComp2, fieldStr, true);
     bool functionChoiceComp3[INTERFACE_QTY_6] = {false, false, true, true, true, true};
-    QueryGenerate<bool>::Instance().GenerateQueryComp(queries3, functionChoiceComp3, fieldStr, valueBool);
+    QueryGenerate<bool>::Instance().GenerateQueryComp(queries3, functionChoiceComp3, fieldStr, true);
 
     bool functionChoiceComp4[INTERFACE_QTY_6] = {true, false, false, false, true, true};
     QueryGenerate<int>::Instance().GenerateQueryComp(queries1, functionChoiceComp4, fieldStr, valueInt);
@@ -433,13 +434,14 @@ bool CheckSchemaBoolNotExist(KvStoreNbDelegate *&delegate, vector<Entry> &entrie
     double valueDouble = 10.5; // double value 10.5
     float valueFloat = 5.0; // float value 5.0
 
-    vector<Query> queries1, queries2;
+    vector<Query> queries1;
     queries1.push_back(Query::Select().EqualTo("$.field1", valueStringTrue));
     queries1.push_back(Query::Select().EqualTo("$.field1", valueString));
     queries1.push_back(Query::Select().EqualTo("$.field1", valueLong));
     queries1.push_back(Query::Select().EqualTo("$.field1", valueDouble));
     queries1.push_back(Query::Select().EqualTo("$.field1", valueFloat));
 
+    vector<Query> queries2;
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueStringTrue));
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueString));
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueLong));
@@ -658,13 +660,13 @@ bool CheckSchemaExceptionValue(KvStoreNbDelegate *&delegate, vector<Entry> &entr
     string valueStringTen = "10"; // string 10
     string valueString = "abc";
     float valueFloat = 10.0; // float 10.0
-    bool valueBool = false; // boolean false
-    vector<Query> queries1, queries2, queries3;
+    vector<Query> queries1;
     queries1.push_back(Query::Select().EqualTo("$.field1", valueString));
-    queries1.push_back(Query::Select().EqualTo("$.field1", valueBool));
+    queries1.push_back(Query::Select().EqualTo("$.field1", false));
 
+    vector<Query> queries2;
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueString));
-    queries2.push_back(Query::Select().NotEqualTo("$.field1", valueBool));
+    queries2.push_back(Query::Select().NotEqualTo("$.field1", false));
 
     vector<string> valuesString = {"abc"};
     vector<bool> valuesBool = {false};
@@ -678,12 +680,13 @@ bool CheckSchemaExceptionValue(KvStoreNbDelegate *&delegate, vector<Entry> &entr
     queries2.push_back(Query::Select().NotIn("$.field1", valuesDouble));
 
     queries1.push_back(Query::Select().GreaterThan("$.field1", valueString));
-    queries3.push_back(Query::Select().GreaterThan("$.field1", valueBool));
+    vector<Query> queries3;
+    queries3.push_back(Query::Select().GreaterThan("$.field1", false));
 
     queries2.push_back(Query::Select().GreaterThanOrEqualTo("$.field1", valueStringTen));
     queries2.push_back(Query::Select().GreaterThanOrEqualTo("$.field1", valueFloat));
     queries1.push_back(Query::Select().GreaterThanOrEqualTo("$.field1", valueString));
-    queries3.push_back(Query::Select().GreaterThanOrEqualTo("$.field1", valueBool));
+    queries3.push_back(Query::Select().GreaterThanOrEqualTo("$.field1", false));
 
     vector<Entry> expectEntry3 = {};
     Query query = Query::Select().LessThan("$.field1", valueStringTen);
@@ -692,17 +695,17 @@ bool CheckSchemaExceptionValue(KvStoreNbDelegate *&delegate, vector<Entry> &entr
     result = CheckSchemaQuery(delegate, query, expectEntry3, 0, DBStatus::NOT_FOUND) && result;
 
     queries2.push_back(Query::Select().LessThan("$.field1", valueString));
-    queries3.push_back(Query::Select().LessThan("$.field1", valueBool));
+    queries3.push_back(Query::Select().LessThan("$.field1", false));
 
     queries2.push_back(Query::Select().LessThanOrEqualTo("$.field1", valueString));
-    queries3.push_back(Query::Select().LessThanOrEqualTo("$.field1", valueBool));
+    queries3.push_back(Query::Select().LessThanOrEqualTo("$.field1", false));
 
     vector<Entry> entries1;
     for (auto const &it : queries1) {
         result = (delegate->GetEntries(it, entries1) == NOT_FOUND) && result;
     }
-    vector<Entry> expectEntry2 =
-        {entries[INDEX_ZEROTH], entries[INDEX_SECOND], entries[INDEX_THIRD], entries[INDEX_FORTH]};
+    vector<Entry> expectEntry2 = { entries[INDEX_ZEROTH], entries[INDEX_SECOND], entries[INDEX_THIRD],
+        entries[INDEX_FORTH] };
     for (auto &it : queries2) {
         result = CheckSchemaQuery(delegate, it, expectEntry2, SCHEMA_GOT_COUNT_4, DBStatus::OK) && result;
     }
@@ -1060,10 +1063,11 @@ bool CheckSchemaDoubleExceptionValue(KvStoreNbDelegate *&delegate, vector<Entry>
     bool result = true;
     string valueString = "abc";
     int64_t valueLong = 15; // long value 15
-    vector<Query> queries1, queries2;
+    vector<Query> queries1;
     queries1.push_back(Query::Select().EqualTo("$.field1", valueString));
     queries1.push_back(Query::Select().EqualTo("$.field1", valueLong));
 
+    vector<Query> queries2;
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueString));
     queries2.push_back(Query::Select().NotEqualTo("$.field1", valueLong));
 

@@ -158,10 +158,10 @@ public:
         const std::vector<std::string>& devices, DistributedDB::SyncMode mode,
         std::map<std::string, DistributedDB::DBStatus>& statuses, const DistributedDB::Query &query);
 
-    DistributedDB::DBStatus SyncTest(DistributedDB::KvStoreNbDelegate *delegate,
+    DistributedDB::DBStatus SyncTest(DistributedDB::KvStoreNbDelegate* delegate,
         DistributedDB::DeviceSyncOption option,
         std::map<std::string, DistributedDB::DeviceSyncProcess> &syncProcessMap);
-        
+
     static void GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize = 0);
 
     static bool IsValueEqual(const DistributedDB::Value &read, const DistributedDB::Value &origin);

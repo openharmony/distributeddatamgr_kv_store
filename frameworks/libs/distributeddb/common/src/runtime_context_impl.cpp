@@ -14,11 +14,13 @@
  */
 
 #include "runtime_context_impl.h"
-#include "db_common.h"
-#include "db_errno.h"
-#include "db_dfx_adapter.h"
-#include "log_print.h"
+
 #include "communicator_aggregator.h"
+#include "db_common.h"
+#include "db_dfx_adapter.h"
+#include "db_errno.h"
+#include "kv_store_errno.h"
+#include "log_print.h"
 #include "network_adapter.h"
 
 namespace DistributedDB {
@@ -539,13 +541,10 @@ int RuntimeContextImpl::SetSecurityOption(const std::string &filePath, const Sec
         return errCode;
     }
 
-    errCode = systemApiAdapter_->SetSecurityOption(fileRealPath, option);
-    if (errCode != OK) {
-        if (errCode == NOT_SUPPORT) {
-            return -E_NOT_SUPPORT;
-        }
-        LOGE("SetSecurityOption failed, errCode = %d", errCode);
-        return -E_SYSTEM_API_ADAPTER_CALL_FAILED;
+    DBStatus dbErrCode = systemApiAdapter_->SetSecurityOption(fileRealPath, option);
+    if (dbErrCode != OK) {
+        LOGE("SetSecurityOption failed, errCode = %d", dbErrCode);
+        return TransferDBStatusToErr(dbErrCode);
     }
     return E_OK;
 }

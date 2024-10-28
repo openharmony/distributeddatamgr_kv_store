@@ -36,6 +36,7 @@ private:
         bool isLocalDelete);
 
     OpType TagLocalNotExist(bool isCloudDelete);
+    bool JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo);
 };
 }
 #endif // DIFFERENTIAL_STRATEGY_H

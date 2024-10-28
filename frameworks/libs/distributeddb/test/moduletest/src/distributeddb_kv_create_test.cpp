@@ -1792,7 +1792,8 @@ void RunDbRekeyFive()
     result5 = DistributedTestTools::GetDelegateSuccess(manager5, g_kvdbParameter5, option);
     ASSERT_TRUE(manager5 != nullptr && result5 != nullptr);
     vector<Entry> entries1;
-    vector<Key> allKey1, allKey2;
+    vector<Key> allKey1;
+    vector<Key> allKey2;
     GenerateRecords(BATCH_RECORDS, DEFAULT_START, allKey1, entries1, K_SEARCH_3);
     DBStatus status = DistributedTestTools::PutBatch(*result5, entries1);
     ASSERT_TRUE(status == DBStatus::OK);

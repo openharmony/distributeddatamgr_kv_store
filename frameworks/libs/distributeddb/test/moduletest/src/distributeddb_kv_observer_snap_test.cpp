@@ -1085,7 +1085,9 @@ vector<Entry> ObserverSnapVerifyTransactionCommit(KvStoreDelegate *&delegate1, K
     }
     statusDelete = DistributedTestTools::DeleteBatch(*delegate1, keys1);
     EXPECT_TRUE(statusDelete == DBStatus::OK);
-    vector<DistributedDB::Entry> insertEntries, updateEntries, deleteEntries;
+    vector<DistributedDB::Entry> insertEntries;
+    vector<DistributedDB::Entry> updateEntries;
+    vector<DistributedDB::Entry> deleteEntries;
     EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, INSERT_LIST, insertEntries));
     EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, UPDATE_LIST, updateEntries));
     EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, DELETE_LIST, deleteEntries));

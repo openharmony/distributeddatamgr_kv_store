@@ -17,8 +17,8 @@
 #define RD_SINGLE_VER_STORAGE_EXECUTOR_H
 #include "macro_utils.h"
 #include "db_types.h"
-#include "grd_kv_api.h"
-#include "grd_resultset_api.h"
+#include "grd_kv/grd_kv_api.h"
+#include "grd_base/grd_resultset_api.h"
 #include "query_object.h"
 #include "sqlite_utils.h"
 #include "sqlite_single_ver_storage_executor.h"

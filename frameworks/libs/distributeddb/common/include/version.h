@@ -31,55 +31,56 @@ namespace DistributedDB {
 // submodule C, if we simply change version of C to 102 then version of A is still 105, but if we change version of C
 // to 106 then version of A is now 106, so we can know that something had changed for module A.
 constexpr const char *SOFTWARE_VERSION_STRING = "1.1.5"; // DistributedDB current version string.
-constexpr uint32_t SOFTWARE_VERSION_BASE = 100; // Software version base value, do not change it
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_1_0 = SOFTWARE_VERSION_BASE + 1; // 1 for first released version
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_2_0 = SOFTWARE_VERSION_BASE + 2; // 2 for second released version
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_3_0 = SOFTWARE_VERSION_BASE + 3; // 3 for third released version
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_4_0 = SOFTWARE_VERSION_BASE + 4; // 4 for fourth released version
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_5_0 = SOFTWARE_VERSION_BASE + 5; // 5 for fifth released version
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_6_0 = SOFTWARE_VERSION_BASE + 6; // 6 for sixth released version
+constexpr const uint32_t SOFTWARE_VERSION_BASE = 100; // Software version base value, do not change it
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_1_0 = SOFTWARE_VERSION_BASE + 1; // 1 for first released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_2_0 = SOFTWARE_VERSION_BASE + 2; // 2 for second released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_3_0 = SOFTWARE_VERSION_BASE + 3; // 3 for third released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_4_0 = SOFTWARE_VERSION_BASE + 4; // 4 for fourth released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_5_0 = SOFTWARE_VERSION_BASE + 5; // 5 for fifth released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_6_0 = SOFTWARE_VERSION_BASE + 6; // 6 for sixth released version
 // check both device has security label at 107
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for seventh released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for seventh released version
 // kv ability sync with 2 packet at 108
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 8; // 8 for eighth released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 8; // 8 for eighth released version
 // 109 version add field in request packet
 // add schema version in ability request
 // add schema version, system time offset, sender local time offset in data request
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 9; // 9 for ninth released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 9; // 9 for ninth released version
 // 110 version add totalDataCount field in DataRequestPkt
-constexpr uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE + 10;
-constexpr uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_10_0;
-constexpr int VERSION_INVALID = INT32_MAX;
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE + 10; // 10 for tenth released version
+constexpr const uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_10_0;
+constexpr const int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version
 // LocalNaturalStore Related Version
-constexpr int LOCAL_STORE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int LOCAL_STORE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
 // SingleVerNaturalStore Related Version
-constexpr int SINGLE_VER_STORE_VERSION_V1 = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr int SINGLE_VER_STORE_VERSION_V2 = SOFTWARE_VERSION_RELEASE_2_0;
-constexpr int SINGLE_VER_STORE_VERSION_V3 = SOFTWARE_VERSION_RELEASE_3_0;
+constexpr const int SINGLE_VER_STORE_VERSION_V1 = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int SINGLE_VER_STORE_VERSION_V2 = SOFTWARE_VERSION_RELEASE_2_0;
+constexpr const int SINGLE_VER_STORE_VERSION_V3 = SOFTWARE_VERSION_RELEASE_3_0;
 // 104 add modify time and create time into sync_data
-constexpr int SINGLE_VER_STORE_VERSION_V4 = SOFTWARE_VERSION_RELEASE_4_0;
-constexpr int SINGLE_VER_STORE_VERSION_CURRENT = SINGLE_VER_STORE_VERSION_V4;
+constexpr const int SINGLE_VER_STORE_VERSION_V4 = SOFTWARE_VERSION_RELEASE_4_0;
+constexpr const int SINGLE_VER_STORE_VERSION_CURRENT = SINGLE_VER_STORE_VERSION_V4;
 // MultiVerNaturalStore Related Version
-constexpr uint32_t VERSION_FILE_VERSION_CURRENT = 1;
-constexpr uint32_t MULTI_VER_STORE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr int MULTI_VER_COMMIT_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr int MULTI_VER_DATA_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr int MULTI_VER_METADATA_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr int MULTI_VER_VALUESLICE_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const uint32_t VERSION_FILE_VERSION_CURRENT = 1;
+constexpr const uint32_t MULTI_VER_STORE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int MULTI_VER_COMMIT_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int MULTI_VER_DATA_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int MULTI_VER_METADATA_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
+constexpr const int MULTI_VER_VALUESLICE_STORAGE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_1_0;
 
 // Syncer Related Version
-constexpr int TIME_SYNC_VERSION_V1 = SOFTWARE_VERSION_RELEASE_1_0; // time sync proctol added in version 101.
-constexpr int ABILITY_SYNC_VERSION_V1 = SOFTWARE_VERSION_RELEASE_2_0; // Ability sync proctol added in version 102.
-constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V1 = SOFTWARE_VERSION_RELEASE_1_0; // The 1st version num
-constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V2 = SOFTWARE_VERSION_RELEASE_2_0; // The 2nd version num
-constexpr uint32_t SINGLE_VER_SYNC_PROCTOL_V3 = SOFTWARE_VERSION_RELEASE_3_0; // The third version num
+constexpr const int TIME_SYNC_VERSION_V1 = SOFTWARE_VERSION_RELEASE_1_0; // time sync proctol added in version 101.
+// Ability sync proctol added in version 102.
+constexpr const int ABILITY_SYNC_VERSION_V1 = SOFTWARE_VERSION_RELEASE_2_0;
+constexpr const uint32_t SINGLE_VER_SYNC_PROCTOL_V1 = SOFTWARE_VERSION_RELEASE_1_0; // The 1st version num
+constexpr const uint32_t SINGLE_VER_SYNC_PROCTOL_V2 = SOFTWARE_VERSION_RELEASE_2_0; // The 2nd version num
+constexpr const uint32_t SINGLE_VER_SYNC_PROCTOL_V3 = SOFTWARE_VERSION_RELEASE_3_0; // The third version num
 
 // Local Meta Data Version
-constexpr uint32_t LOCAL_META_DATA_VERSION_V1 = SOFTWARE_VERSION_RELEASE_8_0;
-constexpr uint32_t LOCAL_META_DATA_VERSION_V2 = SOFTWARE_VERSION_RELEASE_9_0;
+constexpr const uint32_t LOCAL_META_DATA_VERSION_V1 = SOFTWARE_VERSION_RELEASE_8_0;
+constexpr const uint32_t LOCAL_META_DATA_VERSION_V2 = SOFTWARE_VERSION_RELEASE_9_0;
 } // namespace DistributedDB
 
 #endif // VERSION_H
