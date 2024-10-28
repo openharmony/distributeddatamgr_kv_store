@@ -218,7 +218,6 @@ DataBaseSchema DistributedDBCloudKvTest::GetDataBaseSchema(bool invalidSchema)
     return schema;
 }
 
-
 DBStatus DistributedDBCloudKvTest::GetKvStore(KvStoreNbDelegate *&delegate, const std::string &storeId,
     KvStoreNbDelegate::Option option, bool invalidSchema)
 {
@@ -810,6 +809,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync014, TestSize.Level1)
     BlockSync(kvDelegatePtrS3_, USER_CHANGED, g_CloudSyncoption);
     thread.join();
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+    g_mgr.SetSyncActivationCheckCallback(nullptr);
 }
 
 /**
@@ -1351,7 +1351,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync030, TestSize.Level0)
     ASSERT_EQ(kvDelegatePtrS3_->Put(key, value), OK);
     /**
      * @tc.steps:step3. Set null cloudDB.
-     * @tc.expected: step3 CLOUD_ERROR.
+     * @tc.expected: step3 INVALID_ARGS.
      */
     BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, CLOUD_ERROR);
     std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
@@ -1561,7 +1561,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level0)
     EXPECT_EQ(actualValue1, value1);
     auto result = kvDelegatePtrS1_->GetCloudVersion("");
     EXPECT_EQ(result.first, OK);
-    for (auto item : result.second) {
+    for (const auto &item : result.second) {
         EXPECT_EQ(item.second, "1");
     }
     /**
@@ -1584,7 +1584,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level0)
     EXPECT_EQ(actualValue2, value2);
     result = kvDelegatePtrS1_->GetCloudVersion("");
     EXPECT_EQ(result.first, OK);
-    for (auto item : result.second) {
+    for (const auto &item : result.second) {
         EXPECT_EQ(item.second, "11");
     }
     kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
@@ -1601,7 +1601,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. put data and SetCloudSyncConfig.
-     * @tc.expected: step1 ok.
+     * @tc.expected: step1. ok.
      */
     CloudSyncConfig config;
     int maxUploadCount = 40;
@@ -1612,7 +1612,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
     kvDelegatePtrS1_->Put(key, value);
     /**
      * @tc.steps:step2. sync.
-     * @tc.expected: step2 ok.
+     * @tc.expected: step2. ok.
      */
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
 }
@@ -1907,7 +1907,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync042, TestSize.Level0)
      */
     auto result = kvDelegatePtrS1_->GetCloudVersion("");
     EXPECT_EQ(result.first, OK);
-    for (auto item : result.second) {
+    for (const auto &item : result.second) {
         EXPECT_EQ(item.second, "1");
     }
     kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
@@ -1963,7 +1963,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level0)
      */
     auto result = kvDelegatePtrS1_->GetCloudVersion("");
     EXPECT_EQ(result.first, NOT_FOUND);
-    for (auto item : result.second) {
+    for (const auto &item : result.second) {
         EXPECT_EQ(item.second, "");
     }
     kvDelegatePtrS1_->SetGenCloudVersionCallback(nullptr);
@@ -1980,7 +1980,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level0)
 HWTEST_F(DistributedDBCloudKvTest, NormalSync044, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. store1 put (k1,v1) and (k2,v2)
+     * @tc.steps: step1. store1 put (k1,v1) and (k2,v2)
      * @tc.expected: step1. both put ok
      */
     communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
@@ -2075,7 +2075,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
 HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. store1 put (k1,v1) and (k2,v2)
+     * @tc.steps: step1. store1 put (k1,v1) and (k2,v2)
      * @tc.expected: step1. both put ok
      */
     communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
@@ -2272,5 +2272,218 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level0)
         EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), OK);
         EXPECT_EQ(actualValue, newValue);
     }
+}
+
+/**
+ * @tc.name: NormalSync050
+ * @tc.desc: test upload with conflic error and chekck upload info
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync050, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set the retry count to 1
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncConfig config;
+    config.maxRetryConflictTimes = 1;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    /**
+     * @tc.steps: step2. Put {k1, v1} {k2, v2} locally
+     * @tc.expected: step2. ok.
+     */
+    kvDelegatePtrS1_->Put(KEY_1, VALUE_1);
+    kvDelegatePtrS1_->Put(KEY_2, VALUE_2);
+    /**
+     * @tc.steps: step3. Set CLOUD_VERSION_CONFLICT when upload 2nd record, and do sync
+     * @tc.expected: step3. ok.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 2) { // set 2nd record return CLOUD_RECORD_EXIST_CONFLICT
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps: step4. Check last process
+     * @tc.expected: step4. ok.
+     */
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 2u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 2u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 2u);
+    }
+    virtualCloudDb_->ForkInsertConflict(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync051
+ * @tc.desc: test upload with conflict error and exceeds retry limit
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync051, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set the retry count to 0
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncConfig config;
+    config.maxRetryConflictTimes = 0;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    /**
+     * @tc.steps: step2. Put {k1, v1} {k2, v2} locally
+     * @tc.expected: step2. ok.
+     */
+    kvDelegatePtrS1_->Put(KEY_1, VALUE_1);
+    kvDelegatePtrS1_->Put(KEY_2, VALUE_2);
+    /**
+     * @tc.steps: step3. Set CLOUD_VERSION_CONFLICT when upload 2nd record, and do sync
+     * @tc.expected: step3. CLOUD_VERSION_CONFLICT.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 2) { // set 2nd record return CLOUD_VERSION_CONFLICT
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+    BlockSync(kvDelegatePtrS1_, CLOUD_VERSION_CONFLICT, g_CloudSyncoption);
+    /**
+     * @tc.steps: step4. Check last process
+     * @tc.expected: step4. ok.
+     */
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 2u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 1u);
+    }
+    virtualCloudDb_->ForkInsertConflict(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync052
+ * @tc.desc: test upload with version conflict error under force push mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync052, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set the retry count to 2
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncConfig config;
+    config.maxRetryConflictTimes = 2;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    /**
+     * @tc.steps: step2. Put {k1, v1} {k2, v2} locally, then sync to cloud
+     * @tc.expected: step2. ok.
+     */
+    kvDelegatePtrS1_->Put(KEY_1, VALUE_1);
+    kvDelegatePtrS1_->Put(KEY_2, VALUE_2);
+    /**
+     * @tc.steps: step3. Set CLOUD_VERSION_CONFLICT when upload 2nd record, and do sync
+     * @tc.expected: step3. OK.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 2) { // set 2nd record return CLOUD_VERSION_CONFLICT
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+    g_CloudSyncoption.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH;
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    g_CloudSyncoption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    /**
+     * @tc.steps: step4. Check last process
+     * @tc.expected: step4. ok.
+     */
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 2u);
+    }
+    virtualCloudDb_->ForkInsertConflict(nullptr);
+}
+
+/**
+ * @tc.name: NormalSync053
+ * @tc.desc: test upload with version conflict error under force push mode, which has both update and insert
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync053, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set the retry count to 0
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncConfig config;
+    config.maxRetryConflictTimes = 0;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    /**
+     * @tc.steps: step2. Put {k1, v1} {k2, v2} locally, then sync to cloud
+     * @tc.expected: step2. ok.
+     */
+    kvDelegatePtrS1_->Put(KEY_1, VALUE_1);
+    kvDelegatePtrS1_->Put(KEY_2, VALUE_2);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps: step3. Put {k3, v3} locally, and update k1 k2
+     * @tc.expected: step3. ok.
+     */
+    kvDelegatePtrS1_->Put(KEY_1, VALUE_2);
+    kvDelegatePtrS1_->Put(KEY_2, VALUE_3);
+    kvDelegatePtrS1_->Put(KEY_3, VALUE_3);
+    /**
+     * @tc.steps: step4. Set CLOUD_VERSION_CONFLICT when upload 2nd record, and do sync
+     * @tc.expected: step4. CLOUD_VERSION_CONFLICT.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 2) { // set 2nd record return CLOUD_VERSION_CONFLICT
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+    g_CloudSyncoption.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH;
+    BlockSync(kvDelegatePtrS1_, CLOUD_VERSION_CONFLICT, g_CloudSyncoption);
+    g_CloudSyncoption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    /**
+     * @tc.steps: step5. Check last process
+     * @tc.expected: step5. ok.
+     */
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 3u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 2u);
+        EXPECT_EQ(table.second.upLoadInfo.updateCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.insertCount, 0u);
+    }
+    virtualCloudDb_->ForkInsertConflict(nullptr);
 }
 }

@@ -60,6 +60,7 @@ public:
         std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
         Rdconfig rdconfig;
     };
+
     struct DatabaseStatus {
         bool isRebuild = false;
     };

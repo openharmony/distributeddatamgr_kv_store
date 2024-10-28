@@ -21,45 +21,45 @@
 namespace DistributedDB {
 class DBConstant {
 public:
-    static constexpr size_t MAX_KEY_SIZE = 1024;
-    static constexpr size_t MAX_VALUE_SIZE = 4194304;
-    static constexpr size_t MAX_BATCH_SIZE = 128;
-    static constexpr size_t MAX_DEV_LENGTH = 128;
-    static constexpr size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
+    static constexpr const size_t MAX_KEY_SIZE = 1024;
+    static constexpr const size_t MAX_VALUE_SIZE = 4194304;
+    static constexpr const size_t MAX_BATCH_SIZE = 128;
+    static constexpr const size_t MAX_DEV_LENGTH = 128;
+    static constexpr const size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
 
-    static constexpr size_t MAX_DATA_DIR_LENGTH = 512;
+    static constexpr const size_t MAX_DATA_DIR_LENGTH = 512;
 
-    static constexpr size_t MAX_INKEYS_SIZE = 128;
-    static constexpr size_t MAX_SQL_ARGS_COUNT = 100;
-    static constexpr size_t MAX_IN_COUNT = 100;
+    static constexpr const size_t MAX_INKEYS_SIZE = 128;
+    static constexpr const size_t MAX_SQL_ARGS_COUNT = 100;
+    static constexpr const size_t MAX_IN_COUNT = 100;
 
-    static constexpr int DB_TYPE_LOCAL = 1;
-    static constexpr int DB_TYPE_MULTI_VER = 2;
-    static constexpr int DB_TYPE_SINGLE_VER = 3;
+    static constexpr const int DB_TYPE_LOCAL = 1;
+    static constexpr const int DB_TYPE_MULTI_VER = 2;
+    static constexpr const int DB_TYPE_SINGLE_VER = 3;
 
-    static constexpr int QUEUED_SYNC_LIMIT_DEFAULT = 32;
-    static constexpr int QUEUED_SYNC_LIMIT_MIN = 1;
-    static constexpr int QUEUED_SYNC_LIMIT_MAX = 4096;
+    static constexpr const int QUEUED_SYNC_LIMIT_DEFAULT = 32;
+    static constexpr const int QUEUED_SYNC_LIMIT_MIN = 1;
+    static constexpr const int QUEUED_SYNC_LIMIT_MAX = 4096;
 
-    static constexpr int MAX_DEVICES_SIZE = 100;
-    static constexpr int MAX_COMMIT_SIZE = 1000000;
-    static constexpr int MAX_ENTRIES_SIZE = 1000000;
+    static constexpr const int MAX_DEVICES_SIZE = 100;
+    static constexpr const int MAX_COMMIT_SIZE = 1000000;
+    static constexpr const int MAX_ENTRIES_SIZE = 1000000;
 
-    static constexpr uint32_t MAX_COLUMN  = 32767;
+    static constexpr const uint32_t MAX_COLUMN  = 32767;
 
-    static constexpr int MAX_REMOTEDATA_SIZE = 4194304;  // 4M.
+    static constexpr const int MAX_REMOTEDATA_SIZE = 4194304;  // 4M.
 
-    static constexpr int DEFAULT_ITER_TIMES = 5000;
+    static constexpr const int DEFAULT_ITER_TIMES = 5000;
 
     // In querySync, when getting query data finished,
     // if the block size reach the half of max block size, will get deleted data next;
     // if the block size not reach the half of max block size, will not get deleted data.
-    static constexpr float QUERY_SYNC_THRESHOLD = 0.50;
+    static constexpr const float QUERY_SYNC_THRESHOLD = 0.50;
 
-    static constexpr uint64_t MAX_USER_ID_LENGTH = 128;
-    static constexpr uint64_t MAX_APP_ID_LENGTH = 128;
-    static constexpr uint64_t MAX_STORE_ID_LENGTH = 128;
-    static constexpr uint64_t MAX_SUB_USER_LENGTH = 128;
+    static constexpr const uint64_t MAX_USER_ID_LENGTH = 128;
+    static constexpr const uint64_t MAX_APP_ID_LENGTH = 128;
+    static constexpr const uint64_t MAX_STORE_ID_LENGTH = 128;
+    static constexpr const uint64_t MAX_SUB_USER_LENGTH = 128;
 
     static const std::string MULTI_SUB_DIR;
     static const std::string SINGLE_SUB_DIR;
@@ -121,35 +121,36 @@ public:
     static constexpr const char *QUERY_SYNC_PREFIX_KEY = "querySync";
     static constexpr const char *DELETE_SYNC_PREFIX_KEY = "deleteSync";
 
-    static const size_t MAX_NORMAL_PACK_ITEM_SIZE = 4000;
-    static const size_t MAX_HPMODE_PACK_ITEM_SIZE = 2000; // slide window mode to reduce last ack transfer time
+    static constexpr const size_t MAX_NORMAL_PACK_ITEM_SIZE = 4000;
+    // slide window mode to reduce last ack transfer time
+    static constexpr const size_t MAX_HPMODE_PACK_ITEM_SIZE = 2000;
 
-    static constexpr uint32_t MIN_MTU_SIZE = 1024; // 1KB
-    static constexpr uint32_t MAX_MTU_SIZE = 5242880; // 5MB
+    static constexpr const uint32_t MIN_MTU_SIZE = 1024; // 1KB
+    static constexpr const uint32_t MAX_MTU_SIZE = 5242880; // 5MB
 
-    static constexpr uint32_t MIN_TIMEOUT = 5000; // 5s
-    static constexpr uint32_t MAX_TIMEOUT = 60000; // 60s
-    static constexpr uint32_t MAX_SYNC_TIMEOUT = 300000; // 300s
-    static constexpr int INFINITE_WAIT = -1; // -1 is infinite waiting
+    static constexpr const uint32_t MIN_TIMEOUT = 5000; // 5s
+    static constexpr const uint32_t MAX_TIMEOUT = 60000; // 60s
+    static constexpr const uint32_t MAX_SYNC_TIMEOUT = 300000; // 300s
+    static constexpr const int INFINITE_WAIT = -1; // -1 is infinite waiting
 
-    static constexpr uint8_t DEFAULT_COMPTRESS_RATE = 100;
+    static constexpr const uint8_t DEFAULT_COMPTRESS_RATE = 100;
 
-    static constexpr size_t MAX_SYNC_BLOCK_SIZE = 31457280; // 30MB
+    static constexpr const size_t MAX_SYNC_BLOCK_SIZE = 31457280; // 30MB
 
-    static constexpr int DOUBLE_PRECISION = 15;
-    static constexpr int MAX_DISTRIBUTED_TABLE_COUNT = 32;
+    static constexpr const int DOUBLE_PRECISION = 15;
+    static constexpr const int MAX_DISTRIBUTED_TABLE_COUNT = 32;
 
-    static constexpr uint64_t MAX_LOG_SIZE_HIGH = 0x400000000ULL; // 16GB
-    static constexpr uint64_t MAX_LOG_SIZE_LOW = 0x400000ULL; // 4MB
-    static constexpr uint64_t MAX_LOG_SIZE_DEFAULT = 0x40000000ULL; // 1GB
+    static constexpr const uint64_t MAX_LOG_SIZE_HIGH = 0x400000000ULL; // 16GB
+    static constexpr const uint64_t MAX_LOG_SIZE_LOW = 0x400000ULL; // 4MB
+    static constexpr const uint64_t MAX_LOG_SIZE_DEFAULT = 0x40000000ULL; // 1GB
 
-    static constexpr int DEF_LIFE_CYCLE_TIME = 60000; // 60S
+    static constexpr const int DEF_LIFE_CYCLE_TIME = 60000; // 60S
 
-    static constexpr int RELATIONAL_LOG_TABLE_FIELD_NUM = 7; // field num is relational distributed log table
+    static constexpr const int RELATIONAL_LOG_TABLE_FIELD_NUM = 7; // field num is relational distributed log table
 
-    static constexpr uint64_t IGNORE_CONNECTION_ID = 0;
+    static constexpr const uint64_t IGNORE_CONNECTION_ID = 0;
     // Soft limit of a connection observer count.
-    static constexpr int MAX_OBSERVER_COUNT = 8;
+    static constexpr const int MAX_OBSERVER_COUNT = 8;
 
     // For relational
     static const std::string SYSTEM_TABLE_PREFIX;
@@ -164,31 +165,35 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
     static constexpr const char *LOG_TABLE_VERSION_5_8 = "5.08"; // migrate cursor to meta table
     static constexpr const char *LOG_TABLE_VERSION_5_9 = "5.09"; // insert retains the old version
-    static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_9;
+    static constexpr const char *LOG_TABLE_VERSION_5_10 = "5.10"; // increase the cursor
+    static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_10;
 
     static const std::string LOG_TABLE_VERSION_KEY;
 
     static constexpr const char *REMOTE_DEVICE_SCHEMA_KEY_PREFIX = "remote_device_schema_";
 
-    static constexpr uint32_t MAX_CONDITION_KEY_LEN = 128;
-    static constexpr uint32_t MAX_CONDITION_VALUE_LEN = 128;
-    static constexpr uint32_t MAX_CONDITION_COUNT = 32;
+    static constexpr const uint32_t MAX_CONDITION_KEY_LEN = 128;
+    static constexpr const uint32_t MAX_CONDITION_VALUE_LEN = 128;
+    static constexpr const uint32_t MAX_CONDITION_COUNT = 32;
 
-    static constexpr uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
+    static constexpr const uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
 
-    static constexpr int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
+    static constexpr const int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 
     static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
-    static constexpr int32_t DEFAULT_ROW_ID = -1;
-    static constexpr int STR_TO_LL_BY_DEVALUE = 10;
+    static constexpr const int32_t DEFAULT_ROW_ID = -1;
+    static constexpr const int STR_TO_LL_BY_DEVALUE = 10;
     // key in meta_data
     static constexpr const char *LOCALTIME_OFFSET_KEY = "localTimeOffset";
 
-    static constexpr uint64_t OBSERVER_CHANGES_MASK = 0XF00;
+    static constexpr const uint64_t OBSERVER_CHANGES_MASK = 0XF00;
 
     static constexpr const char *STORAGE_TYPE_LONG = "long";
+
+    static constexpr const char *KV_SYNC_TABLE_NAME = "sync_data";
+    static constexpr const char *KV_LOCAL_TABLE_NAME = "local_data";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

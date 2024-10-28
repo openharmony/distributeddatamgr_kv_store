@@ -178,7 +178,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
     invalidConnection = new (std::nothrow) SQLiteSingleVerNaturalStoreConnection(invalidStore);
     ASSERT_NE(invalidConnection, nullptr);
     /**
-     * @tc.steps::step2. test RegisterObserver with invalid SQLiteSingleVerNaturalStore
+     * @tc.steps:step2. test RegisterObserver with invalid SQLiteSingleVerNaturalStore
      * @tc.expected: step2. return -E_INVALID_CONNECTION.
      */
     int errCode = E_OK;
@@ -190,7 +190,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
         errCode);
     EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
     /**
-     * @tc.steps::step3. test UnRegisterObserver with invalid SQLiteSingleVerNaturalStore
+     * @tc.steps:step3. test UnRegisterObserver with invalid SQLiteSingleVerNaturalStore
      * @tc.expected: step3. return -E_INVALID_CONNECTION.
      */
     auto observerHandle = g_connection->RegisterObserver(
@@ -200,7 +200,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
     errCode = invalidConnection->UnRegisterObserver(observerHandle);
     EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
     /**
-     * @tc.steps::step4. test GetSecurityOption with invalid SQLiteSingleVerNaturalStore
+     * @tc.steps:step4. test GetSecurityOption with invalid SQLiteSingleVerNaturalStore
      * @tc.expected: step4. return -E_INVALID_CONNECTION.
      */
     int securityLabel = NOT_SET;
@@ -208,13 +208,13 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
     errCode = invalidConnection->GetSecurityOption(securityLabel, securityFlag);
     EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
     /**
-     * @tc.steps::step5. test Close with invalid SQLiteSingleVerNaturalStore
+     * @tc.steps:step5. test Close with invalid SQLiteSingleVerNaturalStore
      * @tc.expected: step5. return -E_INVALID_CONNECTION.
      */
     errCode = invalidConnection->Close();
     EXPECT_EQ(errCode, -E_INVALID_CONNECTION);
     /**
-     * @tc.steps::step6. delete invalid SQLiteSingleVerNaturalStoreConnection
+     * @tc.steps:step6. delete invalid SQLiteSingleVerNaturalStoreConnection
      * @tc.expected: step6. return OK.
      */
     if (invalidConnection != nullptr) {

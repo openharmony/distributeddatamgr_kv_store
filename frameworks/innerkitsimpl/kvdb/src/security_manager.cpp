@@ -16,8 +16,10 @@
 #include "security_manager.h"
 
 #include <chrono>
+#include <fcntl.h>
 #include <limits>
 #include <random>
+#include <sys/file.h>
 #include <unistd.h>
 
 #include "file_ex.h"
@@ -71,6 +73,8 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
     const std::string &path, bool needCreate)
 {
     DBPassword dbPassword;
+    KeyFiles keyFiles(name, path);
+    KeyFilesAutoLock fileLock(keyFiles);
     auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
     std::vector<uint8_t> key{};
 
@@ -95,6 +99,8 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
     const DistributedDB::CipherPassword &key)
 {
+    KeyFiles keyFiles(name, path);
+    KeyFilesAutoLock fileLock(keyFiles);
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);
     pwd.assign(pwd.size(), 0);
@@ -103,8 +109,11 @@ bool SecurityManager::SaveDBPassword(const std::string &name, const std::string 
 
 void SecurityManager::DelDBPassword(const std::string &name, const std::string &path)
 {
-    auto keyPath = path + "/key/" + name + ".key";
+    KeyFiles keyFiles(name, path);
+    KeyFilesAutoLock fileLock(keyFiles);
+    auto keyPath = keyFiles.GetKeyFilePath();
     StoreUtil::Remove(keyPath);
+    fileLock.UnLockAndDestroy();
 }
 
 std::vector<uint8_t> SecurityManager::Random(int32_t len)
@@ -121,11 +130,11 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
 std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
     bool &isOutdated)
 {
-    auto keyPath = path + "/key/" + name + ".key";
+    auto keyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
     if (!FileExists(keyPath)) {
         return {};
     }
-    StoreUtil::RemoveRWXForOthers(path + "/key");
+    StoreUtil::RemoveRWXForOthers(path + KEY_DIR);
 
     std::vector<char> content;
     auto loaded = LoadBufferFromFile(keyPath, content);
@@ -159,7 +168,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         return false;
     }
     auto secretKey = Encrypt(key);
-    auto keyPath = path + "/key";
+    auto keyPath = path + KEY_DIR;
     StoreUtil::InitPath(keyPath);
     std::vector<char> content;
     auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::system_clock::now());
@@ -167,7 +176,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     content.push_back(char((sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE));
     content.insert(content.end(), date.begin(), date.end());
     content.insert(content.end(), secretKey.begin(), secretKey.end());
-    auto keyFullPath = keyPath + "/" + name + ".key";
+    auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY;
     auto ret = SaveBufferToFile(keyFullPath, content);
     if (access(keyFullPath.c_str(), F_OK) == 0) {
         StoreUtil::RemoveRWXForOthers(keyFullPath);
@@ -367,4 +376,83 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
     return ((createTime + std::chrono::hours(HOURS_PER_YEAR)) < std::chrono::system_clock::now());
 }
 
+SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &path, bool openFile)
+{
+    keyPath_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
+    lockFile_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY_LOCK;
+    StoreUtil::InitPath(path + KEY_DIR);
+    if (!openFile) {
+        return;
+    }
+    lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRWXU | S_IRWXG);
+    if (lockFd_ < 0) {
+        ZLOGE("Open failed, errno:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(lockFile_).c_str());
+    }
+}
+
+SecurityManager::KeyFiles::~KeyFiles()
+{
+    if (lockFd_ < 0) {
+        return;
+    }
+    close(lockFd_);
+    lockFd_ = -1;
+}
+
+const std::string &SecurityManager::KeyFiles::GetKeyFilePath()
+{
+    return keyPath_;
+}
+
+int32_t SecurityManager::KeyFiles::Lock()
+{
+    return FileLock(LOCK_EX);
+}
+
+int32_t SecurityManager::KeyFiles::UnLock()
+{
+    return FileLock(LOCK_UN);
+}
+
+int32_t SecurityManager::KeyFiles::DestroyLock()
+{
+    if (lockFd_ > 0) {
+        close(lockFd_);
+        lockFd_ = -1;
+    }
+    StoreUtil::Remove(lockFile_);
+    return Status::SUCCESS;
+}
+
+int32_t SecurityManager::KeyFiles::FileLock(int32_t lockType)
+{
+    if (lockFd_ < 0) {
+        return Status::INVALID_ARGUMENT;
+    }
+    int32_t errCode = 0;
+    do {
+        errCode = flock(lockFd_, lockType);
+    } while (errCode < 0 && errno == EINTR);
+    if (errCode < 0) {
+        ZLOGE("flock failed, type:%{public}d, errno:%{public}d, path:%{public}s", lockType, errno,
+            StoreUtil::Anonymous(lockFile_).c_str());
+        return Status::ERROR;
+    }
+    return Status::SUCCESS;
+}
+
+SecurityManager::KeyFilesAutoLock::KeyFilesAutoLock(KeyFiles& keyFiles) : keyFiles_(keyFiles)
+{
+    keyFiles_.Lock();
+}
+
+SecurityManager::KeyFilesAutoLock::~KeyFilesAutoLock()
+{
+    keyFiles_.UnLock();
+}
+int32_t SecurityManager::KeyFilesAutoLock::UnLockAndDestroy()
+{
+    keyFiles_.UnLock();
+    return keyFiles_.DestroyLock();
+}
 } // namespace OHOS::DistributedKv

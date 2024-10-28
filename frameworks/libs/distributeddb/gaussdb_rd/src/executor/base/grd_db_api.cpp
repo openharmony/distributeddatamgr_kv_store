@@ -59,7 +59,8 @@ GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encr
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.DBBackupApi(db, backupDbFile, encryptedKey, encryptedKeyLen);
+    GRD_CipherInfoT cipherInfo = {.hexPassword = nullptr};
+    return GRD_DBApiInfo.DBBackupApi(db, backupDbFile, &cipherInfo);
 }
 
 GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
@@ -72,7 +73,8 @@ GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.DBRestoreApi(dbFile, backupDbFile, decryptedKey, decryptedKeyLen);
+    GRD_CipherInfoT cipherInfo = {.hexPassword = nullptr};
+    return GRD_DBApiInfo.DBRestoreApi(dbFile, backupDbFile, &cipherInfo);
 }
 
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)

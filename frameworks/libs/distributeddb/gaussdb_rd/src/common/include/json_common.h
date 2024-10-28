@@ -37,6 +37,7 @@ public:
     static bool isValueEqual(const ValueObject &srcValue, const ValueObject &targetValue);
     static int Append(const JsonObject &src, const JsonObject &add, bool isReplace);
     static bool IsJsonNodeMatch(const JsonObject &src, const JsonObject &target, int &errCode);
+    static bool ConvertToInt(const std::string &str, int &value);
 
 private:
     static bool JsonEqualJudge(const JsonFieldPath &itemPath, const JsonObject &src, const JsonObject &item,

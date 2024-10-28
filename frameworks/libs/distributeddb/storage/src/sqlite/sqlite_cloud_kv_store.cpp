@@ -419,7 +419,7 @@ void SqliteCloudKvStore::UnRegisterObserverAction(const KvStoreObserver *observe
 
 int SqliteCloudKvStore::GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap)
 {
-    auto[errCode, handle] = storageHandle_->GetStorageExecutor(false);
+    auto [errCode, handle] = storageHandle_->GetStorageExecutor(false);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvStore] get handle failed %d", errCode);
         return errCode;
@@ -436,7 +436,7 @@ int SqliteCloudKvStore::GetCloudVersion(const std::string &device, std::map<std:
     for (VBucket &data : dataVector) {
         auto [errCodeNext, dataItem] = CloudStorageUtils::GetDataItemFromCloudVersionData(data);
         if (errCodeNext != E_OK) {
-            LOGE("[SqliteCloudKvStore] get dataItem failed %d", errCodeNext);
+            LOGE("[SqliteCloudKvStore] get data item failed %d", errCodeNext);
             return errCodeNext;
         }
         dataItem.dev = DBBase64Utils::DecodeIfNeed(dataItem.dev);

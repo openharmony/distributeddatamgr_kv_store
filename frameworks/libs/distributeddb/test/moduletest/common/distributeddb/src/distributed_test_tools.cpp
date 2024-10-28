@@ -295,6 +295,16 @@ private:
     vector<Entry> entries_ = {};
 };
 
+static int GetDirStat(const char *dir, struct stat &dirStat)
+{
+    // getting dir attribution fails
+    if (stat(dir, &dirStat) < 0) {
+        perror("get directory stat error");
+        return -1;
+    }
+    return 0;
+}
+
 // delete dir(directory) recursively
 int RemoveDir(const std::string &dirSrc)
 {
@@ -315,13 +325,12 @@ int RemoveDir(const std::string &dirSrc)
     if (access(dir, F_OK) != 0) {
         return 0;
     }
-    // getting dir attribution fails
-    if (stat(dir, &dirStat) < 0) {
-        perror("get directory stat error");
-        return -1;
-    }
+    GetDirStat(dir, dirStat);
     // if dir is a common file
     if (S_ISREG(dirStat.st_mode)) {
+#ifdef DB_DEBUG_ENV
+    MST_LOG("---> remove db directory: %s", dir);
+#endif
         remove(dir);
     } else if (S_ISDIR(dirStat.st_mode)) {
         // if dir is directory, delete it recursively
@@ -344,6 +353,9 @@ int RemoveDir(const std::string &dirSrc)
             RemoveDir(std::string(dirName));
         }
         closedir(dirp);
+#ifdef DB_DEBUG_ENV
+        MST_LOG("---> remove db directory: %s", directory.c_str());
+#endif
         remove(directory.c_str());
     } else {
         perror("unknown file type!");
@@ -356,14 +368,13 @@ int SetDir(const std::string &directory, const int authRight)
 {
     MST_LOG("create directory: %s", directory.c_str());
     char dir[MAX_DIR_LENGTH] = { 0 };
-    int i, len;
 
     errno_t ret = strcpy_s(dir, MAX_DIR_LENGTH, directory.c_str());
     if (ret != E_OK) {
         MST_LOG("strcpy_s failed(%d)!", ret);
         return -1;
     }
-    len = strlen(dir);
+    int len = strlen(dir);
     if (dir[len - 1] != '/') {
         ret = strcat_s(dir, sizeof(dir) - strlen(dir) - 1, "/");
         if (ret != E_OK) {
@@ -373,27 +384,29 @@ int SetDir(const std::string &directory, const int authRight)
         len++;
     }
 
-    for (i = 1; i < len; i++) {
+    for (int i = 1; i < len; i++) {
         if (dir[i] != '/') {
             continue;
         }
         dir[i] = '\0';
-        if (access(dir, F_OK) != E_OK) {
-            mode_t mode = umask(0);
-#if defined(RUNNING_ON_LINUX)
-            if (mkdir(dir, authRight) == E_ERROR) {
-#else
-            std::string stringDir = dir;
-            if (OS::MakeDBDirectory(stringDir) == E_ERROR) {
-#endif
-                MST_LOG("mkdir(%s) failed(%d)!", dir, errno);
-                return -1;
-            }
-            if (chdir(dir) == E_ERROR) {
-                MST_LOG("chdir(%s) failed(%d)!", dir, errno);
-            }
-            umask(mode);
+        if (access(dir, F_OK) == E_OK) {
+            dir[i] = '/';
+            continue;
         }
+        mode_t mode = umask(0);
+#if defined(RUNNING_ON_LINUX)
+        if (mkdir(dir, authRight) == E_ERROR) {
+#else
+        std::string stringDir = dir;
+        if (OS::MakeDBDirectory(stringDir) == E_ERROR) {
+#endif
+            MST_LOG("mkdir(%s) failed(%d)!", dir, errno);
+            return -1;
+        }
+        if (chdir(dir) == E_ERROR) {
+            MST_LOG("chdir(%s) failed(%d)!", dir, errno);
+        }
+        umask(mode);
         dir[i] = '/';
     }
     MST_LOG("check dir = %s", dir);
@@ -703,13 +716,14 @@ DBStatus DistributedTestTools::DeleteBatch(KvStoreDelegate &kvStoreDelegate, con
         for (const auto &iter : keys) {
             keyBatch.push_back(iter);
             cnt++;
-            if (cnt % BATCH_RECORDS == 0 || cnt == static_cast<int>(keys.size())) {
-                status = kvStoreDelegate.DeleteBatch(keyBatch);
-                if (status != DBStatus::OK) {
-                    return status;
-                }
-                keyBatch.clear();
+            if (cnt % BATCH_RECORDS != 0 && cnt != static_cast<int>(keys.size())) {
+                continue;
             }
+            status = kvStoreDelegate.DeleteBatch(keyBatch);
+            if (status != DBStatus::OK) {
+                return status;
+            }
+            keyBatch.clear();
         }
         return status;
     } else {

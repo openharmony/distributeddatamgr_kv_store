@@ -435,7 +435,9 @@ Type CloudStorageUtils::GetAssetFromAssets(Type &value)
     }
 
     for (Asset &asset: assets) {
-        if (asset.flag != static_cast<uint32_t>(AssetOpType::DELETE)) {
+        uint32_t lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
+        if ((asset.flag == static_cast<uint32_t>(AssetOpType::DELETE) && (lowStatus == AssetStatus::ABNORMAL ||
+            lowStatus == AssetStatus::NORMAL)) || asset.flag != static_cast<uint32_t>(AssetOpType::DELETE)) {
             return std::move(asset);
         }
     }
@@ -1471,6 +1473,13 @@ std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName)
         DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
 }
 
+std::string CloudStorageUtils::GetCursorIncSqlWhenAllow(const std::string &tableName)
+{
+    return "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata" + " SET value= case when (select 1 from " +
+        DBConstant::RELATIONAL_PREFIX + "metadata" + " where key='cursor_inc_flag' AND value = 'true') then value + 1" +
+        " else value end WHERE key=x'" + DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
+}
+
 std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
 {
     return "INSERT OR REPLACE INTO " + DBCommon::GetMetaTableName() + "(key,value) VALUES (x'" +
@@ -1478,11 +1487,16 @@ std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
         " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
 }
 
-std::string CloudStorageUtils::GetCursorIncSqlWhenAllow(const std::string &tableName)
+std::string CloudStorageUtils::GetCursorHeightenInMetaSql(const std::string &tableName)
 {
-    return "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata" + " SET value= case when (select 1 from " +
-        DBConstant::RELATIONAL_PREFIX + "metadata" + " where key='cursor_inc_flag' AND value = 'true') then value + 1" +
-        " else value end WHERE key=x'" + DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
+    return "UPDATE " + DBCommon::GetMetaTableName() + " SET value=value+1000000 WHERE key=x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "' AND value < 1000000;";
+}
+
+std::string CloudStorageUtils::GetCursorHeightenInLogSql(const std::string &tableName)
+{
+    return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET cursor=cursor+1000000 WHERE cursor IS NOT NULL " +
+        "AND cursor < 1000000;";
 }
 
 int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,

@@ -301,16 +301,16 @@ bool CheckParaOption(const KvStoreNbDelegate::Option &option,
 {
     if (option.storageEngineType == SQLITE) {
         if ((option.rdconfig.pageSize < SQLITE_PAGE_SIZE_MIN) ||
-           (option.rdconfig.pageSize > SQLITE_PAGE_SIZE_MAX)) {
+            (option.rdconfig.pageSize > SQLITE_PAGE_SIZE_MAX)) {
             callback(INVALID_ARGS, nullptr);
-            LOGE("Invalid config pagesize:%" PRIu32, option.rdconfig.pageSize);
+            LOGE("Invalid config pageSize:%" PRIu32, option.rdconfig.pageSize);
             return false;
         }
         if ((option.rdconfig.cacheSize % option.rdconfig.pageSize != 0) ||
             ((option.rdconfig.pageSize & (option.rdconfig.pageSize - 1)) != 0) ||
             (option.rdconfig.cacheSize / SQLITE_CACHE_SIZE_PAGE > option.rdconfig.pageSize)) {
             callback(INVALID_ARGS, nullptr);
-            LOGE("Invalid config pagesize:%" PRIu32 "and cachesize:%" PRIu32, option.rdconfig.pageSize,
+            LOGE("Invalid config pageSize:%" PRIu32 "and cacheSize:%" PRIu32, option.rdconfig.pageSize,
                 option.rdconfig.cacheSize);
             return false;
         }

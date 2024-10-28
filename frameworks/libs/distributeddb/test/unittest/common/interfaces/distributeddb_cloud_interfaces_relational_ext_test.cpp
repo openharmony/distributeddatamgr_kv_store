@@ -1743,7 +1743,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-   /**
+    /**
      * @tc.steps: step2. close delegate.
      * @tc.expected: step2. return ok.
      */
@@ -1808,7 +1808,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
     const CloudSyncConfig config;
     EXPECT_EQ(delegateImpl->SetCloudSyncConfig(config), OK);
-
     DistributedDB::SqlCondition sqlCondition;
     std::vector<VBucket> records = {};
     EXPECT_EQ(delegateImpl->ExecuteSql(sqlCondition, records), INVALID_ARGS);

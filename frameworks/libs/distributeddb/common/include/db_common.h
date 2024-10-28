@@ -119,6 +119,8 @@ public:
 
     static bool IsRecordError(const VBucket &record);
 
+    static bool IsRecordFailed(const VBucket &record, DBStatus status);
+
     static bool IsIntTypeRecordError(const VBucket &record);
 
     static bool IsRecordIgnored(const VBucket &record);
@@ -150,6 +152,8 @@ public:
     static bool CheckCloudSyncConfigValid(const CloudSyncConfig &config);
 
     static std::string GetCursorKey(const std::string &tableName);
+
+    static bool ConvertToUInt64(const std::string &str, uint64_t &value);
 
     static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
 private:

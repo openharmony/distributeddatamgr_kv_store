@@ -919,7 +919,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
         return false;
     });
     auto data = std::make_shared<uint8_t>(1);
-    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), -E_PERIPHERAL_INTERFACE_FAIL);
+    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), static_cast<int>(DB_ERROR));
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(adapter->IsDeviceOnline(""), false);
     ExtendInfo info;

@@ -203,7 +203,7 @@ uint32_t DataRequestPacket::CalculateLen(uint32_t messageId) const
         totalLen += Parcel::GetUInt32Len(); // totalDataCount
         totalLen = Parcel::GetEightByteAlign(totalLen);
     }
-    
+
     return totalLen > INT32_MAX ? 0 : totalLen;
 }
 

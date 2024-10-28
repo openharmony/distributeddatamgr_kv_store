@@ -1811,7 +1811,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
                       " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     // here just clear updateCursor func, fail will not influence other function
-    CreateFuncUpdateCursor(context, nullptr);
+    (void)CreateFuncUpdateCursor(context, nullptr);
     if (errCode != E_OK) {
         LOGE("Failed to change cloud data flag on shareTable, %d.", errCode);
         return errCode;
@@ -1840,7 +1840,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
         sql += FLAG_IS_CLOUD;
         sql += " OR ";
         sql += FLAG_IS_CLOUD_CONSISTENCY;
-        sql += " ) ";
+        sql += " )";
     }
     sql += ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, selectStmt);

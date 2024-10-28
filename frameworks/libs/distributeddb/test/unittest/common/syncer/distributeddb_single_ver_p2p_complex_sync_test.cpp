@@ -729,9 +729,13 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync001, TestSiz
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
         if (pair.first == DEVICE_B) {
-            EXPECT_TRUE(pair.second == COMM_FAILURE);
+            // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+            // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+            // The returned status is COMM_FAILURE
+            EXPECT_TRUE((pair.second == static_cast<DBStatus>(-E_PERIPHERAL_INTERFACE_FAIL)) ||
+                (pair.second == COMM_FAILURE));
         } else {
-            EXPECT_TRUE(pair.second == OK);
+            EXPECT_EQ(pair.second, OK);
         }
     }
     VirtualDataItem item;
@@ -804,9 +808,13 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync002, TestSiz
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
         if (pair.first == DEVICE_B) {
-            EXPECT_TRUE(pair.second == COMM_FAILURE);
+            // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+            // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+            // The returned status is COMM_FAILURE
+            EXPECT_TRUE((pair.second == static_cast<DBStatus>(-E_PERIPHERAL_INTERFACE_FAIL)) ||
+                (pair.second == COMM_FAILURE));
         } else {
-            EXPECT_TRUE(pair.second == OK);
+            EXPECT_EQ(pair.second, OK);
         }
     }
 
@@ -817,6 +825,77 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync002, TestSiz
     EXPECT_TRUE(g_kvDelegatePtr->Get(key3, value5) != OK);
     g_kvDelegatePtr->Get(key4, value5);
     EXPECT_EQ(value5, value4);
+}
+
+/**
+ * @tc.name: Device Offline Sync 003
+ * @tc.desc: Test sync statuses when device offline and sendMessage return different errCode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device put data.
+     * @tc.expected: step1. sync return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(g_deviceC->GetDeviceId());
+    Key key1 = {'1'};
+    Value value1 = {'1'};
+    ASSERT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
+
+    /**
+     * @tc.steps: step2. call sync when device offline and mock commErrCode is E_BASE(positive number).
+     * @tc.expected: step2. return COMM_FAILURE.
+     */
+    g_communicatorAggregator->MockCommErrCode(E_BASE);
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, E_BASE);
+        EXPECT_EQ(pair.second, COMM_FAILURE);
+    }
+
+    /**
+     * @tc.steps: step3. call sync when device offline and mock commErrCode is -E_BASE(negative number).
+     * @tc.expected: step3. return -E_BASE.
+     */
+    g_communicatorAggregator->MockCommErrCode(-E_BASE);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, COMM_FAILURE);
+        EXPECT_EQ(pair.second, static_cast<DBStatus>(-E_BASE));
+    }
+
+    /**
+     * @tc.steps: step4. call sync when device offline and mock commErrCode is INT_MAX.
+     * @tc.expected: step4. return COMM_FAILURE.
+     */
+    g_communicatorAggregator->MockCommErrCode(INT_MAX);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, INT_MAX);
+        EXPECT_EQ(pair.second, COMM_FAILURE);
+    }
+
+    /**
+     * @tc.steps: step5. call sync when device offline and mock commErrCode is -INT_MAX.
+     * @tc.expected: step5. return -INT_MAX.
+     */
+    g_communicatorAggregator->MockCommErrCode(-INT_MAX);
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d, expectStatus %d", pair.first.c_str(), pair.second, -INT_MAX);
+        EXPECT_EQ(pair.second, -INT_MAX);
+    }
+    g_communicatorAggregator->MockCommErrCode(E_OK);
 }
 
 /**
@@ -1571,6 +1650,75 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync003, TestSize.Leve
 }
 
 /**
+  * @tc.name: RebuildSync004
+  * @tc.desc: test WIPE_STALE_DATA mode when peers rebuilt db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangtao
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync004, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A and check data
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Key key3 = {'3'};
+    Key key4 = {'4'};
+    Value value = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(key2, value), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(key3, value), OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_PULL, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key3, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    VirtualDataItem item;
+    EXPECT_EQ(g_deviceB->GetData(key1, item), E_OK);
+    EXPECT_EQ(item.value, value);
+    EXPECT_EQ(g_deviceB->GetData(key2, item), E_OK);
+    EXPECT_EQ(item.value, value);
+    EXPECT_EQ(g_deviceB->GetData(key3, item), E_OK);
+    EXPECT_EQ(item.value, value);
+
+    /**
+     * @tc.steps: step2. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
+     * * @tc.expected: step2. interface return ok
+    */
+    g_deviceB->SetClearRemoteStaleData(true);
+    EXPECT_EQ(g_deviceB->PutData(key4, value, 3u, 2), E_OK); // 3: timestamp
+
+    VirtualDataItem item2;
+    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
+    EXPECT_EQ(item2.value, value);
+    g_mgr.CloseKvStore(g_kvDelegatePtr);
+    g_kvDelegatePtr = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    /**
+     * @tc.steps: step3. device B sync to A, make it clear history data and check data
+     * * @tc.expected: step3. interface return ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    EXPECT_EQ(g_deviceB->GetData(key2, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_deviceB->GetData(key3, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
+    EXPECT_EQ(item2.value, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key4, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
   * @tc.name: RemoveDeviceData001
   * @tc.desc: call rekey and removeDeviceData Concurrently
   * @tc.type: FUNC
@@ -1739,75 +1887,6 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSyncTask003, Tes
     ASSERT_TRUE(g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY, nullptr, query, false) == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(15)); // wait for 15ms
     g_deviceB->Offline();
-}
-
-/**
-  * @tc.name: RebuildSync004
-  * @tc.desc: test WIPE_STALE_DATA mode when peers rebuilt db
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: zhangtao
-  */
-HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync004, TestSize.Level1)
-{
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    /**
-     * @tc.steps: step1. sync deviceB data to A and check data
-     * * @tc.expected: step1. interface return ok
-    */
-    Key key1 = {'1'};
-    Key key2 = {'2'};
-    Key key3 = {'3'};
-    Key key4 = {'4'};
-    Value value = {'1'};
-    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value), OK);
-    EXPECT_EQ(g_kvDelegatePtr->Put(key2, value), OK);
-    EXPECT_EQ(g_kvDelegatePtr->Put(key3, value), OK);
-    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_PULL, true), E_OK);
-    Value actualValue;
-    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
-    EXPECT_EQ(actualValue, value);
-    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
-    EXPECT_EQ(actualValue, value);
-    EXPECT_EQ(g_kvDelegatePtr->Get(key3, actualValue), OK);
-    EXPECT_EQ(actualValue, value);
-    VirtualDataItem item;
-    EXPECT_EQ(g_deviceB->GetData(key1, item), E_OK);
-    EXPECT_EQ(item.value, value);
-    EXPECT_EQ(g_deviceB->GetData(key2, item), E_OK);
-    EXPECT_EQ(item.value, value);
-    EXPECT_EQ(g_deviceB->GetData(key3, item), E_OK);
-    EXPECT_EQ(item.value, value);
-
-    /**
-     * @tc.steps: step2. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
-     * * @tc.expected: step2. interface return ok
-    */
-    g_deviceB->SetClearRemoteStaleData(true);
-    EXPECT_EQ(g_deviceB->PutData(key4, value, 3u, 2), E_OK); // 3: timestamp
-    
-    VirtualDataItem item2;
-    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
-    EXPECT_EQ(item2.value, value);
-    g_mgr.CloseKvStore(g_kvDelegatePtr);
-    g_kvDelegatePtr = nullptr;
-    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
-    KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-
-    /**
-     * @tc.steps: step3. device B sync to A, make it clear history data and check data
-     * * @tc.expected: step3. interface return ok
-    */
-    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
-    EXPECT_EQ(g_deviceB->GetData(key2, item), -E_NOT_FOUND);
-    EXPECT_EQ(g_deviceB->GetData(key3, item), -E_NOT_FOUND);
-    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
-    EXPECT_EQ(item2.value, value);
-    EXPECT_EQ(g_kvDelegatePtr->Get(key4, actualValue), OK);
-    EXPECT_EQ(actualValue, value);
 }
 
 /**

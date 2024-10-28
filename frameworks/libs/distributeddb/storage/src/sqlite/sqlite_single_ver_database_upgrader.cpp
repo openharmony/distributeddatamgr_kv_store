@@ -177,7 +177,7 @@ void SQLiteSingleVerDatabaseUpgrader::SetUpgradeSqls(int version, std::vector<st
             };
         }
         if ((version <= SINGLE_VER_STORE_VERSION_V2 && ParamCheckUtils::IsS3SECEOpt(secOpt_)) ||
-            (version >= SINGLE_VER_STORE_VERSION_V3 && isMetaUpgrade_ == true)) {
+            (version >= SINGLE_VER_STORE_VERSION_V3 && isMetaUpgrade_)) {
             sqls.emplace_back(CREATE_SINGLE_META_TABLE_SQL);
             sqls.emplace_back(COPY_META_TABLE_SQL);
             sqls.emplace_back(DROP_META_TABLE_SQL);
@@ -245,8 +245,15 @@ void SQLiteSingleVerDatabaseUpgrader::SetMetaUpgrade(const SecurityOption &curre
     // the same version should upgrade while user open db with s3sece.
     bool isCurrentS3SECE = ParamCheckUtils::IsS3SECEOpt(currentOpt);
     bool isOpenS3SECE = ParamCheckUtils::IsS3SECEOpt(expectOpt);
-    if ((!OS::CheckPathExistence(secOptUpgradeFile)) && !isCurrentS3SECE && isOpenS3SECE) {
+    if ((!OS::CheckPathExistence(secOptUpgradeFile)) && isOpenS3SECE) {
         isMetaUpgrade_ = true;
+        bool isMetaExist = false;
+        int errCode = SQLiteUtils::CheckTableExists(db_, "meta_data", isMetaExist, true);
+        if (errCode != E_OK) {
+            LOGW("[SqlSingleUp] Check meta.meta_data failed %d", errCode);
+        }
+        // only create meta.meta_data if not exist
+        isMetaUpgrade_ = !isMetaExist;
     } else {
         isMetaUpgrade_ = false;
     }

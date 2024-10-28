@@ -1259,14 +1259,14 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure007, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, ALREADY_SET);
+            EXPECT_EQ(status, DB_ERROR);
         }
         status = g_nbObserverDelegate->RegisterObserver(KEY_1,
             OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, ALREADY_SET);
+            EXPECT_EQ(status, DB_ERROR);
         }
     }
 
@@ -1346,7 +1346,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure008, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, ALREADY_SET);
+            EXPECT_EQ(status, DB_ERROR);
         }
     }
 
@@ -1435,7 +1435,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, ALREADY_SET);
+            EXPECT_EQ(status, DB_ERROR);
         }
     }
 
@@ -2040,8 +2040,10 @@ void CheckPressureLongCompare(vector<Entry> &entriesBatch, ConcurParam *threadPa
 
 void CheckPressureLongConcurrency(vector<Entry> &entriesBatch)
 {
-    std::random_device randDevAnyKeyNo, randDevTag;
-    std::mt19937 genRandAnyKeyNo(randDevAnyKeyNo()), genRandTag(randDevTag());
+    std::random_device randDevAnyKeyNo;
+    std::random_device randDevTag;
+    std::mt19937 genRandAnyKeyNo(randDevAnyKeyNo());
+    std::mt19937 genRandTag(randDevTag());
     std::uniform_int_distribution<unsigned int> disRandAnyKeyNo(ANY_RECORDS_NUM_START, ANY_RECORDS_NUM_END);
     std::uniform_int_distribution<int> disRandTag(static_cast<int>(ReadOrWriteTag::READ),
         static_cast<int>(ReadOrWriteTag::REGISTER));
@@ -2049,7 +2051,8 @@ void CheckPressureLongConcurrency(vector<Entry> &entriesBatch)
     unsigned int threadCurId = 0;
     int randFlag;
 
-    std::chrono::time_point<chrono::steady_clock, chrono::microseconds> start, end;
+    std::chrono::time_point<chrono::steady_clock, chrono::microseconds> start;
+    std::chrono::time_point<chrono::steady_clock, chrono::microseconds> end;
     std::chrono::duration<uint64_t, std::micro> dur;
     double operInterval = 0.0;
 

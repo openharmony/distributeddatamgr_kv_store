@@ -26,6 +26,7 @@
 #include "runtime_config.h"
 #include "sqlite_relational_store.h"
 #include "sqlite_relational_utils.h"
+#include "sqlite_relational_database_upgrader.h"
 #include "time_helper.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
@@ -757,17 +758,18 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.
     });
     g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&b2](std::map<std::string, Assets> &assets) {
         auto it = assets.find(COL_ASSET);
-        ASSERT_EQ(it != assets.end(), true);
-        ASSERT_EQ(it->second.size(), 1u);
+        EXPECT_EQ(it != assets.end(), true);
+        EXPECT_EQ(it->second.size(), 1u);
         EXPECT_EQ(it->second[0].status, static_cast<uint32_t>(AssetStatus::DELETE));
         it = assets.find(COL_ASSETS);
-        ASSERT_EQ(it != assets.end(), true);
-        ASSERT_EQ(it->second.size(), 1u); // 1 is remove size
+        EXPECT_EQ(it != assets.end(), true);
+        EXPECT_EQ(it->second.size(), 1u); // 1 is remove size
         for (const auto &b: it->second) {
             if (b.name == b2.name) {
                 EXPECT_EQ(b.status, static_cast<uint32_t>(AssetStatus::DELETE));
             }
         }
+        return DBStatus::OK;
     });
     CallSync(option);
     g_virtualAssetLoader->ForkDownload(nullptr);
@@ -957,6 +959,82 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
         " where data_key='0' and extend_field='name10' and cursor='32';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: QueryCursorTest005
+ * @tc.desc: test cursor fallback then cursor increase
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set version
+     * @tc.expected: step1. return ok.
+     */
+    std::string logTableVersion = "log_table_version";
+    std::string sql = "REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata (key, value) VALUES (x'" +
+        DBCommon::TransferStringToHex(logTableVersion) + "', 5.07);";
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+
+    /**
+     * @tc.steps:step2. init cloud data and sync
+     * @tc.expected: step2. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step3. delete cloud data and sync
+     * @tc.expected: step3. return ok.
+     */
+    DeleteCloudDBData(0, cloudCount, ASSETS_TABLE_NAME);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step4. remove data
+     * @tc.expected: step4. return ok.
+     */
+    std::string device = "";
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+
+    /**
+     * @tc.steps:step5. insert local data and check cursor
+     * @tc.expected: step5. return ok.
+     */
+    InsertLocalData(0, 1, ASSETS_TABLE_NAME, true);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
+        " where cursor='31';";
+    ASSERT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step6. version upgrade
+     * @tc.expected: step6. return ok.
+     */
+    SqliteRelationalDatabaseUpgrader upgrader(db);
+    upgrader.Upgrade();
+
+    /**
+     * @tc.steps:step7. check cursor whether increase in meta table
+     * @tc.expected: step7. return ok.
+     */
+    sql = "select count(*) from " + DBCommon::GetMetaTableName() + " where key=x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(ASSETS_TABLE_NAME)) + "' and value = 1000031;";
+    ASSERT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step8. check cursor whether increase in log table
+     * @tc.expected: step8. return ok.
+     */
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " where cursor = '1000031';";
+    ASSERT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }
 

@@ -75,17 +75,19 @@ public:
 
     static constexpr const char *FLAG_AND_DATA_MODE_NOTIFY = "DELETE#ALL_CLOUDDATA";
 
+    static constexpr const char *FLAG_ONLY_MODE_NOTIFY = "RESERVE#ALL_CLOUDDATA";
+
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
-    static constexpr uint32_t TEN_THOUSAND = 10000;
-    static constexpr int64_t CLOUD_DEFAULT_TIMEOUT = -1;
-    static constexpr uint32_t ONE_SECOND = 1000 * TEN_THOUSAND; // 1000ms
+    static constexpr const uint32_t TEN_THOUSAND = 10000;
+    static constexpr const int64_t CLOUD_DEFAULT_TIMEOUT = -1;
+    static constexpr const uint32_t ONE_SECOND = 1000 * TEN_THOUSAND; // 1000ms
 
-    static constexpr int32_t MAX_UPLOAD_BATCH_COUNT = 2000;
-    static constexpr int32_t MIN_UPLOAD_BATCH_COUNT = 1;
-    static constexpr int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
-    static constexpr int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
-    static constexpr int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
+    static constexpr const int32_t MAX_UPLOAD_BATCH_COUNT = 2000;
+    static constexpr const int32_t MIN_UPLOAD_BATCH_COUNT = 1;
+    static constexpr const int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
+    static constexpr const int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
+    static constexpr const int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

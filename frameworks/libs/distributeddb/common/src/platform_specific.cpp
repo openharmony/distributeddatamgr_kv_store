@@ -53,7 +53,7 @@ struct FileHandle {
 bool CheckPathExistence(const std::string &filePath)
 {
     int ret = _access(filePath.c_str(), ACCESS_MODE_EXISTENCE);
-    LOGI("CheckPathExistence %s error:%d", filePath.c_str(), ret);
+    LOGI("CheckPathExistence error:%d", ret);
     return (ret == 0);
 }
 
@@ -71,11 +71,11 @@ int RenameFilePath(const std::string &oldFilePath, const std::string &newFilePat
 int RemoveFile(const std::string &filePath)
 {
 #ifdef DB_DEBUG_ENV
-    LOGD("---> remove db filePath: %s", filePath.c_str());
+    LOGD("---> remove db");
 #endif
     int errCode = remove(filePath.c_str());
     if (errCode < 0) {
-        LOGE("[RemoveFile] Remove file fail %s %d err = %d", filePath.c_str(), errCode, errno);
+        LOGE("[RemoveFile] Remove file fail, %d err = %d", errCode, errno);
         return -E_SYSTEM_API_FAIL;
     }
     LOGD("Remove file successfully!");

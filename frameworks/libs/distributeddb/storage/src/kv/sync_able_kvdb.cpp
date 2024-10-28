@@ -94,7 +94,7 @@ int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
     return syncer_.Sync(parma, connectionId);
 }
 
-// Cancel a sync action
+// Cancel a sync action.
 int SyncAbleKvDB::CancelSync(uint32_t syncId)
 {
     if (!started_) {
@@ -305,7 +305,7 @@ void SyncAbleKvDB::ChangeUserListener()
 
 uint64_t SyncAbleKvDB::GetTimestampFromDB()
 {
-    return 0; //default is 0
+    return 0; // default is 0
 }
 
 // Get The current virtual timestamp

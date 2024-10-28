@@ -386,6 +386,21 @@ int SQLiteSingleRelationalStorageEngine::CleanDistributedDeviceTable(std::vector
         return errCode;
     }
 
+    // go fast to check missing tables without transaction
+    errCode = handle->CheckAndCleanDistributedTable(schema_.GetTableNames(), missingTables);
+    if (errCode == E_OK) {
+        if (missingTables.empty()) {
+            LOGI("Check missing distributed table is empty.");
+            ReleaseExecutor(handle);
+            return errCode;
+        }
+    } else {
+        LOGE("Get missing distributed table failed. %d", errCode);
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    missingTables.clear();
+
     std::lock_guard lock(schemaMutex_);
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
@@ -458,16 +473,16 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         LOGW("tracker schema is no change.");
         return E_OK;
     }
-    bool isUpgrade = !tracker.GetTrackerTable(schema.tableName).IsEmpty();
+    bool isCheckData = tracker.GetTrackerTable(schema.tableName).GetTableName().empty() || schema.isForceUpgrade;
     tracker.InsertTrackerSchema(schema);
-    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
+    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isCheckData);
     if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
         return ret;
     }
 
-    if (schema.trackerColNames.empty()) {
+    if (schema.trackerColNames.empty() && !schema.isTrackAction) {
         tracker.RemoveTrackerSchema(schema);
     }
     errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
@@ -506,7 +521,7 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         LOGW("tracker schema is no change for distributed table.");
         return -E_IGNORE_DATA;
     }
-    isFirstCreate = tracker.GetTrackerTable(schema.tableName).IsEmpty();
+    isFirstCreate = tracker.GetTrackerTable(schema.tableName).GetTableName().empty();
     tracker.InsertTrackerSchema(schema);
     tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
     errCode = tableInfo.CheckTrackerTable();

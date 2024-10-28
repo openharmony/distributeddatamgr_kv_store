@@ -69,7 +69,7 @@ static int GetChecksum(const string &file, vector<char> &result)
 {
     ifstream fileHandle(file, ios::in | ios::binary);
     if (!fileHandle.good()) {
-        LOGE("[GetChecksum]Error fileHandle!");
+        LOGE("[GetChecksum]Error fileHandle! sys[%d]", errno);
         return -E_INVALID_PATH;
     }
     ValueHashCalc calc;
@@ -86,7 +86,7 @@ static int GetChecksum(const string &file, vector<char> &result)
         if (fileHandle.eof()) {
             readEnd = true;
         } else if (!fileHandle.good()) {
-            LOGE("[GetChecksum]fileHandle error!");
+            LOGE("[GetChecksum]fileHandle error! sys[%d]", errno);
             return -E_INVALID_PATH;
         }
         errCode = calc.Update(buffer);
@@ -206,6 +206,7 @@ static int PackFileHeader(ofstream &targetFile, const FileInfo &fileInfo, uint32
     }
     targetFile.write(reinterpret_cast<char *>(buffer.data()), buffer.size());
     if (!targetFile.good()) {
+        LOGE("[PackFileHeader] TargetFile error! sys[%d]", errno);
         return -E_INVALID_PATH;
     }
     return E_OK;
@@ -230,7 +231,7 @@ static int UnpackFileHeader(ifstream &sourceFile, const string &sourceFileName, 
     vector<uint8_t> fileHeader(FILE_HEADER_LEN, 0);
     sourceFile.read(reinterpret_cast<char *>(fileHeader.data()), FILE_HEADER_LEN);
     if (!sourceFile.good()) {
-        LOGE("UnpackFileHeader sourceFile error!");
+        LOGE("UnpackFileHeader sourceFile error! sys[%d]", errno);
         return -E_INVALID_FILE;
     }
     Parcel parcel(fileHeader.data(), FILE_HEADER_LEN);
@@ -299,6 +300,7 @@ static int PackFileContext(ofstream &targetFile, const FileContext &fileContext)
     }
     targetFile.write(reinterpret_cast<char *>(buffer.data()), buffer.size());
     if (!targetFile.good()) {
+        LOGE("[PackFileContext] TargetFile error! sys[%d]", errno);
         return -E_INVALID_PATH;
     }
     return E_OK;
@@ -309,6 +311,7 @@ static int UnpackFileContext(ifstream &sourceFile, FileContext &fileContext)
     vector<uint8_t> buffer(FILE_CONTEXT_LEN, 0);
     sourceFile.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
     if (!sourceFile.good()) {
+        LOGE("[UnpackFileContext] sourceFile read error! sys[%d]", errno);
         return -E_INVALID_PATH;
     }
     Parcel parcel(buffer.data(), FILE_CONTEXT_LEN);
@@ -372,7 +375,7 @@ static int UnpackFileContent(ifstream &sourceFile, const string &targetPath, con
     ofstream file(fileName, ios::out | ios::binary);
     if (!file.good()) {
         file.close();
-        LOGE("[UnpackFileContent]Get checksum failed.");
+        LOGE("[UnpackFileContent]filehandle error. sys[%d]", errno);
         return -E_INVALID_PATH;
     }
     int errCode = FileContentCopy(sourceFile, file, fileContext.fileLen);
@@ -451,7 +454,7 @@ int PackageFile::GetPackageVersion(const std::string &sourceFile, uint32_t &vers
 
     sourceHandle.read(reinterpret_cast<char *>(fileHeader.data()), FILE_HEADER_LEN);
     if (!sourceHandle.good()) { // LCOV_EXCL_BR_LINE
-        LOGE("GetPackageVersion read sourceFile handle error!");
+        LOGE("[GetPackageVersion] read sourceFile handle error! sys[%d]", errno);
         errCode = -E_INVALID_PATH;
         goto END;
     }
@@ -529,7 +532,7 @@ int PackageFile::UnpackFile(const string &sourceFile, const string &targetPath, 
 {
     ifstream sourceHandle(sourceFile, ios::in | ios::binary);
     if (!sourceHandle.good()) {
-        LOGE("sourceHandle error, sys err [%d]", errno);
+        LOGE("[UnpackFile] sourceHandle error, sys err [%d]", errno);
         return -E_INVALID_PATH;
     }
     uint32_t fileNum;
@@ -541,6 +544,7 @@ int PackageFile::UnpackFile(const string &sourceFile, const string &targetPath, 
     list<FileContext> fileContexts;
     sourceHandle.seekg(static_cast<int64_t>(FILE_HEADER_LEN), ios_base::beg);
     if (!sourceHandle.good()) {
+        LOGE("[UnpackFile] sourceHandle error after seekg, sys err [%d]", errno);
         return -E_INVALID_PATH;
     }
     for (uint32_t fileCount = 0; fileCount < fileNum; fileCount++) {

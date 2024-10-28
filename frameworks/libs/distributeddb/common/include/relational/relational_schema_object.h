@@ -104,6 +104,7 @@ private:
     int ParseCheckTrackerTableName(const JsonObject &inJsonObject, TrackerTable &resultTable);
     int ParseCheckTrackerExtendName(const JsonObject &inJsonObject, TrackerTable &resultTable);
     int ParseCheckTrackerName(const JsonObject &inJsonObject, TrackerTable &resultTable);
+    int ParseCheckTrackerAction(const JsonObject &inJsonObject, TrackerTable &resultTable);
     void GenerateReachableRef();
     void GenerateTableInfoReferenced();
     void RefreshReachableRef(const TableReferenceProperty &referenceProperty);

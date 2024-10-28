@@ -58,19 +58,19 @@ void DistributedTestSysInfo::GetSysMemOccpy(SeqNo seqNo)
         return;
     }
 
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result1 = sscanf_s(buff, "%s %llu ",
         memOccupy->memTotalName_, sizeof(memOccupy->memTotalName_), &memOccupy->memTotal_);
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result2 = sscanf_s(buff, "%s %llu ",
         memOccupy->memFreeName_, sizeof(memOccupy->memFreeName_), &memOccupy->memFree_);
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result3 = sscanf_s(buff, "%s %llu ",
         memOccupy->buffersName_, sizeof(memOccupy->buffersName_), &memOccupy->buffers_);
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result4 = sscanf_s(buff, "%s %llu ",
         memOccupy->cachedName_, sizeof(memOccupy->cachedName_), &memOccupy->cached_);
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result5 = sscanf_s(buff, "%s %llu",
         memOccupy->swapCachedName_, sizeof(memOccupy->swapCachedName_), &memOccupy->swapCached_);
     if (result1 != 2 || result2 != 2) { // there are 2 incoming param.
@@ -82,7 +82,7 @@ void DistributedTestSysInfo::GetSysMemOccpy(SeqNo seqNo)
     MST_LOG(" [MemTotal] = %" PRIu64 " \n [MemFree] = %" PRIu64 " \n [Buffers] = %" PRIu64 " \n [Cached] = %" PRIu64 \
         " \n [SwapCached] = %" PRIu64, memOccupy->memTotal_, memOccupy->memFree_, memOccupy->buffers_,
         memOccupy->cached_, memOccupy->swapCached_);
-    fclose(fp);
+    (void)fclose(fp);
     fp = nullptr;
 }
 
@@ -90,50 +90,49 @@ void GetSysCpuInfo(CpuOccupy &cpuStatFirst_, CpuOccupy &cpuStatSecond_, uint64_t
 {
     FILE *fp = nullptr;
     char buff[PROC_BUFFER_LENGTH] = { 0 };
-    uint64_t allFirst, allSecond, idleFirst, idleSecond;
     fp = fopen(SYS_CPU_FILE.c_str(), FILE_READ_PERMISSION.c_str());
     if (fp == nullptr) {
         perror("fopen:");
         exit(0);
     }
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     int result = sscanf_s(buff, "%s %llu %llu %llu %llu %llu %llu %llu",
         cpuStatFirst_.name_, sizeof(cpuStatFirst_.name_),
         &cpuStatFirst_.user_, &cpuStatFirst_.nice_,
         &cpuStatFirst_.system_, &cpuStatFirst_.idle_, &cpuStatFirst_.iowait_,
         &cpuStatFirst_.irq_, &cpuStatFirst_.softirq_);
     if (result != 8) { // there are 8 incoming param.
-        fclose(fp);
+        (void)fclose(fp);
         return;
     }
-    allFirst = cpuStatFirst_.user_ + cpuStatFirst_.nice_ + cpuStatFirst_.system_ + cpuStatFirst_.idle_ +
+    uint64_t allFirst = cpuStatFirst_.user_ + cpuStatFirst_.nice_ + cpuStatFirst_.system_ + cpuStatFirst_.idle_ +
         cpuStatFirst_.iowait_ + cpuStatFirst_.irq_ + cpuStatFirst_.softirq_;
-    idleFirst = cpuStatFirst_.idle_;
+    uint64_t idleFirst = cpuStatFirst_.idle_;
     rewind(fp);
     std::this_thread::sleep_for(std::chrono::microseconds(microSeconds));
     if (memset_s(buff, sizeof(buff), 0, sizeof(buff)) != EOK) {
         MST_LOG("set buffer to 0 failed!");
-        fclose(fp);
+        (void)fclose(fp);
         return;
     }
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     result = sscanf_s(buff, "%s %llu %llu %llu %llu %llu %llu %llu",
         cpuStatSecond_.name_, sizeof(cpuStatSecond_.name_),
         &cpuStatSecond_.user_, &cpuStatSecond_.nice_,
         &cpuStatSecond_.system_, &cpuStatSecond_.idle_, &cpuStatSecond_.iowait_,
         &cpuStatSecond_.irq_, &cpuStatSecond_.softirq_);
     if (result < 0) {
-        fclose(fp);
+        (void)fclose(fp);
         return;
     }
 
-    allSecond = cpuStatSecond_.user_ + cpuStatSecond_.nice_ + cpuStatSecond_.system_ + cpuStatSecond_.idle_ +
+    uint64_t allSecond = cpuStatSecond_.user_ + cpuStatSecond_.nice_ + cpuStatSecond_.system_ + cpuStatSecond_.idle_ +
         cpuStatSecond_.iowait_ + cpuStatSecond_.irq_ + cpuStatSecond_.softirq_;
-    idleSecond = cpuStatSecond_.idle_;
+    uint64_t idleSecond = cpuStatSecond_.idle_;
     *cpuStatUsage = (static_cast<float>(allSecond - allFirst - (idleSecond - idleFirst)))
         / (allSecond - allFirst) * PERCENTAGE_FACTOR;
     MST_LOG(" [CpuUsage] = %.2f%%", *cpuStatUsage);
-    fclose(fp);
+    (void)fclose(fp);
     fp = nullptr;
     return;
 }
@@ -169,12 +168,12 @@ float DistributedTestSysInfo::ReadSysValFromFile(const std::string &filePath)
         return FLOAT_RET_ERROR;
     }
 
-    fgets(buff, sizeof(buff), fp);
+    (void)fgets(buff, sizeof(buff), fp);
     if (sscanf_s(buff, "%f", &val_) != 1) {
-        fclose(fp);
+        (void)fclose(fp);
         return FLOAT_RET_ERROR;
     }
-    fclose(fp);
+    (void)fclose(fp);
     return val_;
 }
 

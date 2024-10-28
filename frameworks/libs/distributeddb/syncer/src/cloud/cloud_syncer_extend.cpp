@@ -51,21 +51,23 @@ void CloudSyncer::ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param
 {
     info.upLoadInfo.total = static_cast<uint32_t>(param.count);
     Info lastUploadInfo;
-    GetLastUploadInfo(info.tableName, lastUploadInfo);
+    UploadRetryInfo retryInfo;
+    GetLastUploadInfo(info.tableName, lastUploadInfo, retryInfo);
     info.upLoadInfo.total += lastUploadInfo.successCount;
     info.upLoadInfo.successCount += lastUploadInfo.successCount;
     info.upLoadInfo.failCount += lastUploadInfo.failCount;
     info.upLoadInfo.insertCount += lastUploadInfo.insertCount;
     info.upLoadInfo.updateCount += lastUploadInfo.updateCount;
     info.upLoadInfo.deleteCount += lastUploadInfo.deleteCount;
+    info.retryInfo.uploadBatchRetryCount = retryInfo.uploadBatchRetryCount;
     LOGD("[CloudSyncer] resume upload, last success count %" PRIu32 ", last fail count %" PRIu32,
         lastUploadInfo.successCount, lastUploadInfo.failCount);
 }
 
-void CloudSyncer::GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo)
+void CloudSyncer::GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo, UploadRetryInfo &retryInfo)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    return currentContext_.notifier->GetLastUploadInfo(tableName, lastUploadInfo);
+    return currentContext_.notifier->GetLastUploadInfo(tableName, lastUploadInfo, retryInfo);
 }
 
 int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
@@ -131,6 +133,7 @@ void CloudSyncer::UpdateProcessWhenUploadFailed(InnerProcessInfo &info)
     info.tableStatus = ProcessStatus::FINISHED;
     std::lock_guard<std::mutex> autoLock(dataLock_);
     currentContext_.notifier->UpdateProcess(info);
+    currentContext_.notifier->UpdateUploadRetryInfo(info);
 }
 
 void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
@@ -146,11 +149,15 @@ void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 
 int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
 {
+    uint32_t retryCount = 0;
     int errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
-        uploadData.insData.extend, insertInfo);
+        uploadData.insData.extend, insertInfo, retryCount);
     innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
+    innerProcessInfo.upLoadInfo.failCount += insertInfo.failCount;
     innerProcessInfo.upLoadInfo.insertCount += insertInfo.successCount;
-    innerProcessInfo.upLoadInfo.total -= insertInfo.total - insertInfo.successCount - insertInfo.failCount;
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        ProcessVersionConflictInfo(innerProcessInfo, retryCount);
+    }
     if (errCode != E_OK) {
         LOGE("[CloudSyncer][BatchInsert] BatchInsert with error, ret is %d.", errCode);
     }
@@ -165,7 +172,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
     }
     if (!isSharedTable) {
         ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
-        if (ret != errCode) {
+        if (ret != E_OK) {
             LOGW("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
@@ -191,11 +198,15 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
 
 int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
 {
+    uint32_t retryCount = 0;
     int errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
-        uploadData.updData.extend, updateInfo);
+        uploadData.updData.extend, updateInfo, retryCount);
     innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
+    innerProcessInfo.upLoadInfo.failCount += updateInfo.failCount;
     innerProcessInfo.upLoadInfo.updateCount += updateInfo.successCount;
-    innerProcessInfo.upLoadInfo.total -= updateInfo.total - updateInfo.successCount - updateInfo.failCount;
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        ProcessVersionConflictInfo(innerProcessInfo, retryCount);
+    }
     if (errCode != E_OK) {
         LOGE("[CloudSyncer][BatchUpdate] BatchUpdate with error, ret is %d.", errCode);
     }
@@ -341,6 +352,7 @@ int CloudSyncer::IsNeedSkipDownload(bool isSharedTable, int &errCode, const Inne
         return true;
     }
     if (tmpCode != E_OK) {
+        LOGE("[CloudSyncer] Get assets from DB failed: %d, return errCode: %d", tmpCode, errCode);
         errCode = (errCode != E_OK) ? errCode : tmpCode;
         return true;
     }
@@ -362,35 +374,67 @@ bool CloudSyncer::CheckDownloadOrDeleteCode(int &errCode, int downloadCode, int 
     return true;
 }
 
-int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
-    DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
+void GetAssetsToDownload(std::map<std::string, Assets> &downloadAssets, VBucket &dbAssets, bool isSharedTable,
+    std::map<std::string, Assets> &assetsToDownload, std::map<std::string, std::vector<uint32_t>> &tmpFlags)
 {
-    int errCode = E_OK;
-    std::map<std::string, Assets> tmpAssetsToDownload;
-    std::map<std::string, Assets> tmpAssetsToDelete;
-    std::map<std::string, std::vector<uint32_t>> tmpFlags;
+    if (isSharedTable) {
+        LOGD("[CloudSyncer] skip download for shared table");
+        return;
+    }
     for (auto &[col, assets] : downloadAssets) {
         for (auto &asset : assets) {
-            VBucket dbAssets;
-            if (IsNeedSkipDownload(isSharedTable, errCode, info, downloadItem, dbAssets)) {
-                break;
-            }
-            if (!isSharedTable && asset.flag == static_cast<uint32_t>(AssetOpType::DELETE)) {
-                asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
-                tmpAssetsToDelete[col].push_back(asset);
-            } else if (!isSharedTable && AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
+            if (asset.flag != static_cast<uint32_t>(AssetOpType::DELETE) &&
+                AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
                 AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
                 asset.status = asset.flag == static_cast<uint32_t>(AssetOpType::INSERT) ?
                     static_cast<uint32_t>(AssetStatus::INSERT) : static_cast<uint32_t>(AssetStatus::UPDATE);
-                tmpAssetsToDownload[col].push_back(asset);
+                assetsToDownload[col].push_back(asset);
                 tmpFlags[col].push_back(asset.flag);
             } else {
                 LOGD("[CloudSyncer] skip download asset...");
             }
         }
     }
+}
+
+void GetAssetsToRemove(std::map<std::string, Assets> &downloadAssets, VBucket &dbAssets, bool isSharedTable,
+    std::map<std::string, Assets> &assetsToRemove)
+{
+    if (isSharedTable) {
+        LOGD("[CloudSyncer] skip remove for shared table");
+        return;
+    }
+    for (auto &[col, assets] : downloadAssets) {
+        for (auto &asset : assets) {
+            if (asset.flag == static_cast<uint32_t>(AssetOpType::DELETE) &&
+                AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
+                AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
+                asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
+                assetsToRemove[col].push_back(asset);
+            } else {
+                LOGD("[CloudSyncer] skip remove asset...");
+            }
+        }
+    }
+}
+
+int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
+    DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
+{
+    int errCode = E_OK;
+    VBucket dbAssets;
+    std::map<std::string, Assets> tmpAssetsToRemove;
+    if (!IsNeedSkipDownload(isSharedTable, errCode, info, downloadItem, dbAssets)) {
+        GetAssetsToRemove(downloadAssets, dbAssets, isSharedTable, tmpAssetsToRemove);
+    }
     auto deleteCode = cloudDB_.RemoveLocalAssets(info.tableName, downloadItem.gid, downloadItem.prefix,
-        tmpAssetsToDelete);
+        tmpAssetsToRemove);
+
+    std::map<std::string, Assets> tmpAssetsToDownload;
+    std::map<std::string, std::vector<uint32_t>> tmpFlags;
+    if (!IsNeedSkipDownload(isSharedTable, errCode, info, downloadItem, dbAssets)) {
+        GetAssetsToDownload(downloadAssets, dbAssets, isSharedTable, tmpAssetsToDownload, tmpFlags);
+    }
     auto downloadCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssetsToDownload);
     if (!CheckDownloadOrDeleteCode(errCode, downloadCode, deleteCode, downloadItem)) {
         return errCode;
@@ -398,7 +442,7 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
 
     // copy asset back
     downloadAssets = BackFillAssetsAfterDownload(downloadCode, deleteCode, tmpFlags, tmpAssetsToDownload,
-        tmpAssetsToDelete);
+        tmpAssetsToRemove);
     return errCode;
 }
 
@@ -416,9 +460,10 @@ void CloudSyncer::SeparateNormalAndFailAssets(const std::map<std::string, Assets
                 tempFailedAssets.push_back(asset);
             } else {
                 otherStatusCnt++;
+                LOGW("[CloudSyncer] download err, statue %d count %d", asset.status, otherStatusCnt);
             }
         }
-        LOGD("[CloudSyncer] download asset times, normalCount %d, abnormalCount %d, otherStatusCnt %d",
+        LOGI("[CloudSyncer] download asset times, normalCount %d, abnormalCount %d, otherStatusCnt %d",
             tempNormalAssets.size(), tempFailedAssets.size(), otherStatusCnt);
         if (tempFailedAssets.size() > 0) {
             failedAssets[key] = std::move(tempFailedAssets);
@@ -597,11 +642,15 @@ int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
 
 int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
 {
+    uint32_t retryCount = 0;
     int errCode = cloudDB_.BatchDelete(uploadData.tableName, uploadData.delData.record,
-        uploadData.delData.extend, deleteInfo);
+        uploadData.delData.extend, deleteInfo, retryCount);
     innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
     innerProcessInfo.upLoadInfo.deleteCount += deleteInfo.successCount;
-    innerProcessInfo.upLoadInfo.total -= deleteInfo.total - deleteInfo.successCount - deleteInfo.failCount;
+    innerProcessInfo.upLoadInfo.failCount += deleteInfo.failCount;
+    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
+        ProcessVersionConflictInfo(innerProcessInfo, retryCount);
+    }
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
         storageProxy_->FillCloudGidIfSuccess(OpType::DELETE, uploadData);
@@ -1249,5 +1298,19 @@ int CloudSyncer::GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo)
     }
     taskInfo.taskId = lastTaskId_;
     return E_OK;
+}
+
+void CloudSyncer::ProcessVersionConflictInfo(InnerProcessInfo &innerProcessInfo, uint32_t retryCount)
+{
+    innerProcessInfo.retryInfo.uploadBatchRetryCount = retryCount;
+    CloudSyncConfig config = storageProxy_->GetCloudSyncConfig();
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (config.maxRetryConflictTimes >= 0 &&
+            currentContext_.repeatCount + 1 > config.maxRetryConflictTimes) {
+            innerProcessInfo.upLoadInfo.failCount =
+                innerProcessInfo.upLoadInfo.total - innerProcessInfo.upLoadInfo.successCount;
+        }
+    }
 }
 }

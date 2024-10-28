@@ -93,6 +93,8 @@ public:
 
     void MockGetLocalDeviceRes(int mockRes);
 
+    void MockCommErrCode(int mockErrCode);
+
     ~VirtualCommunicatorAggregator() override = default;
     VirtualCommunicatorAggregator() = default;
 
@@ -124,6 +126,7 @@ private:
     mutable std::mutex localDeviceIdMutex_;
     std::string localDeviceId_;
     int getLocalDeviceRet_ = E_OK;
+    int commErrCodeMock_ = E_OK;
 };
 } // namespace DistributedDB
 

@@ -14,6 +14,7 @@
  */
 #include "json_common.h"
 
+#include <charconv>
 #include <queue>
 
 #include "doc_errno.h"
@@ -128,6 +129,18 @@ bool JsonCommon::CheckJsonField(JsonObject &jsonObj)
     return CheckNode(jsonObj);
 }
 
+static bool CheckNodeSingleCharacter(const std::string &fieldName, bool isFirstLevel, int &errCode)
+{
+    for (size_t i = 0; i < fieldName.size(); i++) {
+        if ((i == 0 && (isdigit(fieldName[i]))) || !((isalpha(fieldName[i])) ||
+            (isdigit(fieldName[i])) || (fieldName[i] == '_') || (isFirstLevel && fieldName[i] == '.'))) {
+            errCode = -E_INVALID_ARGS;
+            return false;
+        }
+    }
+    return true;
+}
+
 bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &errCode)
 {
     std::queue<JsonObject> jsonQueue;
@@ -148,12 +161,8 @@ bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &e
             errCode = -E_INVALID_JSON_FORMAT;
             return false;
         }
-        for (size_t i = 0; i < fieldName.size(); i++) {
-            if ((i == 0 && (isdigit(fieldName[i]))) || !((isalpha(fieldName[i])) ||
-                (isdigit(fieldName[i])) || (fieldName[i] == '_') || (isFirstLevel && fieldName[i] == '.'))) {
-                errCode = -E_INVALID_ARGS;
-                return false;
-            }
+        if (!CheckNodeSingleCharacter(fieldName, isFirstLevel, errCode)) {
+            return false;
         }
         if (!item.GetNext().IsNull()) {
             jsonQueue.push(item.GetNext());
@@ -163,6 +172,12 @@ bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &e
         }
     }
     return true;
+}
+
+bool JsonCommon::ConvertToInt(const std::string &str, int &value)
+{
+    auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
+    return errCode == std::errc{} && ptr == str.data() + str.size();
 }
 
 bool JsonCommon::CheckProjectionField(JsonObject &jsonObj, int &errCode)
@@ -460,8 +475,10 @@ bool JsonNodeReplace(const JsonObject &src, const JsonFieldPath &itemPath, const
             GLOGE("Find father item in source json object failed. %d", errCode);
             return false;
         }
-        if (fatherItem.GetType() == JsonObject::Type::JSON_ARRAY && IsNumber(itemPath.back())) {
-            fatherItem.ReplaceItemInArray(std::stoi(itemPath.back()), item, errCode);
+        int intItemPath = 0;
+        if (fatherItem.GetType() == JsonObject::Type::JSON_ARRAY &&
+            JsonCommon::ConvertToInt(itemPath.back(), intItemPath)) {
+            fatherItem.ReplaceItemInArray(intItemPath, item, errCode);
             if (errCode != E_OK) {
                 externErrCode = (externErrCode == E_OK ? errCode : externErrCode);
                 GLOGE("Find father item in source json object failed. %d", errCode);

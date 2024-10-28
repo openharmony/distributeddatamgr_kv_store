@@ -41,6 +41,7 @@ public:
     void ForkGetSecurityOption(std::function<DBStatus (const std::string &, SecurityOption &)> callBack);
     void ForkCheckDeviceSecurityAbility(std::function<bool (const std::string &, const SecurityOption &)> callBack);
 
+    std::map<const std::string, SecurityOption> GetExistSecOpt() const;
 private:
     mutable std::mutex adapterlock_;
     OnAccessControlledEvent callback_;

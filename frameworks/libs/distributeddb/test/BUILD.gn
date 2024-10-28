@@ -114,7 +114,6 @@ config("module_private_config") {
     "TRACE_SQLITE_EXECUTE",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
-    "USE_RD_KERNEL",
   ]
   if (is_ohos) {
     defines += [ "USE_FFRT" ]
@@ -189,7 +188,6 @@ ohos_source_set("src_file") {
   deps = [
     "//third_party/googletest:gtest_main",
     "//third_party/sqlite:sqlite",
-    "//third_party/zlib:libz",
   ]
 
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
@@ -208,6 +206,7 @@ ohos_source_set("src_file") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "zlib:libz",
   ]
   part_name = "kv_store"
 }
@@ -228,7 +227,6 @@ template("distributeddb_unittest") {
       "//third_party/googletest:gmock_main",
       "//third_party/googletest:gtest_main",
       "//third_party/sqlite:sqlite",
-      "//third_party/zlib:libz",
     ]
     configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
@@ -242,6 +240,7 @@ template("distributeddb_unittest") {
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
+      "zlib:libz",
     ]
   }
 }
@@ -270,6 +269,10 @@ distributeddb_unittest("DistributedDBInterfacesEncryptDelegateTest") {
 
 distributeddb_unittest("DistributedDBInterfacesImportAndExportTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_import_and_export_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesImportAndExportRdTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_import_and_export_rd_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBCloudInterfacesReferenceTest") {
@@ -376,6 +379,10 @@ distributeddb_unittest("DistributedDBInterfacesNBDelegateTest") {
   sources = [
     "unittest/common/interfaces/distributeddb_interfaces_nb_delegate_test.cpp",
   ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesNBDelegateExtendTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_nb_delegate_extend_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBCloudInterfacesRelationalExtTest") {
@@ -917,9 +924,11 @@ group("unittest") {
     ":DistributedDBInterfacesDatabaseTest",
     ":DistributedDBInterfacesEncryptDatabaseTest",
     ":DistributedDBInterfacesEncryptDelegateTest",
+    ":DistributedDBInterfacesImportAndExportRdTest",
     ":DistributedDBInterfacesImportAndExportTest",
     ":DistributedDBInterfacesIndexUnitTest",
     ":DistributedDBInterfacesLogTest",
+    ":DistributedDBInterfacesNBDelegateExtendTest",
     ":DistributedDBInterfacesNBDelegateLocalBatchTest",
     ":DistributedDBInterfacesNBDelegateSchemaPutTest",
     ":DistributedDBInterfacesNBDelegateTest",

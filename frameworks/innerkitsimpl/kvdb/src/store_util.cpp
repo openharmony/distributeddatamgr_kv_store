@@ -31,6 +31,31 @@ constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
 constexpr int32_t SERVICE_GID = 3012;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
+using DBStatus = DistributedDB::DBStatus;
+std::map<DBStatus, Status> StoreUtil::statusMap_ = {
+    { DBStatus::BUSY, Status::DB_ERROR },
+    { DBStatus::DB_ERROR, Status::DB_ERROR },
+    { DBStatus::OK, Status::SUCCESS },
+    { DBStatus::INVALID_ARGS, Status::INVALID_ARGUMENT },
+    { DBStatus::NOT_FOUND, Status::NOT_FOUND },
+    { DBStatus::INVALID_VALUE_FIELDS, Status::INVALID_VALUE_FIELDS },
+    { DBStatus::INVALID_FIELD_TYPE, Status::INVALID_FIELD_TYPE },
+    { DBStatus::CONSTRAIN_VIOLATION, Status::CONSTRAIN_VIOLATION },
+    { DBStatus::INVALID_FORMAT, Status::INVALID_FORMAT },
+    { DBStatus::INVALID_QUERY_FORMAT, Status::INVALID_QUERY_FORMAT },
+    { DBStatus::INVALID_QUERY_FIELD, Status::INVALID_QUERY_FIELD },
+    { DBStatus::NOT_SUPPORT, Status::NOT_SUPPORT },
+    { DBStatus::TIME_OUT, Status::TIME_OUT },
+    { DBStatus::OVER_MAX_LIMITS, Status::OVER_MAX_LIMITS },
+    { DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB, Status::DATA_CORRUPTED },
+    { DBStatus::SCHEMA_MISMATCH, Status::SCHEMA_MISMATCH },
+    { DBStatus::INVALID_SCHEMA, Status::INVALID_SCHEMA },
+    { DBStatus::EKEYREVOKED_ERROR, Status::SECURITY_LEVEL_ERROR },
+    { DBStatus::SECURITY_OPTION_CHECK_ERROR, Status::SECURITY_LEVEL_ERROR },
+    { DBStatus::LOG_OVER_LIMITS, Status::WAL_OVER_LIMITS },
+    { DBStatus::SQLITE_CANT_OPEN, Status::DB_CANT_OPEN }
+};
+
 StoreUtil::DBSecurity StoreUtil::GetDBSecurity(int32_t secLevel)
 {
     if (secLevel < SecurityLevel::NO_LABEL || secLevel > SecurityLevel::S4) {
@@ -119,51 +144,14 @@ uint32_t StoreUtil::Anonymous(const void *ptr)
 
 Status StoreUtil::ConvertStatus(DBStatus status)
 {
-    switch (status) {
-        case DBStatus::BUSY: // fallthrough
-        case DBStatus::DB_ERROR:
-            return Status::DB_ERROR;
-        case DBStatus::OK:
-            return Status::SUCCESS;
-        case DBStatus::INVALID_ARGS:
-            return Status::INVALID_ARGUMENT;
-        case DBStatus::NOT_FOUND:
-            return Status::NOT_FOUND;
-        case DBStatus::INVALID_VALUE_FIELDS:
-            return Status::INVALID_VALUE_FIELDS;
-        case DBStatus::INVALID_FIELD_TYPE:
-            return Status::INVALID_FIELD_TYPE;
-        case DBStatus::CONSTRAIN_VIOLATION:
-            return Status::CONSTRAIN_VIOLATION;
-        case DBStatus::INVALID_FORMAT:
-            return Status::INVALID_FORMAT;
-        case DBStatus::INVALID_QUERY_FORMAT:
-            return Status::INVALID_QUERY_FORMAT;
-        case DBStatus::INVALID_QUERY_FIELD:
-            return Status::INVALID_QUERY_FIELD;
-        case DBStatus::NOT_SUPPORT:
-            return Status::NOT_SUPPORT;
-        case DBStatus::TIME_OUT:
-            return Status::TIME_OUT;
-        case DBStatus::OVER_MAX_LIMITS:
-            return Status::OVER_MAX_LIMITS;
-        case DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB:
-            return Status::CRYPT_ERROR;
-        case DBStatus::SCHEMA_MISMATCH:
-            return Status::SCHEMA_MISMATCH;
-        case DBStatus::INVALID_SCHEMA:
-            return Status::INVALID_SCHEMA;
-        case DBStatus::EKEYREVOKED_ERROR: // fallthrough
-        case DBStatus::SECURITY_OPTION_CHECK_ERROR:
-            return Status::SECURITY_LEVEL_ERROR;
-        case DBStatus::LOG_OVER_LIMITS:
-            return Status::WAL_OVER_LIMITS;
-        default:
-            ZLOGE("unknown db error:0x%{public}x", status);
-            break;
+    auto iter = statusMap_.find(status);
+    if (iter == statusMap_.end()) {
+        ZLOGE("unknown db error:0x%{public}x", status);
+        return Status::ERROR;
     }
-    return Status::ERROR;
+    return iter->second;
 }
+
 bool StoreUtil::InitPath(const std::string &path)
 {
     umask(DEFAULT_UMASK);

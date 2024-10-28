@@ -518,6 +518,7 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
         remoteCommunicatorVersion, handler, context_);
     if (errCode != E_OK) {
         LOGE("[StateMachine][DoAbilitySync] ability sync start failed,errCode=%d", errCode);
+        context_->SetTaskErrCode(errCode);
         return TransformErrCodeToEvent(errCode);
     }
     return Event::WAIT_ACK_EVENT;

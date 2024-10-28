@@ -48,6 +48,7 @@ static int32_t ConvertCJErrCode(Status status)
             // 15100002
             return CJ_ERROR_STORE_META_CHANGED;
         case CRYPT_ERROR:
+        case DATA_CORRUPTED:
             // 15100003
             return CJ_ERROR_CRYPT_ERROR;
         case NOT_FOUND:
@@ -220,7 +221,7 @@ uint64_t CJKVManager::GetKVStore(const char* cStoreId, const CJOptions cjOptions
     options.hapName = param_->hapName;
     std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
     Status status = kvDataManager_.GetSingleKvStore(options, appId, storeId, kvStore);
-    if (status == CRYPT_ERROR) {
+    if (status == DATA_CORRUPTED) {
         options.rebuild = true;
         status = kvDataManager_.GetSingleKvStore(options, appId, storeId, kvStore);
         LOGE("Data has corrupted, rebuild db");

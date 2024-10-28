@@ -579,7 +579,7 @@ int SQLiteMultiVerTransaction::GetPrePutValues(const Version &versionInfo, Times
     }
 
     // bind the clear timestamp
-    errCode = sqlite3_bind_int64(statement, 2, timestamp); // 2 is timestamp; bind the second argument for timestamp;
+    errCode = sqlite3_bind_int64(statement, 2, timestamp); // 2 is timestamp; bind the 2nd argument for timestamp;
     if (errCode != SQLITE_OK) {
         LOGE("bind the clear timestamp for delete ver data error:%d", errCode);
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);

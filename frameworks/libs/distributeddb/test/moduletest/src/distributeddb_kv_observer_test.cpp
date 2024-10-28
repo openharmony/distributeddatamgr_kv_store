@@ -79,8 +79,7 @@ void DistributeddbKvObserverTest::TearDownTestCase(void)
 {
     EXPECT_TRUE(g_observerManager->CloseKvStore(g_observerDelegate) == OK);
     g_observerDelegate = nullptr;
-    DBStatus status;
-    status = g_observerManager->DeleteKvStore(STORE_ID_1);
+    DBStatus status = g_observerManager->DeleteKvStore(STORE_ID_1);
     EXPECT_EQ(status, DistributedDB::DBStatus::OK) << "fail to delete exist kvdb";
     delete g_observerManager;
     g_observerManager = nullptr;

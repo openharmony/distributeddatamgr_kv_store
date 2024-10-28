@@ -79,12 +79,14 @@ int RelationalRowDataSet::DeSerialize(Parcel &parcel)
     uint32_t size = 0;
     parcel.ReadUInt32(size);
     if (parcel.IsError() || size > DBConstant::MAX_REMOTEDATA_SIZE / parcel.GetStringLen(std::string {})) {
+        LOGE("parcel size is wrong when get string, errcode: %d, size: %" PRIu32, -E_PARSE_FAIL, size);
         return -E_PARSE_FAIL;
     }
     while (size-- > 0) {
         std::string str;
         parcel.ReadString(str);
         if (parcel.IsError()) {
+            LOGE("parcel read string wrong, errcode: %d", -E_PARSE_FAIL);
             return -E_PARSE_FAIL;
         }
         colNames_.emplace_back(std::move(str));
@@ -92,21 +94,27 @@ int RelationalRowDataSet::DeSerialize(Parcel &parcel)
 
     parcel.ReadUInt32(size);
     if (parcel.IsError() || size > DBConstant::MAX_REMOTEDATA_SIZE / parcel.GetUInt32Len()) {
+        LOGE("parcel size is wrong when get int, errcode: %d, size: %" PRIu32, -E_PARSE_FAIL, size);
         return -E_PARSE_FAIL;
     }
     while (size-- > 0) {
         auto rowData = new (std::nothrow) RelationalRowDataImpl();
         if (rowData == nullptr) {
+            LOGE("alloc rowData wrong, errcode: %d", -E_OUT_OF_MEMORY);
             return -E_OUT_OF_MEMORY;
         }
 
         if (rowData->DeSerialize(parcel) != E_OK) {
+            delete rowData;
+            rowData = nullptr;
+            LOGE("rowData deserialize wrong, errcode: %d", -E_PARSE_FAIL);
             return -E_PARSE_FAIL;
         }
         data_.push_back(rowData);
     }
     parcel.EightByteAlign();
     if (parcel.IsError()) {
+        LOGE("parcel align wrong, errcode: %d", -E_PARSE_FAIL);
         return -E_PARSE_FAIL;
     }
     return E_OK;

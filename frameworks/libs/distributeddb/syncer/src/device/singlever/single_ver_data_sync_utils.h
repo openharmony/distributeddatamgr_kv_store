@@ -108,7 +108,7 @@ public:
         uint32_t &total);
     static int GetUnsyncTotal(const SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
         SyncTimeRange &waterMarkInfo, uint32_t &total);
-    
+
     static bool IsSupportRequestTotal(uint32_t version);
 
     static void UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);

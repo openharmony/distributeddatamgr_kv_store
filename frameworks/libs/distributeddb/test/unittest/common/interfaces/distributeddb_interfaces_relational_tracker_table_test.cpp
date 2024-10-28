@@ -139,10 +139,10 @@ namespace {
         BatchDeleteTableName2Data(num);
     }
 
-    void CheckExtendAndCursor(uint64_t num, int start)
+    void CheckExtendAndCursor(uint64_t num, int start, const std::string &tableName, bool addNum = true)
     {
         int index = 0;
-        string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+        string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" +
             " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -153,10 +153,17 @@ namespace {
             EXPECT_EQ(extendVal, "Local" + std::to_string(index % num));
             std::string cursorVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
-            EXPECT_EQ(cursorVal, std::to_string(num + (++index) + start));
+            auto expectCursor = (++index) + start;
+            auto expectCursorStr = addNum ? std::to_string(num + expectCursor) : std::to_string(expectCursor);
+            EXPECT_EQ(cursorVal, expectCursorStr);
         }
         int errCode;
         SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void CheckExtendAndCursor(uint64_t num, int start)
+    {
+        CheckExtendAndCursor(num, start, TABLE_NAME2);
     }
 
     void OpenStore()
@@ -1809,6 +1816,123 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027,
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     schema.trackerColNames = {};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest028
+  * @tc.desc: Test set tracker table colNames from not empty to empty
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest028, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. trackerColNames is empty
+     * @tc.expected: step1. Return OK.
+     */
+    TrackerSchema schema;
+    schema.tableName = TABLE_NAME2;
+    SetTrackerTableTest(schema, OK);
+
+    /**
+     * @tc.steps:step2. trackerColNames is not empty
+     * @tc.expected: step2. Return OK.
+     */
+    schema.extendColName = EXTEND_COL_NAME2;
+    schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
+    SetTrackerTableTest(schema, OK);
+
+    /**
+     * @tc.steps:step3. trackerColNames is empty and track action
+     * @tc.expected: step3. Return OK.
+     */
+    schema.trackerColNames = {};
+    schema.isTrackAction = true;
+    SetTrackerTableTest(schema, OK);
+    SetTrackerTableTest(schema, OK);
+
+    OpenStore();
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    CheckExtendAndCursor(num, 0, schema.tableName, false);
+    BatchUpdateTableName2Data(num, {"age"});
+    CheckExtendAndCursor(num, num, schema.tableName, false);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest029
+  * @tc.desc: Test set tracker table with force upgrade
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest029, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+    /**
+     * @tc.steps:step1. set tracker table
+     * @tc.expected: step1. Return OK.
+     */
+    TrackerSchema schema;
+    schema.tableName = TABLE_NAME2;
+    schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. rebuild table and insert data
+     * @tc.expected: step2. Return OK.
+     */
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, "DROP TABLE " + schema.tableName), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    /**
+     * @tc.steps:step3. rebuild table and insert data
+     * @tc.expected: step3. Return OK.
+     */
+    schema.isForceUpgrade = true;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest030
+  * @tc.desc: Test clean trackTable when table is distributedTable
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: wangxiangdong
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest030, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2), OK);
+
+    /**
+     * @tc.steps:step2. Insert data to table2
+     * @tc.expected: step2. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    BatchDeleteTableName2Data(num / HALF);
+
+    /**
+     * @tc.steps:step3. CleanTrackerData
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
+    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+        " where extend_field is NULL;";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
     CloseStore();
 }
 

@@ -79,6 +79,9 @@ public:
 
     void ForkUpload(const std::function<void(const std::string &, VBucket &)> &forkUploadFunc);
 
+    void ForkBeforeBatchUpdate(const std::function<void(const std::string &, std::vector<VBucket> &,
+        std::vector<VBucket> &, bool isDelete)> &forkBeforeBatchUpdateFunc);
+
     void ForkInsertConflict(const std::function<DBStatus(const std::string &, VBucket &, VBucket &,
         std::vector<CloudData> &)> &forkUploadFunc);
 
@@ -148,6 +151,8 @@ private:
     DBStatus actionStatus_ = OK;
     std::function<void(const std::string &, VBucket &)> forkFunc_;
     std::function<void(const std::string &, VBucket &)> forkUploadFunc_;
+    std::function<void(const std::string &, std::vector<VBucket> &, std::vector<VBucket> &,
+        bool isDelete)> forkBeforeBatchUpdateFunc_;
     std::function<DBStatus(const std::string &, VBucket &, VBucket &,
         std::vector<CloudData> &)> forkUploadConflictFunc_;
     std::function<void(VBucket &)> insertCheckFunc_;

@@ -14,8 +14,8 @@
  */
 #include "rd_single_ver_result_set.h"
 #include "db_errno.h"
-#include "grd_db_api.h"
-#include "grd_resultset_api.h"
+#include "grd_base/grd_db_api.h"
+#include "grd_base/grd_resultset_api.h"
 #include "log_print.h"
 #include "rd_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"

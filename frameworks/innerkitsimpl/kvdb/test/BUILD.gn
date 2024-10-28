@@ -136,6 +136,11 @@ ohos_unittest("SingleStoreImplTest") {
     "samgr:samgr_proxy",
   ]
 
+  cflags = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
+
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
@@ -229,11 +234,6 @@ ohos_unittest("DevManagerMockTest") {
 
   configs = [ ":module_private_config" ]
 
-  cflags = [
-    "-Dprivate=public",
-    "-Dprotected=public",
-  ]
-
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
@@ -300,6 +300,29 @@ ohos_unittest("StoreFactoryTest") {
   ]
 }
 
+ohos_unittest("SecurityManagerTest") {
+  module_out_path = module_output_path
+
+  sources = [ "security_manager_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "huks:libhukssdk",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":kvdb_src_file",
+    "../../../libs/distributeddb/:distributeddb",
+    "//third_party/googletest:gtest",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -314,5 +337,9 @@ group("unittest") {
     ":StoreFactoryTest",
     ":StoreUtilTest",
   ]
+
+  if (!use_libfuzzer) {
+    deps += [ ":SecurityManagerTest" ]
+  }
 }
 ###############################################################################

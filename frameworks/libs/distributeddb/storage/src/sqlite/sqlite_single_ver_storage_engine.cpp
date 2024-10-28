@@ -1116,11 +1116,7 @@ bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &e
     if (isNeedUpdateSecOpt_) {
         return false;
     }
-    if (existedSecOpt.securityLabel != openSecOpt.securityLabel &&
-        existedSecOpt.securityLabel == SecurityLabel::NOT_SET) {
-        return false;
-    }
-    if (existedSecOpt.securityLabel < openSecOpt.securityLabel) {
+    if (existedSecOpt.securityLabel != openSecOpt.securityLabel) {
         return false;
     }
     return true;

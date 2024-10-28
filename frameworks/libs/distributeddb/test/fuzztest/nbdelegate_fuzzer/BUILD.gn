@@ -82,7 +82,7 @@ ohos_fuzztest("NbDelegateFuzzTest") {
 
   sources = distributeddb_src
   sources += [
-    "../../../test/fuzztest/common/fuzzer_data.cpp",
+    "../common/fuzzer_data.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "nbdelegate_fuzzer.cpp",
   ]

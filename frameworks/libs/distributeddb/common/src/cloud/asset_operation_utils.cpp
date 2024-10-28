@@ -153,7 +153,8 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::CheckWithDownload(bool bef
         if (dbAsset.name != cacheAsset.name) {
             continue;
         }
-        if (EraseBitMask(dbAsset.status) == AssetStatus::DOWNLOADING) {
+        if (EraseBitMask(dbAsset.status) == AssetStatus::DOWNLOADING ||
+            EraseBitMask(dbAsset.status) == AssetStatus::ABNORMAL) {
             return AssetOpType::HANDLE;
         }
         return AssetOpType::NOT_HANDLE;

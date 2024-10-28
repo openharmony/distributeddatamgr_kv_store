@@ -136,11 +136,11 @@ namespace DistributedDB {
     constexpr const char *SELECT_SYNC_DELETED_ENTRIES_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) AND (flag&0x200=0) "
         "ORDER BY timestamp ASC;";
-    
+
     constexpr const char *COUNT_SYNC_ENTRIES_SQL =
         "SELECT count(key) FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) "
         "AND (flag&0x200=0);";
-    
+
     constexpr const char *COUNT_SYNC_DELETED_ENTRIES_SQL =
         "SELECT count(key) FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) "
         "AND (flag&0x200=0);";
@@ -263,18 +263,18 @@ namespace DistributedDB {
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
 
+    constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_VERSION_SQL =
+        "DELETE FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' AND length(device)!=0;";
+
+    constexpr const char *REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL =
+        "DELETE FROM sync_data WHERE device=? AND key LIKE 'naturalbase_cloud_version_%';";
+
     constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE device=? AND (flag&0x100!=0);";
 
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "DELETE FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
-    
-    constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_VERSION_SQL =
-        "DELETE FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' AND length(device)!=0;";
-
-    constexpr const char *REMOVE_CLOUD_DEV_DATA_VERSION_BY_DEVID_SQL =
-        "DELETE FROM sync_data WHERE device=? AND key LIKE 'naturalbase_cloud_version_%';";
 
     constexpr const char *UPDATE_CLOUD_DEV_DATA_BY_USERID_SQL =
         "UPDATE sync_data SET flag=(flag|0x02)&(~0x100) WHERE (flag&0x100!=0) AND hash_key IN" \
@@ -313,7 +313,7 @@ namespace DistributedDB {
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid !=?);";
 
     constexpr const char *SELECT_CLOUD_DEV_DATA_BY_USERID_SQL =
-        "SELECT * FROM sync_data WHERE (flag&0x100!=0) AND hash_key IN" \
+        "SELECT * FROM sync_data WHERE hash_key IN" \
             "(SELECT hash_key FROM naturalbase_kv_aux_sync_data_log WHERE userid =?);";
 
     constexpr const char *REMOVE_CLOUD_ALL_HWM_DATA_SQL =
