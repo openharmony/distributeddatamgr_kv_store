@@ -168,8 +168,8 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch
             double endUsec = (double) (endTime.tv_sec * 1000 * 1000) + (double) endTime.tv_usec;
             dur = endUsec - startUsec;
             totalTime = totalTime + dur;
-            avrTime = (dur / 1000); // 1000 is ms
-            if (avrTime >= 3.0) {
+            avrTime = (dur / 1000); // 1000 is to convert ms
+            if (avrTime >= 3.0) { // 3.0 ms is upper bound on performance
                 failCount += 1;
             }
             cout << "avrTime = " << avrTime << "failCount = " << failCount<< endl;
@@ -177,9 +177,9 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch
     }
     if (batch != 0) {
         // 100 is for unit conversion
-        avrTime = (((totalTime / batch) / 100) / 1000); // 1000 is ms
+        avrTime = (((totalTime / batch) / 100) / 1000); // 1000 is to convert ms
         cout << "Scan Range ResultSet avg  cost = " << avrTime << " ms." << endl;
-        EXPECT_LT(avrTime, 3.0);
+        EXPECT_LT(avrTime, 3.0); // 3.0 ms is upper bound on performance
     } else {
         cout << "Error: Division by zero." << endl;
     }
