@@ -625,7 +625,7 @@ void DistributedDBCloudCheckSyncTest::CheckLogCleaned(int64_t expectCount)
     EXPECT_EQ(sqlite3_exec(db_, sql2.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
     std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName_) +
-        " where flag & 0x02 = 0;";
+        " where flag & 0x02 != 0;";
     EXPECT_EQ(sqlite3_exec(db_, sql3.c_str(), QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
