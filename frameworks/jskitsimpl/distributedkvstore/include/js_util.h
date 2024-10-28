@@ -218,6 +218,8 @@ public:
 
     static bool IsNull(napi_env env, napi_value value);
 
+    static int32_t GetApiVersion(napi_env, napi_value value);
+
 private:
     enum {
         /* std::map<key, value> to js::tuple<key, value> */
@@ -229,6 +231,8 @@ private:
     static std::pair<napi_status, napi_value> GetInnerValue(
         napi_env env, napi_value in, const std::string& prop, bool optional);
     static constexpr int MAX_STORE_ID_LEN = 128;
+    static constexpr int API_VERSION_MOD = 100;
+    static constexpr int DEFAULT_API_VERSION = 9;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

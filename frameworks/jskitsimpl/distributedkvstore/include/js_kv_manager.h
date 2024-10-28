@@ -27,6 +27,7 @@ struct ContextParam {
     std::string hapName = "";
     int32_t area = DistributedKv::Area::EL1;
     bool isSystemApp = false;
+    int32_t apiVersion = 9;
 };
 class JsKVManager {
 public:
@@ -62,6 +63,7 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
     std::shared_ptr<ContextParam> param_;
     static constexpr int MAX_APP_ID_LEN = 256;
+    static constexpr int API_14_VERSION = 14;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_KV_MANAGER_H
