@@ -787,7 +787,8 @@ DBStatus KvStoreNbDelegateImpl::Export(const std::string &filePath, const Cipher
     return TransferDBErrno(errCode);
 }
 
-DBStatus KvStoreNbDelegateImpl::Import(const std::string &filePath, const CipherPassword &passwd)
+DBStatus KvStoreNbDelegateImpl::Import(const std::string &filePath, const CipherPassword &passwd,
+    bool isNeedIntegrityCheck)
 {
     if (conn_ == nullptr) {
         LOGE("%s", INVALID_CONNECTION);
@@ -809,7 +810,7 @@ DBStatus KvStoreNbDelegateImpl::Import(const std::string &filePath, const Cipher
         return INVALID_FILE;
     }
 
-    int errCode = conn_->Import(canonicalUrl, passwd);
+    int errCode = conn_->Import(canonicalUrl, passwd, isNeedIntegrityCheck);
     if (errCode == E_OK) {
         LOGI("[KvStoreNbDelegate] Import ok");
         return OK;

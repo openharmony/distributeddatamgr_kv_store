@@ -172,7 +172,7 @@ int DatabaseOper::CheckSecurityOption(const std::string &filePath, const KvDBPro
 }
 
 int DatabaseOper::ExecuteImport(const std::string &filePath, const CipherPassword &passwd,
-    const KvDBProperties &property) const
+    const KvDBProperties &property, bool isNeedIntegrityCheck) const
 {
     ImportFileInfo importInfo;
     InitImportFileInfo(importInfo, property);
@@ -212,7 +212,7 @@ int DatabaseOper::ExecuteImport(const std::string &filePath, const CipherPasswor
 
     // 3. export the unpacked file to the current database.
     LOGI("Import the unpacked database.");
-    errCode = ImportUnpackedDatabase(importInfo, passwd);
+    errCode = ImportUnpackedDatabase(importInfo, passwd, isNeedIntegrityCheck);
     if (errCode != E_OK) {
         LOGE("Failed to import from the unpacked databases, errCode = [%d]", errCode);
     }

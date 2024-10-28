@@ -459,7 +459,8 @@ int SQLiteLocalKvDBConnection::Export(const std::string &filePath, const CipherP
     return kvDB_->Export(filePath, passwd);
 }
 
-int SQLiteLocalKvDBConnection::Import(const std::string &filePath, const CipherPassword &passwd)
+int SQLiteLocalKvDBConnection::Import(const std::string &filePath, const CipherPassword &passwd,
+    bool isNeedIntegrityCheck)
 {
     if (kvDB_ == nullptr) {
         return -E_INVALID_DB;
@@ -483,7 +484,7 @@ int SQLiteLocalKvDBConnection::Import(const std::string &filePath, const CipherP
         kvDB_->ReEnableConnection(OperatePerm::IMPORT_MONOPOLIZE_PERM);
         return errCode;
     }
-    errCode = kvDB_->Import(filePath, passwd);
+    errCode = kvDB_->Import(filePath, passwd, isNeedIntegrityCheck);
     GenericKvDBConnection::ResetExclusiveStatus();
     kvDB_->ReEnableConnection(OperatePerm::IMPORT_MONOPOLIZE_PERM);
     return errCode;

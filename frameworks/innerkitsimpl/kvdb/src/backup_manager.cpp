@@ -106,20 +106,20 @@ void BackupManager::CleanTmpData(const std::string &name)
     StoreUtil::Remove(tmpName);
 }
 
-Status BackupManager::Backup(
-    const std::string &name, const std::string &baseDir, const std::string &storeId, std::shared_ptr<DBStore> dbStore)
+Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
     }
-    if (name.size() == 0 || baseDir.size() == 0 || storeId.size() == 0 || name == AUTO_BACKUP_NAME) {
+    if (info.name.size() == 0 || info.baseDir.size() == 0 || info.storeId.size() == 0 ||
+        info.name == AUTO_BACKUP_NAME) {
         return INVALID_ARGUMENT;
     }
-    std::string topPath = baseDir + BACKUP_TOP_PATH;
-    std::string storePath = topPath + "/" + storeId;
-    std::string backupFullName = storePath + "/" + name + BACKUP_POSTFIX;
-    std::string keyName = BACKUP_KEY_PREFIX + storeId + "_" + name;
-    std::string keyFullName = baseDir + KEY_PATH + "/" + keyName + BACKUP_KEY_POSTFIX;
+    std::string topPath = info.baseDir + BACKUP_TOP_PATH;
+    std::string storePath = topPath + "/" + info.storeId;
+    std::string backupFullName = storePath + "/" + info.name + BACKUP_POSTFIX;
+    std::string keyName = BACKUP_KEY_PREFIX + info.storeId + "_" + info.name;
+    std::string keyFullName = info.baseDir + KEY_PATH + "/" + keyName + BACKUP_KEY_POSTFIX;
 
     bool isCreate = !StoreUtil::IsFileExist(backupFullName);
     if ((StoreUtil::GetFiles(storePath).size() >= MAX_BACKUP_NUM) && isCreate) {
@@ -128,7 +128,7 @@ Status BackupManager::Backup(
     (void)StoreUtil::InitPath(topPath);
     (void)StoreUtil::InitPath(storePath);
     KeepData(backupFullName, isCreate);
-    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, baseDir);
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(info.storeId, info.baseDir);
     if (dbPassword.IsValid()) {
         KeepData(keyFullName, isCreate);
     }
@@ -137,7 +137,7 @@ Status BackupManager::Backup(
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status == SUCCESS) {
         if (dbPassword.IsValid()) {
-            SecurityManager::GetInstance().SaveDBPassword(keyName, baseDir, dbPassword.password);
+            SecurityManager::GetInstance().SaveDBPassword(keyName, info.baseDir, dbPassword.password);
             CleanTmpData(keyFullName);
         }
         CleanTmpData(backupFullName);
@@ -173,21 +173,20 @@ StoreUtil::FileInfo BackupManager::GetBackupFileInfo(
     return backupFile;
 }
 
-Status BackupManager::Restore(const std::string &name, const std::string &baseDir, const std::string &appId,
-    const std::string &storeId, std::shared_ptr<DBStore> dbStore)
+Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
     }
-    if (storeId.size() == 0 || baseDir.size() == 0) {
+    if (info.storeId.size() == 0 || info.baseDir.size() == 0) {
         return INVALID_ARGUMENT;
     }
-    auto backupFile = GetBackupFileInfo(name, baseDir, storeId);
+    auto backupFile = GetBackupFileInfo(info.name, info.baseDir, info.storeId);
     if (backupFile.name.size() == 0) {
         return INVALID_ARGUMENT;
     }
-    auto fullName = baseDir + BACKUP_TOP_PATH + "/" + storeId + "/" + backupFile.name;
-    auto password = GetRestorePassword(backupFile.name, baseDir, appId, storeId).password;
+    auto fullName = info.baseDir + BACKUP_TOP_PATH + "/" + info.storeId + "/" + backupFile.name;
+    auto password = GetRestorePassword(backupFile.name, info.baseDir, info.appId, info.storeId).password;
     auto dbStatus = dbStore->Import(fullName, password);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     return status;

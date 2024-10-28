@@ -27,7 +27,7 @@ public:
 
     int Rekey(const CipherPassword &passwd) override;
 
-    int Import(const std::string &filePath, const CipherPassword &passwd) override;
+    int Import(const std::string &filePath, const CipherPassword &passwd, bool isNeedIntegrityCheck = false) override;
 
     int Export(const std::string &filePath, const CipherPassword &passwd) const override;
 
@@ -45,7 +45,8 @@ protected:
 
     int BackupCurrentDatabase(const ImportFileInfo &info) const override;
 
-    int ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd) const override;
+    int ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd,
+        bool isNeedIntegrityCheck = false) const override;
 
     int ImportPostHandle() const override;
 
@@ -64,7 +65,8 @@ private:
 
     int ClearCurrentDatabase(const ImportFileInfo &info) const;
 
-    int ImportUnpackedMainDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd) const;
+    int ImportUnpackedMainDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd,
+        bool isNeedIntegrityCheck = false) const;
 
     int ImportUnpackedMetaDatabase(const ImportFileInfo &info) const;
 

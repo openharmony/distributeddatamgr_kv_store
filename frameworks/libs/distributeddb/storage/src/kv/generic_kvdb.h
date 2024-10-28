@@ -85,7 +85,8 @@ public:
     virtual int Export(const std::string &filePath, const CipherPassword &passwd) = 0;
 
     // Import the existing database files to the specified database file in the specified directory.
-    virtual int Import(const std::string &filePath, const CipherPassword &passwd) = 0;
+    virtual int Import(const std::string &filePath, const CipherPassword &passwd,
+        bool isNeedIntegrityCheck = false) = 0;
 
     // Release a db connection.
     void ReleaseDBConnection(GenericKvDBConnection *connection);

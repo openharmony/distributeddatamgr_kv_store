@@ -169,7 +169,8 @@ public:
 
     // Import the existing database files to the specified database file in the specified directory.
     // Warning Import may reopen database file in locked state
-    DB_API virtual DBStatus Import(const std::string &filePath, const CipherPassword &passwd) = 0;
+    DB_API virtual DBStatus Import(const std::string &filePath, const CipherPassword &passwd,
+        bool isNeedIntegrityCheck = false) = 0;
 
     // Start a transaction
     DB_API virtual DBStatus StartTransaction() = 0;

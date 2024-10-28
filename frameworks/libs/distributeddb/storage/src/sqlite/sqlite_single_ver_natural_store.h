@@ -104,7 +104,8 @@ public:
 
     int Export(const std::string &filePath, const CipherPassword &passwd) override;
 
-    int Import(const std::string &filePath, const CipherPassword &passwd) override;
+    int Import(const std::string &filePath, const CipherPassword &passwd,
+        bool isNeedIntegrityCheck = false) override;
 
     // In sync procedure, call this function
     int RemoveDeviceData(const std::string &deviceName, bool isNeedNotify) override;
