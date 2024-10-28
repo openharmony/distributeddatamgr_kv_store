@@ -715,4 +715,48 @@ void CloudDBProxy::SetPrepareTraceId(const std::string &traceId) const
         iCloudDb->SetPrepareTraceId(traceId);
     }
 }
+
+int CloudDBProxy::BatchDownload(const std::string &tableName, std::vector<IAssetLoader::AssetRecord> &downloadAssets)
+{
+    if (IsEmptyAssetRecord(downloadAssets)) {
+        return E_OK;
+    }
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("[CloudDBProxy] Asset loader has not been set %d", -E_NOT_SET);
+        return -E_NOT_SET;
+    }
+    iAssetLoader_->BatchDownload(tableName, downloadAssets);
+    return E_OK;
+}
+
+int CloudDBProxy::BatchRemoveLocalAssets(const std::string &tableName,
+    std::vector<IAssetLoader::AssetRecord> &removeAssets)
+{
+    if (IsEmptyAssetRecord(removeAssets)) {
+        return E_OK;
+    }
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("[CloudDBProxy] Asset loader has not been set %d", -E_NOT_SET);
+        return -E_NOT_SET;
+    }
+    iAssetLoader_->BatchRemoveLocalAssets(tableName, removeAssets);
+    return E_OK;
+}
+
+bool CloudDBProxy::IsEmptyAssetRecord(const std::vector<IAssetLoader::AssetRecord> &assets)
+{
+    if (assets.empty()) {
+        return true;
+    }
+    for (const auto &record : assets) {
+        for (const auto &recordAssets : record.assets) {
+            if (!recordAssets.second.empty()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 }

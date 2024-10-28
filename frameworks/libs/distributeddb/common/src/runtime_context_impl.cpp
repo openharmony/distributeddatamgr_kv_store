@@ -40,7 +40,8 @@ RuntimeContextImpl::RuntimeContextImpl()
       lockStatusObserver_(nullptr),
       currentSessionId_(1),
       dbStatusAdapter_(nullptr),
-      subscribeRecorder_(nullptr)
+      subscribeRecorder_(nullptr),
+      isBatchDownloadAssets_(true)
 {
 }
 
@@ -1224,5 +1225,15 @@ void RuntimeContextImpl::SetTimeChanged(bool timeChange)
         LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
     timeTickMonitor_->SetTimeChanged(timeChange);
+}
+
+bool RuntimeContextImpl::IsBatchDownloadAssets() const
+{
+    return isBatchDownloadAssets_;
+}
+
+void RuntimeContextImpl::SetBatchDownloadAssets(bool isBatchDownload)
+{
+    isBatchDownloadAssets_ = isBatchDownload;
 }
 } // namespace DistributedDB

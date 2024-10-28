@@ -706,29 +706,39 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
         taskId = currentContext_.currentTaskId;
     }
     // Download data (include deleting) will handle return Code in this situation
-    int ret = CloudDbDownloadAssets(taskId, info, changeList, dupHashKeySet, changedAssets);
+    int ret = E_OK;
+    if (RuntimeContext::GetInstance()->IsBatchDownloadAssets()) {
+        ret = CloudDbBatchDownloadAssets(taskId, changeList, dupHashKeySet, info, changedAssets);
+    } else {
+        ret = CloudDbDownloadAssets(taskId, info, changeList, dupHashKeySet, changedAssets);
+    }
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Can not download assets or can not handle download result %d", ret);
     }
     return ret;
 }
 
-int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
+std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
 {
-    OpType strategyOpResult = OpType::NOT_HANDLE;
-    int errCode = TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
-    if (errCode != E_OK) {
-        return errCode;
+    std::map<std::string, Assets> assets;
+    std::vector<Field> fields;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        fields = currentContext_.assetFields[currentContext_.tableName];
     }
-    param.downloadData.opType[idx] = strategyOpResult;
-    if (!IsDataContainAssets()) {
-        return E_OK;
+    for (const auto &field : fields) {
+        if (data.find(field.colName) != data.end()) {
+            if (field.type == TYPE_INDEX<Asset> && data[field.colName].index() == TYPE_INDEX<Asset>) {
+                assets[field.colName] = { std::get<Asset>(data[field.colName]) };
+            } else if (field.type == TYPE_INDEX<Assets> && data[field.colName].index() == TYPE_INDEX<Assets>) {
+                assets[field.colName] = std::get<Assets>(data[field.colName]);
+            } else {
+                Assets emptyAssets;
+                assets[field.colName] = emptyAssets;
+            }
+        }
     }
-    Key hashKey;
-    if (isExist) {
-        hashKey = dataInfo.localInfo.logInfo.hashKey;
-    }
-    return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
+    return assets;
 }
 
 int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,

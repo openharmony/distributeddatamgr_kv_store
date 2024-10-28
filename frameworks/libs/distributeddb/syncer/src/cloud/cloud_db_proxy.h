@@ -77,6 +77,12 @@ public:
     std::pair<int, std::string> GetCloudVersion(const std::string &originVersion) const;
 
     void SetPrepareTraceId(const std::string &traceId) const;
+
+    int BatchDownload(const std::string &tableName, std::vector<IAssetLoader::AssetRecord> &downloadAssets);
+
+    int BatchRemoveLocalAssets(const std::string &tableName, std::vector<IAssetLoader::AssetRecord> &removeAssets);
+
+    static int GetInnerErrorCode(DBStatus status);
 protected:
     class CloudActionContext {
     public:
@@ -165,10 +171,10 @@ protected:
     static DBStatus InnerActionGetEmptyCursor(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
 
-    static int GetInnerErrorCode(DBStatus status);
-
     static DBStatus QueryAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
+
+    static bool IsEmptyAssetRecord(const std::vector<IAssetLoader::AssetRecord> &assets);
 
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;

@@ -134,6 +134,7 @@ void DistributedDBCloudAssetsOperationSyncTest::TearDownTestCase()
 void DistributedDBCloudAssetsOperationSyncTest::SetUp()
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
     InitTestDir();
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != 0) {
         LOGE("rm test db files error.");

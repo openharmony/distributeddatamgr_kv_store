@@ -44,6 +44,21 @@ public:
     {
         return DBStatus::OK;
     }
+
+    struct AssetRecord {
+        const std::string gid;
+        const Type prefix;
+        std::map<std::string, Assets> assets;
+        DBStatus status = OK;
+    };
+
+    virtual void BatchDownload(const std::string &tableName, std::vector<AssetRecord> &downloadAssets)
+    {
+    }
+
+    virtual void BatchRemoveLocalAssets(const std::string &tableName, std::vector<AssetRecord> &removeAssets)
+    {
+    }
 };
 } // namespace DistributedDB
 

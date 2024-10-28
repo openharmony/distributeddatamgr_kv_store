@@ -135,6 +135,12 @@ protected:
         Timestamp lastLocalWatermark = 0u;
         int downloadStatus = E_OK;
     };
+    struct DownloadItems {
+        DownloadItem downloadItem;
+        std::map<std::string, Assets> assetsToRemove;
+        std::map<std::string, Assets> assetsToDownload;
+        std::map<std::string, std::vector<uint32_t>> flags;
+    };
 
     int TriggerSync();
 
@@ -441,6 +447,29 @@ protected:
     void CheckDataAfterDownload(const std::string &tableName);
 
     void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData, std::vector<std::string> &pkColNames);
+
+    int CloudDbBatchDownloadAssets(TaskId taskId, const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
+        InnerProcessInfo &info, ChangedData &changedAssets);
+
+    void FillDownloadItem(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
+        const InnerProcessInfo &info, bool isSharedTable, DownloadItems &record);
+
+    using DownloadItemRecords = std::vector<DownloadItems>;
+    using RemoveAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
+    using DownloadAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
+    using DownloadAssetDetail = std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords>;
+    DownloadAssetDetail GetDownloadRecords(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
+        bool isSharedTable, InnerProcessInfo &info);
+
+    int BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
+        InnerProcessInfo &info, ChangedData &changedAssets,
+        std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords> &downloadDetail);
+
+    static void StatisticDownloadRes(const IAssetLoader::AssetRecord &downloadRecord,
+        const IAssetLoader::AssetRecord &removeRecord, InnerProcessInfo &info, DownloadItem &downloadItem);
+
+    static void AddNotifyDataFromDownloadAssets(const std::set<Key> &dupHashKeySet, DownloadItem &downloadItem,
+        ChangedData &changedAssets);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
