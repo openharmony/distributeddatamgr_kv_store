@@ -641,6 +641,7 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     }
     return errCode;
 }
+
 int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 {
     sqlite3_stmt *statement = nullptr;

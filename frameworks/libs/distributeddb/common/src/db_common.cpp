@@ -72,6 +72,7 @@ namespace {
 }
 
 static std::atomic_bool g_isGrdLoaded = false;
+static std::mutex g_mutex;
 
 int DBCommon::CreateDirectory(const std::string &directory)
 {
@@ -665,7 +666,15 @@ bool DBCommon::IsRecordIgnored(const VBucket &record)
     }
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT) ||
-            status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+           status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+}
+
+bool DBCommon::IsRecordFailed(const VBucket &record, DBStatus status)
+{
+    if (status == OK) {
+        return false;
+    }
+    return DBCommon::IsRecordError(record) || !DBCommon::IsRecordSuccess(record);
 }
 
 bool DBCommon::IsRecordVersionConflict(const VBucket &record)
@@ -760,6 +769,7 @@ uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
 
 void DBCommon::LoadGrdLib(void)
 {
+    std::lock_guard<std::mutex> lock(g_mutex);
     static std::once_flag loadOnceFlag;
     std::call_once(loadOnceFlag, []() {
 #ifndef _WIN32
@@ -803,10 +813,23 @@ std::string DBCommon::GetCursorKey(const std::string &tableName)
     return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
 }
 
-bool DBCommon::ConvertToUInt(const std::string &str, uint64_t &value)
+bool DBCommon::ConvertToUInt64(const std::string &str, uint64_t &value)
 {
     auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
     return errCode == std::errc{} && ptr == str.data() + str.size();
+}
+
+bool CmpModifyTime(const std::string &preModifyTimeStr, const std::string &curModifyTimeStr)
+{
+    uint64_t curModifyTime = 0;
+    uint64_t preModifyTime = 0;
+    if (preModifyTimeStr.empty() || !DBCommon::ConvertToUInt64(preModifyTimeStr, preModifyTime)) {
+        return true;
+    }
+    if (curModifyTimeStr.empty() || !DBCommon::ConvertToUInt64(curModifyTimeStr, curModifyTime)) {
+        return false;
+    }
+    return curModifyTime >= preModifyTime;
 }
 
 void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
@@ -823,22 +846,19 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
         }
         size_t prevIndex = it->second;
         Asset &prevAsset = assets.at(prevIndex);
-        if (prevAsset.assetId.empty()) {
+        if (prevAsset.assetId.empty() && !asset.assetId.empty()) {
             arr[prevIndex] = 1;
             indexMap[asset.name] = i;
             continue;
         }
-        if (asset.assetId.empty()) {
+        if (!prevAsset.assetId.empty() && asset.assetId.empty()) {
             arr[i] = 1;
             indexMap[asset.name] = prevIndex;
             continue;
         }
-        uint64_t modifyTime = 0;
-        uint64_t prevModifyTime = 0;
-        if (ConvertToUInt(asset.modifyTime, modifyTime) && ConvertToUInt(prevAsset.modifyTime, prevModifyTime) &&
-            !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
-            arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
-            indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
+        if (CmpModifyTime(prevAsset.modifyTime, asset.modifyTime)) {
+            arr[prevIndex] = 1;
+            indexMap[asset.name] = i;
             continue;
         }
         arr[i] = 1;

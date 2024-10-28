@@ -15,8 +15,8 @@
 #include "rd_single_ver_storage_engine.h"
 
 #include "db_constant.h"
-#include "grd_error.h"
-#include "grd_type_export.h"
+#include "grd_base/grd_error.h"
+#include "grd_base/grd_type_export.h"
 #include "rd_single_ver_storage_executor.h"
 #include "rd_utils.h"
 #include "single_ver_utils.h"

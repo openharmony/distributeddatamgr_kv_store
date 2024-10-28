@@ -243,6 +243,10 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+            if (!setNormalStatus) {
+                // only not normal need fillback asset data
+                coveredData[assetFieldName] = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
+            }
         } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
             TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);

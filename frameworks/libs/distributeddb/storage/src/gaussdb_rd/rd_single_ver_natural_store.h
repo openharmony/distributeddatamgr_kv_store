@@ -18,7 +18,7 @@
 #include <mutex>
 
 #include "db_common.h"
-#include "grd_kv_api.h"
+#include "grd_kv/grd_kv_api.h"
 #include "kvdb_utils.h"
 #include "rd_single_ver_storage_engine.h"
 #include "rd_single_ver_storage_executor.h"

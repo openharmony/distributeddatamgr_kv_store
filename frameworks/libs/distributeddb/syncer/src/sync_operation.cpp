@@ -89,9 +89,9 @@ void SyncOperation::SetOnSyncFinished(const OnSyncFinished &callback)
     onFinished_ = callback;
 }
 
-void SyncOperation::SetStatus(const std::string &deviceId, int status)
+void SyncOperation::SetStatus(const std::string &deviceId, int status, int commErrCode)
 {
-    LOGD("[SyncOperation] SetStatus dev %s{private} status %d", deviceId.c_str(), status);
+    LOGD("[SyncOperation] SetStatus dev %s{private} status %d commErrCode %d", deviceId.c_str(), status, commErrCode);
     AutoLock lockGuard(this);
     if (IsKilled()) {
         LOGE("[SyncOperation] SetStatus failed, the SyncOperation has been killed!");
@@ -114,7 +114,10 @@ void SyncOperation::SetStatus(const std::string &deviceId, int status)
             return;
         }
         iter->second = status;
-        return;
+        if ((status != OP_COMM_ABNORMAL) || (commErrCode == E_OK)) {
+            return;
+        }
+        commErrCodeMap_.insert(std::pair<std::string, int>(deviceId, commErrCode));
     }
 }
 
@@ -158,6 +161,20 @@ int SyncOperation::GetMode() const
     return mode_;
 }
 
+void SyncOperation::ReplaceCommErrCode(std::map<std::string, int> &finishStatus)
+{
+    for (auto &item : finishStatus) {
+        if (item.second != OP_COMM_ABNORMAL) {
+            continue;
+        }
+        std::string deviceId = item.first;
+        auto iter = commErrCodeMap_.find(deviceId);
+        if (iter != commErrCodeMap_.end()) {
+            item.second = iter->second;
+        }
+    }
+}
+
 void SyncOperation::Finished()
 {
     std::map<std::string, int> tmpStatus;
@@ -170,6 +187,7 @@ void SyncOperation::Finished()
         isFinished_ = true;
         tmpStatus = statuses_;
         tmpProcessMap = syncProcessMap_;
+        ReplaceCommErrCode(tmpStatus);
     }
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
@@ -427,28 +445,29 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         { static_cast<int>(OP_USER_CHANGED),                  USER_CHANGED },
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
+        { static_cast<int>(OP_FAILED),                        DB_ERROR },
     };
     const auto &result = std::find_if(std::begin(syncOperationStatusNodes), std::end(syncOperationStatusNodes),
         [operationStatus](const auto &node) {
             return node.operationStatus == operationStatus;
         });
-    return result == std::end(syncOperationStatusNodes) ? DB_ERROR : result->status;
+    return result == std::end(syncOperationStatusNodes) ? static_cast<DBStatus>(operationStatus) : result->status;
 }
 
 ProcessStatus SyncOperation::DBStatusTransProcess(int operationStatus)
 {
     static const SyncOperationProcessStatus syncOperationProcessStatus[] = {
-        { static_cast<int>(OP_WAITING),              PREPARED },
-        { static_cast<int>(OP_SYNCING),              PROCESSING },
-        { static_cast<int>(OP_SEND_FINISHED),        PROCESSING },
-        { static_cast<int>(OP_RECV_FINISHED),        PROCESSING },
-        { static_cast<int>(OP_FINISHED_ALL),         FINISHED },
-        { static_cast<int>(OP_COMM_ABNORMAL),        FINISHED },
+        { static_cast<int>(OP_WAITING),                       PREPARED },
+        { static_cast<int>(OP_SYNCING),                       PROCESSING },
+        { static_cast<int>(OP_SEND_FINISHED),                 PROCESSING },
+        { static_cast<int>(OP_RECV_FINISHED),                 PROCESSING },
+        { static_cast<int>(OP_FINISHED_ALL),                  FINISHED },
+        { static_cast<int>(OP_COMM_ABNORMAL),                 FINISHED },
     };
     const auto &result = std::find_if(std::begin(syncOperationProcessStatus), std::end(syncOperationProcessStatus),
-    [operationStatus](const auto &node) {
-        return node.operationStatus == operationStatus;
-    });
+        [operationStatus](const auto &node) {
+            return node.operationStatus == operationStatus;
+        });
     return result == std::end(syncOperationProcessStatus) ? FINISHED : result->proStatus;
 }
 

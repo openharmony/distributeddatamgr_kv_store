@@ -425,7 +425,6 @@ namespace {
             for (const Asset &asset: assets) {
                 ASSERT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
                 ASSERT_EQ(asset.name, names[index]);
-                LOGE("lyh_test: name: %s", names[index].c_str());
                 index++;
             }
         }

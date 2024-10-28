@@ -370,7 +370,7 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateCursor(sqlite3_context *ctx
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCursorContext &context,
-    void (*updateCursor)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const
+    void(*updateCursor)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const
 {
     std::string sql = "update_cursor";
     int errCode = sqlite3_create_function_v2(dbHandle_, sql.c_str(), 0, SQLITE_UTF8 | SQLITE_DIRECTONLY,
@@ -479,7 +479,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             return errCode;
         }
     }
-
     return errCode;
 }
 
@@ -1286,7 +1285,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
             return true;
         }
         Asset &assetDB = *assetDBPtr;
-        if (assetDB.assetId != asset.assetId) {
+        if (assetDB.assetId != asset.assetId || asset.status != AssetStatus::NORMAL) {
             return true;
         }
     }
@@ -1301,8 +1300,8 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
         if (assets.size() != assetsDB.size()) {
             return true;
         }
-        for (uint32_t i = 0; i< assets.size(); ++i) {
-            if (assets[i].assetId != assetsDB[i].assetId) {
+        for (uint32_t i = 0; i < assets.size(); ++i) {
+            if (assets[i].assetId != assetsDB[i].assetId || assets[i].status != AssetStatus::NORMAL) {
                 return true;
             }
         }
@@ -1334,11 +1333,11 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     queryAssetsSql += " FROM '" + tableSchema.name + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " +
         std::to_string(dataKey) + ";";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
-    if (errCode != E_OK || selectStmt == nullptr) { // LCOV_EXCL_BR_LINE
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Get select assets statement failed, %d.", errCode);
-        return errCode;
+        return true;
     }
-    ResFinalizer finalizer([selectStmt] {
+    ResFinalizer finalizer([selectStmt]() {
         sqlite3_stmt *statementInner = selectStmt;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
@@ -1351,7 +1350,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     if (errCode != E_OK) {
         return true;
     }
-    for (const auto &field : tableSchema.fields) {
+    for (const auto &field : assetFields) {
         if (IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo)) {
             return true;
         }
@@ -1370,7 +1369,7 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
         " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK || stmt == nullptr) {
+    if (errCode != E_OK) {
         LOGE("Get mark flag as consistent stmt failed, %d.", errCode);
         return errCode;
     }
@@ -1405,7 +1404,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const st
         "' SET version = ? WHERE hash_key = ? ";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK || stmt == nullptr) {
+    if (errCode != E_OK) {
         return errCode;
     }
     int ret = E_OK;
@@ -1431,7 +1430,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::stri
     int64_t dataCount = 0;
     int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
     if (errCode != E_OK) {
-        LOGE("Query count failed.", errCode);
+        LOGE("Query count failed %d", errCode);
         return errCode;
     }
     return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
@@ -1442,7 +1441,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestam
 {
     sqlite3_stmt *stmt = nullptr;
     int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
-    if (errCode != E_OK || stmt == nullptr) {
+    if (errCode != E_OK) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;
     }
@@ -1507,7 +1506,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncD
         + "' SET cloud_gid = ? WHERE data_key = ? ";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK || stmt == nullptr) {
+    if (errCode != E_OK) {
         return errCode;
     }
     errCode = BindStmtWithCloudGid(cloudDataResult, ignoreEmptyGid, stmt);
@@ -1523,7 +1522,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUpload
     sqlite3_stmt *queryStmt = nullptr;
     bool isStepNext = false;
     int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult, queryStmt, isStepNext);
-    if (errCode != E_OK || queryStmt == nullptr) {
+    if (errCode != E_OK) {
         (void)token.ReleaseCloudStatement();
         return errCode;
     }
@@ -1594,7 +1593,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
+        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d.", errCode);
     }
     return errCode;
 }

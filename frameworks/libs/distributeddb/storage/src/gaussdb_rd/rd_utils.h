@@ -17,13 +17,13 @@
 #define RD_UTILS_H
 #include <vector>
 #include "db_errno.h"
-#include "grd_db_api.h"
-#include "grd_error.h"
-#include "grd_kv_api.h"
-#include "grd_type_export.h"
+#include "grd_base/grd_db_api.h"
+#include "grd_base/grd_error.h"
+#include "grd_kv/grd_kv_api.h"
+#include "grd_base/grd_type_export.h"
 #include "kv_store_nb_delegate.h"
 #include "sqlite_single_ver_storage_executor.h"
-#include "grd_document_api.h"
+#include "grd_document/grd_document_api.h"
 
 namespace DistributedDB {
 

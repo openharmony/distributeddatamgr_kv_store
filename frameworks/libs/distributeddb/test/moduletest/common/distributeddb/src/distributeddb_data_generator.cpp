@@ -397,7 +397,7 @@ std::vector<DistributedDB::Entry> GenerateFixedLenRandRecords(std::vector<Distri
 
 const std::string GetDbType(const int type)
 {
-    switch(type) {
+    switch (type) {
         case UNENCRYPTED_DISK_DB:
             return std::string("UnencrpytedDiskDB");
         case ENCRYPTED_DISK_DB:
@@ -491,7 +491,9 @@ void GenerateLargeValidSchema(Schema &validSchema, std::vector<std::string> &sch
     GetLongSchemaDefine(param, validLargeSchema);
     validLargeSchema.erase(validLargeSchema.size() - 1, 1);
     validLargeSchema.append(",\"field0\":\"STRING,NOT NULL,DEFAULT 'kkkkk1'\"}");
-    std::string splicSchema, largeIndexRes, largeIndex;
+    std::string splicSchema = "";
+    std::string largeIndexRes = "";
+    std::string largeIndex = "";
     for (int index = 0; index < KEY_THIRTYTWO_BYTE; index++) {
         largeIndexRes = largeIndexRes + "\"$.field" + std::to_string(index) + "\",";
     }
@@ -502,28 +504,34 @@ void GenerateLargeValidSchema(Schema &validSchema, std::vector<std::string> &sch
     schema.push_back(splicSchema);
 }
 
+void GenerateSplicSchema(const std::string &version, const std::string &mode, const Schema &validSchema,
+    std::vector<std::string> &schema, bool hasIndex)
+{
+    std::string splicSchema;
+    if (hasIndex) {
+        for (auto iter3 = validSchema.index.begin(); iter3 != validSchema.index.end(); iter3++) {
+            splicSchema = SpliceToSchema(version, mode, validSchema.define.at(0), *iter3);
+            schema.push_back(splicSchema);
+        }
+    } else {
+        for (auto iter3 = validSchema.define.begin(); iter3 != validSchema.define.end(); iter3++) {
+            splicSchema = SpliceToSchema(version, mode, *iter3, validSchema.index.at(0));
+            schema.push_back(splicSchema);
+        }
+    }
+}
+
 std::vector<std::string> GetValidSchema(Schema &validSchema, bool hasIndex)
 {
     std::vector<std::string> schema;
     for (auto iter1 = validSchema.version.begin(); iter1 != validSchema.version.end(); iter1++) {
         for (auto iter2 = validSchema.mode.begin(); iter2 != validSchema.mode.end(); iter2++) {
-            std::string splicSchema;
-            if (hasIndex) {
-                for (auto iter3 = validSchema.index.begin(); iter3 != validSchema.index.end(); iter3++) {
-                    splicSchema = SpliceToSchema(*iter1, *iter2, validSchema.define.at(0), *iter3);
-                    schema.push_back(splicSchema);
-                }
-            } else {
-                for (auto iter3 = validSchema.define.begin(); iter3 != validSchema.define.end(); iter3++) {
-                    splicSchema = SpliceToSchema(*iter1, *iter2, *iter3, validSchema.index.at(0));
-                    schema.push_back(splicSchema);
-                }
-            }
+            GenerateSplicSchema(*iter1, *iter2, validSchema, schema, hasIndex);
         }
     }
     GenerateLongValidSchema(validSchema, schema);
     GenerateLargeValidSchema(validSchema, schema);
-    std::string schemaWithoutIndex;
+    std::string schemaWithoutIndex = "";
     schemaWithoutIndex = schemaWithoutIndex + "{" + "\"SCHEMA_VERSION\"" + ":" + "\"" + validSchema.version.at(0) +
         "\"" + "," + "\"SCHEMA_MODE\"" + ":" + "\"" + validSchema.mode.at(0) + "\"" + "," +
         "\"SCHEMA_DEFINE\"" + ":" + validSchema.define.at(0) + "}";
@@ -534,7 +542,10 @@ std::vector<std::string> GetValidSchema(Schema &validSchema, bool hasIndex)
 
 void GetLongIndex(Schema &validSchema, std::vector<std::string> &schema)
 {
-    std::string validLargeSchema, largeIndexRes, largeIndex, splicSchema;
+    std::string validLargeSchema = "";
+    std::string largeIndexRes = "";
+    std::string largeIndex = "";
+    std::string splicSchema = "";
     LongDefine param;
     param.recordNum = FIFTY_RECORDS;
     param.recordSize = KEY_SIX_BYTE;

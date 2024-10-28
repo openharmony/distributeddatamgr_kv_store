@@ -61,7 +61,7 @@ public:
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
-        currentContext_.strategy->SetIsLocalDeleteUpload(isLocalDeleteUpload_);
+        currentContext_.strategy->SetIsKvScene(isKvScene_);
         closed_ = false;
         cloudTaskInfos_[taskId].callback = [this, taskId](const std::map<std::string, SyncProcess> &process) {
             if (process.size() >= 1u) {

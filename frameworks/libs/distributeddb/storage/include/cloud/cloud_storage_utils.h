@@ -106,6 +106,8 @@ public:
     static std::string GetCursorIncSql(const std::string &tableName);
     static std::string GetCursorIncSqlWhenAllow(const std::string &tableName);
     static std::string GetCursorUpgradeSql(const std::string &tableName);
+    static std::string GetCursorHeightenInMetaSql(const std::string &tableName);
+    static std::string GetCursorHeightenInLogSql(const std::string &tableName);
     static std::string GetUpdateUploadFinishedSql(const std::string &tableName);
 
     static bool IsSharedTable(const TableSchema &tableSchema);

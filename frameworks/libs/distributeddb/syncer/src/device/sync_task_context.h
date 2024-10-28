@@ -216,6 +216,10 @@ public:
     void TimeChange() override;
 
     int32_t GetResponseTaskCount() override;
+
+    int GetCommErrCode() const;
+
+    void SetCommFailErrCode(int errCode);
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 
@@ -284,6 +288,7 @@ protected:
 
     volatile bool isCommNormal_;
     volatile int taskErrCode_;
+    volatile int commErrCode_;
     volatile uint64_t packetId_ = 0; // used for assignment to reSendMap_.ReSendInfo.packetId in 103 version or above
     volatile bool syncTaskRetryStatus_;
     volatile bool isSyncRetry_;

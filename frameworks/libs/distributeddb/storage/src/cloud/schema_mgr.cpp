@@ -156,8 +156,8 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
         std::string tableName = table.name;
         TableInfo tableInfo = localSchema.GetTable(tableName);
         if (tableInfo.Empty()) {
-                msg += ("[" + DBCommon::StringMiddleMasking(tableName) + ", " + std::to_string(tableName.size()) + "]");
-                missingTables++;
+            msg += ("[" + DBCommon::StringMiddleMasking(tableName) + ", " + std::to_string(tableName.size()) + "]");
+            missingTables++;
             continue;
         }
         FieldInfoMap localFields = tableInfo.GetFields();

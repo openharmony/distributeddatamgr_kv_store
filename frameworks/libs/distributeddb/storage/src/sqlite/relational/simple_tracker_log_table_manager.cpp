@@ -57,7 +57,7 @@ std::string SimpleTrackerLogTableManager::GetPrimaryKeySql(const TableInfo &tabl
 // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
 std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
 {
-    if (table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (table.GetTrackerTable().IsEmpty()) {
         return "";
     }
     std::string logTblName = GetLogTableName(table);
@@ -76,8 +76,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
     insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", '', '', 0);\n";
-    insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, ";
-    insertTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
+    insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, 1";
     insertTrigger += ");\n";
     insertTrigger += "END;";
     return insertTrigger;
@@ -85,7 +84,7 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
 
 std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &table, const std::string &identity)
 {
-    if (table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (table.GetTrackerTable().IsEmpty()) {
         return "";
     }
     (void)identity;
@@ -114,7 +113,7 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
 
 std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &table, const std::string &identity)
 {
-    if (table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (table.GetTrackerTable().IsEmpty()) {
         return "";
     }
     (void)identity;
@@ -132,7 +131,7 @@ std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
-    deleteTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
+    deleteTrigger += table.GetTrackerTable().IsEmpty() ? "0" : "1";
     deleteTrigger += ");\n";
     deleteTrigger += "END;";
     return deleteTrigger;
@@ -148,7 +147,7 @@ std::vector<std::string> SimpleTrackerLogTableManager::GetDropTriggers(const Tab
     dropTriggers.emplace_back(insertTrigger);
     dropTriggers.emplace_back(updateTrigger);
     dropTriggers.emplace_back(deleteTrigger);
-    if (table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (table.GetTrackerTable().IsEmpty()) {
         std::string deleteLogTable = "DROP TABLE IF EXISTS " + GetLogTableName(table) + ";";
         dropTriggers.emplace_back(deleteLogTable);
     }

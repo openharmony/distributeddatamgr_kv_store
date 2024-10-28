@@ -229,7 +229,7 @@ protected:
 
     void FillRequestReSendPacket(SingleVerSyncTaskContext *context, DataRequestPacket *packet,
         DataSyncReSendInfo reSendInfo, SyncEntry &syncData, int sendCode);
-    
+
     void FillRequestReSendPacketV2(const SingleVerSyncTaskContext *context, DataRequestPacket *packet);
 
     void UpdateMtuSize();

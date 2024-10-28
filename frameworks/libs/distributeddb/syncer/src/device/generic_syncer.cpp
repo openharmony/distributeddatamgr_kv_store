@@ -240,6 +240,7 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         SubQueuedSyncSize();
         return -E_OUT_OF_MEMORY;
     }
+
     ISyncEngine *engine = nullptr;
     {
         std::lock_guard<std::mutex> autoLock(syncerLock_);

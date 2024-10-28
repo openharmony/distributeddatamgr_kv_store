@@ -81,7 +81,7 @@ public:
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
     int GetDeletedSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendLength, Timestamp begin,
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
-    
+
     int GetUnSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const;
 
     int GetDeletedSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const;
@@ -249,10 +249,10 @@ private:
 
     int PrepareForSyncDataByTime(Timestamp begin, Timestamp end, sqlite3_stmt *&statement, bool getDeletedData = false)
         const;
-    
+
     int PrepareForUnSyncTotalByTime(Timestamp begin, Timestamp end, sqlite3_stmt *&statement,
         bool getDeletedData = false) const;
-    
+
     int GetCountValue(sqlite3_stmt *&countStatement, uint32_t &total) const;
 
     int StepForResultEntries(bool isGetValue, sqlite3_stmt *statement, std::vector<Entry> &entries) const;

@@ -1043,9 +1043,9 @@ void SyncEngine::SchemaChange()
     std::vector<ISyncTaskContext *> tmpContextVec;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        for (const auto &entry : syncTaskContextMap_) {
+        for (const auto &entry : syncTaskContextMap_) { // LCOV_EXCL_BR_LINE
             auto context = entry.second;
-            if (context == nullptr || context->IsKilled()) { // LCOV_EXCL_BR_LINE
+            if (context == nullptr || context->IsKilled()) {
                 continue;
             }
             RefObject::IncObjRef(context);

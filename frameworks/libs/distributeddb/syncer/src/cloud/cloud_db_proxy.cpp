@@ -93,7 +93,7 @@ static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, uint8_t actio
 }
 
 int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
-    std::vector<VBucket> &extend, Info &uploadInfo)
+    std::vector<VBucket> &extend, Info &uploadInfo, uint32_t &retryCount)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
@@ -105,12 +105,13 @@ int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket>
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, INSERT);
     uploadInfo = context->GetInfo();
+    retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
 int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket> &record,
-    std::vector<VBucket> &extend, Info &uploadInfo)
+    std::vector<VBucket> &extend, Info &uploadInfo, uint32_t &retryCount)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
@@ -122,12 +123,13 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     context->MoveInRecordAndExtend(record, extend);
     int errCode = InnerAction(context, cloudDb, UPDATE);
     uploadInfo = context->GetInfo();
+    retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
 int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
-    Info &uploadInfo)
+    Info &uploadInfo, uint32_t &retryCount)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
@@ -139,6 +141,7 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, DELETE);
     uploadInfo = context->GetInfo();
+    retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
@@ -492,7 +495,8 @@ CloudDBProxy::CloudActionContext::CloudActionContext()
       actionRes_(OK),
       totalCount_(0u),
       successCount_(0u),
-      failedCount_(0u)
+      failedCount_(0u),
+      retryCount_(0u)
 {
 }
 
@@ -597,20 +601,17 @@ bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
     return false;
 }
 
-bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, bool isInsert, DBStatus status)
+bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, const CloudWaterType &type,
+    DBStatus status)
 {
-    if (DBCommon::IsRecordAssetsMissing(extend)) {
+    if (DBCommon::IsRecordAssetsMissing(extend) || DBCommon::IsRecordIgnoredForReliability(extend, type) ||
+        DBCommon::IsRecordIgnored(extend)) {
         return false;
     }
-    if (extend.count(CloudDbConstant::GID_FIELD) == 0) {
+    if (extend.count(CloudDbConstant::GID_FIELD) == 0 || DBCommon::IsRecordFailed(extend, status)) {
         return true;
     }
-    if (status != OK) {
-        if (DBCommon::IsRecordError(extend) ||
-            (!DBCommon::IsRecordSuccess(extend) && !DBCommon::IsRecordVersionConflict(extend))) {
-            return true;
-        }
-    }
+    bool isInsert = type == CloudWaterType::INSERT;
     auto gid = std::get_if<std::string>(&extend.at(CloudDbConstant::GID_FIELD));
     if (gid == nullptr || (isInsert && (*gid).empty())) {
         return true;
@@ -631,6 +632,7 @@ bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend,
 void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBStatus status, uint32_t size)
 {
     totalCount_ = size;
+    retryCount_ = 0; // reset retryCount in each batch
 
     // totalCount_ should be equal to extend_ or batch data failed.
     if (totalCount_ != extend_.size()) {
@@ -638,10 +640,9 @@ void CloudDBProxy::CloudActionContext::SetInfo(const CloudWaterType &type, DBSta
         return;
     }
     for (auto &extend : extend_) {
-        if (DBCommon::IsRecordIgnoredForReliability(extend, type) || DBCommon::IsRecordIgnored(extend)) {
-            continue;
-        }
-        if (IsRecordActionFail(extend, type == CloudWaterType::INSERT, status)) {
+        if (DBCommon::IsRecordVersionConflict(extend)) {
+            retryCount_++;
+        } else if (IsRecordActionFail(extend, type, status)) {
             failedCount_++;
         } else {
             successCount_++;
@@ -659,6 +660,12 @@ std::string CloudDBProxy::CloudActionContext::GetTableName()
 {
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     return tableName_;
+}
+
+uint32_t CloudDBProxy::CloudActionContext::GetRetryCount()
+{
+    std::lock_guard<std::mutex> autoLock(actionMutex_);
+    return retryCount_;
 }
 
 void CloudDBProxy::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)

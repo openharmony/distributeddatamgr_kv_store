@@ -180,4 +180,10 @@ void ProcessSystemApiAdapterImpl::ForkCheckDeviceSecurityAbility(
 {
     checkDeviceCallBack_ = callBack;
 }
+
+std::map<const std::string, SecurityOption> ProcessSystemApiAdapterImpl::GetExistSecOpt() const
+{
+    std::lock_guard<std::mutex> autoLock(adapterlock_);
+    return pathSecOptDic_;
+}
 };

@@ -868,7 +868,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize
 
 /**
  * @tc.name: TableInfoInterfacesTest
- * @tc.desc: Test TableInfo interfaces
+ * @tc.desc: Test TableInfo Interfaces
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: suyue

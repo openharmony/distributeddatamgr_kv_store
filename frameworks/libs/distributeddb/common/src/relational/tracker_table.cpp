@@ -24,6 +24,7 @@ void TrackerTable::Init(const TrackerSchema &schema)
     tableName_ = schema.tableName;
     extendColName_ = schema.extendColName;
     trackerColNames_ = schema.trackerColNames;
+    isTrackerAction_ = schema.isTrackAction;
 }
 
 std::string TrackerTable::GetTableName() const
@@ -54,8 +55,8 @@ const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
 
 const std::string TrackerTable::GetDiffTrackerValSql() const
 {
-    if (trackerColNames_.empty()) {
-        return "0";
+    if (trackerColNames_.empty() || isTrackerAction_) {
+        return isTrackerAction_ ? "1" : "0";
     }
     std::string sql = " CASE WHEN (";
     size_t index = 0;
@@ -72,8 +73,11 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
 
 const std::string TrackerTable::GetDiffIncCursorSql(const std::string &tableName) const
 {
-    if (trackerColNames_.empty()) {
+    if (IsEmpty()) {
         return "";
+    }
+    if (isTrackerAction_) {
+        return std::string(", cursor = ").append(CloudStorageUtils::GetSelectIncCursorSql(tableName)).append(" ");
     }
     std::string sql = ", cursor = CASE WHEN (";
     size_t index = 0;
@@ -104,8 +108,13 @@ std::string TrackerTable::ToString() const
     for (const auto &colName: trackerColNames_) {
         attrStr += "\"" + colName + "\",";
     }
-    attrStr.pop_back();
-    attrStr += "]}";
+    if (!trackerColNames_.empty()) {
+        attrStr.pop_back();
+    }
+    attrStr += "],";
+    attrStr += R"("TRACKER_ACTION": )";
+    attrStr += isTrackerAction_ ? SchemaConstant::KEYWORD_ATTR_VALUE_TRUE : SchemaConstant::KEYWORD_ATTR_VALUE_FALSE;
+    attrStr += "}";
     return attrStr;
 }
 
@@ -154,12 +163,18 @@ const std::string TrackerTable::GetTempInsertTriggerSql(bool incFlag) const
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     if (incFlag) {
-    sql += CloudStorageUtils::GetCursorIncSqlWhenAllow(tableName_) + "\n";
+        sql += CloudStorageUtils::GetCursorIncSqlWhenAllow(tableName_) + "\n";
     } else {
-    sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
+        sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     }
     sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
-    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
+    if (incFlag) {
+        sql += "cursor= case when (select 1 from " +
+            DBConstant::RELATIONAL_PREFIX + "metadata where key='cursor_inc_flag' AND value = 'true') then " +
+            CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " else cursor end WHERE";
+    } else {
+        sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
+    }
     sql += " hash_key = NEW.hash_key;\n";
     if (!IsEmpty()) {
         sql += "SELECT server_observer('" + tableName_ + "', 1);";
@@ -184,7 +199,13 @@ const std::string TrackerTable::GetTempUpdateTriggerSql(bool incFlag) const
     if (!IsEmpty()) {
         sql += "extend_field=" + GetAssignValSql() + ",";
     }
-    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
+    if (incFlag) {
+        sql += "cursor= case when (select 1 from " +
+            DBConstant::RELATIONAL_PREFIX + "metadata where key='cursor_inc_flag' AND value = 'true') then " +
+            CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " else cursor end WHERE";
+    } else {
+        sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
+    }
     sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     if (!IsEmpty()) {
         sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql() + ");";
@@ -243,12 +264,7 @@ void TrackerTable::SetTrackerNames(const std::set<std::string> &trackerNames)
 
 bool TrackerTable::IsEmpty() const
 {
-    return trackerColNames_.empty();
-}
-
-bool TrackerTable::IsTableNameEmpty() const
-{
-    return tableName_.empty();
+    return trackerColNames_.empty() && !isTrackerAction_;
 }
 
 bool TrackerTable::IsChanging(const TrackerSchema &schema)
@@ -264,7 +280,7 @@ bool TrackerTable::IsChanging(const TrackerSchema &schema)
             return true;
         }
     }
-    return false;
+    return isTrackerAction_ != schema.isTrackAction;
 }
 
 int TrackerTable::ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action)
@@ -307,6 +323,11 @@ int TrackerTable::ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum m
         }
     }
     return errCode;
+}
+
+void TrackerTable::SetTrackerAction(bool isTrackerAction)
+{
+    isTrackerAction_ = isTrackerAction;
 }
 }
 #endif

@@ -1833,7 +1833,8 @@ void ConsistencyBatchCheck(vector<Key> *keyLeft, vector<Key> *keyRight, int time
     delegate = DistributedDBNbTestTools::GetNbDelegateSuccess(delegateManager, g_dbParameter1, g_option);
     ASSERT_TRUE(delegateManager != nullptr && delegate != nullptr) << "ConsistencyBatchCheck get delegate failed.";
 
-    Value leftValue, rightValue;
+    Value leftValue;
+    Value rightValue;
     while (!g_batchThreadComplete) {
         for (int i = 0; i < times; ++i) {
             leftValue.clear();
@@ -1877,7 +1878,8 @@ void ConsistencyCheckTransaction(vector<Entry> &entries1, vector<Entry> &entries
      * @tc.steps: step4. getEntries with keyprefix before updateBatch.
      * @tc.expected: step4. getEntries successfully that the size of them is 20.
      */
-    vector<Entry> values1, values2;
+    vector<Entry> values1;
+    vector<Entry> values2;
     EXPECT_EQ(DistributedDBNbTestTools::GetEntries(*g_nbBatchCrudDelegate, query1, values1), OK);
     EXPECT_EQ(DistributedDBNbTestTools::GetEntries(*g_nbBatchCrudDelegate, query2, values2), OK);
     EXPECT_EQ(static_cast<int>(values1.size()), TWENTY_RECORDS);

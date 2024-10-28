@@ -1219,7 +1219,11 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, BlockSync004, TestSize.Level2)
     ASSERT_TRUE(result.size() == devices.size());
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
-        EXPECT_TRUE(pair.second == COMM_FAILURE);
+        // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+        // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+        // The returned status is COMM_FAILURE
+        EXPECT_TRUE((pair.second == static_cast<DBStatus>(-E_PERIPHERAL_INTERFACE_FAIL)) ||
+            (pair.second == COMM_FAILURE));
     }
 }
 

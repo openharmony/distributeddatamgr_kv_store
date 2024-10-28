@@ -37,6 +37,7 @@ private:
         const RelationalSchemaObject &trackerSchemaObj);
     int UpgradeLogTable(const std::string &logTableVersion, const RelationalSchemaObject &schemaObj,
         const RelationalSchemaObject &trackerSchemaObj);
+    int UpgradeCursor(const std::string &logTableVersion, const RelationalSchemaObject &schemaObj);
     int UpgradeLogBaseOnVersion(const std::string &oldVersion, const std::string &tableName);
     int GetParseSchema(RelationalSchemaObject &schemaObj, RelationalSchemaObject &trackerSchemaObj);
     sqlite3 *db_;

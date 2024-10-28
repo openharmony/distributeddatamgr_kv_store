@@ -129,6 +129,18 @@ bool JsonCommon::CheckJsonField(JsonObject &jsonObj)
     return CheckNode(jsonObj);
 }
 
+static bool CheckNodeSingleCharacter(const std::string &fieldName, bool isFirstLevel, int &errCode)
+{
+    for (size_t i = 0; i < fieldName.size(); i++) {
+        if ((i == 0 && (isdigit(fieldName[i]))) || !((isalpha(fieldName[i])) ||
+            (isdigit(fieldName[i])) || (fieldName[i] == '_') || (isFirstLevel && fieldName[i] == '.'))) {
+            errCode = -E_INVALID_ARGS;
+            return false;
+        }
+    }
+    return true;
+}
+
 bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &errCode)
 {
     std::queue<JsonObject> jsonQueue;
@@ -149,12 +161,8 @@ bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &e
             errCode = -E_INVALID_JSON_FORMAT;
             return false;
         }
-        for (size_t i = 0; i < fieldName.size(); i++) {
-            if ((i == 0 && (isdigit(fieldName[i]))) || !((isalpha(fieldName[i])) ||
-                (isdigit(fieldName[i])) || (fieldName[i] == '_') || (isFirstLevel && fieldName[i] == '.'))) {
-                errCode = -E_INVALID_ARGS;
-                return false;
-            }
+        if (!CheckNodeSingleCharacter(fieldName, isFirstLevel, errCode)) {
+            return false;
         }
         if (!item.GetNext().IsNull()) {
             jsonQueue.push(item.GetNext());

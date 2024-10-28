@@ -1098,7 +1098,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, 
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: caihaoting
- */
+  */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest011, TestSize.Level1)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);

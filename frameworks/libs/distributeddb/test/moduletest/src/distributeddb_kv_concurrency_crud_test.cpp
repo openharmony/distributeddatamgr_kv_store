@@ -67,7 +67,8 @@ void ConcurOperThread(ConcurParam* args)
     auto paramsPtr = static_cast<ConcurParam *>(args);
     DBStatus status;
     Value valueResult;
-    string strKey, strValue;
+    string strKey = "";
+    string strValue = "";
 
     if (paramsPtr->tag_ == READ) {
         valueResult = DistributedTestTools::Get(*g_kvStoreConcurDelegate, paramsPtr->entryPtr_->key);
@@ -226,8 +227,12 @@ HWTEST_F(DistributeddbKvConcurrencyCrudTest, Read002, TestSize.Level3)
 void StartRandThread()
 {
     std::vector<std::thread> threads;
-    std::random_device randDevReadKeyNo, randDevWriteKeyNo, randDevTag;
-    std::mt19937 genRandReadKeyNo(randDevReadKeyNo()), genRandWriteKeyNo(randDevWriteKeyNo()), genRandTag(randDevTag());
+    std::random_device randDevReadKeyNo;
+    std::random_device randDevWriteKeyNo;
+    std::random_device randDevTag;
+    std::mt19937 genRandReadKeyNo(randDevReadKeyNo());
+    std::mt19937 genRandWriteKeyNo(randDevWriteKeyNo());
+    std::mt19937 genRandTag(randDevTag());
     std::uniform_int_distribution<unsigned long> disRandReadKeyNo(READ_RECORDS_NUM_START, READ_RECORDS_NUM_END);
     std::uniform_int_distribution<unsigned long> disRandWriteKeyNo(WRITE_RECORDS_NUM_START, WRITE_RECORDS_NUM_END);
     std::uniform_int_distribution<int> disRandTag(READ, WRITE);

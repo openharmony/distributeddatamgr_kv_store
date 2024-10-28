@@ -35,13 +35,13 @@
 
 namespace DistributedDB {
 CloudSyncer::CloudSyncer(
-    std::shared_ptr<StorageProxy> storageProxy, bool isLocalDeleteUpload, SingleVerConflictResolvePolicy policy)
+    std::shared_ptr<StorageProxy> storageProxy, bool isKvScene, SingleVerConflictResolvePolicy policy)
     : lastTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
       timerId_(0u),
-      isLocalDeleteUpload_(isLocalDeleteUpload),
+      isKvScene_(isKvScene),
       policy_(policy)
 {
     if (storageProxy_ != nullptr) {
@@ -859,6 +859,7 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     // Update download batch Info
     param.info.downLoadInfo.batchIndex += 1;
     param.info.downLoadInfo.total += param.downloadData.data.size();
+    param.info.retryInfo.downloadBatchOpCount = 0;
     int ret = E_OK;
     DownloadList assetsDownloadList;
     param.assetsDownloadList = assetsDownloadList;
@@ -1014,6 +1015,11 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData.type = ChangedDataType::DATA;
     }
     (void)storageProxy_->SetCursorIncFlag(true);
+    if (!IsModeForcePush(taskId)) {
+        param.changedData.tableName = param.info.tableName;
+        param.changedData.field = param.pkColNames;
+        param.changedData.type = ChangedDataType::DATA;
+    }
     ret = SaveData(taskId, param);
     (void)storageProxy_->SetCursorIncFlag(false);
     param.insertPk.clear();
@@ -1236,7 +1242,8 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
     if (errCode != E_OK) {
         return errCode;
     }
-    bool lastBatch = innerProcessInfo.upLoadInfo.successCount == innerProcessInfo.upLoadInfo.total;
+    bool lastBatch = (innerProcessInfo.upLoadInfo.successCount + innerProcessInfo.upLoadInfo.failCount) ==
+                     innerProcessInfo.upLoadInfo.total;
     if (lastBatch) {
         innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
     }
@@ -1515,7 +1522,7 @@ int CloudSyncer::PrepareSync(TaskId taskId)
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
         currentContext_.strategy =
-            StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, isLocalDeleteUpload_, policy_);
+            StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, isKvScene_, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
@@ -1999,10 +2006,7 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
             changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
         }
     }
-    // If the assets are DELETE, needn't fill back cloud assets.
-    if (downloadItem.strategy == OpType::DELETE) {
-        return E_OK;
-    }
+    
     return errorCode;
 }
 

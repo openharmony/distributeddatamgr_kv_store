@@ -124,7 +124,7 @@ int SQLiteRelationalStore::GetSchemaFromMeta(RelationalSchemaObject &schema)
         LOGE("Get relational schema from meta table failed. %d", errCode);
         return errCode;
     } else if (errCode == -E_NOT_FOUND || schemaVal.empty()) {
-        LOGW("No relational schema info was found.");
+        LOGW("No relational schema info was found. error %d size %zu", errCode, schemaVal.size());
         return -E_NOT_FOUND;
     }
 
@@ -1583,5 +1583,5 @@ SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 {
     return cloudSyncer_->GetCloudTaskStatus(taskId);
 }
-} //namespace DistributedDB
+} // namespace DistributedDB
 #endif
