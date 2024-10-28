@@ -1391,9 +1391,12 @@ int CloudSyncer::CloudDbBatchDownloadAssets(TaskId taskId, const DownloadList &d
         return errorCode;
     }
     // prepare download data
-    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords> downloadDetail =
+    auto [downloadRecord, removeAssets, downloadAssets] =
         GetDownloadRecords(downloadList, dupHashKeySet, isSharedTable, info);
-    return BatchDownloadAndCommitRes(downloadList, dupHashKeySet, info, changedAssets, downloadDetail);
+    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> detail = {
+        std::move(downloadRecord), std::move(removeAssets), std::move(downloadAssets), isSharedTable
+    };
+    return BatchDownloadAndCommitRes(downloadList, dupHashKeySet, info, changedAssets, detail);
 }
 
 void CloudSyncer::FillDownloadItem(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
@@ -1446,9 +1449,9 @@ CloudSyncer::DownloadAssetDetail CloudSyncer::GetDownloadRecords(const DownloadL
 
 int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
     InnerProcessInfo &info, ChangedData &changedAssets,
-    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords> &downloadDetail)
+    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> &downloadDetail)
 {
-    auto &[downloadRecord, removeAssets, downloadAssets] = downloadDetail;
+    auto &[downloadRecord, removeAssets, downloadAssets, isSharedTable] = downloadDetail;
     // download and remove in batch
     auto deleteRes = cloudDB_.BatchRemoveLocalAssets(info.tableName, removeAssets);
     auto downloadRes = cloudDB_.BatchDownload(info.tableName, downloadAssets);
@@ -1460,8 +1463,10 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
     for (auto &item : downloadRecord) {
         auto deleteCode = CloudDBProxy::GetInnerErrorCode(removeAssets[index].status);
         auto downloadCode = CloudDBProxy::GetInnerErrorCode(downloadAssets[index].status);
-        item.downloadItem.assets = BackFillAssetsAfterDownload(downloadCode, deleteCode, item.flags,
-            downloadAssets[index].assets, removeAssets[index].assets);
+        if (!isSharedTable) {
+            item.downloadItem.assets = BackFillAssetsAfterDownload(downloadCode, deleteCode, item.flags,
+                downloadAssets[index].assets, removeAssets[index].assets);
+        }
         StatisticDownloadRes(downloadAssets[index], removeAssets[index], info, item.downloadItem);
         AddNotifyDataFromDownloadAssets(dupHashKeySet, item.downloadItem, changedAssets);
         if (item.downloadItem.strategy == OpType::DELETE) {

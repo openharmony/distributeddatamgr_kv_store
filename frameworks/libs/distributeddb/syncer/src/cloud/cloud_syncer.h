@@ -463,7 +463,7 @@ protected:
 
     int BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
         InnerProcessInfo &info, ChangedData &changedAssets,
-        std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords> &downloadDetail);
+        std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> &downloadDetail);
 
     static void StatisticDownloadRes(const IAssetLoader::AssetRecord &downloadRecord,
         const IAssetLoader::AssetRecord &removeRecord, InnerProcessInfo &info, DownloadItem &downloadItem);

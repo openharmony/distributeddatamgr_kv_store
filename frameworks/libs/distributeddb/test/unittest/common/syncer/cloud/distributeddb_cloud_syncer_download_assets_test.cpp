@@ -2390,6 +2390,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, Test
  */
 HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestSize.Level0)
 {
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     /**
      * @tc.steps:step1. init data and sync
      * @tc.expected: step1. return OK.
@@ -2414,6 +2415,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestS
             EXPECT_EQ(asset.status, AssetStatus::NORMAL);
         }
     }
+    EXPECT_EQ(g_virtualAssetLoader->GetBatchDownloadCount(), 0);
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
 
 /**

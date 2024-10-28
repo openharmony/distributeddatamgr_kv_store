@@ -718,29 +718,6 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
     return ret;
 }
 
-std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
-{
-    std::map<std::string, Assets> assets;
-    std::vector<Field> fields;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        fields = currentContext_.assetFields[currentContext_.tableName];
-    }
-    for (const auto &field : fields) {
-        if (data.find(field.colName) != data.end()) {
-            if (field.type == TYPE_INDEX<Asset> && data[field.colName].index() == TYPE_INDEX<Asset>) {
-                assets[field.colName] = { std::get<Asset>(data[field.colName]) };
-            } else if (field.type == TYPE_INDEX<Assets> && data[field.colName].index() == TYPE_INDEX<Assets>) {
-                assets[field.colName] = std::get<Assets>(data[field.colName]);
-            } else {
-                Assets emptyAssets;
-                assets[field.colName] = emptyAssets;
-            }
-        }
-    }
-    return assets;
-}
-
 int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
     VBucket &localAssetInfo)
 {
