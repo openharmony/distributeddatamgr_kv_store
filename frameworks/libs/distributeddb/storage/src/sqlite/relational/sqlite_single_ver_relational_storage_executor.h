@@ -212,7 +212,7 @@ private:
     int DoCleanLogAndData(const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
-    int CleanCloudDataOnLogTable(const std::string &logTableName);
+    int CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode);
 
     int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName,
         const RelationalSchemaObject &localSchema);
