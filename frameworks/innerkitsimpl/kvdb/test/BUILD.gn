@@ -323,6 +323,56 @@ ohos_unittest("SecurityManagerTest") {
   ]
 }
 
+ohos_unittest("SingleStorePerfPcTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "single_store_perf_pc_test.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":kvdb_src_file",
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("SingleStorePerfPhoneTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "single_store_perf_phone_test.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    ":kvdb_src_file",
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "//third_party/googletest:gtest",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -337,6 +387,13 @@ group("unittest") {
     ":StoreFactoryTest",
     ":StoreUtilTest",
   ]
+
+  if (false) {
+    deps += [
+      ":SingleStorePerfPcTest",
+      ":SingleStorePerfPhoneTest",
+    ]
+  }
 
   if (!use_libfuzzer) {
     deps += [ ":SecurityManagerTest" ]
