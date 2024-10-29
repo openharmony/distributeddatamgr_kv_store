@@ -1285,7 +1285,6 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, ContextParam &pa
     if (appInfo != nullptr) {
         statusMsg = GetNamedProperty(env, appInfo, "systemApp", param.isSystemApp);
         ASSERT(statusMsg.status == napi_ok, "get appInfo failed", napi_invalid_arg);
-        param.apiVersion = GetApiVersion(env, in);
     }
     return napi_ok;
 }
@@ -1303,21 +1302,6 @@ bool JSUtil::IsNull(napi_env env, napi_value value)
         return true;
     }
     return false;
-}
-
-int32_t JSUtil::GetApiVersion(napi_env env, napi_value value)
-{
-    auto context = AbilityRuntime::GetStageModeContext(env, value);
-    if (context == nullptr) {
-        ZLOGW("get context fail.");
-        return DEFAULT_API_VERSION;
-    }
-    auto appInfo = context->GetApplicationInfo();
-    if (appInfo == nullptr) {
-        ZLOGW("get app info fail.");
-        return DEFAULT_API_VERSION;
-    }
-    return appInfo->apiTargetVersion % API_VERSION_MOD;
 }
 
 std::pair<napi_status, napi_value> JSUtil::GetInnerValue(

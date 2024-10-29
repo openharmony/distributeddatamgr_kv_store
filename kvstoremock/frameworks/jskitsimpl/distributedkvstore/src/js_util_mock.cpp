@@ -29,6 +29,8 @@
 #define htobe32(data) data
 #define htobe64(data) data
 
+#define GetCurrentAbility(env)    GetAbility()
+
 #ifdef _WIN32
 #define mkdir(dir, mode)  mkdir(dir)
 #endif
@@ -38,7 +40,6 @@
 #endif
 
 constexpr mode_t MODE = 0755;
-constexpr int32_t API_VERSION = 9;
 
 class AbilityMock {
 public:
@@ -53,7 +54,6 @@ public:
     
     struct ApplicationInfo {
         bool isSystemApp = true;
-        int32_t apiTargetVersion = 9;
     };
     
     class ContextMock {
@@ -94,15 +94,9 @@ public:
 };
 
 namespace AbilityRuntime {
-    std::shared_ptr<AbilityMock> GetCurrentAbility(napi_env env)
+    std::shared_ptr<AbilityMock> GetAbility()
     {
         return std::make_shared<AbilityMock>();
-    }
-
-    std::shared_ptr<AbilityMock::ContextMock> GetStageModeContext(napi_env env, napi_value value)
-    {
-        auto ability = std::make_shared<AbilityMock>();
-        return ability->GetAbilityContext();
     }
 }
 
