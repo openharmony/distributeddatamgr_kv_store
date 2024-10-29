@@ -194,6 +194,8 @@ public:
 
     static constexpr const char *KV_SYNC_TABLE_NAME = "sync_data";
     static constexpr const char *KV_LOCAL_TABLE_NAME = "local_data";
+
+    static constexpr uint64_t INVALID_CURSOR = UINT64_MAX;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

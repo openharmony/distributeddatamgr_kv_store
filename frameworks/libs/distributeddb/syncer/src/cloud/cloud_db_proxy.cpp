@@ -400,9 +400,15 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
             break;
         case UNLOCK:
             status = cloudDb->UnLock();
+            if (status != OK) {
+                LOGE("[CloudDBProxy] UnLock cloud DB failed: %d", static_cast<int>(status));
+            }
             break;
         case HEARTBEAT:
             status = cloudDb->HeartBeat();
+            if (status != OK) {
+                LOGE("[CloudDBProxy] Heart beat error: %d", static_cast<int>(status));
+            }
             break;
         default: // should not happen
             status = DB_ERROR;
@@ -424,7 +430,9 @@ DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext>
     std::pair<DBStatus, uint64_t> lockStatus = cloudDb->Lock();
     if (lockStatus.first != OK) {
         status = lockStatus.first;
+        LOGE("[CloudDBProxy] Lock cloud DB failed: %d", static_cast<int>(status));
     } else if (lockStatus.second == 0) {
+        LOGE("[CloudDBProxy] Lock successfully but timeout is 0");
         status = CLOUD_ERROR;
     }
     lockRet.second = lockStatus.second;
@@ -441,6 +449,7 @@ DBStatus CloudDBProxy::InnerActionGetEmptyCursor(const std::shared_ptr<CloudActi
     DBStatus status = OK;
     if (cursorStatus.first != OK) {
         status = cursorStatus.first;
+        LOGE("[CloudDBProxy] Get empty cursor failed: %d", static_cast<int>(status));
     }
     std::pair<int, std::string> cursorRet;
     cursorRet.second = cursorStatus.second;

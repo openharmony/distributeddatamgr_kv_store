@@ -317,7 +317,8 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
         return errCode;
     }
     for (size_t i = 0u; i < taskInfo.table.size(); ++i) {
-        LOGD("[CloudSyncer] try upload table, index: %zu", i);
+        LOGD("[CloudSyncer] try upload table, index: %zu, table name: %s, length: %u",
+            i, DBCommon::StringMiddleMasking(taskInfo.table[i]).c_str(), taskInfo.table[i].length());
         if (IsTableFinishInUpload(taskInfo.table[i])) {
             continue;
         }
@@ -712,29 +713,6 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
     return ret;
 }
 
-std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
-{
-    std::map<std::string, Assets> assets;
-    std::vector<Field> fields;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        fields = currentContext_.assetFields[currentContext_.tableName];
-    }
-    for (const auto &field : fields) {
-        if (data.find(field.colName) != data.end()) {
-            if (field.type == TYPE_INDEX<Asset> && data[field.colName].index() == TYPE_INDEX<Asset>) {
-                assets[field.colName] = { std::get<Asset>(data[field.colName]) };
-            } else if (field.type == TYPE_INDEX<Assets> && data[field.colName].index() == TYPE_INDEX<Assets>) {
-                assets[field.colName] = std::get<Assets>(data[field.colName]);
-            } else {
-                Assets emptyAssets;
-                assets[field.colName] = emptyAssets;
-            }
-        }
-    }
-    return assets;
-}
-
 int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
     OpType strategyOpResult = OpType::NOT_HANDLE;
@@ -1014,6 +992,13 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         param.changedData.field = param.pkColNames;
         param.changedData.type = ChangedDataType::DATA;
     }
+    uint64_t cursor = DBConstant::INVALID_CURSOR;
+    std::string maskStoreId = DBCommon::StringMiddleMasking(GetStoreIdByTask(taskId));
+    std::string maskTableName = DBCommon::StringMiddleMasking(param.info.tableName);
+    if (storageProxy_->GetCursor(param.info.tableName, cursor) == E_OK) {
+        LOGI("[CloudSyncer] cursor before save data is %llu, db: %s, table: %s, task id: %llu", cursor,
+            maskStoreId.c_str(), maskTableName.c_str(), taskId);
+    }
     (void)storageProxy_->SetCursorIncFlag(true);
     if (!IsModeForcePush(taskId)) {
         param.changedData.tableName = param.info.tableName;
@@ -1022,6 +1007,10 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     }
     ret = SaveData(taskId, param);
     (void)storageProxy_->SetCursorIncFlag(false);
+    if (storageProxy_->GetCursor(param.info.tableName, cursor) == E_OK) {
+        LOGI("[CloudSyncer] cursor after save data is %llu, db: %s, table: %s, task id: %llu", cursor,
+             maskStoreId.c_str(), maskTableName.c_str(), taskId);
+    }
     param.insertPk.clear();
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
@@ -1225,6 +1214,9 @@ int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &delete
 
     if (!uploadData.lockData.rowid.empty()) {
         errCode = storageProxy_->FillCloudLogAndAsset(OpType::LOCKED_NOT_HANDLE, uploadData);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Failed to fill cloud log and asset after save upload data: %d", errCode);
+        }
     }
     return errCode;
 }
@@ -1233,6 +1225,7 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
 {
     int errCode = storageProxy_->FillCloudLogAndAsset(OpType::SET_UPLOADING, uploadData);
     if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill cloud log and asset before save upload data: %d", errCode);
         return errCode;
     }
     Info insertInfo;
@@ -1472,6 +1465,7 @@ int CloudSyncer::CheckTaskIdValid(TaskId taskId)
         return -E_TASK_PAUSED;
     }
     if (cloudTaskInfos_[taskId].errCode != E_OK) {
+        LOGE("[CloudSyncer] task %" PRIu64 " has error: %d", taskId, cloudTaskInfos_[taskId].errCode);
         return cloudTaskInfos_[taskId].errCode;
     }
     return currentContext_.currentTaskId == taskId ? E_OK : -E_INVALID_ARGS;
@@ -1527,7 +1521,10 @@ int CloudSyncer::PrepareSync(TaskId taskId)
             cloudTaskInfos_[taskId].users);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
     }
-    LOGI("[CloudSyncer] exec storeId %.3s taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(), taskId);
+    LOGI("[CloudSyncer] exec storeId %.3s taskId %" PRIu64 " priority[%d] compensated[%d] logicDelete[%d]",
+        cloudTaskInfos_[taskId].storeId.c_str(), taskId, static_cast<int>(cloudTaskInfos_[taskId].priorityTask),
+        static_cast<int>(cloudTaskInfos_[taskId].compensatedTask),
+        static_cast<int>(storageProxy_->IsCurrentLogicDelete()));
     return E_OK;
 }
 
@@ -1715,6 +1712,8 @@ int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameLi
 
 void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
 {
+    LOGI("[CloudSyncer] save cloud water [%s] of table [%s length[%u]]", param.cloudWaterMark.c_str(),
+        DBCommon::StringMiddleMasking(param.tableName).c_str(), param.tableName.length());
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.cloudWaterMarks[currentContext_.currentUserIndex][param.info.tableName] = param.cloudWaterMark;
@@ -2073,6 +2072,7 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
     param.info.tableStatus = ProcessStatus::PROCESSING;
     param.downloadData = {};
     int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData);
+    CheckQueryCloudData(cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
     if (ret == -E_QUERY_END) {
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;

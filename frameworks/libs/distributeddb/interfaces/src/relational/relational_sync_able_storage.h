@@ -225,6 +225,12 @@ public:
     bool IsTableExistReferenceOrReferenceBy(const std::string &table) override;
 
     void ReleaseUploadRecord(const std::string &tableName, const CloudWaterType &type, Timestamp localMark) override;
+
+    int GetCursor(const std::string &tableName, uint64_t &cursor) override;
+
+    bool IsCurrentLogicDelete() const override;
+
+    int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -273,8 +279,6 @@ private:
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
     StoreInfo GetStoreInfo() const;
-
-    bool IsCurrentLogicDelete() const;
 
     int UpsertDataInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
         const std::vector<VBucket> &records);

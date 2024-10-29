@@ -48,7 +48,7 @@ public:
 
     struct UpdateCursorContext {
         int errCode = E_OK;
-        int cursor;
+        uint64_t cursor;
     };
 
     SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable, DistributedTableMode mode);
@@ -145,6 +145,8 @@ public:
     int SetLogTriggerStatus(bool status);
     int SetCursorIncFlag(bool flag);
 
+    int GetCursor(const std::string &tableName, uint64_t &cursor);
+
     int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
     int CreateTrackerTable(const TrackerTable &trackerTable, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
@@ -211,6 +213,8 @@ public:
     void SetTableSchema(const TableSchema &tableSchema);
 
     int ReviseLocalModTime(const std::string &tableName, const std::vector<ReviseModTimeInfo> &revisedData);
+
+    int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -231,9 +235,7 @@ private:
     int CreateFuncUpdateCursor(UpdateCursorContext &context,
         void(*updateCursorFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const;
 
-    int GetCursor(const std::string &tableName);
-
-    int SetCursor(const std::string &tableName, int cursor);
+    int SetCursor(const std::string &tableName, uint64_t cursor);
 
     int IncreaseCursorOnAssetData(const std::string &tableName, const std::string &gid);
 
@@ -385,7 +387,7 @@ private:
 
     int BindStmtWithCloudGid(const CloudSyncData &cloudDataResult, bool ignoreEmptyGid, sqlite3_stmt *&stmt);
 
-    std::string GetCloudDeleteSql(const std::string &table);
+    int GetCloudDeleteSql(const std::string &table, std::string &sql);
 
     int RemoveDataAndLog(const std::string &tableName, int64_t dataKey);
 

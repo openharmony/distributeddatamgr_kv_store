@@ -306,6 +306,15 @@ int StorageProxy::SetCursorIncFlag(bool flag)
     return store_->SetCursorIncFlag(flag);
 }
 
+int StorageProxy::GetCursor(const std::string &tableName, uint64_t &cursor)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->GetCursor(tableName, cursor);
+}
+
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -693,9 +702,30 @@ bool StorageProxy::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo
 int StorageProxy::ReviseLocalModTime(const std::string &tableName,
     const std::vector<ReviseModTimeInfo> &revisedData)
 {
+    std::shared_lock<std::shared_mutex> writeLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
     return store_->ReviseLocalModTime(tableName, revisedData);
+}
+
+bool StorageProxy::IsCurrentLogicDelete() const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy] no store found when get logic delete flag");
+        return false;
+    }
+    return store_->IsCurrentLogicDelete();
+}
+
+int StorageProxy::GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy] no store found when get local data");
+        return false;
+    }
+    return store_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
 }
 }

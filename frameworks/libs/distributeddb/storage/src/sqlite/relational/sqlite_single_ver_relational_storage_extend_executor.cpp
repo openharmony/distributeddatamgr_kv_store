@@ -146,12 +146,18 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
 int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const std::string &tableName,
     const std::string &gid)
 {
-    int cursor = GetCursor(tableName);
+    uint64_t cursor = DBConstant::INVALID_CURSOR;
+    int errCode = SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("Get cursor of table[%s length[%u]] failed when increase cursor: %d, gid[%s]",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), errCode, gid.c_str());
+        return errCode;
+    }
     cursor++;
     std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     sql += " SET cursor = ? where cloud_gid = ?;";
     sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
         LOGE("get update asset data cursor stmt failed %d.", errCode);
         return errCode;
@@ -605,6 +611,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchema &tableSchema)
 {
+    LOGI("Create shared table[%s length[%u]]", DBCommon::StringMiddleMasking(tableSchema.name).c_str(),
+        tableSchema.name.length());
     std::map<int32_t, std::string> cloudFieldTypeMap;
     cloudFieldTypeMap[TYPE_INDEX<Nil>] = "NULL";
     cloudFieldTypeMap[TYPE_INDEX<int64_t>] = "INT";
@@ -1013,11 +1021,15 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
     return E_OK;
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table)
+int SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table, std::string &sql)
 {
-    std::string logTable = DBCommon::GetLogTableName(table);
-    int cursor = GetCursor(table);
-    std::string sql;
+    uint64_t cursor = DBConstant::INVALID_CURSOR;
+    int errCode = SQLiteRelationalUtils::GetCursor(dbHandle_, table, cursor);
+    if (errCode != E_OK) {
+        LOGE("[GetCloudDeleteSql] Get cursor of table[%s length[%u]] failed: %d",
+            DBCommon::StringMiddleMasking(table).c_str(), table.length(), errCode);
+        return errCode;
+    }
     sql += " cloud_gid = '', version = '', ";
     if (isLogicDelete_) {
         // cursor already increased by DeleteCloudData, can be assigned directly here
@@ -1028,14 +1040,15 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
     } else {
         sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
-        int errCode = SetCursor(table, cursor + 1);
+        errCode = SetCursor(table, cursor + 1);
         if (errCode == E_OK) {
             sql += ", cursor = " + std::to_string(cursor + 1) + " ";
         } else {
-            LOGW("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+            LOGE("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+            return errCode;
         }
     }
-    return sql;
+    return E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::RemoveDataAndLog(const std::string &tableName, int64_t dataKey)

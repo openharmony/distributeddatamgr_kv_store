@@ -382,45 +382,19 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateFuncUpdateCursor(UpdateCurso
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &tableName)
+int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &tableName, uint64_t &cursor)
 {
-    int cursor = -1;
-    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata where key = ?;";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        LOGE("[Storage Executor]get cursor failed=%d", errCode);
-        return cursor;
-    }
-    ResFinalizer finalizer([stmt]() {
-        sqlite3_stmt *statement = stmt;
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        if (ret != E_OK) {
-            LOGW("Reset stmt failed %d when get cursor", ret);
-        }
-    });
-    Key key;
-    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
-    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key, false); // first arg.
-    if (errCode != E_OK) {
-        return cursor;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        cursor = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-    }
-    return cursor;
+    return SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, cursor);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &tableName, int cursor)
+int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &tableName, uint64_t cursor)
 {
     std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata SET VALUE = ? where KEY = ?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
         LOGE("Set cursor sql failed=%d", errCode);
-        return cursor;
+        return errCode;
     }
     ResFinalizer finalizer([stmt]() {
         sqlite3_stmt *statement = stmt;
@@ -440,7 +414,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &table
     DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, key, false);
     if (errCode != E_OK) {
-        return cursor;
+        return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
@@ -1594,6 +1568,25 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *
         errCode = E_OK;
     } else {
         LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d.", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetLocalDataCount(const std::string &tableName, int &dataCount,
+    int &logicDeleteDataCount)
+{
+    std::string dataCountSql = "select count(*) from " + DBCommon::GetLogTableName(tableName) + " where data_key != -1";
+    int errCode = SQLiteUtils::GetCountBySql(dbHandle_, dataCountSql, dataCount);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Query local data count failed: %d", errCode);
+        return errCode;
+    }
+
+    std::string logicDeleteDataCountSql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+        " where flag&0x08!=0 and data_key != -1";
+    errCode = SQLiteUtils::GetCountBySql(dbHandle_, logicDeleteDataCountSql, logicDeleteDataCount);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Query local logic delete data count failed: %d", errCode);
     }
     return errCode;
 }

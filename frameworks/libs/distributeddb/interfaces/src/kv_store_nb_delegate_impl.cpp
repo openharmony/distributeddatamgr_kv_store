@@ -532,7 +532,9 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
     int errCode = conn_->Pragma(PRAGMA_RM_DEVICE_DATA,
         const_cast<void *>(static_cast<const void *>(&device)));
     if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Remove device data failed:%d", errCode);
+        LOGE("[KvStoreNbDelegate][%.3s] Remove specific device data failed:%d", storeId_.c_str(), errCode);
+    } else {
+        LOGI("[KvStoreNbDelegate][%.3s] Remove specific device data OK", storeId_.c_str());
     }
     return TransferDBErrno(errCode);
 }
@@ -1091,7 +1093,9 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
     int errCode = conn_->Pragma(PRAGMA_RM_DEVICE_DATA,
         const_cast<void *>(static_cast<const void *>(&device)));
     if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Remove device data failed:%d", errCode);
+        LOGE("[KvStoreNbDelegate][%.3s] Remove device data failed:%d", storeId_.c_str(), errCode);
+    } else {
+        LOGI("[KvStoreNbDelegate][%.3s] Remove device data OK", storeId_.c_str());
     }
     return TransferDBErrno(errCode);
 }
@@ -1212,9 +1216,10 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, Clea
     }
     int errCode = conn_->RemoveDeviceData(device, mode);
     if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] remove device data res %d", errCode);
+        LOGE("[KvStoreNbDelegate][%.3s] Remove device data res %d", storeId_.c_str(), errCode);
+    } else {
+        LOGI("[KvStoreNbDelegate][%.3s] Remove device data OK, mode[%d]", storeId_.c_str(), static_cast<int>(mode));
     }
-    LOGI("[KvStoreNbDelegate] remove device data res");
     return TransferDBErrno(errCode);
 }
 
@@ -1226,14 +1231,16 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, cons
         return DB_ERROR;
     }
     if (user.empty() && mode != ClearMode::DEFAULT) {
-        LOGE("[KvStoreNbDelegate] remove device data with empty user!");
+        LOGE("[KvStoreNbDelegate] Remove device data with empty user!");
         return INVALID_ARGS;
     }
     int errCode = conn_->RemoveDeviceData(device, user, mode);
     if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] remove device data with user res %d", errCode);
+        LOGE("[KvStoreNbDelegate][%.3s] Remove device data with user res %d", storeId_.c_str(), errCode);
+    } else {
+        LOGI("[KvStoreNbDelegate][%.3s] Remove device data with user OK, mode[%d]",
+            storeId_.c_str(), static_cast<int>(mode));
     }
-    LOGI("[KvStoreNbDelegate] remove device data with user res");
     return TransferDBErrno(errCode);
 }
 

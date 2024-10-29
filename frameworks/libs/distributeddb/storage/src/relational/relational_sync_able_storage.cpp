@@ -2187,5 +2187,28 @@ int RelationalSyncAbleStorage::ReviseLocalModTime(const std::string &tableName,
     ReleaseHandle(writeHandle);
     return errCode;
 }
+
+int RelationalSyncAbleStorage::GetCursor(const std::string &tableName, uint64_t &cursor)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    return transactionHandle_->GetCursor(tableName, cursor);
+}
+
+int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, int &dataCount,
+    int &logicDeleteDataCount)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Get handle failed when get local data count: %d", errCode);
+        return errCode;
+    }
+    errCode = handle->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
+    ReleaseHandle(handle);
+    return errCode;
+}
 }
 #endif

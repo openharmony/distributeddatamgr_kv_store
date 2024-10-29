@@ -51,6 +51,7 @@ public:
     MOCK_METHOD1(CheckQueryValid, int(const QuerySyncObject &));
     MOCK_METHOD1(IsSharedTable, bool(const std::string &));
     MOCK_CONST_METHOD0(GetCloudSyncConfig, CloudSyncConfig());
+    MOCK_METHOD3(GetLocalDataCount, int(const std::string &, int &, int &));
 };
 
 }

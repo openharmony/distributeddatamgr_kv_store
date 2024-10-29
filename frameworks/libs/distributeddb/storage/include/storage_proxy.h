@@ -102,6 +102,8 @@ public:
 
     int SetCursorIncFlag(bool flag);
 
+    int GetCursor(const std::string &tableName, uint64_t &cursor);
+
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data);
 
     std::string GetIdentify() const;
@@ -158,6 +160,10 @@ public:
         SingleVerConflictResolvePolicy policy);
 
     int ReviseLocalModTime(const std::string &tableName, const std::vector<ReviseModTimeInfo> &revisedData);
+
+    bool IsCurrentLogicDelete() const;
+
+    int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount);
 protected:
     void Init();
 

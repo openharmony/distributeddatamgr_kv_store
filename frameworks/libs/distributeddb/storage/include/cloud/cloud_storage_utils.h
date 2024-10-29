@@ -176,7 +176,7 @@ public:
     static int IdentifyCloudType(const CloudUploadRecorder &recorder, CloudSyncData &cloudSyncData, VBucket &data,
         VBucket &log, VBucket &flags);
 
-    static bool IsAbnormalData(const VBucket &data);
+    static int CheckAbnormalData(CloudSyncData &cloudSyncData, const VBucket &data, bool isInsert);
 
     static std::pair<int, DataItem> GetDataItemFromCloudData(VBucket &data);
 
