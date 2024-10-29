@@ -1356,6 +1356,9 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
     if (filePath == nullptr) {
         return;
     }
+    LOGI("[ClearTheLogAfterDropTable] Table[%s length[%u]] of schema[%s length[%u]] has been dropped",
+        DBCommon::StringMiddleMasking(tableName).c_str(), strlen(tableName),
+        DBCommon::StringMiddleMasking(schemaName).c_str(), strlen(schemaName));
     std::string fileName = std::string(filePath);
     Timestamp dropTimeStamp = TimeHelperManager::GetInstance()->GetTime(fileName, 0, nullptr, nullptr);
     std::string tableStr = std::string(tableName);
@@ -1724,6 +1727,8 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
 
 DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
 {
+    LOGI("Drop logic delete data from [%s length[%u]], cursor[%llu]", DBCommon::StringMiddleMasking(tableName).c_str(),
+        tableName.length(), cursor);
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
         return DistributedDB::INVALID_ARGS;

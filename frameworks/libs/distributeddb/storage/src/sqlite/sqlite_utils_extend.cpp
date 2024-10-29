@@ -695,4 +695,27 @@ int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
     }
     return errCode;
 }
+
+int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int &count)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][GetCountBySql] Get stmt failed when get local data count: %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        count = static_cast<int>(sqlite3_column_int(stmt, 0));
+        errCode = E_OK;
+    } else {
+        LOGE("[SQLiteUtils][GetCountBySql] Query local data count failed: %d", errCode);
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGE("[SQLiteUtils][GetCountBySql] Reset stmt failed when get local data count: %d", ret);
+    }
+    return errCode != E_OK ? errCode : ret;
+}
 } // namespace DistributedDB

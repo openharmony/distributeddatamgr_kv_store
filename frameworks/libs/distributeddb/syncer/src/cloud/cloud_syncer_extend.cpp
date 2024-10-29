@@ -763,7 +763,8 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
                 taskInfo.table[i])) {
                 continue;
             }
-            LOGD("[CloudSyncer] try download table, index: %zu", i);
+            LOGD("[CloudSyncer] try download table, index: %zu, table name: %s, length: %u",
+                i, DBCommon::StringMiddleMasking(taskInfo.table[i]).c_str(), taskInfo.table[i].length());
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
         }
@@ -771,6 +772,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
         if (errCode != E_OK) {
             return errCode;
         }
+        CheckDataAfterDownload(table);
         MarkDownloadFinishIfNeed(table);
         // needUpload indicate that the syncMode need push
         if (needUpload) {
@@ -1012,6 +1014,9 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
             break;
         }
         SetUploadDataFlag(uploadParam.taskId, uploadData);
+        LOGI("[CloudSyncer] Write local water after upload one batch, table[%s length[%u]], water[%llu]",
+            DBCommon::StringMiddleMasking(uploadData.tableName).c_str(), uploadData.tableName.length(),
+            uploadParam.localMark);
         RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
         ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
         if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
@@ -1181,6 +1186,8 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     CloudSyncData uploadData(tableName, uploadParam.mode);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
     auto [err, localWater] = GetLocalWater(tableName, uploadParam);
+    LOGI("[CloudSyncer] Get local water before upload result: %d, table[%s length[%u]], water[%llu]", err,
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), localWater);
     if (err != E_OK) {
         return err;
     }
@@ -1310,6 +1317,46 @@ void CloudSyncer::ProcessVersionConflictInfo(InnerProcessInfo &innerProcessInfo,
             currentContext_.repeatCount + 1 > config.maxRetryConflictTimes) {
             innerProcessInfo.upLoadInfo.failCount =
                 innerProcessInfo.upLoadInfo.total - innerProcessInfo.upLoadInfo.successCount;
+        }
+    }
+}
+
+std::string CloudSyncer::GetStoreIdByTask(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].storeId;
+}
+
+void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
+{
+    int dataCount = 0;
+    int logicDeleteDataCount = 0;
+    int errCode = storageProxy_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
+    if (errCode == E_OK) {
+        LOGI("[CloudSyncer] Check local data after download[%s[%u]], data count: %d, logic delete data count: %d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), dataCount, logicDeleteDataCount);
+    } else {
+        LOGW("[CloudSyncer] Get local data after download fail: %d", errCode);
+    }
+}
+
+void CloudSyncer::CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
+    std::vector<std::string> &pkColNames)
+{
+    for (auto &data : downloadData.data) {
+        bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
+        bool isContainAllPk = true;
+        for (auto &pkColName : pkColNames) {
+            if (data.count(pkColName) == 0) {
+                isContainAllPk = false;
+                break;
+            }
+        }
+        std::string gid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        if (!isVersionExist || !isContainAllPk) {
+            LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
+                static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
         }
     }
 }

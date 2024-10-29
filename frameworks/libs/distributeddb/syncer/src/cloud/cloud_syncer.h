@@ -246,8 +246,6 @@ protected:
 
     int NotifyChangedData(ChangedData &&changedData);
 
-    std::map<std::string, Assets> GetAssetsFromVBucket(VBucket &data);
-
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
         bool setNormalStatus, int &errCode);
 
@@ -437,6 +435,12 @@ protected:
     int GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo);
 
     void ProcessVersionConflictInfo(InnerProcessInfo &innerProcessInfo, uint32_t retryCount);
+
+    std::string GetStoreIdByTask(TaskId taskId);
+
+    void CheckDataAfterDownload(const std::string &tableName);
+
+    void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData, std::vector<std::string> &pkColNames);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

@@ -242,6 +242,19 @@ public:
     {
         return E_OK;
     }
+
+    virtual int GetCursor(const std::string &tableName, uint64_t &cursor)
+    {
+        cursor = DBConstant::INVALID_CURSOR;
+        return E_NOT_SUPPORT;
+    }
+
+    virtual bool IsCurrentLogicDelete() const
+    {
+        return false;
+    }
+
+    virtual int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) = 0;
 };
 }
 

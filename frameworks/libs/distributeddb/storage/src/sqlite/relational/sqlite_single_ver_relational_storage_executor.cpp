@@ -1755,10 +1755,10 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(
     const std::string &logTableName)
 {
     UpdateCursorContext context;
-    context.cursor = GetCursor(tableName);
-    LOGI("removeData on userTable:%s length:%d start and cursor is, %d.",
+    int errCode = SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, context.cursor);
+    LOGI("removeData on userTable:%s length:%d start and cursor is %llu.",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
-    int errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
+    errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
     if (errCode != E_OK) {
         LOGE("Failed to create updateCursor func on userTable errCode=%d.", errCode);
         return errCode;
@@ -1783,7 +1783,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(
         LOGE("Failed to deal logic delete data flag on usertable, %d.", errCode);
         return errCode;
     }
-    LOGI("removeData on userTable:%s length:%d finish and cursor is, %d.",
+    LOGI("removeData on userTable:%s length:%d finish and cursor is %llu.",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
     errCode = SetCursor(tableName, context.cursor);
     if (errCode != E_OK) {
@@ -1797,10 +1797,10 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
     const std::string &logTableName)
 {
     UpdateCursorContext context;
-    context.cursor = GetCursor(tableName);
-    LOGI("removeData on shareTable:%s length:%d start and cursor is, %d.",
+    int errCode = SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, context.cursor);
+    LOGI("removeData on shareTable:%s length:%d start and cursor is %llu.",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
-    int errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
+    errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
     if (errCode != E_OK) {
         LOGE("Failed to create updateCursor func on shareTable errCode=%d.", errCode);
         return errCode;
@@ -1824,7 +1824,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
         LOGE("Failed to deal logic delete data flag on shareTable, %d.", errCode);
         return errCode;
     }
-    LOGI("removeData on shareTable:%s length:%d finish and cursor is, %d.",
+    LOGI("removeData on shareTable:%s length:%d finish and cursor is %llu.",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), context.cursor);
     return SetCursor(tableName, context.cursor);
 }
@@ -1891,7 +1891,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += " device = 'cloud', timestamp = ?,";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
         if (opType == OpType::DELETE) {
-            updateLogSql += GetCloudDeleteSql(tableSchema.name);
+            int errCode = GetCloudDeleteSql(tableSchema.name, updateLogSql);
+            if (errCode != E_OK) {
+                return errCode;
+            }
         } else {
             updateLogSql += GetUpdateDataFlagSql() + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);

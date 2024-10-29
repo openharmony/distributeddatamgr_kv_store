@@ -172,7 +172,11 @@ int SqliteRelationalDatabaseUpgrader::UpgradeCursor(const std::string &logTableV
         return E_OK;
     }
     std::vector<std::string> sqlVec;
+    uint64_t cursor = DBConstant::INVALID_CURSOR;
     for (const auto &table : schemaObj.GetTables()) {
+        SQLiteRelationalUtils::GetCursor(db_, table.first, cursor);
+        LOGI("[Relational][UpgradeCursor] cursor of table[%s length[%" PRIu32 "]] before upgrade is [%" PRIu64 "]",
+            DBCommon::StringMiddleMasking(table.first).c_str(), table.first.length(), cursor);
         sqlVec.push_back(CloudStorageUtils::GetCursorHeightenInLogSql(table.first));
         sqlVec.push_back(CloudStorageUtils::GetCursorHeightenInMetaSql(table.first));
     }

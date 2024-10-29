@@ -1305,14 +1305,9 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
         cloudSyncData.delData.timestamp.push_back(*timeStamp);
         cloudSyncData.delData.rowid.push_back(*rowid);
     } else {
-        if (data.empty()) {
-            LOGE("The cloud data is empty, isInsert:%d", isInsert);
-            return -E_INVALID_DATA;
-        }
-        if (IsAbnormalData(data)) {
-            LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
-            cloudSyncData.ignoredCount++;
-            return -E_IGNORE_DATA;
+        int errCode = CheckAbnormalData(cloudSyncData, data, isInsert);
+        if (errCode != E_OK) {
+            return errCode;
         }
         CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
         opData.record.push_back(data);
@@ -1330,14 +1325,20 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
     return E_OK;
 }
 
-bool CloudStorageUtils::IsAbnormalData(const VBucket &data)
+int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, const VBucket &data, bool isInsert)
 {
+    if (data.empty()) {
+        LOGE("The cloud data is empty, isInsert:%d", static_cast<int>(isInsert));
+        return -E_INVALID_DATA;
+    }
+    bool isDataAbnormal = false;
     for (const auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
             if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
                 (asset->status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                return true;
+                isDataAbnormal = true;
+                break;
             }
             continue;
         }
@@ -1348,11 +1349,20 @@ bool CloudStorageUtils::IsAbnormalData(const VBucket &data)
         for (const auto &oneAsset : *assets) {
             if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
                 (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                return true;
+                isDataAbnormal = true;
+                break;
             }
         }
     }
-    return false;
+    if (isDataAbnormal) {
+        std::string gid;
+        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        LOGW("This data is abnormal, ignore it when upload, isInsert:%d, gid:%s", static_cast<int>(isInsert),
+            gid.c_str());
+        cloudSyncData.ignoredCount++;
+        return -E_IGNORE_DATA;
+    }
+    return E_OK;
 }
 
 std::pair<int, DataItem> CloudStorageUtils::GetDataItemFromCloudData(VBucket &data)

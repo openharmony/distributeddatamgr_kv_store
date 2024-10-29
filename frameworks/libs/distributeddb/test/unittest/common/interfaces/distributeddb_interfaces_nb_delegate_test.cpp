@@ -1955,6 +1955,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption001, T
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_TRUE(g_kvNbDelegatePtr->GetSecurityOption(savedOption) == OK);
+    SecurityOption secOption = {option.secOption.securityLabel, option.secOption.securityFlag};
+    EXPECT_TRUE(savedOption != secOption);
     EXPECT_TRUE(savedOption.securityLabel == 0);
     EXPECT_TRUE(savedOption.securityFlag == 0);
 

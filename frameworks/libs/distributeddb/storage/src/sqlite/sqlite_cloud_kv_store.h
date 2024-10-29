@@ -106,6 +106,8 @@ public:
 
     int ReviseLocalModTime(const std::string &tableName,
         const std::vector<ReviseModTimeInfo> &revisedData) override;
+
+    int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 

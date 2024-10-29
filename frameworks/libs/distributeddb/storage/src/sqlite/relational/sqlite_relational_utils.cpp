@@ -14,10 +14,12 @@
  */
 
 #include "sqlite_relational_utils.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "cloud/cloud_db_types.h"
 #include "sqlite_utils.h"
 #include "cloud/cloud_storage_utils.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "cloud/cloud_db_constant.h"
 
@@ -425,5 +427,42 @@ int SQLiteRelationalUtils::QueryCount(sqlite3 *db, const std::string &tableName,
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
+}
+
+int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor)
+{
+    cursor = DBConstant::INVALID_CURSOR;
+    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata where key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor] Get cursor of table[%s length[%u]] failed=%d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed %d when get cursor", ret);
+        }
+    });
+    Key key;
+    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key, false); // first arg.
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor] Bind failed when get cursor of table[%s length[%u]] failed=%d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int64_t tmpCursor = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        if (tmpCursor >= 0) {
+            cursor = static_cast<uint64_t>(tmpCursor);
+        }
+    }
+    return cursor == DBConstant::INVALID_CURSOR ? errCode : E_OK;
 }
 } // namespace DistributedDB

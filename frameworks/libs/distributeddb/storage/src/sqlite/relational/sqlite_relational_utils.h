@@ -47,6 +47,8 @@ public:
     static int AnalysisTrackerTable(sqlite3 *db, const TrackerTable &trackerTable, TableInfo &tableInfo);
 
     static int QueryCount(sqlite3 *db, const std::string &tableName, int64_t &count);
+
+    static int GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

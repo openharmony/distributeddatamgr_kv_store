@@ -78,6 +78,8 @@ int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
 
 DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
 {
+    LOGI("[RelationalStore Delegate] Create distributed table for [%s length[%u]], type[%d]",
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), static_cast<int>(type));
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
         LOGE("[RelationalStore Delegate] Invalid table name.");
         return INVALID_ARGS;
@@ -330,6 +332,8 @@ DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const 
 
 DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
 {
+    LOGI("[RelationalStore Delegate] create tracker table for [%s length[%u]]",
+        DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.length());
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
         return DB_ERROR;

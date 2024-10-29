@@ -693,4 +693,31 @@ int SqliteCloudKvStore::ReviseLocalModTime(const std::string &tableName,
     storageHandle_->RecycleStorageExecutor(handle);
     return errCode;
 }
+
+int SqliteCloudKvStore::GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount)
+{
+    auto [errCode, handle] = storageHandle_->GetStorageExecutor(true);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][GetLocalDataCount] Get handle failed: %d", errCode);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    (void)handle->GetDbHandle(db);
+
+    std::string dataCountSql = "select count(*) from " + tableName;
+    errCode = SQLiteUtils::GetCountBySql(db, dataCountSql, dataCount);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][GetLocalDataCount] Query local data count failed: %d", errCode);
+        storageHandle_->RecycleStorageExecutor(handle);
+        return errCode;
+    }
+
+    std::string logicDeleteDataCountSql = "select count(*) from " + tableName + " where flag&0x01 != 0";
+    errCode = SQLiteUtils::GetCountBySql(db, logicDeleteDataCountSql, logicDeleteDataCount);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvStore][GetLocalDataCount] Query local logic delete data count failed: %d", errCode);
+    }
+    storageHandle_->RecycleStorageExecutor(handle);
+    return errCode;
+}
 }
