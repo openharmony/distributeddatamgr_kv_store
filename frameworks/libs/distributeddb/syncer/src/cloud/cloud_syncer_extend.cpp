@@ -411,8 +411,6 @@ void GetAssetsToRemove(std::map<std::string, Assets> &downloadAssets, VBucket &d
                 AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
                 asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
                 assetsToRemove[col].push_back(asset);
-            } else {
-                LOGD("[CloudSyncer] skip remove asset...");
             }
         }
     }
@@ -1358,6 +1356,169 @@ void CloudSyncer::CheckQueryCloudData(std::string &traceId, DownloadData &downlo
             LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
                 static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
         }
+    }
+}
+
+int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
+{
+    OpType strategyOpResult = OpType::NOT_HANDLE;
+    int errCode = TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    param.downloadData.opType[idx] = strategyOpResult;
+    if (!IsDataContainAssets()) {
+        return E_OK;
+    }
+    Key hashKey;
+    if (isExist) {
+        hashKey = dataInfo.localInfo.logInfo.hashKey;
+    }
+    return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
+}
+
+int CloudSyncer::CloudDbBatchDownloadAssets(TaskId taskId, const DownloadList &downloadList,
+    const std::set<Key> &dupHashKeySet, InnerProcessInfo &info, ChangedData &changedAssets)
+{
+    int errorCode = CheckTaskIdValid(taskId);
+    if (errorCode != E_OK) {
+        return errorCode;
+    }
+    bool isSharedTable = false;
+    errorCode = storageProxy_->IsSharedTable(info.tableName, isSharedTable);
+    if (errorCode != E_OK) {
+        LOGE("[CloudSyncer] check is shared table failed %d", errorCode);
+        return errorCode;
+    }
+    // prepare download data
+    auto [downloadRecord, removeAssets, downloadAssets] =
+        GetDownloadRecords(downloadList, dupHashKeySet, isSharedTable, info);
+    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> detail = {
+        std::move(downloadRecord), std::move(removeAssets), std::move(downloadAssets), isSharedTable
+    };
+    return BatchDownloadAndCommitRes(downloadList, dupHashKeySet, info, changedAssets, detail);
+}
+
+void CloudSyncer::FillDownloadItem(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
+    const InnerProcessInfo &info, bool isSharedTable, DownloadItems &record)
+{
+    CloudStorageUtils::EraseNoChangeAsset(record.downloadItem.assets);
+    if (record.downloadItem.assets.empty()) { // Download data (include deleting)
+        return;
+    }
+    if (isSharedTable) {
+        // share table will not download asset, need to reset the status
+        for (auto &entry: record.downloadItem.assets) {
+            for (auto &asset: entry.second) {
+                asset.status = AssetStatus::NORMAL;
+            }
+        }
+        return;
+    }
+    int errCode = E_OK;
+    VBucket dbAssets;
+    if (!IsNeedSkipDownload(isSharedTable, errCode, info, record.downloadItem, dbAssets)) {
+        GetAssetsToRemove(record.downloadItem.assets, dbAssets, isSharedTable, record.assetsToRemove);
+        GetAssetsToDownload(record.downloadItem.assets, dbAssets, isSharedTable, record.assetsToDownload, record.flags);
+    }
+}
+
+CloudSyncer::DownloadAssetDetail CloudSyncer::GetDownloadRecords(const DownloadList &downloadList,
+    const std::set<Key> &dupHashKeySet, bool isSharedTable, InnerProcessInfo &info)
+{
+    DownloadItemRecords downloadRecord;
+    RemoveAssetsRecords removeAssets;
+    DownloadAssetsRecords downloadAssets;
+    for (size_t i = 0; i < downloadList.size(); i++) {
+        DownloadItems record;
+        GetDownloadItem(downloadList, i, record.downloadItem);
+        FillDownloadItem(dupHashKeySet, downloadList, info, isSharedTable, record);
+
+        IAssetLoader::AssetRecord removeAsset = {
+            record.downloadItem.gid, record.downloadItem.prefix, std::move(record.assetsToRemove)
+        };
+        removeAssets.push_back(std::move(removeAsset));
+        IAssetLoader::AssetRecord downloadAsset = {
+            record.downloadItem.gid, record.downloadItem.prefix, std::move(record.assetsToDownload)
+        };
+        downloadAssets.push_back(std::move(downloadAsset));
+        downloadRecord.push_back(std::move(record));
+    }
+    return {downloadRecord, removeAssets, downloadAssets};
+}
+
+int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
+    InnerProcessInfo &info, ChangedData &changedAssets,
+    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> &downloadDetail)
+{
+    auto &[downloadRecord, removeAssets, downloadAssets, isSharedTable] = downloadDetail;
+    // download and remove in batch
+    auto deleteRes = cloudDB_.BatchRemoveLocalAssets(info.tableName, removeAssets);
+    auto downloadRes = cloudDB_.BatchDownload(info.tableName, downloadAssets);
+    if (deleteRes == -E_NOT_SET || downloadRes == -E_NOT_SET) {
+        return -E_NOT_SET;
+    }
+    int errorCode = E_OK;
+    int index = 0;
+    for (auto &item : downloadRecord) {
+        auto deleteCode = CloudDBProxy::GetInnerErrorCode(removeAssets[index].status);
+        auto downloadCode = CloudDBProxy::GetInnerErrorCode(downloadAssets[index].status);
+        if (!isSharedTable) {
+            item.downloadItem.assets = BackFillAssetsAfterDownload(downloadCode, deleteCode, item.flags,
+                downloadAssets[index].assets, removeAssets[index].assets);
+        }
+        StatisticDownloadRes(downloadAssets[index], removeAssets[index], info, item.downloadItem);
+        AddNotifyDataFromDownloadAssets(dupHashKeySet, item.downloadItem, changedAssets);
+        if (item.downloadItem.strategy == OpType::DELETE) {
+            item.downloadItem.assets = {};
+            item.downloadItem.gid = "";
+        }
+        // commit download res
+        DownloadCommitList commitList;
+        // Process result of each asset
+        commitList.push_back(std::make_tuple(item.downloadItem.gid, std::move(item.downloadItem.assets),
+            deleteCode == E_OK && downloadCode == E_OK));
+        errorCode = (errorCode != E_OK) ? errorCode : deleteCode;
+        errorCode = (errorCode != E_OK) ? errorCode : downloadCode;
+        int ret = CommitDownloadResult(item.downloadItem, info, commitList, errorCode);
+        if (ret != E_OK && ret != -E_REMOVE_ASSETS_FAILED) {
+            errorCode = errorCode == E_OK ? ret : errorCode;
+        }
+        index++;
+    }
+    return errorCode;
+}
+
+void CloudSyncer::StatisticDownloadRes(const IAssetLoader::AssetRecord &downloadRecord,
+    const IAssetLoader::AssetRecord &removeRecord, InnerProcessInfo &info, DownloadItem &downloadItem)
+{
+    if ((downloadRecord.status == OK) && (removeRecord.status == OK)) {
+        return;
+    }
+    if ((downloadRecord.status == CLOUD_RECORD_EXIST_CONFLICT) ||
+        (removeRecord.status == CLOUD_RECORD_EXIST_CONFLICT)) {
+        downloadItem.recordConflict = true;
+        return;
+    }
+    info.downLoadInfo.failCount += 1;
+    if (info.downLoadInfo.successCount == 0) {
+        LOGW("[CloudSyncer] Invalid successCount");
+    } else {
+        info.downLoadInfo.successCount -= 1;
+    }
+}
+
+void CloudSyncer::AddNotifyDataFromDownloadAssets(const std::set<Key> &dupHashKeySet, DownloadItem &downloadItem,
+    ChangedData &changedAssets)
+{
+    if (downloadItem.assets.empty()) {
+        return;
+    }
+    if (dupHashKeySet.find(downloadItem.hashKey) == dupHashKeySet.end()) {
+        changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(
+            downloadItem.primaryKeyValList);
+    } else if (downloadItem.strategy == OpType::INSERT) {
+        changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
     }
 }
 }

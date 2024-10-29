@@ -706,29 +706,16 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
         taskId = currentContext_.currentTaskId;
     }
     // Download data (include deleting) will handle return Code in this situation
-    int ret = CloudDbDownloadAssets(taskId, info, changeList, dupHashKeySet, changedAssets);
+    int ret = E_OK;
+    if (RuntimeContext::GetInstance()->IsBatchDownloadAssets()) {
+        ret = CloudDbBatchDownloadAssets(taskId, changeList, dupHashKeySet, info, changedAssets);
+    } else {
+        ret = CloudDbDownloadAssets(taskId, info, changeList, dupHashKeySet, changedAssets);
+    }
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Can not download assets or can not handle download result %d", ret);
     }
     return ret;
-}
-
-int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
-{
-    OpType strategyOpResult = OpType::NOT_HANDLE;
-    int errCode = TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    param.downloadData.opType[idx] = strategyOpResult;
-    if (!IsDataContainAssets()) {
-        return E_OK;
-    }
-    Key hashKey;
-    if (isExist) {
-        hashKey = dataInfo.localInfo.logInfo.hashKey;
-    }
-    return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
 }
 
 int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,

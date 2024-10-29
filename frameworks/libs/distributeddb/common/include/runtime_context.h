@@ -199,6 +199,9 @@ public:
     virtual bool IsTimeTickMonitorValid() const = 0;
     virtual bool IsTimeChanged() const = 0;
     virtual void SetTimeChanged(bool timeChange) = 0;
+
+    virtual bool IsBatchDownloadAssets() const = 0;
+    virtual void SetBatchDownloadAssets(bool isBatchDownload) = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}
