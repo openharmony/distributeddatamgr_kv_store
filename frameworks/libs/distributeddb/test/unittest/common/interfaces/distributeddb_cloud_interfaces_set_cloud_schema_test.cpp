@@ -82,6 +82,7 @@ namespace {
     std::string g_dbDir;
     std::string g_storePath;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
+    RelationalStoreObserverUnitTest *g_observer = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
     std::shared_ptr<VirtualCloudDb> g_virtualCloudDb = nullptr;
     std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
@@ -155,8 +156,10 @@ namespace {
         db_ = RelationalTestUtils::CreateDataBase(g_storePath);
         ASSERT_NE(db_, nullptr);
         CreateUserDBAndTable();
-        DBStatus status = g_mgr.OpenStore(g_storePath, STORE_ID, {}, g_delegate);
-        ASSERT_EQ(status, OK);
+        g_observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+        ASSERT_NE(g_observer, nullptr);
+        ASSERT_EQ(g_mgr.OpenStore(g_storePath, STORE_ID, RelationalStoreDelegate::Option { .observer = g_observer },
+            g_delegate), DBStatus::OK);
         ASSERT_NE(g_delegate, nullptr);
         g_virtualCloudDb = std::make_shared<VirtualCloudDb>();
         ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
@@ -349,6 +352,9 @@ namespace {
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CloseDb()
     {
+        g_delegate->UnRegisterObserver(g_observer);
+        delete g_observer;
+        g_observer = nullptr;
         g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
@@ -1878,5 +1884,40 @@ namespace {
         auto relationalStoreImpl = static_cast<RelationalStoreDelegateImpl *>(g_delegate);
         EXPECT_EQ(relationalStoreImpl->Close(), OK);
         EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::DB_ERROR);
+    }
+
+    /**
+     * @tc.name: SharedTableSync019
+     * @tc.desc: Test falg_only has notify.
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wangxiangdong
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync019, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. init cloud data and sync
+         * @tc.expected: step1. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_tableName2 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. remove device data and check notify
+         * @tc.expected: step2. return OK
+         */
+        g_delegate->RemoveDeviceData("", FLAG_ONLY);
+        ChangedData changedData;
+        changedData.type = ChangedDataType::DATA;
+        changedData.tableName = g_tableName2;
+        std::vector<DistributedDB::Type> dataVec;
+        DistributedDB::Type type = std::string(CloudDbConstant::FLAG_ONLY_MODE_NOTIFY);
+        dataVec.push_back(type);
+        changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
+        g_observer->SetExpectedResult(changedData);
+        EXPECT_EQ(g_observer->IsAllChangedDataEq(), true);
     }
 } // namespace
