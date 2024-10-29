@@ -53,7 +53,7 @@ public:
     
     struct ApplicationInfo {
         bool isSystemApp = true;
-        int32_t apiTargetVersion = 9;
+        int32_t apiTargetVersion = API_VERSION;
     };
     
     class ContextMock {
