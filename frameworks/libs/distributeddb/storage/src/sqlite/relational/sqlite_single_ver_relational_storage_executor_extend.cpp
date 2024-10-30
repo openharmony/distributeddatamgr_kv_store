@@ -306,6 +306,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
             LOGE("[Storage Executor] Failed to do clean logs when clean cloud data.");
             return errCode;
         }
+        notifyTableList = tableNameList;
     } else if (mode == FLAG_AND_DATA) {
         errCode = DoCleanLogAndData(tableNameList, localSchema, assets);
         if (errCode != E_OK) {
