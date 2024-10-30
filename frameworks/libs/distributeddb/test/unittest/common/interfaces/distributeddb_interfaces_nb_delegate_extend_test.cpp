@@ -389,6 +389,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, LocalStore001, TestSize.Le
     EXPECT_EQ(openDelegate->Pragma(SET_SYNC_RETRY, input), NOT_SUPPORT);
 
     EXPECT_EQ(mgr.CloseKvStore(openDelegate), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    openDelegate = nullptr;
 }
 
 /**
@@ -431,6 +433,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, LocalStore002, TestSize.Le
     EXPECT_EQ(openStatus, INVALID_ARGS);
     EXPECT_EQ(mgr.CloseKvStore(localDelegate), OK);
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    localDelegate = nullptr;
 }
 
 /**
@@ -763,6 +766,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, MigrateDeadLockTest001, Te
 
     std::this_thread::sleep_for(std::chrono::seconds(3)); // 3 is sleep seconds
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
     g_kvNbDelegatePtr = nullptr;
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
@@ -796,6 +800,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, InvalidQueryTest001, TestS
     Query inValidQuery = Query::Select().Range({}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), NOT_SUPPORT);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("InvalidQueryTest001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
