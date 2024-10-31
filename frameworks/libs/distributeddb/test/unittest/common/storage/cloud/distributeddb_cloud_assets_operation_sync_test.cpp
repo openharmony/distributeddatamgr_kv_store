@@ -42,6 +42,7 @@ const char *g_createSQL =
     "assets ASSETS," \
     "age INT);";
 const int64_t g_syncWaitTime = 60;
+const int g_assetsNum = 3;
 const Asset g_localAsset = {
     .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
     .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
@@ -88,6 +89,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+    void WriteDataWithoutCommitTransaction();
 protected:
     void InitTestDir();
     DataBaseSchema GetSchema();
@@ -97,6 +99,7 @@ protected:
     void CheckAssetsCount(const std::vector<size_t> &expectCount);
     void UpdateCloudTableRecord(int64_t begin, int64_t count, bool assetIsNull);
     void ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount, int &removeCount);
+    void InsertLocalAssetData(const std::string &assetHash);
     std::vector<Asset> GetAssets(const std::string &baseName, const Assets &templateAsset, size_t assetCount);
     std::string testDir_;
     std::string storePath_;
@@ -107,6 +110,9 @@ protected:
     std::shared_ptr<VirtualCloudDataTranslate> virtualTranslator_ = nullptr;
     std::shared_ptr<RelationalStoreManager> mgr_ = nullptr;
     std::string tableName_ = "DistributedDBCloudAssetsOperationSyncTest";
+    TrackerSchema trackerSchema = {
+        .tableName = tableName_, .extendColName = "name", .trackerColNames = {"age"}
+    };
 };
 
 void DistributedDBCloudAssetsOperationSyncTest::SetUpTestCase()
@@ -134,6 +140,7 @@ void DistributedDBCloudAssetsOperationSyncTest::SetUp()
     ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
     ASSERT_NE(delegate_, nullptr);
     ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetTrackerTable(trackerSchema), DBStatus::OK);
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
     virtualAssetLoader_ = std::make_shared<VirtualAssetLoader>();
     ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
@@ -439,6 +446,72 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, T
 
     std::vector<size_t> expectCount = { 0, 2, 2, 2, 2 };
     CheckAssetsCount(expectCount);
+}
+
+void DistributedDBCloudAssetsOperationSyncTest::InsertLocalAssetData(const std::string &assetHash)
+{
+    Assets assets;
+    std::string assetNameBegin = "Phone";
+    for (int j = 1; j <= g_assetsNum; ++j) {
+        Asset asset;
+        asset.name = assetNameBegin + "_" + std::to_string(j);
+        asset.status = AssetStatus::NORMAL;
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        asset.hash = assetHash + "_" + std::to_string(j);
+        asset.assetId = std::to_string(j);
+        assets.push_back(asset);
+    }
+    string sql = "INSERT OR REPLACE INTO " + tableName_ + " (id,name,asset,assets) VALUES('0','CloudTest0',?,?);";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    std::vector<uint8_t> assetBlob;
+    std::vector<uint8_t> assetsBlob;
+    RuntimeContext::GetInstance()->AssetToBlob(g_localAsset, assetBlob);
+    RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false), E_OK); // 2 is assetsBlob
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DistributedDBCloudAssetsOperationSyncTest::WriteDataWithoutCommitTransaction()
+{
+    ASSERT_NE(db_, nullptr);
+    SQLiteUtils::BeginTransaction(db_);
+    InsertLocalAssetData("localAsset");
+    constexpr int kSleepDurationSeconds = 3;
+    std::this_thread::sleep_for(std::chrono::seconds(kSleepDurationSeconds));
+}
+
+/**
+ * @tc.name: TestOpenDatabaseBusy001
+ * @tc.desc: Test open database when the database is busy.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liufuchenxing
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, TestOpenDatabaseBusy001, TestSize.Level2)
+{
+    /**
+     * @tc.steps:step1. close store.
+     * @tc.expected:step1. check ok.
+     */
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    /**
+     * @tc.steps:step2. Another thread write data into database into database without commit.
+     * @tc.expected:step2. check ok.
+     */
+    std::thread thread(&DistributedDBCloudAssetsOperationSyncTest::WriteDataWithoutCommitTransaction, this);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    /**
+     * @tc.steps:step3. open relational delegate.
+     * @tc.expected:step3. open success.
+     */
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
+    thread.join();
 }
 
 /**
