@@ -96,12 +96,6 @@ int SqliteRelationalDatabaseUpgrader::ExecuteUpgrade()
         return errCode;
     }
 
-    errCode = UpgradeCursor(logTableVersion, schemaObj);
-    if (errCode != E_OK) {
-        LOGE("[Relational][Upgrade] Upgrade cursor failed, err = %d.", errCode);
-        return errCode;
-    }
-
     return UpgradeTrigger(logTableVersion, schemaObj, trackerSchemaObj);
 }
 
@@ -162,31 +156,6 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     }
     LOGI("[Relational][UpgradeLogTable] recreate trigger success, ver:%s to ver:%s", logTableVersion.c_str(),
         DBConstant::LOG_TABLE_VERSION_CURRENT);
-    return E_OK;
-}
-
-int SqliteRelationalDatabaseUpgrader::UpgradeCursor(const std::string &logTableVersion,
-    const RelationalSchemaObject &schemaObj)
-{
-    if (logTableVersion > DBConstant::LOG_TABLE_VERSION_5_9) {
-        return E_OK;
-    }
-    std::vector<std::string> sqlVec;
-    uint64_t cursor = DBConstant::INVALID_CURSOR;
-    for (const auto &table : schemaObj.GetTables()) {
-        SQLiteRelationalUtils::GetCursor(db_, table.first, cursor);
-        LOGI("[Relational][UpgradeCursor] cursor of table[%s length[%" PRIu32 "]] before upgrade is [%" PRIu64 "]",
-            DBCommon::StringMiddleMasking(table.first).c_str(), table.first.length(), cursor);
-        sqlVec.push_back(CloudStorageUtils::GetCursorHeightenInLogSql(table.first));
-        sqlVec.push_back(CloudStorageUtils::GetCursorHeightenInMetaSql(table.first));
-    }
-    for (size_t i = 0; i < sqlVec.size(); ++i) {
-        int errCode = SQLiteUtils::ExecuteRawSQL(db_, sqlVec[i]);
-        if (errCode != E_OK) {
-            LOGE("[Relational][UpgradeCursor] execute upgrade cursor sql failed, errCode=%d", errCode);
-            return errCode;
-        }
-    }
     return E_OK;
 }
 

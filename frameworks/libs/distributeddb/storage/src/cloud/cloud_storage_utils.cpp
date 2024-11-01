@@ -1497,18 +1497,6 @@ std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
         " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
 }
 
-std::string CloudStorageUtils::GetCursorHeightenInMetaSql(const std::string &tableName)
-{
-    return "UPDATE " + DBCommon::GetMetaTableName() + " SET value=value+1000000 WHERE key=x'" +
-        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "' AND value < 1000000;";
-}
-
-std::string CloudStorageUtils::GetCursorHeightenInLogSql(const std::string &tableName)
-{
-    return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET cursor=cursor+1000000 WHERE cursor IS NOT NULL " +
-        "AND cursor < 1000000;";
-}
-
 int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
     QuerySyncObject &querySyncObject)
 {

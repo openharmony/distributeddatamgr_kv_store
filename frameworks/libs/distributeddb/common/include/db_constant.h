@@ -165,8 +165,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_5 = "5.05"; // add status field
     static constexpr const char *LOG_TABLE_VERSION_5_8 = "5.08"; // migrate cursor to meta table
     static constexpr const char *LOG_TABLE_VERSION_5_9 = "5.09"; // insert retains the old version
-    static constexpr const char *LOG_TABLE_VERSION_5_10 = "5.10"; // increase the cursor
-    static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_10;
+    static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_9;
 
     static const std::string LOG_TABLE_VERSION_KEY;
 
