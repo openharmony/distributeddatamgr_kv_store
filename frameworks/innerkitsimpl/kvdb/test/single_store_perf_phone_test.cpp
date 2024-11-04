@@ -95,10 +95,10 @@ string GetDate(char *cType, int iDay)
  * @param count Number of pictures on a screen.
  * @param size Size of the value in kilobytes for each key-value pair.
  * @param ratio Ratio of compression
- * @param firstKey The first key
- * @param lastKey The last key
- * @details This function is used to preset data by creating a 16-byte string, and then based on the given number
- *      of batches, count, size, and ratio, Generate a series of key-value pairs and store them in a single KV store.
+ * @param firstKey An output parameter that receives the first key in the first batch
+ * @param lastKey An output parameter that receives the last key in the last batch
+ * @details This function is responsible for writing a preset set of data to a specified
+ *      single-key value store based on a given batch, quantity, size, and ratio.
  */
 void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int size, int ratio,
     std::string &firstKey, std::string &lastKey)
@@ -106,14 +106,15 @@ void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int
     std::ostringstream s;
     s << std::setw(16) << std::setfill('0') << 0; // 16 bytes
     string strDate;
-    string ss = to_string(size) + "K";
+    string ss = to_string(size) + "K"; // The batches are iterated backward to generate data for different dates
     for (int i = batch; i >= 1; i--) {
         strDate = GetDate((char*)"%Y%m%d", -i);
         for (int index = 1; index <= count; index++) {
-            std::ostringstream s2;
+            // Produces a unique key string containing date, size, and index information
             string tmp =
             s.str() + "_" + ss + "_" + strDate + string(3 - to_string(index).length(), '0') + to_string(index);
             string val;
+            // Generate random value string based on ratio If the ratio is 0, an empty string is generated
             if (ratio != 0) {
                 val = GenerateRandomString((long)(size * 1024) / ratio); // 1024 bytes per 1K
             } else {
@@ -123,6 +124,7 @@ void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int
             const DistributedDB::Value value = GenerateBytes(val);
             ASSERT_EQ(store->Put(key, value), SUCCESS);
             if (i == batch && index == 1) {
+                // Convert the contents of the key to std::string and assign it to the firstKey
                 firstKey = std::string(key.begin(), key.end());
             }
             if (i == 1 && index == count) {
@@ -139,21 +141,23 @@ void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int
  * @param batch The number of batches, representing the batch in which the data was inserted.
  * @param size Size of the value in kilobytes for each key-value pair.
  * @param count Number of pictures on a screen.
- * @param firstKey The first key
- * @param lastKey The last key
+ * @param firstKey An output parameter that receives the first key in the first batch
+ * @param lastKey An output parameter that receives the last key in the last batch
  * @details This function is used to calculate the duration for obtaining data on a screen.
  *      Data is obtained through multiple cycles and the average time is calculated.
  */
 void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch, int size, int count,
     std::string firstKey, std::string lastKey)
 {
-    // batch = totolCnt / (448/ 112) size(4 16) count (448 112)
+    // batch = totolCnt / (448/ 112) size(4 8) count (448 112)
     double dur = 0.0;
     double totalTime = 0.0;
     double avrTime = 0.0;
     int failCount = 0;
+    // The outer loop is run 100 times to improve the accuracy of the test results
     for (int n = 0; n < 100; ++n) { // 100 times
         DataQuery query;
+        // The sequential query is carried out according to the actual business scenario
         query.Between("", lastKey);
         std::shared_ptr<KvStoreResultSet> readResultSet;
         ASSERT_EQ(store->GetResultSet(query, readResultSet), SUCCESS);
@@ -162,9 +166,9 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch
             struct timeval startTime{};
             struct timeval endTime{};
             (void) gettimeofday(&startTime, nullptr);
-            for (int i = 0; i < count; ++i) {
-                readResultSet->MoveToNext();
-                Entry entry;
+            for (int i = 0; i < count; ++i) { // Loop through a screen of data
+                readResultSet->MoveToNext(); // Move the read position to the next row.
+                Entry entry; // Data is organized by entry definition.
                 readResultSet->GetEntry(entry);
             }
             (void) gettimeofday(&endTime, nullptr);
@@ -286,9 +290,9 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
     printf("monthly start \n");
     std::string firstKey1;
     std::string lastKey1;
-    PresetData(store1, monthlyBatch, 112, 16, ratio, firstKey1, lastKey1);
+    PresetData(store1, monthlyBatch, 112, 8, ratio, firstKey1, lastKey1);
     cout << "first key: " << firstKey1 << ", last key: " << lastKey1 << endl;
-    CalcRangeResultSetDuration(store1, monthlyBatch, 16, 112, firstKey1, lastKey1);
+    CalcRangeResultSetDuration(store1, monthlyBatch, 8, 112, firstKey1, lastKey1);
 
     printf("annually start \n");
     std::string firstKey2;
@@ -315,9 +319,9 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSi
     printf("monthly start \n");
     std::string firstKey1;
     std::string lastKey1;
-    PresetData(store1, monthlyBatch, 112, 16, ratio, firstKey1, lastKey1);
+    PresetData(store1, monthlyBatch, 112, 8, ratio, firstKey1, lastKey1);
     cout << "first key: " << firstKey1 << ", last key: " << lastKey1 << endl;
-    CalcRangeResultSetDuration(store1, monthlyBatch, 16, 112, firstKey1, lastKey1);
+    CalcRangeResultSetDuration(store1, monthlyBatch, 8, 112, firstKey1, lastKey1);
 
     printf("annually start \n");
     std::string firstKey2;
