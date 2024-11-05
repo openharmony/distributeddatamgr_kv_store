@@ -64,16 +64,8 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
     if (testDemo == 0) {
         testDemo = 1;
         return ERR_DM_IPC_SEND_REQUEST_FAILED;
-    } else if (testDemo == 1) {
-        testDemo = -1;
-        return DM_OK;
     } else {
         testDemo = 0;
-        DmDeviceInfo info;
-        info.networkId[0] = '1';
-        info.networkId[1] = '1';
-        DmDeviceInfo& infos = info;
-        deviceInfo = infos;
         return DM_OK;
     }
 }
@@ -93,7 +85,6 @@ int32_t DeviceManager::RegisterDevStatusCallback(const std::string &pkgName, con
 int32_t DeviceManager::GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId,
     std::string &uuid)
 {
-    uuid = "";
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
