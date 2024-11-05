@@ -1813,9 +1813,17 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
         LOGE("delete cloud log failed, %d", errCode);
         return errCode;
     }
-    // set all flag logout
-    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800;";
+    // set all flag logout and data upload is not finished.
+    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = flag | 0x800 & ~0x400;";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanUploadFinishedFlag(const std::string &tableName)
+{
+    // unset upload finished flag
+    std::string cleanUploadFinishedSql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET " +
+        CloudDbConstant::FLAG + " = flag & ~0x400;";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanUploadFinishedSql);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(const std::string &tableName,
