@@ -154,7 +154,7 @@ public:
     int CreateTempSyncTrigger(const TrackerTable &trackerTable);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
-    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+    int CleanTrackerData(const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
     int CreateSharedTable(const TableSchema &schema);
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);

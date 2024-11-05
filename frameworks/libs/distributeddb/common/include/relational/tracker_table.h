@@ -52,6 +52,7 @@ public:
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);
     bool IsEmpty() const;
+    bool IsTableNameEmpty() const;
     bool IsChanging(const TrackerSchema &schema);
     int ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action);
 

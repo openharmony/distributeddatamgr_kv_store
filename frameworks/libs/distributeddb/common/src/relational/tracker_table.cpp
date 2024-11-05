@@ -226,6 +226,11 @@ bool TrackerTable::IsEmpty() const
     return trackerColNames_.empty();
 }
 
+bool TrackerTable::IsTableNameEmpty() const
+{
+    return tableName_.empty();
+}
+
 bool TrackerTable::IsChanging(const TrackerSchema &schema)
 {
     if (tableName_ != schema.tableName || extendColName_ != schema.extendColName) {

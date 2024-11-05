@@ -578,10 +578,16 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor)
+int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor,
+    bool isOnlyTrackTable)
 {
-    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    sql += " SET extend_field = NULL where data_key = -1 and cursor <= ?;";
+    std::string sql;
+    if (isOnlyTrackTable) {
+        sql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    } else {
+        sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log SET extend_field = NULL";
+    }
+    sql += " where data_key = -1 and cursor <= ?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
