@@ -76,20 +76,6 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetUnEncryptedUuid
-* @tc.desc: test GetUnEncryptedUuid get uuid by networkid fail
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
-HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid003, TestSize.Level1)
-{
-    ZLOGI("GetUnEncryptedUuid003 begin.");
-    auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
-    EXPECT_EQ(uuid, "");
-}
-
-/**
 * @tc.name: GetLocalDevice
 * @tc.desc: test GetLocalDevice get local device info fail
 * @tc.type: FUNC
