@@ -1210,7 +1210,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Le
                 count++;
             }
         }, nullptr, nullptr);
-        waitVec.push_back(h1);
+        waitVec.push_back(std::move(h1));
     }
     for (const auto &item : waitVec) {
         ADAPTER_WAIT(item);
