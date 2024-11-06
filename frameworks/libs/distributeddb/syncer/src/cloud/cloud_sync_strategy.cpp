@@ -46,7 +46,7 @@ bool CloudSyncStrategy::JudgeUpload()
     return false;
 }
 
-bool CloudSyncStrategy::JudgeKvScene()
+bool CloudSyncStrategy::JudgeKvScene() const
 {
     return isKvScene_;
 }

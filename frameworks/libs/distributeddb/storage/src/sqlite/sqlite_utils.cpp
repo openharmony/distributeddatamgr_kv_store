@@ -643,7 +643,7 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     return errCode;
 }
 
-int SQLiteUtils::CheckIntegrity(const std::string dbFile, CipherType type, const CipherPassword &passwd)
+int SQLiteUtils::CheckIntegrity(const std::string &dbFile, CipherType type, const CipherPassword &passwd)
 {
     std::vector<std::string> createTableSqls;
     OpenDbProperties option = {dbFile, true, false, createTableSqls, type, passwd};

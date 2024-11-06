@@ -1258,7 +1258,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
         if (assetDBPtr == nullptr) {
             return true;
         }
-        Asset &assetDB = *assetDBPtr;
+        const Asset &assetDB = *assetDBPtr;
         if (assetDB.assetId != asset.assetId || asset.status != AssetStatus::NORMAL) {
             return true;
         }
@@ -1324,12 +1324,9 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     if (errCode != E_OK) {
         return true;
     }
-    for (const auto &field : assetFields) {
-        if (IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo)) {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(assetFields.begin(), assetFields.end(), [&](const Field &field) {
+        return IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo);
+    });
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::string &tableName,

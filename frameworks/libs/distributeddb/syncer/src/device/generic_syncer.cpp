@@ -222,7 +222,7 @@ int GenericSyncer::CancelSync(uint32_t syncId)
     }
 
     const std::vector<std::string> &devices = operation->GetDevices();
-    for (auto &deviceId : devices) {
+    for (const auto &deviceId : devices) {
         engine->ClearAllSyncTaskByDevice(deviceId);
     }
     LOGI("[Syncer] End cancelSync %" PRIu32 ", devices = %s", syncId, GetSyncDevicesStr(devices).c_str());
