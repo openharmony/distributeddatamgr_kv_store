@@ -1762,7 +1762,7 @@ int RelationalSyncAbleStorage::UpsertData(RecordStatus status, const std::string
 {
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode);
-    if (errCode != E_OK) {
+    if (handle == nullptr || errCode != E_OK) {
         return errCode;
     }
     handle->SetPutDataMode(SQLiteSingleVerRelationalStorageExecutor::PutDataMode::USER);
@@ -1943,7 +1943,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObje
         return E_OK;
     }
     auto *handle = GetHandle(true, errCode);
-    if (errCode != E_OK) {
+    if (handle == nullptr || errCode != E_OK) {
         return errCode;
     }
     errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery);
@@ -1963,7 +1963,7 @@ int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
         return E_OK;
     }
     auto *handle = GetHandle(true, errCode);
-    if (errCode != E_OK) {
+    if (handle == nullptr || errCode != E_OK) {
         return errCode;
     }
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
@@ -2202,7 +2202,7 @@ int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, i
 {
     int errCode = E_OK;
     auto *handle = GetHandle(false, errCode);
-    if (errCode != E_OK) {
+    if (handle == nullptr || errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] Get handle failed when get local data count: %d", errCode);
         return errCode;
     }

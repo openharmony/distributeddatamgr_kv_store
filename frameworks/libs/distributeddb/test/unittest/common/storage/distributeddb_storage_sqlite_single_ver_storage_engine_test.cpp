@@ -217,9 +217,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
      * @tc.steps:step6. delete invalid SQLiteSingleVerNaturalStoreConnection
      * @tc.expected: step6. return OK.
      */
-    if (invalidConnection != nullptr) {
-        delete invalidConnection;
-        invalidConnection = nullptr;
-    }
+    delete invalidConnection;
+    invalidConnection = nullptr;
     ASSERT_EQ(invalidConnection, nullptr);
 }

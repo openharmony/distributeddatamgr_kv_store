@@ -249,7 +249,7 @@ protected:
     int UnsubscribeRequestRecv(SingleVerSyncTaskContext *context, const Message *message);
     int SendControlAck(SingleVerSyncTaskContext *context, const Message *message, int32_t recvCode,
         uint32_t controlCmdType, const CommErrHandler &handler = nullptr);
-    int QuerySyncCheck(SingleVerSyncTaskContext *context);
+    static int QuerySyncCheck(SingleVerSyncTaskContext *context);
 
     void RemoveSubscribeIfNeed(const std::string &queryId, const std::shared_ptr<SubscribeManager> &subscribeManager);
 

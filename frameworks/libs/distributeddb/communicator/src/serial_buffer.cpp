@@ -129,7 +129,7 @@ SerialBuffer *SerialBuffer::Clone(int &outErrorNo)
         errno_t errCode = memcpy_s(twinBuffer->bytes_, totalLen_, bytes_, totalLen_);
         if (errCode != EOK) {
             outErrorNo = -E_SECUREC_ERROR;
-            delete twinBuffer->bytes_;
+            delete[] twinBuffer->bytes_;
             twinBuffer->bytes_ = nullptr;
             delete twinBuffer;
             twinBuffer = nullptr;

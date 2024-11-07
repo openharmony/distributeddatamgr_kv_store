@@ -38,7 +38,7 @@ public:
 
     virtual bool JudgeUpload();
 
-    bool JudgeKvScene();
+    bool JudgeKvScene() const;
 
     static bool IsDelete(const LogInfo &info);
 
