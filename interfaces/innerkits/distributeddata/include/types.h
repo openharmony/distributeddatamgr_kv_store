@@ -567,6 +567,10 @@ struct Options {
      * Set authType of kv store.
     */
     AuthType authType = AuthType::DEFAULT;
+    /**
+     * Application sdk version.
+    */
+    int32_t apiVersion = 9;
 };
 
 /**
