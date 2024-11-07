@@ -47,9 +47,10 @@ public:
 
     virtual int ReInit();
 
-    StorageExecutor *FindExecutor(bool writable, OperatePerm perm, int &errCode, int waitTime = MAX_WAIT_TIME);
+    StorageExecutor *FindExecutor(bool writable, OperatePerm perm, int &errCode, bool isExternal = false,
+        int waitTime = MAX_WAIT_TIME);
 
-    void Recycle(StorageExecutor *&handle);
+    void Recycle(StorageExecutor *&handle, bool isExternal = false);
 
     virtual bool IsEngineCorrupted() const;
 
@@ -100,7 +101,7 @@ protected:
 
     void CloseExecutor();
 
-    virtual void AddStorageExecutor(StorageExecutor *handle);
+    virtual void AddStorageExecutor(StorageExecutor *handle, bool isExternal);
 
     static bool CheckEngineAttr(const StorageEngineAttr &poolSize);
 
@@ -132,10 +133,10 @@ protected:
 
 private:
     StorageExecutor *FetchStorageExecutor(bool isWrite, std::list<StorageExecutor *> &idleList,
-        std::list<StorageExecutor *> &usingList, int &errCode);
+        std::list<StorageExecutor *> &usingList, int &errCode, bool isExternal = false);
 
-    StorageExecutor *FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime);
-    StorageExecutor *FindReadExecutor(OperatePerm perm, int &errCode, int waitTime);
+    StorageExecutor *FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
+    StorageExecutor *FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
 
     virtual void ClearCorruptedFlag();
 
@@ -157,6 +158,10 @@ private:
     std::list<StorageExecutor *> writeIdleList_;
     std::list<StorageExecutor *> readUsingList_;
     std::list<StorageExecutor *> readIdleList_;
+    std::list<StorageExecutor *> externalWriteUsingList_;
+    std::list<StorageExecutor *> externalWriteIdleList_;
+    std::list<StorageExecutor *> externalReadUsingList_;
+    std::list<StorageExecutor *> externalReadIdleList_;
     std::atomic<bool> isExistConnection_;
 
     std::mutex idleMutex_;
