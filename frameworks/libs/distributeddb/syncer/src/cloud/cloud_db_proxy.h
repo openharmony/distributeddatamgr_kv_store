@@ -156,6 +156,12 @@ protected:
         // add action code before INVALID_ACTION
         INVALID_ACTION
     };
+
+    enum InnerBatchOpType : uint8_t {
+        BATCH_DOWNLOAD = 0,
+        BATCH_REMOVE_LOCAL
+    };
+
     static int InnerAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
@@ -174,7 +180,19 @@ protected:
     static DBStatus QueryAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
 
-    static bool IsEmptyAssetRecord(const std::vector<IAssetLoader::AssetRecord> &assets);
+    int BatchOperateAssetsWithAllRecords(const std::string &tableName,
+        std::vector<IAssetLoader::AssetRecord> &allRecords, const InnerBatchOpType operationType);
+
+    int BatchOperateAssetsInner(const std::string &tableName,
+        std::vector<IAssetLoader::AssetRecord> &necessaryRecords, const InnerBatchOpType operationType);
+
+    // save record with assets in nonEmptyRecords, return the indexes of these records in the original vector
+    std::vector<int> GetNotEmptyAssetRecords(std::vector<IAssetLoader::AssetRecord> &originalRecords,
+        std::vector<IAssetLoader::AssetRecord> &nonEmptyRecords);
+
+    // copy newRecords's assets and status back to originalRecords, based on indexes
+    void CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords, const std::vector<int> indexes,
+        std::vector<IAssetLoader::AssetRecord> &newRecords);
 
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;

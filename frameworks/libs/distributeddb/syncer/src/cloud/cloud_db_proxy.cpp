@@ -718,45 +718,88 @@ void CloudDBProxy::SetPrepareTraceId(const std::string &traceId) const
 
 int CloudDBProxy::BatchDownload(const std::string &tableName, std::vector<IAssetLoader::AssetRecord> &downloadAssets)
 {
-    if (IsEmptyAssetRecord(downloadAssets)) {
-        return E_OK;
-    }
-    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
-    if (iAssetLoader_ == nullptr) {
-        LOGE("[CloudDBProxy] Asset loader has not been set %d", -E_NOT_SET);
-        return -E_NOT_SET;
-    }
-    iAssetLoader_->BatchDownload(tableName, downloadAssets);
-    return E_OK;
+    return BatchOperateAssetsWithAllRecords(tableName, downloadAssets, CloudDBProxy::BATCH_DOWNLOAD);
 }
 
 int CloudDBProxy::BatchRemoveLocalAssets(const std::string &tableName,
     std::vector<IAssetLoader::AssetRecord> &removeAssets)
 {
-    if (IsEmptyAssetRecord(removeAssets)) {
+    return BatchOperateAssetsWithAllRecords(tableName, removeAssets, CloudDBProxy::BATCH_REMOVE_LOCAL);
+}
+
+int CloudDBProxy::BatchOperateAssetsWithAllRecords(const std::string &tableName,
+    std::vector<IAssetLoader::AssetRecord> &allRecords, const InnerBatchOpType operationType)
+{
+    std::vector<IAssetLoader::AssetRecord> nonEmptyRecords;
+    auto indexes = GetNotEmptyAssetRecords(allRecords, nonEmptyRecords);
+    if (nonEmptyRecords.empty()) {
         return E_OK;
     }
+
+    int errCode = BatchOperateAssetsInner(tableName, nonEmptyRecords, operationType);
+
+    CopyAssetsBack(allRecords, indexes, nonEmptyRecords);
+    return errCode;
+}
+
+int CloudDBProxy::BatchOperateAssetsInner(const std::string &tableName,
+    std::vector<IAssetLoader::AssetRecord> &necessaryRecords, const InnerBatchOpType operationType)
+{
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
     if (iAssetLoader_ == nullptr) {
         LOGE("[CloudDBProxy] Asset loader has not been set %d", -E_NOT_SET);
         return -E_NOT_SET;
     }
-    iAssetLoader_->BatchRemoveLocalAssets(tableName, removeAssets);
+    if (operationType == CloudDBProxy::BATCH_DOWNLOAD) {
+        iAssetLoader_->BatchDownload(tableName, necessaryRecords);
+    } else if (operationType == CloudDBProxy::BATCH_REMOVE_LOCAL) {
+        iAssetLoader_->BatchRemoveLocalAssets(tableName, necessaryRecords);
+    } else {
+        LOGE("[CloudDBProxy][BatchOperateAssetsInner] Internal error! Operation type is invalid: %d", operationType);
+        return -E_NOT_SET;
+    }
     return E_OK;
 }
 
-bool CloudDBProxy::IsEmptyAssetRecord(const std::vector<IAssetLoader::AssetRecord> &assets)
+std::vector<int> CloudDBProxy::GetNotEmptyAssetRecords(std::vector<IAssetLoader::AssetRecord> &originalRecords,
+    std::vector<IAssetLoader::AssetRecord> &nonEmptyRecords)
 {
-    if (assets.empty()) {
-        return true;
+    std::vector<int> indexes;
+    if (originalRecords.empty()) {
+        return indexes;
     }
-    for (const auto &record : assets) {
+
+    int index = 0;
+    for (auto &record : originalRecords) {
+        bool isEmpty = true;
         for (const auto &recordAssets : record.assets) {
             if (!recordAssets.second.empty()) {
-                return false;
+                isEmpty = false;
+                break;
             }
         }
+        if (!isEmpty) {
+            indexes.push_back(index);
+            IAssetLoader::AssetRecord newRecord = {
+                record.gid,
+                record.prefix,
+                std::move(record.assets)
+            };
+            nonEmptyRecords.emplace_back(newRecord);
+        }
+        index++;
     }
-    return true;
+    return indexes;
+}
+
+void CloudDBProxy::CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords,
+    const std::vector<int> indexes, std::vector<IAssetLoader::AssetRecord> &newRecords)
+{
+    int i = 0;
+    for (const auto index : indexes) {
+        originalRecords[index].status = newRecords[i].status;
+        originalRecords[index].assets = std::move(newRecords[i].assets);
+        i++;
+    }
 }
 }
