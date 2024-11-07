@@ -342,7 +342,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
             LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
             return errCode;
         }
-        errCode = CleanCloudDataOnLogTable(logTableName);
+        errCode = CleanCloudDataOnLogTable(logTableName, FLAG_ONLY);
         if (errCode != E_OK) {
             LOGE("[Storage Executor] failed to clean cloud data on log table, %d", errCode);
             return errCode;
