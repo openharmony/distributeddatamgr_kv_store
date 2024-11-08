@@ -23,7 +23,6 @@
 #include <set>
 #include <shared_mutex>
 #include <functional>
-#include "active_boottime.h"
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
 class PriorityQueue {
@@ -49,7 +48,7 @@ public:
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         while (!tasks_.empty()) {
             auto waitTme = tasks_.begin()->first;
-            if (waitTme > Boottime::Now()) {
+            if (waitTme > std::chrono::steady_clock::now()) {
                 popCv_.wait_until(lock, waitTme);
                 continue;
             }
