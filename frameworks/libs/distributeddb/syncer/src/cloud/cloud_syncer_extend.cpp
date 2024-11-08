@@ -1463,6 +1463,7 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
     for (auto &item : downloadRecord) {
         auto deleteCode = CloudDBProxy::GetInnerErrorCode(removeAssets[index].status);
         auto downloadCode = CloudDBProxy::GetInnerErrorCode(downloadAssets[index].status);
+        downloadCode = downloadCode == -E_CLOUD_RECORD_EXIST_CONFLICT ? E_OK : downloadCode;
         if (!isSharedTable) {
             item.downloadItem.assets = BackFillAssetsAfterDownload(downloadCode, deleteCode, item.flags,
                 downloadAssets[index].assets, removeAssets[index].assets);
@@ -1480,8 +1481,9 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
             deleteCode == E_OK && downloadCode == E_OK));
         errorCode = (errorCode != E_OK) ? errorCode : deleteCode;
         errorCode = (errorCode != E_OK) ? errorCode : downloadCode;
-        int ret = CommitDownloadResult(item.downloadItem, info, commitList, errorCode);
-        if (ret != E_OK && ret != -E_REMOVE_ASSETS_FAILED) {
+        int currErrorCode = (deleteCode != E_OK) ? deleteCode : downloadCode;
+        int ret = CommitDownloadResult(item.downloadItem, info, commitList, currErrorCode);
+        if (ret != E_OK) {
             errorCode = errorCode == E_OK ? ret : errorCode;
         }
         index++;
