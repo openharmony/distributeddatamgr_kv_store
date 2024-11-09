@@ -57,13 +57,7 @@ SingleStoreImpl::SingleStoreImpl(
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
-        HapTokenInfo hapTokenInfo;
-        auto ret = AccessTokenKit::GetHapTokenInfo(tokenId, hapTokenInfo);
-        if (ret == 0) {
-            apiVersion_ = hapTokenInfo.apiVersion;
-        } else {
-            ZLOGE("GetHapTokenInfo fail, tokenId:%{public}d, ret:%{public}d", tokenId, ret);
-        }
+        apiVersion_ = options.apiVersion;
     }
 }
 
@@ -762,7 +756,7 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION)) {
+    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
         auto dbStatus = dbStore_->CheckIntegrity();
         if (dbStatus != DistributedDB::DBStatus::OK) {
             ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
@@ -786,7 +780,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         service->Close({ appId_ }, { storeId_ });
     }
     bool isCheckIntegrity = false;
-    if (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION)) {
+    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
         isCheckIntegrity = true;
     }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_ };
