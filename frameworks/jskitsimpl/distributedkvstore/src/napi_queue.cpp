@@ -82,7 +82,8 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     aCtx->complete = std::move(complete);
     napi_value promise = nullptr;
     if (aCtx->ctx->callbackRef == nullptr) {
-        napi_create_promise(env, &aCtx->deferred, &promise);
+        auto ret = napi_create_promise(env, &aCtx->deferred, &promise);
+        ASSERT(ret == napi_ok, "napi_create_promise fail", nullptr);
         ZLOGD("create deferred promise");
     } else {
         napi_get_undefined(env, &promise);
