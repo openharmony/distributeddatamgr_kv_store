@@ -66,7 +66,7 @@ protected:
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
 private:
     // For executor.
-    int ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&handle);
+    void ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isExternal = false);
 
     // For db.
     int RegisterFunction(sqlite3 *db) const;

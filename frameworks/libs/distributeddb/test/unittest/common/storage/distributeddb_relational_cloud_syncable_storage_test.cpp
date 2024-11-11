@@ -708,6 +708,53 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
 }
 
 /**
+ * @tc.name: GetUploadCount004
+ * @tc.desc: Test getUploadCount and ExecuteSql concurrently
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount004, TestSize.Level1)
+{
+    /**
+     * @tc.step1: Init data
+     * @tc.expected: step1. return OK
+     */
+    CreateLogTable(g_tableName);
+    int64_t insCount = 100;
+    CreateAndInitUserTable(insCount, insCount, g_localAsset);
+    InitLogData(0, 0, insCount, insCount, g_logTblName);
+    int64_t resCount = 0;
+    /**
+     * @tc.step2: GetUploadCount and ExecuteSql concurrently
+     * @tc.expected: step2. return OK.
+     */
+    std::thread getUploadCountThread([&]() {
+        for (int i = 0; i < 100; i++) {
+            if (g_storageProxy->StartTransaction() == E_OK) {
+                EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime, false, resCount), E_OK);
+                EXPECT_EQ(resCount, insCount);
+                EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+            }
+        }
+    });
+    std::thread execThread([&]() {
+        DistributedDB::SqlCondition sqlCondition;
+        sqlCondition.readOnly = true;
+        for (int i = 0; i < 100; i++) {
+            std::vector<VBucket> records = {};
+            sqlCondition.sql = "BEGIN;";
+            EXPECT_EQ(g_delegate->ExecuteSql(sqlCondition, records), E_OK);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            sqlCondition.sql = "COMMIT;";
+            EXPECT_EQ(g_delegate->ExecuteSql(sqlCondition, records), E_OK);
+        }
+    });
+    execThread.join();
+    getUploadCountThread.join();
+}
+
+/**
  * @tc.name: FillCloudGid001
  * @tc.desc: FillCloudGid with invalid parm
  * @tc.type: FUNC
