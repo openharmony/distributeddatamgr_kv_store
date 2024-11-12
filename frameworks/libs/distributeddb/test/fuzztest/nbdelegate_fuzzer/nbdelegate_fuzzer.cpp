@@ -193,13 +193,13 @@ void GetDeviceEntriesTest(const uint8_t *data, size_t size, KvStoreNbDelegate *k
     kvNbDelegatePtr->GetDeviceEntries(device, vect);
 }
 
-void RandomModeRemoveDeviceData(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+void RemoveDeviceDataByMode(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
 {
     if (size == 0) {
         return;
     }
     auto mode = static_cast<ClearMode>(data[0]);
-    LOGI("[RandomModeRemoveDeviceData] select mode %d", static_cast<int>(mode));
+    LOGI("[RemoveDeviceDataByMode] select mode %d", static_cast<int>(mode));
     if (mode == DEFAULT) {
         return;
     }
@@ -259,7 +259,7 @@ void FuzzCURD(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->GetTaskCount();
     std::string rawString(reinterpret_cast<const char *>(data), size);
     kvNbDelegatePtr->RemoveDeviceData(rawString);
-    RandomModeRemoveDeviceData(data, size, kvNbDelegatePtr);
+    RemoveDeviceDataByMode(data, size, kvNbDelegatePtr);
     GetDeviceEntriesTest(data, size, kvNbDelegatePtr);
 }
 

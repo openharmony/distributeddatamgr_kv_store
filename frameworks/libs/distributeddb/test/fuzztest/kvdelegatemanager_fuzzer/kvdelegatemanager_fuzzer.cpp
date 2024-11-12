@@ -35,7 +35,7 @@ using namespace DistributedDBTest;
 KvStoreDelegateManager g_mgr("APP_ID", "USER_ID");
 const std::string DUMP_DISTRIBUTED_DB = "--database";
 
-std::string GetRandomString(const uint8_t *data, size_t size, size_t len, uint32_t &start)
+std::string GetString(const uint8_t *data, size_t size, size_t len, uint32_t &start)
 {
     std::string res;
     if (size == 0) {
@@ -49,7 +49,7 @@ std::string GetRandomString(const uint8_t *data, size_t size, size_t len, uint32
     return res;
 }
 
-void GetRandomAutoLaunchOption(const uint8_t* data, size_t size, AutoLaunchOption &option)
+void GetAutoLaunchOption(const uint8_t* data, size_t size, AutoLaunchOption &option)
 {
     std::string randomStr = size == 0 ? "" : std::string(data, data + size - 1);
     option.schema = randomStr;
@@ -96,9 +96,9 @@ void CombineTest(const uint8_t *data, size_t size)
     const int paramCount = 3;
     for (size_t len = 1; len < (size / paramCount); len++) {
         uint32_t start = 0;
-        std::string appId = GetRandomString(data, size, len, start);
-        std::string userId = GetRandomString(data, size, len, start);
-        std::string storeId = GetRandomString(data, size, len, start);
+        std::string appId = GetString(data, size, len, start);
+        std::string userId = GetString(data, size, len, start);
+        std::string storeId = GetString(data, size, len, start);
         std::string dir;
         (void) KvStoreDelegateManager::GetDatabaseDir(storeId, appId, userId, dir);
         (void) KvStoreDelegateManager::GetDatabaseDir(storeId, dir);
@@ -106,12 +106,12 @@ void CombineTest(const uint8_t *data, size_t size)
         bool syncDualTupleMode = static_cast<bool>(*data);
         (void) KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
         AutoLaunchOption option;
-        GetRandomAutoLaunchOption(data, size, option);
+        GetAutoLaunchOption(data, size, option);
         option.dataDir = path;
         (void) KvStoreDelegateManager::EnableKvStoreAutoLaunch(userId, appId, storeId, option, nullptr);
         (void) KvStoreDelegateManager::DisableKvStoreAutoLaunch(userId, appId, storeId);
         CallbackFuzz(data, storeId);
-        std::string targetDev = GetRandomString(data, size, len, start);
+        std::string targetDev = GetString(data, size, len, start);
         bool isCheckOk = static_cast<bool>(*data);
         auto databaseStatusNotifyCallback = [userId, appId, storeId, targetDev, &isCheckOk] (
             const std::string &notifyUserId, const std::string &notifyAppId, const std::string &notifyStoreId,
