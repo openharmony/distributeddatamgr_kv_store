@@ -21,23 +21,28 @@
 #include "task_scheduler.h"
 
 namespace OHOS {
+static constexpr int MIN_DELAY_TIME = 5;
 static constexpr int MAX_DELAY_TIME = 5;
+static constexpr int MIN_INTERVAL_TIME = 0;
 static constexpr int MAX_INTERVAL_TIME = 3;
-void AtFuzz(size_t time)
+void AtFuzz(const uint8_t *data)
 {
     TaskScheduler taskScheduler;
+    int time = static_cast<int>(*data) % (MAX_DELAY_TIME - MIN_DELAY_TIME + 1) + MIN_DELAY_TIME;
     std::chrono::steady_clock::time_point tp = std::chrono::steady_clock::now() +
-                                               std::chrono::duration<int>(time % MAX_DELAY_TIME);
+                                               std::chrono::duration<int>(time);
     auto task = taskScheduler.At(tp, []() { });
     std::this_thread::sleep_for(std::chrono::seconds(MAX_INTERVAL_TIME));
     taskScheduler.Remove(task);
 }
 
-void EveryFUZZ(size_t time)
+void EveryFUZZ(const uint8_t *data)
 {
     TaskScheduler taskScheduler;
-    std::chrono::duration<int> delay(time % MAX_DELAY_TIME);
-    std::chrono::duration<int> interval(time % MAX_INTERVAL_TIME);
+    int time = static_cast<int>(*data) % (MAX_DELAY_TIME - MIN_DELAY_TIME + 1) + MIN_DELAY_TIME;
+    std::chrono::duration<int> delay(time);
+    time = static_cast<int>(*data) % (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME + 1) + MIN_INTERVAL_TIME;
+    std::chrono::duration<int> interval(time);
     taskScheduler.Every(delay, interval, []() { });
     std::this_thread::sleep_for(std::chrono::seconds(MAX_INTERVAL_TIME));
     taskScheduler.Every(0, delay, interval, []() { });
@@ -47,10 +52,11 @@ void EveryFUZZ(size_t time)
     taskScheduler.Clean();
 }
 
-void ResetFuzz(size_t time)
+void ResetFuzz(const uint8_t *data)
 {
     TaskScheduler taskScheduler;
-    std::chrono::duration<int> interval(time % MAX_INTERVAL_TIME);
+    int time = static_cast<int>(*data) % (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME + 1) + MIN_INTERVAL_TIME;
+    std::chrono::duration<int> interval(time);
     std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now() +
                                                 std::chrono::duration<int>(MAX_DELAY_TIME / 2);
     auto schedulerTask = taskScheduler.At(tp1, []() {});
@@ -61,8 +67,8 @@ void ResetFuzz(size_t time)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    OHOS::AtFuzz(size);
-    OHOS::EveryFUZZ(size);
-    OHOS::ResetFuzz(size);
+    OHOS::AtFuzz(data);
+    OHOS::EveryFUZZ(data);
+    OHOS::ResetFuzz(data);
     return 0;
 }
