@@ -477,8 +477,9 @@ Event SingleVerSyncStateMachine::DoTimeSync() const
         CommErrHandler handler = nullptr;
         // Auto sync need do retry don't use errHandler to return.
         if (!context_->IsAutoSync()) {
-            handler = [this, context = context_, requestSessionId = context_->GetRequestSessionId()](int ret) {
-                SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId);
+            handler = [this, context = context_,
+                requestSessionId = context_->GetRequestSessionId()](int ret, bool isDirectEnd) {
+                SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId, isDirectEnd);
             };
         }
         int errCode = timeSync_->SyncStart(handler, context_->GetRequestSessionId());
@@ -509,8 +510,9 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
         return GetEventAfterTimeSync(context_->GetMode());
     }
 
-    CommErrHandler handler = [this, context = context_, requestSessionId = context_->GetRequestSessionId()](int ret) {
-        SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId);
+    CommErrHandler handler = [this, context = context_,
+        requestSessionId = context_->GetRequestSessionId()](int ret, bool isDirectEnd) {
+        SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId, isDirectEnd);
     };
     LOGI("[StateMachine][AbilitySync] start abilitySync,label=%s,dev=%s", dataSync_->GetLabel().c_str(),
         STR_MASK(context_->GetDeviceId()));

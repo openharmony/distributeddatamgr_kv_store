@@ -174,7 +174,7 @@ public:
     virtual void Abort(int status);
 
     // Used in send msg, as execution is asynchronous, should use this function to handle result.
-    static void CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId);
+    static void CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId, bool isDirectEnd = true);
 
     int GetTaskErrCode() const override;
 
@@ -229,7 +229,7 @@ protected:
 
     virtual void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam);
 
-    void CommErrHandlerFuncInner(int errCode, uint32_t sessionId);
+    void CommErrHandlerFuncInner(int errCode, uint32_t sessionId, bool isDirectEnd = true);
 
     void KillWait();
 
@@ -246,6 +246,8 @@ protected:
     uint32_t GenerateRequestSessionId();
 
     static uint8_t GetPermissionCheckFlag(bool isAutoSync, int syncMode);
+
+    void SetErrCodeWhenWaitTimeOut(int errCode);
 
     mutable std::mutex targetQueueLock_;
     std::list<ISyncTarget *> requestTargetQueue_;

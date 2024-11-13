@@ -254,7 +254,7 @@ void AdapterStub::SimulateSendRetry(const std::string &dstTarget)
     targetRetrySet_.insert(dstTarget);
 }
 
-void AdapterStub::SimulateSendRetryClear(const std::string &dstTarget)
+void AdapterStub::SimulateSendRetryClear(const std::string &dstTarget, int softBusErrCode)
 {
     {
         std::lock_guard<std::mutex> retryLockGuard(retryMutex_);
@@ -265,7 +265,7 @@ void AdapterStub::SimulateSendRetryClear(const std::string &dstTarget)
     }
     std::lock_guard<std::mutex> onSendableLockGuard(onSendableMutex_);
     if (onSendableHandle_) {
-        onSendableHandle_(dstTarget);
+        onSendableHandle_(dstTarget, softBusErrCode);
     }
 }
 

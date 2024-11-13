@@ -484,7 +484,7 @@ void SyncTaskContext::Abort(int status)
     Clear();
 }
 
-void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId)
+void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context, int32_t sessionId, bool isDirectEnd)
 {
     {
         std::lock_guard<std::mutex> lock(synTaskContextSetLock_);
@@ -496,7 +496,8 @@ void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context,
         RefObject::IncObjRef(context);
     }
 
-    static_cast<SyncTaskContext *>(context)->CommErrHandlerFuncInner(errCode, static_cast<uint32_t>(sessionId));
+    static_cast<SyncTaskContext *>(context)->CommErrHandlerFuncInner(errCode, static_cast<uint32_t>(sessionId),
+        isDirectEnd);
     RefObject::DecObjRef(context);
 }
 
@@ -527,7 +528,7 @@ bool SyncTaskContext::IsCommNormal() const
     return isCommNormal_;
 }
 
-void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId)
+void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId, bool isDirectEnd)
 {
     {
         RefObject::AutoLock lock(this);
@@ -536,12 +537,17 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId)
         }
 
         if (errCode == E_OK) {
+            SetCommFailErrCode(errCode);
             // when communicator sent message failed, the state machine will get the error and exit this sync task
             // it seems unnecessary to change isCommNormal_ value, so just return here
             return;
         }
     }
-    LOGE("[SyncTaskContext][CommErr] errCode %d", errCode);
+    LOGE("[SyncTaskContext][CommErr] errCode %d, isDirectEnd %d", errCode, static_cast<int>(isDirectEnd));
+    if (!isDirectEnd) {
+        SetErrCodeWhenWaitTimeOut(errCode);
+        return;
+    }
     if (errCode > 0) {
         SetCommFailErrCode(static_cast<int>(COMM_FAILURE));
     } else {
@@ -856,5 +862,14 @@ int SyncTaskContext::GetCommErrCode() const
 void SyncTaskContext::SetCommFailErrCode(int errCode)
 {
     commErrCode_ = errCode;
+}
+
+void SyncTaskContext::SetErrCodeWhenWaitTimeOut(int errCode)
+{
+    if (errCode > 0) {
+        SetCommFailErrCode(static_cast<int>(TIME_OUT));
+    } else {
+        SetCommFailErrCode(errCode);
+    }
 }
 } // namespace DistributedDB

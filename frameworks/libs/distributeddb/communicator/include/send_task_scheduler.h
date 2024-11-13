@@ -78,6 +78,7 @@ public:
     uint32_t GetNoDelayTaskCount() const;
 
     void InvalidSendTask(const std::string &target);
+    void SetSoftBusErrCode(const std::string &target, int softBusErrCode);
 
 private:
     int ScheduleDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo);
@@ -101,6 +102,8 @@ private:
     bool scheduledFlag_ = false;
     std::string lastScheduleTarget_;
     Priority lastSchedulePriority_ = Priority::LOW;
+
+    std::map<std::string, int> softBusErrCodeMap_;
 };
 }
 
