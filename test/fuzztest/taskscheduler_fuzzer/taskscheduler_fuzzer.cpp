@@ -21,7 +21,7 @@
 #include "task_scheduler.h"
 
 namespace OHOS {
-static constexpr int MIN_DELAY_TIME = 5;
+static constexpr int MIN_DELAY_TIME = 0;
 static constexpr int MAX_DELAY_TIME = 5;
 static constexpr int MIN_INTERVAL_TIME = 0;
 static constexpr int MAX_INTERVAL_TIME = 3;
