@@ -23,7 +23,7 @@
 namespace OHOS {
 static constexpr int MAX_DELAY_TIME = 5;
 static constexpr int MAX_INTERVAL_TIME = 3;
-void AtFuzz(size_t time)
+void AtFuzz(int time)
 {
     TaskScheduler taskScheduler;
     std::chrono::steady_clock::time_point tp = std::chrono::steady_clock::now() +
@@ -33,7 +33,7 @@ void AtFuzz(size_t time)
     taskScheduler.Remove(task);
 }
 
-void EveryFUZZ(size_t time)
+void EveryFUZZ(int time)
 {
     TaskScheduler taskScheduler;
     std::chrono::duration<int> delay(time % MAX_DELAY_TIME);
@@ -47,7 +47,7 @@ void EveryFUZZ(size_t time)
     taskScheduler.Clean();
 }
 
-void ResetFuzz(size_t time)
+void ResetFuzz(int time)
 {
     TaskScheduler taskScheduler;
     std::chrono::duration<int> interval(time % MAX_INTERVAL_TIME);
@@ -61,8 +61,9 @@ void ResetFuzz(size_t time)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    OHOS::AtFuzz(size);
-    OHOS::EveryFUZZ(size);
-    OHOS::ResetFuzz(size);
+    int time = static_cast<int>(*data);
+    OHOS::AtFuzz(time);
+    OHOS::EveryFUZZ(time);
+    OHOS::ResetFuzz(time);
     return 0;
 }
