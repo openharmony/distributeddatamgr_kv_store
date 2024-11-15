@@ -217,10 +217,11 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
     }
 
     // Not prohibited and there is an available handle
+    uint32_t maxReadHandleNum = isExternal ? 1 : engineAttr_.maxReadNum;
     bool result = readCondition_.wait_for(lock, std::chrono::seconds(waitTime),
-        [this, &perm, &readUsingList, &readIdleList]() {
+        [this, &perm, &readUsingList, &readIdleList, &maxReadHandleNum]() {
             return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) &&
-                (!readIdleList.empty() || (readIdleList.size() + readUsingList.size() < engineAttr_.maxReadNum) ||
+                (!readIdleList.empty() || (readIdleList.size() + readUsingList.size() < maxReadHandleNum) ||
                 operateAbort_);
         });
     if (operateAbort_) {
