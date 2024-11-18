@@ -1988,4 +1988,46 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest005, T
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
 }
+
+/**
+  * @tc.name: CloudRelationalStoreTest006
+  * @tc.desc: Test create distributed table and execute transaction concurrently
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    /**
+     * @tc.steps:step2. open relational store
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    /**
+     * @tc.steps:step3. create distributed table with CLOUD_COOPERATION after between a transaction
+     * @tc.expected: step3. Return OK.
+     */
+    DistributedDB::SqlCondition sqlCondition;
+    std::vector<VBucket> records = {};
+    sqlCondition.sql = "BEGIN;";
+    EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION);
+    EXPECT_EQ(status, OK);
+    sqlCondition.sql = "COMMIT;";
+    EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+}
 }

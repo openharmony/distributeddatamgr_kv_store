@@ -122,15 +122,15 @@ int SQLiteSingleRelationalStorageEngine::CreateNewExecutor(bool isWrite, Storage
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&handle)
+void SQLiteSingleRelationalStorageEngine::ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    bool isExternal)
 {
     if (handle == nullptr) {
-        return E_OK;
+        return;
     }
     StorageExecutor *databaseHandle = handle;
-    Recycle(databaseHandle);
+    Recycle(databaseHandle, isExternal);
     handle = nullptr;
-    return E_OK;
 }
 
 void SQLiteSingleRelationalStorageEngine::SetSchema(const RelationalSchemaObject &schema)
@@ -600,16 +600,12 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(!condition.readOnly,
-        OperatePerm::NORMAL_PERM, errCode));
+        OperatePerm::NORMAL_PERM, errCode, true));
     if (handle == nullptr) {
         return errCode;
     }
     errCode = handle->ExecuteSql(condition, records);
-    if (errCode != E_OK) {
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-    ReleaseExecutor(handle);
+    ReleaseExecutor(handle, true);
     return errCode;
 }
 
