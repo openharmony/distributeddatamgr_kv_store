@@ -774,13 +774,14 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
     return E_OK;
 }
 
-int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, bool isWrite, bool isDetachMeta)
+int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption existedSecOpt, bool isWrite,
+    bool isDetachMeta)
 {
     if (option_.isMemDb || !isWrite) {
         return E_OK;
     }
 
-    int errCode = SQLiteSingleVerDatabaseUpgrader::SetSecOption(option_.subdir, option_.securityOpt,
+    int errCode = SQLiteSingleVerDatabaseUpgrader::SetSecOption(option_.subdir, option_.securityOpt, existedSecOpt,
         isNeedUpdateSecOpt_);
     if (errCode != E_OK) {
         if (errCode == -E_NOT_SUPPORT) {
@@ -857,7 +858,7 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
         return errCode;
     }
 
-    errCode = EndCreateExecutor(dbHandle, isWrite, isDetachMeta);
+    errCode = EndCreateExecutor(dbHandle, existedSecOpt, isWrite, isDetachMeta);
     if (errCode != E_OK) {
         LOGE("After create executor, set security option incomplete!");
         (void)sqlite3_close_v2(dbHandle);

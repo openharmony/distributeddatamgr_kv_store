@@ -34,7 +34,8 @@ public:
     void SetSubdir(const std::string &subDir);
     static int SetPathSecOptWithCheck(const std::string &path, const SecurityOption &secOption,
         const std::string &dbStore, bool isWithChecked = false);
-    static int SetSecOption(const std::string &path, const SecurityOption &secOption, bool isWithChecked);
+    static int SetSecOption(const std::string &path, const SecurityOption &secOption, SecurityOption existedSecOpt,
+        bool isWithChecked);
     bool IsValueNeedUpgrade() const override;
 
 protected:

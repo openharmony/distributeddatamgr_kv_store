@@ -263,7 +263,7 @@ void InsertTriggerTest(DistributedDB::TableSyncType tableSyncType)
      * @tc.steps:step3. select data from log table.
      * @tc.expected: step3. return ok.
      */
-    sql = "select * from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log;";
+    sql = "select * from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log;";
     uint64_t curTime = 0;
     int errCode = GetCurrentSysTimeIn100Ns(curTime);
     EXPECT_EQ(errCode, E_OK);
@@ -411,7 +411,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
      * @tc.steps:step4. select data from log table.
      * @tc.expected: step4. return ok.
      */
-    sql = "select * from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log;";
+    sql = "select * from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log;";
     uint64_t curTime = 0;
     int errCode = GetCurrentSysTimeIn100Ns(curTime);
     EXPECT_EQ(errCode, E_OK);
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
      * @tc.steps:step4. select data from log table.
      * @tc.expected: step4. return ok.
      */
-    sql = "select * from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log;";
+    sql = "select * from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log;";
     uint64_t curTime = 0;
     int errCode = GetCurrentSysTimeIn100Ns(curTime);
     EXPECT_EQ(errCode, E_OK);
@@ -982,13 +982,14 @@ void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t nu
         std::string sql = "insert or replace into " + tableName + " VALUES('" + std::to_string(i) + "', 'zhangsan');";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
-    std::string sql = "update " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" + " SET flag = flag | 0x08";
+    std::string sql = "update " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" +
+        " SET flag = flag | 0x08";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 }
 
 void CheckLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t expectNum)
 {
-    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log"
+    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log"
         " where flag&0x08=0x08 and flag&0x01=0";
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);

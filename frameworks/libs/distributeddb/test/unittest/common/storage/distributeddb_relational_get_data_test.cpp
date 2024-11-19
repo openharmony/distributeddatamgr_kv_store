@@ -91,7 +91,7 @@ int GetLogData(int key, uint64_t &flag, Timestamp &timestamp, const DeviceID &de
     if (!device.empty()) {
     }
     const string sql = "SELECT timestamp, flag \
-        FROM " + g_tableName + " as a, " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_log as b \
+        FROM " + g_tableName + " as a, " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_log as b \
         WHERE a.key=? AND a.rowid=b.data_key;";
 
     sqlite3 *db = nullptr;
@@ -526,11 +526,11 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData3, TestSize.Level1)
      * @tc.steps: step6. Check data.
      * @tc.expected: 2 data in the from deviceA are deleted and all data from deviceB are not deleted.
      */
-    ExpectCount(db, "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName +
+    ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName +
         "_log WHERE flag&0x01=0x01;", 2U);  // 2 deleted log
-    ExpectCount(db, "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
+    ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceA)) + ";", 3U);  // 3 records in A
-    ExpectCount(db, "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
+    ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceB)) + ";", RECORD_COUNT);  // 5 records in B
 
     sqlite3_close(db);
@@ -723,8 +723,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetIncorrectTypeData1, TestSize.Lev
      * @tc.steps: step6. Check data.
      * @tc.expected: All data in the two tables are same.
      */
-    ExpectCount(db, "SELECT count(*) FROM " + tableName + " as a, " + DBConstant::RELATIONAL_PREFIX + g_tableName +
-        "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b "
+    ExpectCount(db, "SELECT count(*) FROM " + tableName + " as a, " + std::string(DBConstant::RELATIONAL_PREFIX) +
+        g_tableName + "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b "
         "WHERE a.key=b.key AND (a.value=b.value OR (a.value is NULL AND b.value is NULL));", RECORD_COUNT);
 
     /**
@@ -732,7 +732,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetIncorrectTypeData1, TestSize.Lev
      * @tc.expected: 2 index for deviceA's data table exists.
      */
     ExpectCount(db,
-        "SELECT count(*) FROM sqlite_master WHERE type='index' AND tbl_name='" + DBConstant::RELATIONAL_PREFIX +
+        "SELECT count(*) FROM sqlite_master WHERE type='index' AND tbl_name='" +
+        std::string(DBConstant::RELATIONAL_PREFIX) +
         g_tableName + "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + "'", 2U); // 2 index
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
@@ -809,13 +810,13 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateData1, TestSize.Level1)
      * @tc.steps: step5. Check data.
      * @tc.expected: There is 5 data in table.
      */
-    sql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
+    sql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + ";";
     size_t count = 0;
     EXPECT_EQ(GetCount(db, sql, count), E_OK);
     EXPECT_EQ(count, RECORD_COUNT);
 
-    sql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_log;";
+    sql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_log;";
     count = 0;
     EXPECT_EQ(GetCount(db, sql, count), E_OK);
     EXPECT_EQ(count, RECORD_COUNT);
@@ -952,11 +953,12 @@ HWTEST_F(DistributedDBRelationalGetDataTest, MissQuery1, TestSize.Level1)
      * @tc.steps: step5. Check data.
      * @tc.expected: There is 3 data in table.
      */
-    std::string getDataSql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
+    std::string getDataSql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + ";";
     ExpectCount(db, getDataSql, 3);  // 2,3,4
 
-    std::string getLogSql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_log;";
+    std::string getLogSql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName +
+        "_log;";
     ExpectCount(db, getLogSql, 3);  // 2,3,4
 
     /**
@@ -1067,14 +1069,14 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData1, TestSize.Level1)
      * @tc.steps: step6. Check data.
      * @tc.expected: All data in the two tables are same.
      */
-    sql = "SELECT count(*) FROM " + g_tableName + " as a," + DBConstant::RELATIONAL_PREFIX + tableName + "_" +
-        DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b " +
+    sql = "SELECT count(*) FROM " + g_tableName + " as a," + std::string(DBConstant::RELATIONAL_PREFIX) +
+        tableName + "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b " +
         "WHERE a.key=b.key AND a.value=b.value;";
     size_t count = 0;
     EXPECT_EQ(GetCount(db, sql, count), E_OK);
     EXPECT_EQ(count, 1UL);
-    sql = "SELECT count(*) FROM " + tableName + " as a," + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
-        DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b " +
+    sql = "SELECT count(*) FROM " + tableName + " as a," + std::string(DBConstant::RELATIONAL_PREFIX) +
+        g_tableName + "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + " as b " +
         "WHERE a.key=b.key AND a.value=b.value;";
     count = 0;
     EXPECT_EQ(GetCount(db, sql, count), E_OK);
@@ -1238,8 +1240,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData2, TestSize.Level1)
         "265a9c8c3c690cdfdac72acfe7a50f748811802635d987bb7d69dc602ed3794f' ('key' 'integer' NOT NULL,'value' 'integer',"
         " 'integer_type' 'integer' NOT NULL DEFAULT 123, 'text_type' 'text' NOT NULL DEFAULT 'high_version', "
         "'real_type' 'real' NOT NULL DEFAULT 123.123456, 'blob_type' 'blob' NOT NULL DEFAULT 123, PRIMARY KEY ('key'))";
-    sql = "SELECT sql FROM sqlite_master WHERE tbl_name='" + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
-        DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + "';";
+    sql = "SELECT sql FROM sqlite_master WHERE tbl_name='" + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName +
+        "_" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + "';";
     EXPECT_EQ(GetOneText(db, sql), expectSql);
 
     sqlite3_close(db);
@@ -1510,7 +1512,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, NoPkData1, TestSize.Level1)
      * @tc.steps: step8. Check data.
      * @tc.expected: There is 2 data.
      */
-    std::string sql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_" +
+    std::string sql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + ";";
     size_t count = 0;
     EXPECT_EQ(GetCount(db, sql, count), E_OK);
@@ -1552,7 +1554,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
 
-    std::string getLogSql = "SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName + "_log "
+    std::string getLogSql = "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_log "
                             "WHERE flag&0x01<>0;";
     ExpectCount(db, getLogSql, 0u);  // 0 means no deleted data.
 

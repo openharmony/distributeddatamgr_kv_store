@@ -1011,23 +1011,68 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     if (!hash) { // LCOV_EXCL_BR_LINE
         hashDeviceId = DBCommon::TransferHashString(deviceName);
     }
-
-    return RemoveDeviceDataInner(hashDeviceId, isNeedNotify);
+    auto removeFunc = RemoveDeviceDataInner(hashDeviceId, isNeedNotify);
+    int errCode = E_OK;
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        errCode = removeFunc();
+    } else {
+        errCode = syncer->CleanKvCloudData(removeFunc);
+        DecObjRef(syncer);
+    }
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] CleanKvCloudData with notify failed:%d", errCode);
+    }
+    return errCode;
 }
 
 // In sync procedure, call this function
 int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, ClearMode mode)
 {
+    auto removeFunc = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), mode);
+    int errCode = E_OK;
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        errCode = removeFunc();
+    } else {
+        errCode = syncer->CleanKvCloudData(removeFunc);
+        DecObjRef(syncer);
+    }
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] CleanKvCloudData with mode [%d] failed:%d", mode, errCode);
+        return errCode;
+    }
     CleanAllWaterMark();
-    return RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), mode);
+    errCode = EraseAllDeviceWaterMark(DBCommon::TransferHashString(deviceName));
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] Erase all device water mark failed %d with mode [%d]", errCode, mode);
+    }
+    return errCode;
 }
 
 // In sync procedure, call this function
 int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName, const std::string &user,
     ClearMode mode)
 {
+    auto removeFunc = RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), user, mode);
+    int errCode = E_OK;
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        errCode = removeFunc();
+    } else {
+        errCode = syncer->CleanKvCloudData(removeFunc);
+        DecObjRef(syncer);
+    }
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] CleanKvCloudData with user and mode [%d] failed:%d", mode, errCode);
+        return errCode;
+    }
     CleanAllWaterMark();
-    return RemoveDeviceDataInner(DBCommon::TransferHashString(deviceName), user, mode);
+    errCode = EraseAllDeviceWaterMark(DBCommon::TransferHashString(deviceName));
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] Erase all device water mark failed %d with user and mode [%d]", errCode, mode);
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify) const
@@ -1385,13 +1430,17 @@ uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
     }
     uint64_t currentSysTime = TimeHelper::GetSysCurrentTime();
     if (localTimeOffset < 0 && currentSysTime >= static_cast<uint64_t>(std::abs(localTimeOffset))) {
-        return currentSysTime - static_cast<uint64_t>(std::abs(localTimeOffset));
+        currentSysTime -= static_cast<uint64_t>(std::abs(localTimeOffset));
     } else if (localTimeOffset >= 0 && (UINT64_MAX - currentSysTime >= static_cast<uint64_t>(localTimeOffset))) {
-        return currentSysTime + static_cast<uint64_t>(localTimeOffset);
+        currentSysTime += static_cast<uint64_t>(localTimeOffset);
     } else {
         LOGW("[GetTimestampFromDB] localTimeOffset plus currentSysTime overflow");
-        return currentSysTime;
     }
+    if (currentSysTime <= lastLocalSysTime_) {
+        currentSysTime = lastLocalSysTime_ + 1;
+    }
+    lastLocalSysTime_ = currentSysTime;
+    return currentSysTime;
 }
 
 Timestamp SQLiteSingleVerNaturalStore::GetCurrentTimestamp(bool needStartSync)

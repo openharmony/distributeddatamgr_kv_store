@@ -331,6 +331,11 @@ public:
         return CloudSyncer::GetSyncParamForDownload(taskId, param);
     }
 
+    void SetResumeTaskUpload(TaskId taskId, bool upload)
+    {
+        resumeTaskInfos_[taskId].upload = upload;
+    }
+
     bool IsResumeTaskUpload(TaskId taskId)
     {
         return resumeTaskInfos_[taskId].upload;

@@ -959,6 +959,89 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CloudSyncTest008
+ * @tc.desc: test when normal sync interrupted by priority sync, process info should be consistent
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. insert 35 records to user table
+     * @tc.expected: step1. OK.
+     */
+    const int localCount = 35;
+    InsertUserTableRecord(tableName_, localCount, 0);
+    Query query = Query::Select().FromTable({tableName_});
+
+    /**
+     * @tc.steps: step2. Set CLOUD_VERSION_CONFLICT when normal sync task upload
+     * @tc.expected: step2. OK.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 20) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+
+    /**
+     * @tc.steps: step3. set callback function for normal sync
+     * @tc.expected: step3. OK.
+     */
+    std::map<std::string, TableProcessInfo> retSyncProcess;
+    auto normalCallback = [&retSyncProcess](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                ASSERT_EQ(process.empty(), false);
+                auto lastProcess = process.rbegin();
+                retSyncProcess = lastProcess->second.tableProcess;
+            }
+        }
+    };
+
+    /**
+     * @tc.steps: step4. start normal sync
+     * @tc.expected: step4. OK.
+     */
+    CloudSyncOption option;
+    PrepareOption(option, query, false);
+    ASSERT_EQ(delegate_->Sync(option, normalCallback), OK);
+    std::thread syncThread1([&]() {
+        BlockSync(query, delegate_, g_actualDBStatus);
+    });
+
+    /**
+     * @tc.steps: step5. start priority sync
+     * @tc.expected: step5. OK.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::thread syncThread2([&]() {
+        BlockSync(query, delegate_, g_actualDBStatus, true);
+    });
+    syncThread1.join();
+    syncThread2.join();
+
+    /**
+     * @tc.steps: step6. Check notification of normal sync
+     * @tc.expected: step6. OK.
+     */
+    ASSERT_EQ(retSyncProcess.empty(), false);
+    auto taskInfo = retSyncProcess.rbegin();
+    ASSERT_EQ(taskInfo->second.upLoadInfo.total, 35u);
+    ASSERT_EQ(taskInfo->second.upLoadInfo.successCount, 35u);
+    ASSERT_EQ(taskInfo->second.upLoadInfo.failCount, 0u);
+
+    virtualCloudDb_->ForkInsertConflict(nullptr);
+}
+
+/**
  * @tc.name: CloudSyncObserverTest001
  * @tc.desc: test cloud sync multi observer
  * @tc.type: FUNC

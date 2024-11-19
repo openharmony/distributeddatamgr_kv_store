@@ -530,11 +530,6 @@ int RuntimeContextImpl::SetSecurityOption(const std::string &filePath, const Sec
         return -E_NOT_SUPPORT;
     }
 
-    if (option == SecurityOption()) {
-        LOGD("SecurityOption is NOT_SET,Not need to set security option!");
-        return E_OK;
-    }
-
     std::string fileRealPath;
     int errCode = OS::GetRealPath(filePath, fileRealPath);
     if (errCode != E_OK) {

@@ -391,10 +391,10 @@ void DBCommon::GetDeviceFromName(const std::string &deviceTableName, std::string
 {
     std::size_t found = deviceTableName.rfind('_');
     if (found != std::string::npos && found + 1 < deviceTableName.length() &&
-        found > DBConstant::RELATIONAL_PREFIX.length()) {
+        found > DBConstant::RELATIONAL_PREFIX_SIZE) {
         deviceHash = deviceTableName.substr(found + 1);
-        tableName = deviceTableName.substr(DBConstant::RELATIONAL_PREFIX.length(),
-            found - DBConstant::RELATIONAL_PREFIX.length());
+        tableName = deviceTableName.substr(DBConstant::RELATIONAL_PREFIX_SIZE,
+            found - DBConstant::RELATIONAL_PREFIX_SIZE);
     }
 }
 
@@ -810,7 +810,7 @@ bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
 
 std::string DBCommon::GetCursorKey(const std::string &tableName)
 {
-    return DBConstant::RELATIONAL_PREFIX + "cursor_" + ToLowerCase(tableName);
+    return std::string(DBConstant::RELATIONAL_PREFIX) + "cursor_" + ToLowerCase(tableName);
 }
 
 bool DBCommon::ConvertToUInt64(const std::string &str, uint64_t &value)

@@ -40,6 +40,7 @@ CloudSyncer::CloudSyncer(
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
+      hasKvRemoveTask(false),
       timerId_(0u),
       isKvScene_(isKvScene),
       policy_(policy)
@@ -80,6 +81,10 @@ int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
     if (closed_) {
         LOGE("[CloudSyncer] DB is closed!");
         return -E_DB_CLOSED;
+    }
+    if (hasKvRemoveTask) {
+        LOGE("[CloudSyncer] has remove task, stop sync task!");
+        return -E_CLOUD_ERROR;
     }
     CloudTaskInfo info = taskInfo;
     info.status = ProcessStatus::PREPARED;
@@ -131,29 +136,6 @@ void CloudSyncer::Close()
         LOGI("[CloudSyncer] finished taskId %" PRIu64 " with db closed.", info.taskId);
     }
     storageProxy_->Close();
-}
-
-void CloudSyncer::StopAllTasks()
-{
-    CloudSyncer::TaskId currentTask;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        currentTask = currentContext_.currentTaskId;
-    }
-    // mark current task user_change
-    SetTaskFailed(currentTask, -E_USER_CHANGE);
-    UnlockIfNeed();
-    WaitCurTaskFinished();
-
-    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos();
-    for (auto &info: infoList) {
-        LOGI("[CloudSyncer] finished taskId %" PRIu64 " with user changed.", info.taskId);
-        auto processNotifier = std::make_shared<ProcessNotifier>(this);
-        processNotifier->Init(info.table, info.devices, info.users);
-        info.errCode = -E_USER_CHANGE;
-        info.status = ProcessStatus::FINISHED;
-        processNotifier->NotifyProcess(info, {}, true);
-    }
 }
 
 int CloudSyncer::TriggerSync()
@@ -479,7 +461,7 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode)
             resumeTaskInfos_[taskId].context.locker = nullptr;
             ClearCurrentContextWithoutLock();
         }
-        contextCv_.notify_one();
+        contextCv_.notify_all();
         return;
     }
     {
@@ -973,11 +955,6 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot start a transaction: %d.", ret);
         return ret;
-    }
-    if (!IsModeForcePush(taskId)) {
-        param.changedData.tableName = param.info.tableName;
-        param.changedData.field = param.pkColNames;
-        param.changedData.type = ChangedDataType::DATA;
     }
     uint64_t cursor = DBConstant::INVALID_CURSOR;
     std::string maskStoreId = DBCommon::StringMiddleMasking(GetStoreIdByTask(taskId));
@@ -1484,6 +1461,9 @@ int CloudSyncer::CheckQueueSizeWithNoLock(bool priorityTask)
 int CloudSyncer::PrepareSync(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (hasKvRemoveTask) {
+        return -E_CLOUD_ERROR;
+    }
     if (closed_ || cloudTaskInfos_.find(taskId) == cloudTaskInfos_.end()) {
         LOGW("[CloudSyncer] Abort sync because syncer is closed");
         return -E_DB_CLOSED;
@@ -1895,7 +1875,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         ClearCurrentContextWithoutLock();
         if (cloudTaskInfos_.find(taskId) == cloudTaskInfos_.end()) { // should not happen
             LOGW("[CloudSyncer] taskId %" PRIu64 " has been finished!", taskId);
-            contextCv_.notify_one();
+            contextCv_.notify_all();
             return;
         }
         info = std::move(cloudTaskInfos_[taskId]);
@@ -1907,7 +1887,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         // if clear unlocking failed, no return to avoid affecting the entire process
         LOGW("[CloudSyncer] clear unlocking status failed! errCode = %d", err);
     }
-    contextCv_.notify_one();
+    contextCv_.notify_all();
     if (info.errCode == E_OK) {
         info.errCode = errCode;
     }
@@ -1915,6 +1895,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         info.errCode);
     info.status = ProcessStatus::FINISHED;
     if (notifier != nullptr) {
+        notifier->UpdateAllTablesFinally();
         notifier->NotifyProcess(info, {}, true);
     }
     // generate compensated sync
@@ -1992,7 +1973,6 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
             changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
         }
     }
-    
     return errorCode;
 }
 
@@ -2030,14 +2010,23 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         currentContext_.assetFields[currentContext_.tableName] = assetFields;
     }
     param.isSinglePrimaryKey = CloudSyncUtils::IsSinglePrimaryKey(param.pkColNames);
-    if (!IsModeForcePull(taskId) && !(IsPriorityTask(taskId) && !IsQueryListEmpty(taskId))) {
+    if (!IsModeForcePull(taskId) && (!IsPriorityTask(taskId) || IsQueryListEmpty(taskId))) {
         ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
+        if (!IsCurrentTaskResume(taskId)) {
+            ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
+        }
     }
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
+}
+
+bool CloudSyncer::IsCurrentTaskResume(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].resume;
 }
 
 bool CloudSyncer::IsCurrentTableResume(TaskId taskId, bool upload)
@@ -2125,7 +2114,7 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     InnerProcessInfo info;
     info.tableName = tableName;
     info.tableStatus = ProcessStatus::PROCESSING;
-    ReloadUploadInfoIfNeed(uploadParam.taskId, uploadParam, info);
+    ReloadUploadInfoIfNeed(uploadParam, info);
     return info;
 }
 

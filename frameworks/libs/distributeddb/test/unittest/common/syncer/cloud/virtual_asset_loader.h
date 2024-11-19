@@ -15,6 +15,7 @@
 
 #ifndef VIRTUAL_ASSETLOADER_H
 #define VIRTUAL_ASSETLOADER_H
+#include <atomic>
 #include <mutex>
 #include "iAssetLoader.h"
 
@@ -22,6 +23,7 @@ namespace DistributedDB {
 using DownloadCallBack = std::function<void (std::map<std::string, Assets> &assets)>;
 using RemoveAssetsCallBack = std::function<DBStatus (const std::vector<Asset> &assets)>;
 using RemoveLocalAssetsCallBack = std::function<DBStatus (std::map<std::string, Assets> &assets)>;
+using BatchDownloadCallback = std::function<DBStatus (int rowIndex, std::map<std::string, Assets> &assets)>;
 class VirtualAssetLoader : public IAssetLoader {
 public:
     VirtualAssetLoader() = default;
@@ -39,18 +41,39 @@ public:
 
     void SetRemoveStatus(DBStatus status);
 
+    void SetBatchRemoveStatus(DBStatus status);
+
     void ForkDownload(const DownloadCallBack &callback);
 
     void ForkRemoveLocalAssets(const RemoveAssetsCallBack &callback);
 
     void SetRemoveLocalAssetsCallback(const RemoveLocalAssetsCallBack &callback);
+
+    void BatchDownload(const std::string &tableName, std::vector<AssetRecord> &downloadAssets) override;
+
+    void BatchRemoveLocalAssets(const std::string &tableName, std::vector<AssetRecord> &removeAssets) override;
+
+    int GetBatchDownloadCount();
+
+    int GetBatchRemoveCount();
+
+    void Reset();
+
+    void ForkBatchDownload(const BatchDownloadCallback &callback);
 private:
+    DBStatus RemoveLocalAssetsInner(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets);
+
     std::mutex dataMutex_;
     DBStatus downloadStatus_ = OK;
     DBStatus removeStatus_ = OK;
+    DBStatus batchRemoveStatus_ = OK;
     DownloadCallBack downloadCallBack_;
     RemoveAssetsCallBack removeAssetsCallBack_;
     RemoveLocalAssetsCallBack removeLocalAssetsCallBack_;
+    std::atomic<int> downloadCount_ = 0;
+    std::atomic<int> removeCount_ = 0;
+    BatchDownloadCallback batchDownloadCallback_;
 };
 }
 #endif // VIRTUAL_ASSETLOADER_H

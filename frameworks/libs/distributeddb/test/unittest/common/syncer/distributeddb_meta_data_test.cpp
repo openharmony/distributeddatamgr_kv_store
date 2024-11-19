@@ -298,12 +298,12 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest006, TestSize.Level0)
     PutMetaDataValue(hashDeviceId, metaDataValue);
     /**
      * @tc.steps: step2. Check ability sync finish by meta.
-     * @tc.expected: step2. A is not finish because of cached.
+     * @tc.expected: step2. A is finish because meta data is loaded from db.
      */
-    EXPECT_FALSE(metadata_->IsAbilitySyncFinish(DEVICE_A));
+    EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_A));
     /**
      * @tc.steps: step3. Erase water mark and check again.
-     * @tc.expected: step3. A is finish because reload cache.
+     * @tc.expected: step3. A is finish because meta data is loaded from db.
      */
     EXPECT_EQ(metadata_->EraseDeviceWaterMark(DEVICE_A, true), E_OK);
     EXPECT_TRUE(metadata_->IsAbilitySyncFinish(DEVICE_A));

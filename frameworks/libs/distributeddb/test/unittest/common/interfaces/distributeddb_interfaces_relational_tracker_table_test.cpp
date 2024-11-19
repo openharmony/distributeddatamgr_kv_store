@@ -142,8 +142,8 @@ namespace {
     void CheckExtendAndCursor(uint64_t num, int start, const std::string &tableName, bool addNum = true)
     {
         int index = 0;
-        string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" +
-            " where data_key <= " + std::to_string(num);
+        string querySql = "select extend_field, cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
+            "_log" + " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -213,8 +213,8 @@ namespace {
          * @tc.expected: step2. Return OK.
          */
         OpenStore();
-        sql = "select count(*) from sqlite_master where name = '" + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 +
-            "_log'";
+        sql = "select count(*) from sqlite_master where name = '" + std::string(DBConstant::RELATIONAL_PREFIX) +
+            TABLE_NAME2 + "_log'";
         EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
@@ -224,7 +224,7 @@ namespace {
          */
         const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
             DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
-        sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata WHERE key=?;";
+        sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key=?;";
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, sql, stmt), E_OK);
         EXPECT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, schemaKey, false), E_OK);
@@ -563,8 +563,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
     uint64_t updateNum = 2;
     BatchUpdateTableName2Data(updateNum, LOCAL_TABLE_TRACKER_NAME_SET3);
     int index = 0;
-    string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
-        " where data_key <= " + std::to_string(updateNum);
+    string querySql = "select extend_field, cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
+        "_log" + " where data_key <= " + std::to_string(updateNum);
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -887,7 +887,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
      */
     TrackerSchema schema = g_normalSchema1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
-    string querySql = "select extend_field from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+    string querySql = "select extend_field from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
         " where data_key = 15;";
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -1085,10 +1085,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
      * @tc.expected: step4. Return OK.
      */
     EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
-    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
         " where extend_field is NULL;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(num / HALF), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();
 }
 
@@ -1125,8 +1125,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.steps:step3. check the extend_field and cursor is null
      * @tc.expected: step3. Return OK.
      */
-    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
-        " AND cursor is NULL";
+    sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
+        "_log where extend_field is NULL " + " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
@@ -1136,8 +1136,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      */
     schema.extendColName = EXTEND_COL_NAME3;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
-    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
-        " AND cursor is NULL";
+    sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
+        "_log where extend_field is NULL " + " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();
@@ -1203,7 +1203,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
      * @tc.steps:step3. query cursor
      * @tc.expected: step3. Return OK.
      */
-    string querySql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log";
+    string querySql = "select cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log";
     sqlite3_stmt *stmt = nullptr;
     int index = 20;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -1233,6 +1233,42 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest024,
     schema.extendColName = EXTEND_COL_NAME3;
     schema.trackerColNames = { EXTEND_COL_NAME3 };
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), INVALID_ARGS);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest025
+  * @tc.desc: Test CreateDistributedTable after insert data and set tracker table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lijun
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest025, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+    uint64_t num = 10;
+
+    /**
+     * @tc.steps:step1. insert data
+     * @tc.expected: step1. OK.
+     */
+    BatchInsertTableName2Data(num);
+    TrackerSchema schema = g_normalSchema1;
+
+    /**
+     * @tc.steps:step2. SetTrackerTable on table2
+     * @tc.expected: step2. Return WITH_INVENTORY_DATA.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+
+    /**
+     * @tc.steps:step3. check cursor before and after CreateDistributedTable
+     * @tc.expected: step3. Cursor is no change.
+     */
+    CheckExtendAndCursor(num, -num);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    CheckExtendAndCursor(num, -num);
     CloseStore();
 }
 
@@ -1432,7 +1468,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql004, TestS
     SqlCondition condition;
     std::vector<VBucket> records;
     std::string querySql = "select " + TABLE_NAME2 + ".* from " + TABLE_NAME2 + " join ";
-    querySql += DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" + " as a on " + TABLE_NAME2 + "._rowid_ = ";
+    querySql += std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" + " as a on " + TABLE_NAME2 +
+        "._rowid_ = ";
     querySql += "a.data_key where a.cursor > ?;";
     condition.sql = querySql;
     condition.bindArgs = {begin};
@@ -1894,7 +1931,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest029,
      * @tc.expected: step3. Return OK.
      */
     schema.isForceUpgrade = true;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     CloseStore();
 }
 
@@ -1929,8 +1966,122 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest030,
      * @tc.expected: step3. Return OK.
      */
     EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
-    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
         " where extend_field is NULL;";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest031
+ * @tc.desc: Test set tracker table with trackerColNames emtpy
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest031, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+
+    /**
+     * @tc.steps:step1. create distributed table and set data.
+     * @tc.expected: step1. Return OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+
+    /**
+     * @tc.steps:step2. set tracker table
+     * @tc.expected: step2. Return OK.
+     */
+    TrackerSchema schema;
+    schema.tableName = TABLE_NAME2;
+    schema.extendColName = EXTEND_COL_NAME2;
+    schema.trackerColNames = {};
+    schema.isForceUpgrade = false;
+    schema.isTrackAction = true;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+
+    /**
+     * @tc.steps:step3. check cursor count.
+     * @tc.expected: step3. Return OK.
+     */
+    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
+                      " where extend_field is NULL;";
+    EXPECT_EQ(sqlite3_exec(
+                  g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback, reinterpret_cast<void *>(0u), nullptr),
+        SQLITE_OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest032
+ * @tc.desc: Test after create distributed table cursor increace
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest032, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+
+    /**
+     * @tc.steps:step1. create distributed table and set data.
+     * @tc.expected: step1. Return OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+
+    /**
+     * @tc.steps:step2. check cursor count.
+     * @tc.expected: step2. Return OK.
+     */
+    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
+        " where cursor = 10;";
+    EXPECT_EQ(sqlite3_exec(
+                  g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback, reinterpret_cast<void *>(1u), nullptr),
+        SQLITE_OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest033
+ * @tc.desc: Test CreateDistributedTable after insert data and set tracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest033, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+    uint64_t num = 10;
+
+    /**
+     * @tc.steps:step1. insert data
+     * @tc.expected: step1. OK.
+     */
+    BatchInsertTableName2Data(num);
+    TrackerSchema schema = g_normalSchema1;
+
+    /**
+     * @tc.steps:step2. SetTrackerTable on table2 and set status to 2.
+     * @tc.expected: step2. ok.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    std::string sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log SET status = 2;";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    /**
+     * @tc.steps:step3. check status after CreateDistributedTable
+     * @tc.expected: step3. status is 0.
+     */
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log where status = 0;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
     CloseStore();

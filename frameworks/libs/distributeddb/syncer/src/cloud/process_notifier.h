@@ -47,6 +47,8 @@ public:
 
     void SetAllTableFinish();
 
+    void UpdateAllTablesFinally();
+
     std::map<std::string, TableProcessInfo> GetCurrentTableProcess() const;
 protected:
     mutable std::mutex processMutex_;
@@ -62,6 +64,8 @@ private:
 
     /* update success count of previous upload batch after download retry. */
     void UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessInfo &process);
+
+    void UpdateTableInfoFinally(std::map<std::string, TableProcessInfo> &processInfo);
 };
 }
 #endif // PROCESS_NOTIFIER_H

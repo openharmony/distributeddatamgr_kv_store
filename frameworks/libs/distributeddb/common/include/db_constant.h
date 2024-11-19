@@ -154,7 +154,8 @@ public:
 
     // For relational
     static const std::string SYSTEM_TABLE_PREFIX;
-    static const std::string RELATIONAL_PREFIX;
+    static constexpr const char *RELATIONAL_PREFIX = "naturalbase_rdb_aux_";
+    static constexpr size_t RELATIONAL_PREFIX_SIZE = 20;
     static const std::string TIMESTAMP_ALIAS;
     static constexpr const char *LOG_POSTFIX = "_log";
     static constexpr const char *META_TABLE_POSTFIX = "metadata";
@@ -191,10 +192,10 @@ public:
 
     static constexpr const char *STORAGE_TYPE_LONG = "long";
 
+    static constexpr const uint64_t INVALID_CURSOR = UINT64_MAX;
+
     static constexpr const char *KV_SYNC_TABLE_NAME = "sync_data";
     static constexpr const char *KV_LOCAL_TABLE_NAME = "local_data";
-
-    static constexpr uint64_t INVALID_CURSOR = UINT64_MAX;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

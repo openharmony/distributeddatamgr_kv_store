@@ -1052,4 +1052,90 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
     delete iCloud;
     idb = nullptr;
 }
+
+/**
+ * @tc.name: UploadModeCheck019
+ * @tc.desc: Get sync param when task resume
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck019, TestSize.Level0)
+{
+    MockICloudSyncStorageInterface *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    std::shared_ptr<MockICloudDB> idb3 = std::make_shared<MockICloudDB>();
+    cloudSyncer->SetMockICloudDB(idb3);
+
+    CommonExpectCall(iCloud);
+    BatchExpectCall(iCloud);
+
+    // init cloud syncer, set task as resumed and upload
+    TaskId taskId = 10u;
+    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
+    cloudSyncer->SetTaskResume(taskId, true);
+    cloudSyncer->SetResumeTaskUpload(taskId, true);
+
+    // set resumed info and cached water mark
+    ICloudSyncer::SyncParam param;
+    param.cloudWaterMark = "waterMark";
+    param.tableName = cloudSyncer->GetCurrentContextTableName();
+    cloudSyncer->SetResumeSyncParam(taskId, param);
+    cloudSyncer->SetCloudWaterMarks(param.tableName, param.cloudWaterMark);
+
+    // call GetSyncParamForDownload method and check waterMark of the sync param
+    ICloudSyncer::SyncParam actualParam;
+    EXPECT_EQ(cloudSyncer->CallGetSyncParamForDownload(taskId, actualParam), E_OK);
+    std::string expectCloudWaterMark = "";
+    EXPECT_EQ(actualParam.cloudWaterMark, expectCloudWaterMark);
+    
+    cloudSyncer->CallClose();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy.reset();
+    delete iCloud;
+    idb3 = nullptr;
+}
+
+/**
+ * @tc.name: UploadModeCheck020
+ * @tc.desc: Get sync param when task does NOT pause
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck020, TestSize.Level0)
+{
+    MockICloudSyncStorageInterface *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    std::shared_ptr<MockICloudDB> idb3 = std::make_shared<MockICloudDB>();
+    cloudSyncer->SetMockICloudDB(idb3);
+
+    CommonExpectCall(iCloud);
+    BatchExpectCall(iCloud);
+
+    // init cloud syncer
+    TaskId taskId = 10u;
+    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
+
+    // set resumed info and cached water mark
+    ICloudSyncer::SyncParam param;
+    param.cloudWaterMark = "waterMark";
+    param.tableName = cloudSyncer->GetCurrentContextTableName();
+    cloudSyncer->SetResumeSyncParam(taskId, param);
+    cloudSyncer->SetCloudWaterMarks(param.tableName, param.cloudWaterMark);
+
+    // call GetSyncParamForDownload method and check waterMark of the sync param
+    ICloudSyncer::SyncParam actualParam;
+    EXPECT_EQ(cloudSyncer->CallGetSyncParamForDownload(taskId, actualParam), E_OK);
+    std::string expectCloudWaterMark = "waterMark";
+    EXPECT_EQ(actualParam.cloudWaterMark, expectCloudWaterMark);
+    
+    cloudSyncer->CallClose();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy.reset();
+    delete iCloud;
+    idb3 = nullptr;
+}
 }

@@ -192,9 +192,8 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
     errCode = handle->DeleteMetaData({ key });
     if (errCode != E_OK) {
         LOGE("Save table drop flag to meta table failed. %d", errCode);
-        return errCode;
     }
-    return handle->InitCursorToMeta(tableName);
+    return errCode;
 }
 }
 
@@ -309,14 +308,19 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
     TableSyncType tableSyncType = table.GetTableSyncType();
-    int errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
+    std::string tableName = table.GetTableName();
+    int errCode = handle->InitCursorToMeta(tableName);
+    if (errCode != E_OK) {
+        LOGE("init cursor to meta failed. %d", errCode);
+        return errCode;
+    }
+    errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         return errCode;
     }
 
     schema.SetTableMode(mode);
-    std::string tableName = table.GetTableName();
     // update table if tableName changed
     schema.RemoveRelationalTable(tableName);
     schema.AddRelationalTable(table);
@@ -442,7 +446,7 @@ void SQLiteSingleRelationalStorageEngine::SetProperties(const RelationalDBProper
 int SQLiteSingleRelationalStorageEngine::CreateRelationalMetaTable(sqlite3 *db)
 {
     std::string sql =
-        "CREATE TABLE IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "metadata(" \
+        "CREATE TABLE IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata(" \
         "key    BLOB PRIMARY KEY NOT NULL," \
         "value  BLOB);";
     int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
@@ -473,9 +477,9 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         LOGW("tracker schema is no change.");
         return E_OK;
     }
-    bool isCheckData = tracker.GetTrackerTable(schema.tableName).GetTableName().empty() || schema.isForceUpgrade;
+    bool isFirstCreate = tracker.GetTrackerTable(schema.tableName).GetTableName().empty();
     tracker.InsertTrackerSchema(schema);
-    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isCheckData);
+    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isFirstCreate);
     if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
@@ -531,7 +535,8 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         return errCode;
     }
 
-    if (schema.trackerColNames.empty()) {
+    if (!schema.isTrackAction && schema.trackerColNames.empty()) {
+        // if isTrackAction be false and trackerColNames is empty, will remove the tracker schema.
         tracker.RemoveTrackerSchema(schema);
     }
 
@@ -694,7 +699,14 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     if (handle == nullptr) { // LCOV_EXCL_BR_LINE
         return errCode;
     }
-    errCode = handle->CleanTrackerData(tableName, cursor);
+    TrackerTable trackerTable = GetTrackerSchema().GetTrackerTable(tableName);
+    bool isOnlyTrackTable = false;
+    RelationalSchemaObject schema = GetSchema();
+    if (!trackerTable.IsTableNameEmpty() &&
+        !DBCommon::CaseInsensitiveCompare(schema.GetTable(tableName).GetTableName(), tableName)) {
+        isOnlyTrackTable = true;
+    }
+    errCode = handle->CleanTrackerData(tableName, cursor, isOnlyTrackTable);
     ReleaseExecutor(handle);
     return errCode;
 }

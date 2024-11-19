@@ -421,6 +421,9 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
             param.info.retryInfo.downloadBatchOpCount++;
             return CloudSyncUtils::SaveChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
                 dataInfo.localInfo, ChangeType::OP_DELETE);
+        case OpType::UPDATE_TIMESTAMP:
+            param.info.retryInfo.downloadBatchOpCount++;
+            return E_OK;
         default:
             return E_OK;
     }

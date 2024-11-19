@@ -901,6 +901,7 @@ group("unittest") {
     ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedDBCloudSchemaMgrTest",
     ":DistributedDBCloudStrategyTest",
+    ":DistributedDBCloudSyncerDownloadAssetsTest",
     ":DistributedDBCloudSyncerDownloadTest",
     ":DistributedDBCloudSyncerLockTest",
     ":DistributedDBCloudSyncerProgressManagerTest",

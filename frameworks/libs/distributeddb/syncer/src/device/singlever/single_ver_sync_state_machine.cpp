@@ -749,6 +749,8 @@ int SingleVerSyncStateMachine::HandleDataAckRecv(const Message *inMsg)
     }
     if (errCode == -E_NEED_ABILITY_SYNC || errCode == -E_RE_SEND_DATA || errCode == -E_NEED_TIME_SYNC) {
         StopFeedDogForSync(SyncDirectionFlag::SEND);
+        dataSync_->ClearSyncStatus();
+        context_->ReSetSequenceId();
     } else if (errCode == -E_SAVE_DATA_NOTIFY) {
         return errCode;
     }

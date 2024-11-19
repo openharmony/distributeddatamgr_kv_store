@@ -505,7 +505,8 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpdatePrimaryKeyTest001, Tes
     std::string updateSql = "update student_1 set id = 1002 where name = 'xue';";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, updateSql), SQLITE_OK);
 
-    int cnt = RelationalTestUtils::CheckTableRecords(db, DBConstant::RELATIONAL_PREFIX + "student_1" + "_log");
+    int cnt = RelationalTestUtils::CheckTableRecords(db, std::string(DBConstant::RELATIONAL_PREFIX) + "student_1" +
+        "_log");
     EXPECT_EQ(cnt, 2);
 }
 

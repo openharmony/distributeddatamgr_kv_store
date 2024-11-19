@@ -308,11 +308,13 @@ private:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
-    int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
+    int EraseAllDeviceWaterMark(const std::string &hashDev);
 
-    int RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode);
+    std::function<int(void)> RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
 
-    int RemoveDeviceDataInner(const std::string &hashDev, const std::string &user, ClearMode mode);
+    std::function<int(void)> RemoveDeviceDataInner(const std::string &hashDev, ClearMode mode);
+
+    std::function<int(void)> RemoveDeviceDataInner(const std::string &hashDev, const std::string &user, ClearMode mode);
 
     void GetAndResizeLocalIdentity(std::string &outTarget) const;
 
@@ -344,6 +346,8 @@ private:
 
     mutable std::mutex cloudStoreMutex_;
     SqliteCloudKvStore *sqliteCloudKvStore_;
+
+    Timestamp lastLocalSysTime_ = 0ULL;
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

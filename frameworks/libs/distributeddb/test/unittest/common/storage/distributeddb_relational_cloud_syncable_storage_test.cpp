@@ -1491,7 +1491,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
-    std::string querySql = "SELECT COUNT(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName +
+    std::string querySql = "SELECT COUNT(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName +
         CloudDbConstant::SHARED + "_log";
     EXPECT_EQ(sqlite3_exec(db, querySql.c_str(),
         QueryCountCallback, reinterpret_cast<void *>(2L), nullptr), SQLITE_OK);

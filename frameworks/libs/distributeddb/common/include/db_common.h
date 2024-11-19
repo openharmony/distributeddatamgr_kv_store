@@ -44,7 +44,7 @@ public:
 
     static inline std::string GetMetaTableName()
     {
-        return DBConstant::RELATIONAL_PREFIX + DBConstant::META_TABLE_POSTFIX;
+        return std::string(DBConstant::RELATIONAL_PREFIX) + DBConstant::META_TABLE_POSTFIX;
     }
 
     static std::string VectorToHexString(const std::vector<uint8_t> &inVec, const std::string &separator = "");

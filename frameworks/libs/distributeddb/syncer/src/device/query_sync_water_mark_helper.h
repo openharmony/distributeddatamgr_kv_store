@@ -143,12 +143,10 @@ private:
     // because it will change the eliminationChain
     // and the queryWaterMark use a LRU Map to store in ram
     std::mutex queryWaterMarkLock_;
-    LruMap<std::string, QueryWaterMark> querySyncCache_;
     std::map<DeviceID, std::map<std::string, std::string>> deviceIdToHashQuerySyncIdMap_;
 
     // also store deleteKeyWaterMark should add a lock
     std::mutex deleteSyncLock_;
-    std::map<std::string, DeleteWaterMark> deleteSyncCache_;
     std::map<DeviceID, std::string> deviceIdToHashDeleteSyncIdMap_;
 
     ISyncInterface *storage_;

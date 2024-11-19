@@ -2408,6 +2408,43 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
 }
 
 /**
+ * @tc.name: KVSyncOpt008
+ * @tc.desc: check rebuild open store with NOT_SET.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, true);
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
+    EXPECT_EQ(messageCount, 2); // 2 contain time sync request packet and ability sync packet
+    /**
+     * @tc.steps: step3. rebuild kv store
+     * @tc.expected: step3. rebuild failed.
+     */
+    ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+    g_kvDelegatePtr = nullptr;
+    g_mgr.DeleteKvStore(STORE_ID);
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = SecurityLabel::NOT_SET;
+    option.secOption.securityFlag = SecurityFlag::SECE;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == DBStatus::INVALID_ARGS);
+    ASSERT_TRUE(g_kvDelegatePtr == nullptr);
+}
+
+/**
  * @tc.name: KVTimeChange001
  * @tc.desc: check time sync and ability sync once
  * @tc.type: FUNC

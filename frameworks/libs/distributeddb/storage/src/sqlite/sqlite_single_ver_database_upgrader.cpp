@@ -302,12 +302,12 @@ int SQLiteSingleVerDatabaseUpgrader::SetPathSecOptWithCheck(const std::string &p
 }
 
 int SQLiteSingleVerDatabaseUpgrader::SetSecOption(const std::string &path, const SecurityOption &secOption,
-    bool isWithChecked)
+    SecurityOption existedSecOpt, bool isWithChecked)
 {
     if (!ParamCheckUtils::CheckSecOption(secOption)) {
         return -E_INVALID_ARGS;
     }
-    if (secOption.securityLabel == NOT_SET) {
+    if (secOption.securityLabel == NOT_SET && existedSecOpt.securityLabel == NOT_SET) {
         return E_OK;
     }
     std::string secOptUpgradeFile = path + "/" + DBConstant::SET_SECOPT_POSTFIX;
@@ -316,27 +316,25 @@ int SQLiteSingleVerDatabaseUpgrader::SetSecOption(const std::string &path, const
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
-    if (secOption.securityLabel != NOT_SET) {
-        std::string mainDbPath = path + "/" + DBConstant::MAINDB_DIR;
-        std::string cacheDbPath = path + "/" + DBConstant::CACHEDB_DIR;
-        std::string metaDbPath = path + "/" + DBConstant::METADB_DIR;
-        errCode = SetPathSecOptWithCheck(mainDbPath, secOption, DBConstant::SINGLE_VER_DATA_STORE, isWithChecked);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        errCode = SetPathSecOptWithCheck(cacheDbPath, secOption, DBConstant::SINGLE_VER_CACHE_STORE, isWithChecked);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteSingleVerDatabaseUpgrader] cacheDb SetSecurityOption failed.");
-            return errCode;
-        }
-        SecurityOption metaSecOpt;
-        metaSecOpt.securityLabel = ((secOption.securityLabel >= SecurityLabel::S2) ?
-            SecurityLabel::S2 : secOption.securityLabel);
-        errCode = SetPathSecOptWithCheck(metaDbPath, metaSecOpt, DBConstant::SINGLE_VER_META_STORE, false);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteSingleVerDatabaseUpgrader] metaDb SetSecurityOption failed.");
-            return errCode;
-        }
+    std::string mainDbPath = path + "/" + DBConstant::MAINDB_DIR;
+    std::string cacheDbPath = path + "/" + DBConstant::CACHEDB_DIR;
+    std::string metaDbPath = path + "/" + DBConstant::METADB_DIR;
+    errCode = SetPathSecOptWithCheck(mainDbPath, secOption, DBConstant::SINGLE_VER_DATA_STORE, isWithChecked);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SetPathSecOptWithCheck(cacheDbPath, secOption, DBConstant::SINGLE_VER_CACHE_STORE, isWithChecked);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerDatabaseUpgrader] cacheDb SetSecurityOption failed.");
+        return errCode;
+    }
+    SecurityOption metaSecOpt;
+    metaSecOpt.securityLabel = ((secOption.securityLabel >= SecurityLabel::S2) ?
+        SecurityLabel::S2 : secOption.securityLabel);
+    errCode = SetPathSecOptWithCheck(metaDbPath, metaSecOpt, DBConstant::SINGLE_VER_META_STORE, false);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerDatabaseUpgrader] metaDb SetSecurityOption failed.");
+        return errCode;
     }
     if (OS::CheckPathExistence(secOptUpgradeFile) && (OS::RemoveFile(secOptUpgradeFile) != E_OK)) {
         return -E_SYSTEM_API_FAIL;

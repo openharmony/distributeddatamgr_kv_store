@@ -157,9 +157,9 @@ const std::string TrackerTable::GetTempTriggerName(TriggerMode::TriggerModeEnum 
 const std::string TrackerTable::GetTempInsertTriggerSql(bool incFlag) const
 {
     // This trigger is built on the log table
-    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
-    sql += "_ON_INSERT_TEMP AFTER INSERT ON " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
-    sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_;
+    sql += "_ON_INSERT_TEMP AFTER INSERT ON " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_ + "_log";
+    sql += " WHEN (SELECT 1 FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     if (incFlag) {
@@ -167,10 +167,10 @@ const std::string TrackerTable::GetTempInsertTriggerSql(bool incFlag) const
     } else {
         sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     }
-    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    sql += "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_ + "_log" + " SET ";
     if (incFlag) {
-        sql += "cursor= case when (select 1 from " +
-            DBConstant::RELATIONAL_PREFIX + "metadata where key='cursor_inc_flag' AND value = 'true') then " +
+        sql += "cursor= case when (select 1 from " + std::string(DBConstant::RELATIONAL_PREFIX) +
+            "metadata where key='cursor_inc_flag' AND value = 'true') then " +
             CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " else cursor end WHERE";
     } else {
         sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
@@ -185,9 +185,9 @@ const std::string TrackerTable::GetTempInsertTriggerSql(bool incFlag) const
 
 const std::string TrackerTable::GetTempUpdateTriggerSql(bool incFlag) const
 {
-    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_;
     sql += "_ON_UPDATE_TEMP AFTER UPDATE ON " + tableName_;
-    sql += " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    sql += " WHEN (SELECT 1 FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     if (incFlag) {
@@ -195,13 +195,13 @@ const std::string TrackerTable::GetTempUpdateTriggerSql(bool incFlag) const
     } else {
         sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     }
-    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    sql += "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_ + "_log" + " SET ";
     if (!IsEmpty()) {
         sql += "extend_field=" + GetAssignValSql() + ",";
     }
     if (incFlag) {
-        sql += "cursor= case when (select 1 from " +
-            DBConstant::RELATIONAL_PREFIX + "metadata where key='cursor_inc_flag' AND value = 'true') then " +
+        sql += "cursor= case when (select 1 from " + std::string(DBConstant::RELATIONAL_PREFIX) +
+            "metadata where key='cursor_inc_flag' AND value = 'true') then " +
             CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " else cursor end WHERE";
     } else {
         sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
@@ -216,9 +216,9 @@ const std::string TrackerTable::GetTempUpdateTriggerSql(bool incFlag) const
 
 const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
 {
-    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_;
     sql += "_ON_DELETE_TEMP AFTER DELETE ON " + tableName_ +
-        " WHEN (SELECT 1 FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHEN (SELECT 1 FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     if (IsEmpty() && incFlag) {
@@ -229,7 +229,7 @@ const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
     if (!incFlag) {
         sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     }
-    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    sql += "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_ + "_log" + " SET ";
     if (!IsEmpty()) {
         sql += "extend_field=" + GetAssignValSql(true) + ",";
     }
@@ -265,6 +265,11 @@ void TrackerTable::SetTrackerNames(const std::set<std::string> &trackerNames)
 bool TrackerTable::IsEmpty() const
 {
     return trackerColNames_.empty() && !isTrackerAction_;
+}
+
+bool TrackerTable::IsTableNameEmpty() const
+{
+    return tableName_.empty();
 }
 
 bool TrackerTable::IsChanging(const TrackerSchema &schema)

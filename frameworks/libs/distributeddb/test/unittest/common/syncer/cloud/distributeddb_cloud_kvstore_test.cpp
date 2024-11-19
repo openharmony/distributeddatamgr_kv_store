@@ -1433,6 +1433,53 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest012, TestSize.Level0)
 }
 
 /**
+ * @tc.name: RemoveDeviceTest013
+ * @tc.desc: remove log record with FLAG_ONLY and empty deviceId.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Insert data
+     * * @tc.expected: step1. insert successfully
+    */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    deviceB_->PutData(k1, v1, 1u, 0); // 1 is current timestamp
+    /**
+     * @tc.steps: step2. sync between devices
+     * * @tc.expected: step2. insert successfully
+    */
+    deviceB_->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true);
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
+    EXPECT_EQ(actualValue, v1);
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    /**
+     * @tc.steps: step3. sync with cloud
+     * * @tc.expected: step3. OK
+    */
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue2;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue2), OK);
+    EXPECT_EQ(actualValue2, v1);
+    EXPECT_EQ(kvDelegatePtrS2_->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    Value actualValue3;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue3), NOT_FOUND);
+    /**
+     * @tc.steps: step4. sync between devices and check result
+     * * @tc.expected: step4. OK
+    */
+    deviceB_->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true);
+    Value actualValue4;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue4), OK);
+    EXPECT_EQ(actualValue4, v1);
+}
+
+/**
  * @tc.name: NormalSyncInvalid001
  * @tc.desc: Test normal push not sync and get cloud version.
  * @tc.type: FUNC
@@ -1715,5 +1762,61 @@ HWTEST_F(DistributedDBCloudKvStoreTest, NormalSyncInvalid008, TestSize.Level0)
     auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvDelegatePtrS1_);
     EXPECT_EQ(kvStoreImpl->Close(), OK);
     EXPECT_EQ(kvDelegatePtrS1_->SetCloudSyncConfig(config), DB_ERROR);
+}
+
+/**
+ * @tc.name: ConflictSync001
+ * @tc.desc: test upload delete with version conflict error under merge mode, then success after retry.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, ConflictSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set the retry count to 2
+     * @tc.expected: step1. ok.
+     */
+    CloudSyncConfig config;
+    config.maxRetryConflictTimes = 2;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    /**
+     * @tc.steps: step2. Put 2 records and set flag to cloud
+     * @tc.expected: step2. ok.
+     */
+    InsertRecord(2);
+    SetFlag({'k', '0'}, LogInfoFlag::FLAG_CLOUD);
+    SetFlag({'k', '1'}, LogInfoFlag::FLAG_CLOUD);
+    /**
+     * @tc.steps: step3. delete {k1, v1}
+     * @tc.expected: step3. ok.
+     */
+    kvDelegatePtrS1_->Delete(KEY_1);
+    /**
+     * @tc.steps: step4. Set CLOUD_VERSION_CONFLICT when upload, and do sync
+     * @tc.expected: step4. OK.
+     */
+    int recordIndex = 0;
+    virtualCloudDb_->ForkInsertConflict([&recordIndex](const std::string &tableName, VBucket &extend, VBucket &record,
+        vector<VirtualCloudDb::CloudData> &cloudDataVec) {
+        recordIndex++;
+        if (recordIndex == 1) { // set 1st record return CLOUD_VERSION_CONFLICT
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
+            return CLOUD_VERSION_CONFLICT;
+        }
+        return OK;
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps: step5. Check last process
+     * @tc.expected: step5. ok.
+     */
+    for (const auto &table : lastProcess_.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.successCount, 1u);
+        EXPECT_EQ(table.second.upLoadInfo.failCount, 0u);
+        EXPECT_EQ(table.second.upLoadInfo.deleteCount, 1u);
+    }
+    virtualCloudDb_->ForkInsertConflict(nullptr);
 }
 }

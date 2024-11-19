@@ -146,6 +146,8 @@ protected:
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
+
+    CloudSyncer *GetAndIncCloudSyncer();
 protected:
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
@@ -161,8 +163,6 @@ private:
         CloudSyncer::CloudTaskInfo &info);
 
     int CheckSyncOption(const CloudSyncOption &option, const CloudSyncer &syncer);
-
-    CloudSyncer *GetAndIncCloudSyncer();
 
     SyncerProxy syncer_;
     std::atomic<bool> started_;
