@@ -40,21 +40,21 @@ DBStatus VirtualAssetLoader::Download(const std::string &tableName, const std::s
 
 DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::vector<Asset> &assets)
 {
-    if (removeAssetsCallBack_) {
-        return removeAssetsCallBack_(assets);
-    }
-    return DBStatus::OK;
-}
-
-DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
-    std::map<std::string, Assets> &assets)
-{
     {
         std::lock_guard<std::mutex> autoLock(dataMutex_);
         if (removeStatus_ != OK) {
             return removeStatus_;
         }
     }
+    if (removeAssetsCallBack_) {
+        return removeAssetsCallBack_(assets);
+    }
+    return DBStatus::OK;
+}
+
+DBStatus VirtualAssetLoader::RemoveLocalAssetsInner(const std::string &tableName, const std::string &gid,
+    const Type &prefix, std::map<std::string, Assets> &assets)
+{
     DBStatus errCode = DBStatus::OK;
     if (removeLocalAssetsCallBack_) {
         errCode = removeLocalAssetsCallBack_(assets);
@@ -72,6 +72,18 @@ DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::string &tableName, con
     return DBStatus::OK;
 }
 
+DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
+    std::map<std::string, Assets> &assets)
+{
+    {
+        std::lock_guard<std::mutex> autoLock(dataMutex_);
+        if (removeStatus_ != OK) {
+            return removeStatus_;
+        }
+    }
+    return RemoveLocalAssetsInner(tableName, gid, prefix, assets);
+}
+
 void VirtualAssetLoader::SetDownloadStatus(DBStatus status)
 {
     std::lock_guard<std::mutex> autoLock(dataMutex_);
@@ -84,6 +96,13 @@ void VirtualAssetLoader::SetRemoveStatus(DBStatus status)
     std::lock_guard<std::mutex> autoLock(dataMutex_);
     LOGD("[VirtualAssetLoader] set remove status :%d", static_cast<int>(status));
     removeStatus_ = status;
+}
+
+void VirtualAssetLoader::SetBatchRemoveStatus(DBStatus status)
+{
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
+    LOGD("[VirtualAssetLoader] set batch remove status :%d", static_cast<int>(status));
+    batchRemoveStatus_ = status;
 }
 
 void VirtualAssetLoader::ForkDownload(const DownloadCallBack &callback)
@@ -99,5 +118,53 @@ void VirtualAssetLoader::ForkRemoveLocalAssets(const RemoveAssetsCallBack &callb
 void VirtualAssetLoader::SetRemoveLocalAssetsCallback(const RemoveLocalAssetsCallBack &callback)
 {
     removeLocalAssetsCallBack_ = callback;
+}
+
+void VirtualAssetLoader::BatchDownload(const std::string &tableName, std::vector<AssetRecord> &downloadAssets)
+{
+    downloadCount_++;
+    int index = 0;
+    for (auto &[gid, prefix, assets, status] : downloadAssets) {
+        if (batchDownloadCallback_) {
+            status = batchDownloadCallback_(index, assets);
+        } else {
+            status = Download(tableName, gid, prefix, assets);
+        }
+        index++;
+    }
+}
+
+void VirtualAssetLoader::BatchRemoveLocalAssets(const std::string &tableName,
+    std::vector<AssetRecord> &removeAssets)
+{
+    removeCount_++;
+    for (auto &[gid, prefix, assets, status] : removeAssets) {
+        if (batchRemoveStatus_ != OK) {
+            status = batchRemoveStatus_;
+        } else {
+            status = RemoveLocalAssetsInner(tableName, gid, prefix, assets);
+        }
+    }
+}
+
+int VirtualAssetLoader::GetBatchDownloadCount()
+{
+    return downloadCount_;
+}
+
+int VirtualAssetLoader::GetBatchRemoveCount()
+{
+    return removeCount_;
+}
+
+void VirtualAssetLoader::Reset()
+{
+    removeCount_ = 0;
+    downloadCount_ = 0;
+}
+
+void VirtualAssetLoader::ForkBatchDownload(const BatchDownloadCallback &callback)
+{
+    batchDownloadCallback_ = callback;
 }
 }

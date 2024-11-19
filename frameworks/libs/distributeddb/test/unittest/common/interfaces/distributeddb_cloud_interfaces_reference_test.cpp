@@ -406,7 +406,7 @@ namespace {
             int errCode = SQLiteUtils::BindBlobToStatement(bindStmt, 1, key, false);
             return errCode;
         };
-        std::string sql = "select value from " + DBConstant::RELATIONAL_PREFIX + "metadata where key = ?;";
+        std::string sql = "select value from " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata where key = ?;";
         int errCode = RelationalTestUtils::ExecSql(db, sql, bindCallback, [&count] (sqlite3_stmt *stmt) {
             std::string schemaStr;
             std::vector<uint8_t> value;

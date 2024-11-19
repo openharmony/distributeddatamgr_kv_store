@@ -423,6 +423,18 @@ namespace {
             messageCount++;
         });
     }
+
+    void InsertBatchValue(const std::string &tableName, const std::string &dbPath, int totalNum)
+    {
+        sqlite3 *db = nullptr;
+        EXPECT_EQ(GetDB(db, dbPath), SQLITE_OK);
+        for (int i = 0; i < totalNum; i++) {
+            std::string sql = "insert into " + tableName
+                + " values(" + std::to_string(i) + ", 'aaa');";
+            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+        }
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    }
 }
 
 class DistributedDBRelationalMultiUserTest : public testing::Test {
@@ -1246,6 +1258,55 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
     OS::RemoveFile(g_storePath1);
     PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
     g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: RDBSyncOpt006
+ * @tc.desc: check sync when time change.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. openStore and insert data
+     * @tc.expected: step1. return ok
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    PrepareVirtualDeviceBEnv(g_tableName);
+    InsertBatchValue(g_tableName, g_storePath1, 10000);
+
+    /**
+     * @tc.steps: step2. device B set delay send time
+     * * @tc.expected: step2. return ok
+    */
+    std::set<std::string> delayDevice = {DEVICE_B};
+    g_communicatorAggregator->SetSendDelayInfo(3000u, TIME_SYNC_MESSAGE, 1u, 0u, delayDevice); // send delay 3000ms
+
+    /**
+     * @tc.steps: step3. notify time change when sync
+     * @tc.expected: step3. sync success
+     */
+    Query query = Query::Select(g_tableName);
+    SyncStatusCallback callback = nullptr;
+    thread thd1 = thread([&]() {
+        EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PULL_ONLY, query, true), E_OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    thread thd2 = thread([]() {
+        RuntimeContext::GetInstance()->NotifyTimestampChanged(100);
+        RuntimeContext::GetInstance()->RecordAllTimeChange();
+        RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
+    });
+    thd1.join();
+    thd2.join();
+
+    CloseStore();
+    OS::RemoveFile(g_storePath1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    g_communicatorAggregator->ResetSendDelayInfo();
 }
 
 /**

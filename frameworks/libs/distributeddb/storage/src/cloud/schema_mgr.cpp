@@ -165,8 +165,8 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
         // remove the fields that are not found in local schema from cloud schema
         for (auto it = table.fields.begin(); it != table.fields.end();) {
             if (localFields.find((*it).colName) == localFields.end()) {
+                LOGW("Column mismatch, colName: %s", (*it).colName.c_str());
                 it = table.fields.erase(it);
-                LOGI("Column name mismatch between local and cloud schema, colName: %s", (*it).colName.c_str());
             } else {
                 ++it;
             }

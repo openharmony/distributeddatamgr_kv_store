@@ -74,7 +74,7 @@ protected:
 private:
     // For executor.
     int PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt);
-    int EndCreateExecutor(sqlite3 *db, bool isWrite, bool isDetachMeta);
+    int EndCreateExecutor(sqlite3 *db, SecurityOption existedSecOpt, bool isWrite, bool isDetachMeta);
     int ReInit() override;
     int ReleaseExecutor(SQLiteSingleVerStorageExecutor *&handle);
     int ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,

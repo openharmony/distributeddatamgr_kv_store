@@ -23,6 +23,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_errno.h"
 #include "mock_icloud_sync_storage_interface.h"
+#include "virtual_asset_loader.h"
 #include "virtual_cloud_db.h"
 #include "virtual_cloud_syncer.h"
 #include "virtual_communicator_aggregator.h"
@@ -902,6 +903,97 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
     assets = {{}};
     ret = proxy.RemoveLocalAssets(assets);
     EXPECT_EQ(ret, -E_OK);
+}
+
+/**
+ * @tc.name: CloudDBProxyTest015
+ * @tc.desc: Verify CloudDBProxy BatchDownload interfaces.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest015, TestSize.Level0)
+{
+    CloudDBProxy proxy;
+    
+    const Asset a1 = {
+    .version = 1, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/local/sync",
+    .modifyTime = "123456", .createTime = "", .size = "256", .hash = "ASE"
+    };
+    const Asset a2 = {
+        .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
+        .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
+    };
+    Assets assets1;
+    Assets assets2;
+    assets1.push_back(a1);
+    assets2.push_back(a2);
+
+    IAssetLoader::AssetRecord emptyR1 = {"r1", "pre"};
+    IAssetLoader::AssetRecord nonEmptyR2 = {"r2", "pre", {{"a1", assets1}}};
+    IAssetLoader::AssetRecord emptyR3 = {"r3", "pre"};
+    IAssetLoader::AssetRecord nonEmptyR4 = {"r4", "pre", {{"a2", assets2}}};
+    size_t uintExpected = 0;
+    /**
+     * @tc.steps: step1. call CloudDBProxy BatchDownload when iAssetLoader_ is nullptr and no records has assets
+     * @tc.expected: step1. return E_OK.
+     */
+    std::vector<IAssetLoader::AssetRecord> downloadAssets;
+    int ret = proxy.BatchDownload(TABLE_NAME, downloadAssets);
+    EXPECT_EQ(downloadAssets.size(), uintExpected);
+    EXPECT_EQ(ret, E_OK);
+    
+    downloadAssets.push_back(emptyR1);
+    ret = proxy.BatchDownload(TABLE_NAME, downloadAssets);
+    uintExpected = 1;
+    EXPECT_EQ(downloadAssets.size(), uintExpected);
+    EXPECT_EQ(ret, E_OK);
+
+    /**
+     * @tc.steps: step2. call CloudDBProxy BatchDownload when iAssetLoader_ is nullptr and some records has assets
+     * @tc.expected: step2. return -E_NOT_SET.
+     */
+    downloadAssets.push_back(nonEmptyR2);
+    ret = proxy.BatchDownload(TABLE_NAME, downloadAssets);
+    uintExpected = 2;
+    EXPECT_EQ(downloadAssets.size(), uintExpected);
+    EXPECT_EQ(ret, -E_NOT_SET);
+
+    /**
+     * @tc.steps: step3. call CloudDBProxy BatchDownload and make iAssetLoader_ change the assets and status
+     * @tc.expected: step3. return E_OK, and status are changed in original vectors
+     */
+    int totalRecordsUsed = 0; // number of records passed to loader
+    std::shared_ptr<VirtualAssetLoader> virtialAssetLoader = make_shared<VirtualAssetLoader>();
+    virtialAssetLoader->ForkBatchDownload([&totalRecordsUsed](int rowIndex, std::map<std::string, Assets> &assets) {
+        totalRecordsUsed++;
+        for (auto &asset : assets) {
+            if (asset.first == "a1") {
+                return DB_ERROR;
+            }
+            if (asset.first == "a2") {
+                asset.second[0].version = 3;
+                return NOT_FOUND;
+            }
+        }
+        return OK;
+    });
+    proxy.SetIAssetLoader(virtialAssetLoader);
+    downloadAssets.push_back(emptyR3);
+    downloadAssets.push_back(nonEmptyR4);
+    uintExpected = 4;
+    EXPECT_EQ(downloadAssets.size(), uintExpected);
+
+    ret = proxy.BatchDownload(TABLE_NAME, downloadAssets);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(virtialAssetLoader->GetBatchDownloadCount(), 1);
+    EXPECT_EQ(totalRecordsUsed, 2);
+    EXPECT_EQ(downloadAssets[0].status, OK);
+    EXPECT_EQ(downloadAssets[1].status, DB_ERROR);
+    EXPECT_EQ(downloadAssets[2].status, OK);
+    EXPECT_EQ(downloadAssets[3].status, NOT_FOUND);
+    uintExpected = 3;
+    EXPECT_EQ(downloadAssets[3].assets["a2"][0].version, uintExpected);
 }
 
 /**

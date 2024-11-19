@@ -47,7 +47,7 @@ void CloudSyncer::ReloadCloudWaterMarkIfNeed(const std::string &tableName, std::
     cloudWaterMark = cacheCloudWaterMark.empty() ? cloudWaterMark : cacheCloudWaterMark;
 }
 
-void CloudSyncer::ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info)
+void CloudSyncer::ReloadUploadInfoIfNeed(const UploadParam &param, InnerProcessInfo &info)
 {
     info.upLoadInfo.total = static_cast<uint32_t>(param.count);
     Info lastUploadInfo;
@@ -407,8 +407,8 @@ void GetAssetsToRemove(std::map<std::string, Assets> &downloadAssets, VBucket &d
     for (auto &[col, assets] : downloadAssets) {
         for (auto &asset : assets) {
             if (asset.flag == static_cast<uint32_t>(AssetOpType::DELETE) &&
-                AssetOperationUtils::CalAssetOperation(col, asset, dbAssets,
-                AssetOperationUtils::CloudSyncAction::START_DOWNLOAD) == AssetOperationUtils::AssetOpType::HANDLE) {
+                AssetOperationUtils::CalAssetRemoveOperation(col, asset, dbAssets) ==
+                AssetOperationUtils::AssetOpType::HANDLE) {
                 asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
                 assetsToRemove[col].push_back(asset);
             }
@@ -1224,8 +1224,8 @@ bool CloudSyncer::IsTableFinishInUpload(const std::string &table)
 
 void CloudSyncer::MarkUploadFinishIfNeed(const std::string &table)
 {
-    // table exist reference should upload every times
-    if (storageProxy_->IsTableExistReference(table)) {
+    // table exist reference or reference by should upload every times
+    if (storageProxy_->IsTableExistReferenceOrReferenceBy(table)) {
         return;
     }
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1325,37 +1325,51 @@ std::string CloudSyncer::GetStoreIdByTask(TaskId taskId)
     return cloudTaskInfos_[taskId].storeId;
 }
 
-void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
+int CloudSyncer::CleanKvCloudData(std::function<int(void)> &removeFunc)
 {
-    int dataCount = 0;
-    int logicDeleteDataCount = 0;
-    int errCode = storageProxy_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
-    if (errCode == E_OK) {
-        LOGI("[CloudSyncer] Check local data after download[%s[%u]], data count: %d, logic delete data count: %d",
-            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), dataCount, logicDeleteDataCount);
-    } else {
-        LOGW("[CloudSyncer] Get local data after download fail: %d", errCode);
+    hasKvRemoveTask = true;
+    CloudSyncer::TaskId currentTask;
+    {
+        // stop task if exist
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        currentTask = currentContext_.currentTaskId;
     }
+    if (currentTask != INVALID_TASK_ID) {
+        StopAllTasks(-E_CLOUD_ERROR);
+    }
+    int errCode = E_OK;
+    {
+        std::lock_guard<std::mutex> lock(syncMutex_);
+        errCode = removeFunc();
+        hasKvRemoveTask = false;
+    }
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] removeFunc execute failed errCode: %d.", errCode);
+    }
+    return errCode;
 }
 
-void CloudSyncer::CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
-    std::vector<std::string> &pkColNames)
+void CloudSyncer::StopAllTasks(int errCode)
 {
-    for (auto &data : downloadData.data) {
-        bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
-        bool isContainAllPk = true;
-        for (auto &pkColName : pkColNames) {
-            if (data.count(pkColName) == 0) {
-                isContainAllPk = false;
-                break;
-            }
-        }
-        std::string gid;
-        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
-        if (!isVersionExist || !isContainAllPk) {
-            LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
-                static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
-        }
+    CloudSyncer::TaskId currentTask;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        currentTask = currentContext_.currentTaskId;
+    }
+    // mark current task user_change
+    SetTaskFailed(currentTask, errCode);
+    UnlockIfNeed();
+    WaitCurTaskFinished();
+
+    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos();
+    for (auto &info: infoList) {
+        LOGI("[CloudSyncer] finished taskId %" PRIu64 " with errCode %d, isPriority %d.", info.taskId, errCode,
+            info.priorityTask);
+        auto processNotifier = std::make_shared<ProcessNotifier>(this);
+        processNotifier->Init(info.table, info.devices, info.users);
+        info.errCode = errCode;
+        info.status = ProcessStatus::FINISHED;
+        processNotifier->NotifyProcess(info, {}, true);
     }
 }
 
@@ -1461,7 +1475,7 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
     int errorCode = E_OK;
     int index = 0;
     for (auto &item : downloadRecord) {
-        auto deleteCode = CloudDBProxy::GetInnerErrorCode(removeAssets[index].status);
+        auto deleteCode = removeAssets[index].status == OK ? E_OK : -E_REMOVE_ASSETS_FAILED;
         auto downloadCode = CloudDBProxy::GetInnerErrorCode(downloadAssets[index].status);
         downloadCode = downloadCode == -E_CLOUD_RECORD_EXIST_CONFLICT ? E_OK : downloadCode;
         if (!isSharedTable) {
@@ -1521,6 +1535,40 @@ void CloudSyncer::AddNotifyDataFromDownloadAssets(const std::set<Key> &dupHashKe
             downloadItem.primaryKeyValList);
     } else if (downloadItem.strategy == OpType::INSERT) {
         changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
+    }
+}
+
+void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
+{
+    int dataCount = 0;
+    int logicDeleteDataCount = 0;
+    int errCode = storageProxy_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
+    if (errCode == E_OK) {
+        LOGI("[CloudSyncer] Check local data after download[%s[%u]], data count: %d, logic delete data count: %d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), dataCount, logicDeleteDataCount);
+    } else {
+        LOGW("[CloudSyncer] Get local data after download fail: %d", errCode);
+    }
+}
+
+void CloudSyncer::CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
+    std::vector<std::string> &pkColNames)
+{
+    for (auto &data : downloadData.data) {
+        bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
+        bool isContainAllPk = true;
+        for (auto &pkColName : pkColNames) {
+            if (data.count(pkColName) == 0) {
+                isContainAllPk = false;
+                break;
+            }
+        }
+        std::string gid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        if (!isVersionExist || !isContainAllPk) {
+            LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
+                static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
+        }
     }
 }
 }

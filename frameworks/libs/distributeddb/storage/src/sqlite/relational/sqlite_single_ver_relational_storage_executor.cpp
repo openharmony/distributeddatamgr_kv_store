@@ -208,6 +208,60 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableName)
+{
+    int errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        LOGE("Fail to set log trigger on when reset log status, %d", errCode);
+        return errCode;
+    }
+    std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    std::string sql = "UPDATE " + logTable + " SET status = 0;";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        LOGE("Failed to initialize cloud type log data.%d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded,
+    const std::string &identity, TableInfo &table, TableSyncType syncType)
+{
+    // create log table
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
+    if (tableManager == nullptr) {
+        LOGE("[CreateRelationalLogTable] get table manager failed");
+        return -E_INVALID_DB;
+    }
+    int errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
+    if (errCode != E_OK) {
+        LOGE("[CreateDistributedTable] create log table failed");
+        return errCode;
+    }
+
+    std::string tableName = table.GetTableName();
+    if ((!isUpgraded) && table.GetTrackerTable().GetTableName().empty()) {
+        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
+        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    } else if (!isUpgraded) {
+        errCode = ResetLogStatus(tableName);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+
+    // add trigger
+    errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, identity);
+    if (errCode != E_OK) {
+        LOGE("[CreateDistributedTable] Add relational log table trigger failed.");
+        return errCode;
+    }
+    return SetLogTriggerStatus(true);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
     const std::string &identity, TableInfo &table, TableSyncType syncType)
 {
@@ -242,29 +296,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
         return errCode;
     }
 
-    // create log table
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
-    errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
-    if (errCode != E_OK) {
-        LOGE("[CreateDistributedTable] create log table failed");
-        return errCode;
-    }
-
-    if (!isUpgraded) {
-        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
-        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-
-    // add trigger
-    errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, identity);
-    if (errCode != E_OK) {
-        LOGE("[CreateDistributedTable] Add relational log table trigger failed.");
-        return errCode;
-    }
-    return SetLogTriggerStatus(true);
+    return CreateRelationalLogTable(mode, isUpgraded, identity, table, syncType);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
@@ -650,7 +682,7 @@ static size_t GetDataItemSerialSize(DataItem &item, size_t appendLen)
 
 int SQLiteSingleVerRelationalStorageExecutor::GetKvData(const Key &key, Value &value) const
 {
-    static const std::string SELECT_META_VALUE_SQL = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX +
+    static const std::string SELECT_META_VALUE_SQL = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) +
         "metadata WHERE key=?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, SELECT_META_VALUE_SQL, statement);
@@ -679,7 +711,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetKvData(const Key &key, Value &v
 
 int SQLiteSingleVerRelationalStorageExecutor::PutKvData(const Key &key, const Value &value) const
 {
-    static const std::string INSERT_META_SQL = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX +
+    static const std::string INSERT_META_SQL = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) +
         "metadata VALUES(?,?);";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, INSERT_META_SQL, statement);
@@ -709,7 +741,7 @@ ERROR:
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaData(const std::vector<Key> &keys) const
 {
-    static const std::string REMOVE_META_VALUE_SQL = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX +
+    static const std::string REMOVE_META_VALUE_SQL = "DELETE FROM " + std::string(DBConstant::RELATIONAL_PREFIX) +
         "metadata WHERE key=?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_META_VALUE_SQL, statement);
@@ -736,8 +768,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaData(const std::vector<K
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
 {
-    static const std::string REMOVE_META_VALUE_BY_KEY_PREFIX_SQL = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX +
-        "metadata WHERE key>=? AND key<=?;";
+    static const std::string REMOVE_META_VALUE_BY_KEY_PREFIX_SQL = "DELETE FROM " +
+        std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key>=? AND key<=?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_META_VALUE_BY_KEY_PREFIX_SQL, statement);
     if (errCode != E_OK) {
@@ -757,7 +789,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Ke
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 {
-    static const std::string SELECT_ALL_META_KEYS = "SELECT key FROM " + DBConstant::RELATIONAL_PREFIX + "metadata;";
+    static const std::string SELECT_ALL_META_KEYS = "SELECT key FROM " + std::string(DBConstant::RELATIONAL_PREFIX) +
+        "metadata;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, SELECT_ALL_META_KEYS, statement);
     if (errCode != E_OK) {
@@ -1241,7 +1274,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTable(const
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedAllDeviceTableLog(const std::string &tableName)
 {
     std::string deleteLogSql =
-        "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName +
+        "DELETE FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
         "_log WHERE flag&0x02=0 AND (cloud_gid = '' OR cloud_gid IS NULL)";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, deleteLogSql);
 }
@@ -1249,7 +1282,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedAllDeviceTableLog
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTableLog(const std::string &device,
     const std::string &tableName)
 {
-    std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE device = ?";
+    std::string deleteLogSql = "DELETE FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
+        "_log WHERE device = ?";
     sqlite3_stmt *deleteLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, deleteLogSql, deleteLogStmt);
     if (errCode != E_OK) {
@@ -1466,7 +1500,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetMaxTimestamp(const std::vector<
 {
     maxTimestamp = 0;
     for (const auto &tableName : tableNames) {
-        const std::string sql = "SELECT MAX(timestamp) FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log;";
+        const std::string sql = "SELECT MAX(timestamp) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
+            "_log;";
         sqlite3_stmt *stmt = nullptr;
         int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
         if (errCode != E_OK) {
@@ -1490,7 +1525,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetLogTriggerStatus(bool status)
 {
     const std::string key = "log_trigger_switch";
     std::string val = status ? "true" : "false";
-    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " VALUES ('" + key + "', '" + val + "')";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {

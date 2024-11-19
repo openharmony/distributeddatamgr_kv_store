@@ -154,7 +154,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         return errCode;
     }
     cursor++;
-    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    std::string sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log";
     sql += " SET cursor = ? where cloud_gid = ?;";
     sqlite3_stmt *statement = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
@@ -582,10 +582,16 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor)
+int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor,
+    bool isOnlyTrackTable)
 {
-    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    sql += " SET extend_field = NULL where data_key = -1 and cursor <= ?;";
+    std::string sql;
+    if (isOnlyTrackTable) {
+        sql = "DELETE FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log";
+    } else {
+        sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log SET extend_field = NULL";
+    }
+    sql += " where data_key = -1 and cursor <= ?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
@@ -774,7 +780,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanShareTable(const std::string 
         return errCode;
     }
     statement = nullptr;
-    std::string delLogSql = "DELETE FROM '" + DBConstant::RELATIONAL_PREFIX + tableName + "_log';";
+    std::string delLogSql = "DELETE FROM '" + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log';";
     errCode = SQLiteUtils::GetStatement(dbHandle_, delLogSql, statement);
     if (errCode != E_OK) {
         LOGE("get clean shared log stmt failed %d.", errCode);
@@ -1044,7 +1050,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::strin
         if (errCode == E_OK) {
             sql += ", cursor = " + std::to_string(cursor + 1) + " ";
         } else {
-            LOGE("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+            LOGE("[RDBExecutor] Increase cursor failed when delete log: %d.", errCode);
             return errCode;
         }
     }
@@ -1511,12 +1517,25 @@ int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::strin
         // this is shared table, not need to update asset id.
         return E_OK;
     }
-    if (!IsNeedUpdateAssetId(tableSchema, dataKey, vBucket)) {
+    bool isNotIncCursor = false; // if isNotIncCursor is false, will increase cursor
+    if (!IsNeedUpdateAssetId(tableSchema, dataKey, vBucket, isNotIncCursor)) {
         return E_OK;
+    }
+    int error = SetCursorIncFlag(!isNotIncCursor);
+    if (error != E_OK) {
+        LOGE("[Storage Executor] failed to set cursor_inc_flag, %d.", error);
+        return error;
     }
     int errCode = UpdateAssetId(tableSchema, dataKey, vBucket);
     if (errCode != E_OK) {
         LOGE("[Storage Executor] failed to update assetId on table, %d.", errCode);
+    }
+    if (isNotIncCursor) {
+        error = SetCursorIncFlag(true);
+        if (error != E_OK) {
+            LOGE("[Storage Executor] failed to set cursor_inc_flag true, %d.", error);
+            return error;
+        }
     }
     return errCode;
 }

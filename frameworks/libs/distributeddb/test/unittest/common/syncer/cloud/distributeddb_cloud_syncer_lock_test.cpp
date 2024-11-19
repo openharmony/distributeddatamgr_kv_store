@@ -971,6 +971,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
  */
 HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
 {
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     /**
      * @tc.steps:step1. insert local and sync
      * @tc.expected: step1. return ok.
@@ -980,7 +981,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
     CallSync(option);
 
     /**
-     * @tc.steps:step2. change asset/assets and set RemoveLocalAssets fail
+     * @tc.steps:step2. change asset/assets and set BatchRemoveLocalAssets fail
      * @tc.expected: step2. return ok.
      */
     std::string sql = "SELECT asset, assets FROM " + ASSETS_TABLE_NAME + ";";
@@ -1003,7 +1004,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
     asset.hash = "new_hash";
     assets.pop_back();
     UpdateCloudAssets(asset, assets, std::string("0"));
-    g_virtualAssetLoader->SetRemoveStatus(DBStatus::LOCAL_ASSET_NOT_FOUND);
+    g_virtualAssetLoader->SetBatchRemoveStatus(DBStatus::LOCAL_ASSET_NOT_FOUND);
 
     /**
      * @tc.steps:step3. sync and check cursor
@@ -1014,7 +1015,9 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
         " where cursor='3';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-    g_virtualAssetLoader->SetRemoveStatus(DBStatus::OK);
+    g_virtualAssetLoader->SetBatchRemoveStatus(DBStatus::OK);
+    EXPECT_EQ(g_syncProcess.errCode, DBStatus::REMOVE_ASSETS_FAIL);
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
 
 /**
@@ -1220,6 +1223,70 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, ReviseLocalModTimeTest001, TestSize.L
         " where timestamp < " + std::to_string(curTime);
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: RemoveAssetsFailTest001
+ * @tc.desc: Test failCount when remove assets fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RemoveAssetsFailTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local and sync
+     * @tc.expected: step1. return ok.
+     */
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
+    InsertLocalData(0, 1, ASSETS_TABLE_NAME, false);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. change asset and set RemoveLocalAssets fail
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "SELECT asset, assets FROM " + ASSETS_TABLE_NAME + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    Asset asset;
+    Assets assets;
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        ASSERT_EQ(sqlite3_column_type(stmt, 1), SQLITE_BLOB);
+        Type assetsBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, assetsBlob), E_OK);
+        assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(assetsBlob));
+        Type assetBlob;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Asset>, 0, assetBlob), E_OK);
+        asset = g_virtualCloudDataTranslate->BlobToAsset(std::get<Bytes>(assetBlob));
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    asset.hash = "new_hash";
+    assets.pop_back();
+    UpdateCloudAssets(asset, assets, std::string("0"));
+    g_virtualAssetLoader->SetRemoveStatus(DBStatus::LOCAL_ASSET_NOT_FOUND);
+
+    /**
+     * @tc.steps:step3. sync and check failCount
+     * @tc.expected: step3. return ok.
+     */
+    int downLoadCount = 0;
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+        downLoadCount++;
+        if (downLoadCount == 1) {
+            std::string sql = "delete from " + ASSETS_TABLE_NAME + " WHERE id=0";
+            EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        }
+    });
+    CallSync(option);
+    for (const auto &table : g_syncProcess.tableProcess) {
+        EXPECT_EQ(table.second.downLoadInfo.failCount, 1u);
+    }
+    g_virtualAssetLoader->SetRemoveStatus(DBStatus::OK);
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
 } // namespace
 #endif // RELATIONAL_STORE

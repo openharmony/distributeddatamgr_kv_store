@@ -237,7 +237,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         return -E_CLOUD_ERROR;
     }
     std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
-        " sharing_resource, status, version FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
+        " sharing_resource, status, version FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
+        "_log WHERE ";
     if (!cloudGid.empty()) {
         sql += "cloud_gid = ? OR ";
     }
@@ -389,7 +390,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &table
 
 int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &tableName, uint64_t cursor)
 {
-    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata SET VALUE = ? where KEY = ?;";
+    std::string sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata SET VALUE = ? where KEY = ?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
@@ -566,7 +567,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &
 
 int SQLiteSingleVerRelationalStorageExecutor::SetCursorIncFlag(bool flag)
 {
-    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " VALUES ('cursor_inc_flag', ";
     if (flag) {
         sql += "'true'";
@@ -1249,7 +1250,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ReviseLocalModTime(const std::stri
 }
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
-    const VBucket &vBucket, const Field &field, VBucket &assetInfo)
+    const VBucket &vBucket, const Field &field, VBucket &assetInfo, bool &isNotIncCursor)
 {
     if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
@@ -1259,7 +1260,11 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
             return true;
         }
         const Asset &assetDB = *assetDBPtr;
-        if (assetDB.assetId != asset.assetId || asset.status != AssetStatus::NORMAL) {
+        if (assetDB.assetId != asset.assetId) {
+            return true;
+        }
+        if (asset.status != AssetStatus::NORMAL) {
+            isNotIncCursor = true;
             return true;
         }
     }
@@ -1275,7 +1280,11 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
             return true;
         }
         for (uint32_t i = 0; i < assets.size(); ++i) {
-            if (assets[i].assetId != assetsDB[i].assetId || assets[i].status != AssetStatus::NORMAL) {
+            if (assets[i].assetId != assetsDB[i].assetId) {
+                return true;
+            }
+            if (assets[i].status != AssetStatus::NORMAL) {
+                isNotIncCursor = true;
                 return true;
             }
         }
@@ -1284,7 +1293,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
 }
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey,
-    const VBucket &vBucket)
+    const VBucket &vBucket, bool &isNotIncCursor)
 {
     std::vector<Field> assetFields;
     for (const auto &field : tableSchema.fields) {
@@ -1325,7 +1334,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
         return true;
     }
     return std::any_of(assetFields.begin(), assetFields.end(), [&](const Field &field) {
-        return IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo);
+        return IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo, isNotIncCursor);
     });
 }
 

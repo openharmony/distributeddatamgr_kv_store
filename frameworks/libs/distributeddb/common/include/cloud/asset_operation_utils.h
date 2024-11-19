@@ -36,6 +36,8 @@ public:
         const CloudSyncAction &action);
     static AssetOperationUtils::AssetOpType CalAssetOperation(const std::string &colName, const Asset &cacheAsset,
         const VBucket &dbAssets, const CloudSyncAction &action);
+    static AssetOperationUtils::AssetOpType CalAssetRemoveOperation(const std::string &colName,
+        const Asset &cacheAsset, const VBucket &assets);
     static uint32_t EraseBitMask(uint32_t status);
     static void UpdateAssetsFlag(std::vector<VBucket> &from, std::vector<VBucket> &target);
     static void FilterDeleteAsset(VBucket &record);

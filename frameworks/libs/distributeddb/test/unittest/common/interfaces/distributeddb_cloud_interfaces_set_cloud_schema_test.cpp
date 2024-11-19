@@ -2165,7 +2165,7 @@ namespace {
 
     /**
      * @tc.name: SharedTableSync019
-     * @tc.desc: Test falg_only has notify.
+     * @tc.desc: Test flag_only has notify.
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: wangxiangdong

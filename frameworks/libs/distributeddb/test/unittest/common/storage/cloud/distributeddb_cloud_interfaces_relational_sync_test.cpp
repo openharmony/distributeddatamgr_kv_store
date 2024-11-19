@@ -2449,7 +2449,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudCursorTest001, Tes
      * although it is unTrackerTable
      * @tc.expected: step2. return ok.
      */
-    string sql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName1 + "_log";
+    string sql = "select cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName1 + "_log";
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     int64_t index = 0;

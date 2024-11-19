@@ -1485,8 +1485,9 @@ std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName)
 
 std::string CloudStorageUtils::GetCursorIncSqlWhenAllow(const std::string &tableName)
 {
-    return "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata" + " SET value= case when (select 1 from " +
-        DBConstant::RELATIONAL_PREFIX + "metadata" + " where key='cursor_inc_flag' AND value = 'true') then value + 1" +
+    std::string prefix = DBConstant::RELATIONAL_PREFIX;
+    return "UPDATE " + prefix + "metadata" + " SET value= case when (select 1 from " +
+        prefix + "metadata" + " where key='cursor_inc_flag' AND value = 'true') then value + 1" +
         " else value end WHERE key=x'" + DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
 }
 

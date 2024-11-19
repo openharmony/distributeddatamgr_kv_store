@@ -1625,7 +1625,7 @@ int SQLiteUtils::GetRelationalSchema(sqlite3 *db, std::string &schema, const std
     }
 
     sqlite3_stmt *statement = nullptr;
-    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata WHERE key=?;";
+    std::string sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key=?;";
     int errCode = GetStatement(db, sql, statement);
     if (errCode != E_OK) {
         return errCode;
@@ -1666,7 +1666,7 @@ int SQLiteUtils::GetLogTableVersion(sqlite3 *db, std::string &version)
     }
 
     sqlite3_stmt *statement = nullptr;
-    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata WHERE key=?;";
+    std::string sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key=?;";
     int errCode = GetStatement(db, sql, statement);
     if (errCode != E_OK) {
         return errCode;

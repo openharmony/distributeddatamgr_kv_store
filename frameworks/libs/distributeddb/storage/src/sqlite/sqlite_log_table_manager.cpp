@@ -105,11 +105,11 @@ void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std:
 {
     const std::string tableName = GetLogTableName(table);
 
-    std::string indexTimestampFlag = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX +
+    std::string indexTimestampFlag = "CREATE INDEX IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) +
         "time_flag_index ON " + tableName + "(timestamp, flag);";
     schema.emplace_back(indexTimestampFlag);
 
-    std::string indexHashkey = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX +
+    std::string indexHashkey = "CREATE INDEX IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) +
         "hashkey_index ON " + tableName + "(hash_key);";
     schema.emplace_back(indexHashkey);
 }

@@ -51,7 +51,7 @@ std::string CollaborationLogTableManager::GetInsertTrigger(const TableInfo &tabl
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + table.GetTableName() + "'\n";
-    insertTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    insertTrigger += "WHEN (SELECT count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
@@ -71,12 +71,12 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + table.GetTableName() + "'\n";
-    updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    updateTrigger += "WHEN (SELECT count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n";
     if (table.GetIdentifyKey().size() == 1u && table.GetIdentifyKey().at(0) == "rowid") {
         // primary key is rowid, it can't be changed
-        updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+        updateTrigger += "\t UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + table.GetTableName() + "_log";
         updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22";
         updateTrigger += " WHERE data_key = OLD." +  std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     } else {
@@ -103,10 +103,10 @@ std::string CollaborationLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_DELETE BEFORE DELETE \n";
     deleteTrigger += "ON '" + table.GetTableName() + "'\n";
-    deleteTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    deleteTrigger += "WHEN (SELECT count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";
-    deleteTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+    deleteTrigger += "\t UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + table.GetTableName() + "_log";
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_sys_time(0)";
     deleteTrigger += " WHERE data_key = OLD." +  std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     deleteTrigger += "END;";
@@ -121,8 +121,8 @@ std::string CollaborationLogTableManager::GetPrimaryKeySql(const TableInfo &tabl
 void CollaborationLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
 {
     SqliteLogTableManager::GetIndexSql(table, schema);
-    std::string dataKeyIndex = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "datakey_index ON " +
-        GetLogTableName(table) + "(data_key);";
+    std::string dataKeyIndex = "CREATE INDEX IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) +
+        "datakey_index ON " + GetLogTableName(table) + "(data_key);";
     schema.emplace_back(dataKeyIndex);
 }
 

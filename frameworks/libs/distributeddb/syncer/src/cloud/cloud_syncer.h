@@ -58,13 +58,15 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema);
 
+    int CleanKvCloudData(std::function<int(void)> &removeFunc);
+
     int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);
 
     int32_t GetCloudSyncTaskCount();
 
     void Close();
 
-    void StopAllTasks();
+    void StopAllTasks(int errCode = -E_USER_CHANGE);
 
     std::string GetIdentify() const override;
 
@@ -323,6 +325,8 @@ protected:
 
     int GetSyncParamForDownload(TaskId taskId, SyncParam &param);
 
+    bool IsCurrentTaskResume(TaskId taskId);
+
     bool IsCurrentTableResume(TaskId taskId, bool upload);
 
     int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort, bool isFirstDownload);
@@ -341,7 +345,7 @@ protected:
 
     void ReloadCloudWaterMarkIfNeed(const std::string &tableName, std::string &cloudWaterMark);
 
-    void ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info);
+    void ReloadUploadInfoIfNeed(const UploadParam &param, InnerProcessInfo &info);
 
     void GetLastUploadInfo(const std::string &tableName, Info &lastUploadInfo, UploadRetryInfo &retryInfo);
 
@@ -444,10 +448,6 @@ protected:
 
     std::string GetStoreIdByTask(TaskId taskId);
 
-    void CheckDataAfterDownload(const std::string &tableName);
-
-    void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData, std::vector<std::string> &pkColNames);
-
     int CloudDbBatchDownloadAssets(TaskId taskId, const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
         InnerProcessInfo &info, ChangedData &changedAssets);
 
@@ -471,6 +471,10 @@ protected:
     static void AddNotifyDataFromDownloadAssets(const std::set<Key> &dupHashKeySet, DownloadItem &downloadItem,
         ChangedData &changedAssets);
 
+    void CheckDataAfterDownload(const std::string &tableName);
+
+    void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData, std::vector<std::string> &pkColNames);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
@@ -488,7 +492,7 @@ protected:
     std::atomic<int32_t> queuedManualSyncLimit_;
 
     std::atomic<bool> closed_;
-
+    std::atomic<bool> hasKvRemoveTask;
     std::atomic<TimerId> timerId_;
     std::mutex heartbeatMutex_;
     std::condition_variable heartbeatCv_;

@@ -46,128 +46,124 @@ std::shared_ptr<IProcessCommunicator> KvStoreDelegateManager::processCommunicato
 std::mutex KvStoreDelegateManager::multiUserMutex_;
 
 namespace {
-    const int GET_CONNECT_RETRY = 3;
-    const int RETRY_GET_CONN_INTER = 30;
+const int GET_CONNECT_RETRY = 3;
+const int RETRY_GET_CONN_INTER = 30;
 
-    IKvDBConnection *GetOneConnectionWithRetry(const KvDBProperties &properties, int &errCode)
-    {
-        for (int i = 0; i < GET_CONNECT_RETRY; i++) {
-            auto conn = KvDBManager::GetDatabaseConnection(properties, errCode);
-            if (conn != nullptr) {
-                return conn;
-            }
-            if (errCode == -E_STALE) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_GET_CONN_INTER));
-            } else {
-                return nullptr;
-            }
+IKvDBConnection *GetOneConnectionWithRetry(const KvDBProperties &properties, int &errCode)
+{
+    for (int i = 0; i < GET_CONNECT_RETRY; i++) {
+        auto conn = KvDBManager::GetDatabaseConnection(properties, errCode);
+        if (conn != nullptr) {
+            return conn;
         }
-        return nullptr;
-    }
-
-    DBStatus CheckAndGetSchema(bool isMemoryDb, const std::string &schema, SchemaObject &schemaObj)
-    {
-        if (isMemoryDb && !schema.empty()) {
-            LOGW("[KvStoreDelegateManager] memory database doesn't support the schema.");
-            return NOT_SUPPORT;
-        }
-        if (schema.empty()) {
-            return OK;
-        }
-        schemaObj.ParseFromSchemaString(schema);
-        if (!schemaObj.IsSchemaValid()) {
-            return INVALID_SCHEMA;
-        }
-        return OK;
-    }
-
-    void InitPropWithNbOption(KvDBProperties &properties,  const std::string &storePath,
-        const SchemaObject &schema, const KvStoreNbDelegate::Option &option)
-    {
-        properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
-        properties.SetIntProp(KvDBProperties::DATABASE_TYPE, option.storageEngineType == GAUSSDB_RD ?
-            KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL : KvDBProperties::SINGLE_VER_TYPE_SQLITE);
-        properties.SetBoolProp(KvDBProperties::MEMORY_MODE, option.isMemoryDb);
-        properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
-        if (!option.isMemoryDb) { // memory db ignore store path
-            properties.SetStringProp(KvDBProperties::DATA_DIR, storePath);
-        }
-        properties.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, option.createDirByStoreIdOnly);
-        properties.SetSchema(schema);
-        properties.SetBoolProp(KvDBProperties::CHECK_INTEGRITY, option.isNeedIntegrityCheck);
-        properties.SetBoolProp(KvDBProperties::RM_CORRUPTED_DB, option.isNeedRmCorruptedDb);
-        if (RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
-            properties.SetIntProp(KvDBProperties::SECURITY_LABEL, option.secOption.securityLabel);
-            properties.SetIntProp(KvDBProperties::SECURITY_FLAG, option.secOption.securityFlag);
-        }
-        properties.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, option.conflictResolvePolicy);
-
-        if (option.isEncryptedDb) {
-            properties.SetPassword(option.cipher, option.passwd);
-        }
-        properties.SetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, option.isNeedCompressOnSync);
-        if (option.isNeedCompressOnSync) {
-            properties.SetIntProp(KvDBProperties::COMPRESSION_RATE,
-                ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
-        }
-        properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
-        properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
-        properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
-        bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
-        properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
-        properties.SetUIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
-        properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
-        properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
-    }
-
-    bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)
-    {
-        if ((option.notifier && !ParamCheckUtils::CheckConflictNotifierType(option.conflictType)) ||
-            (!option.notifier && option.conflictType != 0)) {
-            LOGE("Invalid conflict type, conflict type is [%d]", option.conflictType);
-            return false;
-        }
-        if ((option.observer != nullptr && !ParamCheckUtils::CheckObserver(option.key, option.mode)) ||
-            (option.observer == nullptr && (!option.key.empty() || option.mode != 0))) {
-            LOGE("Invalid observer param, observer mode is [%u]", option.mode);
-            return false;
-        }
-        return true;
-    }
-
-#ifndef OMIT_MULTI_VER
-    void InitPropWithOption(KvDBProperties &properties, const std::string &storePath,
-        const KvStoreDelegate::Option &option)
-    {
-        properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
-        properties.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, option.createDirByStoreIdOnly);
-        properties.SetIntProp(KvDBProperties::DATABASE_TYPE,
-            ((option.localOnly == true) ? KvDBProperties::LOCAL_TYPE_SQLITE : KvDBProperties::MULTI_VER_TYPE_SQLITE));
-        properties.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
-        properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
-        properties.SetStringProp(KvDBProperties::DATA_DIR, storePath);
-        if (option.isEncryptedDb) {
-            properties.SetPassword(option.cipher, option.passwd);
+        if (errCode == -E_STALE) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_GET_CONN_INTER));
+        } else {
+            return nullptr;
         }
     }
-#endif
+    return nullptr;
 }
 
+DBStatus CheckAndGetSchema(bool isMemoryDb, const std::string &schema, SchemaObject &schemaObj)
+{
+    if (isMemoryDb && !schema.empty()) {
+        LOGW("[KvStoreDelegateManager] memory database doesn't support the schema.");
+        return NOT_SUPPORT;
+    }
+    if (schema.empty()) {
+        return OK;
+    }
+    schemaObj.ParseFromSchemaString(schema);
+    if (!schemaObj.IsSchemaValid()) {
+        return INVALID_SCHEMA;
+    }
+    return OK;
+}
+
+void InitPropWithNbOption(KvDBProperties &properties, const std::string &storePath, const SchemaObject &schema,
+    const KvStoreNbDelegate::Option &option)
+{
+    properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
+    properties.SetIntProp(KvDBProperties::DATABASE_TYPE,
+        option.storageEngineType == GAUSSDB_RD ? KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL
+                                               : KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    properties.SetBoolProp(KvDBProperties::MEMORY_MODE, option.isMemoryDb);
+    properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
+    if (!option.isMemoryDb) { // memory db ignore store path
+        properties.SetStringProp(KvDBProperties::DATA_DIR, storePath);
+    }
+    properties.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, option.createDirByStoreIdOnly);
+    properties.SetSchema(schema);
+    properties.SetBoolProp(KvDBProperties::CHECK_INTEGRITY, option.isNeedIntegrityCheck);
+    properties.SetBoolProp(KvDBProperties::RM_CORRUPTED_DB, option.isNeedRmCorruptedDb);
+    if (RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
+        properties.SetIntProp(KvDBProperties::SECURITY_LABEL, option.secOption.securityLabel);
+        properties.SetIntProp(KvDBProperties::SECURITY_FLAG, option.secOption.securityFlag);
+    }
+    properties.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, option.conflictResolvePolicy);
+
+    if (option.isEncryptedDb) {
+        properties.SetPassword(option.cipher, option.passwd);
+    }
+    properties.SetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, option.isNeedCompressOnSync);
+    if (option.isNeedCompressOnSync) {
+        properties.SetIntProp(
+            KvDBProperties::COMPRESSION_RATE, ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
+    }
+    properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
+    properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
+    properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
+    bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
+    properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
+    properties.SetUIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
+    properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
+    properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
+}
+
+bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)
+{
+    if ((option.notifier && !ParamCheckUtils::CheckConflictNotifierType(option.conflictType)) ||
+        (!option.notifier && option.conflictType != 0)) {
+        LOGE("Invalid conflict type, conflict type is [%d]", option.conflictType);
+        return false;
+    }
+    if ((option.observer != nullptr && !ParamCheckUtils::CheckObserver(option.key, option.mode)) ||
+        (option.observer == nullptr && (!option.key.empty() || option.mode != 0))) {
+        LOGE("Invalid observer param, observer mode is [%u]", option.mode);
+        return false;
+    }
+    return true;
+}
+
+#ifndef OMIT_MULTI_VER
+void InitPropWithOption(KvDBProperties &properties, const std::string &storePath, const KvStoreDelegate::Option &option)
+{
+    properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
+    properties.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, option.createDirByStoreIdOnly);
+    properties.SetIntProp(KvDBProperties::DATABASE_TYPE,
+        ((option.localOnly == true) ? KvDBProperties::LOCAL_TYPE_SQLITE : KvDBProperties::MULTI_VER_TYPE_SQLITE));
+    properties.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
+    properties.SetStringProp(KvDBProperties::DATA_DIR, storePath);
+    if (option.isEncryptedDb) {
+        properties.SetPassword(option.cipher, option.passwd);
+    }
+}
+#endif
+} // namespace
+
 KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const std::string &userId, int32_t instanceId)
-    : appId_(appId),
-      userId_(userId),
-      instanceId_(instanceId)
+    : appId_(appId), userId_(userId), instanceId_(instanceId)
 {}
 
-KvStoreDelegateManager::KvStoreDelegateManager(const std::string &appId, const std::string &userId,
-    const std::string &subUser, int32_t instanceId)
-    : appId_(appId),
-      userId_(userId),
-      subUser_(subUser),
-      instanceId_(instanceId)
+KvStoreDelegateManager::KvStoreDelegateManager(
+    const std::string &appId, const std::string &userId, const std::string &subUser, int32_t instanceId)
+    : appId_(appId), userId_(userId), subUser_(subUser), instanceId_(instanceId)
 {}
 
-KvStoreDelegateManager::~KvStoreDelegateManager() {}
+KvStoreDelegateManager::~KvStoreDelegateManager()
+{}
 
 DBStatus KvStoreDelegateManager::SetKvStoreConfig(const KvStoreConfig &kvStoreConfig)
 {
@@ -210,7 +206,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
 
     KvDBProperties properties;
     InitPropWithOption(properties, GetKvStorePath(), option);
-    DbIdParam dbIdParam = { appId_, userId_, storeId };
+    DbIdParam dbIdParam = {appId_, userId_, storeId};
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
     int errCode;
@@ -236,8 +232,8 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
 #endif
 }
 
-DBStatus KvStoreDelegateManager::SetObserverNotifier(KvStoreNbDelegate *kvStore,
-    const KvStoreNbDelegate::Option &option)
+DBStatus KvStoreDelegateManager::SetObserverNotifier(
+    KvStoreNbDelegate *kvStore, const KvStoreNbDelegate::Option &option)
 {
     DBStatus status;
     if (option.observer != nullptr) {
@@ -294,8 +290,7 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
             return false;
         }
     } else {
-        if (option.secOption.securityLabel != SecurityLabel::NOT_SET ||
-            option.secOption.securityFlag != 0) {
+        if (option.secOption.securityLabel != SecurityLabel::NOT_SET || option.secOption.securityFlag != 0) {
             LOGE("Memory db has no physical files, Is not controlled by security labels, so not support set labels");
             callback(INVALID_ARGS, nullptr);
             return false;
@@ -331,7 +326,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     }
     KvDBProperties properties;
     InitPropWithNbOption(properties, GetKvStorePath(), schema, tmpOption);
-    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_, instanceId_ };
+    DbIdParam dbIdParam = {appId_, userId_, storeId, subUser_, instanceId_};
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
     int errCode;
@@ -416,7 +411,7 @@ DBStatus KvStoreDelegateManager::DeleteKvStore(const std::string &storeId)
 
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, GetKvStorePath());
-    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_ };
+    DbIdParam dbIdParam = {appId_, userId_, storeId, subUser_};
     DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::RemoveDatabase(properties);
     if (errCode == E_OK) {
@@ -486,7 +481,7 @@ DBStatus KvStoreDelegateManager::GetKvStoreDiskSize(const std::string &storeId, 
     }
     KvDBProperties properties;
     properties.SetStringProp(KvDBProperties::DATA_DIR, dataDir);
-    DbIdParam dbIdParam = { appId_, userId_, storeId, subUser_ };
+    DbIdParam dbIdParam = {appId_, userId_, storeId, subUser_};
     DBCommon::SetDatabaseIds(properties, dbIdParam);
     int errCode = KvDBManager::CalculateKvStoreSize(properties, size);
     if (errCode != E_OK) {
@@ -505,8 +500,8 @@ void KvStoreDelegateManager::SetKvStoreCorruptionHandler(const KvStoreCorruption
     KvDBManager::SetDatabaseCorruptionHandler(handler);
 }
 
-DBStatus KvStoreDelegateManager::GetDatabaseDir(const std::string &storeId, const std::string &appId,
-    const std::string &userId, std::string &directory)
+DBStatus KvStoreDelegateManager::GetDatabaseDir(
+    const std::string &storeId, const std::string &appId, const std::string &userId, std::string &directory)
 {
     if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId)) {
         return INVALID_ARGS;
@@ -587,8 +582,8 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     return OK;
 }
 
-DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(const std::string &userId, const std::string &appId,
-    const std::string &storeId)
+DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(
+    const std::string &userId, const std::string &appId, const std::string &storeId)
 {
     if (RuntimeContext::GetInstance() == nullptr) {
         return DB_ERROR;
@@ -611,8 +606,8 @@ void KvStoreDelegateManager::SetAutoLaunchRequestCallback(const AutoLaunchReques
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBTypeInner::DB_KV);
 }
 
-std::string KvStoreDelegateManager::GetKvStoreIdentifier(const std::string &userId, const std::string &appId,
-    const std::string &storeId, bool syncDualTupleMode)
+std::string KvStoreDelegateManager::GetKvStoreIdentifier(
+    const std::string &userId, const std::string &appId, const std::string &storeId, bool syncDualTupleMode)
 {
     return RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
 }

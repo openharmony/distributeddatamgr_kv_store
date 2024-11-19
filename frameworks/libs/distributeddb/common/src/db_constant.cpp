@@ -23,7 +23,6 @@ const std::string DBConstant::MAINDB_DIR = "main";
 const std::string DBConstant::METADB_DIR = "meta";
 const std::string DBConstant::CACHEDB_DIR = "cache";
 const std::string DBConstant::SYSTEM_TABLE_PREFIX = "naturalbase_rdb_";
-const std::string DBConstant::RELATIONAL_PREFIX = "naturalbase_rdb_aux_";
 const std::string DBConstant::RELATIONAL_SCHEMA_KEY = "relational_schema";
 const std::string DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";

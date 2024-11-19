@@ -57,6 +57,11 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerRelationalStorageExecutor);
 
+    int ResetLogStatus(std::string &tableName);
+
+    int CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
+        TableInfo &table, TableSyncType syncType);
+
     // The parameter "identity" is a hash string that identifies a device
     int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
         TableInfo &table, TableSyncType syncType);
@@ -157,7 +162,7 @@ public:
     int CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
-    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+    int CleanTrackerData(const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
     int CreateSharedTable(const TableSchema &schema);
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);
@@ -441,10 +446,11 @@ private:
     int UpdateAssetsIdForOneRecord(const TableSchema &tableSchema, const std::string &sql,
         const std::vector<Asset> &assetOfOneRecord, const std::vector<Assets> &assetsOfOneRecord);
 
-    bool IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
+    bool IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket,
+        bool &isNotIncCursor);
 
     bool IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt, const VBucket &vBucket, const Field &field,
-        VBucket &assetInfo);
+        VBucket &assetInfo, bool &isNotIncCursor);
 
     int UpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
 

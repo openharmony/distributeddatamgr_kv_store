@@ -1280,7 +1280,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
     LOGI("DropLogicDeleteData on table:%s length:%d cursor:%" PRIu64,
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), cursor);
     std::string logTblName = DBCommon::GetLogTableName(tableName);
-    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " VALUES ('log_trigger_switch', 'false')";
     int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
@@ -1301,7 +1301,7 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
         LOGE("delete logic delete log failed. %d", errCode);
         return errCode;
     }
-    sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+    sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
         " VALUES ('log_trigger_switch', 'true')";
     errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {

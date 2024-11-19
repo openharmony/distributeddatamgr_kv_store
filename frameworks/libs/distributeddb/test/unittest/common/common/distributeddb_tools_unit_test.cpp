@@ -1249,7 +1249,7 @@ int RelationalTestUtils::GetMetaData(sqlite3 *db, const DistributedDB::Key &key,
         return -E_INVALID_ARGS;
     }
 
-    std::string sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata WHERE key = ?;";
+    std::string sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key = ?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -1275,7 +1275,8 @@ int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key,
         return -E_INVALID_ARGS;
     }
 
-    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata VALUES (?, ?);";
+    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) +
+        "metadata VALUES (?, ?);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {

@@ -95,7 +95,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + tableName + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + tableName + "'\n";
-    insertTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    insertTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
     insertTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
@@ -116,7 +116,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";
-    insertTrigger += (table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1");
+    insertTrigger += (table.GetTrackerTable().IsEmpty() ? "0" : "1");
     insertTrigger += ");\n";
     insertTrigger += "END;";
     return insertTrigger;
@@ -130,13 +130,13 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    updateTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02|0x20";
-    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (!table.GetTrackerTable().IsEmpty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
     updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
@@ -159,7 +159,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + tableName + "_ON_DELETE BEFORE DELETE \n";
     deleteTrigger += "ON '" + tableName + "'\n";
-    deleteTrigger += "WHEN (SELECT count(*) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata ";
+    deleteTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";
     deleteTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
@@ -171,7 +171,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
         std::to_string(localDeleteFlag | static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY)) +
         " END),";
     deleteTrigger += "timestamp=get_raw_sys_time()";
-    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (!table.GetTrackerTable().IsEmpty()) {
         deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
     }
     deleteTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
@@ -180,7 +180,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::DELETE);
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
-    deleteTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
+    deleteTrigger += table.GetTrackerTable().IsEmpty() ? "0" : "1";
     deleteTrigger += ");\n";
     deleteTrigger += "END;";
     return deleteTrigger;
@@ -196,7 +196,7 @@ std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableIn
     dropTriggers.emplace_back(insertTrigger);
     dropTriggers.emplace_back(updateTrigger);
     dropTriggers.emplace_back(deleteTrigger);
-    if (table.GetTrackerTable().GetTrackerColNames().empty()) {
+    if (table.GetTrackerTable().IsEmpty()) {
         std::string clearExtendSql = "UPDATE " + GetLogTableName(table) + " SET extend_field = '';";
         dropTriggers.emplace_back(clearExtendSql);
     }

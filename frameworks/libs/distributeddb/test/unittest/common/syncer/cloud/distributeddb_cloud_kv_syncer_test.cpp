@@ -838,4 +838,100 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest001, TestSize.Le
     CloseKvStore(kvDelegatePtrS3, STORE_ID_3);
     CloseKvStore(kvDelegatePtrS4, STORE_ID_4);
 }
+
+/**
+ * @tc.name: DeviceCollaborationTest002
+ * @tc.desc: Check concurrent removeDeviceData and sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open db with DEVICE_COLLABORATION.
+     * @tc.expected: step1. return E_OK.
+     */
+    KvStoreNbDelegate* kvDelegatePtrS3 = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.conflictResolvePolicy = ConflictResolvePolicy::DEVICE_COLLABORATION;
+    ASSERT_EQ(GetKvStore(kvDelegatePtrS3, STORE_ID_3, option), OK);
+    ASSERT_NE(kvDelegatePtrS3, nullptr);
+    KvStoreNbDelegate* kvDelegatePtrS4 = nullptr;
+    ASSERT_EQ(GetKvStore(kvDelegatePtrS4, STORE_ID_4, option), OK);
+    ASSERT_NE(kvDelegatePtrS4, nullptr);
+    /**
+     * @tc.steps: step2. db3 put 200 k-v data.
+     * @tc.expected: step2. OK.
+     */
+    std::vector<Entry> entries;
+    for (int i = 0; i < 200; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        Entry entry;
+        entry.key = key;
+        entry.value = value;
+        entries.push_back(entry);
+    }
+
+    ASSERT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    communicatorAggregator_->SetLocalDeviceId("DB3");
+    /**
+     * @tc.steps: step3. when sync, try to removeDeviceData.
+     * @tc.expected: step3. sync stop.
+     */
+    auto callback = [](const std::map<std::string, SyncProcess> &process) {
+        LOGD("process finished");
+    };
+    auto actualRet = kvDelegatePtrS3->Sync(g_CloudSyncoption, callback);
+    EXPECT_EQ(actualRet, OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // wait for 100ms
+    EXPECT_EQ(kvDelegatePtrS3->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    communicatorAggregator_->SetLocalDeviceId("DB4");
+    BlockSync(kvDelegatePtrS4, OK, g_CloudSyncoption);
+    std::string keyStr = "k_1";
+    Key key(keyStr.begin(), keyStr.end());
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS4->Get(key, actualValue), NOT_FOUND);
+    CloseKvStore(kvDelegatePtrS3, STORE_ID_3);
+    CloseKvStore(kvDelegatePtrS4, STORE_ID_4);
+}
+
+/**
+ * @tc.name: DeviceCollaborationTest003
+ * @tc.desc: Check concurrent removeDeviceData and sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Block in sync
+     * @tc.expected: step1. return E_OK.
+     */
+    ASSERT_EQ(kvDelegatePtrS1_->Put(KEY_1, VALUE_1), OK);
+    virtualCloudDb_->ForkUpload([](const std::string &, VBucket &) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    });
+    std::thread syncThread([&]() {
+        BlockSync(kvDelegatePtrS1_, CLOUD_ERROR, g_CloudSyncoption);
+    });
+    /**
+     * @tc.steps: step2. RemoveDeviceData concurrently
+     * @tc.expected: step2. return E_OK.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::thread removeThread1([&]() {
+        EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    });
+    std::thread removeThread2([&]() {
+        EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData("", ClearMode::FLAG_AND_DATA), OK);
+    });
+    syncThread.join();
+    removeThread1.join();
+    removeThread2.join();
+}
 }

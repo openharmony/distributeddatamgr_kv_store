@@ -228,6 +228,9 @@ std::map<std::string, TableProcessInfo> ProcessNotifier::GetCurrentTableProcess(
 
 void ProcessNotifier::UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessInfo &process)
 {
+    if (process.tableName.empty()) {
+        return;
+    }
     auto &syncProcess = IsMultiUser() ? multiSyncProcess_.at(user_) : syncProcess_;
     auto tableProcess = syncProcess.tableProcess.find(process.tableName);
     auto retryInfo = processRetryInfo_.find(process.tableName);
@@ -235,6 +238,35 @@ void ProcessNotifier::UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessI
         uint32_t downloadOpCount = process.retryInfo.downloadBatchOpCount;
         uint32_t uploadRetryCount = retryInfo->second;
         tableProcess->second.upLoadInfo.successCount += std::min(uploadRetryCount, downloadOpCount);
+        processRetryInfo_.erase(retryInfo);
+    }
+}
+
+void ProcessNotifier::UpdateAllTablesFinally()
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    UpdateTableInfoFinally(syncProcess_.tableProcess);
+    for (auto &syncProcess : multiSyncProcess_) {
+        UpdateTableInfoFinally(syncProcess.second.tableProcess);
+    }
+}
+
+void ProcessNotifier::UpdateTableInfoFinally(std::map<std::string, TableProcessInfo> &processInfo)
+{
+    for (auto &item : processInfo) {
+        uint32_t uploadOpCount = item.second.upLoadInfo.successCount + item.second.upLoadInfo.failCount;
+        if (item.second.upLoadInfo.total > uploadOpCount) {
+            item.second.upLoadInfo.successCount = item.second.upLoadInfo.total - item.second.upLoadInfo.failCount;
+        } else {
+            item.second.upLoadInfo.total = uploadOpCount;
+        }
+
+        uint32_t downloadOpCount = item.second.downLoadInfo.successCount + item.second.downLoadInfo.failCount;
+        if (item.second.downLoadInfo.total > downloadOpCount) {
+            item.second.downLoadInfo.successCount = item.second.downLoadInfo.total - item.second.downLoadInfo.failCount;
+        } else {
+            item.second.downLoadInfo.total = downloadOpCount;
+        }
     }
 }
 }

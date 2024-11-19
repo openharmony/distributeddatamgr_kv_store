@@ -1156,6 +1156,10 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, Tes
      * @tc.expected: step1. out value = 0
      */
     Metadata meta;
+    VirtualSingleVerSyncDBInterface storage;
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+    
     uint64_t val = 99; // 99 is the initial value of outValue
     uint64_t outValue = val;
     meta.GetRemoveDataMark("D1", outValue);

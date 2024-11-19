@@ -66,6 +66,24 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::CalAssetOperation(const st
     return reaction(cacheAsset, GetAssets(colName, dbAssets));
 }
 
+AssetOperationUtils::AssetOpType AssetOperationUtils::CalAssetRemoveOperation(const std::string &colName,
+    const Asset &cacheAsset, const VBucket &assets)
+{
+    Assets dbAssets = GetAssets(colName, assets);
+    for (const auto &dbAsset : dbAssets) {
+        if (dbAsset.name != cacheAsset.name) {
+            continue;
+        }
+        if (EraseBitMask(dbAsset.status) == AssetStatus::DOWNLOADING ||
+            EraseBitMask(dbAsset.status) == AssetStatus::ABNORMAL) {
+            return AssetOpType::HANDLE;
+        }
+        return AssetOpType::NOT_HANDLE;
+    }
+    return cacheAsset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE) ?
+        AssetOpType::HANDLE : AssetOpType::NOT_HANDLE;
+}
+
 uint32_t AssetOperationUtils::EraseBitMask(uint32_t status)
 {
     return ((status << BIT_MASK_COUNT) >> BIT_MASK_COUNT);

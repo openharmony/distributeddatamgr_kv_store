@@ -285,6 +285,42 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, TimeChangeWithCloseStoreTe
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("TimeChangeWithCloseStoreTest003"), OK);
 }
+
+/**
+  * @tc.name: TimeChangeWithDataChangeTest001
+  * @tc.desc: Test change data and change time
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, TimeChangeWithDataChangeTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create local database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    option.localOnly = true;
+    g_mgr.GetKvStore("TimeChangeWithDataChangeTest001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Set 100s time offset, put{k1, v1}. Then Set 0s time offset, put {k1, v2}.
+     * @tc.expected: step2. Get {k1, v2} form DB.
+     */
+    OS::SetOffsetBySecond(100); // 100 : fake system time change
+    g_kvNbDelegatePtr->Put(KEY_1, VALUE_1);
+    OS::SetOffsetBySecond(0);
+    g_kvNbDelegatePtr->Put(KEY_1, VALUE_2);
+    Value expectValue = VALUE_2;
+    Value actualValue;
+    g_kvNbDelegatePtr->Get(KEY_1, actualValue);
+    EXPECT_EQ(expectValue, actualValue);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore("TimeChangeWithDataChangeTest001"), OK);
+}
 #endif // DB_DEBUG_ENV
 
 /**
@@ -888,6 +924,46 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, SyncRangeQuery001, TestSiz
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
+
+#ifndef USE_RD_KERNEL
+/**
+  * @tc.name: InvalidOption001
+  * @tc.desc: Test get kv store use invalid options info func with rd, need execute in manual.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhujinlin
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, InvalidOption001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    option.rdconfig.pageSize = 64u;
+    option.rdconfig.cacheSize = 4u * 1024u * 1024u;
+    option.rdconfig.type = HASH;
+    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
+    ASSERT_EQ(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
+    /**
+     * @tc.steps:step2. Get the nb delegate.
+     * @tc.expected: step2. Get results OK and non-null delegate.
+     */
+    option.rdconfig.cacheSize = (4u * 1024u * 1024u) - 64u;
+    g_mgr.GetKvStore("InvalidOption001", option, g_kvNbDelegateCallback);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("InvalidOption001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+#endif
 
 /**
   * @tc.name: OptionValidCheck001

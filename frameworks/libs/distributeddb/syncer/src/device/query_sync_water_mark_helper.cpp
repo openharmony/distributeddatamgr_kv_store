@@ -39,7 +39,6 @@ QuerySyncWaterMarkHelper::~QuerySyncWaterMarkHelper()
 {
     storage_ = nullptr;
     deviceIdToHashQuerySyncIdMap_.clear();
-    deleteSyncCache_.clear();
     deviceIdToHashDeleteSyncIdMap_.clear();
 }
 
@@ -86,22 +85,14 @@ int QuerySyncWaterMarkHelper::LoadDeleteSyncDataToCache(const Key &deleteWaterMa
     if (errCode != E_OK) {
         return errCode;
     }
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
-    deleteSyncCache_[dbKey] = deleteWaterMark;
     return errCode;
 }
 
 int QuerySyncWaterMarkHelper::GetQueryWaterMarkInCacheAndDb(const std::string &cacheKey,
     QueryWaterMark &queryWaterMark)
 {
-    // first get from cache_
-    int errCode = querySyncCache_.Get(cacheKey, queryWaterMark);
-    bool addToCache = false;
-    if (errCode == -E_NOT_FOUND) {
-        // second get from db
-        errCode = GetQueryWaterMarkFromDB(cacheKey, queryWaterMark);
-        addToCache = true;
-    }
+    // second get from db
+    int errCode = GetQueryWaterMarkFromDB(cacheKey, queryWaterMark);
     if (errCode == -E_NOT_FOUND) {
         // third generate one and save to db
         errCode = PutQueryWaterMarkToDB(cacheKey, queryWaterMark);
@@ -109,11 +100,6 @@ int QuerySyncWaterMarkHelper::GetQueryWaterMarkInCacheAndDb(const std::string &c
     // something error return
     if (errCode != E_OK) {
         LOGE("[Meta]GetQueryWaterMark Fail code = %d", errCode);
-        return errCode;
-    }
-    // remember add to cache_
-    if (addToCache) {
-        querySyncCache_.Put(cacheKey, queryWaterMark);
     }
     return errCode;
 }
@@ -182,13 +168,8 @@ int QuerySyncWaterMarkHelper::UpdateCacheAndSave(const std::string &cacheKey,
     if (errCode != E_OK) {
         return errCode;
     }
-    // save db first
-    errCode = SaveQueryWaterMarkToDB(cacheKey, queryWaterMark);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    querySyncCache_.Put(cacheKey, queryWaterMark);
-    return errCode;
+    // save db
+    return SaveQueryWaterMarkToDB(cacheKey, queryWaterMark);
 }
 
 int QuerySyncWaterMarkHelper::PutQueryWaterMarkToDB(const DeviceID &dbKeyString, QueryWaterMark &queryWaterMark)
@@ -338,37 +319,24 @@ int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceI
 int QuerySyncWaterMarkHelper::UpdateDeleteSyncCacheAndSave(const std::string &dbKey,
     const DeleteWaterMark &deleteWaterMark)
 {
-    // save db first
-    int errCode = SaveDeleteWaterMarkToDB(dbKey, deleteWaterMark);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    // modify cache
-    deleteSyncCache_[dbKey] = deleteWaterMark;
-    return errCode;
+    // save db
+    return SaveDeleteWaterMarkToDB(dbKey, deleteWaterMark);
 }
 
 int QuerySyncWaterMarkHelper::GetDeleteWaterMarkFromCache(const DeviceID &hashDeviceId,
     DeleteWaterMark &deleteWaterMark)
 {
-    // if not found
-    if (deleteSyncCache_.find(hashDeviceId) == deleteSyncCache_.end()) {
-        DeleteWaterMark waterMark;
-        waterMark.version = DELETE_WATERMARK_VERSION_CURRENT;
-        int errCode = GetDeleteWaterMarkFromDB(hashDeviceId, waterMark);
-        if (errCode == -E_NOT_FOUND) {
-            deleteWaterMark.sendWaterMark = 0;
-            deleteWaterMark.recvWaterMark = 0;
-            errCode = E_OK;
-        }
-        if (errCode != E_OK) {
-            LOGE("[Meta]GetDeleteWaterMark Fail code = %d", errCode);
-            return errCode;
-        }
-        deleteSyncCache_.insert(std::pair<DeviceID, DeleteWaterMark>(hashDeviceId, waterMark));
+    deleteWaterMark.version = DELETE_WATERMARK_VERSION_CURRENT;
+    int errCode = GetDeleteWaterMarkFromDB(hashDeviceId, deleteWaterMark);
+    if (errCode == -E_NOT_FOUND) {
+        deleteWaterMark.sendWaterMark = 0;
+        deleteWaterMark.recvWaterMark = 0;
+        errCode = E_OK;
     }
-    deleteWaterMark = deleteSyncCache_[hashDeviceId];
-    return E_OK;
+    if (errCode != E_OK) {
+        LOGE("[Meta]GetDeleteWaterMark Fail code = %d", errCode);
+    }
+    return errCode;
 }
 
 int QuerySyncWaterMarkHelper::GetDeleteWaterMarkFromDB(const DeviceID &hashDeviceId,
@@ -537,8 +505,6 @@ int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, 
         LOGE("[META]ResetRecvQueryWaterMark fail errCode:%d", errCode);
         return errCode;
     }
-    // clean cache
-    querySyncCache_.RemoveWithPrefixKey(prefixKeyStr);
     return E_OK;
 }
 }  // namespace DistributedDB

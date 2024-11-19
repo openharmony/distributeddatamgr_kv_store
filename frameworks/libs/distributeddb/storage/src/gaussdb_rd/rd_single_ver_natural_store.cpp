@@ -312,7 +312,7 @@ int RdSingleVerNaturalStore::PreCheckRdImport(std::string &storePath)
 }
 
 int RdSingleVerNaturalStore::Import(const std::string &filePath, const CipherPassword &passwd,
-    bool isNeedIntegrityCheck)
+    [[gnu::unused]] bool isNeedIntegrityCheck)
 {
     int errCode = E_OK;
     std::string storePath;

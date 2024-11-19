@@ -2344,7 +2344,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, TestErrCodePassthrough002, Te
 
     /**
      * @tc.steps: step6. call sync and mock errCode is -INT_MAX.
-     * @tc.expected: step6. return - INT_MAX.
+     * @tc.expected: step6. return -INT_MAX.
      */
     g_communicatorAggregator->MockCommErrCode(-INT_MAX);
     EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, callback, query, true), OK);

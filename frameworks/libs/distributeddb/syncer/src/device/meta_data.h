@@ -188,10 +188,6 @@ private:
 
     int SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector<uint8_t> &inValue);
 
-    void PutMetadataToMap(const DeviceID &deviceId, const MetaDataValue &value);
-
-    void GetMetadataFromMap(const DeviceID &deviceId, MetaDataValue &outValue);
-
     int64_t StringToLong(const std::vector<uint8_t> &value) const;
 
     int GetAllMetadataKey(std::vector<std::vector<uint8_t>> &keys);
@@ -199,10 +195,6 @@ private:
     int LoadAllMetadata();
 
     void GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash);
-
-    // this function will read data from db by metaData's key
-    // and then serialize it and put to map
-    int LoadDeviceIdDataToMap(const Key &key);
 
     // reset the waterMark to zero
     int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
@@ -236,6 +228,10 @@ private:
 
     int InitLocalMetaData();
 
+    int GetMetaDataValueFromDB(const std::string &deviceId, bool isNeedHash, MetaDataValue &metaDataValue);
+
+    int GetMetaDataValueFromDB(const Key &key, MetaDataValue &metaDataValue);
+
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
     std::atomic<TimeOffset> localTimeOffset_;
@@ -244,7 +240,6 @@ private:
 
     // if changed, it should be locked from save-to-db to change-in-memory.save to db must be first,
     // if save to db fail, it will not be changed in memory.
-    std::map<std::string, MetaDataValue> metadataMap_;
     mutable std::mutex metadataLock_;
     std::map<DeviceID, DeviceID> deviceIdToHashDeviceIdMap_;
 
