@@ -292,6 +292,10 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
 
     if (S_ISDIR(buf.st_mode)) {
         DIR *dirp = opendir(path.c_str());
+        if (dirp == nullptr) {
+            ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+            return false;
+        }
         struct dirent *dp = nullptr;
         while ((dp = readdir(dirp)) != nullptr) {
             if ((std::string(dp->d_name) == ".") || (std::string(dp->d_name) == "..")) {

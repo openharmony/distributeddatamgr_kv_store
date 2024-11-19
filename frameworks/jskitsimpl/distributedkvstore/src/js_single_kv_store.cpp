@@ -100,6 +100,11 @@ void JsSingleKVStore::SetSchemaInfo(bool isSchemaStore)
 
 bool JsSingleKVStore::IsSystemApp() const
 {
+    if (param_ == nullptr)
+    {
+        ZLOGE("param_ is nullptr");
+        return false;
+    }
     return param_->isSystemApp;
 }
 
@@ -387,7 +392,7 @@ napi_value JsSingleKVStore::DeleteBatch(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteBatch exit");
-    
+
     auto execute = [ctxt]() {
         std::vector<DistributedKv::Key> keys;
         for (auto it : ctxt->keys) {
@@ -491,7 +496,7 @@ napi_value JsSingleKVStore::EnableSync(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "EnableSync exit");
-    
+
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
         Status status = kvStore->SetCapabilityEnabled(ctxt->enable);
@@ -565,7 +570,7 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Backup exit");
-    
+
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         Status status = jsKvStore->kvStore_->Backup(ctxt->file, jsKvStore->param_->baseDir);
@@ -599,7 +604,7 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Restore exit");
-    
+
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         Status status = jsKvStore->kvStore_->Restore(ctxt->file, jsKvStore->param_->baseDir);
@@ -634,7 +639,7 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteBackup exit");
-    
+
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         Status status = jsKvStore->kvStore_->DeleteBackup(ctxt->files,
@@ -671,7 +676,7 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
     ctxt->status = napi_typeof(env, argv[1], &valueType);
     ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
         "Parameter error:parameter Callback must be function");
- 
+
     ZLOGI("subscribe data change type %{public}d", type);
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     std::lock_guard<std::mutex> lck(proxy->listMutex_);
