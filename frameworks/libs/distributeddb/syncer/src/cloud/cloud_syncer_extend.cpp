@@ -895,6 +895,9 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
         return errCode;
     }
     std::lock_guard<std::mutex> autoLock(dataLock_);
+    taskInfo.priorityLevel = (!taskInfo.priorityTask || taskInfo.compensatedTask)
+                                 ? CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL
+                                 : taskInfo.priorityLevel;
     errCode = CheckQueueSizeWithNoLock(taskInfo.priorityTask);
     if (errCode != E_OK) {
         return errCode;
@@ -906,17 +909,19 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     auto taskId = taskInfo.taskId;
     cloudTaskInfos_[taskId] = std::move(taskInfo);
     if (cloudTaskInfos_[taskId].priorityTask) {
-        priorityTaskQueue_.push_back(taskId);
-        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, taskId %" PRIu64 " async %d",
+        taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
+        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
             cloudTaskInfos_[taskId].storeId.c_str(),
+            cloudTaskInfos_[taskId].priorityLevel,
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
         return E_OK;
     }
     if (!MergeTaskInfo(cloudSchema, taskId)) {
-        taskQueue_.push_back(taskId);
-        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64 " async %d",
+        taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
+        LOGI("[CloudSyncer] Add task ok, storeId %.3s, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
             cloudTaskInfos_[taskId].storeId.c_str(),
+            cloudTaskInfos_[taskId].priorityLevel,
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
     }
@@ -938,14 +943,26 @@ bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSche
     return mergeHappen;
 }
 
+void CloudSyncer::RemoveTaskFromQueue(int32_t priorityLevel, TaskId taskId)
+{
+    for (auto it = taskQueue_.find(priorityLevel); it != taskQueue_.end(); ++it) {
+        if (it->second == taskId) {
+            taskQueue_.erase(it);
+            return;
+        }
+    }
+}
+
 std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId)
 {
     std::pair<bool, TaskId> res;
     auto &[merge, nextTryTask] = res;
     TaskId beMergeTask = INVALID_TASK_ID;
     TaskId runningTask = currentContext_.currentTaskId;
-    for (const auto &taskId : taskQueue_) {
-        if (taskId == runningTask || taskId == tryTaskId) { // LCOV_EXCL_BR_LINE
+    auto commonLevelTask = taskQueue_.equal_range(CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL);
+    for (auto it = commonLevelTask.first; it != commonLevelTask.second; ++it) {
+        TaskId taskId = it->second;
+        if (taskId == runningTask || taskId == tryTaskId) {  // LCOV_EXCL_BR_LINE
             continue;
         }
         if (!IsTasksCanMerge(taskId, tryTaskId)) { // LCOV_EXCL_BR_LINE
@@ -979,7 +996,7 @@ std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBase
     processNotifier->SetAllTableFinish();
     processNotifier->NotifyProcess(cloudTaskInfos_[beMergeTask], {}, true);
     cloudTaskInfos_.erase(beMergeTask);
-    taskQueue_.remove(beMergeTask);
+    RemoveTaskFromQueue(cloudTaskInfos_[beMergeTask].priorityLevel, beMergeTask);
     LOGW("[CloudSyncer] TaskId %" PRIu64 " has been merged", beMergeTask);
     return res;
 }

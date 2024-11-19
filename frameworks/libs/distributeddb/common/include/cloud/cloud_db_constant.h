@@ -94,6 +94,9 @@ public:
     static constexpr const int32_t MAX_ASYNC_DOWNLOAD_ASSETS = 2000; // max async download assets count in one batch
     static constexpr const int32_t MIN_ASYNC_DOWNLOAD_ASSETS = 1;
 
+    static constexpr const int32_t COMMON_TASK_PRIORITY_LEVEL = -1;
+    static constexpr const int32_t PRIORITY_TASK_DEFALUT_LEVEL = 0;
+    static constexpr const int32_t PRIORITY_TASK_MAX_LEVEL = 100;
     static constexpr const int32_t MAX_CONDITIONS_SIZE = 100;
 
     static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;

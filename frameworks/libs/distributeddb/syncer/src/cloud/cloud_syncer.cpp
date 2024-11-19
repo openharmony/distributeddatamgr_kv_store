@@ -95,9 +95,7 @@ int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
     if (errCode != E_OK) {
         return errCode;
     }
-    if (taskInfo.priorityTask) {
-        MarkCurrentTaskPausedIfNeed();
-    }
+    MarkCurrentTaskPausedIfNeed(taskInfo);
     return TriggerSync();
 }
 
@@ -471,8 +469,7 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode)
     }
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        taskQueue_.remove(taskId);
-        priorityTaskQueue_.remove(taskId);
+        RemoveTaskFromQueue(cloudTaskInfos_[taskId].priorityLevel, taskId);
     }
     ClearContextAndNotify(taskId, errCode);
 }
@@ -1454,14 +1451,26 @@ int CloudSyncer::GetCurrentTableName(std::string &tableName)
     return E_OK;
 }
 
+size_t CloudSyncer::GetCurrentCommonTaskNum()
+{
+    size_t queuedTaskNum = taskQueue_.count(CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL);
+    auto rang = taskQueue_.equal_range(CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL);
+    size_t compensatedTaskNum = 0;
+    for (auto it = rang.first; it != rang.second; ++it) {
+        compensatedTaskNum += cloudTaskInfos_[it->second].compensatedTask ? 1 : 0;
+    }
+    return queuedTaskNum - compensatedTaskNum;
+}
+
 int CloudSyncer::CheckQueueSizeWithNoLock(bool priorityTask)
 {
     int32_t limit = queuedManualSyncLimit_;
-    if (!priorityTask && taskQueue_.size() >= static_cast<size_t>(limit)) {
-        LOGW("[CloudSyncer] too much sync task");
-        return -E_BUSY;
-    } else if (priorityTask && priorityTaskQueue_.size() >= static_cast<size_t>(limit)) {
-        LOGW("[CloudSyncer] too much priority sync task");
+    size_t totalTaskNum = taskQueue_.size();
+    size_t commonTaskNum = GetCurrentCommonTaskNum();
+    size_t queuedTaskNum = priorityTask ? totalTaskNum - commonTaskNum : commonTaskNum;
+    if (queuedTaskNum >= static_cast<size_t>(limit)) {
+        std::string priorityName = priorityTask ? CLOUD_PRIORITY_TASK_STRING : CLOUD_COMMON_TASK_STRING;
+        LOGW("[CloudSyncer] too much %s sync task", priorityName.c_str());
         return -E_BUSY;
     }
     return E_OK;
@@ -1629,7 +1638,7 @@ void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode)
 int32_t CloudSyncer::GetCloudSyncTaskCount()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    return static_cast<int32_t>(taskQueue_.size() + priorityTaskQueue_.size());
+    return static_cast<int32_t>(taskQueue_.size());
 }
 
 int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1788,16 +1797,13 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
 TaskId CloudSyncer::GetNextTaskId()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    if (!priorityTaskQueue_.empty()) {
-        return priorityTaskQueue_.front();
-    }
     if (!taskQueue_.empty()) {
-        return taskQueue_.front();
+        return taskQueue_.begin()->second;
     }
     return INVALID_TASK_ID;
 }
 
-void CloudSyncer::MarkCurrentTaskPausedIfNeed()
+void CloudSyncer::MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     if (currentContext_.currentTaskId == INVALID_TASK_ID) {
@@ -1806,7 +1812,7 @@ void CloudSyncer::MarkCurrentTaskPausedIfNeed()
     if (cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
         return;
     }
-    if (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask) {
+    if (cloudTaskInfos_[currentContext_.currentTaskId].priorityLevel < taskInfo.priorityLevel) {
         cloudTaskInfos_[currentContext_.currentTaskId].pause = true;
         LOGD("[CloudSyncer] Mark taskId %" PRIu64 " paused success", currentContext_.currentTaskId);
     }
@@ -2137,7 +2143,6 @@ std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
         infoList.push_back(item.second);
     }
     taskQueue_.clear();
-    priorityTaskQueue_.clear();
     cloudTaskInfos_.clear();
     resumeTaskInfos_.clear();
     currentContext_.notifier = nullptr;

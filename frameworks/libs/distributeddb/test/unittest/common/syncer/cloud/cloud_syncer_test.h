@@ -219,7 +219,9 @@ public:
 
     void PopTaskQueue()
     {
-        taskQueue_.pop_back();
+        if (!taskQueue_.empty()) {
+            taskQueue_.erase(--taskQueue_.end());
+        }
     }
 
     int CallPrepareSync(TaskId taskId)

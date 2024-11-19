@@ -90,6 +90,7 @@ enum DBStatus {
     CLOUD_RECORD_ALREADY_EXISTED, // this error happen in BatchInsert
     SQLITE_CANT_OPEN, // the sqlite cannot open
     LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
+    CLOUD_ASSET_NOT_FOUND, // cloud assets miss
     CLOUD_DISABLED, // the cloud switch has been turned off
     DISTRIBUTED_FIELD_DECREASE, // sync fewer specified columns than last time
     BUTT_STATUS = 27394048 // end of status

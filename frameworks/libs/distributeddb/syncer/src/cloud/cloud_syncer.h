@@ -38,6 +38,8 @@
 
 namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
+const std::string CLOUD_PRIORITY_TASK_STRING = "priority";
+const std::string CLOUD_COMMON_TASK_STRING = "common";
 class CloudSyncer : public ICloudSyncer {
 public:
     explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isKvScene = false,
@@ -208,6 +210,8 @@ protected:
     int QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
         DownloadData &downloadData);
 
+    size_t GetCurrentCommonTaskNum();
+
     int CheckTaskIdValid(TaskId taskId);
 
     int GetCurrentTableName(std::string &tableName);
@@ -302,7 +306,7 @@ protected:
 
     TaskId GetNextTaskId();
 
-    void MarkCurrentTaskPausedIfNeed();
+    void MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo);
 
     void SetCurrentTaskFailedWithoutLock(int errCode);
 
@@ -400,6 +404,8 @@ protected:
 
     bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
 
+    void RemoveTaskFromQueue(int32_t priorityLevel, TaskId taskId);
+
     std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
 
     bool IsTaskCanMerge(const CloudTaskInfo &taskInfo);
@@ -496,8 +502,7 @@ protected:
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
-    std::list<TaskId> taskQueue_;
-    std::list<TaskId> priorityTaskQueue_;
+    std::multimap<int, TaskId, std::greater<int>> taskQueue_;
     std::map<TaskId, CloudTaskInfo> cloudTaskInfos_;
     std::map<TaskId, ResumeTaskInfo> resumeTaskInfos_;
 

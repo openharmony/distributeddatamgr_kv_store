@@ -619,6 +619,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
 {
     CloudSyncer::CloudTaskInfo taskInfo;
     taskInfo.priorityTask = true;
+    taskInfo.priorityLevel = CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL;
     taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;

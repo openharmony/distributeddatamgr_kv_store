@@ -29,6 +29,7 @@ public:
     using TaskId = uint64_t;
     struct CloudTaskInfo {
         bool priorityTask = false;
+        int32_t priorityLevel = 0;
         bool compensatedTask = false;
         bool pause = false;
         bool resume = false;
