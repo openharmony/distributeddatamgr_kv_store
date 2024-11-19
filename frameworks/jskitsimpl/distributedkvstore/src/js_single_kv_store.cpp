@@ -100,8 +100,7 @@ void JsSingleKVStore::SetSchemaInfo(bool isSchemaStore)
 
 bool JsSingleKVStore::IsSystemApp() const
 {
-    if (param_ == nullptr)
-    {
+    if (param_ == nullptr) {
         ZLOGE("param_ is nullptr");
         return false;
     }
