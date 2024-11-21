@@ -1567,14 +1567,13 @@ void DbFlushFuzz(const uint8_t *data, size_t size)
 {
     GRD_DB *db = nullptr;
     GRD_DB *db2 = nullptr;
+    const uint32_t flags = reinterpret_cast<const uint32_t>(data);
     int ret = GRD_DBOpen(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
     if (ret == GRD_OK) {
-        GRD_Flush(db, 0);
-        GRD_Flush(db, 1);
+        GRD_Flush(db, flags);
         GRD_DBClose(db, GRD_DB_CLOSE);
     }
-    GRD_Flush(db2, 0);
-    GRD_Flush(db2, 1);
+    GRD_Flush(db2, flags);
 }
 
 void TestGrdDbApGrdGetItem002Fuzz()
