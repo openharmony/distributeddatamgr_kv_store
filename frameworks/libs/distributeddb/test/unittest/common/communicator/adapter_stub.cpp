@@ -269,6 +269,14 @@ void AdapterStub::SimulateSendRetryClear(const std::string &dstTarget, int softB
     }
 }
 
+void AdapterStub::SimulateTriggerSendableCallback(const std::string &dstTarget, int softBusErrCode)
+{
+    std::lock_guard<std::mutex> onSendableLockGuard(onSendableMutex_);
+    if (onSendableHandle_) {
+        onSendableHandle_(dstTarget, softBusErrCode);
+    }
+}
+
 void AdapterStub::SimulateSendPartialLoss()
 {
     isPartialLossSimulated_ = true;
