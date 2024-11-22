@@ -73,6 +73,12 @@ Query &Query::Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint
     return *this;
 }
 
+Query &Query::AssetsOnly(const std::map<std::string, std::set<std::string>> &assets)
+{
+    queryExpression_.QueryAssetsOnly(assets);
+    return *this;
+}
+
 Query &Query::SuggestIndex(const std::string &indexName)
 {
     queryExpression_.QueryBySuggestIndex(indexName);

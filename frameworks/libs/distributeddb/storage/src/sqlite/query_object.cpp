@@ -88,6 +88,8 @@ QueryObject::QueryObject(const QueryExpression &queryExpression)
     sortType_ = static_cast<SortType>(queryExpressions.GetSortType());
     tables_ = queryExpressions.GetTables();
     validStatus = queryExpressions.GetExpressionStatus();
+    isAssetsOnly_ = queryExpressions.IsAssetsOnly();
+    assetsMap_ = queryExpressions.GetAssetsOnlyMap();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -560,6 +562,16 @@ std::vector<QueryExpression> QueryObject::GetQueryExpressions(const Query &query
     return GetQueryInfo::GetQueryExpression(query).GetQueryExpressions();
 }
 
+bool QueryObject::IsAssetsOnly() const
+{
+    return isAssetsOnly_;
+}
+
+std::map<std::string, std::set<std::string>> QueryObject::GetAssetsOnlyMap() const
+{
+    return assetsMap_;
+}
+
 void QueryObject::SetUseLocalSchema(bool isUse)
 {
     isUseLocalSchema_ = isUse;
@@ -579,5 +591,6 @@ void QueryObject::SetRemoteDev(const std::string &dev)
 {
     remoteDev_ = dev;
 }
+
 }
 

@@ -66,6 +66,10 @@ public:
 
     int CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const;
 
+    bool IsAssetsOnly() const;
+
+    std::map<std::string, std::set<std::string>> GetAssetsOnlyMap() const;
+
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
 #endif
@@ -93,6 +97,8 @@ protected:
     bool isTableNameSpecified_ = false;
     std::vector<std::string> tables_;
     int validStatus = E_OK;
+    bool isAssetsOnly_ = false;
+    std::map<std::string, std::set<std::string>> assetsMap_;
 
 private:
     int Parse();

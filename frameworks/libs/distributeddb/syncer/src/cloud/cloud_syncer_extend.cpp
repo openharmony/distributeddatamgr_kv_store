@@ -1459,6 +1459,9 @@ int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo 
     if (isExist) {
         hashKey = dataInfo.localInfo.logInfo.hashKey;
     }
+    if (param.isAssetsOnly) {
+        return TagDownloadAssetsForAssetOnly(hashKey, idx, param, dataInfo, localAssetInfo);
+    }
     return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
 }
 
@@ -1842,6 +1845,182 @@ int CloudSyncer::BackgroundDownloadAssetsByTable(const std::string &table,
     errCode = BatchDownloadAndCommitRes(downloadList, dupHashKeySet, info, changedAssets, detail);
     NotifyChangedDataWithDefaultDev(std::move(changedAssets));
     return errCode;
+}
+
+std::map<std::string, Assets> CloudSyncer::GetDownloadAssetsOnlyMapFromDownLoadData(size_t idx, SyncParam &param)
+{
+    std::map<std::string, Assets> downloadAssetsMap{};
+    for (auto &item : param.downloadData.data[idx]) {
+        auto findAssetList = param.assetsMap.find(item.first);
+        if (findAssetList == param.assetsMap.end()) {
+            continue;
+        }
+        Asset *asset = std::get_if<Asset>(&item.second);
+        if (asset != nullptr) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&asset](const std::string &a) { return a == asset->name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = *asset;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+            continue;
+        }
+        Assets *assets = std::get_if<Assets>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &assetItem : (*assets)) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&assetItem](const std::string &a) { return a == assetItem.name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = assetItem;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+        }
+    }
+    return downloadAssetsMap;
+}
+
+int CloudSyncer::TagDownloadAssetsForAssetOnly(
+    const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo, VBucket &localAssetInfo)
+{
+    Type prefix;
+    std::vector<Type> pkVals;
+    int ret = CloudSyncUtils::GetCloudPkVals(
+        param.downloadData.data[idx], param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pkVals);
+    prefix = param.isSinglePrimaryKey ? pkVals[0] : prefix;
+    if (param.isSinglePrimaryKey && prefix.index() == TYPE_INDEX<Nil>) {
+        LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
+        return -E_INTERNAL_ERROR;
+    }
+
+    std::map<std::string, Assets> downloadAssetsMap = GetDownloadAssetsOnlyMapFromDownLoadData(idx, param);
+    if (downloadAssetsMap.empty()) {
+        return ret;
+    }
+    param.assetsDownloadList.push_back(
+        std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, OpType::UPDATE, downloadAssetsMap, hashKey,
+        pkVals, dataInfo.cloudLogInfo.timestamp));
+    return ret;
+}
+
+int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &loaclInfo)
+{
+    int ret = E_OK;
+    if (param.isAssetsOnly) {
+        // download and save only asset, ignore other data.
+        for (auto &item : loaclInfo) {
+            ret = storageProxy_->UpdateAssetStatusForAssetOnly(param.tableName, item);
+            if (ret != E_OK) {
+                LOGE("[CloudSyncer] Cannot save asset data due to error code %d", ret);
+                return ret;
+            }
+        }
+    } else {
+        ret = storageProxy_->PutCloudSyncData(param.tableName, param.downloadData);
+        if (ret != E_OK) {
+            param.info.downLoadInfo.failCount += param.downloadData.data.size();
+            LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
+        }
+    }
+    return ret;
+}
+
+bool CloudSyncer::IsAssetOnlyData(
+    VBucket &queryData, std::map<std::string, std::set<std::string>> &assetsMap, bool isCleanHash)
+{
+    if (assetsMap.size() == 0) {
+        return false;
+    }
+    for (auto &item : assetsMap) {
+        auto &assetNameList = item.second;
+        auto findAssetField = queryData.find(item.first);
+        if (findAssetField == queryData.end()) {
+            return false;
+        }
+
+        Asset *asset = std::get_if<Asset>(&(findAssetField->second));
+        if (asset != nullptr) {
+            // if is Asset type, assetNameList size must be 1.
+            if (assetNameList.size() != 1u || *(assetNameList.begin()) != asset->name ||
+                asset->status == AssetStatus::DELETE) {
+                return false;
+            }
+            if (isCleanHash) {
+                asset->status = static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+                asset->hash = std::string("");
+            }
+            continue;
+        }
+
+        Assets *assets = std::get_if<Assets>(&(findAssetField->second));
+        if (assets == nullptr) {
+            return false;
+        }
+        for (auto &assetName : assetNameList) {
+            auto findAsset = std::find_if(
+                assets->begin(), assets->end(), [&assetName](const Asset &a) { return a.name == assetName; });
+            if (findAsset == assets->end() || (*findAsset).status == AssetStatus::DELETE) {
+                return false;
+            }
+            if (isCleanHash) {
+                (*findAsset).status = AssetStatus::DOWNLOADING;
+                (*findAsset).hash = std::string("");
+            }
+        }
+    }
+    return true;
+}
+
+bool CloudSyncer::CheckAssetsOnlyMapInvalid(std::map<std::string, std::set<std::string>> &assetsMap)
+{
+    if (assetsMap.empty()) {
+        return true;
+    }
+    for (auto &item : assetsMap) {
+        if (item.second.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int CloudSyncer::CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param)
+{
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (!param.isAssetsOnly || cloudTaskInfos_[taskId].compensatedTask) {
+            return E_OK;
+        }
+        cloudTaskInfos_[taskId].isAssetsOnly = param.isAssetsOnly;
+        cloudTaskInfos_[taskId].assetsMap = param.assetsMap;
+    }
+
+    if (CheckAssetsOnlyMapInvalid(param.assetsMap)) {
+        LOGE("[CloudSyncer] assets only map is invalid: %d.", -E_INVALID_ARGS);
+        return -E_INVALID_ARGS;
+    }
+
+    auto &data = param.downloadData.data;
+    for (auto it = data.begin(); it != data.end();) {
+        if (!IsAssetOnlyData(*it, param.assetsMap, false)) {
+            it = data.erase(it);
+            continue;
+        }
+        ++it;
+    }
+
+    if (data.empty()) {
+        LOGE("[CloudSyncer] query cloud assets failed, error code: %d", -E_CLOUD_ASSET_NOT_FOUND);
+        return -E_CLOUD_ASSET_NOT_FOUND;
+    }
+    return E_OK;
 }
 
 bool CloudSyncer::IsCurrentAsyncDownloadTask()

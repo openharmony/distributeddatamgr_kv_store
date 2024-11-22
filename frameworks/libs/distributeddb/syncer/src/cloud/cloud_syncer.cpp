@@ -292,7 +292,7 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
 
 int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload)
 {
-    if (!needUpload) {
+    if (!needUpload || taskInfo.isAssetsOnly) {
         return E_OK;
     }
     storageProxy_->BeforeUploadTransaction();
@@ -776,7 +776,7 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
 }
 
 int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
-    std::map<std::string, LogInfo> &localLogInfoCache)
+    std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &loaclInfo)
 {
     int ret = PreHandleData(param.downloadData.data[idx], param.pkColNames);
     if (ret != E_OK) {
@@ -802,6 +802,17 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
         return ret;
     }
+    if (param.isAssetsOnly) {
+        auto findGid = param.downloadData.data[idx].find(CloudDbConstant::GID_FIELD);
+        if (findGid == param.downloadData.data[idx].end()) {
+            LOGE("[CloudSyncer] data doe's not have gid field when download only asset: %d.", -E_NOT_FOUND);
+            return -E_NOT_FOUND;
+        }
+        localAssetInfo[CloudDbConstant::GID_FIELD] = findGid->second;
+        localAssetInfo[CloudDbConstant::HASH_KEY_FIELD] = dataInfo.localInfo.logInfo.hashKey;
+        loaclInfo.push_back(localAssetInfo);
+    }
+    
     CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
         localLogInfoCache);
     ret = CloudSyncUtils::SaveChangedData(param, idx, dataInfo, deletedList);
@@ -830,8 +841,9 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     std::vector<std::pair<Key, size_t>> deletedList;
     // use for record local delete status
     std::map<std::string, LogInfo> localLogInfoCache;
+    std::vector<VBucket> loaclInfo;
     for (size_t i = 0; i < param.downloadData.data.size(); i++) {
-        ret = SaveDatum(param, i, deletedList, localLogInfoCache);
+        ret = SaveDatum(param, i, deletedList, localLogInfoCache, loaclInfo);
         if (ret != E_OK) {
             param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save datum due to error code %d", ret);
@@ -843,13 +855,12 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.assetDownloadList = param.assetsDownloadList;
     }
-    // save the data to the database by batch, downloadData will return rowid when insert data.
-    ret = storageProxy_->PutCloudSyncData(param.tableName, param.downloadData);
+
+    ret = PutCloudSyncDataOrUpdateStatusForAssetOnly(param, loaclInfo);
     if (ret != E_OK) {
-        param.info.downLoadInfo.failCount += param.downloadData.data.size();
-        LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
         return ret;
     }
+
     ret = UpdateChangedData(param, currentContext_.assetDownloadList);
     if (ret != E_OK) {
         param.info.downLoadInfo.failCount += param.downloadData.data.size();
@@ -866,7 +877,7 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     } else {
         param.cloudWaterMark = std::get<std::string>(lastData[CloudDbConstant::CURSOR_FIELD]);
     }
-    return UpdateFlagForSavedRecord(param);
+    return param.isAssetsOnly ? E_OK : UpdateFlagForSavedRecord(param);
 }
 
 int CloudSyncer::PreCheck(CloudSyncer::TaskId &taskId, const TableName &tableName)
@@ -1304,6 +1315,13 @@ int CloudSyncer::PreProcessBatchUpload(UploadParam &uploadParam, const InnerProc
 
 int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId taskId)
 {
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (cloudTaskInfos_[taskId].isAssetsOnly) {
+            // assset only task does not need to save water mark.
+            return E_OK;
+        }
+    }
     std::string cloudWaterMark;
     bool isUpdateCloudCursor = true;
     {
@@ -1760,6 +1778,20 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
+int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param)
+{
+    if (!param.isAssetsOnly) {
+        return E_OK;
+    }
+
+    if (!IsAssetOnlyData(localAssetInfo, param.assetsMap, true)) {
+        LOGE("[CloudSyncer] query local assets failed, error code: %d", -E_LOCAL_ASSET_NOT_FOUND);
+        return -E_LOCAL_ASSET_NOT_FOUND;
+    }
+
+    return E_OK;
+}
+
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
@@ -1772,6 +1804,13 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
     if (hashKey.empty()) {
         return errCode;
     }
+
+    int ret = CheckLocalQueryAssetsOnlyIfNeed(localAssetInfo, param);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] check local assets failed, error code: %d", ret);
+        return ret;
+    }
+
     param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     param.downloadData.existDataHashKey[index] = logInfo.logInfo.hashKey;
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
@@ -2037,6 +2076,9 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         }
     }
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
+    auto queryObject = GetQuerySyncObject(param.tableName);
+    param.isAssetsOnly = queryObject.IsAssetsOnly();
+    param.assetsMap = queryObject.GetAssetsOnlyMap();
     return ret;
 }
 
@@ -2073,6 +2115,13 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         std::lock_guard<std::mutex> autoLock(dataLock_);
         param.info.tableStatus = ProcessStatus::FINISHED;
         currentContext_.notifier->UpdateProcess(param.info);
+        abort = true;
+        return ret;
+    }
+
+    ret = CheckCloudQueryAssetsOnlyIfNeed(taskId, param);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] query assets failed, error code: %d", ret);
         abort = true;
         return ret;
     }

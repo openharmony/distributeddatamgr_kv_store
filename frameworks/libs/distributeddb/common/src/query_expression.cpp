@@ -220,6 +220,23 @@ void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, cons
     endKey_ = keyEnd;
 }
 
+void QueryExpression::QueryAssetsOnly(const std::map<std::string, std::set<std::string>> &assets)
+{
+    isAssetsOnly_ = true;
+    if (useFromTable_) {
+        expressions_[fromTable_].QueryAssetsOnly(assets);
+        return;
+    }
+    if (!assetsMap_.empty()) {
+        LOGD("assets only already set, will be covered!");
+        assetsMap_.clear();
+    }
+
+    for (const auto &it : assets) {
+        assetsMap_[it.first] = it.second;
+    }
+}
+
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
 {
     if (useFromTable_) {
@@ -473,5 +490,15 @@ int QueryExpression::RangeParamCheck() const
         return -E_INVALID_ARGS;
     }
     return E_OK;
+}
+
+bool QueryExpression::IsAssetsOnly() const
+{
+    return isAssetsOnly_;
+}
+
+std::map<std::string, std::set<std::string>> QueryExpression::GetAssetsOnlyMap() const
+{
+    return assetsMap_;
 }
 } // namespace DistributedDB

@@ -237,7 +237,7 @@ protected:
     void SetTaskFailed(TaskId taskId, int errCode);
 
     int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
-        std::map<std::string, LogInfo> &localLogInfoCache);
+        std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &loaclInfo);
 
     int SaveData(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -265,6 +265,9 @@ protected:
 
     int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
         VBucket &localAssetInfo);
+    
+    int TagDownloadAssetsForAssetOnly(
+        const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo, VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);
 
@@ -456,6 +459,8 @@ protected:
 
     void FillDownloadItem(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
         const InnerProcessInfo &info, bool isSharedTable, DownloadItems &record);
+    
+    std::map<std::string, Assets> GetDownloadAssetsOnlyMapFromDownLoadData(size_t idx, SyncParam &param);
 
     using DownloadItemRecords = std::vector<DownloadItems>;
     using RemoveAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
@@ -493,6 +498,16 @@ protected:
     void CancelBackgroundDownloadAssetsTask(bool cancelDownload = true);
 
     int BackgroundDownloadAssetsByTable(const std::string &table, std::map<std::string, int64_t> &downloadBeginTime);
+
+    bool IsAssetOnlyData(VBucket &queryData, std::map<std::string, std::set<std::string>> &assetsMap, bool isCleanHash);
+
+    bool CheckAssetsOnlyMapInvalid(std::map<std::string, std::set<std::string>> &assetsMap);
+
+    int CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param);
+
+    int CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param);
+
+    int PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &loaclInfo);
 
     bool IsCurrentAsyncDownloadTask();
 

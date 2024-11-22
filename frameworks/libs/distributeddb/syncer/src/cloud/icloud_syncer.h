@@ -31,6 +31,7 @@ public:
         bool priorityTask = false;
         int32_t priorityLevel = 0;
         bool compensatedTask = false;
+        bool isAssetsOnly = false;
         bool pause = false;
         bool resume = false;
         bool merge = false;
@@ -48,6 +49,7 @@ public:
         std::vector<std::string> users;
         std::string storeId;
         std::string prepareTraceId;
+        std::map<std::string, std::set<std::string>> assetsMap;
     };
 
     struct UploadRetryInfo {
@@ -84,6 +86,8 @@ public:
         bool isLastBatch = false;
         WithoutRowIdData withoutRowIdData;
         std::vector<std::vector<Type>> insertPk;
+        bool isAssetsOnly = false;
+        std::map<std::string, std::set<std::string>> assetsMap;
     };
 
     struct DataInfo {

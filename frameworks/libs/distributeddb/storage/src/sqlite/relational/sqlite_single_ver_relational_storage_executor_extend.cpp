@@ -622,6 +622,32 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
     return errCode == E_OK ? ret : errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetStatusForAssetOnly(
+    const TableSchema &tableSchema, VBucket &vBucket)
+{
+    std::string cloudGid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    if (errCode != E_OK) {
+        LOGE("Miss gid when fill Asset %d.", errCode);
+        return errCode;
+    }
+    std::vector<Field> assetsField;
+    errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
+    if (errCode != E_OK) {
+        LOGE("No assets need to be filled when download assets only, err:%d.", errCode);
+        return errCode;
+    }
+
+    sqlite3_stmt *stmt = nullptr;
+    errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
+    if (errCode != E_OK) {
+        LOGE("can not get assetsField from tableSchema:%s err:%d when download assets only.",
+            tableSchema.name.c_str(), errCode);
+        return errCode;
+    }
+    return ExecuteFillDownloadAssetStatement(stmt, assetsField.size() + 1, cloudGid);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema,
     const TrackerTable &trackerTable, int64_t dataKey)
 {

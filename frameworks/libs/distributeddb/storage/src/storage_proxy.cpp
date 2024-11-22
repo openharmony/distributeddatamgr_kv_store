@@ -329,6 +329,20 @@ int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &d
     return store_->PutCloudSyncData(tableName, downloadData);
 }
 
+int StorageProxy::UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("the store is nullptr");
+        return -E_INVALID_DB;
+    }
+    if (!transactionExeFlag_.load()) {
+        LOGE("the transaction has not been started");
+        return -E_TRANSACT_STATE;
+    }
+    return store_->UpdateAssetStatusForAssetOnly(tableName, asset);
+}
+
 int StorageProxy::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
     const RelationalSchemaObject &localSchema, std::vector<Asset> &assets)
 {

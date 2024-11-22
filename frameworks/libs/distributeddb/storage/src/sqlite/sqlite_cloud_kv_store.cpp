@@ -260,6 +260,11 @@ int SqliteCloudKvStore::PutCloudSyncData([[gnu::unused]] const std::string &tabl
     return SqliteCloudKvExecutorUtils::PutCloudData(db, isMemory, downloadData);
 }
 
+int SqliteCloudKvStore::UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset)
+{
+    return E_OK;
+}
+
 int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset,
     bool ignoreEmptyGid)
 {

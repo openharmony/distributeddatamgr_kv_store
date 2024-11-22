@@ -138,6 +138,8 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, DownloadData &downloadData);
+    
+    int UpdateAssetStatusForAssetOnly(const TableSchema &tableSchema, VBucket &asset);
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int FillCloudAssetForAsyncDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);

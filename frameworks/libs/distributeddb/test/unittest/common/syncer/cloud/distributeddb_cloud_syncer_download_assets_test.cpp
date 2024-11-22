@@ -192,15 +192,19 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
     }
 }
 
-void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets)
+void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets, bool isEmptyAssets = false)
 {
     int errCode;
     std::vector<uint8_t> assetBlob;
     const string sql = "update " + tableName + " set assets=?;";
     sqlite3_stmt *stmt = nullptr;
     ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
-    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    if (isEmptyAssets) {
+        ASSERT_EQ(sqlite3_bind_null(stmt, 1), SQLITE_OK);
+    } else {
+        assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    }
     EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
@@ -2688,6 +2692,363 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest001, Tes
     EXPECT_EQ(delegateImpl->Close(), DBStatus::OK);
     SyncProcess process3 = g_delegate->GetCloudTaskStatus(1);
     EXPECT_EQ(process3.errCode, DB_ERROR);
+}
+
+void PriorityLevelSync(int32_t priorityLevel, const Query &query, const CloudSyncStatusCallback &onFinish,
+    SyncMode mode, DBStatus expectResult = DBStatus::OK)
+{
+    std::mutex processMutex;
+    std::vector<SyncProcess> expectProcess;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&cv, &onFinish, &finish, &processMutex, &expectResult]
+        (const std::map<std::string, SyncProcess> &process) {
+        for (auto &item : process) {
+            if (item.second.process == FINISHED) {
+                if (onFinish) {
+                    onFinish(process);
+                }
+                EXPECT_EQ(item.second.errCode, expectResult);
+                std::unique_lock<std::mutex> lock(processMutex);
+                finish = true;
+                cv.notify_one();
+            }
+        }
+    };
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.query = query;
+    option.mode = mode;
+    option.priorityTask = true;
+    option.priorityLevel = priorityLevel;
+    DBStatus syncResult = g_delegate->Sync(option, callback);
+    EXPECT_EQ(syncResult, DBStatus::OK);
+
+    std::unique_lock<std::mutex> lock(processMutex);
+    cv.wait(lock, [&finish]() {
+        return finish;
+    });
+}
+
+void CheckAsset(sqlite3 *db, const std::string &tableName, int id, const Asset &expectAsset, bool expectFound)
+{
+    std::string sql = "select assets from " + tableName + " where id = " + std::to_string(id);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    ASSERT_EQ(errCode, SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    if (expectFound) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+    }
+    Type cloudValue;
+    ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+    Assets assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(cloudValue));
+    bool found = false;
+    for (const auto &asset : assets) {
+        if (asset.name != expectAsset.name) {
+            continue;
+        }
+        found = true;
+        EXPECT_EQ(asset.status, expectAsset.status);
+        EXPECT_EQ(asset.hash, expectAsset.hash);
+        EXPECT_EQ(asset.assetId, expectAsset.assetId);
+        EXPECT_EQ(asset.uri, expectAsset.uri);
+    }
+    EXPECT_EQ(found, expectFound);
+    errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_EQ(errCode, E_OK);
+}
+
+void CheckDBValue(sqlite3 *db, const std::string &tableName, int id, const std::string &field,
+    const std::string &expectValue)
+{
+    std::string sql = "select " + field + " from " + tableName + " where id = " + std::to_string(id);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (expectValue.empty()) {
+        EXPECT_EQ(errCode, SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    }
+    ASSERT_EQ(errCode, SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    std::string str;
+    (void)SQLiteUtils::GetColumnTextValue(stmt, 0, str);
+    EXPECT_EQ(str, expectValue);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    errCode = E_OK;
+    EXPECT_EQ(errCode, E_OK);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly001
+  * @tc.desc: Test sync with priorityLevel
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 15; // 15 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Call sync with different priorityLevel
+     * @tc.expected: step2. OK
+     */
+    int syncFinishCount = 0;
+    g_virtualCloudDb->SetBlockTime(100);
+    std::thread syncThread1([&]() {
+        CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
+            syncFinishCount++;
+            EXPECT_EQ(syncFinishCount, 3);
+        };
+        std::vector<int64_t> inValue = {0, 1, 2, 3, 4};
+        Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        PriorityLevelSync(1, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+    });
+
+    std::thread syncThread2([&]() {
+        CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
+            syncFinishCount++;
+            EXPECT_EQ(syncFinishCount, 2);
+        };
+        std::vector<int64_t> inValue = {5, 6, 7, 8, 9};
+        Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        PriorityLevelSync(2, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+    });
+
+    std::thread syncThread3([&]() {
+        CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
+            syncFinishCount++;
+            EXPECT_EQ(syncFinishCount, 1);
+        };
+        std::vector<int64_t> inValue = {10, 11, 12, 13, 14};
+        Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        PriorityLevelSync(3, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+    });
+    syncThread1.join();
+    syncThread2.join();
+    syncThread3.join();
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly002
+  * @tc.desc: Test download specified assets with unsupported mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int localDataCount = 10;
+    InsertLocalData(db, 0, localDataCount, ASSETS_TABLE_NAME, true);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, {ASSET_COPY}, true);
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Download specified assets with mode SYNC_MODE_CLOUD_MERGE and SYNC_MODE_CLOUD_FORCE_PUSH
+     * @tc.expected: step2. sync fail
+    */
+    std::vector<int64_t> inValue = {0};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
+
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.query = query;
+    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    option.priorityTask = true;
+    option.priorityLevel = 0u;
+    EXPECT_EQ(g_delegate->Sync(option, nullptr), DBStatus::NOT_SUPPORT);
+
+    option.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH;
+    EXPECT_EQ(g_delegate->Sync(option, nullptr), DBStatus::NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly004
+  * @tc.desc: Test download specified assets
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    for (int i = 0; i < dataCount; i++) {
+        Asset asset = ASSET_COPY;
+        asset.name += std::to_string(i);
+        asset.status = AssetStatus::UPDATE;
+        asset.hash = "local_new";
+        Assets assets = {asset};
+        asset.name += "_new";
+        assets.push_back(asset);
+        UpdateLocalData(db, ASSETS_TABLE_NAME, assets, i, i);
+    }
+    /**
+     * @tc.steps:step2. Download specified assets
+     * @tc.expected: step2. return OK.
+     */
+    std::vector<int64_t> inValue = {0};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    Asset assetCloud = ASSET_COPY;
+    assetCloud.name += std::to_string(0);
+    Asset assetLocal = ASSET_COPY;
+    assetLocal.name +=std::to_string(0) + "_new";
+    assetLocal.hash = "local_new";
+    assetLocal.status = AssetStatus::UPDATE;
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetCloud, true);
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetLocal, true);
+
+    for (int i = 1; i < dataCount; i++) {
+        Asset assetLocal1 = ASSET_COPY;
+        assetLocal1.name += std::to_string(i);
+        Asset assetLocal2 = ASSET_COPY;
+        assetLocal2.name +=std::to_string(i) + "_new";
+        assetLocal1.hash = "local_new";
+        assetLocal2.hash = "local_new";
+        assetLocal1.status = AssetStatus::UPDATE;
+        assetLocal2.status = AssetStatus::UPDATE;
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal1, true);
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal2, true);
+    }
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly004
+  * @tc.desc: Test download specified assets
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    GenerateDataRecords(0, dataCount, 0, record, extend);
+    for (int i = 0; i < dataCount; i++) {
+        Asset asset1 = ASSET_COPY;
+        Asset asset2 = ASSET_COPY;
+        asset1.name += std::to_string(i);
+        asset2.name += std::to_string(i) + "_new";
+        asset1.hash = "cloud";
+        asset2.hash = "cloud";
+        Assets assets = {asset1, asset2};
+        record[i].insert_or_assign(COL_ASSETS, assets);
+        std::string newName = "name" + std::to_string(i) + "_new";
+        record[i].insert_or_assign(COL_NAME, newName);
+    }
+    ASSERT_EQ(g_virtualCloudDb->BatchUpdate(ASSETS_TABLE_NAME, std::move(record), extend), DBStatus::OK);
+    /**
+     * @tc.steps:step2. Download specified assets
+     * @tc.expected: step2. return OK.
+     */
+    std::vector<int64_t> inValue = {0};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    Asset assetCloud1 = ASSET_COPY;
+    assetCloud1.name += std::to_string(0);
+    assetCloud1.hash = "cloud";
+    Asset assetCloud2 = ASSET_COPY;
+    assetCloud2.name +=std::to_string(0) + "_new";
+    assetCloud2.hash = "cloud";
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetCloud1, true);
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetCloud2, false);
+    CheckDBValue(db, ASSETS_TABLE_NAME, 0, COL_NAME, "name0");
+
+    for (int i = 1; i < dataCount; i++) {
+        Asset assetLocal1 = ASSET_COPY;
+        assetLocal1.name += std::to_string(i);
+        Asset assetLocal2 = ASSET_COPY;
+        assetLocal2.name +=std::to_string(i) + "_new";
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal1, true);
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal2, false);
+        CheckDBValue(db, ASSETS_TABLE_NAME, i, COL_NAME, "name" + std::to_string(i));
+    }
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly005
+  * @tc.desc: Test download asseets which local no found
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    InsertCloudDBData(dataCount, 1, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Download assets which local no found
+     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     */
+    std::vector<int64_t> inValue = {1,2,3,4,5,6,7,8,9,10};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "10"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::LOCAL_ASSET_NOT_FOUND);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly006
+  * @tc.desc: Test download asseets which cloud no found
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    InsertLocalData(db, dataCount, 1, ASSETS_TABLE_NAME, true);
+    /**
+     * @tc.steps:step2. Download assets which cloud no found
+     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     */
+    std::vector<int64_t> inValue = {1,2,3,4,5,6,7,8,9,10};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "10"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::CLOUD_ASSET_NOT_FOUND);
 }
 } // namespace
 #endif // RELATIONAL_STORE
