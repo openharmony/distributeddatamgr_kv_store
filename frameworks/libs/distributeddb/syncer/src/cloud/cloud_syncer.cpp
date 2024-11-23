@@ -776,7 +776,7 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
 }
 
 int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
-    std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &loaclInfo)
+    std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &localInfo)
 {
     int ret = PreHandleData(param.downloadData.data[idx], param.pkColNames);
     if (ret != E_OK) {
@@ -810,7 +810,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         }
         localAssetInfo[CloudDbConstant::GID_FIELD] = findGid->second;
         localAssetInfo[CloudDbConstant::HASH_KEY_FIELD] = dataInfo.localInfo.logInfo.hashKey;
-        loaclInfo.push_back(localAssetInfo);
+        localInfo.push_back(localAssetInfo);
     }
     
     CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
@@ -841,9 +841,9 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     std::vector<std::pair<Key, size_t>> deletedList;
     // use for record local delete status
     std::map<std::string, LogInfo> localLogInfoCache;
-    std::vector<VBucket> loaclInfo;
+    std::vector<VBucket> localInfo;
     for (size_t i = 0; i < param.downloadData.data.size(); i++) {
-        ret = SaveDatum(param, i, deletedList, localLogInfoCache, loaclInfo);
+        ret = SaveDatum(param, i, deletedList, localLogInfoCache, localInfo);
         if (ret != E_OK) {
             param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save datum due to error code %d", ret);
@@ -856,7 +856,7 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
         currentContext_.assetDownloadList = param.assetsDownloadList;
     }
 
-    ret = PutCloudSyncDataOrUpdateStatusForAssetOnly(param, loaclInfo);
+    ret = PutCloudSyncDataOrUpdateStatusForAssetOnly(param, localInfo);
     if (ret != E_OK) {
         return ret;
     }

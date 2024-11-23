@@ -1910,12 +1910,12 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
     return ret;
 }
 
-int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &loaclInfo)
+int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &localInfo)
 {
     int ret = E_OK;
     if (param.isAssetsOnly) {
         // download and save only asset, ignore other data.
-        for (auto &item : loaclInfo) {
+        for (auto &item : localInfo) {
             ret = storageProxy_->UpdateAssetStatusForAssetOnly(param.tableName, item);
             if (ret != E_OK) {
                 LOGE("[CloudSyncer] Cannot save asset data due to error code %d", ret);
