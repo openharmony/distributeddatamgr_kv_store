@@ -51,4 +51,25 @@ TaskHandle ConcurrentAdapter::ScheduleTaskH(const TaskAction &action, Dependence
     return 0;
 #endif
 }
+
+#ifdef USE_FFRT
+void ConcurrentAdapter::AdapterAutoLock(ffrt::mutex &mutex)
+{
+    mutex.lock();
+}
+
+void ConcurrentAdapter::AdapterAutoUnLock(ffrt::mutex &mutex)
+{
+    mutex.unlock();
+}
+#else
+void ConcurrentAdapter::AdapterAutoLock(std::mutex &mutex)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+}
+
+void ConcurrentAdapter::AdapterAutoUnLock([[gnu::unused]] std::mutex &mutex)
+{
+}
+#endif
 }
