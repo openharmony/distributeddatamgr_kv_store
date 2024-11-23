@@ -24,11 +24,9 @@
 namespace DistributedDB {
 #ifdef USE_FFRT
 using TaskHandle = ffrt::task_handle;
-#define ADAPTER_AUTO_LOCK(n, m)
 #define ADAPTER_WAIT(x) ffrt::wait({x})
 #else
 using TaskHandle = void *;
-#define ADAPTER_AUTO_LOCK(n, m) std::lock_guard<decltype(m)> n(m)
 #define ADAPTER_WAIT(x) (void)(x)
 #endif
 using Dependence = void *;
@@ -38,6 +36,13 @@ public:
         Dependence outDeps = nullptr);
     static TaskHandle ScheduleTaskH(const TaskAction &action, Dependence inDeps = nullptr,
         Dependence outDeps = nullptr);
+#ifdef USE_FFRT
+    static void AdapterAutoLock(ffrt::mutex &mutex);
+    static void AdapterAutoUnLock(ffrt::mutex &mutex);
+#else
+    static void AdapterAutoLock(std::mutex &mutex);
+    static void AdapterAutoUnLock(std::mutex &mutex);
+#endif
 };
 }
 
