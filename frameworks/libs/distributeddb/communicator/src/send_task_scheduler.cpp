@@ -316,6 +316,7 @@ void SendTaskScheduler::InvalidSendTask(const std::string &target)
 
 void SendTaskScheduler::SetSoftBusErrCode(const std::string &target, int softBusErrCode)
 {
+    std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
     softBusErrCodeMap_[target] = softBusErrCode;
 }
 }

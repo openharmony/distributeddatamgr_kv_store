@@ -290,7 +290,7 @@ protected:
 
     volatile bool isCommNormal_;
     volatile int taskErrCode_;
-    volatile int commErrCode_;
+    std::atomic<int> commErrCode_;
     volatile uint64_t packetId_ = 0; // used for assignment to reSendMap_.ReSendInfo.packetId in 103 version or above
     volatile bool syncTaskRetryStatus_;
     volatile bool isSyncRetry_;
