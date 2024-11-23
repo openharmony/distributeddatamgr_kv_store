@@ -1074,7 +1074,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Level0)
 {
     std::map<int, int> ans;
+#ifdef USE_FFRT
+    ffrt::mutex mutex;
+#else
     std::mutex mutex;
+#endif
     size_t num = 1000;
 
     /**
@@ -1083,10 +1087,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t j = 0; j < num; j++) {
-            ADAPTER_AUTO_LOCK(lock, mutex);
+            ConcurrentAdapter::AdapterAutoLock(mutex);
             for (size_t i = 0; i < num; i++) {
                 ans.insert_or_assign(i, i);
             }
+            ConcurrentAdapter::AdapterAutoUnLock(mutex);
         }
     }, nullptr, &ans);
 
@@ -1096,10 +1101,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t i = 0; i < num; i++) {
-            ADAPTER_AUTO_LOCK(lock, mutex);
+            ConcurrentAdapter::AdapterAutoLock(mutex);
             for (auto it = ans.begin(); it != ans.end();) {
                 it = ans.erase(it);
             }
+            ConcurrentAdapter::AdapterAutoUnLock(mutex);
         }
     }, nullptr, &ans);
 
@@ -1109,11 +1115,12 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t i = 0; i < num; i++) {
-            ADAPTER_AUTO_LOCK(lock, mutex);
+            ConcurrentAdapter::AdapterAutoLock(mutex);
             for (auto it = ans.begin(); it != ans.end(); it++) {
                 int j = it->first;
                 EXPECT_GE(j, 0);
             }
+            ConcurrentAdapter::AdapterAutoUnLock(mutex);
         }
     }, &ans, nullptr);
     ADAPTER_WAIT(h1);
@@ -1132,7 +1139,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Level0)
 {
     std::map<int, int> ans;
+#ifdef USE_FFRT
+    ffrt::mutex mutex;
+#else
     std::mutex mutex;
+#endif
     size_t num = 1000;
 
     /**
@@ -1142,10 +1153,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t j = 0; j < num; j++) {
-                ADAPTER_AUTO_LOCK(lock, mutex);
+                ConcurrentAdapter::AdapterAutoLock(mutex);
                 for (size_t i = 0; i < num; i++) {
                     ans.insert_or_assign(i, i);
                 }
+                ConcurrentAdapter::AdapterAutoUnLock(mutex);
             }
         }, nullptr, &ans);
         ADAPTER_WAIT(hh1);
@@ -1158,10 +1170,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t i = 0; i < num; i++) {
-                ADAPTER_AUTO_LOCK(lock, mutex);
+                ConcurrentAdapter::AdapterAutoLock(mutex);
                 for (auto it = ans.begin(); it != ans.end();) {
                     it = ans.erase(it);
                 }
+                ConcurrentAdapter::AdapterAutoUnLock(mutex);
             }
         }, nullptr, &ans);
         ADAPTER_WAIT(hh2);
@@ -1174,11 +1187,12 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t i = 0; i < num; i++) {
-                ADAPTER_AUTO_LOCK(lock, mutex);
+                ConcurrentAdapter::AdapterAutoLock(mutex);
                 for (auto it = ans.begin(); it != ans.end(); it++) {
                     int j = it->first;
                     EXPECT_GE(j, 0);
                 }
+                ConcurrentAdapter::AdapterAutoUnLock(mutex);
             }
         }, &ans, nullptr);
         ADAPTER_WAIT(hh3);

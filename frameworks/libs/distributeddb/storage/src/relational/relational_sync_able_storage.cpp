@@ -734,7 +734,8 @@ int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, con
 {
     int errCode = E_OK;
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, action, &errCode] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
+        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             if (it->second.find(observer) != it->second.end()) {
@@ -765,7 +766,8 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
     }
     int errCode = -E_NOT_FOUND;
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, &errCode] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
+        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it == dataChangeCallbackMap_.end()) {
             return;
@@ -811,7 +813,8 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         ConcurrentAdapter::ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
             LOGD("begin to trigger relational observer.");
             int observerCnt = 0;
-            ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
+            ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
             for (const auto &item : dataChangeCallbackMap_) {
                 ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, observerCnt);
             }
@@ -1444,7 +1447,8 @@ std::string RelationalSyncAbleStorage::GetIdentify() const
 void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
 {
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
+        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             dataChangeCallbackMap_.erase(it);

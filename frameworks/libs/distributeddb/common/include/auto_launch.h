@@ -21,6 +21,9 @@
 #include <mutex>
 #include "auto_launch_export.h"
 #include "db_properties.h"
+#ifdef USE_FFRT
+#include "ffrt.h"
+#endif
 #include "ikvdb_connection.h"
 #include "icommunicator_aggregator.h"
 #include "kv_store_observer.h"
@@ -196,7 +199,11 @@ protected:
     ICommunicatorAggregator *communicatorAggregator_ = nullptr;
     std::condition_variable cv_;
 
+#ifdef USE_FFRT
+    ffrt::mutex extLock_;
+#else
     std::mutex extLock_;
+#endif
     std::map<DBTypeInner, AutoLaunchRequestCallback> autoLaunchRequestCallbackMap_;
     // key: label, value: <userId, AutoLaunchItem>
     std::map<std::string, std::map<std::string, AutoLaunchItem>> extItemMap_;
