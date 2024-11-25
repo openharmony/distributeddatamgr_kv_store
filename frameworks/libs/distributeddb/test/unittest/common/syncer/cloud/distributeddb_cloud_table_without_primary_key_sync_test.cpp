@@ -52,13 +52,13 @@ namespace {
     RelationalStoreDelegate *g_delegate = nullptr;
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     TrackerSchema g_trackerSchema = {
-        .tableName = g_tableName, .extendColName = "name", .trackerColNames = {"age"}
+        .tableName = g_tableName, .extendColNames = {"name"}, .trackerColNames = {"age"}
     };
     TrackerSchema g_trackerSchema2 = {
-        .tableName = g_tableName, .extendColName = "age", .trackerColNames = {"height"}
+        .tableName = g_tableName, .extendColNames = {"age"}, .trackerColNames = {"height"}
     };
     TrackerSchema g_trackerSchema3 = {
-        .tableName = g_tableName, .extendColName = "", .trackerColNames = {}
+        .tableName = g_tableName, .extendColNames = {}, .trackerColNames = {}
     };
     ChangeProperties g_onChangeProperties = { .isTrackedDataChange = true };
     ChangeProperties g_unChangeProperties = { .isTrackedDataChange = false };

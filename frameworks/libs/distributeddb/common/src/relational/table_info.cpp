@@ -751,27 +751,35 @@ int TableInfo::CheckTrackerTable()
     if (trackerTable_.GetTrackerColNames().empty()) {
         return E_OK;
     }
+    const char *tableName = DBCommon::StringMiddleMasking(tableName_).c_str();
+    size_t nameLength = tableName_.size();
     for (const auto &colName: trackerTable_.GetTrackerColNames()) {
         if (colName.empty()) {
-            LOGE("tracker col cannot be empty.");
+            LOGE("[%s [%zu]] tracker col cannot be empty.", tableName, nameLength);
             return -E_INVALID_ARGS;
         }
         if (GetFields().find(colName) == GetFields().end()) {
-            LOGE("unable to match the tracker col from table schema.");
+            LOGE("[%s [%zu]] unable to match the tracker col from table schema.", tableName, nameLength);
             return -E_SCHEMA_MISMATCH;
         }
     }
-    if (trackerTable_.GetExtendName().empty()) {
+    if (trackerTable_.GetExtendNames().empty()) {
         return E_OK;
     }
-    auto iter = GetFields().find(trackerTable_.GetExtendName());
-    if (iter == GetFields().end()) {
-        LOGE("unable to match the extend col from table schema.");
-        return -E_SCHEMA_MISMATCH;
-    } else {
-        if (iter->second.IsAssetType() || iter->second.IsAssetsType()) {
-            LOGE("extend col is not allowed to be set as an asset field.");
+    for (const auto &colName : trackerTable_.GetExtendNames()) {
+        if (colName.empty()) {
+            LOGE("[%s [%zu]] extend col cannot be empty.", tableName, nameLength);
             return -E_INVALID_ARGS;
+        }
+        auto iter = GetFields().find(colName);
+        if (iter == GetFields().end()) {
+            LOGE("[%s [%zu]] unable to match the extend col from table schema.", tableName, nameLength);
+            return -E_SCHEMA_MISMATCH;
+        } else {
+            if (iter->second.IsAssetType() || iter->second.IsAssetsType()) {
+                LOGE("[%s [%zu]] extend col is not allowed to be set as an asset field.", tableName, nameLength);
+                return -E_INVALID_ARGS;
+            }
         }
     }
     return E_OK;

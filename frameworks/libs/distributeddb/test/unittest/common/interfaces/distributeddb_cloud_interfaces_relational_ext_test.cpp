@@ -157,7 +157,7 @@ static void SetTracerSchemaTest001(const std::string &tableName)
 {
     TrackerSchema schema;
     schema.tableName = tableName;
-    schema.extendColName = "id";
+    schema.extendColNames = {"id"};
     schema.trackerColNames = {"name"};
     RelationalStoreDelegate *delegate = nullptr;
     DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
@@ -1830,7 +1830,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(delegateImpl->CleanTrackerData("", 0), INVALID_ARGS);
     TrackerSchema schema;
     EXPECT_EQ(delegateImpl->SetTrackerTable(schema), INVALID_ARGS);
-    schema = {.tableName = "test", .extendColName = "", .trackerColNames = {}};
+    schema = {.tableName = "test", .extendColNames = {}, .trackerColNames = {}};
     EXPECT_EQ(delegateImpl->SetTrackerTable(schema), NOT_FOUND);
 
     /**

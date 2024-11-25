@@ -806,7 +806,7 @@ HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)
      */
     const TrackerSchema schema = {
         .tableName = "table1",
-        .extendColName = "extendCol1",
+        .extendColNames = {"extendCol1"},
         .trackerColNames = {"trackerCol1"},
     };
     trackerObj1.Init(schema);
@@ -816,8 +816,9 @@ HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)
     trackerObj1.SetTrackerNames(trackerNames);
     EXPECT_EQ(trackerObj1.IsChanging(schema), true);
     const std::string colName = "col";
-    trackerObj1.SetExtendName(colName);
-    std::string str3 = trackerObj1.GetExtendName();
+    trackerObj1.SetExtendNames({colName});
+    std::set<std::string> extendNames = trackerObj1.GetExtendNames();
+    std::string str3 = *extendNames.begin();
     EXPECT_TRUE(str3.compare(0, str3.length(), colName) == 0);
     EXPECT_EQ(trackerObj1.IsChanging(schema), true);
 }

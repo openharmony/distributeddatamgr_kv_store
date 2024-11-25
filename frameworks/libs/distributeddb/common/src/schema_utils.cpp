@@ -20,6 +20,7 @@
 #include <cmath>
 #include <map>
 
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "schema_constant.h"
@@ -507,13 +508,11 @@ void SchemaUtils::TransTrackerSchemaToLower(const TrackerSchema &srcSchema, Trac
     std::string tableName(srcSchema.tableName.length(), ' ');
     std::transform(srcSchema.tableName.begin(), srcSchema.tableName.end(), tableName.begin(), ::tolower);
     destSchema.tableName = tableName;
-    std::string extendName(srcSchema.extendColName.length(), ' ');
-    std::transform(srcSchema.extendColName.begin(), srcSchema.extendColName.end(), extendName.begin(), ::tolower);
-    destSchema.extendColName = extendName;
+    for (const auto &extendColName : srcSchema.extendColNames) {
+        destSchema.extendColNames.insert(DBCommon::ToLowerCase(extendColName));
+    }
     for (const auto &srcName : srcSchema.trackerColNames) {
-        std::string colName(srcName.length(), ' ');
-        std::transform(srcName.begin(), srcName.end(), colName.begin(), ::tolower);
-        destSchema.trackerColNames.insert(colName);
+        destSchema.trackerColNames.insert(DBCommon::ToLowerCase(srcName));
     }
 }
 } // namespace DistributedDB

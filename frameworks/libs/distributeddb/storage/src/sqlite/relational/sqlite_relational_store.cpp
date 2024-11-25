@@ -1253,13 +1253,19 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 {
+    int errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] update [%s [%zu]] extend_field failed: %d",
+            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(), errCode);
+        return errCode;
+    }
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfo tableInfo = localSchema.GetTable(trackerSchema.tableName);
     if (tableInfo.Empty()) {
         return sqliteStorageEngine_->SetTrackerTable(trackerSchema);
     }
     bool isFirstCreate = false;
-    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo, isFirstCreate);
+    errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo, isFirstCreate);
     if (errCode != E_OK) {
         return errCode == -E_IGNORE_DATA ? E_OK : errCode;
     }

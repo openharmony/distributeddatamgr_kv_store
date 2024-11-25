@@ -164,6 +164,23 @@ int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isM
 }
 }
 
+std::string GetExtendValue(const TrackerTable &trackerTable)
+{
+    std::string extendValue;
+    const std::set<std::string> &extendNames = trackerTable.GetExtendNames();
+    if (!extendNames.empty()) {
+        extendValue += "json_object(";
+        for (const auto &extendName : extendNames) {
+            extendValue += "'" + extendName + "'," + extendName + ",";
+        }
+        extendValue.pop_back();
+        extendValue += ")";
+    } else {
+        extendValue = "''";
+    }
+    return extendValue;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName,
     const std::string &calPrimaryKeyHash, TableInfo &tableInfo)
 {
@@ -196,7 +213,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
         ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
         timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
-    sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+    sql += GetExtendValue(tableInfo.GetTrackerTable());
     sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
     errCode = trackerTable.ReBuildTempTrigger(db, TriggerMode::TriggerModeEnum::INSERT, [db, &sql]() {
         int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
