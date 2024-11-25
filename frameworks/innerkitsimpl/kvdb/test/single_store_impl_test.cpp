@@ -2029,4 +2029,33 @@ HWTEST_F(SingleStoreImplTest, DoAutoSync001, TestSize.Level1)
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(!kvStore->autoSync_ || !kvStore->isApplication_, false);
 }
+
+/**
+ * @tc.name: IsRemoteChanged
+ * @tc.desc: is remote changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    bool ret = kvStore->IsRemoteChanged("");
+    ASSERT_TRUE(ret);
+}
+
+/**
+ * @tc.name: ReportDBCorruptedFault
+ * @tc.desc: report DB corrupted fault
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, ReportDBCorruptedFault, TestSize.Level0)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    Status status = DATA_CORRUPTED;
+    kvStore->ReportDBCorruptedFault(status);
+    EXPECT_TRUE(status == DATA_CORRUPTED);
+}
 } // namespace OHOS::Test

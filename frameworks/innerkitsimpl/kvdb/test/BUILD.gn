@@ -22,19 +22,15 @@ config("module_private_config") {
   include_dirs = [
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
     "../../../../interfaces/innerkits/distributeddatamgr/include/",
-    "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/mock",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/test/distributedtest/single_kvstore_client",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/app_distributeddata/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app/include",
-    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
-    "//test/testfwk/developer_test/aw/distributed",
   ]
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
@@ -91,12 +87,12 @@ ohos_source_set("kvdb_src_file") {
     "../../../../databaseutils:database_utils",
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]
   external_deps = [
     "access_token:libaccesstoken_sdk",
     "access_token:libtokenid_sdk",
     "c_utils:utils",
+    "device_manager:devicemanagersdk",
     "file_api:securitylabel",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
@@ -130,6 +126,7 @@ ohos_unittest("SingleStoreImplTest") {
 
   external_deps = [
     "c_utils:utils",
+    "device_manager:devicemanagersdk",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -373,6 +370,58 @@ ohos_unittest("SingleStorePerfPhoneTest") {
   ]
 }
 
+ohos_unittest("StoreFactoryMockTest") {
+  module_out_path = module_output_path
+  sources = [
+    "../src/backup_manager.cpp",
+    "../src/convertor.cpp",
+    "../src/dev_manager.cpp",
+    "../src/device_convertor.cpp",
+    "../src/kv_types_util.cpp",
+    "../src/kvdb_service_client.cpp",
+    "../src/observer_bridge.cpp",
+    "../src/single_store_impl.cpp",
+    "../src/store_factory.cpp",
+    "../src/store_manager.cpp",
+    "../src/store_result_set.cpp",
+    "../src/system_api.cpp",
+    "../src/task_executor.cpp",
+    "../src/task_executor_adapter.cpp",
+    "./mock/src/security_manager_mock.cpp",
+    "./mock/src/store_util_mock.cpp",
+    "store_factory_mock_test.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+  deps = [
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+  ]
+
+  external_deps = [
+    "access_token:libaccesstoken_sdk",
+    "c_utils:utils",
+    "device_manager:devicemanagersdk",
+    "file_api:securitylabel",
+    "hilog:libhilog",
+    "hitrace:hitrace_meter",
+    "hitrace:libhitracechain",
+    "huks:libhukssdk",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  cflags = [ "-Dprivate=public" ]
+
+  public_external_deps = [
+    "googletest:gmock_main",
+    "googletest:gtest_main",
+  ]
+
+  use_exceptions = true
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -384,6 +433,7 @@ group("unittest") {
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
+    ":StoreFactoryMockTest",
     ":StoreFactoryTest",
     ":StoreUtilTest",
   ]
