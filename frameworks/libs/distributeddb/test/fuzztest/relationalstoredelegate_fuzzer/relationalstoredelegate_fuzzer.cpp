@@ -97,12 +97,12 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void MultiCombineTest(const uint8_t *data, const std::string &tableName, const std::string &extendColName,
+void MultiCombineTest(const uint8_t *data, const std::string &tableName, const std::set<std::string> &extendColNames,
     const std::set<std::string> &trackerColNames, const bool isDeleted)
 {
     TrackerSchema schema;
     schema.tableName = tableName;
-    schema.extendColName = extendColName;
+    schema.extendColNames = extendColNames;
     schema.trackerColNames = trackerColNames;
     g_delegate->SetTrackerTable(schema);
     g_delegate->SetReference({});
@@ -112,7 +112,7 @@ void MultiCombineTest(const uint8_t *data, const std::string &tableName, const s
     auto pragmaCmd = static_cast<PragmaCmd>(data[0]);
     g_delegate->Pragma(pragmaCmd, pragmaData);
     VBucket records;
-    records[extendColName] = extendColName;
+    records[*extendColNames.begin()] = *extendColNames.begin();
     auto recordStatus = static_cast<RecordStatus>(data[0]);
     g_delegate->UpsertData(tableName, { records }, recordStatus);
     DistributedDB::SqlCondition sqlCondition;
@@ -151,10 +151,10 @@ void CombineTest(const uint8_t *data, size_t size)
     SyncStatusCallback callback = nullptr;
     g_delegate->Sync(device, mode, query, callback, len % 2); // 2 is mod num for wait parameter
     g_delegate->GetCloudSyncTaskCount();
-    std::string extendColName = fuzzerData.GetString(len % lenMod);
+    std::set<std::string> extendColNames = {fuzzerData.GetString(len % lenMod)};
     std::set<std::string> trackerColNames = fuzzerData.GetStringSet(len % lenMod);
     bool isLogicDeleted = static_cast<bool>(*data);
-    MultiCombineTest(data, tableName, extendColName, trackerColNames, isLogicDeleted);
+    MultiCombineTest(data, tableName, extendColNames, trackerColNames, isLogicDeleted);
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
     g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);

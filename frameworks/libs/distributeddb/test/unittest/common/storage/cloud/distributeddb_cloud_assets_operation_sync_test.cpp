@@ -128,7 +128,7 @@ protected:
     std::string tableName_ = "DistributedDBCloudAssetsOperationSyncTest";
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     TrackerSchema trackerSchema = {
-        .tableName = tableName_, .extendColName = "name", .trackerColNames = {"age"}
+        .tableName = tableName_, .extendColNames = {"name"}, .trackerColNames = {"age"}
     };
 };
 

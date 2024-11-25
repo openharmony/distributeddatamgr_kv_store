@@ -1919,7 +1919,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *st
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement(const VBucket &vBucket,
-    const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt)
+    const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt, int &index)
 {
     int errCode = E_OK;
     std::string version;
@@ -1930,7 +1930,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
             return -E_CLOUD_ERROR;
         }
     }
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 10, version); // 10 is version
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, index++, version); // next is version
     if (errCode != E_OK) {
         LOGE("Bind version to insert log statement failed, %d", errCode);
         return errCode;
@@ -1946,7 +1946,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
         }
     }
 
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 11, shareUri); // 11 is sharing_resource
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, index++, shareUri); // next is sharing_resource
     if (errCode != E_OK) {
         LOGE("Bind shareUri to insert log statement failed, %d", errCode);
     }

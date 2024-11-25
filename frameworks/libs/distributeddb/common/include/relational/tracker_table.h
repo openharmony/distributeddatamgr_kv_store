@@ -40,6 +40,7 @@ public:
     const std::string GetDiffTrackerValSql() const;
     const std::string GetDiffIncCursorSql(const std::string &tableName) const;
     const std::string GetExtendName() const;
+    const std::set<std::string> &GetExtendNames() const;
     std::string ToString() const;
     const std::vector<std::string> GetDropTempTriggerSql() const;
     const std::string GetTempInsertTriggerSql(bool incFlag = false) const;
@@ -49,6 +50,7 @@ public:
     const std::string GetTempUpdateTriggerSql(bool incFlag = false) const;
     const std::string GetTempDeleteTriggerSql(bool incFlag = false) const;
     void SetTableName(const std::string &tableName);
+    void SetExtendNames(const std::set<std::string> &colNames);
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);
     bool IsEmpty() const;
@@ -60,6 +62,7 @@ public:
 private:
     std::string tableName_;
     std::string extendColName_;
+    std::set<std::string> extendColNames_;
     std::set<std::string> trackerColNames_;
     bool isTrackerAction_ = false;
 };

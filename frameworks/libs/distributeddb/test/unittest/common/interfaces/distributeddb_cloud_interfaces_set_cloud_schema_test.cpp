@@ -1148,7 +1148,7 @@ namespace {
          */
         TrackerSchema trackerSchema = {
             .tableName = g_tableName1,
-            .extendColName = "married",
+            .extendColNames = {"married"},
             .trackerColNames = {"married"}
         };
         ASSERT_EQ(g_delegate->SetTrackerTable(trackerSchema), DBStatus::OK);
@@ -2196,5 +2196,52 @@ namespace {
         changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
         g_observer->SetExpectedResult(changedData);
         EXPECT_EQ(g_observer->IsAllChangedDataEq(), true);
+    }
+
+    /**
+     * @tc.name: SetTrackerTable001
+     * @tc.desc: Test set tracker table before cloud sync
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: liaoyonghuang
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetTrackerTable001, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. init cloud data
+         * @tc.expected: step1. return OK
+         */
+        InitCloudEnv();
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount, false);
+        /**
+         * @tc.steps:step2. set tracker table and sync cloud data
+         * @tc.expected: step2. return OK
+         */
+        TrackerSchema schema = {g_tableName2, {"height", "name"}, {"name"}};
+        g_delegate->SetTrackerTable(schema);
+        Query query = Query::Select().FromTable({ g_tableName2 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        /**
+         * @tc.steps:step3. Check extend_field
+         * @tc.expected: step3. Return E_OK.
+         */
+        std::string checkValidJsonSql = "select count(*) from " + DBCommon::GetLogTableName(g_tableName2) +
+            " where json_valid(extend_field) = 1";
+        EXPECT_EQ(sqlite3_exec(db_, checkValidJsonSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+
+        std::string checkHeightSql = "select count(*) from " + DBCommon::GetLogTableName(g_tableName2) +
+            " where json_extract(extend_field, '$.height') = 166.0";
+        EXPECT_EQ(sqlite3_exec(db_, checkHeightSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+
+        for (int i = 0; i < cloudCount; i++) {
+            std::string expectName = "Local" + std::to_string(i);
+            std::string checkNameSql = "select count(*) from " + DBCommon::GetLogTableName(g_tableName2) +
+                " where json_extract(extend_field, '$.name') = 'Cloud" + std::to_string(i) + "'";
+            EXPECT_EQ(sqlite3_exec(db_, checkNameSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+                reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
+        }
     }
 } // namespace

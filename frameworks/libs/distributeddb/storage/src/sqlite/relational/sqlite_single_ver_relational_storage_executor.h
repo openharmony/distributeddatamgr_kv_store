@@ -220,6 +220,11 @@ public:
     int ReviseLocalModTime(const std::string &tableName, const std::vector<ReviseModTimeInfo> &revisedData);
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount);
+
+    int UpdateExtendField(const std::string &tableName, const std::set<std::string> &extendColNames);
+
+    int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
+        const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -331,13 +336,13 @@ private:
 
     int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
 
-    int BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt, std::vector<uint8_t> &hashKey);
+    int BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt, std::vector<uint8_t> &hashKey, int &index);
 
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
-        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
+        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt, int &index);
 
     int BindShareValueToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
-        sqlite3_stmt *insertLogStmt);
+        sqlite3_stmt *insertLogStmt, int &index);
 
     int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);

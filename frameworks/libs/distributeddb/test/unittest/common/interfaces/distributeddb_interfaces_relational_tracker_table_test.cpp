@@ -82,13 +82,13 @@ namespace {
     const std::set<std::string> LOCAL_TABLE_TRACKER_NAME_SET4 = { "height", "name" };
     const std::set<std::string> LOCAL_TABLE_TRACKER_NAME_SET5 = { "name", "" };
     TrackerSchema g_normalSchema1 = {
-        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME2, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
+        .tableName = TABLE_NAME2, .extendColNames = {EXTEND_COL_NAME2}, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
     };
     TrackerSchema g_normalSchema2 = {
-        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
+        .tableName = TABLE_NAME2, .extendColNames = {EXTEND_COL_NAME3}, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
     };
     TrackerSchema g_normalSchema3 = {
-        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET4
+        .tableName = TABLE_NAME2, .extendColNames = {EXTEND_COL_NAME3}, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET4
     };
 
     void CreateMultiTable()
@@ -142,7 +142,8 @@ namespace {
     void CheckExtendAndCursor(uint64_t num, int start, const std::string &tableName, bool addNum = true)
     {
         int index = 0;
-        string querySql = "select extend_field, cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
+        string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
+            std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
             "_log" + " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -342,7 +343,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
      * @tc.steps:step2. trackerColNames is empty but extendColName is no exist
      * @tc.expected: step2. Return OK.
      */
-    schema.extendColName = EXTEND_COL_NAME1;
+    schema.extendColNames = {EXTEND_COL_NAME1};
     SetTrackerTableTest(schema, OK);
 
     /**
@@ -350,7 +351,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
      * @tc.expected: step1. Return OK.
      */
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
-    schema.extendColName = {};
+    schema.extendColNames = {};
     SetTrackerTableTest(schema, OK);
 }
 
@@ -384,7 +385,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003,
      * @tc.expected: step3. Return SCHEMA_MISMATCH.
      */
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
-    schema.extendColName = EXTEND_COL_NAME1;
+    schema.extendColNames = {EXTEND_COL_NAME1};
     SetTrackerTableTest(schema, SCHEMA_MISMATCH);
 }
 
@@ -530,9 +531,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest007,
     std::string sql = "UPDATE " + TABLE_NAME2 + " SET age='666'";
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
-        " where extend_field=666;";
+        " where json_extract(extend_field, '$.age')=666;";
+    char *errmsg;
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(num), &errmsg), SQLITE_OK);
     CloseStore();
 }
 
@@ -563,8 +565,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
     uint64_t updateNum = 2;
     BatchUpdateTableName2Data(updateNum, LOCAL_TABLE_TRACKER_NAME_SET3);
     int index = 0;
-    string querySql = "select extend_field, cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
-        "_log" + " where data_key <= " + std::to_string(updateNum);
+    string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
+       DBCommon::GetLogTableName(TABLE_NAME2) + " where data_key <= " + std::to_string(updateNum);
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -887,7 +889,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
      */
     TrackerSchema schema = g_normalSchema1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
-    string querySql = "select extend_field from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
+    string querySql = "select json_extract(extend_field, '$.name') from " + DBCommon::GetLogTableName(TABLE_NAME2) +
         " where data_key = 15;";
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -1085,7 +1087,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
      * @tc.expected: step4. Return OK.
      */
     EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
-    std::string sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log" +
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
         " where extend_field is NULL;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
@@ -1125,8 +1127,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.steps:step3. check the extend_field and cursor is null
      * @tc.expected: step3. Return OK.
      */
-    sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
-        "_log where extend_field is NULL " + " AND cursor is NULL";
+    sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where extend_field is NULL " + " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
@@ -1134,7 +1136,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.steps:step4. set diff schema, check the extend_field and cursor is null
      * @tc.expected: step4. Return OK.
      */
-    schema.extendColName = EXTEND_COL_NAME3;
+    schema.extendColNames = {EXTEND_COL_NAME3};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
         "_log where extend_field is NULL " + " AND cursor is NULL";
@@ -1230,7 +1232,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest024,
     OpenStore();
     TrackerSchema schema;
     schema.tableName = TABLE_NAME3;
-    schema.extendColName = EXTEND_COL_NAME3;
+    schema.extendColNames = {EXTEND_COL_NAME3};
     schema.trackerColNames = { EXTEND_COL_NAME3 };
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), INVALID_ARGS);
     CloseStore();
@@ -1877,7 +1879,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest028,
      * @tc.steps:step2. trackerColNames is not empty
      * @tc.expected: step2. Return OK.
      */
-    schema.extendColName = EXTEND_COL_NAME2;
+    schema.extendColNames = {EXTEND_COL_NAME2};
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
     SetTrackerTableTest(schema, OK);
 
@@ -1999,7 +2001,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest031,
      */
     TrackerSchema schema;
     schema.tableName = TABLE_NAME2;
-    schema.extendColName = EXTEND_COL_NAME2;
+    schema.extendColNames = {EXTEND_COL_NAME2};
     schema.trackerColNames = {};
     schema.isForceUpgrade = false;
     schema.isTrackAction = true;
@@ -2084,6 +2086,182 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest033,
     sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log where status = 0;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest034
+ * @tc.desc: Test set tracker table with multi extend names
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest034, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db and set tracker table with multi extend names
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema = g_normalSchema1;
+    schema.extendColNames = {EXTEND_COL_NAME2, EXTEND_COL_NAME3};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. Insert data to table2
+     * @tc.expected: step2. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    /**
+     * @tc.steps:step3. Check extend_field
+     * @tc.expected: step3. Return E_OK.
+     */
+    std::string checkValidJsonSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_valid(extend_field) = 1";
+    EXPECT_EQ(sqlite3_exec(g_db, checkValidJsonSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+
+    std::string checkAgeSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_extract(extend_field, '$.age') = 18";
+    EXPECT_EQ(sqlite3_exec(g_db, checkAgeSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+
+    for (uint64_t i = 0; i < num; i++) {
+        std::string expectName = "Local" + std::to_string(i);
+        std::string checkNameSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+            " where json_extract(extend_field, '$.name') = 'Local" + std::to_string(i) + "'";
+        EXPECT_EQ(sqlite3_exec(g_db, checkNameSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
+    }
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest035
+ * @tc.desc: Test set tracker table with multi extend names repeatedly
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest035, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db and set tracker table with multi extend names
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+    TrackerSchema schema = g_normalSchema1;
+    schema.extendColNames = {EXTEND_COL_NAME3};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. Insert data to table2
+     * @tc.expected: step2. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_valid(extend_field) = 1 and json_extract(extend_field, '$.name') is not null";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
+    /**
+     * @tc.steps:step3. Set tracker table repeatedly
+     * @tc.expected: step3. Return E_OK.
+     */
+    schema.extendColNames = {EXTEND_COL_NAME2, EXTEND_COL_NAME3};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step4. Check extend_field
+     * @tc.expected: step4. Return E_OK.
+     */
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    for (uint64_t i = 0; i < num; i++) {
+        std::string expectName = "Local" + std::to_string(i);
+        std::string checkNameSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+            " where json_extract(extend_field, '$.name') = 'Local" + std::to_string(i) + "'";
+        EXPECT_EQ(sqlite3_exec(g_db, checkNameSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
+    }
+    CloseStore();
+}
+
+void SetLowVersionSchema(sqlite3 *db)
+{
+    std::string sql = "update naturalbase_rdb_aux_metadata set value = "
+        "json_insert(value,'$.TABLES[0].EXTEND_NAME', 'age')"
+        "where json_valid(value)=1 and json_extract(value, '$.TABLES[0].EXTEND_NAMES') is not null";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    sql = "update naturalbase_rdb_aux_metadata set value = json_remove(value,'$.TABLES[0].EXTEND_NAMES')"
+        "where json_valid(value)=1 and json_extract(value, '$.TABLES[0].EXTEND_NAMES') is not null";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+}
+
+/**
+ * @tc.name: TrackerTableTest036
+ * @tc.desc: Test Upgrade extend field
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db and init extend field to old version data
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+    TrackerSchema schema = g_normalSchema1;
+    schema.extendColNames = {EXTEND_COL_NAME3};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    std::string sql = "delete from " + TABLE_NAME2 + " where _rowid_ % 2 = 0";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    sql = "update " + DBCommon::GetLogTableName(TABLE_NAME2) + " set extend_field = 'old_age'";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    SetLowVersionSchema(g_db);
+    CloseStore();
+    OpenStore();
+    /**
+     * @tc.steps:step2. Set tracker table
+     * @tc.expected: step2. Return E_OK.
+     */
+    schema.extendColNames = {EXTEND_COL_NAME2, EXTEND_COL_NAME3};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step3. Check extend_field
+     * @tc.expected: step3. Return E_OK.
+     */
+    std::string checkValidJsonSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_valid(extend_field) = 1";
+    EXPECT_EQ(sqlite3_exec(g_db, checkValidJsonSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+
+    std::string checkAgeSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_extract(extend_field, '$.age') = 18";
+    EXPECT_EQ(sqlite3_exec(g_db, checkAgeSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num / 2), nullptr), SQLITE_OK);
+    checkAgeSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_extract(extend_field, '$.age') = 'old_age'";
+    EXPECT_EQ(sqlite3_exec(g_db, checkAgeSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num / 2), nullptr), SQLITE_OK);
+
+    checkAgeSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where json_extract(extend_field, '$.name') is null";
+    EXPECT_EQ(sqlite3_exec(g_db, checkAgeSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num / 2), nullptr), SQLITE_OK);
+    for (uint64_t i = 0; i < num; i += 2) {
+        std::string expectName = "Local" + std::to_string(i);
+        std::string checkNameSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+            " where json_extract(extend_field, '$.name') = 'Local" + std::to_string(i) + "'";
+        EXPECT_EQ(sqlite3_exec(g_db, checkNameSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
+    }
     CloseStore();
 }
 

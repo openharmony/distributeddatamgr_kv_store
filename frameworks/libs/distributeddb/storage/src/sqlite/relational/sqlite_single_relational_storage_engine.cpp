@@ -1079,5 +1079,53 @@ std::map<std::string, int> SQLiteSingleRelationalStorageEngine::GetTableWeightWi
     }
     return res;
 }
+
+int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::TrackerSchema &schema)
+{
+    if (schema.extendColNames.empty()) {
+        return E_OK;
+    }
+    RelationalSchemaObject tracker = trackerSchema_;
+    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema) && !schema.isForceUpgrade) {
+        LOGI("[%s [%zu]] tracker schema is no change.", DBCommon::StringMiddleMasking(schema.tableName).c_str(),
+            schema.tableName.size());
+        return E_OK;
+    }
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
+        OperatePerm::NORMAL_PERM, errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([&handle, this] { this->ReleaseExecutor(handle); });
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = handle->UpdateExtendField(schema.tableName, schema.extendColNames);
+    if (errCode != E_OK) {
+        LOGE("[%s [%zu]] Update extend field failed. %d",
+            DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.size(), errCode);
+        (void)handle->Rollback();
+        return errCode;
+    }
+
+    TrackerTable oldTrackerTable = tracker.GetTrackerTable(schema.tableName);
+    const std::set<std::string>& oldExtendColNames = oldTrackerTable.GetExtendNames();
+    const std::string lowVersionExtendColName = oldTrackerTable.GetExtendName();
+    if (!oldExtendColNames.empty()) {
+        errCode = handle->UpdateDeleteDataExtendField(schema.tableName, lowVersionExtendColName,
+            oldExtendColNames, schema.extendColNames);
+        if (errCode != E_OK) {
+            LOGE("[%s [%zu]] Update extend field for delete data failed. %d",
+                DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.size(), errCode);
+            (void)handle->Rollback();
+            return errCode;
+        }
+    }
+    return handle->Commit();
+}
 }
 #endif

@@ -22,7 +22,7 @@ namespace DistributedDB {
 void TrackerTable::Init(const TrackerSchema &schema)
 {
     tableName_ = schema.tableName;
-    extendColName_ = schema.extendColName;
+    extendColNames_ = schema.extendColNames;
     trackerColNames_ = schema.trackerColNames;
     isTrackerAction_ = schema.isTrackAction;
 }
@@ -37,20 +37,45 @@ const std::set<std::string> &TrackerTable::GetTrackerColNames() const
     return trackerColNames_;
 }
 
-const std::string TrackerTable::GetAssignValSql(bool isDelete) const
+bool IsInvalidExtendColNames(const std::set<std::string> &extendColNames)
 {
-    if (extendColName_.empty()) {
+    for (auto &extendColName : extendColNames) {
+        if (extendColName.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::string GetJsonAssignValSql(bool isDelete, const std::set<std::string> &extendColNames)
+{
+    if (extendColNames.empty()) {
         return "''";
     }
-    return isDelete ? ("OLD." + extendColName_) : ("NEW." + extendColName_);
+    std::string newOrOld = isDelete ? "OLD." : "NEW.";
+    std::string sql = "json_object(";
+    for (auto &extendColName : extendColNames) {
+        sql += "'" + extendColName + "'," + newOrOld + extendColName + ",";
+    }
+    sql.pop_back();
+    sql += ")";
+    return sql;
+}
+
+const std::string TrackerTable::GetAssignValSql(bool isDelete) const
+{
+    if (!extendColNames_.empty() && !IsInvalidExtendColNames(extendColNames_)) {
+        return GetJsonAssignValSql(isDelete, extendColNames_);
+    }
+    return "''";
 }
 
 const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
 {
-    if (extendColName_.empty()) {
-        return "";
+    if (!extendColNames_.empty() && !IsInvalidExtendColNames(extendColNames_)) {
+        return ", extend_field = " + GetJsonAssignValSql(isDelete, extendColNames_);
     }
-    return isDelete ? (", extend_field = OLD." + extendColName_) : (", extend_field = NEW." + extendColName_);
+    return "";
 }
 
 const std::string TrackerTable::GetDiffTrackerValSql() const
@@ -93,6 +118,11 @@ const std::string TrackerTable::GetDiffIncCursorSql(const std::string &tableName
     return sql;
 }
 
+const std::set<std::string> &TrackerTable::GetExtendNames() const
+{
+    return extendColNames_;
+}
+
 const std::string TrackerTable::GetExtendName() const
 {
     return extendColName_;
@@ -103,7 +133,14 @@ std::string TrackerTable::ToString() const
     std::string attrStr;
     attrStr += "{";
     attrStr += R"("NAME": ")" + tableName_ + "\",";
-    attrStr += R"("EXTEND_NAME": ")" + extendColName_ + "\",";
+    attrStr += R"("EXTEND_NAMES": [)";
+    for (const auto &colName : extendColNames_) {
+        attrStr += "\"" + colName + "\",";
+    }
+    if (!extendColNames_.empty()) {
+        attrStr.pop_back();
+    }
+    attrStr += "],";
     attrStr += R"("TRACKER_NAMES": [)";
     for (const auto &colName: trackerColNames_) {
         attrStr += "\"" + colName + "\",";
@@ -252,9 +289,14 @@ void TrackerTable::SetTableName(const std::string &tableName)
     tableName_ = tableName;
 }
 
+void TrackerTable::SetExtendNames(const std::set<std::string> &colNames)
+{
+    extendColNames_ = std::move(colNames);
+}
+
 void TrackerTable::SetExtendName(const std::string &colName)
 {
-    extendColName_ = colName;
+    extendColName_ = std::move(colName);
 }
 
 void TrackerTable::SetTrackerNames(const std::set<std::string> &trackerNames)
@@ -274,11 +316,17 @@ bool TrackerTable::IsTableNameEmpty() const
 
 bool TrackerTable::IsChanging(const TrackerSchema &schema)
 {
-    if (tableName_ != schema.tableName || extendColName_ != schema.extendColName) {
+    if (tableName_ != schema.tableName || extendColNames_.size() != schema.extendColNames.size() ||
+        trackerColNames_.size() != schema.trackerColNames.size()) {
         return true;
     }
-    if (trackerColNames_.size() != schema.trackerColNames.size()) {
+    if (!extendColName_.empty()) {
         return true;
+    }
+    for (const auto &col: extendColNames_) {
+        if (schema.extendColNames.find(col) == schema.extendColNames.end()) {
+            return true;
+        }
     }
     for (const auto &col: trackerColNames_) {
         if (schema.trackerColNames.find(col) == schema.trackerColNames.end()) {

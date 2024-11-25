@@ -945,7 +945,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
      */
     g_virtualCloudDb->ForkQuery([](const std::string &table, VBucket &) {
         TrackerSchema schema = {
-            .tableName = ASSETS_TABLE_NAME, .extendColName = COL_NAME, .trackerColNames = { COL_ID }
+            .tableName = ASSETS_TABLE_NAME, .extendColNames = {COL_NAME}, .trackerColNames = { COL_ID }
         };
         EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
     });
@@ -957,7 +957,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
      * @tc.expected: step3. return ok.
      */
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where data_key='0' and extend_field='name10' and cursor='32';";
+        " where data_key='0' and json_extract(extend_field, '$.name')='name10' and cursor='32';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }

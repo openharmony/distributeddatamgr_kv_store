@@ -236,7 +236,7 @@ using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)
 
 struct TrackerSchema {
     std::string tableName;
-    std::string extendColName;
+    std::set<std::string> extendColNames;
     std::set<std::string> trackerColNames;
     bool isForceUpgrade = false;
     bool isTrackAction = false;

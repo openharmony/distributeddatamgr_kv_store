@@ -462,16 +462,46 @@ int RelationalSchemaObject::ParseCheckTrackerTableName(const JsonObject &inJsonO
 
 int RelationalSchemaObject::ParseCheckTrackerExtendName(const JsonObject &inJsonObject, TrackerTable &resultTable)
 {
-    FieldValue fieldValue;
-    int errCode = GetMemberFromJsonObject(inJsonObject, "EXTEND_NAME", FieldType::LEAF_FIELD_STRING,
-        true, fieldValue);
-    if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
-        if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) { // LCOV_EXCL_BR_LINE
-            LOGE("[RelationalSchema][Parse] Invalid characters in extend name, err=%d.", errCode);
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {"EXTEND_NAMES"}, fieldType);
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        FieldValue fieldValue;
+        errCode = GetMemberFromJsonObject(inJsonObject, "EXTEND_NAME", FieldType::LEAF_FIELD_STRING,
+            true, fieldValue);
+        if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
+            if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) { // LCOV_EXCL_BR_LINE
+                LOGE("[RelationalSchema][Parse] Invalid characters in extend name, err=%d.", errCode);
+            } else {
+                resultTable.SetExtendName(fieldValue.stringValue);
+                resultTable.SetExtendNames({fieldValue.stringValue});
+                return E_OK;
+            }
+        }
+        LOGE("[RelationalSchema][Parse] Get extend col names fieldType failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) { // LCOV_EXCL_BR_LINE
+        LOGE("[RelationalSchema][Parse] Expect extend cols fieldType ARRAY but %s.",
+             SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::vector<JsonObject> fieldValues;
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{"EXTEND_NAMES"}, fieldValues);
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        LOGE("[RelationalSchema][Parse] Get extend col names value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::set<std::string> colNames;
+    for (const JsonObject &value : fieldValues) {
+        FieldValue fieldValue;
+        errCode = value.GetFieldValueByFieldPath(FieldPath {}, fieldValue);
+        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+            LOGE("[RelationalSchema][Parse] Parse extend col name failed: %d.", errCode);
             return -E_SCHEMA_PARSE_FAIL;
         }
-        resultTable.SetExtendName(fieldValue.stringValue);
+        colNames.insert(fieldValue.stringValue);
     }
+    resultTable.SetExtendNames(colNames);
     return errCode;
 }
 

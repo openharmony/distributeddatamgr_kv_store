@@ -652,6 +652,24 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, 
     return InsertLogRecord(tableSchema, trackerTable, vBucket);
 }
 
+std::string GetInsertLogSql(const std::string &logTableName, const std::set<std::string> &extendColNames)
+{
+    if (extendColNames.empty()) {
+        return "INSERT OR REPLACE INTO " + logTableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, " +
+            "CASE WHEN (SELECT status FROM " + logTableName + " WHERE hash_key=?) IS NULL THEN 0 ELSE " +
+            "(SELECT status FROM " + logTableName + " WHERE hash_key=?) " + "END)";
+    }
+    std::string sql = "INSERT OR REPLACE INTO " + logTableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, json_object(";
+    for (const auto &extendColName : extendColNames) {
+        sql += "'" + extendColName + "',?,";
+    }
+    sql.pop_back();
+    sql += "), 0, ?, ?, CASE WHEN (SELECT status FROM " + logTableName +
+        " WHERE hash_key=?) IS NULL THEN 0 ELSE " + "(SELECT status FROM " + logTableName +
+        " WHERE hash_key=?) " + "END)";
+    return sql;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema &tableSchema,
     const TrackerTable &trackerTable, VBucket &vBucket)
 {
@@ -673,10 +691,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
         }
     }
 
-    std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, " + "CASE WHEN (SELECT status FROM " +
-        DBCommon::GetLogTableName(tableSchema.name) + " WHERE hash_key=?) IS NULL THEN 0 ELSE " +
-        "(SELECT status FROM " + DBCommon::GetLogTableName(tableSchema.name) + " WHERE hash_key=?) " + "END)";
+    std::string sql = GetInsertLogSql(DBCommon::GetLogTableName(tableSchema.name), trackerTable.GetExtendNames());
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {
@@ -728,15 +743,15 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpsertStatement(const V
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindStatusSubQueryHashKeyStatement(sqlite3_stmt *insertLogStmt,
-    std::vector<uint8_t> &hashKey)
+    std::vector<uint8_t> &hashKey, int &index)
 {
-    int errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, 12, hashKey); // 12 is hash_key
+    int errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, index++, hashKey); // next is hash_key
     if (errCode != E_OK) {
         LOGE("Bind hash_key to status subQuery statement failed, %d", errCode);
         return errCode;
     }
 
-    errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, 13, hashKey); // 13 is hash_key
+    errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, index++, hashKey); // next is hash_key
     if (errCode != E_OK) {
         LOGE("Bind hash_key to status subQuery2 statement failed, %d", errCode);
         return errCode;
@@ -744,15 +759,41 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStatusSubQueryHashKeyStatement
     return errCode;
 }
 
+int BindExtendValue(const VBucket &vBucket, const TrackerTable &trackerTable, sqlite3_stmt *stmt, int &index)
+{
+    const std::set<std::string> &extendColNames = trackerTable.GetExtendNames();
+    int errCode = E_OK;
+    int extendValueIndex = index;
+    if (extendColNames.empty()) {
+        return SQLiteUtils::BindTextToStatement(stmt, index++, "");
+    }
+    for (const auto &extendColName : extendColNames) {
+        if (vBucket.find(extendColName) == vBucket.end()) {
+            errCode = SQLiteUtils::BindTextToStatement(stmt, extendValueIndex++, "");
+        } else {
+            Type extendValue = vBucket.at(extendColName);
+            errCode = SQLiteRelationalUtils::BindStatementByType(stmt, extendValueIndex++, extendValue);
+        }
+        if (errCode != E_OK) {
+            const char *tableName = DBCommon::StringMiddleMasking(trackerTable.GetTableName()).c_str();
+            size_t nameLength = trackerTable.GetTableName().size();
+            LOGE("[%s [%zu]] Bind extend field failed: %d", tableName, nameLength, errCode);
+            return errCode;
+        }
+    }
+    index = extendValueIndex;
+    return E_OK;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket,
-    const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt, int &index)
 {
     std::vector<uint8_t> hashKey;
     int errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, hashKey);
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, 7, hashKey); // 7 is hash_key
+    errCode = SQLiteUtils::BindBlobToStatement(insertLogStmt, index++, hashKey); // next is hash_key
     if (errCode != E_OK) {
         LOGE("Bind hash_key to insert log statement failed, %d", errCode);
         return errCode;
@@ -767,47 +808,43 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
         }
     }
 
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 8, cloudGid); // 8 is cloud_gid
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, index++, cloudGid); // next is cloud_gid
     if (errCode != E_OK) {
         LOGE("Bind cloud_gid to insert log statement failed, %d", errCode);
         return errCode;
     }
 
-    if (trackerTable.GetExtendName().empty() || vBucket.find(trackerTable.GetExtendName()) == vBucket.end()) {
-        errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 9, ""); // 9 is extend_field
-    } else {
-        Type extendValue = vBucket.at(trackerTable.GetExtendName());
-        errCode = SQLiteRelationalUtils::BindStatementByType(insertLogStmt, 9, extendValue); // 9 is extend_field
-    }
+    errCode = BindExtendValue(vBucket, trackerTable, insertLogStmt, index); // next is extend_field
     if (errCode != E_OK) {
         LOGE("Bind extend_field to insert log statement failed, %d", errCode);
         return errCode;
     }
 
-    errCode = BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
+    errCode = BindShareValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt, index);
     if (errCode != E_OK) {
         return errCode;
     }
-    return BindStatusSubQueryHashKeyStatement(insertLogStmt, hashKey);
+    return BindStatusSubQueryHashKeyStatement(insertLogStmt, hashKey, index);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBucket &vBucket,
     const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt)
 {
     int64_t rowid = SQLiteUtils::GetLastRowId(dbHandle_);
-    int errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 1, rowid);
+    int bindIndex = 1; // 1 is rowid
+    int errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, bindIndex++, rowid);
     if (errCode != E_OK) {
         LOGE("Bind rowid to insert log statement failed, %d", errCode);
         return errCode;
     }
 
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 2, GetDev()); // 2 is device
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, bindIndex++, GetDev()); // next is device
     if (errCode != E_OK) {
         LOGE("Bind device to insert log statement failed, %d", errCode);
         return errCode;
     }
 
-    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 3, GetDev()); // 3 is ori_device
+    errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, bindIndex++, GetDev()); // next is ori_device
     if (errCode != E_OK) {
         LOGE("Bind ori_device to insert log statement failed, %d", errCode);
         return errCode;
@@ -820,7 +857,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
         return -E_CLOUD_ERROR;
     }
 
-    errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 4, val); // 4 is timestamp
+    errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, bindIndex++, val); // next is timestamp
     if (errCode != E_OK) {
         LOGE("Bind timestamp to insert log statement failed, %d", errCode);
         return errCode;
@@ -832,20 +869,20 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
         return -E_CLOUD_ERROR;
     }
 
-    errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 5, val); // 5 is wtimestamp
+    errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, bindIndex++, val); // next is wtimestamp
     if (errCode != E_OK) {
         LOGE("Bind wtimestamp to insert log statement failed, %d", errCode);
         return errCode;
     }
 
-    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_int(insertLogStmt, 6, GetDataFlag())); // 6 is flag
+    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_int(insertLogStmt, bindIndex++, GetDataFlag())); // next is flag
     if (errCode != E_OK) {
         LOGE("Bind flag to insert log statement failed, %d", errCode);
         return errCode;
     }
 
     vBucket[CloudDbConstant::ROW_ID_FIELD_NAME] = rowid; // fill rowid to cloud data to notify user
-    return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt);
+    return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt, bindIndex);
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetWhereConditionForDataTable(const std::string &gidStr,
@@ -1593,6 +1630,136 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLocalDataCount(const std::strin
     errCode = SQLiteUtils::GetCountBySql(dbHandle_, logicDeleteDataCountSql, logicDeleteDataCount);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] Query local logic delete data count failed: %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateExtendField(const std::string &tableName,
+    const std::set<std::string> &extendColNames)
+{
+    bool isLogTableExist = false;
+    int errCode = SQLiteUtils::CheckTableExists(dbHandle_, DBCommon::GetLogTableName(tableName), isLogTableExist);
+    if (errCode == E_OK && !isLogTableExist) {
+        LOGW("[RDBExecutor][UpdateExtendField] Log table of [%s [%zu]] not found!",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return E_OK;
+    }
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " as log set extend_field = json_object(";
+    for (const auto &extendColName : extendColNames) {
+        sql += "'" + extendColName + "',data." + extendColName + ",";
+    }
+    sql.pop_back();
+    sql += ") from " + tableName + " as data where log.data_key = data." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[RDBExecutor][UpdateExtendField] Reset stmt failed %d", ret);
+        }
+    });
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("[RDBExecutor][UpdateExtendField] Update [%s [%zu]] extend field failed: %d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int BuildJsonExtendField(const std::string &tableName, const std::string &lowVersionExtendColName, sqlite3 *db)
+{
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " set extend_field = json_object('" +
+        lowVersionExtendColName + "',extend_field) where data_key = -1 and (json_valid(extend_field) = 0 or " +
+        "json_extract(extend_field, '$." + lowVersionExtendColName +"') is null)";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("[RDBExecutor][UpdateDeleteDataExtendField] Update [%s [%zu]] extend field non-JSON format failed: %d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+    } else {
+        errCode = E_OK;
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGW("[RDBExecutor][UpdateExtendField] Reset stmt failed %d", ret);
+    }
+    return errCode;
+}
+
+std::string GetUpdateExtendFieldSql(const std::string &tableName, const std::set<std::string> &oldExtendColNames,
+    const std::set<std::string> &extendColNames)
+{
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName) +
+        " set extend_field = json_insert(extend_field,";
+    bool isContainNewCol = false;
+    for (const auto &extendColName : extendColNames) {
+        if (oldExtendColNames.find(extendColName) != oldExtendColNames.end()) {
+            continue;
+        }
+        isContainNewCol = true;
+        sql += "'$." + extendColName + "',null,";
+    }
+    if (!isContainNewCol) {
+        return "";
+    }
+    sql.pop_back();
+    sql += ") where data_key = -1 and json_valid(extend_field) = 1;";
+    return sql;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateDeleteDataExtendField(const std::string &tableName,
+    const std::string &lowVersionExtendColName, const std::set<std::string> &oldExtendColNames,
+    const std::set<std::string> &extendColNames)
+{
+    bool isLogTableExist = false;
+    if (SQLiteUtils::CheckTableExists(dbHandle_, DBCommon::GetLogTableName(tableName), isLogTableExist) == E_OK &&
+        !isLogTableExist) {
+        LOGW("[RDBExecutor][UpdateDeleteDataExtendField] Log table of [%s [%zu]] not found!",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return E_OK;
+    }
+    int errCode = E_OK;
+    if (!lowVersionExtendColName.empty()) {
+        errCode = BuildJsonExtendField(tableName, lowVersionExtendColName, dbHandle_);
+        if (errCode != E_OK) {
+            LOGE("[UpdateDeleteDataExtendField] Update low version extend field of [%s [%zu]] to json failed: %d",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+            return errCode;
+        }
+    }
+    std::string sql = GetUpdateExtendFieldSql(tableName, oldExtendColNames, extendColNames);
+    if (sql.empty()) {
+        return E_OK;
+    }
+
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("[RDBExecutor][UpdateDeleteDataExtendField] Update extend field of [%s [%zu]] failed: %d",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+    } else {
+        errCode = E_OK;
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGW("[RDBExecutor][UpdateDeleteDataExtendField] Reset stmt failed %d", ret);
     }
     return errCode;
 }

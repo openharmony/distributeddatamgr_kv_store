@@ -525,13 +525,14 @@ HWTEST_F(DistributedDBSchemalTest, ParseTrackerSchemaAndName, TestSize.Level1)
      * @tc.steps: step1. Trans TrackerSchema to Lower.
      * @tc.expected: step1. Trans success.
      */
-    const TrackerSchema srcSchema = {"Test", "Col", {"Col1", "Col2"}};
+    const TrackerSchema srcSchema = {"Test", {"Col"}, {"Col1", "Col2"}};
     TrackerSchema destSchema;
     SchemaUtils::TransTrackerSchemaToLower(srcSchema, destSchema);
-    TrackerSchema expectedSchema = {"test", "col", {"col1", "col2"}};
+    TrackerSchema expectedSchema = {"test", {"col"}, {"col1", "col2"}};
     EXPECT_TRUE(destSchema.tableName.compare(0, expectedSchema.tableName.length(), expectedSchema.tableName) == 0);
-    EXPECT_TRUE(
-        destSchema.extendColName.compare(0, expectedSchema.extendColName.length(), expectedSchema.extendColName) == 0);
+    for (const auto &extendColName : destSchema.extendColNames) {
+        EXPECT_TRUE(expectedSchema.extendColNames.find(extendColName) != expectedSchema.extendColNames.end());
+    }
 
     /**
      * @tc.steps: step2. Strip space from name.
