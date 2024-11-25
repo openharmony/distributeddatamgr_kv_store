@@ -422,6 +422,92 @@ ohos_unittest("StoreFactoryMockTest") {
   use_exceptions = true
 }
 
+ohos_unittest("SingleStoreImplMockTest") {
+  module_out_path = module_output_path
+  sources = [
+    "../../distributeddatafwk/src/blob.cpp",
+    "../../distributeddatafwk/src/change_notification.cpp",
+    "../../distributeddatafwk/src/data_query.cpp",
+    "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
+    "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
+    "../../distributeddatafwk/src/ikvstore_observer.cpp",
+    "../../distributeddatafwk/src/kv_utils.cpp",
+    "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
+    "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
+    "../../distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+    "../../distributeddatafwk/src/kvstore_observer_client.cpp",
+    "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
+    "../../distributeddatafwk/src/sync_observer.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "../src/backup_manager.cpp",
+    "../src/convertor.cpp",
+    "../src/device_convertor.cpp",
+    "../src/kv_types_util.cpp",
+    "../src/security_manager.cpp",
+    "../src/single_store_impl.cpp",
+    "../src/store_factory.cpp",
+    "../src/store_manager.cpp",
+    "../src/store_result_set.cpp",
+    "../src/store_util.cpp",
+    "../src/system_api.cpp",
+    "../src/task_executor_adapter.cpp",
+    "./mock/src/dev_manager_mock.cpp",
+    "./mock/src/kvdb_notifier_client_mock.cpp",
+    "./mock/src/kvdb_service_client_mock.cpp",
+    "./mock/src/observer_bridge_mock.cpp",
+    "./mock/src/task_executor_mock.cpp",
+    "single_store_impl_mock_test.cpp",
+  ]
+
+  if (qemu_disable) {
+    sources += [ "../src/auto_sync_timer.cpp" ]
+  } else {
+    sources += [ "../src/auto_sync_timer_mock.cpp" ]
+  }
+
+  configs = [ ":module_private_config" ]
+  deps = [
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_client_sync",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
+    "../../../../databaseutils:database_utils",
+  ]
+
+  external_deps = [
+    "access_token:libaccesstoken_sdk",
+    "access_token:libtokenid_sdk",
+    "c_utils:utils",
+    "device_manager:devicemanagersdk",
+    "file_api:securitylabel",
+    "hilog:libhilog",
+    "hitrace:hitrace_meter",
+    "hitrace:libhitracechain",
+    "huks:libhukssdk",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  if (dms_service_enable && qemu_disable) {
+    external_deps += [ "dmsfwk:distributed_sdk" ]
+  }
+
+  public_external_deps = [
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
+    "googletest:gmock_main",
+    "googletest:gtest_main",
+  ]
+
+  defines = [
+    "private=public",
+    "protected=public",
+  ]
+
+  use_exceptions = true
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -432,6 +518,7 @@ group("unittest") {
     ":DevManagerMockTest",
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
+    ":SingleStoreImplMockTest",
     ":SingleStoreImplTest",
     ":StoreFactoryMockTest",
     ":StoreFactoryTest",
