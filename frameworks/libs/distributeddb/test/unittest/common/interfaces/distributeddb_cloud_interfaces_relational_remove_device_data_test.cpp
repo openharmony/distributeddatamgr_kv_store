@@ -550,13 +550,13 @@ namespace {
         if (g_delegate != nullptr) {
             g_delegate->UnRegisterObserver(g_observer);
         }
-        delete g_observer;
-        g_observer = nullptr;
-        g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;
         }
+        delete g_observer;
+        g_observer = nullptr;
+        g_virtualCloudDb = nullptr;
     }
 
     class DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest : public testing::Test {
