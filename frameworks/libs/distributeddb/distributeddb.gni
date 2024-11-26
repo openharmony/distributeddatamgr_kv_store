@@ -14,6 +14,10 @@
 distributeddb_path =
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb"
 
+declare_args() {
+  kv_store_support_icu = true
+}
+
 distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
   "${distributeddb_path}/common/src/cloud/asset_operation_utils.cpp",
