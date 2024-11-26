@@ -39,7 +39,7 @@
       "SystemCapability.DistributedDataManager.KVStore.Core",
       "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
     ],
-    "features": [],
+    "features": ["kv_store_support_icu"],
     "adapted_system_type": [
       "standard"
     ],
@@ -72,6 +72,7 @@
         "hisysevent",
         "hitrace",
         "huks",
+        "icu",
         "ipc",
         "napi",
         "safwk",
