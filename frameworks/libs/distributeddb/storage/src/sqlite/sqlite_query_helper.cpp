@@ -1181,6 +1181,9 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
+    // let data after remove device data at flag_only and logic delete mode and deleted by others to upload to cloud.
+    sql += "(b.cloud_gid == '' and (b.flag & 0x20 != 0) and (b.flag & 0x02 = 0) and (b.flag & 0x08 != 0x08) and";
+    sql += " (b.flag & 0x01 = 0) and (b.status = 0)) OR ";
     if (isCompensatedTask && mode == CloudWaterType::DELETE) {
         // deleted data does not have primary key, requires gid to compensate sync
         sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01) AND b.cloud_gid != '') OR ";

@@ -1886,5 +1886,63 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
     CloseDb();
 }
+
+/*
+ * @tc.name: CleanCloudDataTest028
+ * @tc.desc: Test flag_only and logic delete.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest028, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set data is logicDelete
+     * @tc.expected: OK.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 20 records on cloud
+     * @tc.expected: OK.
+     */
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    /**
+     * @tc.steps: step3. call Sync with cloud merge strategy.
+     * @tc.expected: OK.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step4. after remove device data and check log num.
+     * @tc.expected: OK.
+     */
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where flag & 0x02 == 0x02;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+    /**
+     * @tc.steps: step5. call Sync with cloud merge strategy after delete by cloud.
+     * @tc.expected: OK.
+     */
+    DeleteCloudTableRecordByGid(0, 2);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+ 
+    /**
+     * @tc.steps: step6. call Sync with cloud merge strategy.
+     * @tc.expected: OK.
+     */
+    DeleteCloudTableRecordByGid(4, 2);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where cloud_gid = '';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(2), nullptr), SQLITE_OK);
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE
