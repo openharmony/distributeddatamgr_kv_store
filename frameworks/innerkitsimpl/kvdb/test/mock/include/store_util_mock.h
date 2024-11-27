@@ -38,6 +38,7 @@ public:
     virtual std::string Anonymous(const std::string &) = 0;
     BStoreUtil() = default;
     virtual ~BStoreUtil() = default;
+
 public:
     static inline std::shared_ptr<BStoreUtil> storeUtil = nullptr;
 };
@@ -50,12 +51,12 @@ public:
     MOCK_METHOD(StoreUtil::DBSecurity, GetDBSecurity, (int32_t));
     MOCK_METHOD(bool, InitPath, (const std::string));
     MOCK_METHOD(StoreUtil::DBIndexType, GetDBIndexType, (IndexType));
-    MOCK_METHOD(std::vector<std::string>, GetSubPath, (const std::string&));
-    MOCK_METHOD(std::vector<StoreUtil::FileInfo>, GetFiles, (const std::string&));
-    MOCK_METHOD(bool, Rename, (const std::string&, const std::string&));
-    MOCK_METHOD(uint32_t, Anonymous, (const void*));
+    MOCK_METHOD(std::vector<std::string>, GetSubPath, (const std::string &));
+    MOCK_METHOD(std::vector<StoreUtil::FileInfo>, GetFiles, (const std::string &));
+    MOCK_METHOD(bool, Rename, (const std::string &, const std::string &));
+    MOCK_METHOD(uint32_t, Anonymous, (const void *));
     MOCK_METHOD(std::string, Anonymous, (const std::string &));
-    MOCK_METHOD(bool, RemoveRWXForOthers, (const std::string&));
+    MOCK_METHOD(bool, RemoveRWXForOthers, (const std::string &));
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_STORE_UTIL_MOCK_H

@@ -16,8 +16,8 @@
 #ifndef OHOS_DISTRIBUTED_DATA_KVDB_SERVICE_CLIENT_MOCK_H
 #define OHOS_DISTRIBUTED_DATA_KVDB_SERVICE_CLIENT_MOCK_H
 
-#include <gmock/gmock.h>
 #include "kvdb_service_client.h"
+#include <gmock/gmock.h>
 
 namespace OHOS::DistributedKv {
 class BKVDBServiceClient {
@@ -26,6 +26,7 @@ public:
     virtual sptr<KVDBNotifierClient> GetServiceAgent(const AppId &) = 0;
     BKVDBServiceClient() = default;
     virtual ~BKVDBServiceClient() = default;
+
 public:
     static inline std::shared_ptr<BKVDBServiceClient> kVDBServiceClient = nullptr;
 };
@@ -33,7 +34,7 @@ public:
 class KVDBServiceClientMock : public BKVDBServiceClient {
 public:
     MOCK_METHOD(std::shared_ptr<KVDBServiceClient>, GetInstance, ());
-    MOCK_METHOD(sptr<KVDBNotifierClient>, GetServiceAgent, (const AppId&));
+    MOCK_METHOD(sptr<KVDBNotifierClient>, GetServiceAgent, (const AppId &));
     static inline Status status = ERROR;
 };
 } // namespace OHOS::DistributedKv

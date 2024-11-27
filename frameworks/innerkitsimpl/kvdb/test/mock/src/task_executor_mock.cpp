@@ -50,11 +50,7 @@ TaskExecutor::TaskId TaskExecutor::Reset(TaskExecutor::TaskId taskId, Duration i
     return INVALID_TASK_ID;
 }
 
-void TaskExecutor::SetExecutors(std::shared_ptr<ExecutorPool> executors)
-{
-}
+void TaskExecutor::SetExecutors(std::shared_ptr<ExecutorPool> executors) { }
 
-void TaskExecutor::GenerateExecutors()
-{
-}
+void TaskExecutor::GenerateExecutors() { }
 } // namespace OHOS

@@ -17,8 +17,8 @@
 #include <gtest/gtest.h>
 
 #include "dev_manager.h"
-#include "types.h"
 #include "log_print.h"
+#include "types.h"
 namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
@@ -32,25 +32,21 @@ public:
     void TearDown();
 };
 
-void DevManagerTest::SetUpTestCase(void)
-{}
+void DevManagerTest::SetUpTestCase(void) { }
 
-void DevManagerTest::TearDownTestCase(void)
-{}
+void DevManagerTest::TearDownTestCase(void) { }
 
-void DevManagerTest::SetUp(void)
-{}
+void DevManagerTest::SetUp(void) { }
 
-void DevManagerTest::TearDown(void)
-{}
+void DevManagerTest::TearDown(void) { }
 
 /**
-* @tc.name: GetLocalDevice
-* @tc.desc: Get local device's infomation
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: taoyuxin
-*/
+ * @tc.name: GetLocalDevice
+ * @tc.desc: Get local device's infomation
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: taoyuxin
+ */
 HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 {
     ZLOGI("GetLocalDevice begin.");
@@ -60,12 +56,12 @@ HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 }
 
 /**
-* @tc.name: ToUUID
-* @tc.desc: Get uuid from networkId
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: taoyuxin
-*/
+ * @tc.name: ToUUID
+ * @tc.desc: Get uuid from networkId
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: taoyuxin
+ */
 HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 {
     ZLOGI("ToUUID begin.");
@@ -78,12 +74,12 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 }
 
 /**
-* @tc.name: ToNetworkId
-* @tc.desc: Get networkId from uuid
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToNetworkId
+ * @tc.desc: Get networkId from uuid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 {
     auto &devMgr = DevManager::GetInstance();
@@ -95,12 +91,12 @@ HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetRemoteDevices
-* @tc.desc: Get remote devices
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: taoyuxin
-*/
+ * @tc.name: GetRemoteDevices
+ * @tc.desc: Get remote devices
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: taoyuxin
+ */
 HWTEST_F(DevManagerTest, GetRemoteDevices, TestSize.Level1)
 {
     ZLOGI("GetRemoteDevices begin.");

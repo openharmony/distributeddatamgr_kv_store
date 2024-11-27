@@ -16,8 +16,8 @@
 #ifndef OHOS_DISTRIBUTED_DATA_DEV_MANAGER_MOCK_H
 #define OHOS_DISTRIBUTED_DATA_DEV_MANAGER_MOCK_H
 
-#include <gmock/gmock.h>
 #include "dev_manager.h"
+#include <gmock/gmock.h>
 
 namespace OHOS::DistributedKv {
 class BDevManager {
@@ -28,15 +28,16 @@ public:
     virtual std::string GetUnEncryptedUuid() = 0;
     BDevManager() = default;
     virtual ~BDevManager() = default;
+
 public:
     static inline std::shared_ptr<BDevManager> devManager = nullptr;
 };
 
 class DevManagerMock : public BDevManager {
 public:
-    MOCK_METHOD(std::string, ToUUID, (const std::string&));
+    MOCK_METHOD(std::string, ToUUID, (const std::string &));
     MOCK_METHOD(const DevManager::DetailInfo &, GetLocalDevice, ());
-    MOCK_METHOD(std::string, ToNetworkId, (const std::string&));
+    MOCK_METHOD(std::string, ToNetworkId, (const std::string &));
     MOCK_METHOD(std::string, GetUnEncryptedUuid, ());
 };
 } // namespace OHOS::DistributedKv

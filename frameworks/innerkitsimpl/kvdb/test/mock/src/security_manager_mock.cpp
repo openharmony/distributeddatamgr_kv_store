@@ -15,16 +15,12 @@
 #include "include/security_manager_mock.h"
 
 namespace OHOS::DistributedKv {
-SecurityManager::SecurityManager()
-{
-}
+SecurityManager::SecurityManager() { }
 
-SecurityManager::~SecurityManager()
-{
-}
+SecurityManager::~SecurityManager() { }
 
-bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
-    const DistributedDB::CipherPassword &key)
+bool SecurityManager::SaveDBPassword(
+    const std::string &name, const std::string &path, const DistributedDB::CipherPassword &key)
 {
     if (BSecurityManager::securityManager == nullptr) {
         return false;
@@ -38,8 +34,8 @@ SecurityManager &SecurityManager::GetInstance()
     return instance;
 }
 
-SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path, bool needCreate)
+SecurityManager::DBPassword SecurityManager::GetDBPassword(
+    const std::string &name, const std::string &path, bool needCreate)
 {
     if (BSecurityManager::securityManager == nullptr) {
         SecurityManager::DBPassword dbPassword;

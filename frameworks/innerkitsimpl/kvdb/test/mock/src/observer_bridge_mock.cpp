@@ -20,9 +20,7 @@ ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Obser
 {
 }
 
-ObserverBridge::~ObserverBridge()
-{
-}
+ObserverBridge::~ObserverBridge() { }
 
 void ObserverBridge::OnServiceDeath()
 {
@@ -44,24 +42,18 @@ Status ObserverBridge::UnregisterRemoteObserver(uint32_t realType)
     return SUCCESS;
 }
 
-void ObserverBridge::OnChange(const DBChangedData &data)
-{
-}
+void ObserverBridge::OnChange(const DBChangedData &data) { }
 
 ObserverBridge::ObserverClient::ObserverClient(std::shared_ptr<Observer> observer, const Convertor &cvt)
     : KvStoreObserverClient(observer), convert_(cvt), realType_(0)
 {
 }
 
-void ObserverBridge::ObserverClient::OnChange(const ChangeNotification &data)
-{
-}
+void ObserverBridge::ObserverClient::OnChange(const ChangeNotification &data) { }
 
-void ObserverBridge::ObserverClient::OnChange(const DataOrigin &origin, Keys &&keys)
-{
-}
+void ObserverBridge::ObserverClient::OnChange(const DataOrigin &origin, Keys &&keys) { }
 
-template<class T>
+template <class T>
 std::vector<Entry> ObserverBridge::ConvertDB(const T &dbEntries, std::string &deviceId, const Convertor &convert)
 {
     std::vector<Entry> entries(dbEntries.size());

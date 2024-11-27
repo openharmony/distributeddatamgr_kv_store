@@ -18,16 +18,16 @@
 
 #include "block_data.h"
 #include "dev_manager.h"
+#include "device_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "dm_device_info.h"
 #include "file_ex.h"
 #include "kv_store_nb_delegate.h"
+#include "single_store_impl.h"
+#include "store_factory.h"
 #include "store_manager.h"
 #include "sys/stat.h"
 #include "types.h"
-#include "single_store_impl.h"
-#include "store_factory.h"
-#include "dm_device_info.h"
-#include "device_manager.h"
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
@@ -116,8 +116,8 @@ void SingleStoreImplTest::TearDown(void)
     ASSERT_EQ(status, SUCCESS);
 }
 
-std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type,
-    bool encrypt, bool backup)
+std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(
+    std::string storeIdTest, KvStoreType type, bool encrypt, bool backup)
 {
     Options options;
     options.kvStoreType = type;
@@ -146,21 +146,22 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosyn
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     StoreFactory storeFactory;
     auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
-    auto dbPassword =
-        SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
     DBStatus dbStatus = DBStatus::DB_ERROR;
-        dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
-            [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
-                dbStatus = status;
-                if (store == nullptr) {
-                    return;
-                }
-                auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
-                auto dbStore = std::shared_ptr<DBStore>(store, release);
-                storeFactory.SetDbConfig(dbStore);
-                const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
-                kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
-            });
+    dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
+        [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
+            dbStatus = status;
+            if (store == nullptr) {
+                return;
+            }
+            auto release = [dbManager](auto *store) {
+                dbManager->CloseKvStore(store);
+            };
+            auto dbStore = std::shared_ptr<DBStore>(store, release);
+            storeFactory.SetDbConfig(dbStore);
+            const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
+            kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
+        });
     return kvStore;
 }
 
@@ -561,8 +562,9 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
     std::vector<Entry> output;
     status = kvStore_->GetEntries({ "" }, output);
     ASSERT_EQ(status, SUCCESS);
-    std::sort(output.begin(), output.end(),
-        [](const Entry &entry, const Entry &sentry) { return entry.key.Data() < sentry.key.Data(); });
+    std::sort(output.begin(), output.end(), [](const Entry &entry, const Entry &sentry) {
+        return entry.key.Data() < sentry.key.Data();
+    });
     for (int i = 0; i < 10; ++i) {
         ASSERT_TRUE(input[i].key == output[i].key);
         ASSERT_TRUE(input[i].value == output[i].value);
@@ -684,8 +686,9 @@ HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
     std::vector<Entry> output;
     status = kvStore_->GetEntries(query, output);
     ASSERT_EQ(status, SUCCESS);
-    std::sort(output.begin(), output.end(),
-        [](const Entry &entry, const Entry &sentry) { return entry.key.Data() < sentry.key.Data(); });
+    std::sort(output.begin(), output.end(), [](const Entry &entry, const Entry &sentry) {
+        return entry.key.Data() < sentry.key.Data();
+    });
     ASSERT_LE(output.size(), 2);
     for (size_t i = 0; i < output.size(); ++i) {
         ASSERT_TRUE(input[i].key == output[i].key);
@@ -704,7 +707,9 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -741,7 +746,9 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -780,7 +787,9 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1148,7 +1157,9 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1203,7 +1214,9 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1218,8 +1231,7 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
-    ChangeOwnerToService(
-        "/data/service/el1/public/database/SingleStoreImplTest",
+    ChangeOwnerToService("/data/service/el1/public/database/SingleStoreImplTest",
         "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
     status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
     ASSERT_EQ(status, SUCCESS);
@@ -1259,12 +1271,8 @@ HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
     ASSERT_NE(kvStore_, nullptr);
     class TestSyncCallback : public KvStoreSyncCallback {
     public:
-        void SyncCompleted(const map<std::string, Status> &results) override
-        {
-        }
-        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
-        {
-        }
+        void SyncCompleted(const map<std::string, Status> &results) override { }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override { }
     };
     auto callback = std::make_shared<TestSyncCallback>();
     auto status = kvStore_->RegisterSyncCallback(callback);
@@ -1283,12 +1291,8 @@ HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
     ASSERT_NE(kvStore_, nullptr);
     class TestSyncCallback : public KvStoreSyncCallback {
     public:
-        void SyncCompleted(const map<std::string, Status> &results) override
-        {
-        }
-        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override
-        {
-        }
+        void SyncCompleted(const map<std::string, Status> &results) override { }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override { }
     };
     auto callback = std::make_shared<TestSyncCallback>();
     auto status = kvStore_->RegisterSyncCallback(callback);
@@ -1298,12 +1302,12 @@ HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
 }
 
 /**
-* @tc.name: disableBackup
-* @tc.desc: Disable backup
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: disableBackup
+ * @tc.desc: Disable backup
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
 {
     AppId appId = { "SingleStoreImplTest" };
@@ -1416,7 +1420,9 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1432,8 +1438,7 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
     const string device = { "" };
-    ChangeOwnerToService(
-        "/data/service/el1/public/database/SingleStoreImplTest",
+    ChangeOwnerToService("/data/service/el1/public/database/SingleStoreImplTest",
         "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
     status = store->RemoveDeviceData(device);
     ASSERT_EQ(status, SUCCESS);
@@ -1746,13 +1751,13 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    BlockData<bool> blockData{ 1, false };
-    std::function<void(Status, Value&&)> result = [&blockData](Status status, Value&& value) {
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, Value &&)> result = [&blockData](Status status, Value &&value) {
         ASSERT_EQ(status, Status::NOT_FOUND);
         blockData.SetValue(true);
     };
     auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
-    kvStore->Get({"key"}, networkId, result);
+    kvStore->Get({ "key" }, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
@@ -1781,14 +1786,14 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    BlockData<bool> blockData{ 1, false };
-    std::function<void(Status, std::vector<Entry>&&)> result =
-        [&blockData](Status status, std::vector<Entry>&& value) {
-            ASSERT_EQ(status, Status::SUCCESS);
-            blockData.SetValue(true);
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, std::vector<Entry> &&)> result = [&blockData](
+                                                                    Status status, std::vector<Entry> &&value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        blockData.SetValue(true);
     };
     auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
-    kvStore->GetEntries({"key"}, networkId, result);
+    kvStore->GetEntries({ "key" }, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
@@ -1819,13 +1824,13 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGet, TestSize.Level0)
     ASSERT_NE(kvStore, nullptr);
     status = kvStore->Put({ "Put Test" }, { "Put Value" });
     auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
-    BlockData<bool> blockData{ 1, false };
-    std::function<void(Status, Value&&)> result = [&blockData](Status status, Value&& value) {
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, Value &&)> result = [&blockData](Status status, Value &&value) {
         ASSERT_EQ(status, Status::SUCCESS);
         ASSERT_EQ(value.ToString(), "Put Value");
         blockData.SetValue(true);
     };
-    kvStore->Get({"Put Test"}, networkId, result);
+    kvStore->Get({ "Put Test" }, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
@@ -1864,14 +1869,14 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
     status = kvStore->PutBatch(entries);
     ASSERT_EQ(status, SUCCESS);
     auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
-    BlockData<bool> blockData{ 1, false };
-    std::function<void(Status, std::vector<Entry>&&)> result =
-        [entries, &blockData](Status status, std::vector<Entry>&& value) {
-            ASSERT_EQ(status, Status::SUCCESS);
-            ASSERT_EQ(value.size(), entries.size());
-            blockData.SetValue(true);
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, std::vector<Entry> &&)> result = [entries, &blockData](
+                                                                    Status status, std::vector<Entry> &&value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        ASSERT_EQ(value.size(), entries.size());
+        blockData.SetValue(true);
     };
-    kvStore->GetEntries({"key_"}, networkId, result);
+    kvStore->GetEntries({ "key_" }, networkId, result);
     blockData.GetValue();
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);

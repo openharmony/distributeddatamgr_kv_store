@@ -16,9 +16,7 @@
 
 namespace OHOS::DistributedKv {
 
-KVDBServiceClient::KVDBServiceClient(const sptr<IRemoteObject> &handle): IRemoteProxy(handle)
-{
-}
+KVDBServiceClient::KVDBServiceClient(const sptr<IRemoteObject> &handle) : IRemoteProxy(handle) { }
 
 std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
 {
@@ -173,4 +171,4 @@ Status KVDBServiceClient::RemoveDeviceData(const AppId &appId, const StoreId &st
 {
     return KVDBServiceClientMock::status;
 }
-}
+} // namespace OHOS::DistributedKv

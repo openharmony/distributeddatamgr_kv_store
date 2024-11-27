@@ -17,9 +17,7 @@
 
 namespace OHOS::DistributedKv {
 
-KVDBNotifierClient::~KVDBNotifierClient()
-{
-}
+KVDBNotifierClient::~KVDBNotifierClient() { }
 
 bool KVDBNotifierClient::IsChanged(const std::string &deviceId, DataType dataType)
 {

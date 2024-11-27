@@ -16,9 +16,9 @@
 #include <gtest/gtest.h>
 
 #include "block_data.h"
+#include "log_print.h"
 #include "security_manager.h"
 #include "store_util.h"
-#include "log_print.h"
 
 namespace OHOS::Test {
 using namespace testing::ext;
@@ -31,30 +31,26 @@ public:
     void TearDown();
 };
 
-void SecurityManagerTest::SetUpTestCase(void)
-{}
+void SecurityManagerTest::SetUpTestCase(void) { }
 
-void SecurityManagerTest::TearDownTestCase(void)
-{}
+void SecurityManagerTest::TearDownTestCase(void) { }
 
-void SecurityManagerTest::SetUp(void)
-{}
+void SecurityManagerTest::SetUp(void) { }
 
-void SecurityManagerTest::TearDown(void)
-{}
+void SecurityManagerTest::TearDown(void) { }
 
 /**
-* @tc.name: DBPasswordTest
-* @tc.desc: Test DBPassword function
-* @tc.type: FUNC
-*/
+ * @tc.name: DBPasswordTest
+ * @tc.desc: Test DBPassword function
+ * @tc.type: FUNC
+ */
 HWTEST_F(SecurityManagerTest, DBPasswordTest, TestSize.Level1)
 {
     SecurityManager::DBPassword passwd;
     EXPECT_FALSE(passwd.IsValid());
     std::vector<uint8_t> key = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
     };
     passwd.SetValue(key.data(), key.size());
     EXPECT_TRUE(passwd.IsValid());
@@ -66,10 +62,10 @@ HWTEST_F(SecurityManagerTest, DBPasswordTest, TestSize.Level1)
 }
 
 /**
-* @tc.name: KeyFilesMultiLockTest
-* @tc.desc: Test KeyFiles function
-* @tc.type: FUNC
-*/
+ * @tc.name: KeyFilesMultiLockTest
+ * @tc.desc: Test KeyFiles function
+ * @tc.type: FUNC
+ */
 HWTEST_F(SecurityManagerTest, KeyFilesMultiLockTest, TestSize.Level1)
 {
     std::string dbPath = "/data/service/el1/public/database/SecurityManagerTest";
@@ -89,10 +85,10 @@ HWTEST_F(SecurityManagerTest, KeyFilesMultiLockTest, TestSize.Level1)
 }
 
 /**
-* @tc.name: KeyFilesTest
-* @tc.desc: Test KeyFiles function
-* @tc.type: FUNC
-*/
+ * @tc.name: KeyFilesTest
+ * @tc.desc: Test KeyFiles function
+ * @tc.type: FUNC
+ */
 HWTEST_F(SecurityManagerTest, KeyFilesTest, TestSize.Level1)
 {
     std::string dbPath = "/data/service/el1/public/database/SecurityManagerTest";
@@ -119,10 +115,10 @@ HWTEST_F(SecurityManagerTest, KeyFilesTest, TestSize.Level1)
 }
 
 /**
-* @tc.name: KeyFilesAutoLockTest
-* @tc.desc: Test KeyFilesAutoLock function
-* @tc.type: FUNC
-*/
+ * @tc.name: KeyFilesAutoLockTest
+ * @tc.desc: Test KeyFilesAutoLock function
+ * @tc.type: FUNC
+ */
 HWTEST_F(SecurityManagerTest, KeyFilesAutoLockTest, TestSize.Level1)
 {
     std::string dbPath = "/data/service/el1/public/database/SecurityManagerTest";
@@ -143,4 +139,4 @@ HWTEST_F(SecurityManagerTest, KeyFilesAutoLockTest, TestSize.Level1)
     }
     EXPECT_TRUE(blockResult->GetValue());
 }
-}
+} // namespace OHOS::Test

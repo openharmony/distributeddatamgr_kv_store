@@ -16,8 +16,8 @@
 #ifndef OHOS_DISTRIBUTED_DATA_KVDB_NOTIFIER_CLIENT_MOCK_H
 #define OHOS_DISTRIBUTED_DATA_KVDB_NOTIFIER_CLIENT_MOCK_H
 
-#include <gmock/gmock.h>
 #include "kvdb_notifier_client.h"
+#include <gmock/gmock.h>
 
 namespace OHOS::DistributedKv {
 class BKVDBNotifierClient {
@@ -35,22 +35,23 @@ public:
     virtual void OnSwitchChange(const SwitchNotification &) = 0;
     BKVDBNotifierClient() = default;
     virtual ~BKVDBNotifierClient() = default;
+
 public:
     static inline std::shared_ptr<BKVDBNotifierClient> kVDBNotifierClient = nullptr;
 };
 
 class KVDBNotifierClientMock : public BKVDBNotifierClient {
 public:
-    MOCK_METHOD(bool, IsChanged, (const std::string&, DataType dataType));
+    MOCK_METHOD(bool, IsChanged, (const std::string &, DataType dataType));
     MOCK_METHOD(void, AddSyncCallback, (const std::shared_ptr<KvStoreSyncCallback>, uint64_t));
     MOCK_METHOD(void, DeleteSyncCallback, (uint64_t));
-    MOCK_METHOD(void, AddCloudSyncCallback, (uint64_t, const AsyncDetail&));
+    MOCK_METHOD(void, AddCloudSyncCallback, (uint64_t, const AsyncDetail &));
     MOCK_METHOD(void, DeleteCloudSyncCallback, (uint64_t));
-    MOCK_METHOD(void, AddSwitchCallback, (const std::string&, std::shared_ptr<KvStoreObserver>));
-    MOCK_METHOD(void, DeleteSwitchCallback, (const std::string&, std::shared_ptr<KvStoreObserver>));
+    MOCK_METHOD(void, AddSwitchCallback, (const std::string &, std::shared_ptr<KvStoreObserver>));
+    MOCK_METHOD(void, DeleteSwitchCallback, (const std::string &, std::shared_ptr<KvStoreObserver>));
     MOCK_METHOD(void, SyncCompleted, (uint64_t, ProgressDetail &&));
-    MOCK_METHOD(void, SyncCompleted, ((const std::map<std::string, Status>&), uint64_t));
-    MOCK_METHOD(void, OnRemoteChange, ((const std::map<std::string, bool>&), int32_t));
+    MOCK_METHOD(void, SyncCompleted, ((const std::map<std::string, Status> &), uint64_t));
+    MOCK_METHOD(void, OnRemoteChange, ((const std::map<std::string, bool> &), int32_t));
     MOCK_METHOD(void, OnSwitchChange, (const SwitchNotification &));
 };
 } // namespace OHOS::DistributedKv

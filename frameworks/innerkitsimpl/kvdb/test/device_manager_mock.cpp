@@ -24,8 +24,7 @@ DeviceManager &DeviceManager::GetInstance()
     return instance;
 }
 
-int32_t DeviceManager::InitDeviceManager(const std::string &pkgName,
-    std::shared_ptr<DmInitCallback> dmInitCallback)
+int32_t DeviceManager::InitDeviceManager(const std::string &pkgName, std::shared_ptr<DmInitCallback> dmInitCallback)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
@@ -35,8 +34,8 @@ int32_t DeviceManager::UnInitDeviceManager(const std::string &pkgName)
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
-int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-    std::vector<DmDeviceInfo> &deviceList)
+int32_t DeviceManager::GetTrustedDeviceList(
+    const std::string &pkgName, const std::string &extra, std::vector<DmDeviceInfo> &deviceList)
 {
     if (testDemo == 0) {
         testDemo = 1;
@@ -47,14 +46,13 @@ int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const st
     }
 }
 
-int32_t DeviceManager::GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-    bool isRefresh, std::vector<DmDeviceInfo> &deviceList)
+int32_t DeviceManager::GetTrustedDeviceList(
+    const std::string &pkgName, const std::string &extra, bool isRefresh, std::vector<DmDeviceInfo> &deviceList)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
-int32_t DeviceManager::GetAvailableDeviceList(const std::string &pkgName,
-    std::vector<DmDeviceBasicInfo> &deviceList)
+int32_t DeviceManager::GetAvailableDeviceList(const std::string &pkgName, std::vector<DmDeviceBasicInfo> &deviceList)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
@@ -70,26 +68,25 @@ int32_t DeviceManager::GetLocalDeviceInfo(const std::string &pkgName, DmDeviceIn
     }
 }
 
-int32_t DeviceManager::RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
-    std::shared_ptr<DeviceStateCallback> callback)
+int32_t DeviceManager::RegisterDevStateCallback(
+    const std::string &pkgName, const std::string &extra, std::shared_ptr<DeviceStateCallback> callback)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
-int32_t DeviceManager::RegisterDevStatusCallback(const std::string &pkgName, const std::string &extra,
-    std::shared_ptr<DeviceStatusCallback> callback)
+int32_t DeviceManager::RegisterDevStatusCallback(
+    const std::string &pkgName, const std::string &extra, std::shared_ptr<DeviceStatusCallback> callback)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
-int32_t DeviceManager::GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId,
-    std::string &uuid)
+int32_t DeviceManager::GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &uuid)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }
 
-int32_t DeviceManager::GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
-    std::string &uuid)
+int32_t DeviceManager::GetEncryptedUuidByNetworkId(
+    const std::string &pkgName, const std::string &networkId, std::string &uuid)
 {
     return ERR_DM_INPUT_PARA_INVALID;
 }

@@ -1,17 +1,17 @@
 /*
-* Copyright (c) 2022 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "store_util.h"
 
@@ -35,20 +35,20 @@ public:
     void TearDown();
 };
 
-void StoreUtilTest::SetUpTestCase(void) {}
+void StoreUtilTest::SetUpTestCase(void) { }
 
-void StoreUtilTest::TearDownTestCase(void) {}
+void StoreUtilTest::TearDownTestCase(void) { }
 
-void StoreUtilTest::SetUp(void) {}
+void StoreUtilTest::SetUp(void) { }
 
-void StoreUtilTest::TearDown(void) {}
+void StoreUtilTest::TearDown(void) { }
 /**
-* @tc.name: GetDBSecurity
-* @tc.desc: get db security
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: GetDBSecurity
+ * @tc.desc: get db security
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(StoreUtilTest, GetDBSecurity, TestSize.Level1)
 {
     StoreUtil storeUtil_;
@@ -69,12 +69,12 @@ HWTEST_F(StoreUtilTest, GetDBSecurity, TestSize.Level1)
     ASSERT_EQ(dbsecurity.securityFlag, DistributedDB::ECE);
 }
 /**
-* @tc.name: GetSecLevel
-* @tc.desc: get secLevel
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: GetSecLevel
+ * @tc.desc: get secLevel
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(StoreUtilTest, GetSecLevel, TestSize.Level1)
 {
     StoreUtil storeUtil_;
@@ -94,12 +94,12 @@ HWTEST_F(StoreUtilTest, GetSecLevel, TestSize.Level1)
     ASSERT_EQ(security, S4);
 }
 /**
-* @tc.name: GetDBMode
-* @tc.desc: get db mode
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: GetDBMode
+ * @tc.desc: get db mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(StoreUtilTest, GetDBMode, TestSize.Level1)
 {
     StoreUtil storeUtil_;
@@ -113,12 +113,12 @@ HWTEST_F(StoreUtilTest, GetDBMode, TestSize.Level1)
     ASSERT_EQ(dbMode, StoreUtil::DBMode::SYNC_MODE_PUSH_PULL);
 }
 /**
-* @tc.name: GetObserverMode
-* @tc.desc: get observer mode
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: GetObserverMode
+ * @tc.desc: get observer mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(StoreUtilTest, GetObserverMode, TestSize.Level1)
 {
     StoreUtil storeUtil_;
@@ -132,12 +132,12 @@ HWTEST_F(StoreUtilTest, GetObserverMode, TestSize.Level1)
     ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_FOREIGN | DistributedDB::OBSERVER_CHANGES_NATIVE);
 }
 /**
-* @tc.name: CheckPermissions001
-* @tc.desc: Check if the permissions for the first file creation are normal
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Shao Yuanzhao
-*/
+ * @tc.name: CheckPermissions001
+ * @tc.desc: Check if the permissions for the first file creation are normal
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Shao Yuanzhao
+ */
 HWTEST_F(StoreUtilTest, CheckPermissions001, TestSize.Level1)
 {
     StoreUtil storeUtil_;
@@ -161,12 +161,12 @@ HWTEST_F(StoreUtilTest, CheckPermissions001, TestSize.Level1)
     rmdir(path.c_str());
 }
 /**
-* @tc.name: CheckPermissions002
-* @tc.desc: Check if updating existing file permissions is correct
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Shao Yuanzhao
-*/
+ * @tc.name: CheckPermissions002
+ * @tc.desc: Check if updating existing file permissions is correct
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Shao Yuanzhao
+ */
 HWTEST_F(StoreUtilTest, CheckPermissions002, TestSize.Level1)
 {
     std::string path = "/data/store_utils_test2";

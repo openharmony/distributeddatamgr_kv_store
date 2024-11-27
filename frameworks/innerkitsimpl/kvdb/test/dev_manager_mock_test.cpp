@@ -14,11 +14,11 @@
  */
 
 #define LOG_TAG "DevManagerMockTest"
-#include <gtest/gtest.h>
 #include "dev_manager.h"
 #include "device_manager_mock.h"
-#include "types.h"
 #include "log_print.h"
+#include "types.h"
+#include <gtest/gtest.h>
 namespace OHOS::Test {
 using namespace testing;
 using namespace testing::ext;
@@ -35,25 +35,21 @@ public:
     void TearDown();
 };
 
-void DevManagerMockTest::SetUpTestCase(void)
-{}
+void DevManagerMockTest::SetUpTestCase(void) { }
 
-void DevManagerMockTest::TearDownTestCase(void)
-{}
+void DevManagerMockTest::TearDownTestCase(void) { }
 
-void DevManagerMockTest::SetUp(void)
-{}
+void DevManagerMockTest::SetUp(void) { }
 
-void DevManagerMockTest::TearDown(void)
-{}
+void DevManagerMockTest::TearDown(void) { }
 
 /**
-* @tc.name: GetUnEncryptedUuid
-* @tc.desc: test GetUnEncryptedUuid get local device info fail
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: GetUnEncryptedUuid
+ * @tc.desc: test GetUnEncryptedUuid get local device info fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 {
     ZLOGI("GetUnEncryptedUuid001 begin.");
@@ -62,12 +58,12 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetUnEncryptedUuid
-* @tc.desc: test GetUnEncryptedUuid networkid empty
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: GetUnEncryptedUuid
+ * @tc.desc: test GetUnEncryptedUuid networkid empty
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 {
     ZLOGI("GetUnEncryptedUuid002 begin.");
@@ -76,12 +72,12 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetLocalDevice
-* @tc.desc: test GetLocalDevice get local device info fail
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: GetLocalDevice
+ * @tc.desc: test GetLocalDevice get local device info fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 {
     ZLOGI("GetLocalDevice begin.");
@@ -90,12 +86,12 @@ HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetRemoteDevices001
-* @tc.desc: test GetRemoteDevices get trusted device fail
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: GetRemoteDevices001
+ * @tc.desc: test GetRemoteDevices get trusted device fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
 {
     ZLOGI("GetRemoteDevices001 begin.");
@@ -104,12 +100,12 @@ HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetRemoteDevices002
-* @tc.desc: test GetRemoteDevices get trusted device no remote device
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: GetRemoteDevices002
+ * @tc.desc: test GetRemoteDevices get trusted device no remote device
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices002, TestSize.Level1)
 {
     ZLOGI("GetRemoteDevices002 begin.");

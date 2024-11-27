@@ -16,8 +16,8 @@
 #ifndef OHOS_DISTRIBUTED_DATA_OBSERVER_BRIDGE_MOCK_H
 #define OHOS_DISTRIBUTED_DATA_OBSERVER_BRIDGE_MOCK_H
 
-#include <gmock/gmock.h>
 #include "observer_bridge.h"
+#include <gmock/gmock.h>
 
 namespace OHOS::DistributedKv {
 class BObserverBridge {
@@ -26,6 +26,7 @@ public:
     virtual Status RegisterRemoteObserver(uint32_t) = 0;
     BObserverBridge() = default;
     virtual ~BObserverBridge() = default;
+
 public:
     static inline std::shared_ptr<BObserverBridge> observerBridge = nullptr;
 };

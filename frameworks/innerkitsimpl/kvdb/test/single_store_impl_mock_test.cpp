@@ -1,17 +1,17 @@
 /*
-* Copyright (c) 2024 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include <memory>
 #include <sys/types.h>
 #include <unistd.h>
@@ -20,15 +20,15 @@
 #include <gtest/gtest.h>
 
 #include "convertor.h"
-#include "single_store_impl.h"
-#include "store_manager.h"
-#include "store_factory.h"
 #include "include/dev_manager_mock.h"
-#include "kvstore_observer.h"
 #include "include/kvdb_notifier_client_mock.h"
 #include "include/kvdb_service_client_mock.h"
 #include "include/observer_bridge_mock.h"
 #include "include/task_executor_mock.h"
+#include "kvstore_observer.h"
+#include "single_store_impl.h"
+#include "store_factory.h"
+#include "store_manager.h"
 
 namespace OHOS::DistributedKv {
 using namespace std;
@@ -44,6 +44,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
 public:
     using DBStatus = DistributedDB::DBStatus;
     using DBStore = DistributedDB::KvStoreNbDelegate;
@@ -56,13 +57,9 @@ public:
     std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false);
 };
 
-void SingleStoreImplMockTest::SetUp()
-{
-}
+void SingleStoreImplMockTest::SetUp() { }
 
-void SingleStoreImplMockTest::TearDown()
-{
-}
+void SingleStoreImplMockTest::TearDown() { }
 
 void SingleStoreImplMockTest::SetUpTestCase()
 {
@@ -111,8 +108,7 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool aut
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     StoreFactory storeFactory;
     auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
-    auto dbPassword =
-        SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
     DBStatus dbStatus = DBStatus::DB_ERROR;
     dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
         [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
@@ -120,7 +116,9 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool aut
             if (store == nullptr) {
                 return;
             }
-            auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
+            auto release = [dbManager](auto *store) {
+                dbManager->CloseKvStore(store);
+            };
             auto dbStore = std::shared_ptr<DBStore>(store, release);
             storeFactory.SetDbConfig(dbStore);
             const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
@@ -130,12 +128,12 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool aut
 }
 
 /**
-* @tc.name: IsRemoteChanged
-* @tc.desc: is remote changed.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: cao zhijun
-*/
+ * @tc.name: IsRemoteChanged
+ * @tc.desc: is remote changed.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: cao zhijun
+ */
 HWTEST_F(SingleStoreImplMockTest, IsRemoteChanged, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin IsRemoteChanged";
@@ -177,12 +175,12 @@ HWTEST_F(SingleStoreImplMockTest, IsRemoteChanged, testing::ext::TestSize.Level1
 }
 
 /**
-* @tc.name: OnRemoteDied
-* @tc.desc: remote died.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: cao zhijun
-*/
+ * @tc.name: OnRemoteDied
+ * @tc.desc: remote died.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: cao zhijun
+ */
 HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin OnRemoteDied";
@@ -223,12 +221,12 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
 }
 
 /**
-* @tc.name: Register
-* @tc.desc: register.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: cao zhijun
-*/
+ * @tc.name: Register
+ * @tc.desc: register.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: cao zhijun
+ */
 HWTEST_F(SingleStoreImplMockTest, Register, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Register";
