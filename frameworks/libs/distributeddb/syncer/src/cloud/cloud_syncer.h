@@ -460,8 +460,6 @@ protected:
     void FillDownloadItem(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
         const InnerProcessInfo &info, bool isSharedTable, DownloadItems &record);
 
-    std::map<std::string, Assets> GetDownloadAssetsOnlyMapFromDownLoadData(size_t idx, SyncParam &param);
-
     using DownloadItemRecords = std::vector<DownloadItems>;
     using RemoveAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
     using DownloadAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
@@ -501,15 +499,26 @@ protected:
 
     bool IsAssetOnlyData(VBucket &queryData, std::map<std::string, std::set<std::string>> &assetsMap, bool isCleanHash);
 
-    bool CheckAssetsOnlyMapInvalid(std::map<std::string, std::set<std::string>> &assetsMap);
-
     int CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param);
 
-    int CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param);
+    int CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param, DataInfoWithLog &logInfo);
 
     int PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &localInfo);
 
     bool IsCurrentAsyncDownloadTask();
+
+    int GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj, VBucket &extend);
+
+    int QueryCloudDataForAssetsOnly(TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<VBucket> &data);
+
+    int GetGidMapFromDownloadData(
+        const std::vector<VBucket> &data, std::map<std::string, int64_t> &gidMap, int64_t groupId);
+
+    void CheckAssetsOnlyIsEmptyInGroup(
+        const std::map<std::string, int64_t> &gidGroupIdMap, int64_t groupId, bool &outIsEmpty);
+
+    int MarkGroupIdAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
+        std::map<std::string, int64_t> &downloadDataGidMap);
 
     bool IsAsyncDownloadFinished() const;
 

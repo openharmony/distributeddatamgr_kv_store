@@ -49,7 +49,8 @@ public:
         std::vector<std::string> users;
         std::string storeId;
         std::string prepareTraceId;
-        std::map<std::string, std::set<std::string>> assetsMap;
+        uint32_t groupNum = 0;
+        AssetsGroupMap assetsGroupMap;
     };
 
     struct UploadRetryInfo {
@@ -87,7 +88,10 @@ public:
         WithoutRowIdData withoutRowIdData;
         std::vector<std::vector<Type>> insertPk;
         bool isAssetsOnly = false;
-        std::map<std::string, std::set<std::string>> assetsMap;
+        uint32_t groupNum = 0;
+        AssetsGroupMap assetsGroupMap;
+        std::string cloudWaterMarkForAssetsOnly;
+        std::map<std::string, int64_t> gidGroupIdMap; // only used for assets only.
     };
 
     struct DataInfo {

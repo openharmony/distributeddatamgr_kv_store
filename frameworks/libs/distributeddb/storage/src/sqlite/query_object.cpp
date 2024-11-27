@@ -89,7 +89,8 @@ QueryObject::QueryObject(const QueryExpression &queryExpression)
     tables_ = queryExpressions.GetTables();
     validStatus = queryExpressions.GetExpressionStatus();
     isAssetsOnly_ = queryExpressions.IsAssetsOnly();
-    assetsMap_ = queryExpressions.GetAssetsOnlyMap();
+    groupNum_ = queryExpressions.GetGroupNum();
+    assetsGroupMap_ = queryExpressions.GetAssetsOnlyGroupMap();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -567,9 +568,14 @@ bool QueryObject::IsAssetsOnly() const
     return isAssetsOnly_;
 }
 
-std::map<std::string, std::set<std::string>> QueryObject::GetAssetsOnlyMap() const
+uint32_t QueryObject::GetGroupNum() const
 {
-    return assetsMap_;
+    return groupNum_ <= 1 ? 1 : groupNum_;
+}
+
+AssetsGroupMap QueryObject::GetAssetsOnlyGroupMap() const
+{
+    return assetsGroupMap_;
 }
 
 void QueryObject::SetUseLocalSchema(bool isUse)

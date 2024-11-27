@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,9 @@ namespace DistributedDB {
 
 using Key = std::vector<uint8_t>;
 using Value = std::vector<uint8_t>;
+
+using AssetsMap = std::map<std::string, std::set<std::string>>;
+using AssetsGroupMap = std::map<uint32_t, AssetsMap>;
 
 struct Entry {
     Key key;

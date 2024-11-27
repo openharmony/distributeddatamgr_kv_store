@@ -69,6 +69,27 @@ void CloudSyncer::GetLastUploadInfo(const std::string &tableName, Info &lastUplo
     return currentContext_.notifier->GetLastUploadInfo(tableName, lastUploadInfo, retryInfo);
 }
 
+int CloudSyncer::GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj,
+    VBucket &extend)
+{
+    int errCode = GetCloudGid(taskId, tableName, obj);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Failed to get cloud gid when fill extend, %d.", errCode);
+        return errCode;
+    }
+    Bytes bytes;
+    bytes.resize(obj.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+    Parcel parcel(bytes.data(), bytes.size());
+    errCode = obj.SerializeData(parcel, SOFTWARE_VERSION_CURRENT);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Query serialize failed %d", errCode);
+        return errCode;
+    }
+    extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::QUERY_FIELD);
+    extend[CloudDbConstant::QUERY_FIELD] = bytes;
+    return E_OK;
+}
+
 int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
     VBucket &extend)
 {
@@ -78,21 +99,10 @@ int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName,
 
     QuerySyncObject obj = GetQuerySyncObject(tableName);
     if (obj.IsContainQueryNodes()) {
-        int errCode = GetCloudGid(taskId, tableName, obj);
+        int errCode = GetCloudGidAndFillExtend(taskId, tableName, obj, extend);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Failed to get cloud gid when fill extend, %d.", errCode);
             return errCode;
         }
-        Bytes bytes;
-        bytes.resize(obj.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
-        Parcel parcel(bytes.data(), bytes.size());
-        errCode = obj.SerializeData(parcel, SOFTWARE_VERSION_CURRENT);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Query serialize failed %d", errCode);
-            return errCode;
-        }
-        extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::QUERY_FIELD);
-        extend[CloudDbConstant::QUERY_FIELD] = bytes;
     } else {
         extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::FULL_TABLE);
     }
@@ -1847,46 +1857,6 @@ int CloudSyncer::BackgroundDownloadAssetsByTable(const std::string &table,
     return errCode;
 }
 
-std::map<std::string, Assets> CloudSyncer::GetDownloadAssetsOnlyMapFromDownLoadData(size_t idx, SyncParam &param)
-{
-    std::map<std::string, Assets> downloadAssetsMap{};
-    for (auto &item : param.downloadData.data[idx]) {
-        auto findAssetList = param.assetsMap.find(item.first);
-        if (findAssetList == param.assetsMap.end()) {
-            continue;
-        }
-        Asset *asset = std::get_if<Asset>(&item.second);
-        if (asset != nullptr) {
-            auto matchName = std::find_if(findAssetList->second.begin(),
-                findAssetList->second.end(),
-                [&asset](const std::string &a) { return a == asset->name; });
-            if (matchName != findAssetList->second.end()) {
-                Asset tmpAsset = *asset;
-                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
-                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
-                downloadAssetsMap[item.first].push_back(tmpAsset);
-            }
-            continue;
-        }
-        Assets *assets = std::get_if<Assets>(&item.second);
-        if (assets == nullptr) {
-            continue;
-        }
-        for (const auto &assetItem : (*assets)) {
-            auto matchName = std::find_if(findAssetList->second.begin(),
-                findAssetList->second.end(),
-                [&assetItem](const std::string &a) { return a == assetItem.name; });
-            if (matchName != findAssetList->second.end()) {
-                Asset tmpAsset = assetItem;
-                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
-                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
-                downloadAssetsMap[item.first].push_back(tmpAsset);
-            }
-        }
-    }
-    return downloadAssetsMap;
-}
-
 int CloudSyncer::TagDownloadAssetsForAssetOnly(
     const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo, VBucket &localAssetInfo)
 {
@@ -1900,8 +1870,9 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
         return -E_INTERNAL_ERROR;
     }
 
-    std::map<std::string, Assets> downloadAssetsMap = GetDownloadAssetsOnlyMapFromDownLoadData(idx, param);
-    if (downloadAssetsMap.empty()) {
+    std::map<std::string, Assets> downloadAssetsMap{};
+    ret = CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(idx, param, downloadAssetsMap);
+    if (ret!= E_OK) {
         return ret;
     }
     param.assetsDownloadList.push_back(
@@ -1978,17 +1949,115 @@ bool CloudSyncer::IsAssetOnlyData(
     return true;
 }
 
-bool CloudSyncer::CheckAssetsOnlyMapInvalid(std::map<std::string, std::set<std::string>> &assetsMap)
+int CloudSyncer::QueryCloudDataForAssetsOnly(
+    TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<VBucket> &data)
 {
-    if (assetsMap.empty()) {
-        return true;
+    if (param.groupNum <= 1) {
+        // if groupNum <= 1, no need to query cloud data
+        data = param.downloadData.data;
+        return E_OK;
     }
-    for (auto &item : assetsMap) {
-        if (item.second.empty()) {
-            return true;
+    auto tableName = param.info.tableName;
+    QuerySyncObject syncObj = GetQuerySyncObject(tableName);
+    VBucket extend = {{CloudDbConstant::CURSOR_FIELD, param.cloudWaterMarkForAssetsOnly}};
+    QuerySyncObject obj;
+    int ret = syncObj.GetQuerySyncObjectFromGroup(groupIdx, obj);
+    if (ret != E_OK) {
+        LOGE("Get query obj from group fail, errCode = %d", ret);
+        return ret;
+    }
+    ret = GetCloudGidAndFillExtend(taskId, tableName, obj, extend);
+    if (ret != E_OK) {
+        LOGE("Get cloud gid and fill extend fail, errCode = %d", ret);
+        return ret;
+    }
+    return cloudDB_.Query(tableName, extend, data);
+}
+
+int CloudSyncer::GetGidMapFromDownloadData(
+    const std::vector<VBucket> &data, std::map<std::string, int64_t> &gidMap, int64_t groupId)
+{
+    for (uint32_t i = 0; i < data.size(); i++) {
+        std::string gidStr;
+        int errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, data[i], gidStr);
+        if (errCode != E_OK) {
+            LOGE("Get gid from bucket fail when mark flag as consistent, errCode = %d", errCode);
+            return errCode;
+        }
+        gidMap[gidStr] = groupId;
+    }
+    return E_OK;
+}
+
+void CloudSyncer::CheckAssetsOnlyIsEmptyInGroup(
+    const std::map<std::string, int64_t> &gidGroupIdMap, int64_t groupId, bool &outIsEmpty)
+{
+    for (auto &item : gidGroupIdMap) {
+        if (item.second == groupId) {
+            outIsEmpty = false;
+            return;
         }
     }
-    return false;
+    outIsEmpty = true;
+}
+
+int CloudSyncer::MarkGroupIdAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param,
+    std::vector<VBucket> &downloadData, std::map<std::string, int64_t> &downloadDataGidMap)
+{
+    for (uint32_t i = 0; i < param.groupNum; i++) {
+        std::vector<VBucket> groupData;
+        int ret = QueryCloudDataForAssetsOnly(taskId, param, i, groupData);
+        if ((ret != E_OK && ret != -E_QUERY_END) || groupData.empty()) {
+            LOGE("[CloudSyncer] Cannot get the %u group data from cloud, error code: %d.", i, -E_CLOUD_ASSET_NOT_FOUND);
+            return -E_CLOUD_ASSET_NOT_FOUND;
+        }
+
+        std::map<std::string, int64_t> groupGidMap{};
+        ret = GetGidMapFromDownloadData(groupData, groupGidMap, i);
+        if (ret != E_OK) {
+            return ret;
+        }
+        bool isFindOneRecord = false;
+        for (auto &iter : groupGidMap) {
+            auto gidIter = downloadDataGidMap.find(iter.first);
+            if (gidIter != downloadDataGidMap.end() && gidIter->second == -1) {
+                gidIter->second = iter.second;  // mark group id.
+                isFindOneRecord = true;
+            }
+        }
+        if (!isFindOneRecord) {
+            // if group no match data, return error code.
+            LOGE("[CloudSyncer] Cannot get the %u group data from cloud, error code: %d.", i, -E_CLOUD_ASSET_NOT_FOUND);
+            return -E_CLOUD_ASSET_NOT_FOUND;
+        }
+    }
+
+    for (auto iter = downloadData.begin(); iter != downloadData.end();) {
+        std::string gidStr;
+        int ret = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, *iter, gidStr);
+        if (ret != E_OK) {
+            LOGE("Get gid from bucket fail when mark flag as consistent, errCode = %d", ret);
+            return ret;
+        }
+
+        auto gidGroupIter = downloadDataGidMap.find(gidStr);
+        if (gidGroupIter != downloadDataGidMap.end() && gidGroupIter->second == -1) {
+            iter = downloadData.erase(iter);
+            downloadDataGidMap.erase(gidStr);
+            continue;
+        }
+
+        auto assetsMap = param.assetsGroupMap[gidGroupIter->second];
+        if (!IsAssetOnlyData(*iter, assetsMap, false)) {
+            iter = downloadData.erase(iter);
+            downloadDataGidMap.erase(gidStr);
+            continue;
+        }
+
+        downloadDataGidMap[gidStr] = gidGroupIter->second;
+        ++iter;
+    }
+    return E_OK;
 }
 
 int CloudSyncer::CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param)
@@ -1999,26 +2068,72 @@ int CloudSyncer::CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param
             return E_OK;
         }
         cloudTaskInfos_[taskId].isAssetsOnly = param.isAssetsOnly;
-        cloudTaskInfos_[taskId].assetsMap = param.assetsMap;
+        cloudTaskInfos_[taskId].groupNum = param.groupNum;
+        cloudTaskInfos_[taskId].assetsGroupMap = param.assetsGroupMap;
     }
 
-    if (CheckAssetsOnlyMapInvalid(param.assetsMap)) {
-        LOGE("[CloudSyncer] assets only map is invalid: %d.", -E_INVALID_ARGS);
-        return -E_INVALID_ARGS;
+    std::vector<VBucket> &downloadData = param.downloadData.data;
+    auto &downloadDataGidMap = param.gidGroupIdMap;
+    downloadDataGidMap.clear();
+    int ret = GetGidMapFromDownloadData(downloadData, downloadDataGidMap, -1);
+    if (ret != E_OK) {
+        return ret;
     }
 
-    auto &data = param.downloadData.data;
-    for (auto it = data.begin(); it != data.end();) {
-        if (!IsAssetOnlyData(*it, param.assetsMap, false)) {
-            it = data.erase(it);
-            continue;
+    // mark group id for every record and erase not match data.
+    ret = MarkGroupIdAndEraseDataForAssetsOnly(taskId, param, downloadData, downloadDataGidMap);
+    if (ret != E_OK) {
+        return ret;
+    }
+
+    for (uint32_t i = 0; i < param.groupNum; i++) {
+        bool isEmpty = false;
+        CheckAssetsOnlyIsEmptyInGroup(param.gidGroupIdMap, i, isEmpty);
+        if (isEmpty) {
+            LOGE("[CloudSyncer] query cloud assets failed, error code: %d", -E_CLOUD_ASSET_NOT_FOUND);
+            return -E_CLOUD_ASSET_NOT_FOUND;
         }
-        ++it;
+    }
+    return E_OK;
+}
+
+int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param, DataInfoWithLog &logInfo)
+{
+    if (!param.isAssetsOnly) {
+        return E_OK;
+    }
+    bool isFind = false;
+    int64_t groupId = -1;
+    std::string gid = logInfo.logInfo.cloudGid;
+    for (const auto &item : param.downloadData.data) {
+        std::string gidTmp;
+        int errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, item, gidTmp);
+        if (errCode != E_OK) {
+            LOGE("Get gid from bucket fail when check local assets only, errCode = %d", errCode);
+            return errCode;
+        }
+        if (gid == gidTmp) {
+            isFind = true;
+            auto iter = param.gidGroupIdMap.find(gid);
+            if (iter == param.gidGroupIdMap.end() && iter->second != -1) {
+                LOGE("Get groupId from bucket fail when check local assets only, errCode = %d",
+                    -E_LOCAL_ASSET_NOT_FOUND);
+                return -E_LOCAL_ASSET_NOT_FOUND;
+            }
+            groupId = iter->second;
+            break;
+        }
     }
 
-    if (data.empty()) {
-        LOGE("[CloudSyncer] query cloud assets failed, error code: %d", -E_CLOUD_ASSET_NOT_FOUND);
-        return -E_CLOUD_ASSET_NOT_FOUND;
+    if (!isFind) {
+        LOGE("[CloudSyncer] query local assets failed, error code: %d", -E_LOCAL_ASSET_NOT_FOUND);
+        return -E_LOCAL_ASSET_NOT_FOUND;
+    }
+
+    auto assetsMap = param.assetsGroupMap[groupId];
+    if (!IsAssetOnlyData(localAssetInfo, assetsMap, true)) {
+        LOGE("[CloudSyncer] query local assets failed, error code: %d", -E_LOCAL_ASSET_NOT_FOUND);
+        return -E_LOCAL_ASSET_NOT_FOUND;
     }
     return E_OK;
 }

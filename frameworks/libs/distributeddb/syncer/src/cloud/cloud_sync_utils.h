@@ -119,6 +119,9 @@ public:
         ChangedData &&changedData);
 
     static bool IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit);
+
+    static int GetDownloadAssetsOnlyMapFromDownLoadData(
+        size_t idx, ICloudSyncer::SyncParam &param, std::map<std::string, Assets> &downloadAssetsMap);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

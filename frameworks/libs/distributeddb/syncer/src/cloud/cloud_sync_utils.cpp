@@ -773,6 +773,55 @@ bool CloudSyncUtils::IsContainDownloading(const DownloadAssetUnit &downloadAsset
     return false;
 }
 
+int CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(
+    size_t idx, ICloudSyncer::SyncParam &param, std::map<std::string, Assets> &downloadAssetsMap)
+{
+    std::string gid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(
+        CloudDbConstant::GID_FIELD, param.downloadData.data[idx], gid);
+    if (errCode != E_OK) {
+        LOGE("Get gid from bucket fail when get download assets only map from download data, error code %d", errCode);
+        return errCode;
+    }
+
+    auto assetsMap = param.assetsGroupMap[param.gidGroupIdMap[gid]];
+    for (auto &item : param.downloadData.data[idx]) {
+        auto findAssetList = assetsMap.find(item.first);
+        if (findAssetList == assetsMap.end()) {
+            continue;
+        }
+        Asset *asset = std::get_if<Asset>(&item.second);
+        if (asset != nullptr) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&asset](const std::string &a) { return a == asset->name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = *asset;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+            continue;
+        }
+        Assets *assets = std::get_if<Assets>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &assetItem : (*assets)) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&assetItem](const std::string &a) { return a == assetItem.name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = assetItem;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+        }
+    }
+    return E_OK;
+}
+
 int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
     ChangedData &&changedData)
 {

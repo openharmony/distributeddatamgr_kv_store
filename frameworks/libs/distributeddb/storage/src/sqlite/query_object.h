@@ -68,7 +68,9 @@ public:
 
     bool IsAssetsOnly() const;
 
-    std::map<std::string, std::set<std::string>> GetAssetsOnlyMap() const;
+    uint32_t GetGroupNum() const;
+
+    AssetsGroupMap GetAssetsOnlyGroupMap() const;
 
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
@@ -97,8 +99,9 @@ protected:
     bool isTableNameSpecified_ = false;
     std::vector<std::string> tables_;
     int validStatus = E_OK;
+    uint32_t groupNum_ = 0;
     bool isAssetsOnly_ = false;
-    std::map<std::string, std::set<std::string>> assetsMap_;
+    AssetsGroupMap assetsGroupMap_;
 
 private:
     int Parse();

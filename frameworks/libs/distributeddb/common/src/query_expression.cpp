@@ -220,21 +220,32 @@ void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, cons
     endKey_ = keyEnd;
 }
 
-void QueryExpression::QueryAssetsOnly(const std::map<std::string, std::set<std::string>> &assets)
+void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
 {
     isAssetsOnly_ = true;
     if (useFromTable_) {
         expressions_[fromTable_].QueryAssetsOnly(assets);
+        validStatus_ = expressions_[fromTable_].GetExpressionStatus();
         return;
     }
-    if (!assetsMap_.empty()) {
-        LOGD("assets only already set, will be covered!");
-        assetsMap_.clear();
+    if (assetsGroupMap_.find(groupNum_) != assetsGroupMap_.end()) {
+        LOGE("assets only already set!");
+        validStatus_ = -E_INVALID_ARGS;
+        return;
     }
-
-    for (const auto &it : assets) {
-        assetsMap_[it.first] = it.second;
+    if (assets.empty()) {
+        LOGE("assets map can not be empty!");
+        validStatus_ = -E_INVALID_ARGS;
+        return;
     }
+    for (const auto &item : assets) {
+        if (item.second.empty() && item.first.empty()) {
+            LOGE("assets filed or asset name can not be empty!");
+            validStatus_ = -E_INVALID_ARGS;
+            return;
+        }
+    }
+    assetsGroupMap_[groupNum_] = assets;
 }
 
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
@@ -332,6 +343,7 @@ void QueryExpression::EndGroup()
         return;
     }
     SetNotSupportIfFromTables();
+    groupNum_++;
     queryInfo_.emplace_back(QueryObjNode{QueryObjType::END_GROUP, std::string(),
         QueryValueType::VALUE_TYPE_NULL, std::vector<FieldValue>()});
 }
@@ -497,8 +509,13 @@ bool QueryExpression::IsAssetsOnly() const
     return isAssetsOnly_;
 }
 
-std::map<std::string, std::set<std::string>> QueryExpression::GetAssetsOnlyMap() const
+AssetsGroupMap QueryExpression::GetAssetsOnlyGroupMap() const
 {
-    return assetsMap_;
+    return assetsGroupMap_;
+}
+
+uint32_t QueryExpression::GetGroupNum() const
+{
+    return groupNum_;
 }
 } // namespace DistributedDB

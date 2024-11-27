@@ -1719,6 +1719,10 @@ void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
         DBCommon::StringMiddleMasking(param.tableName).c_str(), param.tableName.length());
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (cloudTaskInfos_[taskId].isAssetsOnly) {
+            LOGI("[CloudSyncer] assets only task not save water mark.");
+            return;
+        }
         currentContext_.cloudWaterMarks[currentContext_.currentUserIndex][param.info.tableName] = param.cloudWaterMark;
     }
 }
@@ -1778,20 +1782,6 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
-int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param)
-{
-    if (!param.isAssetsOnly) {
-        return E_OK;
-    }
-
-    if (!IsAssetOnlyData(localAssetInfo, param.assetsMap, true)) {
-        LOGE("[CloudSyncer] query local assets failed, error code: %d", -E_LOCAL_ASSET_NOT_FOUND);
-        return -E_LOCAL_ASSET_NOT_FOUND;
-    }
-
-    return E_OK;
-}
-
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
@@ -1805,7 +1795,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         return errCode;
     }
 
-    int ret = CheckLocalQueryAssetsOnlyIfNeed(localAssetInfo, param);
+    int ret = CheckLocalQueryAssetsOnlyIfNeed(localAssetInfo, param, logInfo);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] check local assets failed, error code: %d", ret);
         return ret;
@@ -2078,7 +2068,8 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     auto queryObject = GetQuerySyncObject(param.tableName);
     param.isAssetsOnly = queryObject.IsAssetsOnly();
-    param.assetsMap = queryObject.GetAssetsOnlyMap();
+    param.groupNum = queryObject.GetGroupNum();
+    param.assetsGroupMap = queryObject.GetAssetsOnlyGroupMap();
     return ret;
 }
 
@@ -2106,6 +2097,9 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
     // Get cloud data after cloud water mark
     param.info.tableStatus = ProcessStatus::PROCESSING;
     param.downloadData = {};
+    if (param.isAssetsOnly) {
+        param.cloudWaterMarkForAssetsOnly = param.cloudWaterMark;
+    }
     int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData);
     CloudSyncUtils::CheckQueryCloudData(cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
     if (ret == -E_QUERY_END) {
@@ -2122,9 +2116,13 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
     ret = CheckCloudQueryAssetsOnlyIfNeed(taskId, param);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] query assets failed, error code: %d", ret);
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        param.info.tableStatus = ProcessStatus::FINISHED;
+        currentContext_.notifier->UpdateProcess(param.info);
         abort = true;
         return ret;
     }
+
     if (param.downloadData.data.empty()) {
         if (ret == E_OK || isFirstDownload) {
             LOGD("[CloudSyncer] try to query cloud data use increment water mark");

@@ -1172,6 +1172,10 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
         if (item.IsAssetsOnly() && option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
             LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
             return -E_NOT_SUPPORT;
+        } else if (item.IsAssetsOnly() && item.GetGroupNum() !=  item.GetAssetsOnlyGroupMap().size()) {
+            LOGE("[RelationalStore] not support gourp num:%" PRIu32 " not equal to assets only set size:%" PRIu32,
+                item.GetGroupNum(), item.GetAssetsOnlyGroupMap().size());
+            return -E_NOT_SUPPORT;
         }
     }
     errCode = CheckTableName(syncTableNames);

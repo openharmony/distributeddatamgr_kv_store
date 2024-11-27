@@ -520,4 +520,49 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
     }
     return errCode;
 }
+
+int QuerySyncObject::GetQuerySyncObjectFromGroup(int64_t groupId, QuerySyncObject &obj)
+{
+    obj = *this;
+    // find the begin group node
+    bool isFindBeginGroup = false;
+    int64_t beginGroupIndex = 0;
+    for (auto iter = obj.queryObjNodes_.begin(); iter != obj.queryObjNodes_.end();) {
+        if ((*iter).operFlag != QueryObjType::BEGIN_GROUP) {
+            // eraes the node which is before the begin group node
+            iter = obj.queryObjNodes_.erase(iter);
+            continue;
+        } else if (beginGroupIndex != groupId) {
+            // eraes the node which is before the begin group node
+            iter = obj.queryObjNodes_.erase(iter);
+            beginGroupIndex++;
+            continue;
+        } else {
+            isFindBeginGroup = true;
+            break;
+        }
+    }
+    if (!isFindBeginGroup) {
+        LOGE("can not find the begin group node, groupid %u", groupId);
+        return -E_INVALID_ARGS;
+    }
+
+    // find the end group node
+    bool isFindEndGroup = false;
+    for (auto iter = obj.queryObjNodes_.begin(); iter != obj.queryObjNodes_.end();) {
+        if (isFindEndGroup) {
+            // eraes the node which is behind the end group node
+            iter = obj.queryObjNodes_.erase(iter);
+            continue;
+        } else if ((*iter).operFlag == QueryObjType::END_GROUP) {
+            isFindEndGroup = true;
+        }
+        ++iter;
+    }
+    if (!isFindEndGroup) {
+        LOGE("can not find the end group node, groupid %u", groupId);
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
 } // namespace DistributedDB
