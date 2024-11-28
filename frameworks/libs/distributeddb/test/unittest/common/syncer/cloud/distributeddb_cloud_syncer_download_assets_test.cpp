@@ -3252,7 +3252,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly011, Test
 
 /**
   * @tc.name: DownloadAssetsOnly012
-  * @tc.desc: Test sync with same priorityLevel
+  * @tc.desc: Test sync with same priorityLevel should be sync in order.
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: luoguo
@@ -3270,6 +3270,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly012, Test
      * @tc.expected: step2. OK
      */
     int syncFinishCount = 0;
+    bool isFirstSyncStart = false;
     g_virtualCloudDb->SetBlockTime(100);
     std::thread syncThread1([&]() {
         CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
@@ -3278,9 +3279,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly012, Test
         };
         std::vector<int64_t> inValue = {0, 1, 2, 3, 4};
         Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        isFirstSyncStart = true;
         PriorityLevelSync(0, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
     });
-
     std::thread syncThread2([&]() {
         CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
             syncFinishCount++;
@@ -3288,6 +3289,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly012, Test
         };
         std::vector<int64_t> inValue = {5, 6, 7, 8, 9};
         Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        while (!isFirstSyncStart) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
         PriorityLevelSync(0, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
     });
     syncThread1.join();

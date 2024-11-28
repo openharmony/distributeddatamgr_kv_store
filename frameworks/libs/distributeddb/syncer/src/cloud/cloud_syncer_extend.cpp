@@ -925,7 +925,8 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
             cloudTaskInfos_[taskId].priorityLevel,
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
-        goto EXIT;
+        MarkCurrentTaskPausedIfNeed(taskInfo);
+        return E_OK;
     }
     if (!MergeTaskInfo(cloudSchema, taskId)) {
         taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
@@ -934,9 +935,8 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
             cloudTaskInfos_[taskId].priorityLevel,
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
+        MarkCurrentTaskPausedIfNeed(taskInfo);
     }
-EXIT:
-    MarkCurrentTaskPausedIfNeed(taskInfo);
     return E_OK;
 }
 
