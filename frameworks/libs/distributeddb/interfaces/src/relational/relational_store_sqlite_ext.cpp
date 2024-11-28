@@ -56,11 +56,6 @@
 #error "PLATFORM NOT SPECIFIED!"
 #endif
 
-#ifdef DISTRIBUTEDDB_SUPPORT_ICU
-#include "ohos/init_data.h"
-static bool g_dirSetted = false;
-#endif
-
 #ifdef DB_DEBUG_ENV
 #include "system_time.h"
 
@@ -1570,12 +1565,6 @@ int CreateTempTrigger(sqlite3 *db)
 SQLITE_API int sqlite3_open_relational(const char *filename, sqlite3 **ppDb)
 {
     bool isExists = (access(filename, 0) == 0);
-#ifdef DISTRIBUTEDDB_SUPPORT_ICU
-    if (!g_dirSetted) {
-        SetHwIcuDirectory();
-        g_dirSetted = true;
-    }
-#endif
     int err = sqlite3_open(filename, ppDb);
     if (err != SQLITE_OK) {
         return err;
@@ -1587,12 +1576,6 @@ SQLITE_API int sqlite3_open_relational(const char *filename, sqlite3 **ppDb)
 SQLITE_API int sqlite3_open16_relational(const void *filename, sqlite3 **ppDb)
 {
     bool isExists = (access(static_cast<const char *>(filename), 0) == 0);
-#ifdef DISTRIBUTEDDB_SUPPORT_ICU
-    if (!g_dirSetted) {
-        SetHwIcuDirectory();
-        g_dirSetted = true;
-    }
-#endif
     int err = sqlite3_open16(filename, ppDb);
     if (err != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         return err;
@@ -1604,12 +1587,6 @@ SQLITE_API int sqlite3_open16_relational(const void *filename, sqlite3 **ppDb)
 SQLITE_API int sqlite3_open_v2_relational(const char *filename, sqlite3 **ppDb, int flags, const char *zVfs)
 {
     bool isExists = (access(filename, 0) == 0);
-#ifdef DISTRIBUTEDDB_SUPPORT_ICU
-    if (!g_dirSetted) {
-        SetHwIcuDirectory();
-        g_dirSetted = true;
-    }
-#endif
     int err = sqlite3_open_v2(filename, ppDb, flags, zVfs);
     if (err != SQLITE_OK) {
         return err;
