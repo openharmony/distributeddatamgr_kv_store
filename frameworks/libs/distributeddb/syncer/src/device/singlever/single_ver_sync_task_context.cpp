@@ -230,7 +230,7 @@ void SingleVerSyncTaskContext::Abort(int status)
     {
         std::lock_guard<std::mutex> lock(operationLock_);
         if (syncOperation_ != nullptr) {
-            syncOperation_->SetStatus(deviceId_, status);
+            syncOperation_->SetStatus(deviceId_, status, GetCommErrCode());
             if ((status >= SyncOperation::OP_FINISHED_ALL)) {
                 UnlockObj();
                 if (syncOperation_->CheckIsAllFinished()) {
@@ -293,6 +293,7 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
     if (GetTaskExecStatus() == SyncTaskContext::RUNNING) {
         // clear syncing task.
         stateMachine_->CommErrAbort();
+        SetCommFailErrCode(static_cast<int>(COMM_FAILURE));
     }
     // reset last push status for sync merge
     ResetLastPushTaskStatus();

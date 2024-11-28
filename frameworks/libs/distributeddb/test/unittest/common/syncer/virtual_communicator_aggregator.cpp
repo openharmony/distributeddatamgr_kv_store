@@ -255,9 +255,12 @@ void VirtualCommunicatorAggregator::Enable()
 
 void VirtualCommunicatorAggregator::CallSendEnd(int errCode, const OnSendEnd &onEnd)
 {
+    if (commErrCodeMock_ != E_OK) {
+        errCode = commErrCodeMock_;
+    }
     if (onEnd) {
-        (void)RuntimeContext::GetInstance()->ScheduleTask([errCode, onEnd]() {
-            onEnd(errCode);
+        (void)RuntimeContext::GetInstance()->ScheduleTask([errCode, onEnd, this]() {
+            onEnd(errCode, isDirectEnd_);
         });
     }
 }
@@ -370,5 +373,16 @@ void VirtualCommunicatorAggregator::MockGetLocalDeviceRes(int mockRes)
 {
     std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
     getLocalDeviceRet_ = mockRes;
+}
+
+void VirtualCommunicatorAggregator::MockCommErrCode(int mockErrCode)
+{
+    std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
+    commErrCodeMock_ = mockErrCode;
+}
+
+void VirtualCommunicatorAggregator::MockDirectEndFlag(bool isDirectEnd)
+{
+    isDirectEnd_ = isDirectEnd;
 }
 } // namespace DistributedDB

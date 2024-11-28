@@ -519,7 +519,8 @@ int RemoteExecutor::SendRequestMessage(const std::string &target, Message *messa
     SendConfig sendConfig;
     SetSendConfigParam(syncInterface->GetDbProperties(), target, false, REMOTE_EXECUTOR_SEND_TIME_OUT, sendConfig);
     RefObject::IncObjRef(this);
-    int errCode = communicator->SendMessage(target, message, sendConfig, [this, sessionId](int errCode) {
+    int errCode = communicator->SendMessage(target, message, sendConfig,
+        [this, sessionId](int errCode, bool isDirectEnd) {
         if (errCode != E_OK) {
             DoSendFailed(sessionId, errCode);
         }

@@ -67,7 +67,8 @@ public:
     void SimulateSendBlockClear();
 
     void SimulateSendRetry(const std::string &dstTarget);
-    void SimulateSendRetryClear(const std::string &dstTarget);
+    void SimulateSendRetryClear(const std::string &dstTarget, int softBusErrCode = E_OK);
+    void SimulateTriggerSendableCallback(const std::string &dstTarget, int softBusErrCode = E_OK);
 
     void SimulateSendPartialLoss();
     void SimulateSendPartialLossClear();
