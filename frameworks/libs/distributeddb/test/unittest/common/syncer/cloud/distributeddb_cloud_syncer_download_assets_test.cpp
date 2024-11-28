@@ -3208,5 +3208,90 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly010, Test
     option.priorityLevel = 0u;
     EXPECT_EQ(g_delegate->Sync(option, nullptr), DBStatus::INVALID_ARGS);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly011
+  * @tc.desc: Check assets only sync will up.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly011, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync
+     * @tc.expected: step2. check assets sync result.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. check cursor and flag
+     * @tc.expected: step3. ok.
+     */
+    std::string sql = "select cursor from naturalbase_rdb_aux_student_log where data_key=0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(21u), nullptr), SQLITE_OK);
+
+    sql = "select flag from naturalbase_rdb_aux_student_log where data_key=0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly012
+  * @tc.desc: Test sync with same priorityLevel
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly012, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 15; // 15 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Call sync with same priorityLevel
+     * @tc.expected: step2. OK
+     */
+    int syncFinishCount = 0;
+    g_virtualCloudDb->SetBlockTime(100);
+    std::thread syncThread1([&]() {
+        CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
+            syncFinishCount++;
+            EXPECT_EQ(syncFinishCount, 1);
+        };
+        std::vector<int64_t> inValue = {0, 1, 2, 3, 4};
+        Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        PriorityLevelSync(0, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+    });
+
+    std::thread syncThread2([&]() {
+        CloudSyncStatusCallback callback = [&syncFinishCount](const std::map<std::string, SyncProcess> &process) {
+            syncFinishCount++;
+            EXPECT_EQ(syncFinishCount, 2);
+        };
+        std::vector<int64_t> inValue = {5, 6, 7, 8, 9};
+        Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+        PriorityLevelSync(0, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+    });
+    syncThread1.join();
+    syncThread2.join();
+}
 } // namespace
 #endif // RELATIONAL_STORE

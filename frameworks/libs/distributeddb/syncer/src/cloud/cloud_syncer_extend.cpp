@@ -925,7 +925,7 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
             cloudTaskInfos_[taskId].priorityLevel,
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
-        return E_OK;
+        goto EXIT;
     }
     if (!MergeTaskInfo(cloudSchema, taskId)) {
         taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
@@ -935,6 +935,8 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
             cloudTaskInfos_[taskId].taskId,
             static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
     }
+EXIT:
+    MarkCurrentTaskPausedIfNeed(taskInfo);
     return E_OK;
 }
 
@@ -1872,7 +1874,7 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
 
     std::map<std::string, Assets> downloadAssetsMap{};
     ret = CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(idx, param, downloadAssetsMap);
-    if (ret!= E_OK) {
+    if (ret != E_OK) {
         return ret;
     }
     param.assetsDownloadList.push_back(

@@ -95,7 +95,6 @@ int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
     if (errCode != E_OK) {
         return errCode;
     }
-    MarkCurrentTaskPausedIfNeed(taskInfo);
     return TriggerSync();
 }
 
@@ -802,6 +801,9 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
         return ret;
     }
+    CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
+        localLogInfoCache);
+    
     if (param.isAssetsOnly) {
         auto findGid = param.downloadData.data[idx].find(CloudDbConstant::GID_FIELD);
         if (findGid == param.downloadData.data[idx].end()) {
@@ -811,10 +813,10 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         localAssetInfo[CloudDbConstant::GID_FIELD] = findGid->second;
         localAssetInfo[CloudDbConstant::HASH_KEY_FIELD] = dataInfo.localInfo.logInfo.hashKey;
         localInfo.push_back(localAssetInfo);
+        // assets only not need to save changed data without assets.
+        return ret;
     }
-    
-    CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
-        localLogInfoCache);
+
     ret = CloudSyncUtils::SaveChangedData(param, idx, dataInfo, deletedList);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);
@@ -1834,7 +1836,7 @@ TaskId CloudSyncer::GetNextTaskId()
 
 void CloudSyncer::MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo)
 {
-    std::lock_guard<std::mutex> autoLock(dataLock_);
+    // must sure have dataLock_ before call this function.
     if (currentContext_.currentTaskId == INVALID_TASK_ID) {
         return;
     }
