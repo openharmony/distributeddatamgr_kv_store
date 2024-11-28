@@ -1,26 +1,26 @@
 /*
-* Copyright (c) 2024 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <memory>
 #include <type_traits>
 
-#include "store_factory.h"
-#include "include/store_util_mock.h"
 #include "include/security_manager_mock.h"
+#include "include/store_util_mock.h"
+#include "store_factory.h"
 
 namespace OHOS::DistributedKv {
 using namespace std;
@@ -42,6 +42,7 @@ public:
     static void TearDownTestCase();
     void SetUp() override;
     void TearDown() override;
+
 public:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBPassword = SecurityManager::DBPassword;
@@ -72,19 +73,19 @@ void StoreFactoryMockTest::SetUpTestCase()
 void StoreFactoryMockTest::TearDownTestCase()
 {
     GTEST_LOG_(INFO) << "TearDownTestCase enter";
-    StoreUtilMock::storeUtil =  nullptr;
+    StoreUtilMock::storeUtil = nullptr;
     storeUtilMock = nullptr;
     BSecurityManager::securityManager = nullptr;
     securityManagerMock = nullptr;
 }
 
 /**
-* @tc.name: RekeyRecover_001
-* @tc.desc: Rekey recover test.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: cao zhijun
-*/
+ * @tc.name: RekeyRecover_001
+ * @tc.desc: Rekey recover test.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: cao zhijun
+ */
 HWTEST_F(StoreFactoryMockTest, RekeyRecover_001, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "StoreFactoryMockTest-begin RekeyRecover_001";

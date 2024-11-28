@@ -16,8 +16,8 @@
 #ifndef OHOS_DISTRIBUTED_DATA_SECURITY_MANAGER_MOCK_H
 #define OHOS_DISTRIBUTED_DATA_SECURITY_MANAGER_MOCK_H
 
-#include <gmock/gmock.h>
 #include "security_manager.h"
+#include <gmock/gmock.h>
 
 namespace OHOS::DistributedKv {
 class BSecurityManager {
@@ -26,14 +26,16 @@ public:
     virtual SecurityManager::DBPassword GetDBPassword(const std::string &, const std::string &, bool) = 0;
     BSecurityManager() = default;
     virtual ~BSecurityManager() = default;
+
 public:
     static inline std::shared_ptr<BSecurityManager> securityManager = nullptr;
 };
 
 class SecurityManagerMock : public BSecurityManager {
 public:
-    MOCK_METHOD(bool, SaveDBPassword, (const std::string&, const std::string&, const DistributedDB::CipherPassword&));
-    MOCK_METHOD(SecurityManager::DBPassword, GetDBPassword, (const std::string&, const std::string&, bool));
+    MOCK_METHOD(
+        bool, SaveDBPassword, (const std::string &, const std::string &, const DistributedDB::CipherPassword &));
+    MOCK_METHOD(SecurityManager::DBPassword, GetDBPassword, (const std::string &, const std::string &, bool));
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_STORE_UTIL_MOCK_H

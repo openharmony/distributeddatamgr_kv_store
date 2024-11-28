@@ -16,14 +16,14 @@
 #ifndef OHOS_DEVICE_MANAGER_H
 #define OHOS_DEVICE_MANAGER_H
 
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
 #include "dm_publish_info.h"
 #include "dm_subscribe_info.h"
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace OHOS {
 
@@ -36,27 +36,27 @@ public:
 
     virtual int32_t UnInitDeviceManager(const std::string &pkgName);
 
-    virtual int32_t GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-        std::vector<DmDeviceInfo> &deviceList);
+    virtual int32_t GetTrustedDeviceList(
+        const std::string &pkgName, const std::string &extra, std::vector<DmDeviceInfo> &deviceList);
 
-    virtual int32_t GetTrustedDeviceList(const std::string &pkgName, const std::string &extra,
-        bool isRefresh, std::vector<DmDeviceInfo> &deviceList);
+    virtual int32_t GetTrustedDeviceList(
+        const std::string &pkgName, const std::string &extra, bool isRefresh, std::vector<DmDeviceInfo> &deviceList);
 
-    virtual int32_t GetAvailableDeviceList(const std::string &pkgName,
-        std::vector<DmDeviceBasicInfo> &deviceList);
+    virtual int32_t GetAvailableDeviceList(const std::string &pkgName, std::vector<DmDeviceBasicInfo> &deviceList);
 
     virtual int32_t GetLocalDeviceInfo(const std::string &pkgName, DmDeviceInfo &deviceInfo);
 
-    virtual int32_t RegisterDevStateCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStateCallback> callback);
+    virtual int32_t RegisterDevStateCallback(
+        const std::string &pkgName, const std::string &extra, std::shared_ptr<DeviceStateCallback> callback);
 
-    virtual int32_t RegisterDevStatusCallback(const std::string &pkgName, const std::string &extra,
-        std::shared_ptr<DeviceStatusCallback> callback);
+    virtual int32_t RegisterDevStatusCallback(
+        const std::string &pkgName, const std::string &extra, std::shared_ptr<DeviceStatusCallback> callback);
 
     virtual int32_t GetUuidByNetworkId(const std::string &pkgName, const std::string &netWorkId, std::string &uuid);
 
-    virtual int32_t GetEncryptedUuidByNetworkId(const std::string &pkgName, const std::string &networkId,
-        std::string &uuid);
+    virtual int32_t GetEncryptedUuidByNetworkId(
+        const std::string &pkgName, const std::string &networkId, std::string &uuid);
+
 private:
     int32_t testDemo = 0;
     DeviceManager() = default;

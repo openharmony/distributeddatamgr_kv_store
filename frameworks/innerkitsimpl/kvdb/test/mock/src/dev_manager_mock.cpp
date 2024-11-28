@@ -19,9 +19,7 @@ namespace OHOS::DistributedKv {
 
 constexpr const char *PKG_NAME_EX = "_distributed_data";
 
-DevManager::DevManager(const std::string &pkgName) : PKG_NAME(pkgName + PKG_NAME_EX)
-{
-}
+DevManager::DevManager(const std::string &pkgName) : PKG_NAME(pkgName + PKG_NAME_EX) { }
 
 DevManager &DevManager::GetInstance()
 {

@@ -36,8 +36,8 @@ public:
     Status DeleteBackUpFiles(std::shared_ptr<SingleKvStore> kvStore, std::string baseDir, StoreId storeId);
     void MkdirPath(std::string baseDir, AppId appId, StoreId storeId);
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, std::string appIdTest, std::string baseDir,
-        KvStoreType type, bool encrypt);
+    std::shared_ptr<SingleKvStore> CreateKVStore(
+        std::string storeIdTest, std::string appIdTest, std::string baseDir, KvStoreType type, bool encrypt);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
@@ -82,8 +82,8 @@ void BackupManagerTest::TearDown(void)
     ASSERT_EQ(status, SUCCESS);
 }
 
-std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(std::string storeIdTest, std::string appIdTest,
-    std::string baseDir, KvStoreType type, bool encrypt)
+std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(
+    std::string storeIdTest, std::string appIdTest, std::string baseDir, KvStoreType type, bool encrypt)
 {
     Options options;
     options.kvStoreType = type;
@@ -127,12 +127,12 @@ void BackupManagerTest::MkdirPath(std::string baseDir, AppId appId, StoreId stor
 }
 
 /**
-* @tc.name: BackUp
-* @tc.desc: the kvstore back up
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: BackUp
+ * @tc.desc: the kvstore back up
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, BackUp, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -141,12 +141,12 @@ HWTEST_F(BackupManagerTest, BackUp, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
 }
 /**
-* @tc.name: BackUpInvalidArguments
-* @tc.desc: the kvstore back up and the arguments is invalid
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: BackUpInvalidArguments
+ * @tc.desc: the kvstore back up and the arguments is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, BackUpInvalidArguments, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -160,12 +160,12 @@ HWTEST_F(BackupManagerTest, BackUpInvalidArguments, TestSize.Level0)
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 /**
-* @tc.name: BackUpSameFile
-* @tc.desc: the kvstore back up the same file
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: BackUpSameFile
+ * @tc.desc: the kvstore back up the same file
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, BackUpSameFile, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -176,12 +176,12 @@ HWTEST_F(BackupManagerTest, BackUpSameFile, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
 }
 /**
-* @tc.name: ReStore
-* @tc.desc: the kvstore ReStore
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: ReStore
+ * @tc.desc: the kvstore ReStore
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -208,12 +208,12 @@ HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 /**
-* @tc.name: DeleteBackup
-* @tc.desc: the kvstore DeleteBackup
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: DeleteBackup
+ * @tc.desc: the kvstore DeleteBackup
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, DeleteBackup, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -233,12 +233,12 @@ HWTEST_F(BackupManagerTest, DeleteBackup, TestSize.Level0)
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 /**
-* @tc.name: RollbackKey
-* @tc.desc: rollback the key
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: RollbackKey
+ * @tc.desc: rollback the key
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, RollbackKey, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTestRollBackKey" };
@@ -279,12 +279,12 @@ HWTEST_F(BackupManagerTest, RollbackKey, TestSize.Level0)
 }
 
 /**
-* @tc.name: RollbackData
-* @tc.desc: rollback the data
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: RollbackData
+ * @tc.desc: rollback the data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, RollbackData, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTestRollBackData" };
@@ -319,12 +319,12 @@ HWTEST_F(BackupManagerTest, RollbackData, TestSize.Level0)
 }
 
 /**
-* @tc.name: Rollback
-* @tc.desc: rollback the key
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: Rollback
+ * @tc.desc: rollback the key
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, Rollback, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTestRollBack" };
@@ -374,12 +374,12 @@ HWTEST_F(BackupManagerTest, Rollback, TestSize.Level0)
 }
 
 /**
-* @tc.name: CleanTmp
-* @tc.desc: Clean up temporary data
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: CleanTmp
+ * @tc.desc: Clean up temporary data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, CleanTmp, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTestCleanTmp" };
@@ -429,12 +429,12 @@ HWTEST_F(BackupManagerTest, CleanTmp, TestSize.Level0)
 }
 
 /**
-* @tc.name: BackUpEncrypt
-* @tc.desc: Back up an encrypt database and restore
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Wang Kai
-*/
+ * @tc.name: BackUpEncrypt
+ * @tc.desc: Back up an encrypt database and restore
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
 HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTest" };

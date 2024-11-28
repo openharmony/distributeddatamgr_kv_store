@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "dev_manager.h"
-#include "store_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "store_manager.h"
 #include "types.h"
 
 namespace OHOS::Test {
@@ -53,8 +53,9 @@ Status SingleStoreImplGetTopTest::initStatus = Status::ERROR;
 void SingleStoreImplGetTopTest::SetUpTestCase(void)
 {
     DistributedKvDataManager manager;
-    Options options = { .createIfMissing = true, .encrypt = false, .autoSync = true,
-        .kvStoreType = KvStoreType::SINGLE_VERSION };
+    Options options = {
+        .createIfMissing = true, .encrypt = false, .autoSync = true, .kvStoreType = KvStoreType::SINGLE_VERSION
+    };
     options.area = EL1;
     options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
@@ -72,19 +73,17 @@ void SingleStoreImplGetTopTest::TearDownTestCase(void)
     (void)remove("/data/service/el1/public/database/odmf");
 }
 
-void SingleStoreImplGetTopTest::SetUp(void)
-{}
+void SingleStoreImplGetTopTest::SetUp(void) { }
 
-void SingleStoreImplGetTopTest::TearDown(void)
-{}
+void SingleStoreImplGetTopTest::TearDown(void) { }
 
 /**
-* @tc.name: GetEntries
-* @tc.desc: get entries order by write time Asc
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetEntries
+ * @tc.desc: get entries order by write time Asc
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
@@ -94,8 +93,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -112,12 +110,12 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
 }
 
 /**
-* @tc.name: GetEntries
-* @tc.desc: get entries order by write time Desc
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetEntries
+ * @tc.desc: get entries order by write time Desc
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
@@ -127,8 +125,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -139,18 +136,18 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(output.size(), 10);
     for (size_t i = 0; i < output.size(); ++i) {
-        ASSERT_TRUE(input[9-i].key == output[i].key);
-        ASSERT_TRUE(input[9-i].value == output[i].value);
+        ASSERT_TRUE(input[9 - i].key == output[i].key);
+        ASSERT_TRUE(input[9 - i].value == output[i].value);
     }
 }
 
 /**
-* @tc.name: GetEntries
-* @tc.desc: get entries order by write time no prefix
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetEntries
+ * @tc.desc: get entries order by write time no prefix
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
@@ -160,8 +157,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     singleKvStore->Put("test_key_1", "{\"name\":1}");
@@ -175,12 +171,12 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
 }
 
 /**
-* @tc.name: GetResultSet
-* @tc.desc: get result set order by write time Asc
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set order by write time Asc
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
@@ -190,12 +186,11 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
-    query.InKeys({"10_k", "11_k"});
+    query.InKeys({ "10_k", "11_k" });
     query.OrderByWriteTime(true);
     std::shared_ptr<KvStoreResultSet> output;
     auto status = singleKvStore->GetResultSet(query, output);
@@ -205,7 +200,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
     for (size_t i = 0; i < 2; ++i) {
         output->MoveToNext();
         Entry entry;
-        status=output->GetEntry(entry);
+        status = output->GetEntry(entry);
         ASSERT_EQ(status, SUCCESS);
         ASSERT_TRUE(input[i].key == entry.key);
         ASSERT_TRUE(input[i].value == entry.value);
@@ -213,17 +208,19 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
 }
 
 /**
-* @tc.name: GetResultSet
-* @tc.desc: get result set order by write time Desc
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set order by write time Desc
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
@@ -231,8 +228,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -247,23 +243,25 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
         output->MoveToNext();
         Entry entry;
         output->GetEntry(entry);
-        ASSERT_TRUE(input[9-i].key == entry.key);
-        ASSERT_TRUE(input[9-i].value == entry.value);
+        ASSERT_TRUE(input[9 - i].key == entry.key);
+        ASSERT_TRUE(input[9 - i].value == entry.value);
     }
 }
 
 /**
-* @tc.name: GetResultSet
-* @tc.desc: get result set order by write time no prefix
-* @tc.type: FUNC
-* @tc.require:I5OM83
-* @tc.author:ht
-*/
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set order by write time no prefix
+ * @tc.type: FUNC
+ * @tc.require:I5OM83
+ * @tc.author:ht
+ */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
     ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
@@ -271,8 +269,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
-        auto status =singleKvStore->Put(
-            entry.key, entry.value);
+        auto status = singleKvStore->Put(entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     singleKvStore->Put("test_key_1", "{\"name\":1}");
