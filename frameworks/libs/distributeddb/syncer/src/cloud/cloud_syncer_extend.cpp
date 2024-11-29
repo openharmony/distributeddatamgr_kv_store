@@ -1866,6 +1866,10 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
     std::vector<Type> pkVals;
     int ret = CloudSyncUtils::GetCloudPkVals(
         param.downloadData.data[idx], param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pkVals);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] TagDownloadAssetsForAssetOnly cannot get primary key value list. %d", ret);
+        return ret;
+    }
     prefix = param.isSinglePrimaryKey ? pkVals[0] : prefix;
     if (param.isSinglePrimaryKey && prefix.index() == TYPE_INDEX<Nil>) {
         LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
@@ -2067,6 +2071,10 @@ int CloudSyncer::CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (!param.isAssetsOnly || cloudTaskInfos_[taskId].compensatedTask) {
+            return E_OK;
+        }
+        if (!param.isVaildForAssetsOnly) {
+            param.downloadData.data.clear();
             return E_OK;
         }
         cloudTaskInfos_[taskId].isAssetsOnly = param.isAssetsOnly;

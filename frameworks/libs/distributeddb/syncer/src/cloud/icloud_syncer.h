@@ -88,6 +88,7 @@ public:
         WithoutRowIdData withoutRowIdData;
         std::vector<std::vector<Type>> insertPk;
         bool isAssetsOnly = false;
+        bool isVaildForAssetsOnly = false;
         uint32_t groupNum = 0;
         AssetsGroupMap assetsGroupMap;
         std::string cloudWaterMarkForAssetsOnly;

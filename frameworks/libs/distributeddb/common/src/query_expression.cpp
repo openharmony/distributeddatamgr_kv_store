@@ -225,27 +225,34 @@ void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
     isAssetsOnly_ = true;
     if (useFromTable_) {
         expressions_[fromTable_].QueryAssetsOnly(assets);
-        validStatus_ = expressions_[fromTable_].GetExpressionStatus();
+        validStatusForAssetsOnly_ = expressions_[fromTable_].GetExpressionStatusForAssetsOnly();
         return;
     }
     if (assetsGroupMap_.find(groupNum_) != assetsGroupMap_.end()) {
-        LOGE("assets only already set!");
-        validStatus_ = -E_INVALID_ARGS;
+        LOGE("[QueryExpression]assets only already set!");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
         return;
     }
     if (assets.empty()) {
-        LOGE("assets map can not be empty!");
-        validStatus_ = -E_INVALID_ARGS;
+        LOGE("[QueryExpression]assets map can not be empty!");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
         return;
     }
     for (const auto &item : assets) {
         if (item.second.empty() && item.first.empty()) {
-            LOGE("assets filed or asset name can not be empty!");
-            validStatus_ = -E_INVALID_ARGS;
+            LOGE("[QueryExpression]assets filed or asset name can not be empty!");
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
             return;
         }
     }
     assetsGroupMap_[groupNum_] = assets;
+    for (uint32_t i = 0; i <= groupNum_; i++) {
+        if (assetsGroupMap_.find(i) == assetsGroupMap_.end()) {
+            LOGE("[QueryExpression]asset group " PRIu32 " not found, may be AssetsOnly interface use in wrong way.", i);
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            return;
+        }
+    }
 }
 
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
@@ -330,6 +337,12 @@ void QueryExpression::BeginGroup()
     if (useFromTable_) {
         expressions_[fromTable_].BeginGroup();
         return;
+    }
+    if (isAssetsOnly_) {
+        auto iter = queryInfo_.rbegin();
+        if (iter != queryInfo_.rend() && (*iter).operFlag != QueryObjType::OR) {
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        }
     }
     SetNotSupportIfFromTables();
     queryInfo_.emplace_back(QueryObjNode{QueryObjType::BEGIN_GROUP, std::string(),
@@ -431,6 +444,11 @@ void QueryExpression::From(const std::string &tableName)
 int QueryExpression::GetExpressionStatus() const
 {
     return validStatus_;
+}
+
+int QueryExpression::GetExpressionStatusForAssetsOnly() const
+{
+    return validStatusForAssetsOnly_;
 }
 
 std::vector<QueryExpression> QueryExpression::GetQueryExpressions() const

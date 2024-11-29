@@ -3175,7 +3175,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly009, Test
 
 /**
   * @tc.name: DownloadAssetsOnly010
-  * @tc.desc: Test multi assets only
+  * @tc.desc: Test assets only multi time.
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: luoguo
@@ -3186,27 +3186,44 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly010, Test
      * @tc.steps:step1. init data
      * @tc.expected: step1. return OK.
      */
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     int dataCount = 10;
     InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
-    InsertLocalData(db, dataCount, 1, ASSETS_TABLE_NAME, true);
+
     /**
-     * @tc.steps:step2. multi set assets only
-     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     * @tc.steps:step2. AssetsOnly twice
+     * @tc.expected: step2. check notify count.
      */
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
-    std::map<std::string, std::set<std::string>> assets1;
-    assets1["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).
-        AssetsOnly(assets).EndGroup().Or().BeginGroup().EqualTo("id", 10).AssetsOnly(assets1).EndGroup();
-    CloudSyncOption option;
-    option.devices = {DEVICE_CLOUD};
-    option.query = query;
-    option.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PULL;
-    option.priorityTask = true;
-    option.priorityLevel = 0u;
-    EXPECT_EQ(g_delegate->Sync(option, nullptr), DBStatus::INVALID_ARGS);
+        AssetsOnly(assets).EndGroup();
+    g_observer->ResetCloudSyncToZero();
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    auto changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 0u);
+
+    /**
+     * @tc.steps:step3. AssetsOnly behine EndGroup
+     * @tc.expected: step3. check notify count.
+     */
+    Query query1 = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup().AssetsOnly(assets);
+    g_observer->ResetCloudSyncToZero();
+    PriorityLevelSync(0, query1, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 0u);
+
+    /**
+     * @tc.steps:step4. AssetsOnly EndGroup use And
+     * @tc.expected: step4. check notify count.
+     */
+    Query query2 = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup()
+    .And().BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
+    g_observer->ResetCloudSyncToZero();
+    PriorityLevelSync(0, query2, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 0u);
 }
 
 /**

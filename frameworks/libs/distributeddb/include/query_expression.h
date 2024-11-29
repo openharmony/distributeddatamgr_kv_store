@@ -161,6 +161,7 @@ public:
     bool IsAssetsOnly() const;
     AssetsGroupMap GetAssetsOnlyGroupMap() const;
     uint32_t GetGroupNum() const;
+    int GetExpressionStatusForAssetsOnly() const;
 
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
@@ -192,6 +193,7 @@ private:
     uint32_t groupNum_ = 0;
     bool isAssetsOnly_ = false;
     AssetsGroupMap assetsGroupMap_;
+    int validStatusForAssetsOnly_ = 0;
 };
 
 // specialize for double

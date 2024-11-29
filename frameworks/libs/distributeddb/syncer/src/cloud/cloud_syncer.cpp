@@ -2071,6 +2071,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     param.isAssetsOnly = queryObject.IsAssetsOnly();
     param.groupNum = queryObject.GetGroupNum();
     param.assetsGroupMap = queryObject.GetAssetsOnlyGroupMap();
+    param.isVaildForAssetsOnly = queryObject.IsValidForAssetsOnly();
     return ret;
 }
 

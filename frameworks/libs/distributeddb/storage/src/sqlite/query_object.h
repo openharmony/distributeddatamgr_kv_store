@@ -72,6 +72,8 @@ public:
 
     AssetsGroupMap GetAssetsOnlyGroupMap() const;
 
+    bool IsValidForAssetsOnly() const;
+
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
 #endif
@@ -102,6 +104,7 @@ protected:
     uint32_t groupNum_ = 0;
     bool isAssetsOnly_ = false;
     AssetsGroupMap assetsGroupMap_;
+    bool isValidForAssetsOnly_ = false;
 
 private:
     int Parse();
