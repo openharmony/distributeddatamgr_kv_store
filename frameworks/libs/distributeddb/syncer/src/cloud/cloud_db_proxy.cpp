@@ -793,7 +793,7 @@ std::vector<int> CloudDBProxy::GetNotEmptyAssetRecords(std::vector<IAssetLoader:
 }
 
 void CloudDBProxy::CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords,
-    const std::vector<int> indexes, std::vector<IAssetLoader::AssetRecord> &newRecords)
+    const std::vector<int> &indexes, std::vector<IAssetLoader::AssetRecord> &newRecords)
 {
     int i = 0;
     for (const auto index : indexes) {

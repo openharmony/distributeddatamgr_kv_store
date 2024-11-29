@@ -1438,7 +1438,7 @@ void CloudSyncer::FillDownloadItem(const std::set<Key> &dupHashKeySet, const Dow
 }
 
 CloudSyncer::DownloadAssetDetail CloudSyncer::GetDownloadRecords(const DownloadList &downloadList,
-    const std::set<Key> &dupHashKeySet, bool isSharedTable, InnerProcessInfo &info)
+    const std::set<Key> &dupHashKeySet, bool isSharedTable, const InnerProcessInfo &info)
 {
     DownloadItemRecords downloadRecord;
     RemoveAssetsRecords removeAssets;

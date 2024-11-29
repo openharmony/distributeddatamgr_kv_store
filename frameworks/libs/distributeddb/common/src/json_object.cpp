@@ -421,6 +421,10 @@ int JsonObject::GetArrayContentOfStringOrStringArray(const FieldPath &inPath,
         LOGE("[Json][GetArrayContent] Not an array.");
         return -E_NOT_SUPPORT;
     }
+    if (valueNode.size() > DBConstant::MAX_VALUE_SIZE) {
+        LOGE("[Json][GetArrayContent] Exceeds max value size.");
+        return -E_NOT_SUPPORT;
+    }
     for (uint32_t index = 0; index < valueNode.size(); index++) {
         const Json::Value &eachArrayItem = valueNode[index];
         if (eachArrayItem.isString()) {
@@ -601,6 +605,10 @@ int JsonObject::GetStringArrayContentByJsonValue(const Json::Value &value,
         LOGE("[Json][GetStringArrayByValue] Not an array.");
         return -E_NOT_SUPPORT;
     }
+    if (value.size() > DBConstant::MAX_VALUE_SIZE) {
+        LOGE("[Json][GetStringArrayByValue] Exceeds max value size.");
+        return -E_NOT_SUPPORT;
+    }
     for (uint32_t index = 0; index < value.size(); index++) {
         const Json::Value &eachArrayItem = value[index];
         if (!eachArrayItem.isString()) {
@@ -736,6 +744,10 @@ int JsonObject::GetObjectArrayByFieldPath(const FieldPath &inPath, std::vector<J
 
     if (!valueNode.isArray()) {
         LOGE("[Json][GetValue] Not Array type.");
+        return -E_NOT_PERMIT;
+    }
+    if (valueNode.size() > DBConstant::MAX_VALUE_SIZE) {
+        LOGE("[Json][GetValue] Exceeds max value size.");
         return -E_NOT_PERMIT;
     }
     for (Json::ArrayIndex i = 0; i < valueNode.size(); ++i) {

@@ -459,7 +459,7 @@ protected:
     using DownloadAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
     using DownloadAssetDetail = std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords>;
     DownloadAssetDetail GetDownloadRecords(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
-        bool isSharedTable, InnerProcessInfo &info);
+        bool isSharedTable, const InnerProcessInfo &info);
 
     int BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
         InnerProcessInfo &info, ChangedData &changedAssets,
