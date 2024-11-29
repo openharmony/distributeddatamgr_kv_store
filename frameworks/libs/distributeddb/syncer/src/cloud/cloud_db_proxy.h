@@ -187,11 +187,11 @@ protected:
         std::vector<IAssetLoader::AssetRecord> &necessaryRecords, const InnerBatchOpType operationType);
 
     // save record with assets in nonEmptyRecords, return the indexes of these records in the original vector
-    std::vector<int> GetNotEmptyAssetRecords(std::vector<IAssetLoader::AssetRecord> &originalRecords,
+    static std::vector<int> GetNotEmptyAssetRecords(std::vector<IAssetLoader::AssetRecord> &originalRecords,
         std::vector<IAssetLoader::AssetRecord> &nonEmptyRecords);
 
     // copy newRecords's assets and status back to originalRecords, based on indexes
-    void CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords, const std::vector<int> indexes,
+    static void CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords, const std::vector<int> &indexes,
         std::vector<IAssetLoader::AssetRecord> &newRecords);
 
     mutable std::shared_mutex cloudMutex_;

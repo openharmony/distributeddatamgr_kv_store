@@ -245,12 +245,10 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
     if (!isEnhance_) {
         LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), hashIdentifier_.c_str());
     }
-    std::list<StorageExecutor *> &writeUsingList = isExternal ? externalWriteUsingList_ : writeUsingList_;
-    std::list<StorageExecutor *> &writeIdleList = isExternal ?  externalWriteIdleList_ : writeIdleList_;
-    std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
-    std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
     if (handle->GetWritable()) {
         std::unique_lock<std::mutex> lock(writeMutex_);
+        std::list<StorageExecutor *> &writeUsingList = isExternal ? externalWriteUsingList_ : writeUsingList_;
+        std::list<StorageExecutor *> &writeIdleList = isExternal ?  externalWriteIdleList_ : writeIdleList_;
         auto iter = std::find(writeUsingList.begin(), writeUsingList.end(), handle);
         if (iter != writeUsingList.end()) {
             writeUsingList.remove(handle);
@@ -266,6 +264,8 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
         }
     } else {
         std::unique_lock<std::mutex> lock(readMutex_);
+        std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
+        std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
         auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
         if (iter != readUsingList.end()) {
             readUsingList.remove(handle);
@@ -416,11 +416,11 @@ void StorageEngine::AddStorageExecutor(StorageExecutor *handle, bool isExternal)
         return;
     }
 
-    std::list<StorageExecutor *> &writeIdleList = isExternal ?  externalWriteIdleList_ : writeIdleList_;
-    std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
     if (handle->GetWritable()) {
+        std::list<StorageExecutor *> &writeIdleList = isExternal ?  externalWriteIdleList_ : writeIdleList_;
         writeIdleList.push_back(handle);
     } else {
+        std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
         readIdleList.push_back(handle);
     }
 }
