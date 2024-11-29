@@ -3297,5 +3297,35 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly012, Test
     syncThread1.join();
     syncThread2.join();
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly013
+  * @tc.desc: Check assets only sync no data notify.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly013, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync
+     * @tc.expected: step2. check notify count.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    auto changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 1u);
+}
 } // namespace
 #endif // RELATIONAL_STORE

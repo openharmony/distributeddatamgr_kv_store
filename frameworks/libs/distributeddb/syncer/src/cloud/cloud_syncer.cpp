@@ -813,8 +813,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         localAssetInfo[CloudDbConstant::GID_FIELD] = findGid->second;
         localAssetInfo[CloudDbConstant::HASH_KEY_FIELD] = dataInfo.localInfo.logInfo.hashKey;
         localInfo.push_back(localAssetInfo);
-        // assets only not need to save changed data without assets.
-        return ret;
+        return ret; // assets only not need to save changed data without assets.
     }
 
     ret = CloudSyncUtils::SaveChangedData(param, idx, dataInfo, deletedList);
