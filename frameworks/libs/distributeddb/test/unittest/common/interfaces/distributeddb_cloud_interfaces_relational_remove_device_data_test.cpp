@@ -1931,7 +1931,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
      */
     DeleteCloudTableRecordByGid(0, 2);
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
- 
+
     /**
      * @tc.steps: step6. call Sync with cloud merge strategy.
      * @tc.expected: OK.
@@ -1942,6 +1942,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where cloud_gid = '';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(2), nullptr), SQLITE_OK);
+    CheckCloudTotalCount(g_tables, {18, 20});
     CloseDb();
 }
 }
