@@ -171,7 +171,7 @@ int ResultEntriesWindow::LoadData(int begin, int target) const
             return errCode;
         }
         // filter the abnormal data.
-        if (next.key.size() > DBConstant::MAX_KEY_SIZE || next.value.size() > DBConstant::MAX_VALUE_SIZE) {
+        if (next.key.size() > DBConstant::MAX_KEY_SIZE || next.value.size() > DBConstant::MAX_SET_VALUE_SIZE) {
             continue;
         }
         bufferSize += next.key.size() + next.value.size();

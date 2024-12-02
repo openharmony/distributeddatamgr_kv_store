@@ -47,7 +47,7 @@ namespace {
     const int BIND_KEY_INDEX = 1;
     const int BIND_VAL_INDEX = 2;
     const int USING_STR_LEN = -1;
-    const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+    const int MAX_BLOB_READ_SIZE = 64 * 1024 * 1024; // 64M limit
     const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
     const int HEAD_SIZE = 3;
     const int END_SIZE = 3;

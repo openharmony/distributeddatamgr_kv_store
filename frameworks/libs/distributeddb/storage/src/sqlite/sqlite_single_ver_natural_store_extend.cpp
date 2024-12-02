@@ -431,6 +431,19 @@ int SQLiteSingleVerNaturalStore::SetMaxLogSize(uint64_t limit)
     maxLogSize_.store(limit);
     return E_OK;
 }
+
+int SQLiteSingleVerNaturalStore::SetMaxValueSize(uint32_t maxValueSize)
+{
+    LOGI("Set the max value size to %" PRIu32, maxValueSize);
+    storageEngine_->SetMaxValueSize(maxValueSize);
+    return E_OK;
+}
+
+uint32_t SQLiteSingleVerNaturalStore::GetMaxValueSize(bool isLocal) const
+{
+    return storageEngine_->GetMaxValueSize(isLocal);
+}
+
 uint64_t SQLiteSingleVerNaturalStore::GetMaxLogSize() const
 {
     return maxLogSize_.load();

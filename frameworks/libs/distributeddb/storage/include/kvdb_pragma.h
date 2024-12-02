@@ -51,6 +51,7 @@ enum : int {
     PRAGMA_SUBSCRIBE_QUERY,
     PRAGMA_SET_MAX_LOG_LIMIT,
     PRAGMA_EXEC_CHECKPOINT,
+    PRAGMA_SET_MAX_VALUE_SIZE,
 };
 
 struct PragmaSync {
