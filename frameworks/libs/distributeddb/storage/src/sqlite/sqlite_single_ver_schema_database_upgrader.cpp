@@ -95,7 +95,7 @@ void CheckGetForJsonSchema(sqlite3_context *ctx, ValueUpgradeContext &context, c
         }
         std::vector<uint8_t> valueAmended;
         valueObj.WriteIntoVector(valueAmended);
-        if (valueAmended.size() > DBConstant::MAX_VALUE_SIZE) {
+        if (valueAmended.size() > DBConstant::MAX_SET_VALUE_SIZE) {
             sqlite3_result_error(ctx, "[SqlSingleSchemaUp][CheckGet] ValSize exceed limit after amend.", USING_STR_LEN);
             LOGE("[SqlSingleSchemaUp][CheckGet] Value(cnt=%u) size=%zu exceed limit after amend.", context.getCount,
                 valueAmended.size());

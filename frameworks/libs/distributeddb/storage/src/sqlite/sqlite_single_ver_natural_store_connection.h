@@ -72,6 +72,7 @@ public:
 
     // Pragma interface.
     int Pragma(int cmd, void *parameter) override;
+    int PragmaNext(int cmd, void *parameter);
 
     // Parse event types(from observer mode).
     int TranslateObserverModeToEventTypes(unsigned mode, std::list<int> &eventTypes) const override;
@@ -137,15 +138,15 @@ private:
 
     int SaveEntry(const Entry &entry, bool isDelete, Timestamp timestamp = 0);
 
-    int CheckDataStatus(const Key &key, const Value &value, bool isDelete) const;
+    int CheckDataStatus(const Key &key, const Value &value, bool isDelete, bool isLocal = false) const;
 
     int CheckWritePermission() const override;
 
-    int CheckSyncEntriesValid(const std::vector<Entry> &entries) const override;
+    int CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal = false) const override;
 
     int CheckSyncKeysValid(const std::vector<Key> &keys) const override;
 
-    int CheckLocalEntriesValid(const std::vector<Entry> &entries) const;
+    int CheckLocalEntriesValid(const std::vector<Entry> &entries, bool isLocal = false) const;
 
     int CheckLocalKeysValid(const std::vector<Key> &keys) const;
 
@@ -212,6 +213,7 @@ private:
     bool IsFileAccessControlled() const;
 
     int PragmaSetMaxLogSize(uint64_t *limit);
+    int SetMaxValueSize(uint32_t maxValueSize);
     int ForceCheckPoint() const;
 
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;

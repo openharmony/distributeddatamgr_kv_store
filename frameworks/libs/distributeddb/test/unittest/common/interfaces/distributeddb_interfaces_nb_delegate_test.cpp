@@ -1355,6 +1355,76 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch008, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutBatch008"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: SingleVerPutBatch009
+  * @tc.desc: Check for illegal parameters
+  * @tc.type: FUNC
+  * @tc.require: 
+  * @tc.author: wangxiangdong
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1.
+     *  Create and construct three sets of vector <Entry>, each set of three data contains records:
+     *  (K4, V4) are legal.
+     *  (K5, V5) are not legal.
+     */
+    uint32_t maxValueSize = 64 * 1024 * 1024;
+    Key legalKey;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
+    Value legalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, maxValueSize); // 64M + 1
+    Value illegalValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(illegalValue, maxValueSize + 1); // 64M + 1
+    vector<Entry> entrysl = {KV_ENTRY_1, KV_ENTRY_2, {KEY_3, VALUE_3}};
+    vector<Entry> entrys2 = {KV_ENTRY_1, KV_ENTRY_2, {KEY_4, legalValue}};
+    vector<Entry> entrysIllegal = {KV_ENTRY_1, KV_ENTRY_2, {KEY_5, illegalValue}};
+    /**
+     * @tc.steps: step2.
+     *  pragrma SET_MAX_VALUE_SIZE of legal and illegal value
+     */
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("distributed_SingleVerPutBatch_001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrys2), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_4, legalValue), INVALID_ARGS);
+    uint32_t illegalValueSize = 64 * 1024 * 1024 + 1;
+    PragmaData input = static_cast<PragmaData>(&illegalValueSize);
+    DBStatus status = g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input);
+    EXPECT_TRUE(status == INVALID_ARGS);
+    input = static_cast<PragmaData>(&maxValueSize);
+    status = g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input);
+    EXPECT_TRUE(status == OK);
+    /**
+     * @tc.steps: step3. PutBatch/PutLocalBatch/PublishLocal operates on three sets of data.
+     * @tc.expected: step3. Three operations return OK or INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrysl), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrys2), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_4, legalValue), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrys2), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrysIllegal), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysIllegal), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_5, illegalValue), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(KEY_4, true, false, nullptr), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step4. Use Get to check data in database.
+     * @tc.expected: step4. Get value by key successfully.
+     */
+    Value valueRead;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, valueRead), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(KEY_4, valueRead), OK);
+    EXPECT_EQ(valueRead, legalValue);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatch_001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
 #endif // LOW_LEVEL_MEM_DEV
 
 /**

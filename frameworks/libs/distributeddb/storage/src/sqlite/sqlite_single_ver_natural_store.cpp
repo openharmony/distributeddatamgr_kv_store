@@ -298,7 +298,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
     Value &amendValue, bool &useAmendValue) const
 {
     // oriValue size may already be checked previously, but check here const little
-    if (oriValue.size() > DBConstant::MAX_VALUE_SIZE) {
+    if (oriValue.size() > GetMaxValueSize()) {
         return -E_INVALID_ARGS;
     }
     const SchemaObject &schemaObjRef = MyProp().GetSchemaConstRef();
@@ -319,7 +319,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
         }
         if (AmendValueShouldBeUse(errCode)) {
             std::string amended = valueObj.ToString();
-            if (amended.size() > DBConstant::MAX_VALUE_SIZE) {
+            if (amended.size() > GetMaxValueSize()) {
                 LOGE("[SqlSinStore][CheckAmendValue] ValueSize=%zu exceed limit after amend.", amended.size());
                 return -E_INVALID_FORMAT;
             }
@@ -1136,7 +1136,7 @@ void SQLiteSingleVerNaturalStore::NotifyRemovedData(std::vector<Entry> &entries)
 
         // ignore the invalid key.
         if (entries[index].key.size() > DBConstant::MAX_KEY_SIZE ||
-            entries[index].value.size() > DBConstant::MAX_VALUE_SIZE) {
+            entries[index].value.size() > GetMaxValueSize()) {
             index++;
             continue;
         }

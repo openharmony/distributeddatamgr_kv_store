@@ -38,7 +38,7 @@ public:
     // Delete the batch values from the database.
     int DeleteBatch(const IOption &option, const std::vector<Key> &keys) override;
 protected:
-    virtual int CheckSyncEntriesValid(const std::vector<Entry> &entries) const;
+    virtual int CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal) const;
 
     virtual int CheckWritePermission() const;
 

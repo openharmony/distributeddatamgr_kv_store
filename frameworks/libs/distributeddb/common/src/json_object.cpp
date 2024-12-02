@@ -421,7 +421,7 @@ int JsonObject::GetArrayContentOfStringOrStringArray(const FieldPath &inPath,
         LOGE("[Json][GetArrayContent] Not an array.");
         return -E_NOT_SUPPORT;
     }
-    if (valueNode.size() > DBConstant::MAX_VALUE_SIZE) {
+    if (valueNode.size() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetArrayContent] Exceeds max value size.");
         return -E_NOT_SUPPORT;
     }
@@ -605,7 +605,7 @@ int JsonObject::GetStringArrayContentByJsonValue(const Json::Value &value,
         LOGE("[Json][GetStringArrayByValue] Not an array.");
         return -E_NOT_SUPPORT;
     }
-    if (value.size() > DBConstant::MAX_VALUE_SIZE) {
+    if (value.size() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetStringArrayByValue] Exceeds max value size.");
         return -E_NOT_SUPPORT;
     }
@@ -746,7 +746,7 @@ int JsonObject::GetObjectArrayByFieldPath(const FieldPath &inPath, std::vector<J
         LOGE("[Json][GetValue] Not Array type.");
         return -E_NOT_PERMIT;
     }
-    if (valueNode.size() > DBConstant::MAX_VALUE_SIZE) {
+    if (valueNode.size() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetValue] Exceeds max value size.");
         return -E_NOT_PERMIT;
     }

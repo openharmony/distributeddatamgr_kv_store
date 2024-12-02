@@ -35,7 +35,8 @@ SQLiteSingleVerStorageEngine::SQLiteSingleVerStorageEngine()
     : executorState_(ExecutorState::INVALID),
       cacheRecordVersion_(CACHE_RECORD_DEFAULT_VERSION),
       isCorrupted_(false),
-      isNeedUpdateSecOpt_(false)
+      isNeedUpdateSecOpt_(false),
+      maxValueSize_(DBConstant::MAX_VALUE_SIZE)
 {}
 
 SQLiteSingleVerStorageEngine::~SQLiteSingleVerStorageEngine()
@@ -1051,6 +1052,21 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
     committedData->SetConflictedNotifiedFlag(static_cast<int>(conflictFlag));
 }
 
+void SQLiteSingleVerStorageEngine::SetMaxValueSize(uint32_t maxValueSize)
+{
+    LOGI("Set the max value size to %" PRIu32, maxValueSize);
+    maxValueSize_ = maxValueSize;
+}
+
+uint32_t SQLiteSingleVerStorageEngine::GetMaxValueSize(bool isLocal)
+{
+    if (isLocal) {
+        return maxValueSize_;
+    } else {
+        return DBConstant::MAX_VALUE_SIZE;
+    }
+}
+
 void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSyncData &syncData) const
 {
     const auto &isRemote = syncData.isRemote;
@@ -1083,8 +1099,7 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
                 return;
             }
         }
-        if (entry.key.size() > DBConstant::MAX_KEY_SIZE ||
-            entry.value.size() > DBConstant::MAX_VALUE_SIZE) { // LCOV_EXCL_BR_LINE
+        if (entry.key.size() > DBConstant::MAX_KEY_SIZE || entry.value.size() > maxValueSize_) { // LCOV_EXCL_BR_LINE
             iter++;
             continue;
         }

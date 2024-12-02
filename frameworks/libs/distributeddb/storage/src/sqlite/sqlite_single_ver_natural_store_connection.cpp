@@ -237,7 +237,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatch(const IOption &option, const
 {
     LOGD("[PutBatch] entries size is : %zu, dataType : %d", entries.size(), option.dataType);
     if (option.dataType == IOption::LOCAL_DATA) {
-        int retCode = CheckLocalEntriesValid(entries);
+        int retCode = CheckLocalEntriesValid(entries, true);
         if (retCode != E_OK) {
             return retCode;
         }
@@ -357,6 +357,21 @@ int SQLiteSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
             return PragmaSetMaxLogSize(static_cast<uint64_t *>(parameter));
         case PRAGMA_EXEC_CHECKPOINT:
             return ForceCheckPoint();
+        default:
+            // Call of others.
+            errCode = PragmaNext(cmd, parameter);
+            break;
+    }
+
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::PragmaNext(int cmd, void *parameter)
+{
+    int errCode = E_OK;
+    switch (cmd) {
+        case PRAGMA_SET_MAX_VALUE_SIZE:
+            return SetMaxValueSize(*static_cast<uint32_t *>(parameter));
         default:
             // Call Pragma() of super class.
             errCode = SyncAbleKvDBConnection::Pragma(cmd, parameter);
@@ -710,6 +725,19 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaSetMaxLogSize(uint64_t *limit)
         return -E_INVALID_ARGS;
     }
     return naturalStore->SetMaxLogSize(*limit);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::SetMaxValueSize(uint32_t maxValueSize)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] db is nullptr for max value size set.");
+        return -E_INVALID_DB;
+    }
+    if (maxValueSize > DBConstant::MAX_SET_VALUE_SIZE || maxValueSize < DBConstant::MAX_VALUE_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+    return naturalStore->SetMaxValueSize(maxValueSize);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::ForceCheckPoint() const
@@ -1076,14 +1104,15 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntryInCacheMode(DataItem &dataIt
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::CheckDataStatus(const Key &key, const Value &value, bool isDelete) const
+int SQLiteSingleVerNaturalStoreConnection::CheckDataStatus(const Key &key, const Value &value, bool isDelete,
+    bool isLocal) const
 {
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
         return -E_INVALID_DB;
     }
 
-    return naturalStore->CheckDataStatus(key, value, isDelete);
+    return naturalStore->CheckDataStatus(key, value, isDelete, isLocal);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::CheckWritePermission() const
@@ -1099,7 +1128,7 @@ int SQLiteSingleVerNaturalStoreConnection::CheckWritePermission() const
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
+int SQLiteSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal) const
 {
     uint32_t len = 0;
     if (!CheckAndGetEntryLen(entries, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
@@ -1116,7 +1145,7 @@ int SQLiteSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vect
     }
 
     for (const auto &entry : entries) {
-        int errCode = naturalStore->CheckDataStatus(entry.key, entry.value, false);
+        int errCode = naturalStore->CheckDataStatus(entry.key, entry.value, false, isLocal);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1148,7 +1177,7 @@ int SQLiteSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::CheckLocalEntriesValid(const std::vector<Entry> &entries) const
+int SQLiteSingleVerNaturalStoreConnection::CheckLocalEntriesValid(const std::vector<Entry> &entries, bool isLocal) const
 {
     uint32_t len = 0;
     if (!CheckAndGetEntryLen(entries, DBConstant::MAX_TRANSACTION_KEY_VALUE_LENS, len)) {
@@ -1165,7 +1194,7 @@ int SQLiteSingleVerNaturalStoreConnection::CheckLocalEntriesValid(const std::vec
     }
 
     for (const auto &entry : entries) {
-        int errCode = naturalStore->GenericKvDB::CheckDataStatus(entry.key, entry.value, false);
+        int errCode = naturalStore->GenericKvDB::CheckDataStatus(entry.key, entry.value, false, isLocal);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1492,8 +1521,8 @@ int SQLiteSingleVerNaturalStoreConnection::PublishInner(SingleVerNaturalStoreCom
         }
     }
 
-    // begin to insert entry to sync table
-    errCode = CheckDataStatus(localRecord.key, localRecord.value, false);
+    // begin to insert entry to sync table, no more than 4M
+    errCode = CheckDataStatus(localRecord.key, localRecord.value, false, false);
     if (errCode != E_OK) {
         return errCode;
     }

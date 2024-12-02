@@ -31,7 +31,7 @@ namespace {
     string g_dbDir;
     sqlite3 *g_db = nullptr;
 
-    const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+    const int MAX_BLOB_READ_SIZE = 64 * 1024 * 1024; // 64M limit
     const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
 }
 

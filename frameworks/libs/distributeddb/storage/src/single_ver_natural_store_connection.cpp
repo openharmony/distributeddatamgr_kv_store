@@ -43,7 +43,7 @@ int SingleVerNaturalStoreConnection::PutBatch(const IOption &option, const std::
     if (option.dataType != IOption::SYNC_DATA) {
         return -E_NOT_SUPPORT;
     }
-    int errCode = CheckSyncEntriesValid(entries);
+    int errCode = CheckSyncEntriesValid(entries, option.dataType == IOption::LOCAL_DATA);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -83,7 +83,7 @@ bool SingleVerNaturalStoreConnection::CheckAndGetKeyLen(const std::vector<Key> &
     return true;
 }
 
-int SingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
+int SingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal) const
 {
     return E_OK;
 }

@@ -117,6 +117,7 @@ enum PragmaCmd {
     SET_MAX_LOG_LIMIT,
     EXEC_CHECKPOINT,
     LOGIC_DELETE_SYNC_DATA,
+    SET_MAX_VALUE_SIZE,
 };
 
 enum ResolutionPolicyType {

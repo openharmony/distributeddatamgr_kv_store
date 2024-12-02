@@ -349,10 +349,15 @@ int GenericKvDB::TransConflictTypeToRegisterFunctionType(int conflictType, Regis
     return -E_NOT_SUPPORT;
 }
 
-int GenericKvDB::CheckDataStatus(const Key &key, const Value &value, bool isDeleted) const
+uint32_t GenericKvDB::GetMaxValueSize(bool isLocal) const
 {
-    if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE ||
-        value.size() > DBConstant::MAX_VALUE_SIZE) {
+    (void)isLocal;
+    return DBConstant::MAX_VALUE_SIZE;
+}
+
+int GenericKvDB::CheckDataStatus(const Key &key, const Value &value, bool isDeleted, bool isLocal) const
+{
+    if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE || value.size() > GetMaxValueSize(isLocal)) {
         return -E_INVALID_ARGS;
     }
     return E_OK;
