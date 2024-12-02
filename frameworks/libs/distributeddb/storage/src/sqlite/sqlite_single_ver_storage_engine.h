@@ -64,7 +64,7 @@ public:
 
     void SetMaxValueSize(uint32_t maxValueSize);
 
-    uint32_t GetMaxValueSize(bool isLocal = false);
+    uint32_t GetMaxValueSize();
 
 protected:
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
