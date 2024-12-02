@@ -1058,13 +1058,9 @@ void SQLiteSingleVerStorageEngine::SetMaxValueSize(uint32_t maxValueSize)
     maxValueSize_ = maxValueSize;
 }
 
-uint32_t SQLiteSingleVerStorageEngine::GetMaxValueSize(bool isLocal)
+uint32_t SQLiteSingleVerStorageEngine::GetMaxValueSize()
 {
-    if (isLocal) {
-        return maxValueSize_;
-    } else {
-        return DBConstant::MAX_VALUE_SIZE;
-    }
+    return maxValueSize_;
 }
 
 void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSyncData &syncData) const

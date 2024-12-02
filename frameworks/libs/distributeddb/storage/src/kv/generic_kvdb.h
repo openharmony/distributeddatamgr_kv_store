@@ -115,9 +115,9 @@ public:
 
     virtual int TransConflictTypeToRegisterFunctionType(int conflictType, RegisterFuncType &type) const;
 
-    virtual uint32_t GetMaxValueSize(bool isLocal = false) const;
+    virtual uint32_t GetMaxValueSize() const;
 
-    virtual int CheckDataStatus(const Key &key, const Value &value, bool isDeleted, bool isLocal = false) const;
+    virtual int CheckDataStatus(const Key &key, const Value &value, bool isDeleted) const;
 
     virtual bool CheckWritePermission() const;
 

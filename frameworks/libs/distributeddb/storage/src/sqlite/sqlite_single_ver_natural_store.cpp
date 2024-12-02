@@ -1290,17 +1290,24 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
     }
     int errCode = E_OK;
     auto offset = GetLocalTimeOffset();
+    std::vector<DataItem> dataItemsRet;
     for (auto &item : dataItems) {
         // Check only the key and value size
         errCode = CheckDataStatus(item.key, item.value, (item.flag & DataItem::DELETE_FLAG) != 0);
         if (errCode != E_OK) {
-            return errCode;
+            if (item.key.empty() || item.key.size() > DBConstant::MAX_KEY_SIZE) {
+                return errCode;
+            } else {
+                LOGI("save sync data failed because of check data status fail errCode %d!", errCode);
+            }
         }
         if (offset != 0) {
             item.modifyTime = static_cast<Timestamp>(static_cast<int64_t>(item.timestamp) - offset);
             item.createTime = static_cast<Timestamp>(static_cast<int64_t>(item.writeTimestamp) - offset);
         }
+        dataItemsRet.push_back(item);
     }
+    dataItems = dataItemsRet;
     if (checkValueContent) { // LCOV_EXCL_BR_LINE
         CheckAmendValueContentForSyncProcedure(dataItems);
     }

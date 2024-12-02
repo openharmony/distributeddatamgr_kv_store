@@ -125,7 +125,7 @@ private:
     // ResultSet Related Info
     static constexpr std::size_t MAX_RESULTSET_SIZE = 8; // Max 8 ResultSet At The Same Time
 
-    int CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal = false) const override;
+    int CheckSyncEntriesValid(const std::vector<Entry> &entries) const override;
 
     int PutBatchInner(const IOption &option, const std::vector<Entry> &entries) override;
 

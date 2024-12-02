@@ -439,9 +439,13 @@ int SQLiteSingleVerNaturalStore::SetMaxValueSize(uint32_t maxValueSize)
     return E_OK;
 }
 
-uint32_t SQLiteSingleVerNaturalStore::GetMaxValueSize(bool isLocal) const
+uint32_t SQLiteSingleVerNaturalStore::GetMaxValueSize() const
 {
-    return storageEngine_->GetMaxValueSize(isLocal);
+    if (storageEngine_ == nullptr) {
+        LOGE("[SingleVerNStore] Get max value size storage engine is invalid.");
+        return DBConstant::MAX_VALUE_SIZE;
+    }
+    return storageEngine_->GetMaxValueSize();
 }
 
 uint64_t SQLiteSingleVerNaturalStore::GetMaxLogSize() const

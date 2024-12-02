@@ -199,7 +199,7 @@ public:
 
     int SetMaxValueSize(uint32_t maxValueSize);
 
-    uint32_t GetMaxValueSize(bool isLocal = false) const override;
+    uint32_t GetMaxValueSize() const override;
 
     void Dump(int fd) override;
 

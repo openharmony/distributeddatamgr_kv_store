@@ -138,15 +138,15 @@ private:
 
     int SaveEntry(const Entry &entry, bool isDelete, Timestamp timestamp = 0);
 
-    int CheckDataStatus(const Key &key, const Value &value, bool isDelete, bool isLocal = false) const;
+    int CheckDataStatus(const Key &key, const Value &value, bool isDelete) const;
 
     int CheckWritePermission() const override;
 
-    int CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal = false) const override;
+    int CheckSyncEntriesValid(const std::vector<Entry> &entries) const override;
 
     int CheckSyncKeysValid(const std::vector<Key> &keys) const override;
 
-    int CheckLocalEntriesValid(const std::vector<Entry> &entries, bool isLocal = false) const;
+    int CheckLocalEntriesValid(const std::vector<Entry> &entries) const;
 
     int CheckLocalKeysValid(const std::vector<Key> &keys) const;
 

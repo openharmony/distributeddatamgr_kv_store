@@ -507,7 +507,7 @@ int RdSingleVerNaturalStoreConnection::UpdateKey(const UpdateKeyCallback &callba
     return -E_NOT_SUPPORT;
 }
 
-int RdSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries, bool isLocal) const
+int RdSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
 {
     if (entries.size() > DBConstant::MAX_BATCH_SIZE) {
         return -E_INVALID_ARGS;
@@ -519,7 +519,7 @@ int RdSingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<E
     }
 
     for (const auto &entry : entries) {
-        int errCode = naturalStore->CheckDataStatus(entry.key, entry.value, false, isLocal);
+        int errCode = naturalStore->CheckDataStatus(entry.key, entry.value, false);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -713,7 +713,7 @@ int RdSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<Key>
     }
 
     for (const auto &key : keys) {
-        int errCode = naturalStore->CheckDataStatus(key, {}, true, false);
+        int errCode = naturalStore->CheckDataStatus(key, {}, true);
         if (errCode != E_OK) {
             return errCode;
         }

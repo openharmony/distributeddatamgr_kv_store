@@ -1360,7 +1360,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch008, TestSize.L
   * @tc.name: SingleVerPutBatch009
   * @tc.desc: Check for illegal parameters
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wangxiangdong
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.Level1)
@@ -1375,12 +1375,12 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.L
     Key legalKey;
     DistributedDBToolsUnitTest::GetRandomKeyValue(legalKey, DBConstant::MAX_KEY_SIZE); // 1K
     Value legalValue;
-    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, maxValueSize); // 64M + 1
+    DistributedDBToolsUnitTest::GetRandomKeyValue(legalValue, maxValueSize); // 64M
     Value illegalValue;
     DistributedDBToolsUnitTest::GetRandomKeyValue(illegalValue, maxValueSize + 1); // 64M + 1
     vector<Entry> entrysl = {KV_ENTRY_1, KV_ENTRY_2, {KEY_3, VALUE_3}};
-    vector<Entry> entrys2 = {KV_ENTRY_1, KV_ENTRY_2, {KEY_4, legalValue}};
-    vector<Entry> entrysIllegal = {KV_ENTRY_1, KV_ENTRY_2, {KEY_5, illegalValue}};
+    vector<Entry> entrys2 = {{KEY_4, legalValue}};
+    vector<Entry> entrysIllegal = {{KEY_5, illegalValue}};
     /**
      * @tc.steps: step2.
      *  pragrma SET_MAX_VALUE_SIZE of legal and illegal value
@@ -1406,19 +1406,23 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.L
     EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrysl), OK);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrys2), OK);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_4, legalValue), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrys2), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrys2), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrysIllegal), INVALID_ARGS);
     EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrysIllegal), INVALID_ARGS);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(entrysIllegal), INVALID_ARGS);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_5, illegalValue), INVALID_ARGS);
-    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(KEY_4, true, false, nullptr), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_6, legalValue), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(KEY_6, true, false, nullptr), OK);
 
     /**
      * @tc.steps: step4. Use Get to check data in database.
      * @tc.expected: step4. Get value by key successfully.
      */
+    Value valueReadLocal;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, valueReadLocal), OK);
     Value valueRead;
-    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, valueRead), NOT_FOUND);
     EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(KEY_4, valueRead), OK);
+    EXPECT_EQ(valueRead, valueReadLocal);
     EXPECT_EQ(valueRead, legalValue);
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
