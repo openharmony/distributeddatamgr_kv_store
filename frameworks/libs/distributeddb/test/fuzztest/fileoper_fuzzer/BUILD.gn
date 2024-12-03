@@ -92,7 +92,6 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
     "//third_party/sqlite:sqlite",
-    "//third_party/zlib:shared_libz",
   ]
 
   defines = [
@@ -117,6 +116,7 @@ ohos_fuzztest("FileOperFuzzTest") {
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
+    "zlib:shared_libz",
   ]
 }
 
