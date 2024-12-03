@@ -14,6 +14,7 @@
  */
 
 #include "include/store_util_mock.h"
+#include "types.h"
 
 namespace OHOS::DistributedKv {
 
@@ -113,5 +114,33 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
         return false;
     }
     return BStoreUtil::storeUtil->RemoveRWXForOthers(path);
+}
+
+bool StoreUtil::CreateFile(const std::string &name)
+{
+    if (BStoreUtil::storeUtil == nullptr) {
+        return false;
+    }
+    return BStoreUtil::storeUtil->CreateFile(name);
+}
+
+void StoreUtil::Flush()
+{
+}
+
+int32_t StoreUtil::GetSecLevel(StoreUtil::DBSecurity dbSec)
+{
+    return NO_LABEL;
+}
+
+uint64_t StoreUtil::GenSequenceId()
+{
+    return 0;
+}
+
+StoreUtil::DBMode StoreUtil::GetDBMode(SyncMode syncMode)
+{
+    DBMode dbMode = DBMode::SYNC_MODE_PULL_ONLY;
+    return dbMode;
 }
 } // namespace OHOS::DistributedKv

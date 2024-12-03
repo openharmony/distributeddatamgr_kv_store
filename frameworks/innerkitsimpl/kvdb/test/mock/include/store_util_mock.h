@@ -36,6 +36,7 @@ public:
     virtual uint32_t Anonymous(const void *) = 0;
     virtual bool RemoveRWXForOthers(const std::string &) = 0;
     virtual std::string Anonymous(const std::string &) = 0;
+    virtual bool CreateFile(const std::string &) = 0;
     BStoreUtil() = default;
     virtual ~BStoreUtil() = default;
 
@@ -57,6 +58,7 @@ public:
     MOCK_METHOD(uint32_t, Anonymous, (const void *));
     MOCK_METHOD(std::string, Anonymous, (const std::string &));
     MOCK_METHOD(bool, RemoveRWXForOthers, (const std::string &));
+    MOCK_METHOD(bool, CreateFile, (const std::string &));
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_STORE_UTIL_MOCK_H
