@@ -793,6 +793,10 @@ int SQLiteSingleVerNaturalStore::GetSyncDataNext(std::vector<SingleVerKvEntry *>
 
     std::vector<DataItem> dataItems;
     auto token = static_cast<SQLiteSingleVerContinueToken *>(continueStmtToken);
+    if (token == nullptr) {
+        LOGE("[SingleVerNStore] Allocate continue stmt token failed.");
+        return -E_OUT_OF_MEMORY;
+    }
     if (token->IsQuerySync()) {
         errCode = GetSyncDataForQuerySync(dataItems, token, dataSizeInfo);
         continueStmtToken = static_cast<ContinueToken>(token);

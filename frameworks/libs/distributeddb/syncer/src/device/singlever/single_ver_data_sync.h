@@ -253,6 +253,8 @@ protected:
 
     void RemoveSubscribeIfNeed(const std::string &queryId, const std::shared_ptr<SubscribeManager> &subscribeManager);
 
+    int DataRequestRecvInner(SingleVerSyncTaskContext *context, const Message *message, WaterMark &pullEndWatermark);
+
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;
     ICommunicator* communicateHandle_;

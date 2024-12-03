@@ -29,7 +29,6 @@ DataRequestPacket::~DataRequestPacket()
 {
     for (auto &entry : data_) {
         delete entry;
-        entry = nullptr;
     }
 }
 

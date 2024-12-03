@@ -178,7 +178,6 @@ int SyncTaskContext::RemoveSyncOperation(int syncId)
     if (iter != requestTargetQueue_.end()) {
         if (*iter != nullptr) {
             delete *iter;
-            *iter = nullptr;
         }
         requestTargetQueue_.erase(iter);
         return E_OK;
@@ -192,7 +191,6 @@ void SyncTaskContext::ClearSyncTarget()
     for (auto &requestTarget : requestTargetQueue_) {
         if (requestTarget != nullptr) {
             delete requestTarget;
-            requestTarget = nullptr;
         }
     }
     requestTargetQueue_.clear();
@@ -200,7 +198,6 @@ void SyncTaskContext::ClearSyncTarget()
     for (auto &responseTarget : responseTargetQueue_) {
         if (responseTarget != nullptr) { // LCOV_EXCL_BR_LINE
             delete responseTarget;
-            responseTarget = nullptr;
         }
     }
     responseTargetQueue_.clear();

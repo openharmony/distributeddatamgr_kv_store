@@ -441,7 +441,7 @@ void StringToUpper(std::string &str)
 void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     // 1 means that the function only needs one parameter, namely key
-    if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is params count
+    if (ctx == nullptr || argc != 2 || argv == nullptr || argv[0] == nullptr || argv[1] == nullptr) { // 2 params count
         return;
     }
 

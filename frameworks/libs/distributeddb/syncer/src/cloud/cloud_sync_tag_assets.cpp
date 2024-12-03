@@ -158,17 +158,15 @@ std::pair<bool, Assets> TagForNotContainsAsset(const std::string &assetFieldName
     return { false, {} };
 }
 
-// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
-// use VBucket rather than Type because we need to check whether it is empty
-Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
+static Assets TagAssetsInner(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
     bool setNormalStatus, int &errCode)
 {
-    auto [isReturn, resAsset] = TagForNotContainsAsset(assetFieldName, coveredData, beCoveredData,
-        setNormalStatus, errCode);
-    if (isReturn) {
-        return resAsset;
-    }
     Assets res = {};
+    if (!std::holds_alternative<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData)) ||
+        !std::holds_alternative<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData))) {
+        LOGE("[TagAssetsInner] coveredData or beCoveredData does not have assets");
+        return {};
+    }
     Assets &covered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData));
     Assets &beCovered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
     std::map<std::string, size_t> coveredAssetsIndexMap = CloudStorageUtils::GenAssetsIndexMap(covered);
@@ -207,6 +205,19 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         }
     }
     return res;
+}
+
+// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
+// use VBucket rather than Type because we need to check whether it is empty
+Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
+    bool setNormalStatus, int &errCode)
+{
+    auto [isReturn, resAsset] = TagForNotContainsAsset(assetFieldName, coveredData, beCoveredData,
+        setNormalStatus, errCode);
+    if (isReturn) {
+        return resAsset;
+    }
+    return TagAssetsInner(assetFieldName, coveredData, beCoveredData, setNormalStatus, errCode);
 }
 
 static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const bool setNormalStatus, Assets &res,

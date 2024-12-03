@@ -70,7 +70,9 @@ constexpr int VALUE_CACHE_ID = -429938;
 
 void ValueParseCacheFree(ValueParseCache *inCache)
 {
-    delete inCache;
+    if (inCache != nullptr) {
+        delete inCache;
+    }
 }
 
 // We don't use cache array since we only cache value column of sqlite table, see sqlite implementation for compare.
@@ -222,7 +224,9 @@ constexpr uint32_t FLATBUFFER_MAX_CACHE_SIZE = 102400; // 100 KBytes
 
 void FlatBufferCacheFree(std::vector<uint8_t> *inCache)
 {
-    delete inCache;
+    if (inCache != nullptr) {
+        delete inCache;
+    }
 }
 }
 

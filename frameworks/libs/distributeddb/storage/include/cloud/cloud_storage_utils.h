@@ -20,6 +20,7 @@
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_upload_recorder.h"
 #include "icloud_sync_storage_interface.h"
+#include "sqlite_single_ver_relational_storage_executor.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
@@ -194,6 +195,13 @@ public:
 
     static int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
         QuerySyncObject &querySyncObject);
+
+    using CloudSyncParam = std::pair<const std::string &, const CloudWaterType &>;
+
+    static int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
+        const CloudSyncParam &param, const CloudSyncBatch &updateData, CloudUploadRecorder &recorder,
+        bool isLock = false);
+
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 };

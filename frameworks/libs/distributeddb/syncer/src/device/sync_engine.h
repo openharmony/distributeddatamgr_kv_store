@@ -63,11 +63,20 @@ public:
     // Get the queue cache memory size
     int GetQueueCacheSize() const;
 
+    // Set the queue cache memory size
+    void SetQueueCacheSize(int size);
+
     // Get the number of message which is discarded
     unsigned int GetDiscardMsgNum() const;
 
+    // Set the number of message which is discarded
+    void SetDiscardMsgNum(unsigned int num);
+
     // Get the maximum of executing message number
     unsigned int GetMaxExecNum() const;
+
+    // Get the maximum of queue cache memory size
+    int GetMaxQueueCacheSize() const;
 
     // Set the maximum of queue cache memory size
     void SetMaxQueueCacheSize(int value);

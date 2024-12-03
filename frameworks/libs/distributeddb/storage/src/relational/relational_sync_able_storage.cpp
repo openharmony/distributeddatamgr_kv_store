@@ -460,6 +460,10 @@ int RelationalSyncAbleStorage::GetSyncDataNext(std::vector<SingleVerKvEntry *> &
     ContinueToken &continueStmtToken, const DataSizeSpecInfo &dataSizeInfo) const
 {
     auto token = static_cast<SQLiteSingleVerRelationalContinueToken *>(continueStmtToken);
+    if (token == nullptr) {
+        LOGE("[SingleVerNStore] Allocate continue stmt token failed.");
+        return -E_OUT_OF_MEMORY;
+    }
     if (!token->CheckValid()) {
         return -E_INVALID_ARGS;
     }
@@ -1879,59 +1883,19 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         return errCode;
     }
     if (opType == OpType::INSERT) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.insData, CloudWaterType::INSERT);
+        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
+            handle, {data.tableName, CloudWaterType::INSERT}, data.insData, uploadRecorder_);
     } else if (opType == OpType::UPDATE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData, CloudWaterType::UPDATE);
+        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
+            handle, {data.tableName, CloudWaterType::UPDATE}, data.updData, uploadRecorder_);
     } else if (opType == OpType::DELETE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.delData, CloudWaterType::DELETE);
+        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
+            handle, {data.tableName, CloudWaterType::DELETE}, data.delData, uploadRecorder_);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
-        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.lockData, CloudWaterType::BUTT, true);
+        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
+            handle, {data.tableName, CloudWaterType::BUTT}, data.lockData, uploadRecorder_, true);
     }
     return errCode;
-}
-
-int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName, const CloudSyncBatch &updateData, const CloudWaterType &type, bool isLock)
-{
-    if (updateData.timestamp.size() != updateData.extend.size()) {
-        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
-            updateData.extend.size(), updateData.timestamp.size());
-        return -E_INVALID_ARGS;
-    }
-    for (size_t i = 0; i < updateData.extend.size(); ++i) {
-        const auto &record = updateData.extend[i];
-        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordAssetsMissing(record) ||
-            DBCommon::IsRecordVersionConflict(record) || isLock) {
-            if (DBCommon::IsRecordAssetsMissing(record)) {
-                LOGI("[RDBStorage][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
-            }
-            int errCode = handle->UpdateRecordStatus(tableName, CloudDbConstant::TO_LOCAL_CHANGE,
-                updateData.hashKey[i]);
-            if (errCode != E_OK) {
-                LOGE("[RDBStorage] Update record status failed in index %zu", i);
-                return errCode;
-            }
-            continue;
-        }
-        const auto &rowId = updateData.rowid[i];
-        std::string cloudGid;
-        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, record, cloudGid);
-        LogInfo logInfo;
-        logInfo.cloudGid = cloudGid;
-        logInfo.timestamp = updateData.timestamp[i];
-        logInfo.dataKey = rowId;
-        logInfo.hashKey = updateData.hashKey[i];
-        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(tableName, DBCommon::IsRecordIgnored(record),
-            logInfo, record, type);
-        int errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
-        if (errCode != E_OK) {
-            LOGE("[RDBStorage] Update record flag failed in index %zu", i);
-            return errCode;
-        }
-        handle->MarkFlagAsUploadFinished(tableName, updateData.hashKey[i], updateData.timestamp[i]);
-        uploadRecorder_.RecordUploadRecord(tableName, logInfo.hashKey, type, updateData.timestamp[i]);
-    }
-    return E_OK;
 }
 
 int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
