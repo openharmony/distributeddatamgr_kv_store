@@ -839,6 +839,66 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level0
 }
 
 /**
+ * @tc.name: Normal Sync 012
+ * @tc.desc: Test sync with max data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare env
+     */
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    uint32_t maxValueSize = 64 * 1024 * 1024;
+    Value maxValue;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(maxValue, maxValueSize); // 64M
+    PragmaData input = static_cast<PragmaData>(&maxValueSize);
+    status = g_kvDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input);
+    /**
+     * @tc.steps: step2. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    status = g_kvDelegatePtr->Put(key, maxValue);
+    Key key2 = {'2'};
+    Value value2 = {'2'};
+    status = g_kvDelegatePtr->Put(key2, value2);
+    ASSERT_TRUE(status == OK);
+
+    /**
+     * @tc.steps: step3. ori dev will be append test
+     * @tc.expected: step3. sync should return OK.
+     */
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &) {
+        std::string dev = oriDevId + "test";
+        LOGI("translate %s to %s", oriDevId.c_str(), dev.c_str());
+        return dev;
+    });
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result);
+    ASSERT_TRUE(status == OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, deviceB should get same data
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    VirtualDataItem item;
+    g_deviceB->GetData(key, item);
+    EXPECT_TRUE(item.value == maxValue);
+    VirtualDataItem item2;
+    g_deviceB->GetData(key2, item2);
+    EXPECT_TRUE(item2.value == value2);
+}
+
+/**
  * @tc.name: Limit Data Sync 001
  * @tc.desc: Test sync limit key and value data
  * @tc.type: FUNC
