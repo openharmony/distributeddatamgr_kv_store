@@ -43,4 +43,8 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(
     }
     return BSecurityManager::securityManager->GetDBPassword(name, path, needCreate);
 }
+
+void SecurityManager::DelDBPassword(const std::string &name, const std::string &path)
+{
+}
 } // namespace OHOS::DistributedKv

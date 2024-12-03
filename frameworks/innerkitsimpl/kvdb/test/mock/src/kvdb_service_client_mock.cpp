@@ -36,7 +36,6 @@ sptr<KVDBNotifierClient> KVDBServiceClient::GetServiceAgent(const AppId &appId)
 
 void KVDBServiceClient::ServiceDeath::OnRemoteDied()
 {
-    instance_ = nullptr;
 }
 
 Status KVDBServiceClient::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds)

@@ -373,6 +373,14 @@ ohos_unittest("SingleStorePerfPhoneTest") {
 ohos_unittest("StoreFactoryMockTest") {
   module_out_path = module_output_path
   sources = [
+    "../../distributeddatafwk/src/blob.cpp",
+    "../../distributeddatafwk/src/ikvstore_observer.cpp",
+    "../../distributeddatafwk/src/kvdb_notifier_client.cpp",
+    "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
+    "../../distributeddatafwk/src/kvstore_observer_client.cpp",
+    "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
+    "../../distributeddatafwk/src/sync_observer.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
     "../src/backup_manager.cpp",
     "../src/convertor.cpp",
     "../src/dev_manager.cpp",
@@ -392,10 +400,16 @@ ohos_unittest("StoreFactoryMockTest") {
     "store_factory_mock_test.cpp",
   ]
 
+  if (qemu_disable) {
+    sources += [ "../src/auto_sync_timer.cpp" ]
+  } else {
+    sources += [ "../src/auto_sync_timer_mock.cpp" ]
+  }
   configs = [ ":module_private_config" ]
   deps = [
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
     "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
   ]
 
   external_deps = [
@@ -411,6 +425,10 @@ ohos_unittest("StoreFactoryMockTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
+
+  if (dms_service_enable && qemu_disable) {
+    external_deps += [ "dmsfwk:distributed_sdk" ]
+  }
 
   cflags = [ "-Dprivate=public" ]
 
