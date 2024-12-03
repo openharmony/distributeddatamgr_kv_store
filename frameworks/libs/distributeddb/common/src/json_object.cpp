@@ -46,7 +46,11 @@ uint32_t JsonObject::SetMaxNestDepth(uint32_t nestDepth)
 
 uint32_t JsonObject::CalculateNestDepth(const std::string &inString, int &errCode)
 {
-    auto begin = reinterpret_cast<const uint8_t *>(inString.c_str());
+    std::vector<uint8_t> bytes;
+    for (auto it = inString.begin(); it != inString.end(); ++it) {
+        bytes.push_back(static_cast<uint8_t>(*it));
+    }
+    const uint8_t *begin = bytes.data();
     auto end = begin + inString.size();
     return CalculateNestDepth(begin, end, errCode);
 }

@@ -703,14 +703,31 @@ int SyncEngine::GetQueueCacheSize() const
     return queueCacheSize_;
 }
 
+void SyncEngine::SetQueueCacheSize(int size)
+{
+    std::lock_guard<std::mutex> lock(queueLock_);
+    queueCacheSize_ = size;
+}
+
 unsigned int SyncEngine::GetDiscardMsgNum() const
 {
     return discardMsgNum_;
 }
 
+void SyncEngine::SetDiscardMsgNum(unsigned int num)
+{
+    std::lock_guard<std::mutex> lock(queueLock_);
+    discardMsgNum_ = num;
+}
+
 unsigned int SyncEngine::GetMaxExecNum() const
 {
     return MAX_EXEC_NUM;
+}
+
+int SyncEngine::GetMaxQueueCacheSize() const
+{
+    return maxQueueCacheSize_;
 }
 
 void SyncEngine::SetMaxQueueCacheSize(int value)

@@ -40,7 +40,9 @@ ValueObject::ValueObject(double val)
 ValueObject::ValueObject(const char *val)
 {
     valueType = ValueType::VALUE_STRING;
-    stringValue = val;
+    if (val != nullptr) {
+        stringValue = val;
+    }
 }
 
 ValueObject::ValueType ValueObject::GetValueType() const

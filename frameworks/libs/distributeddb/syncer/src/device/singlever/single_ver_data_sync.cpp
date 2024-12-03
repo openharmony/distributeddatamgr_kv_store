@@ -40,9 +40,6 @@ SingleVerDataSync::SingleVerDataSync()
 
 SingleVerDataSync::~SingleVerDataSync()
 {
-    storage_ = nullptr;
-    communicateHandle_ = nullptr;
-    metadata_ = nullptr;
 }
 
 int SingleVerDataSync::Initialize(ISyncInterface *inStorage, ICommunicator *inCommunicateHandle,
@@ -984,14 +981,14 @@ int SingleVerDataSync::DataRequestRecvPre(SingleVerSyncTaskContext *context, con
     return errCode;
 }
 
-int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const Message *message,
+int SingleVerDataSync::DataRequestRecvInner(SingleVerSyncTaskContext *context, const Message *message,
     WaterMark &pullEndWatermark)
 {
-    int errCode = DataRequestRecvPre(context, message);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
+    if (packet == nullptr) {
+        LOGE("[DataSync][DataRequestRecv] get packet object failed");
+        return -E_INVALID_ARGS;
+    }
     const std::vector<SendDataItem> &data = packet->GetData();
     SyncType curType = SyncOperation::GetSyncType(packet->GetMode());
     LOGI("[DataSync][DataRequestRecv] curType=%d, remote ver=%" PRIu32 ", size=%zu, errCode=%d, queryId=%s,"
@@ -1000,7 +997,7 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
     context->SetReceiveWaterMarkErr(false);
     UpdateWaterMark isUpdateWaterMark;
     SyncTimeRange dataTime = SingleVerDataSyncUtils::GetRecvDataTimeRange(curType, data, isUpdateWaterMark);
-    errCode = RemoveDeviceDataHandle(context, message, dataTime.endTime);
+    int errCode = RemoveDeviceDataHandle(context, message, dataTime.endTime);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1038,6 +1035,16 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
         return -E_RECV_FINISHED;
     }
     return errCode;
+}
+
+int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const Message *message,
+    WaterMark &pullEndWatermark)
+{
+    int errCode = DataRequestRecvPre(context, message);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return DataRequestRecvInner(context, message, pullEndWatermark);
 }
 
 int SingleVerDataSync::SendDataPacket(SyncType syncType, DataRequestPacket *packet,

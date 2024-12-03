@@ -237,6 +237,9 @@ private:
 
     bool IsSingleRelationalVer() const;
 
+    bool SecLabelCheckInner(int32_t remoteSecLabel, int errCode, SecurityOption option,
+        const AbilitySyncRequestPacket *packet) const;
+
     int SendAck(const ISyncTaskContext *context, const Message *message, int ackCode, bool isAckNotify,
         AbilitySyncAckPacket &ackPacket);
 

@@ -1544,4 +1544,48 @@ int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std:
     querySyncObject = objectList[0];
     return E_OK;
 }
+
+int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const CloudSyncParam &param, const CloudSyncBatch &updateData, CloudUploadRecorder &recorder, bool isLock)
+{
+    if (updateData.timestamp.size() != updateData.extend.size()) {
+        LOGE("the num of extend:%zu and timestamp:%zu is not equal.",
+            updateData.extend.size(), updateData.timestamp.size());
+        return -E_INVALID_ARGS;
+    }
+    for (size_t i = 0; i < updateData.extend.size(); ++i) {
+        const auto &record = updateData.extend[i];
+        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordAssetsMissing(record) ||
+            DBCommon::IsRecordVersionConflict(record) || isLock) {
+            if (DBCommon::IsRecordAssetsMissing(record)) {
+                LOGI("[CloudStorageUtils][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
+            }
+            int errCode = handle->UpdateRecordStatus(param.first, CloudDbConstant::TO_LOCAL_CHANGE,
+                updateData.hashKey[i]);
+            if (errCode != E_OK) {
+                LOGE("[CloudStorageUtils] Update record status failed in index %zu", i);
+                return errCode;
+            }
+            continue;
+        }
+        const auto &rowId = updateData.rowid[i];
+        std::string cloudGid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, record, cloudGid);
+        LogInfo logInfo;
+        logInfo.cloudGid = cloudGid;
+        logInfo.timestamp = updateData.timestamp[i];
+        logInfo.dataKey = rowId;
+        logInfo.hashKey = updateData.hashKey[i];
+        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
+            param.first, DBCommon::IsRecordIgnored(record), logInfo, record, param.second);
+        int errCode = handle->UpdateRecordFlag(param.first, sql, logInfo);
+        if (errCode != E_OK) {
+            LOGE("[CloudStorageUtils] Update record flag failed in index %zu", i);
+            return errCode;
+        }
+        handle->MarkFlagAsUploadFinished(param.first, updateData.hashKey[i], updateData.timestamp[i]);
+        recorder.RecordUploadRecord(param.first, logInfo.hashKey, param.second, updateData.timestamp[i]);
+    }
+    return E_OK;
+}
 }

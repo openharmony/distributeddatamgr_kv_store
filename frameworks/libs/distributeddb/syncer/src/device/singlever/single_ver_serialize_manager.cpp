@@ -31,7 +31,7 @@ std::mutex SingleVerSerializeManager::handlesLock_;
 std::map<uint32_t, TransformFunc> SingleVerSerializeManager::messageHandles_;
 int SingleVerSerializeManager::Serialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
-    if ((buffer == nullptr) || !(IsPacketValid(inMsg))) {
+    if ((buffer == nullptr) || length == 0u || !(IsPacketValid(inMsg))) {
         return -E_MESSAGE_ID_ERROR;
     }
     SerializeFunc serializeFunc = nullptr;
@@ -78,7 +78,7 @@ int SingleVerSerializeManager::ControlSerialization(uint8_t *buffer, uint32_t le
 
 int SingleVerSerializeManager::DeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg)
 {
-    if ((buffer == nullptr) || !(IsPacketValid(inMsg))) {
+    if ((buffer == nullptr) || length == 0u || !(IsPacketValid(inMsg))) {
         return -E_MESSAGE_ID_ERROR;
     }
     DeserializeFunc deserializeFunc = nullptr;

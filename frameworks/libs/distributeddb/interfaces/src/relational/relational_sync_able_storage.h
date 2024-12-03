@@ -249,9 +249,6 @@ protected:
     int FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle, OpType opType,
         const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid);
 
-    int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
-        const CloudSyncBatch &updateData, const CloudWaterType &type, bool isLock = false);
-
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
 

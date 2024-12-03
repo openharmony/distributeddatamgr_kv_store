@@ -303,6 +303,9 @@ int DataValue::GetText(std::string &outValue) const
     if (type_ != StorageType::STORAGE_TYPE_TEXT) {
         return -E_NOT_SUPPORT;
     }
+    if (value_.blobPtr == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
     const uint8_t *data = value_.blobPtr->GetData();
     uint32_t len = value_.blobPtr->GetSize();
     if (len == 0) {

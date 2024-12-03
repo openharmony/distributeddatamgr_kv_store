@@ -522,6 +522,9 @@ int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloa
 bool CloudSyncer::IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data)
 {
     for (const auto &assetField : assetFields) {
+        if (data.find(assetField.colName) == data.end()) {
+            return false;
+        }
         if (assetField.type == TYPE_INDEX<Assets> && data[assetField.colName].index() == TYPE_INDEX<Assets>) {
             if (CloudStorageUtils::IsAssetsContainDuplicateAsset(std::get<Assets>(data[assetField.colName]))) {
                 return true;

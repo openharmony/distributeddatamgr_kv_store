@@ -265,6 +265,9 @@ int64_t Metadata::StringToLong(const std::vector<uint8_t> &value) const
 {
     std::string valueString(value.begin(), value.end());
     int64_t longData = std::strtoll(valueString.c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
+    if (errno == ERANGE) {
+        longData = 0;
+    }
     LOGD("Metadata::StringToLong longData = %" PRId64, longData);
     return longData;
 }

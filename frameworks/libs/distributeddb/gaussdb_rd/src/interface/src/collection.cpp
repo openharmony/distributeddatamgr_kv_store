@@ -40,6 +40,9 @@ int Collection::InsertUntilSuccess(Key &key, const std::string &id, Value &valSe
 {
     DocKey docKey;
     key.assign(id.begin(), id.end());
+    if (executor_ == nullptr) {
+        return -E_INNER_ERROR;
+    }
     int errCode = executor_->InsertData(name_, key, valSet);
     while (errCode == -E_DATA_CONFLICT) { // if id alreay exist, create new one.
         DocumentKey::GetOidDocKey(docKey);

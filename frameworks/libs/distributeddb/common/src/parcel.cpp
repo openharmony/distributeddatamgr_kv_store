@@ -168,6 +168,9 @@ int Parcel::WriteString(const std::string &inVal)
         isError_ = true;
         return -E_PARSE_FAIL;
     }
+    if (bufPtr_ == nullptr) {
+        return -E_PARSE_FAIL;
+    }
     errno_t errCode = memcpy_s(bufPtr_, totalLen_ - parcelLen_, &len, sizeof(uint32_t));
     if (errCode != EOK) {
         LOGE("[WriteString] bufPtr:%d, totalLen:%" PRIu64 ", parcelLen:%" PRIu64, bufPtr_ != nullptr, totalLen_,

@@ -37,14 +37,23 @@ SyncAbleKvDB::SyncAbleKvDB()
 
 SyncAbleKvDB::~SyncAbleKvDB()
 {
-    if (notifyChain_ != nullptr) {
-        (void)notifyChain_->UnRegisterEventType(REMOTE_PUSH_FINISHED);
-        KillAndDecObjRef(notifyChain_);
-        notifyChain_ = nullptr;
+    {
+        std::unique_lock<std::shared_mutex> lock(notifyChainLock_);
+        if (notifyChain_ != nullptr) {
+            (void)notifyChain_->UnRegisterEventType(REMOTE_PUSH_FINISHED);
+            KillAndDecObjRef(notifyChain_);
+            notifyChain_ = nullptr;
+        }
     }
-    if (userChangeListener_ != nullptr) {
-        userChangeListener_->Drop(true);
+    NotificationChain::Listener *userChangeListener = nullptr;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        userChangeListener = userChangeListener_;
         userChangeListener_ = nullptr;
+    }
+    if (userChangeListener != nullptr) {
+        userChangeListener->Drop(true);
+        userChangeListener = nullptr;
     }
     std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
     KillAndDecObjRef(cloudSyncer_);
