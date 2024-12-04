@@ -495,6 +495,29 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync004, TestSize.Level0)
 }
 
 /**
+ * @tc.name: UploadAbnormalSync005
+ * @tc.desc: Test sync return CLOUD_DISABLED
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Put 1 record to cloud
+     * @tc.expected: step1 OK
+     */
+    EXPECT_EQ(kvDelegatePtrS1_->Put(KEY_1, VALUE_1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps:step2. Set error code CLOUD_DISABLED when query cloud data, and sync
+     * @tc.expected: step2 return CLOUD_DISABLED
+     */
+    virtualCloudDb_->SetActionStatus(CLOUD_DISABLED);
+    BlockSync(kvDelegatePtrS2_, CLOUD_DISABLED, g_CloudSyncoption);
+}
+
+/**
  * @tc.name: QueryParsingProcessTest001
  * @tc.desc: Test Query parsing process.
  * @tc.type: FUNC
