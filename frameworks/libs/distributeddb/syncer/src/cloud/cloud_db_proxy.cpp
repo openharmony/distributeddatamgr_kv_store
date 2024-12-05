@@ -480,6 +480,8 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_VERSION_CONFLICT;
         case CLOUD_RECORD_EXIST_CONFLICT:
             return -E_CLOUD_RECORD_EXIST_CONFLICT;
+        case CLOUD_DISABLED:
+            return -E_CLOUD_DISABLED;
         default:
             return -E_CLOUD_ERROR;
     }

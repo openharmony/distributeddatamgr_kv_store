@@ -185,6 +185,7 @@ constexpr const int E_FEEDBACK_COMMUNICATOR_NOT_FOUND = (E_BASE + 201);
 constexpr const int E_DISTRIBUTED_SCHEMA_NOT_FOUND = (E_BASE + 202);
 constexpr const int E_DISTRIBUTED_SCHEMA_CHANGED = (E_BASE + 203); // Schema has change when do sync
 constexpr const int E_TABLE_REFERENCE_CHANGED = (E_BASE + 204); // table reference is changed
+constexpr const int E_CLOUD_DISABLED = (E_BASE + 205); // The cloud switch has been turned off
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H
