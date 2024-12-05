@@ -1574,9 +1574,12 @@ void DropCollectionFuzz(const uint8_t *data, size_t size)
 
 void DbFlushFuzz(const uint8_t *data, size_t size)
 {
+    if (data == nullptr) {
+        return;
+    }
     GRD_DB *db = nullptr;
     GRD_DB *db2 = nullptr;
-    const uint32_t flags = *reinterpret_cast<const uint32_t *>(data);
+    const uint32_t flags = *data;
     int ret = GRD_DBOpenInner(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
     if (ret == GRD_OK) {
         GRD_FlushInner(db, flags);

@@ -115,12 +115,12 @@ ohos_fuzztest("RelationalstoredelegateFuzzTest") {
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
     "//third_party/sqlite:sqlite",
-    "//third_party/zlib:shared_libz",
   ]
 
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
+    "zlib:shared_libz",
   ]
 }
 
