@@ -469,7 +469,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             return errCode;
         }
         if (isLogicDelete_) {
-            errCode = SetDataOnUserTablWithLogicDelete(tableName, logTableName);
+            errCode = SetDataOnUserTableWithLogicDelete(tableName, logTableName);
         } else {
             errCode = CleanCloudDataAndLogOnUserTable(tableName, logTableName, localSchema);
         }

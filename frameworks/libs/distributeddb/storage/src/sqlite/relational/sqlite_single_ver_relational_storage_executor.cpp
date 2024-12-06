@@ -1905,17 +1905,19 @@ int SQLiteSingleVerRelationalStorageExecutor::ChangeCloudDataFlagOnLogTable(cons
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTablWithLogicDelete(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(const std::string &tableName,
     const std::string &logTableName)
 {
     UpdateCursorContext context;
     context.cursor = GetCursor(tableName);
     LOGI("removeData start and cursor is, %d.", context.cursor);
     int errCode = CreateFuncUpdateCursor(context, &UpdateCursor);
+    // data from cloud and not modified by local or consistency with cloud to flag logout
     std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_LOGIC_DELETE +
                       ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
                       SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
-                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD_CONSISTENCY + ");";
+                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND (" + FLAG_IS_CLOUD_CONSISTENCY + " OR " +
+                      FLAG_IS_CLOUD + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to change cloud data flag on usertable, %d.", errCode);

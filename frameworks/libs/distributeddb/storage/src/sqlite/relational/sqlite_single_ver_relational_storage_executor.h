@@ -221,7 +221,7 @@ private:
 
     int ChangeCloudDataFlagOnLogTable(const std::string &logTableName);
 
-    int SetDataOnUserTablWithLogicDelete(const std::string &tableName, const std::string &logTableName);
+    int SetDataOnUserTableWithLogicDelete(const std::string &tableName, const std::string &logTableName);
 
     static void UpdateCursor(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
