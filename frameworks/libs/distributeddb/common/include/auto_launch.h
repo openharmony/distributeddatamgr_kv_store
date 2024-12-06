@@ -118,6 +118,9 @@ protected:
     int EnableKvStoreAutoLaunchParmCheck(AutoLaunchItem &autoLaunchItem, const std::string &normalIdentifier,
         const std::string &dualTupleIdentifier, bool isDualTupleMode);
 
+    void GetKVConnectionInEnableInner(const AutoLaunchItem &autoLaunchItem, const std::string &identifier,
+        const std::string &userId);
+
     int GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const std::string &identifier);
 
     // before ReleaseDatabaseConnection, if errCode != E_OK, we not return, we try close more

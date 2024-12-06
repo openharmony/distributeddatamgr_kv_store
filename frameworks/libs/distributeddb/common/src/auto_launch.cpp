@@ -193,11 +193,24 @@ int AutoLaunch::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLa
     return errCode;
 }
 
+void AutoLaunch::GetKVConnectionInEnableInner(const AutoLaunchItem &autoLaunchItem, const std::string &identifier,
+    const std::string &userId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    autoLaunchItemMap_[identifier][userId].state = AutoLaunchItemState::IDLE;
+    autoLaunchItemMap_[identifier][userId].conn = autoLaunchItem.conn;
+    autoLaunchItemMap_[identifier][userId].observerHandle = autoLaunchItem.observerHandle;
+}
+
 int AutoLaunch::GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const std::string &identifier)
 {
     LOGI("[AutoLaunch] GetKVConnectionInEnable");
     int errCode;
     std::shared_ptr<KvDBProperties> properties = std::static_pointer_cast<KvDBProperties>(autoLaunchItem.propertiesPtr);
+    if (properties == nullptr) {
+        LOGE("[AutoLaunch] GetKVConnectionInEnable properties is nullptr");
+        return -E_INTERNAL_ERROR;
+    }
     std::string userId = properties->GetStringProp(KvDBProperties::USER_ID, "");
     autoLaunchItem.conn = KvDBManager::GetDatabaseConnection(*properties, errCode, false);
     if (errCode == -E_ALREADY_OPENED) {
@@ -230,10 +243,7 @@ int AutoLaunch::GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const st
     }
     errCode = RegisterObserverAndLifeCycleCallback(autoLaunchItem, identifier, false);
     if (errCode == E_OK) {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        autoLaunchItemMap_[identifier][userId].state = AutoLaunchItemState::IDLE;
-        autoLaunchItemMap_[identifier][userId].conn = autoLaunchItem.conn;
-        autoLaunchItemMap_[identifier][userId].observerHandle = autoLaunchItem.observerHandle;
+        GetKVConnectionInEnableInner(autoLaunchItem, identifier, userId);
     } else {
         LOGE("[AutoLaunch] GetKVConnectionInEnable RegisterObserverAndLifeCycleCallback err, do CloseConnection");
         TryCloseConnection(autoLaunchItem); // do nothing if failed
