@@ -41,7 +41,7 @@ int VirtualCommunicator::RegOnSendableCallback(const std::function<void(void)> &
     return E_OK;
 }
 
-void VirtualCommunicator::Activate()
+void VirtualCommunicator::Activate(const std::string &userId)
 {
 }
 

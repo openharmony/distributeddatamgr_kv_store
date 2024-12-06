@@ -221,11 +221,13 @@ void AdapterStub::CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen
         NetToHost(info->length);
         NetToHost(info->version);
         headLength = info->length;
-        std::string tmpUserId(BUFF_LEN, 0);
+        userId = "";
         for (uint8_t i = 0; i < BUFF_LEN; i++) {
-            tmpUserId[i] = info->userId[i];
+            if (info->userId[i] == 0) {
+                return;
+            }
+            userId.push_back(info->userId[i]);
         }
-        userId = tmpUserId;
     } else {
         headLength = 0;
     }

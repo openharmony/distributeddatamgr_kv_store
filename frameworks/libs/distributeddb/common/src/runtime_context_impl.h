@@ -71,6 +71,8 @@ public:
 
     int SetPermissionCheckCallback(const PermissionCheckCallbackV3 &callback) override;
 
+    int SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback) override;
+
     int RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const override;
 
     int EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
@@ -104,8 +106,9 @@ public:
 
     void SetStoreStatusNotifier(const StoreStatusNotifier &notifier) override;
 
-    void NotifyDatabaseStatusChange(const std::string &userId, const std::string &appId, const std::string &storeId,
-        const std::string &deviceId, bool onlineStatus) override;
+    void SetStoreStatusNotifier(const StoreStatusNotifierV2 &notifier) override;
+
+    void NotifyDatabaseStatusChange(const StoreStatusNotifierParam &param, bool onlineStatus) override;
 
     int SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback) override;
 
@@ -236,6 +239,7 @@ private:
     PermissionCheckCallback permissionCheckCallback_;
     PermissionCheckCallbackV2 permissionCheckCallbackV2_;
     PermissionCheckCallbackV3 permissionCheckCallbackV3_;
+    PermissionCheckCallbackV4 permissionCheckCallbackV4_;
 
     AutoLaunch autoLaunch_;
 
@@ -247,6 +251,7 @@ private:
 
     mutable std::shared_mutex databaseStatusCallbackMutex_ {};
     StoreStatusNotifier databaseStatusNotifyCallback_;
+    StoreStatusNotifierV2 databaseStatusNotifyCallbackV2_;
 
     mutable std::shared_mutex syncActivationCheckCallbackMutex_ {};
     SyncActivationCheckCallback syncActivationCheckCallback_;

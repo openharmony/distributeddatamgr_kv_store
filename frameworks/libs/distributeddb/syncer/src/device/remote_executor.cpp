@@ -225,9 +225,10 @@ int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
     std::string appId = storage->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
     std::string userId = storage->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
     std::string storeId = storage->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
+    std::string subUseId = storage->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
     int32_t instanceId = syncInterface_->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
     int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(
-        { userId, appId, storeId, device, instanceId }, CHECK_FLAG_SEND);
+        { userId, appId, storeId, device, subUseId, instanceId }, CHECK_FLAG_SEND);
     if (errCode != E_OK) {
         LOGE("[RemoteExecutor][CheckPermissions] check permission errCode = %d.", errCode);
         storage->DecRefCount();

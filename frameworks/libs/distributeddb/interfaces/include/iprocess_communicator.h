@@ -34,6 +34,7 @@ struct ExtendInfo {
     std::string storeId;
     std::string userId;
     std::string dstTarget;
+    std::string subUserId;
 };
 
 class ExtendHeaderHandle {

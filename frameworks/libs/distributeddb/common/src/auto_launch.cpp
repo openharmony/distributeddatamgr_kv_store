@@ -1047,7 +1047,7 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
     propertiesPtr->SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
     propertiesPtr->SetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
     propertiesPtr->SetBoolProp(KvDBProperties::SHARED_MODE, false);
-    DbIdParam dbIdParam = { param.appId, param.userId, param.storeId };
+    DbIdParam dbIdParam = { param.appId, param.userId, param.storeId, param.subUser };
     DBCommon::SetDatabaseIds(*propertiesPtr, dbIdParam);
     return E_OK;
 }
@@ -1055,12 +1055,13 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
 int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     const std::shared_ptr<RelationalDBProperties> &propertiesPtr)
 {
-    if (!ParamCheckUtils::CheckStoreParameter({param.storeId, param.appId, param.userId}, false, "", true)) {
+    if (!ParamCheckUtils::CheckStoreParameter({param.userId, param.appId, param.storeId},
+        false, param.subUser, true)) {
         LOGE("[AutoLaunch] CheckStoreParameter is invalid.");
         return -E_INVALID_ARGS;
     }
     propertiesPtr->SetStringProp(RelationalDBProperties::DATA_DIR, param.path);
-    propertiesPtr->SetIdentifier(param.userId, param.appId, param.storeId);
+    propertiesPtr->SetIdentifier(param.userId, param.appId, param.storeId, param.subUser);
     propertiesPtr->SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
     if (param.option.isEncryptedDb) {
         if (!ParamCheckUtils::CheckEncryptedParameter(param.option.cipher, param.option.passwd) ||

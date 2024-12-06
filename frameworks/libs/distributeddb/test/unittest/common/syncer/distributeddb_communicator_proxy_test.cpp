@@ -161,6 +161,51 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId001, TestSize.Le
 }
 
 /**
+ * @tc.name: Interface set equal 002
+ * @tc.desc: Test different user set same equal identifier
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Get DB of user1
+     * @tc.expected: step1. OK.
+     */
+    std::string userId1 = "user1";
+    KvStoreDelegateManager mgr1(APP_ID, userId1);
+    KvStoreNbDelegate *delegate1 = nullptr;
+    auto delegate1Callback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
+        placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(delegate1));
+    KvStoreNbDelegate::Option option;
+    mgr1.SetKvStoreConfig(g_config);
+    mgr1.GetKvStore(STORE_ID, option, delegate1Callback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(delegate1 != nullptr);
+    /**
+     * @tc.steps: step2. Get identifier with syncDualTupleMode
+     * @tc.expected: step2. OK.
+     */
+    std::string identifier = g_mgr.GetKvStoreIdentifier(USER_ID, APP_ID, STORE_ID, true);
+    std::string identifier1 = mgr1.GetKvStoreIdentifier(userId1, APP_ID, STORE_ID, true);
+    EXPECT_EQ(identifier, identifier1);
+    /**
+     * @tc.steps: step3. Set identifier
+     * @tc.expected: step3. OK.
+     */
+    DBStatus status = g_kvDelegatePtr->SetEqualIdentifier(identifier, { DEVICE_B, DEVICE_D, DEVICE_E });
+    EXPECT_EQ(status, DBStatus::OK);
+    DBStatus status1 = delegate1->SetEqualIdentifier(identifier1, { DEVICE_B, DEVICE_D, DEVICE_E });
+    EXPECT_EQ(status1, DBStatus::OK);
+
+    ASSERT_EQ(mgr1.CloseKvStore(delegate1), OK);
+    delegate1 = nullptr;
+    status = mgr1.DeleteKvStore(STORE_ID);
+    ASSERT_TRUE(status == OK);
+}
+
+/**
  * @tc.name: Register callback 001
  * @tc.desc: Test register callback from CommunicatorProxy.
  * @tc.type: FUNC
@@ -212,8 +257,8 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, Activate001, TestSize.Level1)
      * @tc.steps: step1. Call Activate from CommProxy.
      * @tc.expected: step1. mainComm and extComm's Activate should be called once.
      */
-    EXPECT_CALL(extComm_, Activate()).Times(1);
-    EXPECT_CALL(mainComm_, Activate()).Times(1);
+    EXPECT_CALL(extComm_, Activate("")).Times(1);
+    EXPECT_CALL(mainComm_, Activate("")).Times(1);
     commProxy_->Activate();
 }
 

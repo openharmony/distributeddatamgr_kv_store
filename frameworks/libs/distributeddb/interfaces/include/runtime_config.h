@@ -45,6 +45,8 @@ public:
 
     DB_API static DBStatus SetPermissionCheckCallback(const PermissionCheckCallbackV3 &callback);
 
+    DB_API static DBStatus SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback);
+
     DB_API static DBStatus SetProcessSystemAPIAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter);
 
     DB_API static void Dump(int fd, const std::vector<std::u16string> &args);
@@ -70,8 +72,14 @@ public:
     DB_API static std::string GetStoreIdentifier(const std::string &userId, const std::string &appId,
         const std::string &storeId, bool syncDualTupleMode = false);
 
+    DB_API static std::string GetStoreIdentifier(const std::string &userId, const std::string &subUserId,
+        const std::string &appId, const std::string &storeId, bool syncDualTupleMode = false);
+
     DB_API static void ReleaseAutoLaunch(const std::string &userId, const std::string &appId,
         const std::string &storeId, DBType type);
+
+    DB_API static void ReleaseAutoLaunch(const std::string &userId, const std::string &subUserId,
+        const std::string &appId, const std::string &storeId, DBType type);
 
     DB_API static void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool);
 

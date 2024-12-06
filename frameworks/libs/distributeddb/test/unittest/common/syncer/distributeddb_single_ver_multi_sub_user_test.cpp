@@ -429,6 +429,72 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, KvDelegateInvalidParamTest001, 
 }
 
 /**
+ * @tc.name: SubUserPermissionCheck
+ * @tc.desc: permission check subuser
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. set permission check callback
+     * @tc.expected: step1. set OK.
+     */
+    std::string subUser1 = std::string(128, 'a');
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, subUser1, INSTANCE_ID_1);
+    auto permissionCheckCallback = [] (const PermissionCheckParamV4 &param, uint8_t flag) -> bool {
+        if (param.deviceId == g_deviceB->GetDeviceId() && (flag && CHECK_FLAG_SPONSOR)) {
+            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+            return false;
+        } else {
+            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+            return true;
+        }
+    };
+    EXPECT_EQ(mgr1.SetPermissionCheckCallback(permissionCheckCallback), OK);
+
+    /**
+     * @tc.steps: step2. deviceB put {1,1}
+     * @tc.expected: step2. put success
+     */
+    KvStoreNbDelegate *delegatePtr1 = nullptr;
+    EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
+    ASSERT_NE(delegatePtr1, nullptr);
+
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    Key key = {'1'};
+    Value value = {'1'};
+    g_deviceB->PutData(key, value, 0, 0);
+    ASSERT_TRUE(status == OK);
+
+    /**
+     * @tc.steps: step3. deviceB push data
+     * @tc.expected: step3. return PERMISSION_CHECK_FORBID_SYNC.
+     */
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(delegatePtr1, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_TRUE(status == OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        if (g_deviceB->GetDeviceId() == pair.first) {
+            EXPECT_TRUE(pair.second == PERMISSION_CHECK_FORBID_SYNC);
+        } else {
+            EXPECT_TRUE(pair.second == OK);
+        }
+    }
+
+    PermissionCheckCallbackV4 nullCallback = nullptr;
+    EXPECT_EQ(mgr1.SetPermissionCheckCallback(nullCallback), OK);
+}
+
+/**
  * @tc.name: RDBDelegateInvalidParamTest001
  * @tc.desc: Test rdb delegate open with invalid subUser.
  * @tc.type: FUNC

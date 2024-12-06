@@ -119,14 +119,24 @@ struct PermissionCheckParam {
     std::string appId;
     std::string storeId;
     std::string deviceId;
+    std::string subUserId;
     int32_t instanceId = 0;
     std::map<std::string, std::string> extraConditions;
+};
+
+struct PermissionCheckParamV4 {
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    std::string deviceId;
+    std::string subUserId;
 };
 
 struct ActivationCheckParam {
     std::string userId;
     std::string appId;
     std::string storeId;
+    std::string subUserId;
     int32_t instanceId = 0;
 };
 
@@ -134,7 +144,16 @@ struct PermissionConditionParam {
     std::string userId;
     std::string appId;
     std::string storeId;
+    std::string subUserId;
     int32_t instanceId = 0;
+};
+
+struct StoreStatusNotifierParam {
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    std::string subUserId;
+    std::string deviceId;
 };
 
 using PermissionCheckCallback = std::function<bool (const std::string &userId, const std::string &appId,
@@ -145,8 +164,13 @@ using PermissionCheckCallbackV2 = std::function<bool (const std::string &userId,
 
 using PermissionCheckCallbackV3 = std::function<bool (const PermissionCheckParam &param, uint8_t flag)>;
 
+using PermissionCheckCallbackV4 = std::function<bool (const PermissionCheckParamV4 &param, uint8_t flag)>;
+
 using StoreStatusNotifier = std::function<void (std::string userId, std::string appId, std::string storeId,
     const std::string deviceId, bool onlineStatus)>; // status, 1: online, 0: offline
+
+using StoreStatusNotifierV2 = std::function<void (StoreStatusNotifierParam param,
+    bool onlineStatus)>; // status, 1: online, 0: offline
 
 using SyncActivationCheckCallback = std::function<bool (const std::string &userId, const std::string &appId,
     const std::string &storeId)>;

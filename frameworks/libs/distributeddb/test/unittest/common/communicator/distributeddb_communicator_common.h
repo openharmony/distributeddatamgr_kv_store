@@ -118,6 +118,8 @@ private:
 const std::string DEVICE_NAME_A = "DeviceA";
 const std::string DEVICE_NAME_B = "DeviceB";
 const std::string DEVICE_NAME_C = "DeviceC";
+const std::string USER_ID_1 = "user_1";
+const std::string USER_ID_2 = "user_2";
 constexpr uint64_t LABEL_A = 1234;
 constexpr uint64_t LABEL_B = 2345;
 constexpr uint64_t LABEL_C = 3456;
@@ -143,10 +145,10 @@ DistributedDB::Message *BuildRegedGiantMessage(uint32_t length);
 DistributedDB::Message *BuildRegedOverSizeMessage();
 DistributedDB::Message *BuildUnRegedTinyMessage();
 
-#define ASSERT_NOT_NULL_AND_ACTIVATE(communicator) \
+#define ASSERT_NOT_NULL_AND_ACTIVATE(communicator, userId) \
 { \
     ASSERT_NE(communicator, nullptr); \
-    (communicator)->Activate(); \
+    (communicator)->Activate(userId); \
 }
 
 #endif // DISTRIBUTEDDB_COMMUNICATOR_COMMON_H

@@ -78,10 +78,10 @@ int CommunicatorProxy::RegOnSendableCallback(const std::function<void(void)> &on
     return E_OK;
 }
 
-void CommunicatorProxy::Activate()
+void CommunicatorProxy::Activate(const std::string &userId)
 {
     if (mainComm_ != nullptr) {
-        mainComm_->Activate();
+        mainComm_->Activate(userId);
     }
 
     // use temp map to avoid active in lock
@@ -95,7 +95,7 @@ void CommunicatorProxy::Activate()
     }
 
     for (const auto &iter : tempMap) {
-        tempMap[iter.first]->Activate();
+        tempMap[iter.first]->Activate(userId);
         RefObject::DecObjRef(tempMap[iter.first]);
     }
 }

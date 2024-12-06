@@ -906,3 +906,73 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser014, TestSize.Level1)
     EXPECT_EQ(callCount, 0u);
     CloseStore();
 }
+
+/**
+ * @tc.name: MultiUser015
+ * @tc.desc: Test auto launch with sub user.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create sub user KvStoreDelegateManager
+     * @tc.expected: step1. OK.
+     */
+    std::string subUser = "001";
+    KvStoreDelegateManager subUserMgr(APP_ID, USER_ID_1, subUser);
+    std::string subUserPath = g_testDir + "/" + subUser;
+    ASSERT_TRUE(OS::MakeDBDirectory(subUserPath) == 0);
+    KvStoreConfig config;
+    config.dataDir = subUserPath;
+    subUserMgr.SetKvStoreConfig(config);
+    KvStoreNbDelegate::Option option;
+    /**
+     * @tc.steps: step2. Enable auto launch of sub user
+     * @tc.expected: step2. success.
+     */
+    AutoLaunchNotifier notifier = nullptr;
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    EXPECT_TRUE(observer != nullptr);
+    AutoLaunchOption autoLaunchOption;
+    CipherPassword passwd;
+    autoLaunchOption = {true, false, CipherType::DEFAULT, passwd, "", false, subUserPath, observer,
+                        0, nullptr};
+    autoLaunchOption.notifier = nullptr;
+    autoLaunchOption.observer = observer;
+    autoLaunchOption.syncDualTupleMode = false;
+    EXPECT_TRUE(subUserMgr.EnableKvStoreAutoLaunch(
+            {USER_ID_1, APP_ID, STORE_ID, autoLaunchOption, notifier, "", subUser}) == OK);
+    DistributedDBToolsUnitTest::Dump();
+    /**
+     * @tc.steps: step3. Device B put data and sync
+     * @tc.expected: step3. success.
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    Timestamp currentTime;
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_TRUE(g_deviceB->PutData(key, value, currentTime, 0) == E_OK);
+    EXPECT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == E_OK);
+    /**
+     * @tc.steps: step4. Open kv store of sub user and check data
+     * @tc.expected: step4. Check data success.
+     */
+    subUserMgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback1);
+    ASSERT_TRUE(g_kvDelegateStatus1 == OK);
+    ASSERT_TRUE(g_kvDelegatePtr1 != nullptr);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr1->Get(key, actualValue), E_OK);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step5. Disable auto launch and close kv store.
+     * @tc.expected: step5. success.
+     */
+    EXPECT_TRUE(subUserMgr.DisableKvStoreAutoLaunch(USER_ID_1, subUser, APP_ID, STORE_ID) == OK);
+    ASSERT_EQ(subUserMgr.CloseKvStore(g_kvDelegatePtr1), OK);
+    g_kvDelegatePtr1 = nullptr;
+    DBStatus status = subUserMgr.DeleteKvStore(STORE_ID);
+    ASSERT_TRUE(status == OK);
+    delete observer;
+}

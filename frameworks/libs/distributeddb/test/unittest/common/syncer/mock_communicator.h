@@ -33,7 +33,7 @@ public:
     MOCK_METHOD2(RegOnConnectCallback, int(const OnConnectCallback &, const Finalizer &));
     MOCK_METHOD2(RegOnSendableCallback, int(const std::function<void(void)> &, const Finalizer &));
     MOCK_METHOD2(RegOnMessageCallback, int(const OnMessageCallback &, const Finalizer &));
-    MOCK_METHOD0(Activate, void(void));
+    MOCK_METHOD1(Activate, void(const std::string &));
     MOCK_CONST_METHOD1(IsDeviceOnline, bool(const std::string &));
 };
 } // namespace DistributedDB

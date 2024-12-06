@@ -42,7 +42,7 @@ public:
     int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) override;
     int RegOnSendableCallback(const std::function<void(void)> &onSendable, const Finalizer &inOper) override;
 
-    void Activate() override;
+    void Activate(const std::string &userId = "") override;
 
     // return maximum allowed data size
     uint32_t GetCommunicatorMtuSize() const override;

@@ -35,7 +35,8 @@ void VirtualCommunicatorAggregator::Finalize()
 }
 
 // If not success, return nullptr and set outErrorNo
-ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int &outErrorNo)
+ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int &outErrorNo,
+    const std::string &userId)
 {
     if (isEnable_) {
         return AllocCommunicator(remoteDeviceId_, outErrorNo);
@@ -43,9 +44,13 @@ ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(uint64_t commLab
     return nullptr;
 }
 
-ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(const LabelType &commLabel, int &outErrorNo)
+ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(const LabelType &commLabel, int &outErrorNo,
+    const std::string &userId)
 {
     LOGI("[VirtualCommunicatorAggregator][Alloc] Label=%.6s.", VEC_TO_STR(commLabel));
+    if (allocCommunicatorCallback_) {
+        allocCommunicatorCallback_(userId);
+    }
     if (commLabel.size() != COMM_LABEL_LENGTH) {
         outErrorNo = -E_INVALID_ARGS;
         return nullptr;
@@ -57,8 +62,11 @@ ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(const LabelType 
     return nullptr;
 }
 
-void VirtualCommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator)
+void VirtualCommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId)
 {
+    if (releaseCommunicatorCallback_) {
+        releaseCommunicatorCallback_(userId);
+    }
     // Called in main thread only
     VirtualCommunicator *communicator = static_cast<VirtualCommunicator *>(inCommunicator);
     OfflineDevice(communicator->GetDeviceId());
@@ -373,6 +381,17 @@ void VirtualCommunicatorAggregator::MockGetLocalDeviceRes(int mockRes)
 {
     std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
     getLocalDeviceRet_ = mockRes;
+}
+
+void VirtualCommunicatorAggregator::SetAllocCommunicatorCallback(AllocCommunicatorCallback allocCommunicatorCallback)
+{
+    allocCommunicatorCallback_ = allocCommunicatorCallback;
+}
+
+void VirtualCommunicatorAggregator::SetReleaseCommunicatorCallback(
+    ReleaseCommunicatorCallback releaseCommunicatorCallback)
+{
+    releaseCommunicatorCallback_ = releaseCommunicatorCallback;
 }
 
 void VirtualCommunicatorAggregator::MockCommErrCode(int mockErrCode)

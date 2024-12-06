@@ -74,18 +74,19 @@ namespace {
         {}
 
         // If not success, return nullptr and set outErrorNo
-        ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo) override
+        ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo, const std::string &userId) override
         {
             outErrorNo = -E_OUT_OF_MEMORY;
             return nullptr;
         }
-        ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo) override
+        ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo,
+            const std::string &userId) override
         {
             outErrorNo = -E_OUT_OF_MEMORY;
             return nullptr;
         }
 
-        void ReleaseCommunicator(ICommunicator *inCommunicator) override
+        void ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId) override
         {}
 
         int RegCommunicatorLackCallback(const CommunicatorLackCallback &onCommLack, const Finalizer &inOper) override
