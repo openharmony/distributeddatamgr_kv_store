@@ -1823,11 +1823,13 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(
         LOGE("Failed to create updateCursor func on userTable errCode=%d.", errCode);
         return errCode;
     }
+    // data from cloud and not modified by local or consistency with cloud to flag logout
     std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_WHEN_LOGOUT +
                       ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
                       SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
-                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD_CONSISTENCY +
-                      " AND NOT (" + DATA_IS_DELETE + ") " + " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
+                      " WHERE (CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND (" + FLAG_IS_CLOUD_CONSISTENCY + " OR " +
+                      FLAG_IS_CLOUD + ") AND NOT (" + DATA_IS_DELETE + ") " + " AND NOT (" + FLAG_IS_LOGIC_DELETE
+                      + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     // here just clear updateCursor func, fail will not influence other function
     (void)CreateFuncUpdateCursor(context, nullptr);

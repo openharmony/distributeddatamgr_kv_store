@@ -1945,5 +1945,63 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCloudTotalCount(g_tables, {18, 20});
     CloseDb();
 }
+
+/*
+ * @tc.name: CleanCloudDataTest029
+ * @tc.desc: Test flag_and_data and logic delete to remove cloud and inconsistency data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest029, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set data is logicDelete
+     * @tc.expected: OK.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    /**
+     * @tc.steps: step2. make data: 20 records on cloud
+     * @tc.expected: OK.
+     */
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    /**
+     * @tc.steps: step3. call Sync with cloud merge strategy.
+     * @tc.expected: OK.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(CLOUD_ASSET_SPACE_INSUFFICIENT);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step4. remove device data and check log num.
+     * @tc.expected: OK.
+     */
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where flag & 0x82B == 0x82B;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(20), nullptr), SQLITE_OK);
+    DropLogicDeletedData(db, g_tables[0], 0);
+    /**
+     * @tc.steps: step5. call Sync with cloud merge strategy after set asset download ok.
+     * @tc.expected: OK.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    /**
+     * @tc.steps: step6. check data is consistence.
+     * @tc.expected: OK.
+     */
+    sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +
+        " where flag & 0x20 = 0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(20), nullptr), SQLITE_OK);
+    CheckCloudTotalCount(g_tables, {20, 20});
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE
