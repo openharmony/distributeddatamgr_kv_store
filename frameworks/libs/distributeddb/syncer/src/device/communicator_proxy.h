@@ -34,7 +34,7 @@ public:
     int RegOnMessageCallback(const OnMessageCallback &onMessage, const Finalizer &inOper) override;
     int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) override;
     int RegOnSendableCallback(const std::function<void(void)> &onSendable, const Finalizer &inOper) override;
-    void Activate() override;
+    void Activate(const std::string &userId = "") override;
     uint32_t GetCommunicatorMtuSize() const override;
     uint32_t GetCommunicatorMtuSize(const std::string &target) const override;
     uint32_t GetTimeout() const override;

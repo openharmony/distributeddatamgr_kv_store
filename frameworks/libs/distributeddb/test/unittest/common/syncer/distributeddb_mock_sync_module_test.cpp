@@ -1343,6 +1343,56 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest004, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SyncEngineTest005
+ * @tc.desc: Test alloc communicator with userId, test set and release equal identifier.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Get communicator aggregator and set callback to check userId.
+     * @tc.expected: step1. ok
+     */
+    std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
+    MockKvSyncInterface syncDBInterface;
+    KvDBProperties kvDBProperties;
+    std::string userId1 = "user_1";
+    kvDBProperties.SetStringProp(DBProperties::USER_ID, userId1);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface.SetIdentifier(identifier);
+    syncDBInterface.SetDbProperties(kvDBProperties);
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    metaData->Initialize(&syncDBInterface);
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    virtualCommunicatorAggregator->SetAllocCommunicatorCallback([&userId1](const std::string &userId) {
+        EXPECT_EQ(userId1, userId);
+    });
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    /**
+     * @tc.steps: step2. Initialize sync engine.
+     * @tc.expected: step2. ok
+     */
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&syncDBInterface, metaData, param);
+    virtualCommunicatorAggregator->SetAllocCommunicatorCallback(nullptr);
+    /**
+     * @tc.steps: step3. Set equal identifier.
+     * @tc.expected: step3. ok
+     */
+    virtualCommunicatorAggregator->SetReleaseCommunicatorCallback([&userId1](const std::string &userId) {
+        EXPECT_EQ(userId, userId1);
+    });
+    EXPECT_EQ(enginePtr->SetEqualIdentifier(DBCommon::TransferHashString("LABEL"), { "DEVICE" }), E_OK);
+    enginePtr->Close();
+    virtualCommunicatorAggregator->SetReleaseCommunicatorCallback(nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    virtualCommunicatorAggregator = nullptr;
+}
+
+/**
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC

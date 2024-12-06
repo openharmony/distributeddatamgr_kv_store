@@ -24,7 +24,8 @@
 
 namespace DistributedDB {
 class ICommunicator;  // Forward Declaration
-
+using AllocCommunicatorCallback = std::function<void(const std::string &userId)>;
+using ReleaseCommunicatorCallback = std::function<void(const std::string &userId)>;
 class VirtualCommunicatorAggregator : public ICommunicatorAggregator {
 public:
     // Return 0 as success. Return negative as error
@@ -33,10 +34,11 @@ public:
     void Finalize() override;
 
     // If not success, return nullptr and set outErrorNo
-    ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo) override;
-    ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo) override;
+    ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo, const std::string &userId = "") override;
+    ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo,
+        const std::string &userId = "") override;
 
-    void ReleaseCommunicator(ICommunicator *inCommunicator) override;
+    void ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId = "") override;
 
     int RegCommunicatorLackCallback(const CommunicatorLackCallback &onCommLack, const Finalizer &inOper) override;
     int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) override;
@@ -93,6 +95,10 @@ public:
 
     void MockGetLocalDeviceRes(int mockRes);
 
+    void SetAllocCommunicatorCallback(AllocCommunicatorCallback allocCommunicatorCallback);
+
+    void SetReleaseCommunicatorCallback(ReleaseCommunicatorCallback releaseCommunicatorCallback);
+
     void MockCommErrCode(int mockErrCode);
 
     void MockDirectEndFlag(bool isDirectEnd);
@@ -130,6 +136,9 @@ private:
     int getLocalDeviceRet_ = E_OK;
     int commErrCodeMock_ = E_OK;
     bool isDirectEnd_ = true;
+
+    AllocCommunicatorCallback allocCommunicatorCallback_;
+    ReleaseCommunicatorCallback releaseCommunicatorCallback_;
 };
 } // namespace DistributedDB
 

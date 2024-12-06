@@ -203,7 +203,7 @@ private:
 
     ISyncTaskContext *GetContextForMsg(const std::string &targetDev, int &errCode);
 
-    ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode);
+    ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode, std::string userId = "");
 
     void UnRegCommunicatorsCallback();
 
@@ -230,6 +230,10 @@ private:
     int HandleRemoteExecutorMsg(const std::string &targetDev, Message *inMsg);
 
     void AddQuerySubscribe(SyncGenericInterface *storage, const std::string &device, const QuerySyncObject &query);
+
+    std::string GetUserId();
+
+    std::string GetUserId(const ISyncInterface *syncInterface);
 
     uint32_t GetTimeout(const std::string &dev);
 

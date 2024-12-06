@@ -88,6 +88,11 @@ DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallback
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
 }
 
+DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback)
+{
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
+}
+
 DBStatus RuntimeConfig::SetProcessSystemAPIAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter)
 {
     return TransferDBErrno(RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter));
@@ -155,20 +160,35 @@ void RuntimeConfig::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback
 std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const std::string &appId,
     const std::string &storeId, bool syncDualTupleMode)
 {
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode)) {
+    return GetStoreIdentifier(userId, "", appId, storeId, syncDualTupleMode);
+}
+
+std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const std::string &subUserId,
+    const std::string &appId, const std::string &storeId, bool syncDualTupleMode)
+{
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode, subUserId)) {
         return "";
     }
     if (syncDualTupleMode) {
         return DBCommon::TransferHashString(appId + "-" + storeId);
     }
-    return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
+    if (subUserId.empty()) {
+        return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
+    }
+    return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId + "-" + subUserId);
 }
 
 void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &appId, const std::string &storeId,
     DBType type)
 {
+    ReleaseAutoLaunch(userId, "", appId, storeId, type);
+}
+
+void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &subUserId,
+    const std::string &appId, const std::string &storeId, DBType type)
+{
     DBProperties properties;
-    properties.SetIdentifier(userId, appId, storeId);
+    properties.SetIdentifier(userId, appId, storeId, subUserId);
 
     DBTypeInner innerType = (type == DBType::DB_KV ? DBTypeInner::DB_KV : DBTypeInner::DB_RELATION);
     RuntimeContext::GetInstance()->CloseAutoLaunchConnection(innerType, properties);

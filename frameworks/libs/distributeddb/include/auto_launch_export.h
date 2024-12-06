@@ -52,6 +52,7 @@ struct AutoLaunchParam {
     AutoLaunchOption option;
     AutoLaunchNotifier notifier;
     std::string path;
+    std::string subUser = "";
 };
 
 using AutoLaunchRequestCallback = std::function<bool (const std::string &identifier, AutoLaunchParam &param)>;

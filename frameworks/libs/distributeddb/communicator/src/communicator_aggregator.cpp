@@ -134,7 +134,7 @@ void CommunicatorAggregator::Finalize()
     dbStatusAdapter_ = nullptr;
 }
 
-ICommunicator *CommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int &outErrorNo)
+ICommunicator *CommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int &outErrorNo, const std::string &userId)
 {
     uint64_t netOrderLabel = HostToNet(commLabel);
     uint8_t *eachByte = reinterpret_cast<uint8_t *>(&netOrderLabel);
@@ -142,10 +142,11 @@ ICommunicator *CommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int
     for (int i = 0; i < static_cast<int>(sizeof(uint64_t)); i++) {
         realLabel[i] = eachByte[i];
     }
-    return AllocCommunicator(realLabel, outErrorNo);
+    return AllocCommunicator(realLabel, outErrorNo, userId);
 }
 
-ICommunicator *CommunicatorAggregator::AllocCommunicator(const std::vector<uint8_t> &commLabel, int &outErrorNo)
+ICommunicator *CommunicatorAggregator::AllocCommunicator(const std::vector<uint8_t> &commLabel, int &outErrorNo,
+    const std::string &userId)
 {
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     LOGI("[CommAggr][Alloc] Label=%.3s.", VEC_TO_STR(commLabel));
@@ -154,21 +155,22 @@ ICommunicator *CommunicatorAggregator::AllocCommunicator(const std::vector<uint8
         return nullptr;
     }
 
-    if (commMap_.count(commLabel) != 0) {
+    if (commMap_.count(userId) != 0 && commMap_[userId].count(commLabel) != 0) {
         outErrorNo = -E_ALREADY_ALLOC;
         return nullptr;
     }
 
-    Communicator *commPtr = new (std::nothrow) Communicator(this, commLabel);
+    Communicator *commPtr = new(std::nothrow) Communicator(this, commLabel);
     if (commPtr == nullptr) {
+        LOGE("[CommAggr][Alloc] Communicator create failed, may be no available memory.");
         outErrorNo = -E_OUT_OF_MEMORY;
         return nullptr;
     }
-    commMap_[commLabel] = {commPtr, false}; // Communicator is not activated when allocated
+    commMap_[userId][commLabel] = {commPtr, false}; // Communicator is not activated when allocated
     return commPtr;
 }
 
-void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator)
+void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId)
 {
     if (inCommunicator == nullptr) {
         return;
@@ -178,11 +180,14 @@ void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator)
     LOGI("[CommAggr][Release] Label=%.3s.", VEC_TO_STR(commLabel));
 
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    if (commMap_.count(commLabel) == 0) {
+    if (commMap_.count(userId) == 0 || commMap_[userId].count(commLabel) == 0) {
         LOGE("[CommAggr][Release] Not Found.");
         return;
     }
-    commMap_.erase(commLabel);
+    commMap_[userId].erase(commLabel);
+    if (commMap_[userId].empty()) {
+        commMap_.erase(userId);
+    }
     RefObject::DecObjRef(commPtr); // Refcount of Communicator is 1 when created, here to unref Communicator
 
     int errCode = commLinker_->DecreaseLocalLabel(commLabel);
@@ -243,18 +248,18 @@ int CommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
     return adapterHandle_->GetLocalIdentity(outTarget);
 }
 
-void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel)
+void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, const std::string &userId)
 {
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     LOGI("[CommAggr][Activate] Label=%.3s.", VEC_TO_STR(commLabel));
-    if (commMap_.count(commLabel) == 0) {
+    if (commMap_[userId].count(commLabel) == 0) {
         LOGW("[CommAggr][Activate] Communicator of this label not allocated.");
         return;
     }
-    if (commMap_.at(commLabel).second) {
+    if (commMap_[userId].at(commLabel).second) {
         return;
     }
-    commMap_.at(commLabel).second = true; // Mark this communicator as activated
+    commMap_[userId].at(commLabel).second = true; // Mark this communicator as activated
 
     // IncreaseLocalLabel below and DecreaseLocalLabel in ReleaseCommunicator should all be protected by commMapMutex_
     // To avoid disordering probably caused by concurrent call to ActivateCommunicator and ReleaseCommunicator
@@ -266,12 +271,12 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel)
     }
     for (auto &entry : onlineTargets) {
         LOGI("[CommAggr][Activate] Already Online Target=%s{private}.", entry.c_str());
-        commMap_.at(commLabel).first->OnConnectChange(entry, true);
+        commMap_[userId].at(commLabel).first->OnConnectChange(entry, true);
     }
     // Do Redeliver, the communicator is responsible to deal with the frame
     std::list<FrameInfo> framesToRedeliver = retainer_.FetchFramesForSpecificCommunicator(commLabel);
     for (auto &entry : framesToRedeliver) {
-        commMap_.at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer);
+        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer);
     }
 }
 
@@ -468,10 +473,12 @@ void CommunicatorAggregator::TaskFinalizer(const SendTask &inTask, int result)
 void CommunicatorAggregator::NotifySendableToAllCommunicator()
 {
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    for (auto &entry : commMap_) {
-        // Ignore nonactivated communicator
-        if (entry.second.second) {
-            entry.second.first->OnSendAvailable();
+    for (auto &userCommMap : commMap_) {
+        for (auto &entry : userCommMap.second) {
+            // Ignore nonactivated communicator
+            if (entry.second.second) {
+                entry.second.first->OnSendAvailable();
+            }
         }
     }
 }
@@ -543,10 +550,12 @@ void CommunicatorAggregator::OnTargetChange(const std::string &target, bool isCo
     }
     // All related communicator online or offline this target, no matter TargetOnline or TargetOffline fail or not
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    for (auto &entry : commMap_) {
-        // Ignore nonactivated communicator
-        if (entry.second.second && (!isConnect || (relatedLabels.count(entry.first) != 0))) {
-            entry.second.first->OnConnectChange(target, isConnect);
+    for (auto &userCommMap : commMap_) {
+        for (auto &entry: userCommMap.second) {
+            // Ignore nonactivated communicator
+            if (entry.second.second && (!isConnect || (relatedLabels.count(entry.first) != 0))) {
+                entry.second.first->OnConnectChange(target, isConnect);
+            }
         }
     }
 }
@@ -667,7 +676,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
     LabelType toLabel = inResult.GetCommLabel();
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel);
+        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel, userId);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
         }
@@ -685,7 +694,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
     }
     // Here we have to lock commMapMutex_ and search communicator again.
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel);
+    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel, userId);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
         LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
         return E_OK;
@@ -704,15 +713,37 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
 }
 
 int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget,
-    SerialBuffer *&inFrameBuffer, const LabelType &toLabel)
+    SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const std::string &userId)
 {
     // Ignore nonactivated communicator, which is regarded as inexistent
-    if (commMap_.count(toLabel) != 0 && commMap_.at(toLabel).second) {
-        commMap_.at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer);
+    if (commMap_[userId].count(toLabel) != 0 && commMap_[userId].at(toLabel).second) {
+        commMap_[userId].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer);
         // Frame handed over to communicator who is responsible to delete it. The frame is deleted here after return.
         inFrameBuffer = nullptr;
         return E_OK;
     }
+    Communicator *communicator = nullptr;
+    bool isEmpty = false;
+    for (auto &userCommMap : commMap_) {
+        for (auto &entry : userCommMap.second) {
+            if (entry.first == toLabel && entry.second.second) {
+                communicator = entry.second.first;
+                isEmpty = userCommMap.first.empty();
+                LOGW("[CommAggr][TryDeliver] Found communicator of %s, but required user is %s",
+                     userCommMap.first.c_str(), userId.c_str());
+                break;
+            }
+        }
+        if (communicator != nullptr) {
+            break;
+        }
+    }
+    if (communicator != nullptr && (userId.empty() || isEmpty)) {
+        communicator->OnBufferReceive(srcTarget, inFrameBuffer);
+        inFrameBuffer = nullptr;
+        return E_OK;
+    }
+    LOGE("[CommAggr][TryDeliver] Communicator not found");
     return -E_NOT_FOUND;
 }
 
@@ -901,11 +932,13 @@ void CommunicatorAggregator::NotifyConnectChange(const std::string &srcTarget,
     // Do target change notify
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     for (auto &entry : changedLabels) {
-        // Ignore nonactivated communicator
-        if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
-            LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
-                 VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
-            commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
+        for (auto &userCommMap : commMap_) {
+            // Ignore nonactivated communicator
+            if (userCommMap.second.count(entry.first) != 0 && userCommMap.second.at(entry.first).second) {
+                LOGI("[CommAggr][NotifyConnectChange] label=%s, srcTarget=%s{private}, isOnline=%d.",
+                     VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
+                userCommMap.second.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
+            }
         }
     }
 }

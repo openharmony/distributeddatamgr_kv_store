@@ -59,10 +59,11 @@ public:
     // Must not call any other functions if Finalize had been called. In fact, Finalize has no chance to be called.
     void Finalize() override;
 
-    ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo) override;
-    ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo) override;
+    ICommunicator *AllocCommunicator(uint64_t commLabel, int &outErrorNo, const std::string &userId = "") override;
+    ICommunicator *AllocCommunicator(const LabelType &commLabel, int &outErrorNo,
+        const std::string &userId = "") override;
 
-    void ReleaseCommunicator(ICommunicator *inCommunicator) override;
+    void ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId = "") override;
 
     int RegCommunicatorLackCallback(const CommunicatorLackCallback &onCommLack, const Finalizer &inOper) override;
     int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) override;
@@ -81,7 +82,7 @@ public:
     int GetRemoteCommunicatorVersion(const std::string &target, uint16_t &outVersion) const;
 
     // Called by communicator to make itself really in work
-    void ActivateCommunicator(const LabelType &commLabel);
+    void ActivateCommunicator(const LabelType &commLabel, const std::string &userId = "");
 
     // SerialBuffer surely is heap memory, ScheduleSendTask responsible for lifecycle
     int ScheduleSendTask(const std::string &dstTarget, SerialBuffer *inBuff, FrameType inType,
@@ -118,7 +119,7 @@ private:
 
     // Function with suffix NoMutex should be called with mutex in the caller
     int TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-        const LabelType &toLabel);
+        const LabelType &toLabel, const std::string &userId = "");
 
     // Auxiliary function for cutting short primary function
     int RegCallbackToAdapter();
@@ -171,7 +172,8 @@ private:
 
     // Handle related
     mutable std::mutex commMapMutex_;
-    std::map<LabelType, std::pair<Communicator *, bool>> commMap_; // bool true indicate communicator activated
+    // bool true indicate communicator activated
+    std::map<std::string, std::map<LabelType, std::pair<Communicator *, bool>>> commMap_;
     FrameCombiner combiner_;
     FrameRetainer retainer_;
     SendTaskScheduler scheduler_;

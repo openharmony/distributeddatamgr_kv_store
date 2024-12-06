@@ -60,9 +60,9 @@ int Communicator::RegOnSendableCallback(const std::function<void(void)> &onSenda
     return RegCallBack(onSendable, onSendableHandle_, inOper, onSendableFinalizer_);
 }
 
-void Communicator::Activate()
+void Communicator::Activate(const std::string &userId)
 {
-    commAggrHandle_->ActivateCommunicator(commLabel_);
+    commAggrHandle_->ActivateCommunicator(commLabel_, userId);
 }
 
 uint32_t Communicator::GetCommunicatorMtuSize() const

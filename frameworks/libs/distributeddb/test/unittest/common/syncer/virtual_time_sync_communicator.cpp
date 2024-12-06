@@ -46,7 +46,7 @@ int VirtualTimeSyncCommunicator::RegOnSendableCallback(const std::function<void(
     return 0;
 }
 
-void VirtualTimeSyncCommunicator::Activate()
+void VirtualTimeSyncCommunicator::Activate(const std::string &userId)
 {
 }
 

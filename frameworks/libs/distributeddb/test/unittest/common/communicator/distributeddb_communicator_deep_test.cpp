@@ -84,17 +84,17 @@ void AllocAllCommunicator()
 {
     int errorNo = E_OK;
     g_commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAA, "");
     g_commAB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAB, "");
     g_commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBB, "");
     g_commBC = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBC);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBC, "");
     g_commCC = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCC);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCC, "");
     g_commCA = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCA, "");
 }
 
 void ReleaseAllCommunicator()

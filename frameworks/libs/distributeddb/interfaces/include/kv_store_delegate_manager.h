@@ -86,11 +86,18 @@ public:
 
     DB_API static DBStatus SetPermissionCheckCallback(const PermissionCheckCallbackV2 &callback);
 
+    DB_API static DBStatus SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback);
+
     DB_API static DBStatus EnableKvStoreAutoLaunch(const std::string &userId, const std::string &appId,
         const std::string &storeId, const AutoLaunchOption &option, const AutoLaunchNotifier &notifier);
 
+    DB_API static DBStatus EnableKvStoreAutoLaunch(const AutoLaunchParam &param);
+
     DB_API static DBStatus DisableKvStoreAutoLaunch(const std::string &userId, const std::string &appId,
         const std::string &storeId);
+
+    DB_API static DBStatus DisableKvStoreAutoLaunch(const std::string &userId, const std::string &subUser,
+        const std::string &appId, const std::string &storeId);
 
     // deprecated
     DB_API static void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback);
@@ -104,6 +111,8 @@ public:
     DB_API static bool IsProcessSystemApiAdapterValid();
 
     DB_API static void SetStoreStatusNotifier(const StoreStatusNotifier &notifier);
+
+    DB_API static void SetStoreStatusNotifier(const StoreStatusNotifierV2 &notifier);
 
     DB_API static DBStatus SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback);
 

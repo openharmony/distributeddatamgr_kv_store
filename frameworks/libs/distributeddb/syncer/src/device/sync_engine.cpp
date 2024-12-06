@@ -218,7 +218,7 @@ void SyncEngine::StartCommunicator()
         LOGE("[SyncEngine][StartCommunicator] register failed, auto sync can not use! err %d", errCode);
         return;
     }
-    communicator_->Activate();
+    communicator_->Activate(GetUserId());
 }
 
 void SyncEngine::GetOnlineDevices(std::vector<std::string> &devices) const
@@ -286,9 +286,9 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         std::vector<uint8_t> dualTuplelabel = syncInterface->GetDualTupleIdentifier();
         LOGI("[SyncEngine] dual tuple mode, original identifier=%.3s, target identifier=%.3s", VEC_TO_STR(label),
             VEC_TO_STR(dualTuplelabel));
-        communicator_ = communicatorAggregator->AllocCommunicator(dualTuplelabel, errCode);
+        communicator_ = communicatorAggregator->AllocCommunicator(dualTuplelabel, errCode, GetUserId(syncInterface));
     } else {
-        communicator_ = communicatorAggregator->AllocCommunicator(label, errCode);
+        communicator_ = communicatorAggregator->AllocCommunicator(label, errCode, GetUserId(syncInterface));
     }
     if (communicator_ == nullptr) {
         LOGE("[SyncEngine] AllocCommunicator error when init the sync engine! err = %d", errCode);
@@ -299,7 +299,7 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
     if (errCode != E_OK) {
         LOGE("[SyncEngine] SyncRequestCallback register failed! err = %d", errCode);
-        communicatorAggregator->ReleaseCommunicator(communicator_);
+        communicatorAggregator->ReleaseCommunicator(communicator_, GetUserId(syncInterface));
         communicator_ = nullptr;
         return errCode;
     }
@@ -307,7 +307,7 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         std::lock_guard<std::mutex> lock(communicatorProxyLock_);
         communicatorProxy_ = new (std::nothrow) CommunicatorProxy();
         if (communicatorProxy_ == nullptr) {
-            communicatorAggregator->ReleaseCommunicator(communicator_);
+            communicatorAggregator->ReleaseCommunicator(communicator_, GetUserId(syncInterface));
             communicator_ = nullptr;
             return -E_OUT_OF_MEMORY;
         }
@@ -775,7 +775,7 @@ int SyncEngine::SetEqualIdentifier(const std::string &identifier, const std::vec
             communicator = equalCommunicators_[identifier];
         } else {
             int errCode = E_OK;
-            communicator = AllocCommunicator(identifier, errCode);
+            communicator = AllocCommunicator(identifier, errCode, GetUserId());
             if (communicator == nullptr) {
                 return errCode;
             }
@@ -796,7 +796,7 @@ int SyncEngine::SetEqualIdentifier(const std::string &identifier, const std::vec
         }
         communicatorProxy_->SetEqualCommunicator(communicator, identifier, targets);
     }
-    communicator->Activate();
+    communicator->Activate(GetUserId());
     return E_OK;
 }
 
@@ -911,7 +911,7 @@ void SyncEngine::GetAllUnFinishSubQueries(std::map<std::string, std::vector<Quer
     subManager_->GetAllUnFinishSubQueries(allSyncQueries);
 }
 
-ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int &errCode)
+ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int &errCode, std::string userId)
 {
     ICommunicatorAggregator *communicatorAggregator = nullptr;
     errCode = RuntimeContext::GetInstance()->GetCommunicatorAggregator(communicatorAggregator);
@@ -920,7 +920,7 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
         return nullptr;
     }
     std::vector<uint8_t> identifierVect(identifier.begin(), identifier.end());
-    auto communicator = communicatorAggregator->AllocCommunicator(identifierVect, errCode);
+    auto communicator = communicatorAggregator->AllocCommunicator(identifierVect, errCode, userId);
     if (communicator == nullptr) {
         LOGE("[SyncEngine] AllocCommunicator error when SetEqualIdentifier! err = %d", errCode);
         return communicator;
@@ -930,7 +930,7 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
         [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
     if (errCode != E_OK) {
         LOGE("[SyncEngine] SyncRequestCallback register failed in SetEqualIdentifier! err = %d", errCode);
-        communicatorAggregator->ReleaseCommunicator(communicator);
+        communicatorAggregator->ReleaseCommunicator(communicator, userId);
         return nullptr;
     }
 
@@ -941,7 +941,7 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
     if (errCode != E_OK) {
         LOGE("[SyncEngine][RegConnCB] register failed in SetEqualIdentifier! err %d", errCode);
         communicator->RegOnMessageCallback(nullptr, nullptr);
-        communicatorAggregator->ReleaseCommunicator(communicator);
+        communicatorAggregator->ReleaseCommunicator(communicator, userId);
         return nullptr;
     }
 
@@ -978,13 +978,13 @@ void SyncEngine::ReleaseCommunicators()
     }
 
     if (communicator_ != nullptr) {
-        communicatorAggregator->ReleaseCommunicator(communicator_);
+        communicatorAggregator->ReleaseCommunicator(communicator_, GetUserId());
         communicator_ = nullptr;
     }
 
     std::lock_guard<std::mutex> lock(equalCommunicatorsLock_);
     for (auto &iter : equalCommunicators_) {
-        communicatorAggregator->ReleaseCommunicator(iter.second);
+        communicatorAggregator->ReleaseCommunicator(iter.second, GetUserId());
     }
     equalCommunicators_.clear();
 }
@@ -1333,6 +1333,26 @@ void SyncEngine::SetSyncInterface(ISyncInterface *syncInterface)
 {
     std::lock_guard<std::mutex> autoLock(storageMutex_);
     syncInterface_ = syncInterface;
+}
+
+std::string SyncEngine::GetUserId(const ISyncInterface *syncInterface)
+{
+    if (syncInterface == nullptr) {
+        LOGW("[SyncEngine][GetUserId] sync interface has not initialized");
+        return "";
+    }
+    std::string userId = syncInterface->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
+    std::string subUserId = syncInterface->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
+    if (!subUserId.empty()) {
+        userId += "-" + subUserId;
+    }
+    return userId;
+}
+
+std::string SyncEngine::GetUserId()
+{
+    std::lock_guard<std::mutex> autoLock(storageMutex_);
+    return GetUserId(syncInterface_);
 }
 
 uint32_t SyncEngine::GetTimeout(const std::string &dev)

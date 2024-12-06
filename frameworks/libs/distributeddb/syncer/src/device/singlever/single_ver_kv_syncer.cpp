@@ -127,7 +127,8 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     std::string userId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::USER_ID, "");
     std::string appId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::APP_ID, "");
     std::string storeId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::STORE_ID, "");
-    RuntimeContext::GetInstance()->NotifyDatabaseStatusChange(userId, appId, storeId, device, true);
+    std::string subUserId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::SUB_USER, "");
+    RuntimeContext::GetInstance()->NotifyDatabaseStatusChange({userId, appId, storeId, subUserId, device}, true);
     SingleVerSyncer::RemoteDataChanged(device);
     if (autoSyncEnable_) {
         RefObject::IncObjRef(syncEngine_);

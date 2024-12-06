@@ -86,6 +86,8 @@ public:
 
     virtual int SetPermissionCheckCallback(const PermissionCheckCallbackV3 &callback) = 0;
 
+    virtual int SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback) = 0;
+
     virtual int RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const = 0;
 
     virtual int EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
@@ -119,8 +121,9 @@ public:
 
     virtual void SetStoreStatusNotifier(const StoreStatusNotifier &notifier) = 0;
 
-    virtual void NotifyDatabaseStatusChange(const std::string &userId, const std::string &appId,
-        const std::string &storeId, const std::string &deviceId, bool onlineStatus) = 0;
+    virtual void SetStoreStatusNotifier(const StoreStatusNotifierV2 &notifier) = 0;
+
+    virtual void NotifyDatabaseStatusChange(const StoreStatusNotifierParam &param, bool onlineStatus) = 0;
 
     virtual int SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback) = 0;
 

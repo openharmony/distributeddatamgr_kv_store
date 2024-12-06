@@ -761,9 +761,10 @@ int SyncTaskContext::RunPermissionCheck(uint8_t flag) const
     std::string appId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
     std::string userId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
     std::string storeId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
+    std::string subUserId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
     int32_t instanceId = syncInterface_->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
     int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(
-        { userId, appId, storeId, deviceId_, instanceId }, flag);
+        { userId, appId, storeId, deviceId_, subUserId, instanceId }, flag);
     if (errCode != E_OK) {
         LOGE("[SyncTaskContext] RunPermissionCheck not pass errCode:%d, flag:%d, %s{private}",
             errCode, flag, deviceId_.c_str());

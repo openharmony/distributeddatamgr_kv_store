@@ -72,26 +72,23 @@ void DistributedDBCommunicatorSendReceiveTest::TearDownTestCase(void)
     CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
 }
 
+static void GetCommunicator(uint64_t label, const std::string &userId, EnvHandle &device, ICommunicator **comm)
+{
+    int errorNo = E_OK;
+    *comm = device.commAggrHandle->AllocCommunicator(label, errorNo, userId);
+    ASSERT_EQ(errorNo, E_OK);
+    ASSERT_NOT_NULL_AND_ACTIVATE(*comm, userId);
+}
+
 void DistributedDBCommunicatorSendReceiveTest::SetUp()
 {
     DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
     /**
      * @tc.setup: Alloc communicator AA, BA, BB
      */
-    int errorNo = E_OK;
-    g_commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_EQ(errorNo, E_OK);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAA);
-
-    errorNo = E_OK;
-    g_commBA = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_EQ(errorNo, E_OK);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBA);
-
-    errorNo = E_OK;
-    g_commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_EQ(errorNo, E_OK);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBB);
+    GetCommunicator(LABEL_A, "", g_envDeviceA, &g_commAA);
+    GetCommunicator(LABEL_A, "", g_envDeviceB, &g_commBA);
+    GetCommunicator(LABEL_B, "", g_envDeviceB, &g_commBB);
 }
 
 void DistributedDBCommunicatorSendReceiveTest::TearDown()
@@ -118,6 +115,31 @@ static Message *BuildAppLayerFrameMessage()
     return message;
 }
 
+static void CheckRecvMessage(Message *recvMsg, bool isEmpty, uint32_t msgId, uint32_t msgType)
+{
+    if (isEmpty) {
+        EXPECT_EQ(recvMsg, nullptr);
+    } else {
+        ASSERT_NE(recvMsg, nullptr);
+        EXPECT_EQ(recvMsg->GetMessageId(), msgId);
+        EXPECT_EQ(recvMsg->GetMessageType(), msgType);
+        EXPECT_EQ(recvMsg->GetSessionId(), FIXED_SESSIONID);
+        EXPECT_EQ(recvMsg->GetSequenceId(), FIXED_SEQUENCEID);
+        EXPECT_EQ(recvMsg->GetErrorNo(), NO_ERROR);
+        delete recvMsg;
+        recvMsg = nullptr;
+    }
+}
+
+#define REG_MESSAGE_CALLBACK(src, label) \
+    string srcTargetFor##src##label; \
+    Message *recvMsgFor##src##label = nullptr; \
+    g_comm##src##label->RegOnMessageCallback( \
+        [&srcTargetFor##src##label, &recvMsgFor##src##label](const std::string &srcTarget, Message *inMsg) { \
+        srcTargetFor##src##label = srcTarget; \
+        recvMsgFor##src##label = inMsg; \
+    }, nullptr);
+
 /**
  * @tc.name: Send And Receive 001
  * @tc.desc: Test send and receive based on equipment communicator
@@ -128,24 +150,9 @@ static Message *BuildAppLayerFrameMessage()
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.Level1)
 {
     // Preset
-    string srcTargetForAA;
-    Message *recvMsgForAA = nullptr;
-    string srcTargetForBA;
-    Message *recvMsgForBA = nullptr;
-    string srcTargetForBB;
-    Message *recvMsgForBB = nullptr;
-    g_commAA->RegOnMessageCallback([&srcTargetForAA, &recvMsgForAA](const std::string &srcTarget, Message *inMsg) {
-        srcTargetForAA = srcTarget;
-        recvMsgForAA = inMsg;
-    }, nullptr);
-    g_commBA->RegOnMessageCallback([&srcTargetForBA, &recvMsgForBA](const std::string &srcTarget, Message *inMsg) {
-        srcTargetForBA = srcTarget;
-        recvMsgForBA = inMsg;
-    }, nullptr);
-    g_commBB->RegOnMessageCallback([&srcTargetForBB, &recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
-        srcTargetForBB = srcTarget;
-        recvMsgForBB = inMsg;
-    }, nullptr);
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+    REG_MESSAGE_CALLBACK(B, B);
 
     /**
      * @tc.steps: step1. connect device A with device B
@@ -162,16 +169,9 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.L
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
-    EXPECT_EQ(recvMsgForBB, nullptr);
+    CheckRecvMessage(recvMsgForBB, true, 0, 0);
     EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
-    ASSERT_NE(recvMsgForBA, nullptr);
-    EXPECT_EQ(recvMsgForBA->GetMessageId(), REGED_TINY_MSG_ID);
-    EXPECT_EQ(recvMsgForBA->GetMessageType(), TYPE_REQUEST);
-    EXPECT_EQ(recvMsgForBA->GetSessionId(), FIXED_SESSIONID);
-    EXPECT_EQ(recvMsgForBA->GetSequenceId(), FIXED_SEQUENCEID);
-    EXPECT_EQ(recvMsgForBA->GetErrorNo(), NO_ERROR);
-    delete recvMsgForBA;
-    recvMsgForBA = nullptr;
+    CheckRecvMessage(recvMsgForBA, false, REGED_TINY_MSG_ID, TYPE_REQUEST);
 
     /**
      * @tc.steps: step3. device B send message(registered and tiny) to device A using communicator BB
@@ -247,6 +247,77 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive003, TestSize.L
 
     // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: Send And Receive 004
+ * @tc.desc: Test send and receive with different users.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get communicators for users {"", "user_1", "user_2"}
+     * @tc.expected: step1. ok
+     */
+    ICommunicator *g_commAAUser1 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_1, g_envDeviceA, &g_commAAUser1);
+    ICommunicator *g_commBAUser1 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_1, g_envDeviceB, &g_commBAUser1);
+
+    ICommunicator *g_commAAUser2 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_2, g_envDeviceA, &g_commAAUser2);
+    ICommunicator *g_commBAUser2 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_2, g_envDeviceB, &g_commBAUser2);
+
+    /**
+     * @tc.steps: step2. Set callback on B, save all message from A
+     * @tc.expected: step2. ok
+     */
+    REG_MESSAGE_CALLBACK(B, A)
+    REG_MESSAGE_CALLBACK(B, AUser1)
+    REG_MESSAGE_CALLBACK(B, AUser2)
+
+    /**
+     * @tc.steps: step3. Connect and send message from A to B.
+     * @tc.expected: step3. ok
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    Message *msgForAAUser1 = BuildRegedHugeMessage();
+    ASSERT_NE(msgForAAUser1, nullptr);
+    Message *msgForAAUser2 = BuildRegedGiantMessage(HUGE_SIZE + HUGE_SIZE);
+    ASSERT_NE(msgForAAUser2, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    SendConfig confUser1 = {false, true, 0, {"appId", "storeId", USER_ID_1, "DeviceB", ""}};
+    errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser1, confUser1);
+    EXPECT_EQ(errCode, E_OK);
+    SendConfig confUser2 = {false, true, 0, {"appId", "storeId", USER_ID_2, "DeviceB", ""}};
+    errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser2, confUser2);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    /**
+     * @tc.steps: step4. Check message.
+     * @tc.expected: step4. ok
+     */
+    EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
+    EXPECT_EQ(srcTargetForBAUser1, DEVICE_NAME_A);
+    EXPECT_EQ(srcTargetForBAUser2, DEVICE_NAME_A);
+    CheckRecvMessage(recvMsgForBA, false, REGED_TINY_MSG_ID, TYPE_REQUEST);
+    CheckRecvMessage(recvMsgForBAUser1, false, REGED_HUGE_MSG_ID, TYPE_RESPONSE);
+    CheckRecvMessage(recvMsgForBAUser2, false, REGED_GIANT_MSG_ID, TYPE_NOTIFY);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAAUser1, USER_ID_1);
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBAUser1, USER_ID_1);
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAAUser2, USER_ID_2);
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBAUser2, USER_ID_2);
 }
 
 /**
@@ -618,15 +689,6 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize
     EXPECT_NE(sendResult[1], E_OK); // 1 for second element
 }
 
-#define REG_MESSAGE_CALLBACK(src, label) \
-    string srcTargetFor##src##label; \
-    Message *recvMsgFor##src##label = nullptr; \
-    g_comm##src##label->RegOnMessageCallback( \
-        [&srcTargetFor##src##label, &recvMsgFor##src##label](const std::string &srcTarget, Message *inMsg) { \
-        srcTargetFor##src##label = srcTarget; \
-        recvMsgFor##src##label = inMsg; \
-    }, nullptr);
-
 /**
  * @tc.name: Message Feedback 001
  * @tc.desc: Test feedback not support messageid and communicator not found
@@ -709,19 +771,9 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, MessageFeedback001, TestSize.
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead001, TestSize.Level1)
 {
     // Preset
-    string srcTargetForAA;
-    Message *recvMsgForAA = nullptr;
-    string srcTargetForBA;
-    Message *recvMsgForBA = nullptr;
     TimeSync::RegisterTransformFunc();
-    g_commAA->RegOnMessageCallback([&srcTargetForAA, &recvMsgForAA](const std::string &srcTarget, Message *inMsg) {
-        srcTargetForAA = srcTarget;
-        recvMsgForAA = inMsg;
-    }, nullptr);
-    g_commBA->RegOnMessageCallback([&srcTargetForBA, &recvMsgForBA](const std::string &srcTarget, Message *inMsg) {
-        srcTargetForBA = srcTarget;
-        recvMsgForBA = inMsg;
-    }, nullptr);
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
 
     /**
      * @tc.steps: step1. connect device A with device B
@@ -734,7 +786,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead0
      */
     Message *msgForAA = BuildAppLayerFrameMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {false, true, 0, {"appId", "storeId", "userId", "deviceB"}};
+    SendConfig conf = {false, true, 0, {"appId", "storeId", "", "DeviceB"}};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms

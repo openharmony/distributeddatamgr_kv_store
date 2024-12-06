@@ -56,6 +56,9 @@ public:
     DB_API static std::string GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,
         const std::string &storeId, bool syncDualTupleMode = false);
 
+    DB_API static std::string GetRelationalStoreIdentifier(const std::string &userId, const std::string &subUserId,
+        const std::string &appId, const std::string &storeId, bool syncDualTupleMode = false);
+
     DB_API static std::vector<QueryNode> ParserQueryNodes(const Bytes &queryBytes, DBStatus &status);
 private:
     bool PreCheckOpenStore(const std::string &path, const std::string &storeId,

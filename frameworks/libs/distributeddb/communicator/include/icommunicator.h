@@ -47,6 +47,7 @@ inline void SetSendConfigParam(const DBProperties &dbProperty, const std::string
     sendConf.paramInfo.userId = dbProperty.GetStringProp(DBProperties::USER_ID, "");
     sendConf.paramInfo.storeId = dbProperty.GetStringProp(DBProperties::STORE_ID, "");
     sendConf.paramInfo.dstTarget = dstTarget;
+    sendConf.paramInfo.subUserId = dbProperty.GetStringProp(DBProperties::SUB_USER, "");
 }
 
 class ICommunicator : public virtual RefObject {
@@ -57,7 +58,7 @@ public:
     virtual int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) = 0;
     virtual int RegOnSendableCallback(const std::function<void(void)> &onSendable, const Finalizer &inOper) = 0;
 
-    virtual void Activate() = 0;
+    virtual void Activate(const std::string &userId = "") = 0;
 
     // return optimal allowed data size(Some header is taken into account and subtract)
     virtual uint32_t GetCommunicatorMtuSize() const = 0;

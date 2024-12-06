@@ -424,11 +424,27 @@ int RuntimeContextImpl::SetPermissionCheckCallback(const PermissionCheckCallback
     return E_OK;
 }
 
+int RuntimeContextImpl::SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback)
+{
+    std::unique_lock<std::shared_mutex> writeLock(permissionCheckCallbackMutex_);
+    permissionCheckCallbackV4_ = callback;
+    LOGI("SetPermissionCheckCallback V4 ok");
+    return E_OK;
+}
+
 int RuntimeContextImpl::RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const
 {
     bool checkResult = false;
     std::shared_lock<std::shared_mutex> autoLock(permissionCheckCallbackMutex_);
-    if (permissionCheckCallbackV3_) {
+    if (permissionCheckCallbackV4_) {
+        PermissionCheckParamV4 paramV4;
+        paramV4.appId = param.appId;
+        paramV4.userId = param.userId;
+        paramV4.storeId = param.storeId;
+        paramV4.deviceId = param.deviceId;
+        paramV4.subUserId = param.subUserId;
+        checkResult = permissionCheckCallbackV4_(paramV4, flag);
+    } else if (permissionCheckCallbackV3_) {
         checkResult = permissionCheckCallbackV3_(param, flag);
     } else if (permissionCheckCallbackV2_) {
         checkResult = permissionCheckCallbackV2_(param.userId, param.appId, param.storeId, param.deviceId, flag);
@@ -642,14 +658,24 @@ void RuntimeContextImpl::SetStoreStatusNotifier(const StoreStatusNotifier &notif
     LOGI("SetStoreStatusNotifier ok");
 }
 
-void RuntimeContextImpl::NotifyDatabaseStatusChange(const std::string &userId, const std::string &appId,
-    const std::string &storeId, const std::string &deviceId, bool onlineStatus)
+void RuntimeContextImpl::SetStoreStatusNotifier(const StoreStatusNotifierV2 &notifier)
 {
-    ScheduleTask([this, userId, appId, storeId, deviceId, onlineStatus] {
+    std::unique_lock<std::shared_mutex> writeLock(databaseStatusCallbackMutex_);
+    databaseStatusNotifyCallbackV2_ = notifier;
+    LOGI("SetStoreStatusNotifier ok");
+}
+
+void RuntimeContextImpl::NotifyDatabaseStatusChange(const StoreStatusNotifierParam &param, bool onlineStatus)
+{
+    ScheduleTask([this, param, onlineStatus] {
         std::shared_lock<std::shared_mutex> autoLock(databaseStatusCallbackMutex_);
+        if (databaseStatusNotifyCallbackV2_) {
+            LOGI("start notify database status:%d", onlineStatus);
+            databaseStatusNotifyCallbackV2_(param, onlineStatus);
+        }
         if (databaseStatusNotifyCallback_) {
             LOGI("start notify database status:%d", onlineStatus);
-            databaseStatusNotifyCallback_(userId, appId, storeId, deviceId, onlineStatus);
+            databaseStatusNotifyCallback_(param.userId, param.appId, param.storeId, param.deviceId, onlineStatus);
         }
     });
 }
@@ -676,6 +702,7 @@ bool RuntimeContextImpl::IsSyncerNeedActive(const DBProperties &properties) cons
         properties.GetStringProp(DBProperties::USER_ID, ""),
         properties.GetStringProp(DBProperties::APP_ID, ""),
         properties.GetStringProp(DBProperties::STORE_ID, ""),
+        properties.GetStringProp(DBProperties::SUB_USER, ""),
         properties.GetIntProp(DBProperties::INSTANCE_ID, 0)
     };
     std::shared_lock<std::shared_mutex> autoLock(syncActivationCheckCallbackMutex_);
@@ -754,6 +781,7 @@ std::map<std::string, std::string> RuntimeContextImpl::GetPermissionCheckParam(c
         properties.GetStringProp(DBProperties::USER_ID, ""),
         properties.GetStringProp(DBProperties::APP_ID, ""),
         properties.GetStringProp(DBProperties::STORE_ID, ""),
+        properties.GetStringProp(DBProperties::SUB_USER, ""),
         properties.GetIntProp(DBProperties::INSTANCE_ID, 0)
     };
     std::shared_lock<std::shared_mutex> autoLock(permissionConditionLock_);

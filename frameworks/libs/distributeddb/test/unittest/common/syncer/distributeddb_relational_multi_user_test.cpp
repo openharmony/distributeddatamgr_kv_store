@@ -259,6 +259,23 @@ namespace {
         return true;
     };
 
+    const AutoLaunchRequestCallback g_callback2 = [](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_identifier != identifier) {
+            LOGD("g_identifier(%s) != identifier(%s)", g_identifier.c_str(), identifier.c_str());
+            return false;
+        }
+        param.subUser = SUB_USER_1;
+        param.path    = g_testDir + "/test2.db";
+        param.appId   = APP_ID;
+        param.storeId = STORE_ID;
+        CipherPassword passwd;
+        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
+                        0, nullptr};
+        param.notifier = g_notifier;
+        param.option.syncDualTupleMode = false;
+        return true;
+    };
+
     void DoRemoteQuery()
     {
         RemoteCondition condition;
@@ -1307,6 +1324,68 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt006, TestSize.Level0)
     OS::RemoveFile(g_storePath1);
     PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
     g_communicatorAggregator->ResetSendDelayInfo();
+}
+
+/**
+ * @tc.name: SubUserAutoLaunchTest001
+ * @tc.desc: Test auto launch with sub user
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db1 and db2 with subUser
+     * @tc.expected: step1. success.
+     */
+    RelationalStoreManager subUserMgr2(APP_ID, USER_ID_1, SUB_USER_1);
+    RelationalStoreDelegate::Option option;
+    subUserMgr2.OpenStore(g_storePath2, STORE_ID, option, g_rdbDelegatePtr2);
+    PrepareEnvironment(g_tableName, g_storePath2, g_rdbDelegatePtr2);
+    subUserMgr2.SetAutoLaunchRequestCallback(g_callback2);
+    RelationalStoreManager subUserMgr1(APP_ID, USER_ID_1, SUB_USER_1);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    CloseStore();
+
+    /**
+     * @tc.steps: step2. Prepare data in deviceB
+     * @tc.expected: step2. success.
+     */
+    VirtualRowData virtualRowData;
+    DataValue d1;
+    d1 = (int64_t)1;
+    virtualRowData.objectData.PutDataValue("id", d1);
+    DataValue d2;
+    d2.SetText("hello");
+    virtualRowData.objectData.PutDataValue("name", d2);
+    virtualRowData.logInfo.timestamp = 1;
+    g_deviceB->PutData(g_tableName, {virtualRowData});
+
+    std::vector<RelationalVirtualDevice *> remoteDev;
+    remoteDev.push_back(g_deviceB);
+    PrepareVirtualDeviceEnv(g_tableName, g_storePath1, remoteDev);
+
+    /**
+     * @tc.steps: step3. Set label in deviceB and sync
+     * @tc.expected: step3. success.
+     */
+    Query query = Query::Select(g_tableName);
+    g_identifier = subUserMgr1.GetRelationalStoreIdentifier(USER_ID_1, SUB_USER_1, APP_ID, STORE_ID);
+    std::vector<uint8_t> label(g_identifier.begin(), g_identifier.end());
+    g_communicatorAggregator->SetCurrentUserId(USER_ID_1);
+    g_communicatorAggregator->RunCommunicatorLackCallback(label);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+
+    /**
+     * @tc.steps: step4. Check result
+     * @tc.expected: step4. deviceA have data from deviceB.
+     */
+    CheckDataInRealDevice();
+
+    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID_1, SUB_USER_1, APP_ID, STORE_ID, DBType::DB_RELATION);
 }
 
 /**

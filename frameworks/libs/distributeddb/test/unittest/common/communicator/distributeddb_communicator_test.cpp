@@ -156,6 +156,54 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicatorManagement001, TestSize.Leve
     commD = nullptr;
 }
 
+/**
+ * @tc.name: Communicator Management 002
+ * @tc.desc: Test alloc and release communicator with different userId
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorTest, CommunicatorManagement002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. alloc communicator A using label A with USER_ID_1
+     * @tc.expected: step1. alloc return OK.
+     */
+    int errorNo = E_OK;
+    ICommunicator *commA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo, USER_ID_1);
+    commA->Activate(USER_ID_1);
+    EXPECT_EQ(errorNo, E_OK);
+    EXPECT_NE(commA, nullptr);
+
+    /**
+     * @tc.steps: step2. alloc communicator B using label A with USER_ID_2
+     * @tc.expected: step2. alloc return OK, and commA == commB is TRUE
+     */
+    errorNo = E_OK;
+    ICommunicator *commB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo, USER_ID_2);
+    commB->Activate(USER_ID_2);
+    EXPECT_EQ(errorNo, E_OK);
+    EXPECT_NE(commA, nullptr);
+
+    /**
+     * @tc.steps: step3. alloc communicator C using label A with USER_ID_1
+     * @tc.expected: step3. alloc return not OK.
+     */
+    errorNo = E_OK;
+    ICommunicator *commC = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo, USER_ID_1);
+    EXPECT_NE(errorNo, E_OK);
+    EXPECT_EQ(commC, nullptr);
+
+    /**
+     * @tc.steps: step4. release communicator A and communicator B
+     * @tc.expected: step4. OK.
+     */
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(commA, USER_ID_1);
+    commA = nullptr;
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(commB, USER_ID_2);
+    commB = nullptr;
+}
+
 static void ConnectWaitDisconnect()
 {
     AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
@@ -178,7 +226,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline001, TestSize.Level1)
      */
     int errorNo = E_OK;
     ICommunicator *commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAA, "");
     OnOfflineDevice onlineForAA;
     commAA->RegOnConnectCallback([&onlineForAA](const std::string &target, bool isConnect) {
         HandleConnectChange(onlineForAA, target, isConnect);}, nullptr);
@@ -196,7 +244,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline001, TestSize.Level1)
      * @tc.expected: step3. no callback.
      */
     ICommunicator *commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commBB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commBB, "");
     OnOfflineDevice onlineForBB;
     commBB->RegOnConnectCallback([&onlineForBB](const std::string &target, bool isConnect) {
         HandleConnectChange(onlineForBB, target, isConnect);}, nullptr);
@@ -216,7 +264,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline001, TestSize.Level1)
      * @tc.expected: step5. no callback.
      */
     ICommunicator *commBA = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commBA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commBA, "");
     OnOfflineDevice onlineForBA;
     commBA->RegOnConnectCallback([&onlineForBA](const std::string &target, bool isConnect) {
         HandleConnectChange(onlineForBA, target, isConnect);}, nullptr);
@@ -291,7 +339,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
      */
     int errorNo = E_OK;
     ICommunicator *commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAA, "");
     OnOfflineDevice onlineForAA;
     REG_CONNECT_CALLBACK(commAA, onlineForAA);
     EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
@@ -301,7 +349,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
      * @tc.expected: step3. no callback.
      */
     ICommunicator *commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commBB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commBB, "");
     OnOfflineDevice onlineForBB;
     REG_CONNECT_CALLBACK(commBB, onlineForBB);
     EXPECT_EQ(onlineForAA.onlineDevices.size(), static_cast<size_t>(0));
@@ -314,7 +362,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
      *                      communicator BB no callback.
      */
     ICommunicator *commBA = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commBA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commBA, "");
     OnOfflineDevice onlineForBA;
     REG_CONNECT_CALLBACK(commBA, onlineForBA);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -330,7 +378,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
      *                      communicator BB has callback of device A online;
      */
     ICommunicator *commAB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAB, "");
     OnOfflineDevice onlineForAB;
     REG_CONNECT_CALLBACK(commAB, onlineForAB);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -388,7 +436,7 @@ void TestRemoteRestart()
      */
     int errorNo = E_OK;
     ICommunicator *commDD = envDeviceD.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commDD);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commDD, "");
     OnOfflineDevice onlineForDD;
     REG_CONNECT_CALLBACK(commDD, onlineForDD);
 
@@ -396,7 +444,7 @@ void TestRemoteRestart()
      * @tc.steps: step3. device E alloc communicator EE using label A and register callback
      */
     ICommunicator *commEE = envDeviceE.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commEE);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commEE, "");
     OnOfflineDevice onlineForEE;
     REG_CONNECT_CALLBACK(commEE, onlineForEE);
     /**
@@ -417,7 +465,7 @@ void TestRemoteRestart()
     SetUpEnv(envDeviceE, "DEVICE_E");
 
     commEE = envDeviceE.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commEE);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commEE, "");
     REG_CONNECT_CALLBACK(commEE, onlineForEE);
     onlineForEE.onlineDevices.clear();
     /**
@@ -563,7 +611,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
      * @tc.expected: step3. device B callback that label A not found.
      */
     ICommunicator *commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errCode);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAA, "");
     Message *msgForAA = BuildRegedTinyMessage();
     ASSERT_NE(msgForAA, nullptr);
     SendConfig conf = {true, false, 0};
@@ -583,7 +631,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
     commBA->RegOnMessageCallback([&recvMsgForBA](const std::string &srcTarget, Message *inMsg) {
         recvMsgForBA = inMsg;
     }, nullptr);
-    commBA->Activate();
+    commBA->Activate(USER_ID_1);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
     EXPECT_EQ(recvMsgForBA, nullptr);
 
@@ -615,7 +663,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
 
 #define ALLOC_AND_SEND_MESSAGE(src, dst, label, session) \
     ICommunicator *comm##src##label = g_envDevice##src.commAggrHandle->AllocCommunicator(LABEL_##label, errCode); \
-    ASSERT_NOT_NULL_AND_ACTIVATE(comm##src##label); \
+    ASSERT_NOT_NULL_AND_ACTIVATE(comm##src##label, ""); \
     DO_SEND_MESSAGE(src, dst, label, session)
 
 #define REG_MESSAGE_CALLBACK(src, label) \
@@ -818,11 +866,11 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage003, TestSize.Level2)
      * @tc.steps: step3. device A alloc communicator AA,AB,AC using label A,B,C
      */
     ICommunicator *commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errCode);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAA);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAA, "");
     ICommunicator *commAB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_B, errCode);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAB);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAB, "");
     ICommunicator *commAC = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_C, errCode);
-    ASSERT_NOT_NULL_AND_ACTIVATE(commAC);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commAC, "");
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
 
     /**
@@ -883,7 +931,7 @@ namespace {
         std::vector<uint8_t> commLabel(label.begin(), label.end());
         int errorNo = E_OK;
         comm = envDevice.commAggrHandle->AllocCommunicator(commLabel, errorNo);
-        ASSERT_NOT_NULL_AND_ACTIVATE(comm);
+        ASSERT_NOT_NULL_AND_ACTIVATE(comm, "");
         REG_CONNECT_CALLBACK(comm, onlineCallback);
     }
 }
