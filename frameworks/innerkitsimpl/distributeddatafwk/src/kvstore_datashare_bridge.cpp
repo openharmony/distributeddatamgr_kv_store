@@ -38,7 +38,7 @@ int KvStoreDataShareBridge::GetAllColumnNames(std::vector<std::string> &columnsN
 bool KvStoreDataShareBridge::FillBlock(int pos, ResultSetBridge::Writer &writer)
 {
     if (kvResultSet_ == nullptr) {
-        ZLOGE("kvResultSet_ nullptr");
+        ZLOGE("This kvResultSet_ is nullptr");
         return false;
     }
     bool isMoved = kvResultSet_->MoveToPosition(pos);
@@ -73,7 +73,7 @@ bool KvStoreDataShareBridge::FillBlock(int pos, ResultSetBridge::Writer &writer)
 int KvStoreDataShareBridge::Count()
 {
     if (kvResultSet_ == nullptr) {
-        ZLOGE("kvResultSet_ nullptr");
+        ZLOGE("This kvResultSet_ is nullptr");
         return INVALID_COUNT;
     }
     if (resultRowCount != INVALID_COUNT) {
@@ -81,7 +81,7 @@ int KvStoreDataShareBridge::Count()
     }
     int count = kvResultSet_->GetCount();
     if (count < 0) {
-        ZLOGE("kvResultSet count invalid: %{public}d", count);
+        ZLOGE("This kvResultSet count is invalid: %{public}d", count);
         return INVALID_COUNT;
     }
     resultRowCount = count;
@@ -90,13 +90,13 @@ int KvStoreDataShareBridge::Count()
 int KvStoreDataShareBridge::OnGo(int32_t start, int32_t target, ResultSetBridge::Writer &writer)
 {
     if ((start < 0) || (target < 0) || (start > target) || (target >= Count())) {
-        ZLOGE("nowRowIndex out of line: %{public}d", target);
+        ZLOGE("This nowRowIndex out of line: %{public}d", target);
         return -1;
     }
     for (int pos = start; pos <= target; pos++) {
         bool ret = FillBlock(pos, writer);
         if (!ret) {
-            ZLOGE("nowRowIndex out of line: %{public}d %{public}d", pos, target);
+            ZLOGE("This nowRowIndex out of line: %{public}d %{public}d", pos, target);
             return pos - 1;
         }
     }

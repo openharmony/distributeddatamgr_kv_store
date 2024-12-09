@@ -50,7 +50,7 @@ void KvStoreObserverProxy::OnChange(const ChangeNotification &changeNotification
     MessageParcel data;
     MessageParcel reply;
     if (!data.WriteInterfaceToken(KvStoreObserverProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("Write descriptor failed");
         return;
     }
     int64_t insertSize = ITypesUtil::GetTotalSize(changeNotification.GetInsertEntries());
@@ -89,7 +89,7 @@ void KvStoreObserverProxy::OnChange(const DataOrigin &origin, Keys &&keys)
     MessageParcel data;
     MessageParcel reply;
     if (!data.WriteInterfaceToken(KvStoreObserverProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("Write descriptor failed");
         return;
     }
     if (!ITypesUtil::Marshal(data, origin.store, keys[OP_INSERT], keys[OP_UPDATE], keys[OP_DELETE])) {
@@ -110,7 +110,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
     ZLOGD("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
     const int errorResult = -1;
     if (KvStoreObserverStub::GetDescriptor() != data.ReadInterfaceToken()) {
-        ZLOGE("local descriptor is not equal to remote");
+        ZLOGE("Local descriptor is not equal to remote");
         return errorResult;
     }
     switch (code) {
@@ -118,7 +118,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
             if (data.ReadInt32() < SWITCH_RAW_DATA_SIZE) {
                 ChangeNotification notification({}, {}, {}, "", false);
                 if (!ITypesUtil::Unmarshal(data, notification)) {
-                    ZLOGE("changeNotification is nullptr");
+                    ZLOGE("ChangeNotification is nullptr");
                     return errorResult;
                 }
                 OnChange(notification);

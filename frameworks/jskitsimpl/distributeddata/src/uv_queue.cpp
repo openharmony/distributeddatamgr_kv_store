@@ -29,25 +29,25 @@ UvQueue::UvQueue(napi_env env)
 
 UvQueue::~UvQueue()
 {
-    ZLOGD("no memory leak for queue-callback");
+    ZLOGD("No memory leak for queue-callback");
     env_ = nullptr;
 }
 
 void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
 {
     if (loop_ == nullptr || !getter) {
-        ZLOGE("loop_ or callback is nullptr");
+        ZLOGE("This loop_ or callback is nullptr");
         return;
     }
 
     uv_work_t* work = new (std::nothrow) uv_work_t;
     if (work == nullptr) {
-        ZLOGE("no memory for uv_work_t");
+        ZLOGE("No memory for uv_work_t");
         return;
     }
     work->data = new UvEntry{ env_, getter, std::move(genArgs) };
     if (work->data == nullptr) {
-        ZLOGE("no memory for UvEntry");
+        ZLOGE("No memory for UvEntry");
         delete work;
         work = nullptr;
         return;
@@ -74,7 +74,7 @@ void UvQueue::Work(uv_work_t* work, int uvStatus)
     napi_open_handle_scope(entry->env, &scope);
     napi_value method = entry->callback(entry->env);
     if (method == nullptr) {
-        ZLOGE("the callback is invalid, maybe is cleared!");
+        ZLOGE("The callback is invalid, maybe is cleared!");
         if (scope != nullptr) {
             napi_close_handle_scope(entry->env, scope);
         }
@@ -92,7 +92,7 @@ void UvQueue::Work(uv_work_t* work, int uvStatus)
     napi_value result;
     napi_status status = napi_call_function(entry->env, global, method, argc, argv, &result);
     if (status != napi_ok) {
-        ZLOGE("notify data change failed status:%{public}d.", status);
+        ZLOGE("Notify data change failed status:%{public}d.", status);
     }
     if (scope != nullptr) {
         napi_close_handle_scope(entry->env, scope);

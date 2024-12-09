@@ -29,7 +29,7 @@ public:
     static napi_value Constructor(napi_env env);
 
     static napi_value New(napi_env env, napi_callback_info info);
-    
+
     static napi_status ToJson(napi_env env, napi_value inner, JsSchema*& out);
     std::string Dump();
 private:

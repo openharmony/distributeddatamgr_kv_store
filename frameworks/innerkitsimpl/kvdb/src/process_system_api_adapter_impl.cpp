@@ -73,7 +73,7 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOp
     if (!result) {
         auto fPath = filePath.substr(0, HEAD_SIZE) + REPLACE_CHAIN +
             filePath.substr(filePath.length() - END_SIZE, END_SIZE);
-        ZLOGE("set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(), fPath.c_str());
+        ZLOGE("Set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(), fPath.c_str());
         return DBStatus::DB_ERROR;
     }
     return DBStatus::OK;

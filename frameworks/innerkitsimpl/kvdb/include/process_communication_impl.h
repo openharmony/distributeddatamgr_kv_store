@@ -28,7 +28,7 @@ public:
     using DBStatus = DistributedDB::DBStatus;
     using OnDeviceChange = DistributedDB::OnDeviceChange;
     using OnDataReceive = DistributedDB::OnDataReceive;
-    
+
     API_EXPORT explicit ProcessCommunicationImpl(std::shared_ptr<Endpoint> endpoint);
     API_EXPORT ~ProcessCommunicationImpl() override;
 
@@ -47,7 +47,7 @@ public:
     std::shared_ptr<DistributedDB::ExtendHeaderHandle> GetExtendHeaderHandle(
         const DistributedDB::ExtendInfo &paramInfo) override;
 private:
-    
+
     std::shared_ptr<Endpoint> endpoint_;
     bool isCreateSessionServer_ = false;
 };

@@ -42,27 +42,27 @@ constexpr int32_t API_VERSION = 9;
 
 class AbilityMock {
 public:
-        
+
     AbilityMock() = default;
 
     ~AbilityMock() = default;
-    
+
     struct ModuleInfo {
         std::string moduleName = "com.example.myapplication";
     };
-    
+
     struct ApplicationInfo {
         bool isSystemApp = true;
         int32_t apiTargetVersion = API_VERSION;
     };
-    
+
     class ContextMock {
     public:
         int GetArea()
         {
             return OHOS::DistributedKv::Area::EL1;
         };
-        
+
         std::string GetDatabaseDir()
         {
         #ifdef _WIN32
@@ -75,7 +75,7 @@ public:
             mkdir(baseDir.c_str(), MODE);
             return baseDir;
         }
-        
+
         std::shared_ptr<ModuleInfo> GetHapModuleInfo()
         {
             return std::make_shared<ModuleInfo>();

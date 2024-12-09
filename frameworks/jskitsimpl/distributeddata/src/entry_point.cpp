@@ -29,19 +29,19 @@ static napi_value Init(napi_env env, napi_value exports)
         DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager)
     };
     napi_status status = napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
-    ZLOGI("init createKVManager %{public}d", status);
+    ZLOGI("Init createKVManager %{public}d", status);
 
     status = napi_set_named_property(env, exports, "FieldNode", JsFieldNode::Constructor(env));
-    ZLOGI("init FieldNode %{public}d", status);
+    ZLOGI("Init FieldNode %{public}d", status);
 
     status = napi_set_named_property(env, exports, "Schema", JsSchema::Constructor(env));
-    ZLOGI("init Schema %{public}d", status);
+    ZLOGI("Init Schema %{public}d", status);
 
     status = napi_set_named_property(env, exports, "Query", JsQuery::Constructor(env));
-    ZLOGI("init Query %{public}d", status);
+    ZLOGI("Init Query %{public}d", status);
 
     status = InitConstProperties(env, exports);
-    ZLOGI("init Enumerate Constants %{public}d", status);
+    ZLOGI("Init Enumerate Constants %{public}d", status);
     return exports;
 }
 
@@ -55,5 +55,5 @@ static __attribute__((constructor)) void RegisterModule()
         .nm_priv = ((void*)0),
         .reserved = { 0 } };
     napi_module_register(&module);
-    ZLOGI("module register data.distributedData");
+    ZLOGI("Module register data.distributedData");
 }

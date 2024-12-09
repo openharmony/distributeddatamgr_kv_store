@@ -632,7 +632,7 @@ DataQuery& DataQuery::InKeys(const std::vector<std::string> &keys)
         return *this;
     }
     if (hasKeys_) {
-        ZLOGE("cannot set inkeys more than once");
+        ZLOGE("Cannot set inkeys more than once");
         return *this;
     }
     hasKeys_ = true;
@@ -793,7 +793,7 @@ void DataQuery::EscapeSpace(std::string &input)
 bool DataQuery::ValidateField(const std::string &field)
 {
     if (field.empty() || field.find(DataQuery::SPECIAL) != std::string::npos) {
-        ZLOGE("invalid string argument");
+        ZLOGE("Invalid string argument");
         return false;
     }
     return true;

@@ -63,7 +63,7 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
 Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStorePtr)
 {
     if (kvStorePtr == nullptr) {
-        ZLOGE("kvStorePtr is nullptr.");
+        ZLOGE("This kvStorePtr is nullptr.");
         return Status::INVALID_ARGUMENT;
     }
     StoreId storeId = kvStorePtr->GetStoreId();
@@ -116,7 +116,7 @@ Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std:
 void DistributedKvDataManager::RegisterKvStoreServiceDeathRecipient(
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient)
 {
-    ZLOGD("begin");
+    ZLOGD("Begin");
     if (kvStoreDeathRecipient == nullptr) {
         ZLOGW("Register KvStoreService Death Recipient input is null.");
         return;
@@ -126,7 +126,7 @@ void DistributedKvDataManager::RegisterKvStoreServiceDeathRecipient(
 void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient)
 {
-    ZLOGD("begin");
+    ZLOGD("Begin");
     if (kvStoreDeathRecipient == nullptr) {
         ZLOGW("UnRegister KvStoreService Death Recipient input is null.");
         return;

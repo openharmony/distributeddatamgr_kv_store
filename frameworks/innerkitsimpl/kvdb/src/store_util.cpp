@@ -146,7 +146,7 @@ Status StoreUtil::ConvertStatus(DBStatus status)
 {
     auto iter = statusMap_.find(status);
     if (iter == statusMap_.end()) {
-        ZLOGE("unknown db error:0x%{public}x", status);
+        ZLOGE("Unknown db error:0x%{public}x", status);
         return Status::ERROR;
     }
     return iter->second;
@@ -159,7 +159,7 @@ bool StoreUtil::InitPath(const std::string &path)
         return RemoveRWXForOthers(path);
     }
     if (mkdir(path.c_str(), (S_IRWXU | S_IRWXG)) != 0 && errno != EEXIST) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("Mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
         return false;
     }
     Acl acl(path);
@@ -176,7 +176,7 @@ bool StoreUtil::CreateFile(const std::string &name)
     }
     int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP));
     if (fp < 0) {
-        ZLOGE("fopen error:%{public}d, path:%{public}s", errno, name.c_str());
+        ZLOGE("Fopen error:%{public}d, path:%{public}s", errno, name.c_str());
         return false;
     }
     close(fp);
@@ -188,7 +188,7 @@ std::vector<std::string> StoreUtil::GetSubPath(const std::string &path)
     std::vector<std::string> subPaths;
     DIR *dirp = opendir(path.c_str());
     if (dirp == nullptr) {
-        ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("This opendir error:%{public}d, path:%{public}s", errno, path.c_str());
         return subPaths;
     }
     struct dirent *dp;
@@ -206,7 +206,7 @@ std::vector<StoreUtil::FileInfo> StoreUtil::GetFiles(const std::string &path)
     std::vector<FileInfo> fileInfos;
     DIR *dirp = opendir(path.c_str());
     if (dirp == nullptr) {
-        ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("This opendir error:%{public}d, path:%{public}s", errno, path.c_str());
         return fileInfos;
     }
     struct dirent *dp;
@@ -235,7 +235,7 @@ bool StoreUtil::Rename(const std::string &oldName, const std::string &newName)
         return false;
     }
     if (rename(oldName.c_str(), newName.c_str()) != 0) {
-        ZLOGE("rename error:%{public}d, file:%{public}s->%{public}s", errno, oldName.c_str(), newName.c_str());
+        ZLOGE("This rename error:%{public}d, file:%{public}s->%{public}s", errno, oldName.c_str(), newName.c_str());
         return false;
     }
     return true;
@@ -258,7 +258,7 @@ bool StoreUtil::Remove(const std::string &path)
         return true;
     }
     if (remove(path.c_str()) != 0) {
-        ZLOGE("remove error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("This remove error:%{public}d, path:%{public}s", errno, path.c_str());
         return false;
     }
     return true;
@@ -282,7 +282,7 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
 {
     struct stat buf;
     if (stat(path.c_str(), &buf) < 0) {
-        ZLOGI("stat error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGI("This stat error:%{public}d, path:%{public}s", errno, path.c_str());
         return true;
     }
 
@@ -293,7 +293,7 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
     if (S_ISDIR(buf.st_mode)) {
         DIR *dirp = opendir(path.c_str());
         if (dirp == nullptr) {
-            ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+            ZLOGE("This opendir error:%{public}d, path:%{public}s", errno, path.c_str());
             return false;
         }
         struct dirent *dp = nullptr;
@@ -310,7 +310,7 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
     }
 
     if (chmod(path.c_str(), (buf.st_mode & ~S_IRWXO)) < 0) {
-        ZLOGE("chmod error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("This chmod error:%{public}d, path:%{public}s", errno, path.c_str());
         return false;
     }
     return true;

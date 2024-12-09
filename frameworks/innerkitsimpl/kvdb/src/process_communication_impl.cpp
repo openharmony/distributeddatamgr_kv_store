@@ -34,7 +34,7 @@ DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 {
     Status errCode = endpoint_->Start();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("endpoint Start Fail: %{public}d", errCode);
+        ZLOGE("This endpoint Start is Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = true;
@@ -45,7 +45,7 @@ DBStatus ProcessCommunicationImpl::Stop()
 {
     Status errCode = endpoint_->Stop();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("endpoint Stop Fail: %{public}d", errCode);
+        ZLOGE("This endpoint Start is Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = false;
@@ -65,7 +65,7 @@ DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callbac
         };
         callback(devInfo, data, length);
     };
-    
+
     Status errCode = endpoint_->RegOnDataReceive(dataReciveCallback);
     if (errCode != Status::SUCCESS) {
         ZLOGE("RegOnDataReceive Fail.");

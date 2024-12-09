@@ -27,7 +27,7 @@ namespace DistributedKv {
 DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
-    ZLOGI("init data service proxy.");
+    ZLOGI("Init data service proxy.");
 }
 
 sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &name)
@@ -35,12 +35,12 @@ sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &
     ZLOGI("%s", name.c_str());
     MessageParcel data;
     if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("Write descriptor failed");
         return nullptr;
     }
 
     if (!ITypesUtil::Marshal(data, name)) {
-        ZLOGE("write name failed, name is %{public}s", name.c_str());
+        ZLOGE("Write name failed, name is %{public}s", name.c_str());
         return nullptr;
     }
 
@@ -55,7 +55,7 @@ sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &
 
     sptr<IRemoteObject> remoteObject;
     if (!ITypesUtil::Unmarshal(reply, remoteObject)) {
-        ZLOGE("remote object is nullptr");
+        ZLOGE("Remote object is nullptr");
         return nullptr;
     }
     return remoteObject;
@@ -66,20 +66,20 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
     MessageParcel data;
     MessageParcel reply;
     if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("Write descriptor failed");
         return Status::IPC_ERROR;
     }
     if (!data.WriteString(appId.appId)) {
-        ZLOGW("failed to write string.");
+        ZLOGW("Failed to write string.");
         return Status::IPC_ERROR;
     }
     if (observer != nullptr) {
         if (!data.WriteRemoteObject(observer)) {
-            ZLOGW("failed to write parcel.");
+            ZLOGW("Failed to write parcel.");
             return Status::IPC_ERROR;
         }
     } else {
-        ZLOGE("observer is null");
+        ZLOGE("This observer is null");
         return Status::INVALID_ARGUMENT;
     }
 
@@ -87,7 +87,7 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
     int32_t error = Remote()->SendRequest(
         static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::REGISTERCLIENTDEATHOBSERVER), data, reply, mo);
     if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
+        ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
     return static_cast<Status>(reply.ReadInt32());
@@ -99,11 +99,11 @@ int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int3
     MessageParcel data;
     MessageParcel reply;
     if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("Write descriptor failed");
         return Status::IPC_ERROR;
     }
     if (!ITypesUtil::Marshal(data, bundleName, userId, appIndex, tokenId)) {
-        ZLOGW("failed to write bundleName:%{public}s, user:%{public}d, appIndex:%{public}d, tokenID:%{public}d",
+        ZLOGW("Failed to write bundleName:%{public}s, user:%{public}d, appIndex:%{public}d, tokenID:%{public}d",
             bundleName.c_str(), userId, appIndex, tokenId);
         return Status::IPC_ERROR;
     }
@@ -112,7 +112,7 @@ int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int3
     int32_t error = Remote()->SendRequest(
         static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::CLEAR_APP_STORAGE), data, reply, mo);
     if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
+        ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
     return static_cast<Status>(reply.ReadInt32());

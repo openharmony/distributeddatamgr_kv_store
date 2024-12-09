@@ -42,7 +42,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
 
     DBKey dbKey = convertor_.ToLocalDBKey(key);
     if (dbKey.empty() || value.Size() > MAX_VALUE_LENGTH) {
-        ZLOGE("invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
+        ZLOGE("Invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
             StoreUtil::Anonymous(key.ToString()).c_str(), key.Size(), value.Size());
         return INVALID_ARGUMENT;
     }
@@ -69,7 +69,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
         DBEntry dbEntry;
         dbEntry.key = convertor_.ToLocalDBKey(entry.key);
         if (dbEntry.key.empty() || entry.value.Size() > MAX_VALUE_LENGTH) {
-            ZLOGE("invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
+            ZLOGE("Invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
                 StoreUtil::Anonymous(entry.key.ToString()).c_str(), entry.key.Size(), entry.value.Size());
             return INVALID_ARGUMENT;
         }
@@ -94,7 +94,7 @@ Status SingleStoreImpl::Delete(const Key &key)
 
     DBKey dbKey = convertor_.ToLocalDBKey(key);
     if (dbKey.empty()) {
-        ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+        ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
         return INVALID_ARGUMENT;
     }
 
@@ -118,7 +118,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     for (const auto &key : keys) {
         DBKey dbKey = convertor_.ToLocalDBKey(key);
         if (dbKey.empty()) {
-            ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+            ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
             return INVALID_ARGUMENT;
         }
         dbKeys.push_back(std::move(dbKey));
@@ -200,7 +200,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
 
     DBKey dbKey = convertor_.ToWholeDBKey(key);
     if (dbKey.empty()) {
-        ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+        ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
         return INVALID_ARGUMENT;
     }
 
@@ -234,7 +234,7 @@ Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entrie
 {
     DBKey dbPrefix = convertor_.GetPrefix(prefix);
     if (dbPrefix.empty() && !prefix.Empty()) {
-        ZLOGE("invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
+        ZLOGE("Invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
             prefix.Size());
         return INVALID_ARGUMENT;
     }
@@ -262,7 +262,7 @@ Status SingleStoreImpl::GetResultSet(const Key &prefix, std::shared_ptr<ResultSe
 {
     DBKey dbPrefix = convertor_.GetPrefix(prefix);
     if (dbPrefix.empty() && !prefix.Empty()) {
-        ZLOGE("invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
+        ZLOGE("Invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
             prefix.Size());
         return INVALID_ARGUMENT;
     }
@@ -289,7 +289,7 @@ Status SingleStoreImpl::GetResultSet(const DataQuery &query, std::shared_ptr<Res
 Status SingleStoreImpl::CloseResultSet(std::shared_ptr<ResultSet> &resultSet)
 {
     if (resultSet == nullptr) {
-        ZLOGE("input is nullptr");
+        ZLOGE("Input is nullptr");
         return INVALID_ARGUMENT;
     }
 

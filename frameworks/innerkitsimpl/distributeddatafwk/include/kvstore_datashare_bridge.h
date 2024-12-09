@@ -34,7 +34,7 @@ public:
     int GetAllColumnNames(std::vector<std::string> &columnNames) override;
 
     int OnGo(int32_t startRowIndex, int32_t targetRowIndex, DataShare::ResultSetBridge::Writer &writer) override;
-  
+
 private:
     int Count();
 

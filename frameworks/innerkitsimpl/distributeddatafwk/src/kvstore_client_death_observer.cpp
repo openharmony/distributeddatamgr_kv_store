@@ -22,12 +22,12 @@ namespace OHOS {
 namespace DistributedKv {
 KvStoreClientDeathObserver::KvStoreClientDeathObserver()
 {
-    ZLOGI("this client death observer");
+    ZLOGI("This client death observer");
 }
 
 KvStoreClientDeathObserver::~KvStoreClientDeathObserver()
 {
-    ZLOGI("destructor this client death observer");
+    ZLOGI("Destructor this client death observer");
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

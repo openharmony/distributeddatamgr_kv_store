@@ -34,7 +34,7 @@ public:
     virtual void OnChange(const DistributedDB::KvStoreChangedData &data)
     {
         if (appKvStoreObserver_ == nullptr) {
-            ZLOGE("appKvStoreObserver_ is nullptr.");
+            ZLOGE("This appKvStoreObserver_ is nullptr.");
             return;
         }
         std::list<DistributedDB::Entry> insertList = data.GetEntriesInserted();

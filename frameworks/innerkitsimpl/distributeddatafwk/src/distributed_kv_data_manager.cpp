@@ -48,7 +48,7 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
 
     singleKvStore = nullptr;
     if (options.securityLevel == INVALID_LABEL) {
-        ZLOGE("invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
+        ZLOGE("Invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
             appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
         return Status::INVALID_ARGUMENT;
     }
@@ -57,11 +57,11 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
         return Status::INVALID_ARGUMENT;
     }
     if (!storeId.IsValid()) {
-        ZLOGE("invalid storeId.");
+        ZLOGE("Invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
     if (!options.IsPathValid()) {
-        ZLOGE("invalid path.");
+        ZLOGE("Invalid path.");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -86,7 +86,7 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
 
     KvStoreServiceDeathNotifier::SetAppId(appId);
     if (!storeId.IsValid()) {
-        ZLOGE("invalid storeId.");
+        ZLOGE("Invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
 
@@ -99,7 +99,7 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_pt
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     if (kvStorePtr == nullptr) {
-        ZLOGE("kvStorePtr is nullptr.");
+        ZLOGE("This kvStorePtr is nullptr.");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -123,11 +123,11 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
     if (!storeId.IsValid()) {
-        ZLOGE("invalid storeId.");
+        ZLOGE("Invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
     if (path.empty()) {
-        ZLOGE("path empty");
+        ZLOGE("This path is empty");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -140,7 +140,7 @@ Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std:
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
     if (path.empty()) {
-        ZLOGE("path empty");
+        ZLOGE("This path is empty");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -162,7 +162,7 @@ Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std:
 void DistributedKvDataManager::RegisterKvStoreServiceDeathRecipient(
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient)
 {
-    ZLOGD("begin");
+    ZLOGD("Begin");
     if (kvStoreDeathRecipient == nullptr) {
         ZLOGW("Register KvStoreService Death Recipient input is null.");
         return;
@@ -173,7 +173,7 @@ void DistributedKvDataManager::RegisterKvStoreServiceDeathRecipient(
 void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient)
 {
-    ZLOGD("begin");
+    ZLOGD("Begin");
     if (kvStoreDeathRecipient == nullptr) {
         ZLOGW("UnRegister KvStoreService Death Recipient input is null.");
         return;

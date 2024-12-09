@@ -65,7 +65,7 @@ SystemApi::DBStatus SystemApi::SetSecurityOption(const std::string &filePath, co
     auto secLevel = std::string("s") + std::to_string(option.securityLabel - 1);
     bool result = SecurityLabel::SetSecurityLabel(filePath, secLevel);
     if (!result) {
-        ZLOGE("set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(),
+        ZLOGE("Set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(),
             StoreUtil::Anonymous(filePath).c_str());
         return DBStatus::DB_ERROR;
     }

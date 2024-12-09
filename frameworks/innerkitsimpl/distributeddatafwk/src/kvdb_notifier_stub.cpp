@@ -45,14 +45,14 @@ int32_t KVDBNotifierStub::OnRemoteRequest(
     std::u16string local = KVDBNotifierStub::GetDescriptor();
     std::u16string remote = data.ReadInterfaceToken();
     if (local != remote) {
-        ZLOGE("local descriptor is not equal to remote");
+        ZLOGE("Local descriptor is not equal to remote");
         return -1;
     }
     if (code >= static_cast<uint32_t>(KVDBNotifierCode::TRANS_HEAD) &&
         code < static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT) && HANDLERS[code] != nullptr) {
         return (this->*HANDLERS[code])(data, reply);
     }
-    ZLOGE("not support code:%{public}u, BUTT:%{public}d",
+    ZLOGE("Not support code:%{public}u, BUTT:%{public}d",
         code, static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT));
     return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
 }
