@@ -103,7 +103,10 @@ ohos_shared_library("distributeddb") {
   configs = [ ":distrdb_config" ]
   public_configs = [ ":distrdb_public_config" ]
 
-  cflags_cc = [ "-fvisibility=hidden" ]
+  cflags_cc = [
+    "-fvisibility=hidden",
+    "-Os",
+  ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
