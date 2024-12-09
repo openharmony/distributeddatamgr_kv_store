@@ -26,6 +26,7 @@
 #include "platform_specific.h"
 #include "runtime_context.h"
 #include "single_ver_utils.h"
+#include "sqlite_log_table_manager.h"
 #include "sqlite_single_ver_database_upgrader.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_schema_database_upgrader.h"
@@ -556,13 +557,6 @@ StorageExecutor *SQLiteSingleVerStorageEngine::NewSQLiteStorageExecutor(sqlite3 
         return executor;
     }
     executor->SetConflictResolvePolicy(option_.conflictReslovePolicy);
-
-    int errCode = executor->CreateCloudLogTable();
-    if (errCode != E_OK) {
-        LOGE("[SQLiteSingleVerStorageEngine] create cloud log table failed, errCode = [%d]", errCode);
-        delete executor;
-        executor = nullptr;
-    }
     return executor;
 }
 
@@ -803,9 +797,16 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption 
         errCode = SQLiteUtils::ExecuteRawSQL(db, "DETACH 'meta'");
         if (errCode != E_OK) {
             LOGE("Detach meta db failed %d", errCode);
+            return errCode;
         } else {
             LOGI("Detach meta db success");
         }
+    }
+    errCode = SqliteLogTableManager::CreateKvSyncLogTable(db);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageEngine] create cloud log table failed, errCode = [%d]", errCode);
+    } else {
+        LOGI("[SQLiteSingleVerStorageEngine] create cloud log table success");
     }
     return errCode;
 }
