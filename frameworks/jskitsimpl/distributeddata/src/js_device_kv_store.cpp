@@ -100,7 +100,7 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
         OHOS::DistributedKv::Value value;
         auto& kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetNative();
         if (kvStore == nullptr) {
-            ZLOGE("kvStore is nullptr");
+            ZLOGE("This kvStore is nullptr");
             return;
         }
         bool isSchemaStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
@@ -392,7 +392,7 @@ napi_value JsDeviceKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
         CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
         if (ctxt->deviceId.empty()) {
-            ZLOGE("deviceId is empty");
+            ZLOGE("This deviceId is empty");
             ctxt->status = napi_generic_failure;
             return;
         }
