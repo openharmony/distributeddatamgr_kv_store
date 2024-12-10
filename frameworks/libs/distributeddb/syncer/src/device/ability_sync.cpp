@@ -968,12 +968,29 @@ ERROR_OUT:
     return errCode;
 }
 
+void AbilitySync::SetAbilityRequestBodyInfoInner(uint16_t remoteCommunicatorVersion, AbilitySyncRequestPacket &packet,
+    std::string &schemaStr, uint32_t schemaType) const
+{
+    // 102 version is forbidden to sync with 103 json-schema or flatbuffer-schema
+    // so schema should put null string while remote is 102 version to avoid this bug.
+    if (remoteCommunicatorVersion == 1) {
+        packet.SetSchema("");
+        packet.SetSchemaType(0);
+    } else {
+        packet.SetSchema(schemaStr);
+        packet.SetSchemaType(schemaType);
+    }
+}
+
 int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, const ISyncTaskContext *context,
     AbilitySyncRequestPacket &packet) const
 {
+    if (storageInterface_ == nullptr) {
+        LOGE("[AbilitySync][FillAbilityRequest] storageInterface is nullptr");
+        return -E_INVALID_ARGS;
+    }
     uint64_t dbCreateTime;
-    int errCode =
-        (static_cast<SyncGenericInterface *>(storageInterface_))->GetDatabaseCreateTimestamp(dbCreateTime);
+    int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetDatabaseCreateTimestamp(dbCreateTime);
     if (errCode != E_OK) {
         LOGE("[AbilitySync][FillAbilityRequest] GetDatabaseCreateTimestamp failed, err %d", errCode);
         return errCode;
@@ -1002,15 +1019,7 @@ int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, c
         LOGE("[AbilitySync][FillAbilityRequest] GetLocalSchemaVersion failed, err %d", err);
         return err;
     }
-    // 102 version is forbidden to sync with 103 json-schema or flatbuffer-schema
-    // so schema should put null string while remote is 102 version to avoid this bug.
-    if (remoteCommunicatorVersion == 1) {
-        packet.SetSchema("");
-        packet.SetSchemaType(0);
-    } else {
-        packet.SetSchema(schemaStr);
-        packet.SetSchemaType(schemaType);
-    }
+    SetAbilityRequestBodyInfoInner(remoteCommunicatorVersion, packet, schemaStr, schemaType);
     packet.SetProtocolVersion(ABILITY_SYNC_VERSION_V1);
     packet.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
     packet.SetSecLabel(option.securityLabel);

@@ -219,6 +219,9 @@ private:
 
     void GetPacketSecOption(const ISyncTaskContext *context, SecurityOption &option) const;
 
+    void SetAbilityRequestBodyInfoInner(uint16_t remoteCommunicatorVersion, AbilitySyncRequestPacket &packet,
+        std::string &schemaStr, uint32_t schemaType) const;
+
     int SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, const ISyncTaskContext *context,
         AbilitySyncRequestPacket &packet) const;
 

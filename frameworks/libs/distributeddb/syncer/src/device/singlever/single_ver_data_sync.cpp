@@ -1596,6 +1596,10 @@ void SingleVerDataSync::RemotePushFinished(int sendCode, int inMode, uint32_t ms
         (mode != SyncModeType::QUERY_PUSH_PULL)) {
         return;
     }
+    if (storage_ == nullptr) {
+        LOGE("RemotePushFinished fail, storage is nullptr.");
+        return;
+    }
 
     if ((sendCode == E_OK) && (msgSessionId != 0) && (msgSessionId != contextSessionId))  {
         storage_->NotifyRemotePushFinished(deviceId_);

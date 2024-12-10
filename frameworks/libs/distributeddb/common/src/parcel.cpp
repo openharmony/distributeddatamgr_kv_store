@@ -474,11 +474,13 @@ uint32_t Parcel::GetVectorCharLen(const std::vector<uint8_t> &data)
 uint32_t Parcel::GetStringLen(const std::string &data)
 {
     if (data.size() > INT32_MAX) {
+        LOGE("GetStringLen data size is too large");
         return 0;
     }
     uint64_t len = sizeof(uint32_t) + static_cast<uint64_t>(data.size());
     len = BYTE_8_ALIGN(len);
     if (len > INT32_MAX) {
+        LOGE("GetStringLen byte 8 align len is too large");
         return 0;
     }
     return static_cast<uint32_t>(len);
