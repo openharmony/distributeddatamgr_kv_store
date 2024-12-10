@@ -571,6 +571,10 @@ struct Options {
      * Application sdk version.
     */
     int32_t apiVersion = 9;
+    /**
+    * Sub user config for system ability.
+    */
+    int32_t subUser = 0;
 };
 
 /**
