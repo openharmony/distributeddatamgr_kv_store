@@ -45,7 +45,7 @@ DBStatus ProcessCommunicationImpl::Stop()
 {
     Status errCode = endpoint_->Stop();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("This endpoint Start is Fail: %{public}d", errCode);
+        ZLOGE("This endpoint Stop is Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = false;

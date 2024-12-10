@@ -90,13 +90,13 @@ int KvStoreDataShareBridge::Count()
 int KvStoreDataShareBridge::OnGo(int32_t start, int32_t target, ResultSetBridge::Writer &writer)
 {
     if ((start < 0) || (target < 0) || (start > target) || (target >= Count())) {
-        ZLOGE("This nowRowIndex out of line: %{public}d", target);
+        ZLOGE("The nowRowIndex out of line: %{public}d", target);
         return -1;
     }
     for (int pos = start; pos <= target; pos++) {
         bool ret = FillBlock(pos, writer);
         if (!ret) {
-            ZLOGE("This nowRowIndex out of line: %{public}d %{public}d", pos, target);
+            ZLOGE("The nowRowIndex out of line: %{public}d %{public}d", pos, target);
             return pos - 1;
         }
     }
