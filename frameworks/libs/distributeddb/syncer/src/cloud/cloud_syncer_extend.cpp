@@ -537,6 +537,9 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
     }
     taskInfo.users.clear();
     auto cloudDBs = cloudDB_.GetCloudDB();
+    if (cloudDBs.empty()) {
+        LOGE("[CloudSyncer][GenerateCompensatedSync] not set cloud db");
+    }
     for (auto &[user, cloudDb] : cloudDBs) {
         auto it = std::find(users.begin(), users.end(), user);
         if (it != users.end()) {

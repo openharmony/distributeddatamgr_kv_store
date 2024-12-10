@@ -690,6 +690,10 @@ const Json::Value &JsonObject::GetJsonValueByFieldPath(const FieldPath &inPath, 
         return value_;
     }
     const Json::Value *valueNode = &value_;
+    if (valueNode == nullptr) {
+        errCode = -E_INVALID_PATH;
+        return value_;
+    }
     for (const auto &eachPathSegment : inPath) {
         if ((valueNode->type() != Json::ValueType::objectValue) || (!valueNode->isMember(eachPathSegment))) {
             // Current JsonValue is not an object, or no such member field
