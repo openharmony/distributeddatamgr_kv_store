@@ -281,6 +281,9 @@ protected:
 
     int GetCloudGid(TaskId taskId, const std::string &tableName, QuerySyncObject &obj);
 
+    int GetCloudGid(
+        TaskId taskId, const std::string &tableName, QuerySyncObject &obj, std::vector<std::string> &cloudGid);
+
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
@@ -509,13 +512,13 @@ protected:
 
     int GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj, VBucket &extend);
 
-    int QueryCloudDataForAssetsOnly(TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<VBucket> &data);
+    int QueryCloudGidForAssetsOnly(
+        TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<std::string> &cloudGid);
 
     int GetGidMapFromDownloadData(
         const std::vector<VBucket> &data, std::map<std::string, int64_t> &gidMap, int64_t groupId);
 
-    void CheckAssetsOnlyIsEmptyInGroup(
-        const std::map<std::string, int64_t> &gidGroupIdMap, int64_t groupId, bool &outIsEmpty);
+    bool CheckAssetsOnlyIsEmptyInGroup(const std::map<std::string, int64_t> &gidGroupIdMap, int64_t groupId);
 
     int MarkGroupIdAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
         std::map<std::string, int64_t> &downloadDataGidMap);

@@ -152,7 +152,7 @@ constexpr const int E_WAIT_COMPENSATED_SYNC = (E_BASE + 127); // need to do comp
 constexpr const int E_CLOUD_SYNC_TASK_MERGED = (E_BASE + 128); // sync task is merged
 constexpr const int E_SQLITE_CANT_OPEN = (E_BASE + 129); // the sqlite cannot open.
 constexpr const int E_LOCAL_ASSET_NOT_FOUND = (E_BASE + 130); // local asset not found.
-constexpr const int E_CLOUD_ASSET_NOT_FOUND = (E_BASE + 131); // cloud asset not found.
+constexpr const int E_ASSET_NOT_FOUND_FOR_DOWN_ONLY = (E_BASE + 131); // asset not found for download asset only.
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr const int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr const int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

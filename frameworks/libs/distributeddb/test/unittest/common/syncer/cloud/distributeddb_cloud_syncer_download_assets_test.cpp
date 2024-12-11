@@ -3014,13 +3014,13 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly005, Test
     InsertCloudDBData(dataCount, 1, 0, ASSETS_TABLE_NAME);
     /**
      * @tc.steps:step2. Download assets which local no found
-     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
     std::vector<int64_t> inValue = {1,2,3,4,5,6,7,8,9,10};
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::LOCAL_ASSET_NOT_FOUND);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -3042,13 +3042,13 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly006, Test
     InsertLocalData(db, dataCount, 1, ASSETS_TABLE_NAME, true);
     /**
      * @tc.steps:step2. Download assets which cloud no found
-     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
     std::vector<int64_t> inValue = {1,2,3,4,5,6,7,8,9,10};
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::CLOUD_ASSET_NOT_FOUND);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -3131,7 +3131,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly008, Test
     InsertCloudDBData(dataCount, 1, 0, ASSETS_TABLE_NAME);
     /**
      * @tc.steps:step2. Download assets which local no found
-     * @tc.expected: step2. return LOCAL_ASSET_NOT_FOUND.
+     * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
     std::vector<int64_t> inValue = {1,2,3,4,5,6,7,8,9,10};
     std::map<std::string, std::set<std::string>> assets;
@@ -3140,7 +3140,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly008, Test
     assets1["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().In("id", inValue).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::LOCAL_ASSET_NOT_FOUND);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -3162,7 +3162,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly009, Test
     InsertLocalData(db, dataCount, 1, ASSETS_TABLE_NAME, true);
     /**
      * @tc.steps:step2. Download assets which cloud no found
-     * @tc.expected: step2. return CLOUD_ASSET_NOT_FOUND.
+     * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
@@ -3170,7 +3170,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetsOnly009, Test
     assets1["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().EqualTo("id", 10).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::CLOUD_ASSET_NOT_FOUND);
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**

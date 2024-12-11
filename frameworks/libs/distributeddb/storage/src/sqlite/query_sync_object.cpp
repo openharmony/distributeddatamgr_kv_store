@@ -524,6 +524,9 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
 int QuerySyncObject::GetQuerySyncObjectFromGroup(int64_t groupId, QuerySyncObject &obj)
 {
     obj = *this;
+    if (groupNum_ <= 1) {
+        return E_OK;
+    }
     // find the begin group node
     bool isFindBeginGroup = false;
     int64_t beginGroupIndex = 0;
