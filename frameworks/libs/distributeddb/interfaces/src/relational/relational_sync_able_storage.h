@@ -18,6 +18,9 @@
 
 #include "cloud/cloud_upload_recorder.h"
 #include "cloud/schema_mgr.h"
+#ifdef USE_FFRT
+#include "ffrt.h"
+#endif
 #include "icloud_sync_storage_interface.h"
 #include "lru_map.h"
 #include "relational_db_sync_interface.h"
@@ -294,7 +297,11 @@ private:
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
     mutable std::mutex onSchemaChangedMutex_;
+#ifdef USE_FFRT
+    ffrt::mutex dataChangeDeviceMutex_;
+#else
     std::mutex dataChangeDeviceMutex_;
+#endif
     std::map<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> dataChangeCallbackMap_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
