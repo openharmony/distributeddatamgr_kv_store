@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <vector>
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "file_ex.h"
 #include "types.h"
+#include <cstddef>
+#include <cstdint>
+#include <gtest/gtest.h>
+#include <unistd.h>
+#include <vector>
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
@@ -82,13 +82,11 @@ void DeviceKvStoreTest::TearDownTestCase(void)
     (void)remove("/data/service/el1/public/database/odmf");
 }
 
-void DeviceKvStoreTest::SetUp(void)
-{}
+void DeviceKvStoreTest::SetUp(void) { }
 
-void DeviceKvStoreTest::TearDown(void)
-{}
+void DeviceKvStoreTest::TearDown(void) { }
 
-std::string DeviceKvStoreTest::GetKey(const std::string& key)
+std::string DeviceKvStoreTest::GetKey(const std::string &key)
 {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(sizeof(uint32_t)) << deviceId_.length();
@@ -103,8 +101,7 @@ public:
     std::vector<Entry> deleteEntries_;
     bool isClear_ = false;
     DeviceObserverTestImpl();
-    ~DeviceObserverTestImpl()
-    {}
+    ~DeviceObserverTestImpl() { }
 
     DeviceObserverTestImpl(const DeviceObserverTestImpl &) = delete;
     DeviceObserverTestImpl &operator=(const DeviceObserverTestImpl &) = delete;
@@ -131,9 +128,7 @@ void DeviceObserverTestImpl::OnChange(const ChangeNotification &changeNotificati
     isClear_ = changeNotification.IsClear();
 }
 
-DeviceObserverTestImpl::DeviceObserverTestImpl()
-{
-}
+DeviceObserverTestImpl::DeviceObserverTestImpl() { }
 
 void DeviceObserverTestImpl::ResetToZero()
 {
@@ -150,16 +145,15 @@ public:
     void SyncCompleted(const std::map<std::string, Status> &results);
 };
 
-void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
-{}
+void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results) { }
 
 /**
-* @tc.name: GetStoreId001
-* @tc.desc: Get a Device KvStore instance.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetStoreId001
+ * @tc.desc: Get a Device KvStore instance.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, GetStoreId001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
@@ -169,18 +163,18 @@ HWTEST_F(DeviceKvStoreTest, GetStoreId001, TestSize.Level1)
 }
 
 /**
-* @tc.name: PutGetDelete001
-* @tc.desc: put value and delete value
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: PutGetDelete001
+ * @tc.desc: put value and delete value
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, PutGetDelete001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
 
-    Key skey = {"single_001"};
-    Value sval = {"value_001"};
+    Key skey = { "single_001" };
+    Value sval = { "value_001" };
     auto status = kvStore_->Put(skey, sval);
     EXPECT_EQ(status, Status::SUCCESS) << "Put data failed";
 
@@ -190,28 +184,28 @@ HWTEST_F(DeviceKvStoreTest, PutGetDelete001, TestSize.Level1)
     auto notExistStatus = kvStore_->Delete(skey);
     EXPECT_EQ(notExistStatus, Status::SUCCESS) << "Delete non-existing data failed";
 
-    auto spaceStatus = kvStore_->Put(skey, {""});
+    auto spaceStatus = kvStore_->Put(skey, { "" });
     EXPECT_EQ(spaceStatus, Status::SUCCESS) << "Put space failed";
 
-    auto spaceKeyStatus = kvStore_->Put({""}, {""});
+    auto spaceKeyStatus = kvStore_->Put({ "" }, { "" });
     EXPECT_NE(spaceKeyStatus, Status::SUCCESS) << "Put space keys failed";
 
     Status validStatus = kvStore_->Put(skey, sval);
     EXPECT_EQ(validStatus, Status::SUCCESS) << "Put valid keys and values failed";
 
     Value rVal;
-    auto validPutStatus = kvStore_->Get({ GetKey("single_001")}, rVal);
+    auto validPutStatus = kvStore_->Get({ GetKey("single_001") }, rVal);
     EXPECT_EQ(validPutStatus, Status::SUCCESS) << "Get value failed";
     EXPECT_EQ(sval, rVal) << "Got and put values not equal";
 }
 
 /**
-* @tc.name: GetDataQueryEntriesAndResultSet
-* @tc.desc: get entries and result set by data query.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetDataQueryEntriesAndResultSet
+ * @tc.desc: get entries and result set by data query.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, GetDataQueryEntriesAndResultSet, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -221,7 +215,7 @@ HWTEST_F(DeviceKvStoreTest, GetDataQueryEntriesAndResultSet, TestSize.Level1)
     int sumGet = 0;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        kvStore_->Put({ prefix + std::to_string(i) }, { std::to_string(i) });
     }
 
     DataQuery dataQuery;
@@ -252,7 +246,7 @@ HWTEST_F(DeviceKvStoreTest, GetDataQueryEntriesAndResultSet, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Delete({GetKey(prefix + std::to_string(i))});
+        kvStore_->Delete({ GetKey(prefix + std::to_string(i)) });
     }
 
     status = kvStore_->CloseResultSet(resultSet);
@@ -260,12 +254,12 @@ HWTEST_F(DeviceKvStoreTest, GetDataQueryEntriesAndResultSet, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetPrefixQueryEntriesAndResultSet
-* @tc.desc: get entries and result set by prefix query.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetPrefixQueryEntriesAndResultSet
+ * @tc.desc: get entries and result set by prefix query.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, GetPrefixQueryEntriesAndResultSet, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -277,7 +271,7 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixQueryEntriesAndResultSet, TestSize.Level1)
     size_t sum = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        kvStore_->Put({ prefix + std::to_string(i) }, { std::to_string(i) });
     }
 
     DataQuery dataQuery;
@@ -308,7 +302,7 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixQueryEntriesAndResultSet, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Delete({GetKey(prefix + std::to_string(i))});
+        kvStore_->Delete({ GetKey(prefix + std::to_string(i)) });
     }
 
     status = kvStore_->CloseResultSet(resultSet);
@@ -316,12 +310,12 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixQueryEntriesAndResultSet, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetInKeysQueryResultSet
-* @tc.desc: get entries and result set by prefix query.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetInKeysQueryResultSet
+ * @tc.desc: get entries and result set by prefix query.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, GetInKeysQueryResultSet, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -334,11 +328,11 @@ HWTEST_F(DeviceKvStoreTest, GetInKeysQueryResultSet, TestSize.Level1)
 
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        kvStore_->Put({ prefix + std::to_string(i) }, { std::to_string(i) });
     }
 
     DataQuery dataQuery;
-    dataQuery.InKeys({"prefix_0", "prefix_1", "prefix_3", "prefix_9"});
+    dataQuery.InKeys({ "prefix_0", "prefix_1", "prefix_3", "prefix_9" });
     int sumGet = 0;
     kvStore_->GetCount(dataQuery, sumGet);
     EXPECT_EQ(sumGet, 4) << "count is not equal 4.";
@@ -361,7 +355,7 @@ HWTEST_F(DeviceKvStoreTest, GetInKeysQueryResultSet, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Delete({GetKey(prefix + std::to_string(i))});
+        kvStore_->Delete({ GetKey(prefix + std::to_string(i)) });
     }
 
     status = kvStore_->CloseResultSet(resultSet);
@@ -369,12 +363,12 @@ HWTEST_F(DeviceKvStoreTest, GetInKeysQueryResultSet, TestSize.Level1)
 }
 
 /**
-* @tc.name: GetPrefixEntriesAndResultSet
-* @tc.desc: get entries and result set by prefix.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetPrefixEntriesAndResultSet
+ * @tc.desc: get entries and result set by prefix.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, GetPrefixEntriesAndResultSet, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -384,7 +378,7 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixEntriesAndResultSet, TestSize.Level1)
     int sumGet = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        kvStore_->Put({ prefix + std::to_string(i) }, { std::to_string(i) });
     }
     std::vector<Entry> results;
     kvStore_->GetEntries(GetKey(prefix + "      "), results);
@@ -408,7 +402,7 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixEntriesAndResultSet, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        kvStore_->Delete({GetKey(prefix + std::to_string(i))});
+        kvStore_->Delete({ GetKey(prefix + std::to_string(i)) });
     }
 
     status = kvStore_->CloseResultSet(resultSet);
@@ -416,12 +410,12 @@ HWTEST_F(DeviceKvStoreTest, GetPrefixEntriesAndResultSet, TestSize.Level1)
 }
 
 /**
-* @tc.name: Subscribe001
-* @tc.desc: Put data and get callback.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Subscribe001
+ * @tc.desc: Put data and get callback.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, Subscribe001, TestSize.Level1)
 {
     auto observer = std::make_shared<DeviceObserverTestImpl>();
@@ -436,12 +430,12 @@ HWTEST_F(DeviceKvStoreTest, Subscribe001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncCallback001
-* @tc.desc: Register sync callback.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncCallback001
+ * @tc.desc: Register sync callback.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SyncCallback001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -453,29 +447,29 @@ HWTEST_F(DeviceKvStoreTest, SyncCallback001, TestSize.Level1)
     auto unRegStatus = kvStore_->UnRegisterSyncCallback();
     EXPECT_EQ(unRegStatus, Status::SUCCESS) << "Unregister sync callback failed.";
 
-    Key skey = {"single_001"};
-    Value sval = {"value_001"};
+    Key skey = { "single_001" };
+    Value sval = { "value_001" };
     kvStore_->Put(skey, sval);
     kvStore_->Delete(skey);
 
     std::map<std::string, Status> results;
-    results.insert({"aaa", Status::INVALID_ARGUMENT});
+    results.insert({ "aaa", Status::INVALID_ARGUMENT });
     syncCallback->SyncCompleted(results);
 }
 
 /**
-* @tc.name: RemoveDeviceData001
-* @tc.desc: Remove device data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: RemoveDeviceData001
+ * @tc.desc: Remove device data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, RemoveDeviceData001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
 
-    Key skey = {"single_001"};
-    Value sval = {"value_001"};
+    Key skey = { "single_001" };
+    Value sval = { "value_001" };
     kvStore_->Put(skey, sval);
 
     std::string deviceId = "no_exist_device_id";
@@ -489,12 +483,12 @@ HWTEST_F(DeviceKvStoreTest, RemoveDeviceData001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncData001
-* @tc.desc: Synchronize device data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncData001
+ * @tc.desc: Synchronize device data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SyncData001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
@@ -505,12 +499,12 @@ HWTEST_F(DeviceKvStoreTest, SyncData001, TestSize.Level1)
 }
 
 /**
-* @tc.name: TestSchemaStoreC001
-* @tc.desc: Test schema device store.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: TestSchemaStoreC001
+ * @tc.desc: Test schema device store.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, TestSchemaStoreC001, TestSize.Level1)
 {
     std::shared_ptr<SingleKvStore> deviceKvStore;
@@ -528,8 +522,8 @@ HWTEST_F(DeviceKvStoreTest, TestSchemaStoreC001, TestSize.Level1)
     auto result = deviceKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_device_id");
 
-    Key testKey = {"TestSchemaStoreC001_key"};
-    Value testValue = {"{\"age\":10}"};
+    Key testKey = { "TestSchemaStoreC001_key" };
+    Value testValue = { "{\"age\":10}" };
     auto testStatus = deviceKvStore->Put(testKey, testValue);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "putting data failed";
     Value resultValue;
@@ -539,12 +533,12 @@ HWTEST_F(DeviceKvStoreTest, TestSchemaStoreC001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncData001
-* @tc.desc: Synchronize device data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncData001
+ * @tc.desc: Synchronize device data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SyncData002, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
@@ -556,16 +550,16 @@ HWTEST_F(DeviceKvStoreTest, SyncData002, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncData002
-* @tc.desc: Set sync parameters - success.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncData002
+ * @tc.desc: Set sync parameters - success.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SetSync001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
-    KvSyncParam syncParam{ 500 }; // 500ms
+    KvSyncParam syncParam { 500 }; // 500ms
     auto ret = kvStore_->SetSyncParam(syncParam);
     EXPECT_EQ(ret, Status::SUCCESS) << "set sync param should return success";
 
@@ -575,16 +569,16 @@ HWTEST_F(DeviceKvStoreTest, SetSync001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncData002
-* @tc.desc: Set sync parameters - failed.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncData002
+ * @tc.desc: Set sync parameters - failed.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SetSync002, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
-    KvSyncParam syncParam2{ 50 }; // 50ms
+    KvSyncParam syncParam2 { 50 }; // 50ms
     auto ret = kvStore_->SetSyncParam(syncParam2);
     EXPECT_NE(ret, Status::SUCCESS) << "set sync param should not return success";
 
@@ -594,12 +588,12 @@ HWTEST_F(DeviceKvStoreTest, SetSync002, TestSize.Level1)
 }
 
 /**
-* @tc.name: SingleKvStoreDdmPutBatch001
-* @tc.desc: Batch put data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SingleKvStoreDdmPutBatch001
+ * @tc.desc: Batch put data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SingleKvStoreDdmPutBatch001, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -637,12 +631,12 @@ HWTEST_F(DeviceKvStoreTest, SingleKvStoreDdmPutBatch001, TestSize.Level2)
 }
 
 /**
-* @tc.name: SingleKvStoreDdmPutBatch002
-* @tc.desc: Batch update data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SingleKvStoreDdmPutBatch002
+ * @tc.desc: Batch update data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SingleKvStoreDdmPutBatch002, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -697,12 +691,12 @@ HWTEST_F(DeviceKvStoreTest, SingleKvStoreDdmPutBatch002, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmPutBatch003
-* @tc.desc: Batch put data that contains invalid data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmPutBatch003
+ * @tc.desc: Batch put data that contains invalid data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmPutBatch003, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -725,12 +719,12 @@ HWTEST_F(DeviceKvStoreTest, DdmPutBatch003, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmPutBatch004
-* @tc.desc: Batch put data that contains invalid data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmPutBatch004
+ * @tc.desc: Batch put data that contains invalid data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmPutBatch004, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -762,12 +756,12 @@ static std::string SingleGenerate1025KeyLen()
     return str;
 }
 /**
-* @tc.name: DdmPutBatch005
-* @tc.desc: Batch put data that contains invalid data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmPutBatch005
+ * @tc.desc: Batch put data that contains invalid data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmPutBatch005, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -788,12 +782,12 @@ HWTEST_F(DeviceKvStoreTest, DdmPutBatch005, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmPutBatch006
-* @tc.desc: Batch put large data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmPutBatch006
+ * @tc.desc: Batch put large data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmPutBatch006, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -836,12 +830,12 @@ HWTEST_F(DeviceKvStoreTest, DdmPutBatch006, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmDeleteBatch001
-* @tc.desc: Batch delete data.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmDeleteBatch001
+ * @tc.desc: Batch delete data.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch001, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -876,12 +870,12 @@ HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch001, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmDeleteBatch002
-* @tc.desc: Batch delete data when some keys are not in KvStore.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmDeleteBatch002
+ * @tc.desc: Batch delete data when some keys are not in KvStore.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch002, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -917,12 +911,12 @@ HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch002, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmDeleteBatch003
-* @tc.desc: Batch delete data when some keys are invalid.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmDeleteBatch003
+ * @tc.desc: Batch delete data when some keys are invalid.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch003, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -958,12 +952,12 @@ HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch003, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmDeleteBatch004
-* @tc.desc: Batch delete data when some keys are invalid.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmDeleteBatch004
+ * @tc.desc: Batch delete data when some keys are invalid.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch004, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -1004,12 +998,12 @@ HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch004, TestSize.Level2)
 }
 
 /**
-* @tc.name: DdmDeleteBatch005
-* @tc.desc: Batch delete data when some keys are invalid.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DdmDeleteBatch005
+ * @tc.desc: Batch delete data when some keys are invalid.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch005, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -1050,12 +1044,12 @@ HWTEST_F(DeviceKvStoreTest, DdmDeleteBatch005, TestSize.Level2)
 }
 
 /**
-* @tc.name: Transaction001
-* @tc.desc: Batch delete data when some keys are invalid.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Transaction001
+ * @tc.desc: Batch delete data when some keys are invalid.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, Transaction001, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -1088,7 +1082,7 @@ HWTEST_F(DeviceKvStoreTest, Transaction001, TestSize.Level2)
     status = kvStore_->StartTransaction();
     EXPECT_EQ(Status::SUCCESS, status) << "StartTransaction return wrong status";
 
-    status = kvStore_->Put(key1, value1);  // insert or update key-value
+    status = kvStore_->Put(key1, value1); // insert or update key-value
     EXPECT_EQ(Status::SUCCESS, status) << "Put data return wrong status";
     status = kvStore_->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status) << "PutBatch data return wrong status";
@@ -1107,12 +1101,12 @@ HWTEST_F(DeviceKvStoreTest, Transaction001, TestSize.Level2)
 }
 
 /**
-* @tc.name: Transaction002
-* @tc.desc: Batch delete data when some keys are invalid.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Transaction002
+ * @tc.desc: Batch delete data when some keys are invalid.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, Transaction002, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
@@ -1145,7 +1139,7 @@ HWTEST_F(DeviceKvStoreTest, Transaction002, TestSize.Level2)
     status = kvStore_->StartTransaction();
     EXPECT_EQ(Status::SUCCESS, status) << "StartTransaction return wrong status";
 
-    status = kvStore_->Put(key1, value1);  // insert or update key-value
+    status = kvStore_->Put(key1, value1); // insert or update key-value
     EXPECT_EQ(Status::SUCCESS, status) << "Put data return wrong status";
     status = kvStore_->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status) << "PutBatch data return wrong status";
@@ -1168,12 +1162,12 @@ HWTEST_F(DeviceKvStoreTest, Transaction002, TestSize.Level2)
 }
 
 /**
-* @tc.name: DeviceSync001
-* @tc.desc: Test sync enable.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DeviceSync001
+ * @tc.desc: Test sync enable.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DeviceSync001, TestSize.Level1)
 {
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1196,12 +1190,12 @@ HWTEST_F(DeviceKvStoreTest, DeviceSync001, TestSize.Level1)
 }
 
 /**
-* @tc.name: DeviceSync002
-* @tc.desc: Test sync enable.
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DeviceSync002
+ * @tc.desc: Test sync enable.
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, DeviceSync002, TestSize.Level1)
 {
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1218,24 +1212,24 @@ HWTEST_F(DeviceKvStoreTest, DeviceSync002, TestSize.Level1)
     auto result = kvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_device_id002");
 
-    std::vector<std::string> local = {"A", "B"};
-    std::vector<std::string> remote = {"C", "D"};
+    std::vector<std::string> local = { "A", "B" };
+    std::vector<std::string> remote = { "C", "D" };
     auto testStatus = kvStore->SetCapabilityRange(local, remote);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set range fail";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
 
 /**
-* @tc.name: SyncWithCondition001
-* @tc.desc: sync device data with condition;
-* @tc.type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SyncWithCondition001
+ * @tc.desc: sync device data with condition;
+ * @tc.type: FUNC
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(DeviceKvStoreTest, SyncWithCondition001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
-    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    std::vector<std::string> deviceIds = { "invalid_device_id1", "invalid_device_id2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
     auto syncStatus = kvStore_->Sync(deviceIds, SyncMode::PUSH, dataQuery, nullptr);
@@ -1243,16 +1237,16 @@ HWTEST_F(DeviceKvStoreTest, SyncWithCondition001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SyncWithCondition002
-* @tc.desc: sync device data with condition;
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: SyncWithCondition002
+ * @tc.desc: sync device data with condition;
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(DeviceKvStoreTest, SyncWithCondition002, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
-    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    std::vector<std::string> deviceIds = { "invalid_device_id1", "invalid_device_id2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
     uint32_t delay = 0;
@@ -1264,13 +1258,13 @@ HWTEST_F(DeviceKvStoreTest, SyncWithCondition002, TestSize.Level1)
  * @tc.name: SubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
  */
 HWTEST_F(DeviceKvStoreTest, SubscribeWithQuery001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is null.";
-    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    std::vector<std::string> deviceIds = { "invalid_device_id1", "invalid_device_id2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
     auto syncStatus = kvStore_->SubscribeWithQuery(deviceIds, dataQuery);
@@ -1281,13 +1275,13 @@ HWTEST_F(DeviceKvStoreTest, SubscribeWithQuery001, TestSize.Level1)
  * @tc.name: UnSubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
-* @tc.require: I5DE2A
-* @tc.author: Sven Wang
+ * @tc.require: I5DE2A
+ * @tc.author: Sven Wang
  */
 HWTEST_F(DeviceKvStoreTest, UnSubscribeWithQuery001, TestSize.Level1)
 {
     EXPECT_NE(kvStore_, nullptr) << "kvStore is nullptr.";
-    std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
+    std::vector<std::string> deviceIds = { "invalid_device_id1", "invalid_device_id2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
     auto unSubscribeStatus = kvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);

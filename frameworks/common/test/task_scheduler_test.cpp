@@ -1,17 +1,17 @@
 /*
-* Copyright (c) 2022 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "task_scheduler.h"
 
@@ -26,19 +26,19 @@ class TaskSchedulerTest : public testing::Test {
 public:
     static constexpr uint32_t SHORT_INTERVAL = 100; // ms
     static constexpr uint32_t LONG_INTERVAL = 1;    // s
-    static void SetUpTestCase(void){};
-    static void TearDownTestCase(void){};
-    void SetUp(){};
-    void TearDown() {}
+    static void SetUpTestCase(void) {};
+    static void TearDownTestCase(void) {};
+    void SetUp() {};
+    void TearDown() { }
 };
 
 /**
-* @tc.name: At
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: At
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(TaskSchedulerTest, At, TestSize.Level0)
 {
     TaskScheduler taskScheduler("atTest");
@@ -61,12 +61,12 @@ HWTEST_F(TaskSchedulerTest, At, TestSize.Level0)
 }
 
 /**
-* @tc.name: Every
-* @tc.desc:execute task periodically with duration
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: Every
+ * @tc.desc:execute task periodically with duration
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(TaskSchedulerTest, ExecuteDuration, TestSize.Level0)
 {
     TaskScheduler taskScheduler("everyTest");
@@ -83,12 +83,12 @@ HWTEST_F(TaskSchedulerTest, ExecuteDuration, TestSize.Level0)
 }
 
 /**
-* @tc.name: Reset
-* @tc.desc: Reset before task execution and the task is tasks_.begin() or not
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: Reset
+ * @tc.desc: Reset before task execution and the task is tasks_.begin() or not
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(TaskSchedulerTest, Reset1, TestSize.Level0)
 {
     TaskScheduler taskScheduler("reset1Test");
@@ -107,12 +107,12 @@ HWTEST_F(TaskSchedulerTest, Reset1, TestSize.Level0)
 }
 
 /**
-* @tc.name: Reset
-* @tc.desc: Reset during task execution
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: Reset
+ * @tc.desc: Reset during task execution
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(TaskSchedulerTest, Reset2, TestSize.Level0)
 {
     TaskScheduler taskScheduler("reset2Test");
@@ -130,12 +130,12 @@ HWTEST_F(TaskSchedulerTest, Reset2, TestSize.Level0)
 }
 
 /**
-* @tc.name: Reset
-* @tc.desc: Reset after task execution
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: Reset
+ * @tc.desc: Reset after task execution
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(TaskSchedulerTest, Reset3, TestSize.Level0)
 {
     TaskScheduler taskScheduler("reset3Test");
@@ -155,27 +155,27 @@ HWTEST_F(TaskSchedulerTest, Reset3, TestSize.Level0)
 }
 
 /**
-* @tc.name: Every
-* @tc.desc: execute task for some times periodically with duration.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: Every
+ * @tc.desc: execute task for some times periodically with duration.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(TaskSchedulerTest, EveryExecuteTimes, TestSize.Level0)
 {
     TaskScheduler taskScheduler("everyTimes");
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 0;
     int times = 5;
-    auto taskId = taskScheduler.Every(times, std::chrono::milliseconds(0),
-        std::chrono::milliseconds(SHORT_INTERVAL), [blockData, times, &testData]() {
-        testData++;
-        if (testData < times) {
-            blockData->Clear(testData);
-            return;
-        }
-        blockData->SetValue(testData);
-    });
+    auto taskId = taskScheduler.Every(times, std::chrono::milliseconds(0), std::chrono::milliseconds(SHORT_INTERVAL),
+        [blockData, times, &testData]() {
+            testData++;
+            if (testData < times) {
+                blockData->Clear(testData);
+                return;
+            }
+            blockData->SetValue(testData);
+        });
     ASSERT_EQ(blockData->GetValue(), times);
     auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(resetId, TaskScheduler::INVALID_TASK_ID);
@@ -183,22 +183,25 @@ HWTEST_F(TaskSchedulerTest, EveryExecuteTimes, TestSize.Level0)
 }
 
 /**
-* @tc.name: Remove
-* @tc.desc: remove task before execute.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: Remove
+ * @tc.desc: remove task before execute.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(TaskSchedulerTest, RemoveBeforeExecute, TestSize.Level0)
 {
     TaskScheduler taskScheduler("RemoveBeforeExecute");
     auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 0;
-    auto taskId = taskScheduler.At(expiredTime, [blockData, testData]() {
-        int tmpData = testData + 1;
-        blockData->SetValue(tmpData);
-    }, std::chrono::milliseconds(SHORT_INTERVAL));
+    auto taskId = taskScheduler.At(
+        expiredTime,
+        [blockData, testData]() {
+            int tmpData = testData + 1;
+            blockData->SetValue(tmpData);
+        },
+        std::chrono::milliseconds(SHORT_INTERVAL));
     taskScheduler.Remove(taskId);
     auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(resetId, TaskScheduler::INVALID_TASK_ID);
@@ -206,12 +209,12 @@ HWTEST_F(TaskSchedulerTest, RemoveBeforeExecute, TestSize.Level0)
 }
 
 /**
-* @tc.name: Remove
-* @tc.desc: remove task during execute, and waiting.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: Remove
+ * @tc.desc: remove task during execute, and waiting.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(TaskSchedulerTest, RemoveWaitExecute, TestSize.Level0)
 {
     TaskScheduler taskScheduler("RemoveWaitExecute");
@@ -219,12 +222,15 @@ HWTEST_F(TaskSchedulerTest, RemoveWaitExecute, TestSize.Level0)
     auto blockDataTest = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     auto blockDataWait = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 1;
-    auto taskId = taskScheduler.At(expiredTime, [blockDataTest, blockDataWait, &testData]() {
-        blockDataTest->SetValue(testData);
-        blockDataWait->GetValue();
-        int tmpData = testData + 1;
-        blockDataTest->SetValue(tmpData);
-    }, std::chrono::milliseconds(SHORT_INTERVAL));
+    auto taskId = taskScheduler.At(
+        expiredTime,
+        [blockDataTest, blockDataWait, &testData]() {
+            blockDataTest->SetValue(testData);
+            blockDataWait->GetValue();
+            int tmpData = testData + 1;
+            blockDataTest->SetValue(tmpData);
+        },
+        std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(blockDataTest->GetValue(), testData);
     auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(taskId, resetId);
@@ -233,12 +239,12 @@ HWTEST_F(TaskSchedulerTest, RemoveWaitExecute, TestSize.Level0)
 }
 
 /**
-* @tc.name: Remove
-* @tc.desc: remove task during execute, but no wait.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: Remove
+ * @tc.desc: remove task during execute, but no wait.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(TaskSchedulerTest, RemoveNoWaitExecute, TestSize.Level0)
 {
     TaskScheduler taskScheduler("RemoveNoWaitExecute");

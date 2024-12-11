@@ -14,13 +14,13 @@
  */
 #include "acl.h"
 
+#include "securec.h"
+#include "gtest/gtest.h"
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <string>
 #include <sys/xattr.h>
 #include <unistd.h>
-#include "gtest/gtest.h"
-#include "securec.h"
 using namespace testing::ext;
 namespace OHOS::Test {
 using namespace DATABASE_UTILS;
@@ -39,13 +39,9 @@ public:
     void PreOperation() const;
 };
 
-void AclTest::SetUpTestCase(void)
-{
-}
+void AclTest::SetUpTestCase(void) { }
 
-void AclTest::TearDownTestCase(void)
-{
-}
+void AclTest::TearDownTestCase(void) { }
 
 // input testcase setup step，setup invoked before each testcases
 void AclTest::SetUp(void)
@@ -82,12 +78,12 @@ void AclTest::PreOperation() const
 }
 
 /**
-* @tc.name: SetDefaultGroup001
-* @tc.desc: Set default extended properties for groups.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Jiaxing Chang
-*/
+ * @tc.name: SetDefaultGroup001
+ * @tc.desc: Set default extended properties for groups.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Jiaxing Chang
+ */
 HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
@@ -102,12 +98,12 @@ HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
 }
 
 /**
-* @tc.name: SetDefaultpUser001
-* @tc.desc: Set default extended properties for user.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Jiaxing Chang
-*/
+ * @tc.name: SetDefaultpUser001
+ * @tc.desc: Set default extended properties for user.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Jiaxing Chang
+ */
 HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
@@ -122,13 +118,13 @@ HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
 }
 
 /**
-* @tc.name: SetDefaultUser002
-* @tc.desc: After the main process extends the uid attribute, set this uid to the uid and gid of the child process,
-* and the child process can access the files created by the main process normally.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Jiaxing Chang
-*/
+ * @tc.name: SetDefaultUser002
+ * @tc.desc: After the main process extends the uid attribute, set this uid to the uid and gid of the child process,
+ * and the child process can access the files created by the main process normally.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Jiaxing Chang
+ */
 HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
 {
     PreOperation();
@@ -181,12 +177,12 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
 }
 
 /**
-* @tc.name: AclXattrEntry001
-* @tc.desc: Test operator.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: AclXattrEntry001
+ * @tc.desc: Test operator.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
 {
     AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
@@ -198,12 +194,12 @@ HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
 }
 
 /**
-* @tc.name: AclXattrEntry002
-* @tc.desc: Test IsValid().
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: AclXattrEntry002
+ * @tc.desc: Test IsValid().
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level0)
 {
     AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
@@ -220,12 +216,12 @@ HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level0)
 }
 
 /**
-* @tc.name: ACL_PERM001
-* @tc.desc: Test ACL_PERM.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: ACL_PERM001
+ * @tc.desc: Test ACL_PERM.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(AclTest, ACL_PERM001, TestSize.Level0)
 {
     ACL_PERM perm1;

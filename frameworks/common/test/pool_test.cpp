@@ -16,9 +16,9 @@
 #include <functional>
 #include <mutex>
 
-#include "gtest/gtest.h"
-#include "pool.h"
 #include "log_print.h"
+#include "pool.h"
+#include "gtest/gtest.h"
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -44,14 +44,11 @@ protected:
 };
 Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_TEST, MIN_TEST);
 
-void PoolTest::SetUpTestCase(void)
-{}
+void PoolTest::SetUpTestCase(void) { }
 
-void PoolTest::TearDownTestCase(void)
-{}
+void PoolTest::TearDownTestCase(void) { }
 
-void PoolTest::SetUp(void)
-{}
+void PoolTest::SetUp(void) { }
 
 void PoolTest::TearDown(void)
 {
@@ -63,12 +60,12 @@ void PoolTest::TearDown(void)
 }
 
 /**
-* @tc.name: Get_001
-* @tc.desc: test the std::shared_ptr<T> Get(bool isForce = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Get_001
+ * @tc.desc: test the std::shared_ptr<T> Get(bool isForce = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Get_001, TestSize.Level1)
 {
     int index = 0;
@@ -89,12 +86,12 @@ HWTEST_F(PoolTest, Get_001, TestSize.Level1)
 }
 
 /**
-* @tc.name: Get_002
-* @tc.desc: test the std::shared_ptr<T> Get(bool isForce = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Get_002
+ * @tc.desc: test the std::shared_ptr<T> Get(bool isForce = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Get_002, TestSize.Level1)
 {
     int index = 0;
@@ -119,12 +116,12 @@ HWTEST_F(PoolTest, Get_002, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_001
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_001
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_001, TestSize.Level1)
 {
     int index = 0;
@@ -141,12 +138,12 @@ HWTEST_F(PoolTest, Release_001, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_002
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_002
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_002, TestSize.Level1)
 {
     auto ret = pool_.Get();
@@ -158,12 +155,12 @@ HWTEST_F(PoolTest, Release_002, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_003
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_003
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_003, TestSize.Level1)
 {
     int index = 0;
@@ -180,12 +177,12 @@ HWTEST_F(PoolTest, Release_003, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_004
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_004
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_004, TestSize.Level1)
 {
     int index = 0;
@@ -214,12 +211,12 @@ HWTEST_F(PoolTest, Release_004, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_005
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_005
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_005, TestSize.Level1)
 {
     int index = 0;
@@ -237,12 +234,12 @@ HWTEST_F(PoolTest, Release_005, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_006
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_006
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_006, TestSize.Level1)
 {
     auto ret = pool_.Get();
@@ -254,12 +251,12 @@ HWTEST_F(PoolTest, Release_006, TestSize.Level1)
 }
 
 /**
-* @tc.name: Release_007
-* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Release_007
+ * @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Release_007, TestSize.Level1)
 {
     auto ret = nullptr;
@@ -268,12 +265,12 @@ HWTEST_F(PoolTest, Release_007, TestSize.Level1)
 }
 
 /**
-* @tc.name: Idle_001
-* @tc.desc: test the  void Idle(std::shared_ptr<T> data) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Idle_001
+ * @tc.desc: test the  void Idle(std::shared_ptr<T> data) function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
 {
     int index = 0;
@@ -294,12 +291,12 @@ HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
 }
 
 /**
-* @tc.name: Clean_001
-* @tc.desc: test the int32_t Clean(std::function<void(std::shared_ptr<T>)> close) noexcept function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
+ * @tc.name: Clean_001
+ * @tc.desc: test the int32_t Clean(std::function<void(std::shared_ptr<T>)> close) noexcept function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suoqilong
+ */
 HWTEST_F(PoolTest, Clean_001, TestSize.Level1)
 {
     int index = 0;
