@@ -1879,8 +1879,10 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
     int ret = CloudSyncUtils::GetCloudPkVals(
         param.downloadData.data[idx], param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pkVals);
     if (ret != E_OK) {
-        LOGE("[CloudSyncer] TagDownloadAssetsForAssetOnly cannot get primary key value list. %d", ret);
-        return ret;
+        // if get pk vals failed, mean cloud data is deteled.
+        LOGE("[CloudSyncer] TagDownloadAssetsForAssetOnly cannot get primary key value list. %d",
+            -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+        return -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY;
     }
     prefix = param.isSinglePrimaryKey ? pkVals[0] : prefix;
     if (param.isSinglePrimaryKey && prefix.index() == TYPE_INDEX<Nil>) {
