@@ -35,7 +35,7 @@ int StoreResultSet::GetCount() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return INVALID_COUNT;
     }
 
@@ -46,7 +46,7 @@ int StoreResultSet::GetPosition() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return INVALID_POSITION;
     }
 
@@ -57,7 +57,7 @@ bool StoreResultSet::MoveToFirst()
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -67,7 +67,7 @@ bool StoreResultSet::MoveToLast()
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -78,7 +78,7 @@ bool StoreResultSet::MoveToNext()
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -89,7 +89,7 @@ bool StoreResultSet::MoveToPrevious()
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -100,7 +100,7 @@ bool StoreResultSet::Move(int offset)
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -111,7 +111,7 @@ bool StoreResultSet::MoveToPosition(int position)
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -122,7 +122,7 @@ bool StoreResultSet::IsFirst() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -132,7 +132,7 @@ bool StoreResultSet::IsLast() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -143,7 +143,7 @@ bool StoreResultSet::IsBeforeFirst() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -154,7 +154,7 @@ bool StoreResultSet::IsAfterLast() const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return false;
     }
 
@@ -165,7 +165,7 @@ Status StoreResultSet::GetEntry(Entry &entry) const
 {
     std::shared_lock<decltype(mutex_)> lock(mutex_);
     if (impl_ == nullptr) {
-        ZLOGW("already closed");
+        ZLOGW("Already closed");
         return ALREADY_CLOSED;
     }
 
@@ -173,7 +173,7 @@ Status StoreResultSet::GetEntry(Entry &entry) const
     auto dbStatus = impl_->GetEntry(dbEntry);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("failed! status:%{public}d, position:%{public}d", status, impl_->GetPosition());
+        ZLOGE("Failed! status:%{public}d, position:%{public}d", status, impl_->GetPosition());
         return status;
     }
     std::string deviceId;

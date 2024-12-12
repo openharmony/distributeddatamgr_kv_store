@@ -33,7 +33,7 @@ extern "C" {
     FFI_EXPORT int FfiOHOSDistributedKVStoreSingleKVStoreDelete = 0;
 
     FFI_EXPORT int FfiOHOSDistributedKVStoreSingleKVStoreDeleteBatch = 0;
-    
+
     FFI_EXPORT int FfiOHOSDistributedKVStoreSingleKVStoreGet = 0;
 
     FFI_EXPORT int FfiOHOSDistributedKVStoreSingleKVStoreBackup = 0;

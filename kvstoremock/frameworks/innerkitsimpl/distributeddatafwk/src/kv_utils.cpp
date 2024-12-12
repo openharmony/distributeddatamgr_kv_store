@@ -31,7 +31,7 @@ constexpr KvUtils::QueryHandler KvUtils::HANDLERS[LAST_TYPE];
 std::shared_ptr<ResultSetBridge> KvUtils::ToResultSetBridge(std::shared_ptr<KvStoreResultSet> resultSet)
 {
     if (resultSet == nullptr) {
-        ZLOGE("param error, kvResultSet nullptr");
+        ZLOGE("Param error, kvResultSet nullptr");
         return nullptr;
     }
     return nullptr;
@@ -42,7 +42,7 @@ Status KvUtils::ToQuery(const DataShareAbsPredicates &predicates, DataQuery &que
     const auto &operations = predicates.GetOperationList();
     for (const auto &oper : operations) {
         if (oper.operation < 0 || oper.operation >= LAST_TYPE) {
-            ZLOGE("operation param error");
+            ZLOGE("The operation param error");
             return Status::NOT_SUPPORT;
         }
         (*HANDLERS[oper.operation])(oper, query);
@@ -64,7 +64,7 @@ Entry KvUtils::ToEntry(const DataShareValuesBucket &valueBucket)
 {
     const auto &values = valueBucket.valuesMap;
     if (values.empty()) {
-        ZLOGE("valuesMap is null");
+        ZLOGE("This valuesMap is null");
         return {};
     }
     Entry entry;
@@ -85,14 +85,14 @@ Status KvUtils::GetKeys(const DataShareAbsPredicates &predicates, std::vector<Ke
 {
     const auto &operations = predicates.GetOperationList();
     if (operations.empty()) {
-        ZLOGE("operations is null");
+        ZLOGE("This operations is null");
         return Status::ERROR;
     }
 
     std::vector<std::string> myKeys;
     for (const auto &oper : operations) {
         if (oper.operation != IN_KEY) {
-            ZLOGE("find operation failed");
+            ZLOGE("This find operation failed");
             return Status::NOT_SUPPORT;
         }
         auto *val = std::get_if<std::vector<std::string>>(&oper.multiParams[0]);
@@ -111,7 +111,7 @@ Status KvUtils::ToEntryKey(const std::map<std::string, DataShareValueObject::Typ
 {
     auto it = values.find(KEY);
     if (it == values.end()) {
-        ZLOGE("field is not find!");
+        ZLOGE("This field is not find!");
         return Status::ERROR;
     }
     if (auto *val = std::get_if<std::string>(&it->second)) {
@@ -129,7 +129,7 @@ Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject::T
 {
     auto it = values.find(VALUE);
     if (it == values.end()) {
-        ZLOGE("field is not find!");
+        ZLOGE("This field is not find!");
         return Status::ERROR;
     }
 
@@ -170,7 +170,7 @@ Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject::T
 
 void KvUtils::NoSupport(const DataShare::OperationItem &oper, DataQuery &query)
 {
-    ZLOGE("invalid operation:%{public}d", oper.operation);
+    ZLOGE("Invalid operation:%{public}d", oper.operation);
 }
 
 void KvUtils::InKeys(const OperationItem &oper, DataQuery &query)

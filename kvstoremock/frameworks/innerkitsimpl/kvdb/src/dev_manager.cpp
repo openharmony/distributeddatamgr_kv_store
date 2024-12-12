@@ -37,7 +37,7 @@ void DevManager::RegisterDevCallback()
 {
     int32_t errNo = Init();
     if (errNo != DM_OK) {
-        ZLOGE("register device failed, try again");
+        ZLOGE("Register device failed, try again");
     }
 }
 

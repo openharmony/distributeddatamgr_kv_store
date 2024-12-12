@@ -20,7 +20,7 @@ using namespace OHOS::DistributedKv;
 namespace OHOS::DistributedData {
 ContextBase::~ContextBase()
 {
-    ZLOGD("no memory leak after callback or promise[resolved/rejected]");
+    ZLOGD("No memory leak after callback or promise[resolved/rejected]");
     if (env != nullptr) {
         if (callbackRef != nullptr) {
             auto status = napi_delete_reference(env, callbackRef);
@@ -58,9 +58,9 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
             status = napi_create_reference(env, argv[index], 1, &callbackRef);
             CHECK_STATUS_RETURN_VOID(this, "ref callback failed!");
             argc = index;
-            ZLOGD("async callback, no promise");
+            ZLOGD("Async callback, no promise");
         } else {
-            ZLOGD("no callback, async pormose");
+            ZLOGD("No callback, async pormose");
         }
     }
 
@@ -84,7 +84,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     if (aCtx->ctx->callbackRef == nullptr) {
         auto ret = napi_create_promise(env, &aCtx->deferred, &promise);
         CHECK_RETURN(ret == napi_ok, "napi_create_promise fail", nullptr);
-        ZLOGD("create deferred promise");
+        ZLOGD("Create deferred promise");
     } else {
         napi_get_undefined(env, &promise);
     }
@@ -151,7 +151,7 @@ void NapiQueue::GenerateOutput(AsyncContext &ctx, napi_value output)
         napi_value callback = nullptr;
         napi_get_reference_value(ctx.env, ctx.ctx->callbackRef, &callback);
         napi_value callbackResult = nullptr;
-        ZLOGD("call callback function");
+        ZLOGD("Call callback function");
         napi_call_function(ctx.env, nullptr, callback, RESULT_ALL, result, &callbackResult);
     }
 }

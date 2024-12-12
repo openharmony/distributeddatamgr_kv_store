@@ -96,7 +96,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
 
     DBKey dbKey = convertor_.ToLocalDBKey(key);
     if (dbKey.empty() || value.Size() > MAX_VALUE_LENGTH) {
-        ZLOGE("invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
+        ZLOGE("Invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
             StoreUtil::Anonymous(key.ToString()).c_str(), key.Size(), value.Size());
         return INVALID_ARGUMENT;
     }
@@ -126,7 +126,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
         DBEntry dbEntry;
         dbEntry.key = convertor_.ToLocalDBKey(entry.key);
         if (dbEntry.key.empty() || entry.value.Size() > MAX_VALUE_LENGTH) {
-            ZLOGE("invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
+            ZLOGE("Invalid key:%{public}s size:[k:%{public}zu v:%{public}zu]",
                 StoreUtil::Anonymous(entry.key.ToString()).c_str(), entry.key.Size(), entry.value.Size());
             return INVALID_ARGUMENT;
         }
@@ -155,7 +155,7 @@ Status SingleStoreImpl::Delete(const Key &key)
 
     DBKey dbKey = convertor_.ToLocalDBKey(key);
     if (dbKey.empty()) {
-        ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+        ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
         return INVALID_ARGUMENT;
     }
 
@@ -182,7 +182,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     for (const auto &key : keys) {
         DBKey dbKey = convertor_.ToLocalDBKey(key);
         if (dbKey.empty()) {
-            ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+            ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
             return INVALID_ARGUMENT;
         }
         dbKeys.push_back(std::move(dbKey));
@@ -261,7 +261,7 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     }
 
     if (observer == nullptr) {
-        ZLOGE("invalid observer is null");
+        ZLOGE("Invalid observer is null");
         return INVALID_ARGUMENT;
     }
 
@@ -307,7 +307,7 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
     }
 
     if (observer == nullptr) {
-        ZLOGE("invalid observer is null");
+        ZLOGE("Invalid observer is null");
         return INVALID_ARGUMENT;
     }
 
@@ -349,7 +349,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
 
     DBKey dbKey = convertor_.ToWholeDBKey(key);
     if (dbKey.empty()) {
-        ZLOGE("invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
+        ZLOGE("Invalid key:%{public}s size:%{public}zu", StoreUtil::Anonymous(key.ToString()).c_str(), key.Size());
         return INVALID_ARGUMENT;
     }
 
@@ -404,7 +404,7 @@ Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entrie
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     DBKey dbPrefix = convertor_.GetPrefix(prefix);
     if (dbPrefix.empty() && !prefix.Empty()) {
-        ZLOGE("invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
+        ZLOGE("Invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
             prefix.Size());
         return INVALID_ARGUMENT;
     }
@@ -434,7 +434,7 @@ Status SingleStoreImpl::GetResultSet(const Key &prefix, std::shared_ptr<ResultSe
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     DBKey dbPrefix = convertor_.GetPrefix(prefix);
     if (dbPrefix.empty() && !prefix.Empty()) {
-        ZLOGE("invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
+        ZLOGE("Invalid prefix:%{public}s size:%{public}zu", StoreUtil::Anonymous(prefix.ToString()).c_str(),
             prefix.Size());
         return INVALID_ARGUMENT;
     }
@@ -456,7 +456,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
         return ALREADY_CLOSED;
     }
     if (device.empty()) {
-        ZLOGE("no devices");
+        ZLOGE("No devices");
         return INVALID_ARGUMENT;
     }
     std::vector<DBEntry> dbEntries;
@@ -466,7 +466,7 @@ Status SingleStoreImpl::GetDeviceEntries(const std::string &device, std::vector<
     auto uuid = DevManager::GetInstance().GetUnEncryptedUuid();
     if (device == uuid) {
         dbStatus = dbStore_->GetDeviceEntries("", dbEntries);
-        ZLOGI("device equal loacluuid:%{public}s", StoreUtil::Anonymous(uuid).c_str());
+        ZLOGI("The device equal loacluuid:%{public}s", StoreUtil::Anonymous(uuid).c_str());
     } else {
         dbStatus = dbStore_->GetDeviceEntries(device, dbEntries);
     }
@@ -503,7 +503,7 @@ Status SingleStoreImpl::CloseResultSet(std::shared_ptr<ResultSet> &resultSet)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     if (resultSet == nullptr) {
-        ZLOGE("input is nullptr");
+        ZLOGE("Input is nullptr");
         return INVALID_ARGUMENT;
     }
 
@@ -608,7 +608,7 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
     }
     auto serviceAgent = service->GetServiceAgent({ appId_ });
     if (serviceAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
+        ZLOGE("Failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
               StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
@@ -617,7 +617,7 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
     serviceAgent->AddCloudSyncCallback(syncInfo.seqId, async);
     auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
     if (status != SUCCESS) {
-        ZLOGE("sync failed!: %{public}d", status);
+        ZLOGE("Sync failed!: %{public}d", status);
         serviceAgent->DeleteCloudSyncCallback(syncInfo.seqId);
     }
     return status;
@@ -698,7 +698,7 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
     syncInfo.query = query.ToString();
     auto serviceAgent = service->GetServiceAgent({ appId_ });
     if (serviceAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
+        ZLOGE("Failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
@@ -720,7 +720,7 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
     syncInfo.query = query.ToString();
     auto serviceAgent = service->GetServiceAgent({ appId_ });
     if (serviceAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
+        ZLOGE("Failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
@@ -948,7 +948,7 @@ Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCal
     auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
     Status status = StoreUtil::ConvertStatus(dbStatus);
     if (status != Status::SUCCESS) {
-        ZLOGE("client Sync failed: %{public}d", status);
+        ZLOGE("Client Sync failed: %{public}d", status);
     }
     return status;
 }
@@ -967,7 +967,7 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
 
     auto serviceAgent = service->GetServiceAgent({ appId_ });
     if (serviceAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
+        ZLOGE("Failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
             StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
@@ -984,7 +984,7 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
     if (cStatus == SUCCESS || status == SUCCESS) {
         return SUCCESS;
     } else {
-        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
+        ZLOGE("Sync failed!: %{public}d, %{public}d", cStatus, status);
         return ERROR;
     }
 }

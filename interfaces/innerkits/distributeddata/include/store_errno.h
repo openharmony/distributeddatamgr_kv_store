@@ -204,7 +204,7 @@ enum Status : int32_t {
     * Cloud disabled.
     */
     CLOUD_DISABLED = DISTRIBUTEDDATAMGR_ERR_OFFSET + 41,
-    
+
     /**
      * database can not open.
     */

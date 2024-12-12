@@ -156,7 +156,7 @@ void Acl::AclFromDefault()
         AclFromMode();
     } else {
         hasError_ = true;
-        ZLOGW("getxattr failed. error %{public}s path %{public}s", std::strerror(errno), path_.c_str());
+        ZLOGW("The getxattr failed. error %{public}s path %{public}s", std::strerror(errno), path_.c_str());
     }
 }
 

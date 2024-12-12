@@ -52,7 +52,7 @@ bool SecurityManager::Retry()
     auto status = CheckRootKey();
     if (status == HKS_SUCCESS) {
         hasRootKey_ = true;
-        ZLOGE("root key already exist.");
+        ZLOGE("Root key already exist.");
         return true;
     }
 
@@ -164,7 +164,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
 bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
 {
     if (!hasRootKey_ && !Retry()) {
-        ZLOGE("failed! no root key and generation failed");
+        ZLOGE("Failed! no root key and generation failed");
         return false;
     }
     auto secretKey = Encrypt(key);
@@ -183,7 +183,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     }
     content.assign(content.size(), 0);
     if (!ret) {
-        ZLOGE("client SaveSecretKey failed!");
+        ZLOGE("Client SaveSecretKey failed!");
         return false;
     }
     return ret;
@@ -434,7 +434,7 @@ int32_t SecurityManager::KeyFiles::FileLock(int32_t lockType)
         errCode = flock(lockFd_, lockType);
     } while (errCode < 0 && errno == EINTR);
     if (errCode < 0) {
-        ZLOGE("flock failed, type:%{public}d, errno:%{public}d, path:%{public}s", lockType, errno,
+        ZLOGE("This flock is failed, type:%{public}d, errno:%{public}d, path:%{public}s", lockType, errno,
             StoreUtil::Anonymous(lockFile_).c_str());
         return Status::ERROR;
     }

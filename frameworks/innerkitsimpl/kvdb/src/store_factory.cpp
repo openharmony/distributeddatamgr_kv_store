@@ -52,7 +52,7 @@ Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
         static_cast<DistributedDB::PragmaData>(const_cast<void *>(static_cast<const void *>(&MAX_WAL_SIZE)));
     auto status = dbStore->Pragma(DistributedDB::SET_MAX_LOG_LIMIT, data);
     if (status != DistributedDB::DBStatus::OK) {
-        ZLOGE("failed to set max log limit! status:%{public}d", status);
+        ZLOGE("Failed to set max log limit! status:%{public}d", status);
     }
     return StoreUtil::ConvertStatus(status);
 }
@@ -105,7 +105,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             });
         status = StoreUtil::ConvertStatus(dbStatus);
         if (kvStore == nullptr) {
-            ZLOGE("failed! status:%{public}d appId:%{public}s storeId:%{public}s path:%{public}s", dbStatus,
+            ZLOGE("Failed! status:%{public}d appId:%{public}s storeId:%{public}s path:%{public}s", dbStatus,
                 appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
             return !stores.empty();
         }
@@ -284,7 +284,7 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
 
     auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
     if (!newDbPassword.IsValid()) {
-        ZLOGE("failed to generate new key.");
+        ZLOGE("Failed to generate new key.");
         newDbPassword.Clear();
         StoreUtil::Remove(rekeyName);
         return false;
@@ -293,13 +293,13 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     auto dbStatus = dbStore->Rekey(newDbPassword.password);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("failed to rekey the substitute database.");
+        ZLOGE("Failed to rekey the substitute database.");
         StoreUtil::Remove(rekeyName);
         newDbPassword.Clear();
         return false;
     }
     if (!SecurityManager::GetInstance().SaveDBPassword(storeId, path, newDbPassword.password)) {
-        ZLOGE("save new password failed");
+        ZLOGE("Save new password failed");
         dbStore->Rekey(dbPassword.password);
         StoreUtil::Remove(rekeyName);
         return false;

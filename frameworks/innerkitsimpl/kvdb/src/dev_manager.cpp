@@ -40,7 +40,7 @@ private:
 
 void DmDeathCallback::OnRemoteDied()
 {
-    ZLOGI("dm device manager died, init it again");
+    ZLOGI("Dm device manager died, init it again");
     devManager_.RegisterDevCallback();
 }
 
@@ -108,7 +108,7 @@ void DevManager::UpdateBucket()
 {
     auto detailInfos = GetRemoteDevices();
     if (detailInfos.empty()) {
-        ZLOGD("no remote device");
+        ZLOGD("No remote device");
     }
     detailInfos.emplace_back(GetLocalDevice());
     for (const auto &detailInfo : detailInfos) {
@@ -129,18 +129,18 @@ std::string DevManager::GetUnEncryptedUuid()
     DevInfo info;
     auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
     if (ret != DM_OK) {
-        ZLOGE("get local device info fail");
+        ZLOGE("Get local device info fail");
         return "";
     }
     auto networkId = std::string(info.networkId);
     if (networkId.empty()) {
-        ZLOGE("networkid empty");
+        ZLOGE("This networkid is empty");
         return "";
     }
     std::string uuid;
     DeviceManager::GetInstance().GetUuidByNetworkId(PKG_NAME, networkId, uuid);
     if (uuid.empty()) {
-        ZLOGE("get uuid by networkid fail");
+        ZLOGE("Get uuid by networkid fail");
         return "";
     }
     UnEncryptedLocalInfo_.uuid = std::move(uuid);
@@ -159,7 +159,7 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     DevInfo info;
     auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
     if (ret != DM_OK) {
-        ZLOGE("get local device info fail");
+        ZLOGE("Get local device info fail");
         return invalidDetail_;
     }
     auto networkId = std::string(info.networkId);
@@ -180,11 +180,11 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
     std::vector<DevInfo> dmInfos;
     auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
     if (ret != DM_OK) {
-        ZLOGE("get trusted device:%{public}d", ret);
+        ZLOGE("Get trusted device:%{public}d", ret);
         return {};
     }
     if (dmInfos.empty()) {
-        ZLOGD("no remote device");
+        ZLOGD("No remote device");
         return {};
     }
     std::vector<DetailInfo> dtInfos;

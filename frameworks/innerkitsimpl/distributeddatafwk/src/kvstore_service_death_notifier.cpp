@@ -52,36 +52,36 @@ AppId KvStoreServiceDeathNotifier::GetAppId()
 
 sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataService()
 {
-    ZLOGD("begin.");
+    ZLOGD("Begin.");
     auto &instance = GetInstance();
     std::lock_guard<std::mutex> lg(instance.watchMutex_);
     if (instance.kvDataServiceProxy_ != nullptr) {
         return instance.kvDataServiceProxy_;
     }
 
-    ZLOGI("create remote proxy.");
+    ZLOGI("Create remote proxy.");
     auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
     if (samgr == nullptr) {
-        ZLOGE("get samgr fail.");
+        ZLOGE("Get samgr fail.");
         return nullptr;
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
     instance.kvDataServiceProxy_ = iface_cast<DataMgrServiceProxy>(remote);
     if (instance.kvDataServiceProxy_ == nullptr) {
-        ZLOGE("initialize proxy failed.");
+        ZLOGE("Initialize proxy failed.");
         return nullptr;
     }
 
     if (instance.deathRecipientPtr_ == nullptr) {
         instance.deathRecipientPtr_ = new (std::nothrow) ServiceDeathRecipient();
         if (instance.deathRecipientPtr_ == nullptr) {
-            ZLOGW("new KvStoreDeathRecipient failed");
+            ZLOGW("New KvStoreDeathRecipient failed");
             return nullptr;
         }
     }
     if ((remote->IsProxyObject()) && (!remote->AddDeathRecipient(instance.deathRecipientPtr_))) {
-        ZLOGE("failed to add death recipient.");
+        ZLOGE("Failed to add death recipient.");
     }
 
     instance.RegisterClientDeathObserver();
@@ -98,7 +98,7 @@ void KvStoreServiceDeathNotifier::RegisterClientDeathObserver()
         clientDeathObserverPtr_ = new (std::nothrow) KvStoreClientDeathObserver();
     }
     if (clientDeathObserverPtr_ == nullptr) {
-        ZLOGW("new KvStoreClientDeathObserver failed");
+        ZLOGW("New KvStoreClientDeathObserver failed");
         return;
     }
     kvDataServiceProxy_->RegisterClientDeathObserver(GetAppId(), clientDeathObserverPtr_);
@@ -110,9 +110,9 @@ void KvStoreServiceDeathNotifier::AddServiceDeathWatcher(std::shared_ptr<KvStore
     std::lock_guard<std::mutex> lg(instance.watchMutex_);
     auto ret = instance.serviceDeathWatchers_.insert(std::move(watcher));
     if (ret.second) {
-        ZLOGI("success set size: %zu", instance.serviceDeathWatchers_.size());
+        ZLOGI("Success set size: %zu", instance.serviceDeathWatchers_.size());
     } else {
-        ZLOGE("failed set size: %zu", instance.serviceDeathWatchers_.size());
+        ZLOGE("Failed set size: %zu", instance.serviceDeathWatchers_.size());
     }
 }
 
@@ -123,9 +123,9 @@ void KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(std::shared_ptr<KvSt
     auto it = instance.serviceDeathWatchers_.find(std::move(watcher));
     if (it != instance.serviceDeathWatchers_.end()) {
         instance.serviceDeathWatchers_.erase(it);
-        ZLOGI("find & erase set size: %zu", instance.serviceDeathWatchers_.size());
+        ZLOGI("Find & erase set size: %zu", instance.serviceDeathWatchers_.size());
     } else {
-        ZLOGE("no found set size: %zu", instance.serviceDeathWatchers_.size());
+        ZLOGE("No found set size: %zu", instance.serviceDeathWatchers_.size());
     }
 }
 
@@ -136,10 +136,10 @@ void KvStoreServiceDeathNotifier::ServiceDeathRecipient::OnRemoteDied(const wptr
     // Need to do this with the lock held
     std::lock_guard<std::mutex> lg(instance.watchMutex_);
     instance.kvDataServiceProxy_ = nullptr;
-    ZLOGI("watcher set size: %zu", instance.serviceDeathWatchers_.size());
+    ZLOGI("Watcher set size: %zu", instance.serviceDeathWatchers_.size());
     for (const auto &watcher : instance.serviceDeathWatchers_) {
         if (watcher == nullptr) {
-            ZLOGI("watcher is nullptr");
+            ZLOGI("This watcher is nullptr");
             continue;
         }
         TaskExecutor::GetInstance().Execute([watcher] {
@@ -150,12 +150,12 @@ void KvStoreServiceDeathNotifier::ServiceDeathRecipient::OnRemoteDied(const wptr
 
 KvStoreServiceDeathNotifier::ServiceDeathRecipient::ServiceDeathRecipient()
 {
-    ZLOGI("constructor.");
+    ZLOGI("Constructor.");
 }
 
 KvStoreServiceDeathNotifier::ServiceDeathRecipient::~ServiceDeathRecipient()
 {
-    ZLOGI("destructor.");
+    ZLOGI("Destructor.");
 }
 } // namespace DistributedKv
 } // namespace OHOS

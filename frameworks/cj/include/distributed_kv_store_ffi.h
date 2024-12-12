@@ -27,7 +27,7 @@
 
 namespace OHOS {
 namespace DistributedKVStore {
-    
+
 extern "C" {
     FFI_EXPORT int64_t FfiOHOSDistributedKVStoreCreateKVManager(const char* boudleName,
         OHOS::AbilityRuntime::Context* context);

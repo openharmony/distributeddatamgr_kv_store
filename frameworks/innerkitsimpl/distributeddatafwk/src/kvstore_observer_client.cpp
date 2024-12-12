@@ -23,17 +23,17 @@ namespace DistributedKv {
 KvStoreObserverClient::KvStoreObserverClient(std::shared_ptr<KvStoreObserver> kvStoreObserver)
     : kvStoreObserver_(kvStoreObserver)
 {
-    ZLOGI("start");
+    ZLOGI("Start");
 }
 
 KvStoreObserverClient::~KvStoreObserverClient()
 {
-    ZLOGI("end");
+    ZLOGI("End");
 }
 
 void KvStoreObserverClient::OnChange(const ChangeNotification &changeNotification)
 {
-    ZLOGI("start");
+    ZLOGI("Start");
     if (kvStoreObserver_ != nullptr) {
         ZLOGI("SINGLE_VERSION start");
         kvStoreObserver_->OnChange(changeNotification);
@@ -42,7 +42,7 @@ void KvStoreObserverClient::OnChange(const ChangeNotification &changeNotificatio
 
 void KvStoreObserverClient::OnChange(const DataOrigin &origin, IKvStoreObserver::Keys &&keys)
 {
-    ZLOGI("start");
+    ZLOGI("Start");
     if (kvStoreObserver_ != nullptr) {
         kvStoreObserver_->OnChange(origin, std::move(keys));
     }

@@ -107,7 +107,7 @@ bool Marshalling(const Options &input, MessageParcel &data)
 {
     if (!ITypesUtil::Marshal(data, input.schema, input.hapName, input.policies, input.cloudConfig.enableCloud,
                              input.cloudConfig.autoSync, input.authType)) {
-        ZLOGE("write policies failed");
+        ZLOGE("Write policies failed");
         return false;
     }
 
@@ -134,7 +134,7 @@ bool Unmarshalling(Options &output, MessageParcel &data)
 {
     if (!ITypesUtil::Unmarshal(data, output.schema, output.hapName, output.policies, output.cloudConfig.enableCloud,
                                output.cloudConfig.autoSync, output.authType)) {
-        ZLOGE("read policies failed");
+        ZLOGE("Read policies failed");
         return false;
     }
 

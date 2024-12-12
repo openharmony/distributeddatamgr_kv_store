@@ -37,7 +37,7 @@ public:
     static void ReportKVDBCorruptedFault(
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
         const KvStoreTuple &storeTuple, const std::string &appendix);
-    
+
     static void ReportKVDBRebuild(
         const Options &options, uint32_t errorCode, int32_t systemErrorNo,
         const KvStoreTuple &storeTuple, const std::string &appendix);
@@ -49,7 +49,7 @@ private:
     static void ReportCommonFault(const KVDBCorruptedEvent &eventInfo);
 
     static std::string GetCurrentMicrosecondTimeFormat();
-    
+
     static bool IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId);
 
     static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);

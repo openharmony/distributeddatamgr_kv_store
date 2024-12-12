@@ -58,7 +58,7 @@ void KVDBNotifierClient::SyncCompleted(uint64_t seqNum, ProgressDetail &&detail)
 
 void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask, int32_t dataType)
 {
-    ZLOGD("remote changed mask:%{public}zu dataType:%{public}d", mask.size(), dataType);
+    ZLOGD("Remote changed mask:%{public}zu dataType:%{public}d", mask.size(), dataType);
     DataType type = static_cast<DataType>(dataType);
     for (const auto &[device, changed] : mask) {
         auto clientUuid = DevManager::GetInstance().ToUUID(device);
@@ -116,7 +116,7 @@ void KVDBNotifierClient::AddSyncCallback(
     const std::shared_ptr<KvStoreSyncCallback> callback, uint64_t sequenceId)
 {
     if (callback == nullptr) {
-        ZLOGE("callback is nullptr");
+        ZLOGE("This callback is nullptr");
         return;
     }
     auto inserted = syncCallbackInfo_.Insert(sequenceId, callback);
@@ -150,7 +150,7 @@ void KVDBNotifierClient::AddSwitchCallback(const std::string &appId, std::shared
         return;
     }
     if (switchObservers_.Contains(uintptr_t(observer.get()))) {
-        ZLOGI("duplicate observer");
+        ZLOGI("Duplicate observer");
         return;
     }
     switchObservers_.Insert(uintptr_t(observer.get()), observer);
