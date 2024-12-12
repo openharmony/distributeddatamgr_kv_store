@@ -217,6 +217,11 @@ public:
         return TryToAddSyncTask(std::move(taskInfo));
     }
 
+    bool CallIsAlreadyHaveCompensatedSyncTask()
+    {
+        return IsAlreadyHaveCompensatedSyncTask();
+    }
+
     void PopTaskQueue()
     {
         if (!taskQueue_.empty()) {

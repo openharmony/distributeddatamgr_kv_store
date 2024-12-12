@@ -1911,6 +1911,18 @@ void CloudSyncer::ClearCurrentContextWithoutLock()
     currentContext_.repeatCount = 0;
 }
 
+bool CloudSyncer::IsAlreadyHaveCompensatedSyncTask()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    for (const auto &item : cloudTaskInfos_) {
+        const auto &taskInfo = item.second;
+        if (taskInfo.compensatedTask) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
 {
     std::shared_ptr<ProcessNotifier> notifier = nullptr;
@@ -1946,7 +1958,8 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         notifier->NotifyProcess(info, {}, true);
     }
     // generate compensated sync
-    if (!info.compensatedTask) {
+    // if already have compensated sync task in quque, no need to generate new compensated sync task
+    if (!info.compensatedTask && !IsAlreadyHaveCompensatedSyncTask()) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo(info);
         GenerateCompensatedSync(taskInfo);
     }

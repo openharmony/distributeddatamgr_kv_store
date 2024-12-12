@@ -362,4 +362,41 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMockCheck002, TestSi
     storageProxy = nullptr;
     delete iCloud;
 }
+
+/**
+ * @tc.name: SyncerMgrCheck006
+ * @tc.desc: Test check if compensated sync task is in queue
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck006, TestSize.Level1)
+{
+    MockICloudSyncStorageInterface *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    TestCloudSyncer cloudSyncer(storageProxy);
+    std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
+    cloudSyncer.SetMockICloudDB(idb);
+    std::vector<std::string> tables = {"TestTableA", "TestTableB"};
+    SyncProcessCallback onProcess;
+    /**
+     * @tc.steps:step1. add compensated task to task queue.
+     * @tc.expected: step1. return OK
+     */
+    cloudSyncer.taskInfo_ = cloudSyncer.SetAndGetCloudTaskInfo(SYNC_MODE_CLOUD_FORCE_PUSH, tables, onProcess, 5000);
+    cloudSyncer.taskInfo_.compensatedTask = true;
+    int errCode = cloudSyncer.CallTryToAddSyncTask(std::move(cloudSyncer.taskInfo_));
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. check compensated task.
+     * @tc.expected: step2. return true
+     */
+    EXPECT_EQ(cloudSyncer.CallIsAlreadyHaveCompensatedSyncTask(), true);
+
+    RuntimeContext::GetInstance()->StopTaskPool();
+    storageProxy.reset();
+    delete iCloud;
+    idb = nullptr;
+}
 }
