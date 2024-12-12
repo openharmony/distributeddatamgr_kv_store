@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <cstdint>
-#include <vector>
-#include "types.h"
 #include "kv_types_util.h"
+#include "types.h"
+#include <cstdint>
+#include <gtest/gtest.h>
+#include <vector>
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS;
@@ -30,25 +30,21 @@ public:
     void TearDown();
 };
 
-void BlobTest::SetUpTestCase(void)
-{}
+void BlobTest::SetUpTestCase(void) { }
 
-void BlobTest::TearDownTestCase(void)
-{}
+void BlobTest::TearDownTestCase(void) { }
 
-void BlobTest::SetUp(void)
-{}
+void BlobTest::SetUp(void) { }
 
-void BlobTest::TearDown(void)
-{}
+void BlobTest::TearDown(void) { }
 
 /**
-* @tc.name: Size001
-* @tc.desc: construct a Blob and check its size.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Size001
+ * @tc.desc: construct a Blob and check its size.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Size001, TestSize.Level0)
 {
     Blob blob1;
@@ -60,7 +56,7 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
     std::string strTmp = "123";
     Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Size(), (size_t)3);
-    std::vector<uint8_t> vec = {'1', '2', '3', '4'};
+    std::vector<uint8_t> vec = { '1', '2', '3', '4' };
     Blob blob5(vec);
     EXPECT_EQ(blob5.Size(), (size_t)4);
     const char *chr1 = strTmp.c_str();
@@ -73,12 +69,12 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Empty001
-* @tc.desc: construct a Blob and check its empty.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Empty001
+ * @tc.desc: construct a Blob and check its empty.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Empty001, TestSize.Level0)
 {
     Blob blob1;
@@ -90,7 +86,7 @@ HWTEST_F(BlobTest, Empty001, TestSize.Level0)
     std::string strTmp = "123";
     Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Empty(), false);
-    std::vector<uint8_t> vec = {'1', '2', '3', '4'};
+    std::vector<uint8_t> vec = { '1', '2', '3', '4' };
     Blob blob5(vec);
     EXPECT_EQ(blob5.Empty(), false);
     const char *chr1 = strTmp.c_str();
@@ -99,12 +95,12 @@ HWTEST_F(BlobTest, Empty001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Clear001
-* @tc.desc: construct a Blob and check it clear function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Clear001
+ * @tc.desc: construct a Blob and check it clear function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Clear001, TestSize.Level0)
 {
     Blob blob1 = "1234567890";
@@ -118,19 +114,19 @@ HWTEST_F(BlobTest, Clear001, TestSize.Level0)
     Blob blob3(chr);
     blob3.Clear();
     EXPECT_EQ(blob3.Empty(), true);
-    std::vector<uint8_t> vec = {'1', '2', '3', '4'};
+    std::vector<uint8_t> vec = { '1', '2', '3', '4' };
     Blob blob4(vec);
     blob4.Clear();
     EXPECT_EQ(blob4.Empty(), true);
 }
 
 /**
-* @tc.name: StartsWith001
-* @tc.desc: construct a Blob and check it StartsWith function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: StartsWith001
+ * @tc.desc: construct a Blob and check it StartsWith function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, StartsWith001, TestSize.Level0)
 {
     Blob blob1 = "1234567890";
@@ -143,12 +139,12 @@ HWTEST_F(BlobTest, StartsWith001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Compare001
-* @tc.desc: construct a Blob and check it compare function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Compare001
+ * @tc.desc: construct a Blob and check it compare function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Compare001, TestSize.Level0)
 {
     Blob blob1 = "1234567890";
@@ -160,29 +156,29 @@ HWTEST_F(BlobTest, Compare001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Data001
-* @tc.desc: construct a Blob and check it Data function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Data001
+ * @tc.desc: construct a Blob and check it Data function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Data001, TestSize.Level0)
 {
-    std::vector<uint8_t> result = {'1', '2', '3', '4'};
+    std::vector<uint8_t> result = { '1', '2', '3', '4' };
     Blob blob1("1234");
     EXPECT_EQ(blob1.Data(), result);
-    std::vector<uint8_t> result2 = {'1', '2', '3', '4', '5'};
+    std::vector<uint8_t> result2 = { '1', '2', '3', '4', '5' };
     Blob blob2("12345");
     EXPECT_EQ(blob2.Data(), result2);
 }
 
 /**
-* @tc.name: ToString001
-* @tc.desc: construct a Blob and check it ToString function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: ToString001
+ * @tc.desc: construct a Blob and check it ToString function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, ToString001, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -191,12 +187,12 @@ HWTEST_F(BlobTest, ToString001, TestSize.Level0)
 }
 
 /**
-* @tc.name: OperatorEqual001
-* @tc.desc: construct a Blob and check it operator== function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: OperatorEqual001
+ * @tc.desc: construct a Blob and check it operator== function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, OperatorEqual001, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -207,12 +203,12 @@ HWTEST_F(BlobTest, OperatorEqual001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Operator001
-* @tc.desc: construct a Blob and check it operator[] function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Operator001
+ * @tc.desc: construct a Blob and check it operator[] function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Operator001, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -224,12 +220,12 @@ HWTEST_F(BlobTest, Operator001, TestSize.Level0)
 }
 
 /**
-* @tc.name: Operator002
-* @tc.desc: construct a Blob and check it operator= function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Operator002
+ * @tc.desc: construct a Blob and check it operator= function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Operator002, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -239,12 +235,12 @@ HWTEST_F(BlobTest, Operator002, TestSize.Level0)
 }
 
 /**
-* @tc.name: Operator003
-* @tc.desc: construct a Blob and check it operator= function.
-* @tc.type: FUNC
-* @tc.require: AR000C6GBG
-* @tc.author: liqiao
-*/
+ * @tc.name: Operator003
+ * @tc.desc: construct a Blob and check it operator= function.
+ * @tc.type: FUNC
+ * @tc.require: AR000C6GBG
+ * @tc.author: liqiao
+ */
 HWTEST_F(BlobTest, Operator003, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -255,12 +251,12 @@ HWTEST_F(BlobTest, Operator003, TestSize.Level0)
 }
 
 /**
-* @tc.name: Operator004
-* @tc.desc: construct a Blob and check it operator std::vector<uint8_t> && function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: wangkai
-*/
+ * @tc.name: Operator004
+ * @tc.desc: construct a Blob and check it operator std::vector<uint8_t> && function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangkai
+ */
 HWTEST_F(BlobTest, Operator004, TestSize.Level0)
 {
     std::vector<uint8_t> blob = { 1, 2, 3, 4 };
@@ -271,12 +267,12 @@ HWTEST_F(BlobTest, Operator004, TestSize.Level0)
 }
 
 /**
-* @tc.name: Operator005
-* @tc.desc: construct a Blob and check it operator std::vector<uint8_t> & function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: wangkai
-*/
+ * @tc.name: Operator005
+ * @tc.desc: construct a Blob and check it operator std::vector<uint8_t> & function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangkai
+ */
 HWTEST_F(BlobTest, Operator005, TestSize.Level0)
 {
     const std::vector<uint8_t> blob = { 1, 2, 3, 4 };
@@ -285,12 +281,12 @@ HWTEST_F(BlobTest, Operator005, TestSize.Level0)
 }
 
 /**
-* @tc.name: RawSize001
-* @tc.desc: construct a Blob and check it RawSize function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: wangkai
-*/
+ * @tc.name: RawSize001
+ * @tc.desc: construct a Blob and check it RawSize function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangkai
+ */
 HWTEST_F(BlobTest, RawSize001, TestSize.Level0)
 {
     Blob blob1("1234");
@@ -300,12 +296,12 @@ HWTEST_F(BlobTest, RawSize001, TestSize.Level0)
 }
 
 /**
-* @tc.name: WriteToBuffer001
-* @tc.desc: construct a Blob and check it WriteToBuffer and ReadFromBuffer function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: wangkai
-*/
+ * @tc.name: WriteToBuffer001
+ * @tc.desc: construct a Blob and check it WriteToBuffer and ReadFromBuffer function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangkai
+ */
 HWTEST_F(BlobTest, WriteToBuffer001, TestSize.Level1)
 {
     Entry insert, update, del;

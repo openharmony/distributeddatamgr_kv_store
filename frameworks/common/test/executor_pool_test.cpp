@@ -1,17 +1,17 @@
 /*
-* Copyright (c) 2023 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include <gtest/gtest.h>
 
 #include "block_data.h"
@@ -35,23 +35,23 @@ public:
     static constexpr uint32_t SHORT_INTERVAL = 100; // ms
     static constexpr uint32_t LONG_INTERVAL = 1;    // s
     static std::shared_ptr<ExecutorPool> executorPool_;
-    static void SetUpTestCase(void){};
+    static void SetUpTestCase(void) {};
     static void TearDownTestCase(void)
     {
         executorPool_ = nullptr;
     };
-    void SetUp(){};
-    void TearDown() {}
+    void SetUp() {};
+    void TearDown() { }
 };
 std::shared_ptr<ExecutorPool> ExecutorPoolTest::executorPool_ = std::make_shared<ExecutorPool>(12, 5);
 
 /**
-* @tc.name: Execute
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: Execute
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, Execute, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
@@ -72,12 +72,12 @@ HWTEST_F(ExecutorPoolTest, Execute, TestSize.Level0)
 }
 
 /**
-* @tc.name: Schedule
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: Schedule
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, Schedule, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
@@ -94,12 +94,12 @@ HWTEST_F(ExecutorPoolTest, Schedule, TestSize.Level0)
 }
 
 /**
-* @tc.name: MultiSchedule
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: MultiSchedule
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, MultiSchedule, TestSize.Level0)
 {
     auto data = std::make_shared<Data>();
@@ -119,12 +119,12 @@ HWTEST_F(ExecutorPoolTest, MultiSchedule, TestSize.Level0)
     }
 }
 /**
-* @tc.name: Remove
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: Remove
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, Remove, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
@@ -140,12 +140,12 @@ HWTEST_F(ExecutorPoolTest, Remove, TestSize.Level0)
     ASSERT_EQ(data->data, 1);
 }
 /**
-* @tc.name: Reset
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: Reset
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, Reset, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
@@ -163,12 +163,12 @@ HWTEST_F(ExecutorPoolTest, Reset, TestSize.Level0)
 }
 
 /**
-* @tc.name: MaxEqualsOne
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: CRJ
-*/
+ * @tc.name: MaxEqualsOne
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: CRJ
+ */
 HWTEST_F(ExecutorPoolTest, MaxEqualsOne, TestSize.Level0)
 {
     auto executors = std::make_shared<ExecutorPool>(1, 0);
@@ -189,12 +189,12 @@ HWTEST_F(ExecutorPoolTest, MaxEqualsOne, TestSize.Level0)
 }
 
 /**
-* @tc.name: RemoveInExcuteTask
-* @tc.desc: test remove task when the task is running.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: ht
-*/
+ * @tc.name: RemoveInExcuteTask
+ * @tc.desc: test remove task when the task is running.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: ht
+ */
 HWTEST_F(ExecutorPoolTest, RemoveWhenExcute, TestSize.Level0)
 {
     auto executors = std::make_shared<ExecutorPool>(1, 1);

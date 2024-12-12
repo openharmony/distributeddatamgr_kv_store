@@ -19,7 +19,8 @@
 #include "gtest/gtest.h"
 using namespace testing::ext;
 namespace OHOS::Test {
-template<typename _Key, typename _Tp> using ConcurrentMap = OHOS::ConcurrentMap<_Key, _Tp>;
+template <typename _Key, typename _Tp>
+using ConcurrentMap = OHOS::ConcurrentMap<_Key, _Tp>;
 class ConcurrentMapTest : public testing::Test {
 public:
     struct TestValue {
@@ -27,9 +28,9 @@ public:
         std::string name;
         std::string testCase;
     };
-    static void SetUpTestCase(void) {}
+    static void SetUpTestCase(void) { }
 
-    static void TearDownTestCase(void) {}
+    static void TearDownTestCase(void) { }
 
 protected:
     void SetUp()
@@ -46,12 +47,12 @@ protected:
 };
 
 /**
-* @tc.name: EmplaceWithNone
-* @tc.desc: test the bool Emplace() noexcept function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: EmplaceWithNone
+ * @tc.desc: test the bool Emplace() noexcept function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(ConcurrentMapTest, EmplaceWithNone, TestSize.Level0)
 {
     values_.Emplace();
@@ -60,28 +61,28 @@ HWTEST_F(ConcurrentMapTest, EmplaceWithNone, TestSize.Level0)
 }
 
 /**
-* @tc.name: EmplaceWithFilter
-* @tc.desc: test the function:
+ * @tc.name: EmplaceWithFilter
+ * @tc.desc: test the function:
  * template<typename _Filter, typename... _Args>
  * typename std::enable_if<std::is_convertible_v<_Filter, filter_type>, bool>::type
  * Emplace(const _Filter &filter, _Args &&...args) noexcept
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(ConcurrentMapTest, EmplaceWithFilter, TestSize.Level0)
 {
     auto success = values_.Emplace(
         [](const decltype(values_)::map_type &entries) {
             return (entries.find("test") == entries.end());
         },
-        "test", TestValue{ "id", "name", "test case" });
+        "test", TestValue { "id", "name", "test case" });
     ASSERT_TRUE(success);
     success = values_.Emplace(
         [](const decltype(values_)::map_type &entries) {
             return (entries.find("test") == entries.end());
         },
-        "test", TestValue{ "id", "name", "test case" });
+        "test", TestValue { "id", "name", "test case" });
     ASSERT_TRUE(!success);
     success = values_.Emplace(
         [](decltype(values_)::map_type &entries) {
@@ -92,20 +93,20 @@ HWTEST_F(ConcurrentMapTest, EmplaceWithFilter, TestSize.Level0)
             }
             return (it == entries.end());
         },
-        "test", TestValue{ "id", "name", "test case" });
+        "test", TestValue { "id", "name", "test case" });
     ASSERT_TRUE(success);
 }
 
 /**
-* @tc.name: EmplaceWithArgs
-* @tc.desc: test the function:
+ * @tc.name: EmplaceWithArgs
+ * @tc.desc: test the function:
  * template<typename... _Args>
  * typename std::enable_if<!std::is_convertible_v<decltype(First<_Args...>()), filter_type>, bool>::type
  * Emplace(_Args &&...args) noexcept
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(ConcurrentMapTest, EmplaceWithArgs, TestSize.Level0)
 {
     TestValue value = { "id", "name", "test case" };

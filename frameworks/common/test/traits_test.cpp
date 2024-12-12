@@ -21,13 +21,13 @@ class TraitsTest : public testing::Test {
 public:
     class From {
     public:
-        From() {}
+        From() { }
     };
     class Convertible {
     public:
         // Convertible is auto convert type, do not add explicit to stop the type convert.
         Convertible(const From &) {};
-        Convertible() {}
+        Convertible() { }
         Convertible(Convertible &&) noexcept {};
         Convertible &operator=(Convertible &&) noexcept
         {
@@ -38,19 +38,19 @@ public:
             return From();
         }
     };
-    static void SetUpTestCase(void){};
-    static void TearDownTestCase(void){};
-    void SetUp(){};
-    void TearDown() {}
+    static void SetUpTestCase(void) {};
+    static void TearDownTestCase(void) {};
+    void SetUp() {};
+    void TearDown() { }
 };
 
 /**
-* @tc.name: same_index_of_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: same_index_of_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, same_index_of_v, TestSize.Level0)
 {
     auto index = Traits::same_index_of_v<int32_t, int32_t, double, std::vector<uint8_t>>;
@@ -62,12 +62,12 @@ HWTEST_F(TraitsTest, same_index_of_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: same_in_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: same_in_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, same_in_v, TestSize.Level0)
 {
     auto exist = Traits::same_in_v<int32_t, int32_t, double, std::vector<uint8_t>>;
@@ -79,12 +79,12 @@ HWTEST_F(TraitsTest, same_in_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: convertible_index_of_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: convertible_index_of_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, convertible_index_of_v, TestSize.Level0)
 {
     auto index = Traits::convertible_index_of_v<int32_t, int16_t, double, std::vector<uint8_t>>;
@@ -98,12 +98,12 @@ HWTEST_F(TraitsTest, convertible_index_of_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: convertible_in_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: convertible_in_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, convertible_in_v, TestSize.Level0)
 {
     auto convertible = Traits::convertible_in_v<int32_t, int16_t, double, std::vector<uint8_t>>;
@@ -117,12 +117,12 @@ HWTEST_F(TraitsTest, convertible_in_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: variant_size_of_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: variant_size_of_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, variant_size_of_v, TestSize.Level0)
 {
     std::variant<std::monostate, int64_t, bool, double, std::string, std::vector<uint8_t>> value;
@@ -134,12 +134,12 @@ HWTEST_F(TraitsTest, variant_size_of_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: variant_index_of_v
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: variant_index_of_v
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, variant_index_of_v, TestSize.Level0)
 {
     std::variant<std::monostate, int64_t, bool, double, std::string, std::vector<uint8_t>> value;
@@ -160,12 +160,12 @@ HWTEST_F(TraitsTest, variant_index_of_v, TestSize.Level0)
 }
 
 /**
-* @tc.name: get_if_same_type
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: get_if_same_type
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, get_if_same_type, TestSize.Level0)
 {
     // 1. When the _Tp is a type in the ..._Types, the get_if is equal to the std::get_if.
@@ -188,12 +188,12 @@ HWTEST_F(TraitsTest, get_if_same_type, TestSize.Level0)
     ASSERT_TRUE(strcmp(*charPtr, "test case") == 0);
 }
 /**
-* @tc.name: get_if_convertible_type
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: get_if_convertible_type
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, get_if_convertible_type, TestSize.Level0)
 {
     // 2. When the _Tp is not a type in the ..._Types but someone in the ...Types can convert to _Tp implicitly,
@@ -219,12 +219,12 @@ HWTEST_F(TraitsTest, get_if_convertible_type, TestSize.Level0)
 }
 
 /**
-* @tc.name: get_if_invalid_type
-* @tc.desc:
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: Sven Wang
-*/
+ * @tc.name: get_if_invalid_type
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(TraitsTest, get_if_invalid_type, TestSize.Level0)
 {
     // 3. When the _Tp is not a type in the ..._Types and can't convert, the get_if will return nullptr.
