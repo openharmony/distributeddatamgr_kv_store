@@ -580,7 +580,7 @@ int SQLiteSingleVerRelationalStorageExecutor::Rollback()
     }
     int errCode = SQLiteUtils::RollbackTransaction(dbHandle_);
     if (errCode != E_OK) {
-        LOGE("sqlite single ver storage executor rollback fail! errCode = [%d]", errCode);
+        LOGE("sqlite single ver relation storage executor rollback fail! errCode = [%d]", errCode);
     }
     return errCode;
 }
