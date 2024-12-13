@@ -348,11 +348,11 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, Test
     std::string exceptStoreId;
     exceptStoreId.clear();
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(exceptStoreId, dbSize), INVALID_ARGS);
-    EXPECT_EQ(dbSize, 0ull);
+    EXPECT_EQ(dbSize, 0uLL);
 
     exceptStoreId.resize(129, 'X');
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(exceptStoreId, dbSize), INVALID_ARGS);
-    EXPECT_EQ(dbSize, 0ull);
+    EXPECT_EQ(dbSize, 0uLL);
 
     /**
      * @tc.steps: step2. Use a valid but not exist storeId to GetKvStoreDiskSize.
@@ -360,7 +360,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, Test
      */
     exceptStoreId.resize(128, 'X');
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(exceptStoreId, dbSize), NOT_FOUND);
-    EXPECT_EQ(dbSize, 0ull);
+    EXPECT_EQ(dbSize, 0uLL);
 
     /**
      * @tc.steps: step3/4. Use right storeId to GetKvStoreDiskSize.
@@ -432,7 +432,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize004, Test
      */
     singleVerDbSize = 0;
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(g_storeId, singleVerDbSize), OK);
-    EXPECT_EQ(singleVerDbSize, 0ull);
+    EXPECT_EQ(singleVerDbSize, 0uLL);
 
     /**
      * @tc.steps: step6. Close memoryDb.
@@ -497,9 +497,9 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
 
     uint64_t store1DbSize = 0;
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId1, store1DbSize), OK);
-    EXPECT_NE(store1DbSize, 0ull);
+    EXPECT_NE(store1DbSize, 0uLL);
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId2, store1DbSize), OK);
-    EXPECT_NE(store1DbSize, 0ull);
+    EXPECT_NE(store1DbSize, 0uLL);
 
     /**
      * @tc.steps: step1. Delete database by storeId 1.
@@ -512,14 +512,14 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
      */
     store1DbSize = 0;
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId1, store1DbSize), NOT_FOUND);
-    EXPECT_EQ(store1DbSize, 0ull);
+    EXPECT_EQ(store1DbSize, 0uLL);
 
     /**
      * @tc.steps: step3. Use storeId 2 to get Db size by GetKvStoreDiskSize.
      * @tc.expected: step3. Return right size and ok.
      */
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId2, store1DbSize), OK);
-    EXPECT_NE(store1DbSize, 0ull);
+    EXPECT_NE(store1DbSize, 0uLL);
 }
 
 /**
@@ -535,7 +535,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId002, TestS
 
     uint64_t store1DbSize = 0;
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId1, store1DbSize), NOT_FOUND);
-    EXPECT_EQ(store1DbSize, 0ull);
+    EXPECT_EQ(store1DbSize, 0uLL);
 
     /**
      * @tc.steps: step1. Delete database by not exist storeId 1.

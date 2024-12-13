@@ -1388,7 +1388,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
 
     Timestamp time1 = 0;
     store->GetMaxTimestamp(time1);
-    EXPECT_EQ(time1, 0ull);
+    EXPECT_EQ(time1, 0uLL);
 
     /**
      * @tc.steps: step3. Put 1 record into data table and get max timestamp.
@@ -1422,7 +1422,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
      */
     Timestamp time5 = 0;
     store->GetMaxTimestamp(tableName, time5);
-    EXPECT_EQ(time5, 0ull);
+    EXPECT_EQ(time5, 0uLL);
 
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
