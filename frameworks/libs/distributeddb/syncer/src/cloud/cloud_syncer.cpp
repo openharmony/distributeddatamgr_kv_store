@@ -1839,9 +1839,6 @@ void CloudSyncer::UnlockIfNeed()
     std::shared_ptr<CloudLocker> cacheLocker;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (currentContext_.locker == nullptr) {
-            LOGW("[CloudSyncer] locker is nullptr when unlock it"); // should not happen
-        }
         cacheLocker = currentContext_.locker;
         currentContext_.locker = nullptr;
     }
