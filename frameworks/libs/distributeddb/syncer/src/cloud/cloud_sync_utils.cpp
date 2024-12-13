@@ -857,7 +857,7 @@ void CloudSyncUtils::GetUserListForCompensatedSync(
 {
     auto cloudDBs = cloudDB.GetCloudDB();
     if (cloudDBs.empty()) {
-        LOGE("[CloudSyncer][GetUserListForCompensatedSync] not set cloud db");
+        LOGW("[CloudSyncer][GetUserListForCompensatedSync] not set cloud db");
         return;
     }
     for (auto &[user, cloudDb] : cloudDBs) {

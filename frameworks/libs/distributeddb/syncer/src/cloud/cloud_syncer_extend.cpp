@@ -1469,7 +1469,8 @@ int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo 
         hashKey = dataInfo.localInfo.logInfo.hashKey;
     }
     if (param.isAssetsOnly) {
-        return TagDownloadAssetsForAssetOnly(hashKey, idx, param, dataInfo, localAssetInfo);
+        return strategyOpResult == OpType::LOCKED_NOT_HANDLE ?
+            E_OK : TagDownloadAssetsForAssetOnly(hashKey, idx, param, dataInfo, localAssetInfo);
     }
     return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
 }
@@ -2238,6 +2239,8 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         cloudTaskInfos_[triggerTaskId].users = userList;
+        cloudTaskInfos_[triggerTaskId].table.clear();
+        cloudTaskInfos_[triggerTaskId].queryList.clear();
         for (const auto &query : syncQuery) {
             cloudTaskInfos_[triggerTaskId].table.push_back(query.GetRelationTableName());
             cloudTaskInfos_[triggerTaskId].queryList.push_back(query);

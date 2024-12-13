@@ -809,7 +809,8 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
     CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
         localLogInfoCache);
     
-    if (param.isAssetsOnly) {
+    if (param.isAssetsOnly && param.downloadData.opType[idx] != OpType::LOCKED_NOT_HANDLE) {
+        // if data is lock, not need to save the local info.
         auto findGid = param.downloadData.data[idx].find(CloudDbConstant::GID_FIELD);
         if (findGid == param.downloadData.data[idx].end()) {
             LOGE("[CloudSyncer] data doe's not have gid field when download only asset: %d.", -E_NOT_FOUND);

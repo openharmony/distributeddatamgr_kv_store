@@ -1329,5 +1329,53 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly015, 
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly016
+  * @tc.desc: test assets only sync with lock data.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. lock data.
+     * @tc.expected: step2. return OK.
+     */
+    std::vector<std::vector<uint8_t>> hashKey;
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " cloud_gid=0 ", db, hashKey);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKey, db), OK);
+
+    /**
+     * @tc.steps:step3. assets only sync.
+     * @tc.expected: step3. return OK.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    std::map<std::string, std::set<std::string>> assets1;
+    assets1["assets"] = {ASSET_COPY.name + "1"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
+        Or().BeginGroup().EqualTo("id", 1).AssetsOnly(assets1).EndGroup();
+    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    /**
+     * @tc.steps:step4. check asset changed data.
+     * @tc.expected: step4. return OK.
+     */
+    auto changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 1u);
+    auto item = changedData[ASSETS_TABLE_NAME];
+    auto assetMsg = item.primaryData[1];
+    EXPECT_EQ(assetMsg.size(), 1u);
+}
 } // namespace
 #endif // RELATIONAL_STORE
