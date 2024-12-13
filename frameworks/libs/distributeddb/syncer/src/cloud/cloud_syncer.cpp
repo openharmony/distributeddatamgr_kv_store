@@ -181,6 +181,11 @@ void CloudSyncer::DoSyncIfNeed()
         if (PrepareSync(triggerTaskId) != E_OK) {
             break;
         }
+        //  if the task is compensated task, we should get the query data and user list.
+        if (IsCompensatedTask(triggerTaskId) && !TryToInitQueryAndUserListForCompensatedSync(triggerTaskId)) {
+            // try to init query fail, we finish the compensated task.
+            continue;
+        }
         CancelBackgroundDownloadAssetsTaskIfNeed();
         // do sync logic
         std::vector<std::string> usersList;
@@ -1958,7 +1963,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         notifier->NotifyProcess(info, {}, true);
     }
     // generate compensated sync
-    // if already have compensated sync task in quque, no need to generate new compensated sync task
+    // if already have compensated sync task in queue, no need to generate new compensated sync task
     if (!info.compensatedTask && !IsAlreadyHaveCompensatedSyncTask()) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo(info);
         GenerateCompensatedSync(taskInfo);
@@ -2151,63 +2156,5 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         abort = true;
     }
     return E_OK;
-}
-
-size_t CloudSyncer::GetDownloadAssetIndex(TaskId taskId)
-{
-    size_t index = 0u;
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    if (resumeTaskInfos_[taskId].lastDownloadIndex != 0u) {
-        index = resumeTaskInfos_[taskId].lastDownloadIndex;
-        resumeTaskInfos_[taskId].lastDownloadIndex = 0u;
-    }
-    return index;
-}
-
-uint32_t CloudSyncer::GetCurrentTableUploadBatchIndex()
-{
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    return currentContext_.notifier->GetUploadBatchIndex(currentContext_.tableName);
-}
-
-void CloudSyncer::ResetCurrentTableUploadBatchIndex()
-{
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    currentContext_.notifier->ResetUploadBatchIndex(currentContext_.tableName);
-}
-
-void CloudSyncer::RecordWaterMark(TaskId taskId, Timestamp waterMark)
-{
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    resumeTaskInfos_[taskId].lastLocalWatermark = waterMark;
-}
-
-Timestamp CloudSyncer::GetResumeWaterMark(TaskId taskId)
-{
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    return resumeTaskInfos_[taskId].lastLocalWatermark;
-}
-
-CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string &tableName, UploadParam &uploadParam)
-{
-    InnerProcessInfo info;
-    info.tableName = tableName;
-    info.tableStatus = ProcessStatus::PROCESSING;
-    ReloadUploadInfoIfNeed(uploadParam, info);
-    return info;
-}
-
-std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
-{
-    std::vector<CloudTaskInfo> infoList;
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    for (const auto &item: cloudTaskInfos_) {
-        infoList.push_back(item.second);
-    }
-    taskQueue_.clear();
-    cloudTaskInfos_.clear();
-    resumeTaskInfos_.clear();
-    currentContext_.notifier = nullptr;
-    return infoList;
 }
 } // namespace DistributedDB

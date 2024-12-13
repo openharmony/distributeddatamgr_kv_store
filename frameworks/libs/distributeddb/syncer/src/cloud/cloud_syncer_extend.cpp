@@ -608,30 +608,15 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
-    bool isQueryDownloadRecords = IsAsyncDownloadFinished();
-    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery, users, isQueryDownloadRecords);
+    int errCode =
+        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(IsAsyncDownloadFinished(), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
-        LOGW("[CloudSyncer] Generate compensated sync failed by get query! errCode = %d", errCode);
+        LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         return;
     }
     if (syncQuery.empty()) {
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
-    }
-    taskInfo.users.clear();
-    auto cloudDBs = cloudDB_.GetCloudDB();
-    if (cloudDBs.empty()) {
-        LOGE("[CloudSyncer][GenerateCompensatedSync] not set cloud db");
-    }
-    for (auto &[user, cloudDb] : cloudDBs) {
-        auto it = std::find(users.begin(), users.end(), user);
-        if (it != users.end()) {
-            taskInfo.users.push_back(user);
-        }
-    }
-    for (const auto &query : syncQuery) {
-        taskInfo.table.push_back(query.GetRelationTableName());
-        taskInfo.queryList.push_back(query);
     }
     Sync(taskInfo);
     LOGI("[CloudSyncer] Generate compensated sync finished");
@@ -2125,7 +2110,8 @@ int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncPa
             isFind = true;
             auto iter = param.gidGroupIdMap.find(gid);
             if (iter == param.gidGroupIdMap.end() && iter->second != -1) {
-                LOGE("Get groupId from bucket fail when check assets only, errCode = %d", -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+                LOGE("Get groupId from bucket fail when check assets only, errCode = %d",
+                    -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY);
                 return -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY;
             }
             groupId = iter->second;
@@ -2170,5 +2156,93 @@ void CloudSyncer::NotifyChangedDataWithDefaultDev(ChangedData &&changedData)
 void CloudSyncer::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
 {
     cloudDB_.SetGenCloudVersionCallback(callback);
+}
+
+size_t CloudSyncer::GetDownloadAssetIndex(TaskId taskId)
+{
+    size_t index = 0u;
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (resumeTaskInfos_[taskId].lastDownloadIndex != 0u) {
+        index = resumeTaskInfos_[taskId].lastDownloadIndex;
+        resumeTaskInfos_[taskId].lastDownloadIndex = 0u;
+    }
+    return index;
+}
+
+uint32_t CloudSyncer::GetCurrentTableUploadBatchIndex()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return currentContext_.notifier->GetUploadBatchIndex(currentContext_.tableName);
+}
+
+void CloudSyncer::ResetCurrentTableUploadBatchIndex()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.notifier->ResetUploadBatchIndex(currentContext_.tableName);
+}
+
+void CloudSyncer::RecordWaterMark(TaskId taskId, Timestamp waterMark)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    resumeTaskInfos_[taskId].lastLocalWatermark = waterMark;
+}
+
+Timestamp CloudSyncer::GetResumeWaterMark(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return resumeTaskInfos_[taskId].lastLocalWatermark;
+}
+
+CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string &tableName, UploadParam &uploadParam)
+{
+    InnerProcessInfo info;
+    info.tableName = tableName;
+    info.tableStatus = ProcessStatus::PROCESSING;
+    ReloadUploadInfoIfNeed(uploadParam, info);
+    return info;
+}
+
+std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
+{
+    std::vector<CloudTaskInfo> infoList;
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    for (const auto &item: cloudTaskInfos_) {
+        infoList.push_back(item.second);
+    }
+    taskQueue_.clear();
+    cloudTaskInfos_.clear();
+    resumeTaskInfos_.clear();
+    currentContext_.notifier = nullptr;
+    return infoList;
+}
+
+bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTaskId)
+{
+    std::vector<QuerySyncObject> syncQuery;
+    std::vector<std::string> users;
+    int errCode =
+        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(IsAsyncDownloadFinished(), storageProxy_, users, syncQuery);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
+        // if failed, finshed the task directly.
+        DoFinished(triggerTaskId,errCode);
+        return false;
+    }
+    if (syncQuery.empty()) {
+        // if quey is empty, finshed the task directly.
+        DoFinished(triggerTaskId,E_OK);
+        return false;
+    }
+    std::vector<std::string> userList;
+    CloudSyncUtils::GetUserListForCompensatedSync(cloudDB_, users, userList);
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        cloudTaskInfos_[triggerTaskId].users = userList;
+        for (const auto &query : syncQuery) {
+            cloudTaskInfos_[triggerTaskId].table.push_back(query.GetRelationTableName());
+            cloudTaskInfos_[triggerTaskId].queryList.push_back(query);
+        }
+    }
+    return true;
 }
 }

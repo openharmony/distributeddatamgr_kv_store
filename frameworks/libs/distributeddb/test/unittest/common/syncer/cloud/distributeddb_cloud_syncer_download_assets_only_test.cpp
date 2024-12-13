@@ -1264,5 +1264,70 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly014, 
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
     PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly015
+  * @tc.desc: test compensated sync.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly015, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. set all data wait compensated.
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "update " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " set flag=flag|0x10;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " where flag&0x10=0x10;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(10u), nullptr), SQLITE_OK);
+    
+    /**
+     * @tc.steps:step3. sync with compensated.
+     * @tc.expected: step3. return ok.
+     */
+    std::mutex processMutex;
+    std::vector<SyncProcess> expectProcess;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&cv, &finish, &processMutex]
+        (const std::map<std::string, SyncProcess> &process) {
+        for (auto &item : process) {
+            if (item.second.process == FINISHED) {
+                EXPECT_EQ(item.second.errCode, DBStatus::OK);
+                std::unique_lock<std::mutex> lock(processMutex);
+                finish = true;
+                cv.notify_one();
+            }
+        }
+    };
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.priorityTask = true;
+    option.compensatedSyncOnly = true;
+    DBStatus syncResult = g_delegate->Sync(option, callback);
+    EXPECT_EQ(syncResult, DBStatus::OK);
+
+    /**
+     * @tc.steps:step4. wait sync finish and check data.
+     * @tc.expected: step4. return ok.
+     */
+    std::unique_lock<std::mutex> lock(processMutex);
+    cv.wait(lock, [&finish]() {
+        return finish;
+    });
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
+}
 } // namespace
 #endif // RELATIONAL_STORE

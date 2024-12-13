@@ -529,6 +529,8 @@ protected:
 
     bool IsAlreadyHaveCompensatedSyncTask();
 
+    bool TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTaskId);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

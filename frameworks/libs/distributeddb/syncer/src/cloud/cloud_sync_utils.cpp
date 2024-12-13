@@ -836,4 +836,35 @@ int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_p
     }
     return ret;
 }
+
+int CloudSyncUtils::GetQueryAndUsersForCompensatedSync(bool isQueryDownloadRecords,
+    std::shared_ptr<StorageProxy> &storageProxy, std::vector<std::string> &users,
+    std::vector<QuerySyncObject> &syncQuery)
+{
+    int errCode = storageProxy->GetCompensatedSyncQuery(syncQuery, users, isQueryDownloadRecords);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
+        return errCode;
+    }
+    if (syncQuery.empty()) {
+        LOGD("[CloudSyncer] Not need generate compensated sync");
+    }
+    return E_OK;
+}
+
+void CloudSyncUtils::GetUserListForCompensatedSync(
+    CloudDBProxy &cloudDB, const std::vector<std::string> &users, std::vector<std::string> &userList)
+{
+    auto cloudDBs = cloudDB.GetCloudDB();
+    if (cloudDBs.empty()) {
+        LOGE("[CloudSyncer][GetUserListForCompensatedSync] not set cloud db");
+        return;
+    }
+    for (auto &[user, cloudDb] : cloudDBs) {
+        auto it = std::find(users.begin(), users.end(), user);
+        if (it != users.end()) {
+            userList.push_back(user);
+        }
+    }
+}
 }
