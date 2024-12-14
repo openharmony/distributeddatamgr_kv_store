@@ -1,0 +1,47 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+group("build_module") {
+  deps = []
+  if (!use_platform_win && !use_platforn_mac) {
+    deps += [
+      ":datamgr_common",
+    ]
+  }
+}
+
+config("datamgr_common_config") {
+  visibility = [ ":*" ]
+
+  include_dirs = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include"
+  ]
+}
+
+ohos_shared_library("datamgr_common") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  public_configs = [ ":datamgr_common_config" ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
