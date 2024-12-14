@@ -26,9 +26,9 @@
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
+static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 class DeviceKvStoreTest : public testing::Test {
 public:
-    static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
     static void SetUpTestCase(void);
 
     static void TearDownTestCase(void);

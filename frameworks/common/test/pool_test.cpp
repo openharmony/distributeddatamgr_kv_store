@@ -23,6 +23,8 @@
 using namespace testing::ext;
 using namespace OHOS;
 namespace OHOS::Test {
+static constexpr uint32_t CAPABILITY_TEST = 3; // capability
+static constexpr uint32_t MIN_TEST = 1;        // min
 class PoolTest : public testing::Test {
 public:
     struct Node {
@@ -38,8 +40,6 @@ public:
     void TearDown();
 
 protected:
-    static constexpr uint32_t CAPABILITY_TEST = 3; // capability
-    static constexpr uint32_t MIN_TEST = 1;    // min
     static Pool<PoolTest::Node> pool_;
 };
 Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_TEST, MIN_TEST);
