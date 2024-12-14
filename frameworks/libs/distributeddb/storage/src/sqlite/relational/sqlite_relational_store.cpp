@@ -1169,9 +1169,16 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
                 DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
             return -E_NOT_SUPPORT;
         }
-        if (item.IsAssetsOnly() && option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
-            LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
-            return -E_NOT_SUPPORT;
+        if (item.IsAssetsOnly()) {
+            if (option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
+                LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
+                return -E_NOT_SUPPORT;
+            }
+            if (option.priorityLevel != CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
+                LOGE("[RelationalStore] priorityLevel must be 2 when sync with assets only, now is %d",
+                    option.priorityLevel);
+                return -E_INVALID_ARGS;
+            }
         }
     }
     errCode = CheckTableName(syncTableNames);

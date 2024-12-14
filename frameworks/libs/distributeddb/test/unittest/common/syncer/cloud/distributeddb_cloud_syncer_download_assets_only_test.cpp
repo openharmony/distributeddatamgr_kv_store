@@ -627,6 +627,37 @@ void PriorityLevelSync(int32_t priorityLevel, const Query &query, const CloudSyn
     });
 }
 
+void PriorityLevelSync(int32_t priorityLevel, const Query &query, SyncMode mode, DBStatus expectResult = DBStatus::OK)
+{
+    std::mutex processMutex;
+    std::vector<SyncProcess> expectProcess;
+    std::condition_variable cv;
+    bool finish = expectResult == DBStatus::OK ? false : true;
+    auto callback = [&cv, &finish, &processMutex]
+        (const std::map<std::string, SyncProcess> &process) {
+        for (auto &item : process) {
+            if (item.second.process == FINISHED) {
+                std::unique_lock<std::mutex> lock(processMutex);
+                finish = true;
+                cv.notify_one();
+            }
+        }
+    };
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.query = query;
+    option.mode = mode;
+    option.priorityTask = true;
+    option.priorityLevel = priorityLevel;
+    DBStatus syncResult = g_delegate->Sync(option, callback);
+    EXPECT_EQ(syncResult, expectResult);
+
+    std::unique_lock<std::mutex> lock(processMutex);
+    cv.wait(lock, [&finish]() {
+        return finish;
+    });
+}
+
 void CheckAsset(sqlite3 *db, const std::string &tableName, int id, const Asset &expectAsset, bool expectFound)
 {
     std::string sql = "select assets from " + tableName + " where id = " + std::to_string(id);
@@ -704,7 +735,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly001, 
         };
         std::vector<int64_t> inValue = {0, 1, 2, 3, 4};
         Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
-        PriorityLevelSync(1, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+        PriorityLevelSync(0, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
     });
 
     std::thread syncThread2([&]() {
@@ -714,7 +745,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly001, 
         };
         std::vector<int64_t> inValue = {5, 6, 7, 8, 9};
         Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
-        PriorityLevelSync(2, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+        PriorityLevelSync(1, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
     });
 
     std::thread syncThread3([&]() {
@@ -724,7 +755,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly001, 
         };
         std::vector<int64_t> inValue = {10, 11, 12, 13, 14};
         Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
-        PriorityLevelSync(3, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
+        PriorityLevelSync(2, query, callback, SyncMode::SYNC_MODE_CLOUD_MERGE);
     });
     syncThread1.join();
     syncThread2.join();
@@ -763,7 +794,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly002, 
     option.query = query;
     option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     option.priorityTask = true;
-    option.priorityLevel = 0u;
+    option.priorityLevel = 2u;
     EXPECT_EQ(g_delegate->Sync(option, nullptr), DBStatus::NOT_SUPPORT);
 
     option.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH;
@@ -804,7 +835,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly003, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     Asset assetCloud = ASSET_COPY;
     assetCloud.name += std::to_string(0);
@@ -869,7 +900,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly004, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     Asset assetCloud1 = ASSET_COPY;
     assetCloud1.name += std::to_string(0);
@@ -917,7 +948,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly005, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -945,7 +976,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).AssetsOnly(assets);
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -984,7 +1015,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly007, 
     assets1["assets"] = {ASSET_COPY.name + "1"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().EqualTo("id", 1).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     Asset assetCloud = ASSET_COPY;
     assetCloud.name += std::to_string(0);
@@ -1037,7 +1068,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, 
     assets1["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().In("id", inValue).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -1067,7 +1098,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly009, 
     assets1["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().EqualTo("id", 10).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -1097,7 +1128,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, 
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).
         AssetsOnly(assets).EndGroup();
     g_observer->ResetCloudSyncToZero();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
     auto changedData = g_observer->GetSavedChangedData();
     EXPECT_EQ(changedData.size(), 0u);
 
@@ -1107,7 +1138,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, 
      */
     Query query1 = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup().AssetsOnly(assets);
     g_observer->ResetCloudSyncToZero();
-    PriorityLevelSync(0, query1, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query1, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
     changedData = g_observer->GetSavedChangedData();
     EXPECT_EQ(changedData.size(), 0u);
 
@@ -1118,7 +1149,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, 
     Query query2 = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup()
     .And().BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
     g_observer->ResetCloudSyncToZero();
-    PriorityLevelSync(0, query2, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query2, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
     changedData = g_observer->GetSavedChangedData();
     EXPECT_EQ(changedData.size(), 0u);
 }
@@ -1148,7 +1179,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly011, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     /**
      * @tc.steps:step3. check cursor and flag
@@ -1233,7 +1264,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly013, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
     auto changedData = g_observer->GetSavedChangedData();
     EXPECT_EQ(changedData.size(), 1u);
 }
@@ -1262,7 +1293,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly014, 
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
 
 /**
@@ -1365,7 +1396,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, 
     assets1["assets"] = {ASSET_COPY.name + "1"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
         Or().BeginGroup().EqualTo("id", 1).AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(0, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     /**
      * @tc.steps:step4. check asset changed data.
@@ -1376,6 +1407,40 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, 
     auto item = changedData[ASSETS_TABLE_NAME];
     auto assetMsg = item.primaryData[1];
     EXPECT_EQ(assetMsg.size(), 1u);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly017
+  * @tc.desc: test assets only sync with error priority level.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync with error priority level.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
+    PriorityLevelSync(0, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. priority sync with error priority level.
+     * @tc.expected: step3. return INVALID_ARGS.
+     */
+    query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup();
+    PriorityLevelSync(3, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
 }
 } // namespace
 #endif // RELATIONAL_STORE

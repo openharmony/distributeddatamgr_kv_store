@@ -151,7 +151,7 @@ struct CloudSyncOption {
     Query query;
     int64_t waitTime = 0;
     bool priorityTask = false;
-    int32_t priorityLevel = 0; // [0, 100]
+    int32_t priorityLevel = 0; // [0, 2]
     bool compensatedSyncOnly = false;
     std::vector<std::string> users;
     bool merge = false;
