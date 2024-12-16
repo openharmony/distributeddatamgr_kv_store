@@ -51,7 +51,7 @@ namespace {
     bool CheckVacuumTaskStatus(const MultiVerVacuum &inVacuum, const string &inDbIdentifier,
         VacuumTaskStatus expectStatus, uint8_t repeatLimit = 5, uint32_t repeatInterval = 100) // 5 times, 100 ms
     {
-        return RepeatCheckAsyncResult([&inVacuum, &inDbIdentifier, expectStatus]()->bool {
+        return RepeatCheckAsyncResult([inVacuum, inDbIdentifier, expectStatus]()->bool {
             VacuumTaskStatus outStatus = VacuumTaskStatus::RUN_WAIT;
             int errCode = inVacuum.QueryStatus(inDbIdentifier, outStatus);
             return errCode == E_OK && outStatus == expectStatus;

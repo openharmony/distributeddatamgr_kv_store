@@ -255,7 +255,7 @@ void TestSyncWithUserChange(bool wait)
     CipherPassword passwd;
     bool startSync = false;
     std::condition_variable cv;
-    thread subThread([&]() {
+    thread subThread([&startSync, &cv]() {
         std::mutex notifyLock;
         std::unique_lock<std::mutex> lck(notifyLock);
         cv.wait(lck, [&startSync]() { return startSync; });
