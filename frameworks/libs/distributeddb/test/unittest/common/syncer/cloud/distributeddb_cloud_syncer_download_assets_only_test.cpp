@@ -1482,5 +1482,32 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, 
     auto assetMsg = item.primaryData[1];
     EXPECT_EQ(assetMsg.size(), 1u);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly019
+  * @tc.desc: test assets only sync with cloud delete data.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    DeleteCloudDBData(0, dataCount, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Download assets which cloud delete.
+     * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
+}
 } // namespace
 #endif // RELATIONAL_STORE

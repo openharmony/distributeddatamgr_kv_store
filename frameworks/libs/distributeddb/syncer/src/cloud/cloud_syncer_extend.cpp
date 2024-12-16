@@ -1968,6 +1968,12 @@ int CloudSyncer::SetAssetsMapAndEraseDataForAssetsOnly(
             return ret;
         }
 
+        if (DBCommon::IsRecordDelete(*iter)) {
+            iter = downloadData.erase(iter);
+            gidAssetsMap.erase(gidStr);
+            continue;
+        }
+
         auto assetsMap = gidAssetsMap[gidStr];
         if (!CloudSyncUtils::IsAssetOnlyData(*iter, assetsMap, false)) {
             iter = downloadData.erase(iter);
