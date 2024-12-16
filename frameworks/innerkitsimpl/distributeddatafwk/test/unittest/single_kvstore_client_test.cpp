@@ -28,16 +28,12 @@ namespace OHOS::Test {
 static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 class SingleKvStoreClientTest : public testing::Test {
 public:
-    static void SetUpTestCase(void);
-
-    static void TearDownTestCase(void);
-
-    void SetUp();
-
-    void TearDown();
-
     static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status status_;
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
 };
 
 const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","

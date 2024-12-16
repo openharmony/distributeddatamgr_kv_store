@@ -38,7 +38,6 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
-
 protected:
     static Pool<PoolTest::Node> pool_;
 };
