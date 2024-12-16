@@ -92,7 +92,7 @@ public:
         uint32_t groupNum = 0;
         AssetsGroupMap assetsGroupMap;
         std::string cloudWaterMarkForAssetsOnly;
-        std::map<std::string, int64_t> gidGroupIdMap; // only used for assets only.
+        std::map<std::string, AssetsMap> gidAssetsMap; // only used for assets only.
     };
 
     struct DataInfo {

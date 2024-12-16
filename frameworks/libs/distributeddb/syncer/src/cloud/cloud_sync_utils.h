@@ -129,6 +129,14 @@ public:
 
     static void GetUserListForCompensatedSync(
         CloudDBProxy &cloudDB, const std::vector<std::string> &users, std::vector<std::string> &userList);
+
+    static bool SetAssetsMapByCloudGid(std::vector<std::string> &cloudGid, const AssetsMap &groupAssetsMap,
+        std::map<std::string, AssetsMap> &gidAssetsMap);
+
+    static bool CheckAssetsOnlyIsEmptyInGroup(
+        const std::map<std::string, AssetsMap> &gidAssetsMap, const AssetsMap &assetsMap);
+
+    static bool IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, bool isDownloading);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

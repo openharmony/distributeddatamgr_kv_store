@@ -1442,5 +1442,45 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, 
     query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup();
     PriorityLevelSync(3, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly018
+  * @tc.desc: test assets only sync same record can merge assets map.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync.
+     * @tc.expected: step2. return OK.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    std::map<std::string, std::set<std::string>> assets1;
+    assets1["assets"] = {ASSET_COPY.name + "0_copy"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup().
+        Or().BeginGroup().EqualTo("id", 0).AssetsOnly(assets1).EndGroup();
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+
+    /**
+     * @tc.steps:step3. check asset changed data.
+     * @tc.expected: step3. return OK.
+     */
+    auto changedData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changedData.size(), 1u);
+    auto item = changedData[ASSETS_TABLE_NAME];
+    auto assetMsg = item.primaryData[1];
+    EXPECT_EQ(assetMsg.size(), 1u);
+}
 } // namespace
 #endif // RELATIONAL_STORE

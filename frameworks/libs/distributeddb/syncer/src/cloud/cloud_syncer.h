@@ -500,8 +500,6 @@ protected:
 
     int BackgroundDownloadAssetsByTable(const std::string &table, std::map<std::string, int64_t> &downloadBeginTime);
 
-    bool IsAssetOnlyData(VBucket &queryData, std::map<std::string, std::set<std::string>> &assetsMap, bool isCleanHash);
-
     int CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param);
 
     int CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param, DataInfoWithLog &logInfo);
@@ -515,13 +513,11 @@ protected:
     int QueryCloudGidForAssetsOnly(
         TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<std::string> &cloudGid);
 
-    int GetGidMapFromDownloadData(
-        const std::vector<VBucket> &data, std::map<std::string, int64_t> &gidMap, int64_t groupId);
+    int GetEmptyGidAssetsMapFromDownloadData(
+        const std::vector<VBucket> &data, std::map<std::string, AssetsMap> &gidAssetsMap);
 
-    bool CheckAssetsOnlyIsEmptyInGroup(const std::map<std::string, int64_t> &gidGroupIdMap, int64_t groupId);
-
-    int MarkGroupIdAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
-        std::map<std::string, int64_t> &downloadDataGidMap);
+    int SetAssetsMapAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
+        std::map<std::string, AssetsMap> &gidAssetsMap);
 
     bool IsAsyncDownloadFinished() const;
 

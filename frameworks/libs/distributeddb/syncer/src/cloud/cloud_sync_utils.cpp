@@ -784,7 +784,7 @@ int CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(
         return errCode;
     }
 
-    auto assetsMap = param.assetsGroupMap[param.gidGroupIdMap[gid]];
+    auto assetsMap = param.gidAssetsMap[gid];
     for (auto &item : param.downloadData.data[idx]) {
         auto findAssetList = assetsMap.find(item.first);
         if (findAssetList == assetsMap.end()) {
@@ -866,5 +866,104 @@ void CloudSyncUtils::GetUserListForCompensatedSync(
             userList.push_back(user);
         }
     }
+}
+
+bool CloudSyncUtils::SetAssetsMapByCloudGid(
+    std::vector<std::string> &cloudGid, const AssetsMap &groupAssetsMap, std::map<std::string, AssetsMap> &gidAssetsMap)
+{
+    bool isFindOneRecord = false;
+    for (auto &iter : cloudGid) {
+        auto gidIter = gidAssetsMap.find(iter);
+        if (gidIter == gidAssetsMap.end()) {
+            continue;
+        }
+        for (const auto &pair : groupAssetsMap) {
+            if (gidIter->second.find(pair.first) == gidIter->second.end()) {
+                gidIter->second[pair.first] = pair.second;
+            } else {
+                // merge assets
+                gidIter->second[pair.first].insert(pair.second.begin(), pair.second.end());
+            }
+        }
+        isFindOneRecord = true;
+    }
+    return isFindOneRecord;
+}
+
+bool CloudSyncUtils::CheckAssetsOnlyIsEmptyInGroup(
+    const std::map<std::string, AssetsMap> &gidAssetsMap, const AssetsMap &assetsMap)
+{
+    if (gidAssetsMap.empty()) {
+        return true;
+    }
+    for (const auto &item : gidAssetsMap) {
+        const auto &gidAssets = item.second;
+        if (gidAssets.empty()) {
+            return true;
+        }
+        bool isMatch = true;
+        for (const auto &assets : assetsMap) {
+            auto iter = gidAssets.find(assets.first);
+            if (iter == gidAssets.end()) {
+                isMatch = false;
+                break;
+            }
+            if (!std::includes(iter->second.begin(), iter->second.end(), assets.second.begin(), assets.second.end())) {
+                isMatch = false;
+                break;
+            }
+        }
+        if (isMatch) {
+            // find one match, so group is not empty.
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CloudSyncUtils::IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, bool isDownloading)
+{
+    if (assetsMap.empty()) {
+        return false;
+    }
+    for (auto &item : assetsMap) {
+        auto &assetNameList = item.second;
+        auto findAssetField = queryData.find(item.first);
+        if (findAssetField == queryData.end() || assetNameList.empty()) {
+            // if not find asset field or assetNameList is empty, mean this is not asset only data.
+            return false;
+        }
+
+        Asset *asset = std::get_if<Asset>(&(findAssetField->second));
+        if (asset != nullptr) {
+            // if is Asset type, assetNameList size must be 1.
+            if (assetNameList.size() != 1u || *(assetNameList.begin()) != asset->name ||
+                asset->status == AssetStatus::DELETE) {
+                // if data is delele, also not asset only data.
+                return false;
+            }
+            if (isDownloading) {
+                asset->status = static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+            }
+            continue;
+        }
+
+        Assets *assets = std::get_if<Assets>(&(findAssetField->second));
+        if (assets == nullptr) {
+            return false;
+        }
+        for (auto &assetName : assetNameList) {
+            auto findAsset = std::find_if(
+                assets->begin(), assets->end(), [&assetName](const Asset &a) { return a.name == assetName; });
+            if (findAsset == assets->end() || (*findAsset).status == AssetStatus::DELETE) {
+                // if data is delele, also not asset only data.
+                return false;
+            }
+            if (isDownloading) {
+                (*findAsset).status = AssetStatus::DOWNLOADING;
+            }
+        }
+    }
+    return true;
 }
 }
