@@ -155,7 +155,7 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
         service->Delete(appId, storeId);
     }
     auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-    KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
+    KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId);
     return StoreFactory::GetInstance().Delete(appId, storeId, path);
 }
 
