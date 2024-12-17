@@ -26,32 +26,25 @@
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
+static constexpr size_t NUM_MIN = 5;
+static constexpr size_t NUM_MAX = 12;
 class DistributedKvDataManagerTest : public testing::Test {
 public:
-    static constexpr size_t NUM_MIN = 5;
-    static constexpr size_t NUM_MAX = 12;
     static std::shared_ptr<ExecutorPool> executors;
-
     static DistributedKvDataManager manager;
     static Options create;
     static Options noCreate;
-
     static UserId userId;
-
     static AppId appId;
     static StoreId storeId64;
     static StoreId storeId65;
     static StoreId storeIdTest;
     static StoreId storeIdEmpty;
-
     static Entry entryA;
     static Entry entryB;
-
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
-
     static void RemoveAllStore(DistributedKvDataManager &manager);
-
     void SetUp();
     void TearDown();
     DistributedKvDataManagerTest();
