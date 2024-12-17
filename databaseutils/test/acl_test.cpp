@@ -32,6 +32,7 @@ public:
     static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
     static constexpr const char *PATH_ABC_XIAOMING_TEST = "/data/test/abc/xiaoming/test.txt";
     static constexpr const char *DATA = "SetDefaultUserTest";
+
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
