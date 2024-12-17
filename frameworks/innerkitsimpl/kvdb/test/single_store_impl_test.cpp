@@ -172,8 +172,8 @@ HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
     kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
-    constexpr size_t MAX_DEV_KEY_LEN = 897;
-    std::string str(MAX_DEV_KEY_LEN, 'a');
+    size_t maxDevKeyLen = 897;
+    std::string str(maxDevKeyLen, 'a');
     Blob key(str);
     Blob value("test_value");
     Status status = kvStore->Put(key, value);
@@ -191,8 +191,8 @@ HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
     status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
 
-    constexpr size_t MAX_SINGLE_KEY_LEN = 1025;
-    std::string str1(MAX_SINGLE_KEY_LEN, 'b');
+    size_t maxSingleKeyLen = 1025;
+    std::string str1(maxSingleKeyLen, 'b');
     Blob key2(str1);
     Blob value2("test_value2");
     status = kvStore_->Put(key2, value2);
@@ -532,11 +532,11 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
     kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
-    constexpr size_t KEY_LEN = sizeof(uint32_t);
+    size_t keyLen = sizeof(uint32_t);
     std::vector<Entry> input;
     for (int i = 1; i < 10; ++i) {
         Entry entry;
-        std::string str(KEY_LEN, i + '0');
+        std::string str(keyLen, i + '0');
         entry.key = str;
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
@@ -544,7 +544,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
     auto status = kvStore->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::vector<Entry> output;
-    std::string str1(KEY_LEN, '1');
+    std::string str1(keyLen, '1');
     status = kvStore->GetEntries(str1, output);
     ASSERT_NE(output.empty(), true);
     ASSERT_EQ(status, SUCCESS);
