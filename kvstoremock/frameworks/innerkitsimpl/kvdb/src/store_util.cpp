@@ -148,7 +148,7 @@ Status StoreUtil::ConvertStatus(DBStatus status)
         case DBStatus::OVER_MAX_LIMITS:
             return Status::OVER_MAX_LIMITS;
         case DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB:
-            return Status::CRYPT_ERROR;
+            return Status::DATA_CORRUPTED;
         case DBStatus::SCHEMA_MISMATCH:
             return Status::SCHEMA_MISMATCH;
         case DBStatus::INVALID_SCHEMA:

@@ -143,15 +143,18 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->options.baseDir = kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
+        ctxt->options.apiVersion = kvm->param_->apiVersion;
         ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area, ctxt->options.baseDir.c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
         Status status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
-        if (status == CRYPT_ERROR) {
+        if (status == DATA_CORRUPTED) {
             ctxt->options.rebuild = true;
             status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
             ZLOGE("Data has corrupted, rebuild db");
         }
-
+        if (status == CRYPT_ERROR && kvm->param_->apiVersion < API_14_VERSION) {
+            status = DATA_CORRUPTED;
+        }
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
         ctxt->kvStore->SetKvStorePtr(kvStore);

@@ -57,6 +57,7 @@ SingleStoreImpl::SingleStoreImpl(
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
+        apiVersion_ = options.apiVersion;
     }
 }
 
@@ -755,7 +756,15 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    auto status = BackupManager::GetInstance().Backup(file, baseDir, storeId_, dbStore_);
+    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
+        auto dbStatus = dbStore_->CheckIntegrity();
+        if (dbStatus != DistributedDB::DBStatus::OK) {
+            ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
+            return StoreUtil::ConvertStatus(dbStatus);
+        }
+    }
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_ };
+    auto status = BackupManager::GetInstance().Backup(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
@@ -770,7 +779,12 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (service != nullptr) {
         service->Close({ appId_ }, { storeId_ });
     }
-    auto status = BackupManager::GetInstance().Restore(file, baseDir, appId_, storeId_, dbStore_);
+    bool isCheckIntegrity = false;
+    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
+        isCheckIntegrity = true;
+    }
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_ };
+    auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
@@ -915,6 +929,11 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 
 Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
     auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
         if (observer == nullptr) {
             return;
@@ -1056,6 +1075,11 @@ void SingleStoreImpl::Register()
 Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::string &appId,
     const std::string &storeId, const std::vector<std::string> &tagretDev)
 {
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
     auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(accountId, appId, storeId);
     auto dbStatus = dbStore_->SetEqualIdentifier(syncIdentifier, tagretDev);
     auto status = StoreUtil::ConvertStatus(dbStatus);
@@ -1078,7 +1102,7 @@ bool SingleStoreImpl::IsRebuild()
 
 void SingleStoreImpl::ReportDBCorruptedFault(Status status) const
 {
-    if (status == CRYPT_ERROR) {
+    if (status == DATA_CORRUPTED) {
         Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
             .area = area_, .hapName = hapName_ };
         KvStoreTuple tuple = { .appId = appId_, .storeId = storeId_ };
