@@ -34,7 +34,7 @@ using Duration = std::chrono::steady_clock::duration;
 using Time = std::chrono::steady_clock::time_point;
 static constexpr Duration INVALID_INTERVAL = std::chrono::milliseconds(0);
 static constexpr uint64_t UNLIMITED_TIMES = std::numeric_limits<uint64_t>::max();
-static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
+static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0);
 static constexpr uint32_t SHORT_INTERVAL = 100; // ms
 class PriorityQueueTest : public testing::Test {
 public:
