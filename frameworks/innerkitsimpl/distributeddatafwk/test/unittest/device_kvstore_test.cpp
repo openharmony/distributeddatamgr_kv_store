@@ -26,22 +26,18 @@
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
+static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 class DeviceKvStoreTest : public testing::Test {
 public:
-    static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
-    static void SetUpTestCase(void);
-
-    static void TearDownTestCase(void);
-
-    void SetUp();
-
-    void TearDown();
     static std::string GetKey(const std::string &key);
-
     static std::shared_ptr<SingleKvStore> kvStore_; // declare kvstore instance.
     static Status status_;
     static std::string deviceId_;
     static Options options_;
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
 };
 
 const std::string VALID_SCHEMA = "{\"SCHEMA_VERSION\":\"1.0\","

@@ -24,14 +24,15 @@
 using namespace testing::ext;
 namespace OHOS::Test {
 using namespace DATABASE_UTILS;
+static constexpr uint32_t UID = 2024;      // 2024 is test uid
+static constexpr uint32_t TEST_UID = 2025; // 2025 is test uid
 class AclTest : public testing::Test {
 public:
     static constexpr const char *PATH_ABC = "/data/test/abc";
     static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
     static constexpr const char *PATH_ABC_XIAOMING_TEST = "/data/test/abc/xiaoming/test.txt";
     static constexpr const char *DATA = "SetDefaultUserTest";
-    static constexpr uint32_t UID = 2024;
-    static constexpr uint32_t TESTUID = 2025;
+
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
@@ -189,7 +190,7 @@ HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
     AclXattrEntry entryB(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_TRUE(entryA == entryB);
 
-    AclXattrEntry entryC(ACL_TAG::USER, TESTUID, Acl::R_RIGHT | Acl::W_RIGHT);
+    AclXattrEntry entryC(ACL_TAG::USER, TEST_UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_FALSE(entryA == entryC);
 }
 
