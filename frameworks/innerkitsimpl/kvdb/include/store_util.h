@@ -52,6 +52,7 @@ public:
     static bool RemoveRWXForOthers(const std::string &path);
 private:
     static std::atomic<uint64_t> sequenceId_;
+    static std::map<DBStatus, Status> statusMap_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
