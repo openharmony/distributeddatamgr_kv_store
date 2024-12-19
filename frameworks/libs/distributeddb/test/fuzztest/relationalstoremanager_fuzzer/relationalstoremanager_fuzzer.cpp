@@ -16,7 +16,7 @@
 #include "relationalstoremanager_fuzzer.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
-#include "fuzzer_data.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
 #include "store_changed_data.h"
@@ -66,9 +66,9 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void RuntimeConfigTest(const uint8_t *data, size_t size)
+void RuntimeConfigTest(FuzzedDataProvider *fdp)
 {
-    bool isPermissionCheck = static_cast<bool>(*data);
+    bool isPermissionCheck = fdp->ConsumeBool();
     auto permissionCheckCallbackV2 = [isPermissionCheck](const std::string &userId, const std::string &appId,
         const std::string &storeId, const std::string &deviceId, uint8_t flag) -> bool { return isPermissionCheck; };
     RuntimeConfig::SetPermissionCheckCallback(permissionCheckCallbackV2);
@@ -76,7 +76,7 @@ void RuntimeConfigTest(const uint8_t *data, size_t size)
         return isPermissionCheck;
     };
     RuntimeConfig::SetPermissionCheckCallback(permissionCheckCallbackV3);
-    bool isSyncActivationCheck = static_cast<bool>(*data);
+    bool isSyncActivationCheck = fdp->ConsumeBool();
     auto syncActivationCheck = [isSyncActivationCheck](const std::string &userId, const std::string &appId,
         const std::string &storeId) -> bool { return isSyncActivationCheck; };
     RuntimeConfig::SetSyncActivationCheckCallback(syncActivationCheck);
@@ -84,25 +84,23 @@ void RuntimeConfigTest(const uint8_t *data, size_t size)
         return isSyncActivationCheck;
     };
     RuntimeConfig::SetSyncActivationCheckCallback(syncActivationCheckV2);
-    FuzzerData fuzzerData(data, size);
-    uint32_t instanceId = fuzzerData.GetUInt32();
-    const int lenMod = 30; // 30 is mod for string vector size
-    std::string userId = fuzzerData.GetString(instanceId % lenMod);
-    std::string subUserId = fuzzerData.GetString(instanceId % lenMod);
+    std::string userId = fdp->ConsumeRandomLengthString();
+    std::string subUserId = fdp->ConsumeRandomLengthString();
     RuntimeConfig::SetPermissionConditionCallback([userId, subUserId](const PermissionConditionParam &param) {
         std::map<std::string, std::string> res;
         res.emplace(userId, subUserId);
         return res;
     });
     RuntimeConfig::IsProcessSystemApiAdapterValid();
-    bool isAutoLaunch = static_cast<bool>(*data);
+    bool isAutoLaunch = fdp->ConsumeBool();
     auto autoLaunchRequestCallback = [isAutoLaunch](const std::string &identifier, AutoLaunchParam &param) -> bool {
         return isAutoLaunch;
     };
-    auto dbType = static_cast<DBType>(data[0]);
+    size_t dbTypeLen = sizeof(DBType);
+    auto dbType = static_cast<DBType>(fdp->ConsumeIntegral<uint32_t>() % dbTypeLen);
     RuntimeConfig::SetAutoLaunchRequestCallback(autoLaunchRequestCallback, dbType);
-    std::string appId = fuzzerData.GetString(instanceId % lenMod);
-    std::string storeId = fuzzerData.GetString(instanceId % lenMod);
+    std::string appId = fdp->ConsumeRandomLengthString();
+    std::string storeId = fdp->ConsumeRandomLengthString();
     RuntimeConfig::ReleaseAutoLaunch(userId, appId, storeId, dbType);
     std::vector<DBInfo> dbInfos;
     DBInfo dbInfo = {
@@ -113,48 +111,48 @@ void RuntimeConfigTest(const uint8_t *data, size_t size)
         true
     };
     dbInfos.push_back(dbInfo);
-    std::string device = fuzzerData.GetString(instanceId % lenMod);
+    std::string device = fdp->ConsumeRandomLengthString();
     RuntimeConfig::NotifyDBInfos({ device }, dbInfos);
     RuntimeConfig::NotifyUserChanged();
 }
 
-void CombineTest(const uint8_t *data, size_t size)
+void CombineTest(FuzzedDataProvider *fdp)
 {
-    FuzzerData fuzzerData(data, size);
-    uint32_t instanceId = fuzzerData.GetUInt32();
-    const int lenMod = 30; // 30 is mod for string vector size
-    std::string appId = fuzzerData.GetString(instanceId % lenMod);
-    std::string userId = fuzzerData.GetString(instanceId % lenMod);
-    std::string storeId = fuzzerData.GetString(instanceId % lenMod);
+    uint32_t instanceId = fdp->ConsumeIntegral<uint32_t>();
+    std::string appId = fdp->ConsumeRandomLengthString();
+    std::string userId = fdp->ConsumeRandomLengthString();
+    std::string storeId = fdp->ConsumeRandomLengthString();
     RelationalStoreManager::GetDistributedTableName(appId, userId);
     RelationalStoreManager mgr(appId, userId, instanceId);
     g_mgr.GetDistributedTableName(appId, userId);
     g_mgr.GetDistributedLogTableName(userId);
     g_mgr.OpenStore(g_dbDir + appId + DB_SUFFIX, storeId, {}, g_delegate);
     g_mgr.GetRelationalStoreIdentifier(userId, appId, storeId, instanceId % 2); // 2 is mod num for last parameter
-    int type = fuzzerData.GetInt();
+    int type = fdp->ConsumeIntegral<int>();
     Bytes bytes = { type, type, type };
-    auto status = static_cast<DBStatus>(data[0]);
+    size_t statusLen = sizeof(DBStatus);
+    auto status = static_cast<DBStatus>(fdp->ConsumeIntegral<uint32_t>() % statusLen);
     g_mgr.ParserQueryNodes(bytes, status);
-    std::string key = fuzzerData.GetString(instanceId % lenMod);
+    std::string key = fdp->ConsumeRandomLengthString();
     std::map<std::string, Type> primaryKey = {{ key, key }};
-    auto collateType = static_cast<CollateType>(data[0]);
+    size_t collateTypeLen = sizeof(CollateType);
+    auto collateType = static_cast<CollateType>(fdp->ConsumeIntegral<uint32_t>() % collateTypeLen);
     std::map<std::string, CollateType> collateTypeMap = {{ key, collateType }};
     g_mgr.CalcPrimaryKeyHash(primaryKey, collateTypeMap);
     RuntimeConfig::SetProcessLabel(appId, userId);
     RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
         return oriDevId + "_" + info.appId;
     });
-    RuntimeConfigTest(data, size);
+    RuntimeConfigTest(fdp);
 }
 }
-
 
 /* Fuzzer entry point */
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     OHOS::Setup();
-    OHOS::CombineTest(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(&fdp);
     OHOS::TearDown();
     return 0;
 }
