@@ -567,6 +567,10 @@ struct Options {
      * Set authType of kv store.
     */
     AuthType authType = AuthType::DEFAULT;
+    /**
+    * Sub user config for system ability.
+    */
+    int32_t subUser = 0;
 };
 
 /**
