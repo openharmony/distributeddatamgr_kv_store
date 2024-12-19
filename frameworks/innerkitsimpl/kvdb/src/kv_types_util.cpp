@@ -125,6 +125,7 @@ bool Marshalling(const Options &input, MessageParcel &data)
     target->isNeedCompress = input.isNeedCompress;
     target->dataType = input.dataType;
     target->isPublic = input.isPublic;
+    target->subUser = input.subUser;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
 
@@ -153,6 +154,7 @@ bool Unmarshalling(Options &output, MessageParcel &data)
     output.isNeedCompress = source->isNeedCompress;
     output.dataType = source->dataType;
     output.isPublic = source->isPublic;
+    output.subUser = source->subUser;
     return true;
 }
 
