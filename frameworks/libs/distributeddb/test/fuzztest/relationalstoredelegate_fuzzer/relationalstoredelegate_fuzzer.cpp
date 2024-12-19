@@ -19,6 +19,7 @@
 #include "distributeddb/result_set.h"
 #include "distributeddb_tools_test.h"
 #include "fuzzer_data.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "log_print.h"
 #include "query.h"
 #include "relational_store_delegate.h"
@@ -97,8 +98,8 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void MultiCombineTest(const uint8_t *data, const std::string &tableName, const std::set<std::string> &extendColNames,
-    const std::set<std::string> &trackerColNames, const bool isDeleted)
+void MultiCombineTest(FuzzedDataProvider *fdp, const std::string &tableName,
+    const std::set<std::string> &extendColNames, const std::set<std::string> &trackerColNames, const bool isDeleted)
 {
     TrackerSchema schema;
     schema.tableName = tableName;
@@ -109,11 +110,13 @@ void MultiCombineTest(const uint8_t *data, const std::string &tableName, const s
     g_delegate->CleanTrackerData(tableName, 0);
     bool logicDelete = isDeleted;
     auto pragmaData = static_cast<PragmaData>(&logicDelete);
-    auto pragmaCmd = static_cast<PragmaCmd>(data[0]);
+    size_t pragmaCmdLen = sizeof(PragmaCmd);
+    auto pragmaCmd = static_cast<PragmaCmd>(fdp->ConsumeIntegral<uint32_t>() % pragmaCmdLen);
     g_delegate->Pragma(pragmaCmd, pragmaData);
     VBucket records;
     records[*extendColNames.begin()] = *extendColNames.begin();
-    auto recordStatus = static_cast<RecordStatus>(data[0]);
+    size_t recordStatusLen = sizeof(RecordStatus);
+    auto recordStatus = static_cast<RecordStatus>(fdp->ConsumeIntegral<uint32_t>() % recordStatusLen);
     g_delegate->UpsertData(tableName, { records }, recordStatus);
     DistributedDB::SqlCondition sqlCondition;
     std::vector<VBucket> sqlRecords;
@@ -154,7 +157,8 @@ void CombineTest(const uint8_t *data, size_t size)
     std::set<std::string> extendColNames = {fuzzerData.GetString(len % lenMod)};
     std::set<std::string> trackerColNames = fuzzerData.GetStringSet(len % lenMod);
     bool isLogicDeleted = static_cast<bool>(*data);
-    MultiCombineTest(data, tableName, extendColNames, trackerColNames, isLogicDeleted);
+    FuzzedDataProvider fdp(data, size);
+    MultiCombineTest(&fdp, tableName, extendColNames, trackerColNames, isLogicDeleted);
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
     g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);
