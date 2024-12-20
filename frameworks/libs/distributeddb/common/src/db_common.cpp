@@ -663,7 +663,8 @@ bool DBCommon::IsRecordIgnored(const VBucket &record)
         return false;
     }
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
-    return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+    return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT) ||
+            status == static_cast<int64_t>(DBStatus::CLOUD_VERSION_CONFLICT);
 }
 
 bool DBCommon::IsRecordVersionConflict(const VBucket &record)
@@ -800,6 +801,19 @@ bool DBCommon::ConvertToUInt64(const std::string &str, uint64_t &value)
     return errCode == std::errc{} && ptr == str.data() + str.size();
 }
 
+bool CmpModifyTime(const std::string &preModifyTimeStr, const std::string &curModifyTimeStr)
+{
+    uint64_t curModifyTime = 0;
+    uint64_t preModifyTime = 0;
+    if (preModifyTimeStr.empty() || !DBCommon::ConvertToUInt64(preModifyTimeStr, preModifyTime)) {
+        return true;
+    }
+    if (curModifyTimeStr.empty() || !DBCommon::ConvertToUInt64(curModifyTimeStr, curModifyTime)) {
+        return false;
+    }
+    return curModifyTime >= preModifyTime;
+}
+
 void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
 {
     std::unordered_map<std::string, size_t> indexMap;
@@ -814,22 +828,19 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
         }
         size_t prevIndex = it->second;
         Asset &prevAsset = assets.at(prevIndex);
-        if (prevAsset.assetId.empty()) {
+        if (prevAsset.assetId.empty() && !asset.assetId.empty()) {
             arr[prevIndex] = 1;
             indexMap[asset.name] = i;
             continue;
         }
-        if (asset.assetId.empty()) {
+        if (!prevAsset.assetId.empty() && asset.assetId.empty()) {
             arr[i] = 1;
             indexMap[asset.name] = prevIndex;
             continue;
         }
-        uint64_t modifyTime = 0;
-        uint64_t prevModifyTime = 0;
-        if (ConvertToUInt64(asset.modifyTime, modifyTime) && ConvertToUInt64(prevAsset.modifyTime, prevModifyTime) &&
-            !asset.modifyTime.empty() && !prevAsset.modifyTime.empty()) {
-            arr[modifyTime > prevModifyTime ? prevIndex : i] = 1;
-            indexMap[asset.name] = modifyTime > prevModifyTime ? i : prevIndex;
+        if (CmpModifyTime(prevAsset.modifyTime, asset.modifyTime)) {
+            arr[prevIndex] = 1;
+            indexMap[asset.name] = i;
             continue;
         }
         arr[i] = 1;

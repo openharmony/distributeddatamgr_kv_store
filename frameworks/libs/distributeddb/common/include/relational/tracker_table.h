@@ -42,12 +42,12 @@ public:
     const std::string GetExtendName() const;
     std::string ToString() const;
     const std::vector<std::string> GetDropTempTriggerSql() const;
-    const std::string GetTempInsertTriggerSql() const;
+    const std::string GetTempInsertTriggerSql(bool incFlag = false) const;
     const std::string GetDropTempTriggerSql(TriggerMode::TriggerModeEnum mode) const;
     const std::string GetCreateTempTriggerSql(TriggerMode::TriggerModeEnum mode) const;
     const std::string GetTempTriggerName(TriggerMode::TriggerModeEnum mode) const;
-    const std::string GetTempUpdateTriggerSql() const;
-    const std::string GetTempDeleteTriggerSql() const;
+    const std::string GetTempUpdateTriggerSql(bool incFlag = false) const;
+    const std::string GetTempDeleteTriggerSql(bool incFlag = false) const;
     void SetTableName(const std::string &tableName);
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);

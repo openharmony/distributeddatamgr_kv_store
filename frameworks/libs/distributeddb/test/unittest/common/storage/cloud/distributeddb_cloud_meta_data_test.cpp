@@ -285,7 +285,8 @@ namespace {
         const CloudTaskConfig config;
         proxyObj.SetCloudTaskConfig(config);
         std::vector<QuerySyncObject> syncQuery;
-        EXPECT_EQ(proxyObj.GetCompensatedSyncQuery(syncQuery), -E_INVALID_DB);
+        std::vector<std::string> users;
+        EXPECT_EQ(proxyObj.GetCompensatedSyncQuery(syncQuery, users), -E_INVALID_DB);
         proxyObj.OnSyncFinish();
         proxyObj.OnUploadStart();
         std::shared_ptr<DataBaseSchema> cloudSchema;

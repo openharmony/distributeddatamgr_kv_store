@@ -49,8 +49,12 @@ DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::vector<Asset> &assets)
 DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::string &tableName, const std::string &gid, const Type &prefix,
     std::map<std::string, Assets> &assets)
 {
+    DBStatus errCode = DBStatus::OK;
     if (removeLocalAssetsCallBack_) {
-        removeLocalAssetsCallBack_(assets);
+        errCode = removeLocalAssetsCallBack_(assets);
+    }
+    if (errCode != DBStatus::OK) {
+        return errCode;
     }
     LOGD("RemoveLocalAssets GID:%s", gid.c_str());
     for (auto &item: assets) {

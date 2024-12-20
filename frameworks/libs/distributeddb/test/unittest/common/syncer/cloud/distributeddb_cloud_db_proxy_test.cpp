@@ -25,6 +25,7 @@
 #include "mock_icloud_sync_storage_interface.h"
 #include "virtual_cloud_db.h"
 #include "virtual_cloud_syncer.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -114,6 +115,7 @@ public:
 
 protected:
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudDBProxyTest::SetUpTestCase()
@@ -128,11 +130,17 @@ void DistributedDBCloudDBProxyTest::SetUp()
 {
     DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudDBProxyTest::TearDown()
 {
     virtualCloudDb_ = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 /**
@@ -521,37 +529,37 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest012, TestSize.Level2)
     
     Asset asset2;
     asset2.name = "assetName1";
-    asset2.assetId = "123";
+    asset2.assetId = "1";
     asset2.modifyTime = "20240730";
     assets.push_back(asset2);
 
     Asset asset3;
     asset3.name = "assetName2";
-    asset3.assetId = "456";
+    asset3.assetId = "2";
     asset3.modifyTime = "20240730";
     assets.push_back(asset3);
 
     Asset asset4;
     asset4.name = "assetName2";
-    asset4.assetId = "789";
+    asset4.assetId = "3";
     asset4.modifyTime = "20240731";
     assets.push_back(asset4);
 
     Asset asset5;
     asset5.name = "assetName3";
-    asset5.assetId = "123";
+    asset5.assetId = "4";
     asset5.modifyTime = "20240730";
     assets.push_back(asset5);
 
     Asset asset6;
     asset6.name = "assetName3";
-    asset6.assetId = "789";
+    asset6.assetId = "5";
     asset6.modifyTime = "20240730";
     assets.push_back(asset6);
 
     Asset asset7;
     asset7.name = "assetName1";
-    asset7.assetId = "456";
+    asset7.assetId = "6";
     asset7.modifyTime = "20240731";
     assets.push_back(asset7);
 
@@ -562,12 +570,53 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest012, TestSize.Level2)
      * @tc.expected: step2. E_OK
      */
     std::string assetNameArr[] = {"assetName2", "assetName3", "assetName1"};
-    std::string assetIdArr[] = {"789", "123", "456"};
+    std::string assetIdArr[] = {"3", "5", "6"};
     EXPECT_EQ(assets.size(), 3u);
     for (std::vector<DistributedDB::Asset>::size_type i = 0; i < assets.size(); ++i) {
         EXPECT_EQ(assets.at(i).name, assetNameArr[i]);
         EXPECT_EQ(assets.at(i).assetId, assetIdArr[i]);
     }
+}
+
+/**
+ * @tc.name: CloudDBProxyTest014
+ * @tc.desc: Test asset deduplication with empty assetId.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest014, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    Assets assets;
+    Asset asset1;
+    asset1.name = "assetName";
+    asset1.assetId = "";
+    asset1.modifyTime = "1";
+    assets.push_back(asset1);
+
+    Asset asset2;
+    asset2.name = "assetName";
+    asset2.assetId = "";
+    asset2.modifyTime = "3";
+    assets.push_back(asset2);
+
+    Asset asset3;
+    asset3.name = "assetName";
+    asset3.assetId = "";
+    asset3.modifyTime = "2";
+    assets.push_back(asset3);
+
+    /**
+     * @tc.steps: step2. Remove duplicate assets and check data
+     * @tc.expected: step2. E_OK
+     */
+    DBCommon::RemoveDuplicateAssetsData(assets);
+    ASSERT_EQ(assets.size(), 1u);
+    EXPECT_EQ(assets[0].modifyTime, "3");
 }
 
 /**

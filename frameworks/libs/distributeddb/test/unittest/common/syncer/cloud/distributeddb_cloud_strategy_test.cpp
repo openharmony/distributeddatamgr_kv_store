@@ -368,4 +368,55 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest006, TestSize.Level0)
     cloudInfo.timestamp = cloudInfo.timestamp + CloudDbConstant::ONE_SECOND;
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
 }
+
+/**
+ * @tc.name: TagOpTyeTest007
+ * @tc.desc: Verify cloud merge strategy for KV and RDB scene when local time is larger and local flag different.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create merge strategy, init localInfo/cloudInfo and local time is larger
+     * @tc.expected: step1. create ok
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+    localInfo.cloudGid = "gid";
+    localInfo.timestamp = 1u;
+
+    /**
+     * @tc.steps: step2. local record is newer when flag is FLAG_LOCAL for RDB scene
+     * @tc.expected: step2. no need handle this record
+     */
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+
+    /**
+     * @tc.steps: step3. local data need update when flag is not FLAG_LOCAL for RDB scene
+     * @tc.expected: step3. need UPDATE this record
+     */
+    localInfo.flag = 0x00;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
+
+    /**
+     * @tc.steps: step4. local record is newer when flag is not FLAG_CLOUD_WRITE for KV scene
+     * @tc.expected: step4. no need handle this record
+     */
+    strategy->SetIsKvScene(true);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    localInfo.flag = 0x00;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+
+    /**
+     * @tc.steps: step5. local data need update when flag is FLAG_CLOUD_WRITE for KV scene
+     * @tc.expected: step5. need UPDATE this record
+     */
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
+}
 }

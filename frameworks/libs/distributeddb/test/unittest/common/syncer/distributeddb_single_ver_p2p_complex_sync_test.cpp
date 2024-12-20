@@ -1748,6 +1748,75 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSyncTask003, Tes
 }
 
 /**
+  * @tc.name: RebuildSync004
+  * @tc.desc: test WIPE_STALE_DATA mode when peers rebuilt db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangtao
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync004, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A and check data
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Key key3 = {'3'};
+    Key key4 = {'4'};
+    Value value = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(key2, value), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(key3, value), OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_PULL, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key3, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    VirtualDataItem item;
+    EXPECT_EQ(g_deviceB->GetData(key1, item), E_OK);
+    EXPECT_EQ(item.value, value);
+    EXPECT_EQ(g_deviceB->GetData(key2, item), E_OK);
+    EXPECT_EQ(item.value, value);
+    EXPECT_EQ(g_deviceB->GetData(key3, item), E_OK);
+    EXPECT_EQ(item.value, value);
+
+    /**
+     * @tc.steps: step2. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
+     * * @tc.expected: step2. interface return ok
+    */
+    g_deviceB->SetClearRemoteStaleData(true);
+    EXPECT_EQ(g_deviceB->PutData(key4, value, 3u, 2), E_OK); // 3: timestamp
+
+    VirtualDataItem item2;
+    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
+    EXPECT_EQ(item2.value, value);
+    g_mgr.CloseKvStore(g_kvDelegatePtr);
+    g_kvDelegatePtr = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    /**
+     * @tc.steps: step3. device B sync to A, make it clear history data and check data
+     * * @tc.expected: step3. interface return ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    EXPECT_EQ(g_deviceB->GetData(key2, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_deviceB->GetData(key3, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_deviceB->GetData(key4, item2), E_OK);
+    EXPECT_EQ(item2.value, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key4, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
   * @tc.name: GetSyncDataFail001
   * @tc.desc: test get sync data failed when sync
   * @tc.type: FUNC

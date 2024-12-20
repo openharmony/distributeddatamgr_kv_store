@@ -129,20 +129,22 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
     return querySyncObject;
 }
 
+void CloudSyncer::UpdateProcessWhenUploadFailed(InnerProcessInfo &info)
+{
+    info.tableStatus = ProcessStatus::FINISHED;
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.notifier->UpdateProcess(info);
+}
+
 void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 {
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         LOGI("[CloudSyncer] Stop upload due to version conflict, %d", errCode);
-        return;
     } else {
         LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
+        info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
     }
-    info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
-    info.tableStatus = ProcessStatus::FINISHED;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        currentContext_.notifier->UpdateProcess(info);
-    }
+    UpdateProcessWhenUploadFailed(info);
 }
 
 int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
@@ -453,7 +455,8 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
 void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
-    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery);
+    std::vector<std::string> users;
+    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery, users);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] Generate compensated sync failed by get query! errCode = %d", errCode);
         return;
@@ -461,6 +464,14 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
     if (syncQuery.empty()) {
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
+    }
+    taskInfo.users.clear();
+    auto cloudDBs = cloudDB_.GetCloudDB();
+    for (auto &[user, cloudDb] : cloudDBs) {
+        auto it = std::find(users.begin(), users.end(), user);
+        if (it != users.end()) {
+            taskInfo.users.push_back(user);
+        }
     }
     for (const auto &query : syncQuery) {
         taskInfo.table.push_back(query.GetRelationTableName());
@@ -516,7 +527,13 @@ int CloudSyncer::SaveCursorIfNeed(const std::string &tableName)
 
 int CloudSyncer::PrepareAndDownload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload)
 {
-    int errCode = SaveCursorIfNeed(table);
+    std::string hashDev;
+    int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Failed to get local identity.");
+        return errCode;
+    }
+    errCode = SaveCursorIfNeed(table);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -565,6 +582,7 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
         uploadData.delData.extend, deleteInfo);
     innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
     innerProcessInfo.upLoadInfo.deleteCount += deleteInfo.successCount;
+    innerProcessInfo.upLoadInfo.total -= deleteInfo.total - deleteInfo.successCount - deleteInfo.failCount;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
         storageProxy_->FillCloudGidIfSuccess(OpType::DELETE, uploadData);
@@ -741,17 +759,18 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     if (errCode != E_OK) {
         return errCode;
     }
-    cloudTaskInfos_[lastTaskId_] = std::move(taskInfo);
-    if (cloudTaskInfos_[lastTaskId_].priorityTask) {
-        priorityTaskQueue_.push_back(lastTaskId_);
+    auto taskId = taskInfo.taskId;
+    cloudTaskInfos_[taskId] = std::move(taskInfo);
+    if (cloudTaskInfos_[taskId].priorityTask) {
+        priorityTaskQueue_.push_back(taskId);
         LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, taskId %" PRIu64,
-            cloudTaskInfos_[lastTaskId_].storeId.c_str(), cloudTaskInfos_[lastTaskId_].taskId);
+            cloudTaskInfos_[taskId].storeId.c_str(), cloudTaskInfos_[taskId].taskId);
         return E_OK;
     }
-    if (!MergeTaskInfo(cloudSchema, lastTaskId_)) {
-        taskQueue_.push_back(lastTaskId_);
-        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64,
-            cloudTaskInfos_[lastTaskId_].storeId.c_str(), cloudTaskInfos_[lastTaskId_].taskId);
+    if (!MergeTaskInfo(cloudSchema, taskId)) {
+        taskQueue_.push_back(taskId);
+        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(),
+            cloudTaskInfos_[taskId].taskId);
     }
     return E_OK;
 }
@@ -1123,8 +1142,8 @@ bool CloudSyncer::IsTableFinishInUpload(const std::string &table)
 
 void CloudSyncer::MarkUploadFinishIfNeed(const std::string &table)
 {
-    // table exist reference should upload every times
-    if (storageProxy_->IsTableExistReference(table)) {
+    // table exist reference or reference by should upload every times
+    if (storageProxy_->IsTableExistReferenceOrReferenceBy(table)) {
         return;
     }
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1192,7 +1211,7 @@ int CloudSyncer::GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo)
                 taskInfo.storeId.c_str());
             return -E_INVALID_ARGS;
         }
-        lastTaskId_ = taskInfo.taskId;
+        lastTaskId_ = std::max(lastTaskId_, taskInfo.taskId);
         LOGI("[CloudSyncer] Sync with taskId %" PRIu64 " storeId %.3s", taskInfo.taskId, taskInfo.storeId.c_str());
         return E_OK;
     }

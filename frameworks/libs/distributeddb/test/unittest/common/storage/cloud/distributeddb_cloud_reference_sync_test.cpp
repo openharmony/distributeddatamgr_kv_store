@@ -28,6 +28,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 
 namespace {
 using namespace testing::ext;
@@ -62,6 +63,7 @@ protected:
     sqlite3 *db_ = nullptr;
     RelationalStoreDelegate *delegate_ = nullptr;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     std::shared_ptr<RelationalStoreManager> mgr_ = nullptr;
     const std::string parentTableName_ = "parent";
     const std::string sharedParentTableName_ = "parent_shared";
@@ -110,6 +112,9 @@ void DistributedDBCloudReferenceSyncTest::SetUp()
     SetReference();
     DataBaseSchema dataBaseSchema = GetSchema();
     ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudReferenceSyncTest::TearDown()
@@ -120,6 +125,9 @@ void DistributedDBCloudReferenceSyncTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudReferenceSyncTest::InitTestDir()

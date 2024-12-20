@@ -76,9 +76,11 @@ namespace {
     const std::string META_CIPHER_CONFIG_SQL = "PRAGMA meta.codec_cipher=";
     const std::string META_KDF_ITER_CONFIG_SQL = "PRAGMA meta.codec_kdf_iter=5000;";
 
-    const std::string DETACH_BACKUP_SQL = "DETACH 'backup'";
-    const std::string UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
-    const std::string CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
+    const constexpr char *DETACH_BACKUP_SQL = "DETACH 'backup'";
+    const constexpr char *UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
+    const constexpr char *CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
+        "type='table' AND (tbl_name=? COLLATE NOCASE));";
+    const constexpr char *CHECK_META_DB_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM meta.sqlite_master WHERE " \
         "type='table' AND (tbl_name=? COLLATE NOCASE));";
 
     bool g_configLog = false;
@@ -2399,14 +2401,14 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
     return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
 }
 
-int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated)
+int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated, bool isCheckMeta)
 {
     if (db == nullptr) {
         return -1;
     }
 
     sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, CHECK_TABLE_CREATED, stmt);
+    int errCode = SQLiteUtils::GetStatement(db, isCheckMeta ? CHECK_META_DB_TABLE_CREATED : CHECK_TABLE_CREATED, stmt);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
         LOGE("Get check table statement failed. err=%d", errCode);
         return errCode;

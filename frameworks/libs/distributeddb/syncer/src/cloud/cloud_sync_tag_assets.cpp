@@ -184,7 +184,9 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
             // fill asset id for upload data
             coveredAsset.assetId = beCoveredAsset.assetId;
         }
-        if (beCoveredAsset.hash != coveredAsset.hash) {
+        if (!setNormalStatus && !beCoveredAsset.hash.empty() && beCoveredAsset.hash != coveredAsset.hash) {
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
+        } else if (setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
             TagAssetWithSameHash(setNormalStatus, beCoveredAsset, coveredAsset, res, errCode);
@@ -205,6 +207,19 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         }
     }
     return res;
+}
+
+static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const bool setNormalStatus, Assets &res,
+    int &errCode)
+{
+    if (!setNormalStatus && beCovered.hash.empty()) {
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res, errCode);
+    } else if (covered.hash != beCovered.hash) {
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
+    } else {
+        Assets tmpAssets = {};
+        TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets, errCode);
+    }
 }
 
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
@@ -228,6 +243,10 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+            if (!setNormalStatus) {
+                // only not normal need fillback asset data
+                coveredData[assetFieldName] = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
+            }
         } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
             TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
@@ -255,12 +274,7 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         // fill asset id for upload data
         covered.assetId = beCovered.assetId;
     }
-    if (covered.hash != beCovered.hash) {
-        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
-    } else {
-        Assets tmpAssets = {};
-        TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets, errCode);
-    }
+    TagCoveredAssetInner(covered, beCovered, setNormalStatus, res, errCode);
     return res;
 }
 

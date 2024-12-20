@@ -65,6 +65,8 @@ int CreateNewDirsAndSetSecOption(const OpenDbProperties &option);
 
 int GetExistedSecOpt(const OpenDbProperties &option, SecurityOption &secOption);
 
+int CheckStoreStatus(const OpenDbProperties &opt);
+
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus);
 } // namespace DistributedDB

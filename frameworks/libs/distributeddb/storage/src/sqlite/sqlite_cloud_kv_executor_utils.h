@@ -33,7 +33,8 @@ public:
     static int GetCloudData(const CloudSyncConfig &config, const DBParam &param, const CloudUploadRecorder &recorder,
         SQLiteSingleVerContinueToken &token, CloudSyncData &data);
 
-    static std::pair<int, DataInfoWithLog> GetLogInfo(sqlite3 *db, bool isMemory, const VBucket &cloudData);
+    static std::pair<int, DataInfoWithLog> GetLogInfo(sqlite3 *db, bool isMemory, const VBucket &cloudData,
+        const std::string &userId);
 
     static int PutCloudData(sqlite3 *db, bool isMemory, DownloadData &downloadData);
 
@@ -53,6 +54,11 @@ public:
 
     static int GetWaitCompensatedSyncDataPk(sqlite3 *db, bool isMemory, std::vector<VBucket> &data);
 
+    static int GetWaitCompensatedSyncDataUserId(sqlite3 *db, bool isMemory, std::vector<VBucket> &users);
+
+    static int GetWaitCompensatedSyncData(sqlite3 *db, bool isMemory, std::vector<VBucket> &data,
+        std::vector<VBucket> &users);
+
     static int QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user, QuerySyncObject &querySyncObject,
         std::vector<std::string> &cloudGid);
 private:
@@ -69,10 +75,11 @@ private:
     static int GetCloudKvBlobData(const std::string &keyStr, int index, sqlite3_stmt *stmt,
         VBucket &data, uint32_t &totalSize);
 
-    static std::pair<int, sqlite3_stmt*> GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData, bool existKey);
+    static std::pair<int, sqlite3_stmt*> GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData, bool existKey,
+        bool emptyUserId);
 
     static std::pair<int, DataInfoWithLog> GetLogInfoInner(sqlite3_stmt *stmt, bool isMemory, const std::string &gid,
-        const Bytes &key);
+        const Bytes &key, const std::string &userId);
 
     static DataInfoWithLog FillLogInfoWithStmt(sqlite3_stmt *stmt);
 
@@ -151,10 +158,12 @@ private:
     static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
         const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);
 private:
-    static void MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data, const std::string &user,
-        size_t dataIndex);
+    static void MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data,
+        const std::string &user, size_t dataIndex);
 
     static bool CheckDataChanged(const FillGidParam &param, const CloudSyncBatch &data, size_t dataIndex);
+
+    static bool CheckDataDelete(const FillGidParam &param, const CloudSyncBatch &data, size_t dataIndex);
 
     static void MarkUploadSuccessInner(const FillGidParam &param, const CloudSyncBatch &data, const std::string &user,
         size_t dataIndex);

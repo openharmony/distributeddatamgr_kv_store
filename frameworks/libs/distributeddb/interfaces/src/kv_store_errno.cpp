@@ -88,14 +88,25 @@ namespace {
 
 DBStatus TransferDBErrno(int err, bool isPass)
 {
-    if (isPass && err > 0) {
-        return static_cast<DBStatus>(err);
-    }
     for (const auto &item : ERRNO_MAP) {
         if (item.errCode == err) {
             return item.status;
         }
     }
+    if (isPass) {
+        return static_cast<DBStatus>(err);
+    }
     return DB_ERROR;
+}
+
+int TransferDBStatusToErr(DBStatus dbStatus)
+{
+    for (const auto &item : ERRNO_MAP) {
+        if (item.status == dbStatus) {
+            return item.errCode;
+        }
+    }
+
+    return dbStatus;
 }
 };
