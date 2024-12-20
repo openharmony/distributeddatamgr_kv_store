@@ -357,8 +357,8 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
         std::string userId = properties.GetStringProp(KvDBProperties::USER_ID, "");
         std::string storeId = properties.GetStringProp(KvDBProperties::STORE_ID, "");
         manager->DataBaseCorruptNotify(appId, userId, storeId);
-        LOGE("Database [%s] is corrupted or invalid passwd:%d", STR_MASK(DBCommon::TransferStringToHex(identifier)),
-            errCode);
+        LOGE("Database [%s] is corrupted or authentication failed:%d",
+            STR_MASK(DBCommon::TransferStringToHex(identifier)), errCode);
     }
 
     return connection;

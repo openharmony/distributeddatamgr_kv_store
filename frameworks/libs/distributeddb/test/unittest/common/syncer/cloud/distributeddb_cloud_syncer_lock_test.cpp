@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -124,6 +125,7 @@ protected:
     void UpdateCloudAssets(Asset &asset, Assets &assets, const std::string &version);
     void CheckUploadAbnormal(OpType opType, int64_t expCnt, bool isCompensated = false);
     sqlite3 *db = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudSyncerLockTest::SetUpTestCase(void)
@@ -147,6 +149,9 @@ void DistributedDBCloudSyncerLockTest::SetUp(void)
     Init();
     g_cloudStoreHook = (ICloudSyncStorageHook *) GetRelationalStore();
     ASSERT_NE(g_cloudStoreHook, nullptr);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudSyncerLockTest::TearDown(void)
@@ -158,6 +163,9 @@ void DistributedDBCloudSyncerLockTest::TearDown(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudSyncerLockTest::Init()
@@ -796,7 +804,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
      * @tc.expected: step3. return ok.
      */
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) +
-        " where data_key='0' and extend_field='name10' and cursor='31';";
+        " where data_key='0' and extend_field='name10' and cursor='32';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
 }

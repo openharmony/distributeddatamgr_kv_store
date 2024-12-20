@@ -20,6 +20,11 @@ CloudSyncStrategy::CloudSyncStrategy() : policy_(SingleVerConflictResolvePolicy:
 {
 }
 
+void CloudSyncStrategy::SetIsKvScene(bool isKvScene)
+{
+    isKvScene_ = isKvScene;
+}
+
 void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy)
 {
     policy_ = policy;
@@ -39,6 +44,11 @@ bool CloudSyncStrategy::JudgeUpdateCursor()
 bool CloudSyncStrategy::JudgeUpload()
 {
     return false;
+}
+
+bool CloudSyncStrategy::JudgeKvScene()
+{
+    return isKvScene_;
 }
 
 bool CloudSyncStrategy::IsDelete(const LogInfo &info)

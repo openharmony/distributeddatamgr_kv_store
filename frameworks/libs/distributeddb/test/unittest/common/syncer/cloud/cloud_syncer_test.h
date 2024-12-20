@@ -61,6 +61,7 @@ public:
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
+        currentContext_.strategy->SetIsKvScene(isKvScene_);
         closed_ = false;
         cloudTaskInfos_[taskId].callback = [this, taskId](const std::map<std::string, SyncProcess> &process) {
             if (process.size() >= 1u) {
@@ -328,6 +329,11 @@ public:
     int CallGetSyncParamForDownload(TaskId taskId, SyncParam &param)
     {
         return CloudSyncer::GetSyncParamForDownload(taskId, param);
+    }
+
+    void SetResumeTaskUpload(TaskId taskId, bool upload)
+    {
+        resumeTaskInfos_[taskId].upload = upload;
     }
 
     bool IsResumeTaskUpload(TaskId taskId)

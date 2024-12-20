@@ -34,12 +34,14 @@
 #include "version.h"
 
 namespace DistributedDB {
-CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, SingleVerConflictResolvePolicy policy)
+CloudSyncer::CloudSyncer(
+    std::shared_ptr<StorageProxy> storageProxy, bool isKvScene, SingleVerConflictResolvePolicy policy)
     : lastTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       closed_(false),
       timerId_(0u),
+      isKvScene_(isKvScene),
       policy_(policy)
 {
     if (storageProxy_ != nullptr) {
@@ -320,8 +322,10 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
             continue;
         }
         errCode = PrepareAndUpload(taskInfo, i);
-        if (errCode == -E_TASK_PAUSED) { // should re download paused table
-            MarkDownloadFinishIfNeed(taskInfo.table[i], false);
+        if (errCode == -E_TASK_PAUSED) { // should re download [paused table, last table]
+            for (size_t j = i; j < taskInfo.table.size(); ++j) {
+                MarkDownloadFinishIfNeed(taskInfo.table[j], false);
+            }
         }
         if (errCode != E_OK) {
             break;
@@ -427,11 +431,14 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskId = currentContext_.currentTaskId;
         errCode = cloudTaskInfos_[currentContext_.currentTaskId].errCode;
-        cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
         currentUserIndex = currentContext_.currentUserIndex;
         userListSize = static_cast<int>(cloudTaskInfos_[taskId].users.size());
     }
     if (currentUserIndex >= userListSize) {
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
+        }
         DoFinished(taskId, errCode);
     } else {
         CloudTaskInfo taskInfo;
@@ -440,7 +447,11 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
             taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
         }
         taskInfo.status = ProcessStatus::FINISHED;
-        currentContext_.notifier->NotifyProcess(taskInfo, {});
+        currentContext_.notifier->NotifyProcess(taskInfo, {}, true);
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
+        }
     }
     return CloudSyncEvent::ALL_TASK_FINISHED_EVENT;
 }
@@ -997,12 +1008,14 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
         LOGE("[CloudSyncer] Cannot start a transaction: %d.", ret);
         return ret;
     }
+    (void)storageProxy_->SetCursorIncFlag(true);
     if (!IsModeForcePush(taskId)) {
         param.changedData.tableName = param.info.tableName;
         param.changedData.field = param.pkColNames;
         param.changedData.type = ChangedDataType::DATA;
     }
     ret = SaveData(taskId, param);
+    (void)storageProxy_->SetCursorIncFlag(false);
     param.insertPk.clear();
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
@@ -1067,9 +1080,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
         param.downloadData.opType.resize(param.downloadData.data.size());
         param.downloadData.existDataKey.resize(param.downloadData.data.size());
         param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
-        (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
         ret = SaveDataInTransaction(taskId, param);
-        (void)storageProxy_->ClearAllTempSyncTrigger();
         if (ret != E_OK) {
             return ret;
         }
@@ -1112,7 +1123,9 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;
     }
+    (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param, isFirstDownload);
+    (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
         // No need to handle ret.
         int ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
@@ -1501,7 +1514,8 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, policy_);
+        currentContext_.strategy =
+            StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, isKvScene_, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
@@ -1895,6 +1909,11 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         cloudTaskInfos_.erase(taskId);
         resumeTaskInfos_.erase(taskId);
     }
+    int err = storageProxy_->ClearUnLockingNoNeedCompensated();
+    if (err != E_OK) {
+        // if clear unlocking failed, no return to avoid affecting the entire process
+        LOGW("[CloudSyncer] clear unlocking status failed! errCode = %d", err);
+    }
     contextCv_.notify_one();
     if (info.errCode == E_OK) {
         info.errCode = errCode;
@@ -1980,10 +1999,7 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
             changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
         }
     }
-    // If the assets are DELETE, needn't fill back cloud assets.
-    if (downloadItem.strategy == OpType::DELETE) {
-        return E_OK;
-    }
+
     return errorCode;
 }
 
@@ -2021,14 +2037,23 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         currentContext_.assetFields[currentContext_.tableName] = assetFields;
     }
     param.isSinglePrimaryKey = CloudSyncUtils::IsSinglePrimaryKey(param.pkColNames);
-    if (!IsModeForcePull(taskId) && !(IsPriorityTask(taskId) && !IsQueryListEmpty(taskId))) {
+    if (!IsModeForcePull(taskId) && (!IsPriorityTask(taskId) || IsQueryListEmpty(taskId))) {
         ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
+        if (!IsCurrentTaskResume(taskId)) {
+            ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
+        }
     }
     currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
+}
+
+bool CloudSyncer::IsCurrentTaskResume(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].resume;
 }
 
 bool CloudSyncer::IsCurrentTableResume(TaskId taskId, bool upload)

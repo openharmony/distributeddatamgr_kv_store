@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 #include "mock_asset_loader.h"
 #include "cloud_db_sync_utils_test.h"
 
@@ -49,6 +50,7 @@ namespace {
     std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
     RelationalStoreObserverUnitTest *g_observer = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     TrackerSchema g_trackerSchema = {
         .tableName = g_tableName, .extendColName = "name", .trackerColNames = {"age"}
     };
@@ -182,6 +184,9 @@ namespace {
         CloudDBSyncUtilsTest::SetStorePath(g_storePath);
         CloudDBSyncUtilsTest::InitSyncUtils(g_cloudFiledWithoutPrimaryKey, g_observer, g_virtualCloudDb,
             g_virtualAssetLoader, g_delegate);
+        communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(communicatorAggregator_ != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
     }
 
     void DistributedDBCloudTableWithoutPrimaryKeySyncTest::TearDown(void)
@@ -191,6 +196,9 @@ namespace {
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
         }
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+        communicatorAggregator_ = nullptr;
+        RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     }
 
 /*

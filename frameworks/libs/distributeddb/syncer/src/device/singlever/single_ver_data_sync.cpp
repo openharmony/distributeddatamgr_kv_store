@@ -1394,8 +1394,13 @@ int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReS
     if (context == nullptr) {
         return -E_INVALID_ARGS;
     }
+    int errCode = RemoveDeviceDataIfNeed(context);
+    if (errCode != E_OK) {
+        context->SetTaskErrCode(errCode);
+        return errCode;
+    }
     SyncEntry syncData;
-    int errCode = GetReSendData(syncData, context, reSendInfo);
+    errCode = GetReSendData(syncData, context, reSendInfo);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         return errCode;
     }

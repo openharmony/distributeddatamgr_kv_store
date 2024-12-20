@@ -805,10 +805,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
 
     /**
      * @tc.steps: the field type does not match
-     * @tc.expected: return -E_INVALID_DATA.
+     * @tc.expected: return -E_CLOUD_ERROR.
      */
     syncData.tableName = g_tableName;
-    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_DATA);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_CLOUD_ERROR);
 
     /**
      * @tc.steps: missing field GID_FIELD
@@ -962,12 +962,12 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
 
     /**
      * @tc.steps:step2. Get cloud data
-     * @tc.expected: step2. return -E_CLOUD_INVALID_ASSET.
+     * @tc.expected: step2. return -E_CLOUD_ERROR.
      */
     ContinueToken token = nullptr;
     CloudSyncData cloudSyncData;
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_INVALID_ASSET);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_ERROR);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 }
 

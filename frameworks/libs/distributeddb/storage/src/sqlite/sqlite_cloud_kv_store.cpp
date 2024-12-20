@@ -245,7 +245,7 @@ int SqliteCloudKvStore::GetInfoByPrimaryKeyOrGid([[gnu::unused]] const std::stri
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
-    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, isMemory, vBucket);
+    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, isMemory, vBucket, user_);
     return errCode;
 }
 
@@ -370,6 +370,11 @@ int SqliteCloudKvStore::FillCloudAssetForDownload(const std::string &tableName, 
 }
 
 int SqliteCloudKvStore::SetLogTriggerStatus(bool status)
+{
+    return E_OK;
+}
+
+int SqliteCloudKvStore::SetCursorIncFlag(bool status)
 {
     return E_OK;
 }
@@ -564,17 +569,14 @@ bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const L
     }
     bool isLocal = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) ==
         static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
-    bool isLocalDelete = (localInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
-        static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
     if (cloudInfoDev.empty()) {
         return !isLocal;
-    } else if (isLocalDelete) {
-        return cloudInfoDev != device;
     }
     return localInfoDev == cloudInfoDev && localInfoDev != device;
 }
 
-int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
+    std::vector<std::string> &users)
 {
     std::shared_ptr<DataBaseSchema> cloudSchema;
     (void)GetCloudDbSchema(cloudSchema);
@@ -592,8 +594,9 @@ int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &sy
     (void)transactionHandle_->GetDbHandle(db);
     for (const auto &table: cloudSchema->tables) {
         std::vector<VBucket> syncDataPk;
-        int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(db, transactionHandle_->IsMemory(),
-            syncDataPk);
+        std::vector<VBucket> syncDataUserId;
+        int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncData(db, transactionHandle_->IsMemory(),
+            syncDataPk, syncDataUserId);
         if (errCode != E_OK) {
             LOGW("[SqliteCloudKvStore] Get wait compensated sync date failed, continue! errCode=%d", errCode);
             continue;
@@ -608,6 +611,15 @@ int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &sy
             continue;
         }
         syncQuery.push_back(syncObject);
+        for (auto &oneRow : syncDataUserId) {
+            std::string user;
+            errCode = CloudStorageUtils::GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_USERID, oneRow, user);
+            if (errCode != E_OK) {
+                LOGW("[SqliteCloudKvStore] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
+                continue;
+            }
+            users.push_back(user);
+        }
     }
     return Commit();
 }

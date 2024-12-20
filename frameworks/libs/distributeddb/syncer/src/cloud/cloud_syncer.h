@@ -40,7 +40,7 @@ namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
 class CloudSyncer : public ICloudSyncer {
 public:
-    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy,
+    explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isKvScene = false,
         SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
     void InitCloudSyncStateMachine();
     ~CloudSyncer() override = default;
@@ -319,6 +319,8 @@ protected:
 
     int GetSyncParamForDownload(TaskId taskId, SyncParam &param);
 
+    bool IsCurrentTaskResume(TaskId taskId);
+
     bool IsCurrentTableResume(TaskId taskId, bool upload);
 
     int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort, bool isFirstDownload);
@@ -346,6 +348,8 @@ protected:
     InnerProcessInfo GetInnerProcessInfo(const std::string &tableName, UploadParam &uploadParam);
 
     void NotifyUploadFailed(int errCode, InnerProcessInfo &info);
+
+    void UpdateProcessWhenUploadFailed(InnerProcessInfo &info);
 
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
@@ -456,6 +460,11 @@ protected:
     std::map<TaskId, int32_t> failedHeartbeatCount_;
 
     std::string id_;
+
+    // isKvScene_ is used to distinguish between the KV and RDB in the following scenarios:
+    // 1. Whether upload to the cloud after delete local data that does not have a gid.
+    // 2. Whether the local data need update for different flag when the local time is larger.
+    bool isKvScene_;
     std::atomic<SingleVerConflictResolvePolicy> policy_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;

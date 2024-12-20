@@ -397,6 +397,7 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
     }
     // INSERT: for no primary key or composite primary key situation
     if (!param.isSinglePrimaryKey && opType == OpType::INSERT) {
+        param.info.downLoadInfo.insertCount++;
         param.withoutRowIdData.insertData.push_back(dataIndex);
         return E_OK;
     }

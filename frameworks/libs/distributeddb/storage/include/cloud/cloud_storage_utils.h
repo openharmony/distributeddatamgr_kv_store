@@ -104,6 +104,7 @@ public:
         std::vector<std::string> &updateColName);
     static std::string GetSelectIncCursorSql(const std::string &tableName);
     static std::string GetCursorIncSql(const std::string &tableName);
+    static std::string GetCursorIncSqlWhenAllow(const std::string &tableName);
     static std::string GetCursorUpgradeSql(const std::string &tableName);
     static std::string GetUpdateUploadFinishedSql(const std::string &tableName);
 
@@ -115,6 +116,8 @@ public:
         const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
         bool allowEmpty);
     static std::string GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
+        const LogInfo &logInfo, const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
+    static std::string GetUpdateRecordFlagSqlUpload(const std::string &tableName, bool recordConflict,
         const LogInfo &logInfo, const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
     static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
         const std::set<std::string> &gidFilters);

@@ -518,6 +518,131 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
 }
 
 /**
+ * @tc.name: SyncWithMultipleUsers001.
+ * @tc.desc: Test sync data with multiple users.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liufuchenxing
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers001, TestSize.Level0)
+{
+    Key key = {'k'};
+    Value value = {'v'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.users.push_back(USER_ID_2);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    Value actualValue;
+    // cloud download [k,v]
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
+ * @tc.name: SyncWithMultipleUsers002.
+ * @tc.desc: test whether upload to the cloud after delete local data that does not have a gid.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: luoguo
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. kvDelegatePtrS1_ put 200 data and sync to cloud.
+     * @tc.expected: step1. return ok.
+     */
+    std::vector<Entry> entries;
+    for (int i = 0; i < 200; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        std::string valueStr = "v_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        Value value(valueStr.begin(), valueStr.end());
+        Entry entry;
+        entry.key = key;
+        entry.value = value;
+        entries.push_back(entry);
+    }
+
+    ASSERT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.users.push_back(USER_ID_2);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+
+    /**
+     * @tc.steps: step2. kvDelegatePtrS2_ only sync user0 from cloud.
+     * @tc.expected: step2. return ok.
+     */
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+
+    /**
+     * @tc.steps: step3. kvDelegatePtrS2_ delete 100 data.
+     * @tc.expected: step3. return ok.
+     */
+    std::vector<Key> keys;
+    for (int i = 0; i < 100; i++) {
+        std::string keyStr = "k_" + std::to_string(i);
+        Key key(keyStr.begin(), keyStr.end());
+        keys.push_back(key);
+    }
+    ASSERT_EQ(kvDelegatePtrS2_->DeleteBatch(keys), OK);
+
+    /**
+     * @tc.steps: step4. kvDelegatePtrS2_ sync to cloud with user0 user2.
+     * @tc.expected: step4. return ok.
+     */
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID);
+    syncOption.users.push_back(USER_ID_2);
+
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    uint32_t insertCount = 0;
+    auto callback = [&dataMutex, &cv, &finish, &insertCount, &syncOption](const std::map<std::string,
+        SyncProcess> &process) {
+        size_t notifyCnt = 0;
+        for (const auto &item : process) {
+            LOGD("user = %s, status = %d, errCode=%d", item.first.c_str(), item.second.process, item.second.errCode);
+            if (item.second.process != DistributedDB::FINISHED) {
+                continue;
+            }
+            EXPECT_EQ(item.second.errCode, OK);
+            {
+                std::lock_guard<std::mutex> autoLock(dataMutex);
+                notifyCnt++;
+                std::set<std::string> userSet(syncOption.users.begin(), syncOption.users.end());
+                if (notifyCnt == userSet.size()) {
+                    finish = true;
+                    std::map<std::string, TableProcessInfo> tableProcess(item.second.tableProcess);
+                    insertCount = tableProcess["sync_data"].downLoadInfo.insertCount;
+                    cv.notify_one();
+                }
+            }
+        }
+    };
+    auto actualRet = kvDelegatePtrS2_->Sync(syncOption, callback);
+    EXPECT_EQ(actualRet, OK);
+    if (actualRet == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&finish]() { return finish; });
+    }
+    /**
+     * @tc.steps: step5. check process info, user2's insertCount should be 0.
+     * @tc.expected: step5. return ok.
+     */
+    EXPECT_EQ(insertCount, 0u);
+}
+
+/**
  * @tc.name: DeviceCollaborationTest001
  * @tc.desc: Check force override data
  * @tc.type: FUNC

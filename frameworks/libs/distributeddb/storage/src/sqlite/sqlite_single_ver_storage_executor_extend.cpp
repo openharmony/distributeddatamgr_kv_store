@@ -147,6 +147,11 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
     }
     if (mode == FLAG_AND_DATA) {
         return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_DEV_DATA_SQL, "", "");
+    } else if (mode == FLAG_ONLY) {
+        errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_DEV_DATA_VERSION_SQL, "", "");
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_ALL_DEV_DATA_SQL, "", "");
 }
@@ -247,7 +252,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
 {
     if (mode == ClearMode::DEFAULT) {
         return CheckCorruptedStatus(deviceName.empty() ?
-            RemoveDeviceDataInner(deviceName, mode) : RemoveDeviceDataInner(mode));
+            RemoveDeviceDataInner(mode) : RemoveDeviceDataInner(deviceName, mode));
     }
     int errCode = E_OK;
     bool isDataExist = false;
@@ -309,8 +314,7 @@ int SQLiteSingleVerStorageExecutor::RemoveCloudUploadFlag(const std::vector<uint
     if (!isCreate) {
         return E_OK;
     }
-    std::string removeSql = "UPDATE " + tableName + " SET cloud_flag=cloud_flag&(~" +
-        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED)) + ") WHERE hash_key=?";
+    std::string removeSql = "UPDATE " + tableName + " SET cloud_flag=0 WHERE hash_key=?";
     sqlite3_stmt *stmt = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, removeSql, stmt);
     if (errCode != E_OK) {

@@ -1179,6 +1179,11 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
 {
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
+    // let data after remove device data at flag_only and logic delete mode and deleted by others to upload to cloud.
+    if (mode == CloudWaterType::INSERT) {
+        sql += "(b.cloud_gid == '' and (b.flag & 0x20 != 0) and (b.flag & 0x02 = 0) and (b.flag & 0x08 != 0x08) and";
+        sql += " (b.flag & 0x01 = 0) and (b.status = 0)) OR ";
+    }
     if (isCompensatedTask && mode == CloudWaterType::DELETE) {
         // deleted data does not have primary key, requires gid to compensate sync
         sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01) AND b.cloud_gid != '') OR ";
@@ -1188,8 +1193,11 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
     if (isCloudForcePush) {
         sql += " (b.flag & 0x04 != 0x04)";
     } else {
-        // local data and flag is not upload finished.
-        sql += "(b.flag & 0x02 = 0x02) AND (b.flag & 0x400 != 0x400)";
+        sql += "(b.flag & 0x02 = 0x02)";
+        if (!isCompensatedTask) {
+            // local data and flag is not upload finished.
+            sql += " AND (b.flag & 0x400 != 0x400)";
+        }
     }
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";

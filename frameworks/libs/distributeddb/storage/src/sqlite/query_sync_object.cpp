@@ -245,19 +245,28 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
 
 void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
 {
-    QueryObjNode objNode;
-    objNode.operFlag = QueryObjType::OR;
-    objNode.type = QueryValueType::VALUE_TYPE_NULL;
-    queryObjNodes_.push_back(objNode);
-    objNode.operFlag = QueryObjType::IN;
-    objNode.fieldName = CloudDbConstant::GID_FIELD;
-    objNode.type = QueryValueType::VALUE_TYPE_STRING;
-    for (const auto &gid : cloudGid) {
-        FieldValue fieldValue;
-        fieldValue.stringValue = gid;
-        objNode.fieldValue.emplace_back(fieldValue);
+    for (size_t i = 0; i < cloudGid.size(); i+= MAX_VALUE_SIZE) {
+        size_t end = std::min(i + MAX_VALUE_SIZE, cloudGid.size());
+        QueryObjNode operateNode;
+        operateNode.operFlag = QueryObjType::OR;
+        operateNode.type = QueryValueType::VALUE_TYPE_NULL;
+        queryObjNodes_.emplace_back(operateNode);
+
+        QueryObjNode objNode;
+        objNode.operFlag = QueryObjType::IN;
+        objNode.fieldName = CloudDbConstant::GID_FIELD;
+        objNode.type = QueryValueType::VALUE_TYPE_STRING;
+        std::vector<std::string> subCloudGid(cloudGid.begin() + i, cloudGid.begin() + end);
+        for (const auto &gid : subCloudGid) {
+            if (gid.empty()) {
+                continue;
+            }
+            FieldValue fieldValue;
+            fieldValue.stringValue = gid;
+            objNode.fieldValue.emplace_back(fieldValue);
+        }
+        queryObjNodes_.emplace_back(objNode);
     }
-    queryObjNodes_.emplace_back(objNode);
 }
 
 namespace {

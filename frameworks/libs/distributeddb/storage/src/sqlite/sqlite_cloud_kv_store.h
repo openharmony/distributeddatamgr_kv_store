@@ -69,6 +69,7 @@ public:
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
     int SetLogTriggerStatus(bool status) override;
+    int SetCursorIncFlag(bool status) override;
 
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) override;
 
@@ -101,7 +102,7 @@ public:
     bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
         SingleVerConflictResolvePolicy policy) override;
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users) override;
 
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();

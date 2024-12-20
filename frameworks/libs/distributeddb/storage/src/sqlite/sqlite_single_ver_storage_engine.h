@@ -73,8 +73,8 @@ protected:
 
 private:
     // For executor.
-    int PreCreateExecutor(bool isWrite);
-    int EndCreateExecutor(bool isWrite);
+    int PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt);
+    int EndCreateExecutor(sqlite3 *db, bool isWrite, bool isDetachMeta);
     int ReInit() override;
     int ReleaseExecutor(SQLiteSingleVerStorageExecutor *&handle);
     int ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,
@@ -103,7 +103,8 @@ private:
     int AttachMainDbAndCacheDb(SQLiteSingleVerStorageExecutor *handle, EngineState stateBeforeMigrate);
     int AttachMainDbAndCacheDb(sqlite3 *dbHandle, EngineState stateBeforeMigrate) const;
     void RegisterFunctionIfNeed(sqlite3 *dbHandle) const;
-    int TryAttachMetaDb(sqlite3 *&dbHandle, bool &isAttachMeta);
+    int TryAttachMetaDb(const SecurityOption &existedSecOpt, sqlite3 *&dbHandle, bool &isAttachMeta,
+        bool &isNeedDetachMeta);
 
     // For secOpt.
     int CreateNewDirsAndSetSecOpt() const;

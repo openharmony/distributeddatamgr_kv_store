@@ -509,7 +509,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInf
     return SetLogTriggerStatus(true);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable)
+int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag)
 {
     int errCode = E_OK;
     std::vector<std::string> dropSql = trackerTable.GetDropTempTriggerSql();
@@ -520,17 +520,17 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const Tracke
             return errCode;
         }
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp insert trigger failed %d.", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp update trigger failed %d.", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql());
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql(flag));
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] create temp delete trigger failed %d.", errCode);
     }
@@ -949,7 +949,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
         std::string val;
         if (CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD,
             cloudDataResult.insData.extend[i], val) != E_OK) {
-            errCode = -E_INVALID_DATA;
+            errCode = -E_CLOUD_ERROR;
             LOGE("[RDBExecutor] Can't get string gid from extend.");
             break;
         }
@@ -1003,19 +1003,27 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
     return E_OK;
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &logTable)
+std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table)
 {
+    std::string logTable = DBCommon::GetLogTableName(table);
+    int cursor = GetCursor(table);
     std::string sql;
     sql += " cloud_gid = '', version = '', ";
     if (isLogicDelete_) {
+        // cursor already increased by DeleteCloudData, can be assigned directly here
         // 1001 which is logicDelete|cloudForcePush|local|delete
         sql += "flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
-            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = (SELECT CASE WHEN (MAX(cursor) is "
-            "null) THEN 1 ELSE MAX(cursor) + 1 END FROM " + logTable + ")";
+            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = " + std::to_string(cursor) + " ";
     } else {
         sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
             std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
+        int errCode = SetCursor(table, cursor + 1);
+        if (errCode == E_OK) {
+            sql += ", cursor = " + std::to_string(cursor + 1) + " ";
+        } else {
+            LOGW("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+        }
     }
     return sql;
 }
@@ -1480,6 +1488,9 @@ int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::strin
         // this is shared table, not need to update asset id.
         return E_OK;
     }
+    if (!IsNeedUpdateAssetId(tableSchema, dataKey, vBucket)) {
+        return E_OK;
+    }
     int errCode = UpdateAssetId(tableSchema, dataKey, vBucket);
     if (errCode != E_OK) {
         LOGE("[Storage Executor] failed to update assetId on table, %d.", errCode);
@@ -1737,13 +1748,13 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
 {
     if (putDataMode_ != PutDataMode::USER) {
         return static_cast<int64_t>(LogInfoFlag::FLAG_CLOUD) |
-            static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY);
+            static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
     }
     uint32_t flag = static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
     if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
         flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
-    flag |= static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_CONSISTENCY);
+    flag |= static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
     return static_cast<int64_t>(flag);
 }
 
@@ -1913,6 +1924,28 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
     return errCode == E_OK ? ret : errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::string &tableName)
+{
+    std::string sql;
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET status = (CASE WHEN status == 1 "+
+        "AND (cloud_gid = '' AND flag & 0x01 != 0) THEN 0 ELSE status END);";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Get stmt failed when clear unlocking status errCode = %d.", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[Storage Eexcute] Step update record status stmt failed, %d.", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> &fields,
     int startIndex, VBucket &record)
 {
@@ -1965,84 +1998,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
         LOGE("Bind shareUri to insert log statement failed, %d", errCode);
     }
     return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::string &tableName,
-    const DownloadData &downloadData, const std::set<std::string> &gidFilters)
-{
-    if (downloadData.data.size() != downloadData.opType.size()) {
-        LOGE("The num of data:%zu an opType:%zu is not equal.", downloadData.data.size(), downloadData.opType.size());
-        return -E_CLOUD_ERROR;
-    }
-    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
-        " SET flag=flag&(~0x20), " + CloudDbConstant::UNLOCKING_TO_UNLOCK + " WHERE cloud_gid=? and timestamp=?;";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        LOGE("Get mark flag as consistent stmt failed, %d.", errCode);
-        return errCode;
-    }
-    int ret = E_OK;
-    int index = 0;
-    for (const auto &data: downloadData.data) {
-        SQLiteUtils::ResetStatement(stmt, false, ret);
-        OpType opType = downloadData.opType[index++];
-        if (opType == OpType::NOT_HANDLE || opType == OpType::LOCKED_NOT_HANDLE) {
-            continue;
-        }
-        errCode = CloudStorageUtils::BindStepConsistentFlagStmt(stmt, data, gidFilters);
-        if (errCode != E_OK) {
-            break;
-        }
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode == E_OK ? ret : errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
-    const CloudSyncBatch &batchData)
-{
-    if (batchData.extend.empty()) {
-        return E_OK;
-    }
-    if (batchData.hashKey.empty() || batchData.extend.size() != batchData.hashKey.size()) {
-        LOGE("invalid sync data for filling version.");
-        return -E_INVALID_ARGS;
-    }
-    std::string sql = "UPDATE '" + DBCommon::GetLogTableName(tableName) +
-        "' SET version = ? WHERE hash_key = ? ";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    for (size_t i = 0; i < batchData.extend.size(); ++i) {
-        errCode = BindUpdateVersionStatement(batchData.extend[i], batchData.hashKey[i], stmt);
-        if (errCode != E_OK) {
-            LOGE("bind update version stmt failed.");
-            SQLiteUtils::ResetStatement(stmt, true, ret);
-            return errCode;
-        }
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return ret;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::QueryCount(const std::string &tableName, int64_t &count)
-{
-    return SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, count);
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::CheckInventoryData(const std::string &tableName)
-{
-    int64_t dataCount = 0;
-    int errCode = SQLiteRelationalUtils::QueryCount(dbHandle_, tableName, dataCount);
-    if (errCode != E_OK) {
-        LOGE("Query count failed.", errCode);
-        return errCode;
-    }
-    return dataCount > 0 ? -E_WITH_INVENTORY_DATA : E_OK;
 }
 } // namespace DistributedDB
 #endif

@@ -16,28 +16,28 @@
 #include "kv_store_delegate_manager.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <cctype>
+#include <cstdlib>
 #include <map>
 #include <thread>
 
-#include "db_constant.h"
-#include "platform_specific.h"
-#include "log_print.h"
+#include "auto_launch.h"
 #include "db_common.h"
+#include "db_constant.h"
 #include "db_dfx_adapter.h"
+#include "kv_store_delegate_impl.h"
 #include "kv_store_errno.h"
+#include "kv_store_nb_delegate_impl.h"
+#include "kvdb_manager.h"
 #include "kvdb_pragma.h"
 #include "kvdb_properties.h"
-#include "kvdb_manager.h"
-#include "kv_store_nb_delegate_impl.h"
+#include "log_print.h"
 #include "network_adapter.h"
+#include "param_check_utils.h"
+#include "platform_specific.h"
 #include "rd_utils.h"
 #include "runtime_config.h"
 #include "runtime_context.h"
-#include "param_check_utils.h"
-#include "auto_launch.h"
-#include "kv_store_delegate_impl.h"
 
 namespace DistributedDB {
 const std::string KvStoreDelegateManager::DEFAULT_PROCESS_APP_ID = "default";
@@ -573,7 +573,7 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     std::shared_ptr<DBProperties> ptr;
     int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_KV, true, ptr);
     if (errCode != E_OK) {
-        LOGE("[KvStoreManager] Enable auto launch failed:%d", errCode);
+        LOGE("[KvStoreManager] Enable auto launch, Get Properties failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
 
@@ -581,7 +581,7 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(*kvPtr, notifier, option);
     if (errCode != E_OK) {
         LOGE("[KvStoreManager] Enable auto launch failed:%d", errCode);
-        return TransferDBErrno(errCode);
+        return TransferDBErrno(errCode, true);
     }
     LOGI("[KvStoreManager] Enable auto launch");
     return OK;

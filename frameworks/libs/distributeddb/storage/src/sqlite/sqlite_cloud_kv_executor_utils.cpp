@@ -228,7 +228,7 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
 }
 
 std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *db, bool isMemory,
-    const VBucket &cloudData)
+    const VBucket &cloudData, const std::string &userId)
 {
     std::pair<int, DataInfoWithLog> res;
     int &errCode = res.first;
@@ -246,7 +246,7 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
     Bytes hashKey;
     DBCommon::CalcValueHash(key, hashKey);
     sqlite3_stmt *stmt = nullptr;
-    std::tie(errCode, stmt) = GetLogInfoStmt(db, cloudData, !hashKey.empty());
+    std::tie(errCode, stmt) = GetLogInfoStmt(db, cloudData, !hashKey.empty(), userId.empty());
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Get stmt failed %d", errCode);
         return res;
@@ -257,19 +257,23 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
         LOGE("[SqliteCloudKvExecutorUtils] Get gid failed %d", errCode);
         return res;
     }
-    return GetLogInfoInner(stmt, isMemory, gid, hashKey);
+    return GetLogInfoInner(stmt, isMemory, gid, hashKey, userId);
 }
 
 std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData,
-    bool existKey)
+    bool existKey, bool emptyUserId)
 {
     std::pair<int, sqlite3_stmt*> res;
     auto &[errCode, stmt] = res;
-    std::string sql = QUERY_CLOUD_SYNC_DATA_LOG;
+    std::string querySql = QUERY_CLOUD_SYNC_DATA_LOG;
+    if (!emptyUserId) {
+        querySql = QUERY_CLOUD_SYNC_DATA_LOG_WITH_USERID;
+    }
+    std::string sql = querySql;
     sql += " WHERE cloud_gid = ?";
     if (existKey) {
         sql += " UNION ";
-        sql += QUERY_CLOUD_SYNC_DATA_LOG;
+        sql += querySql;
         sql += " WHERE sync_data.hash_key = ?";
     }
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
@@ -277,7 +281,7 @@ std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3
 }
 
 std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfoInner(sqlite3_stmt *stmt, bool isMemory,
-    const std::string &gid, const Bytes &key)
+    const std::string &gid, const Bytes &key, const std::string &userId)
 {
     ResFinalizer finalizer([stmt]() {
         sqlite3_stmt *statement = stmt;
@@ -290,13 +294,27 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfoInner(sqli
     std::pair<int, DataInfoWithLog> res;
     auto &[errCode, logInfo] = res;
     int index = 1;
+    if (!userId.empty()) {
+        errCode = SQLiteUtils::BindTextToStatement(stmt, index++, userId);
+        if (errCode != E_OK) {
+            LOGE("[SqliteCloudKvExecutorUtils] Bind 1st userId failed %d", errCode);
+            return res;
+        }
+    }
     errCode = SQLiteUtils::BindTextToStatement(stmt, index++, gid);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind gid failed %d", errCode);
         return res;
     }
     if (!key.empty()) {
-        errCode = SQLiteUtils::BindBlobToStatement(stmt, index, key);
+        if (!userId.empty()) {
+            errCode = SQLiteUtils::BindTextToStatement(stmt, index++, userId);
+            if (errCode != E_OK) {
+                LOGE("[SqliteCloudKvExecutorUtils] Bind 2nd userId failed %d", errCode);
+                return res;
+            }
+        }
+        errCode = SQLiteUtils::BindBlobToStatement(stmt, index++, key);
         if (errCode != E_OK) {
             LOGE("[SqliteCloudKvExecutorUtils] Bind key failed %d", errCode);
             return res;
@@ -850,6 +868,7 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const Cl
         }
         CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::VERSION_FIELD, data.extend[i], dataItem.version);
         dataItem.hashKey = data.hashKey[i];
+        dataItem.dataDelete = CheckDataDelete(param, data, i);
         errCode = BindFillGidLogStmt(logStmt, user, dataItem, data.extend[i], type);
         if (errCode != E_OK) {
             return errCode;
@@ -1303,6 +1322,59 @@ int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(sqlite3 *db, bool i
     return errCode;
 }
 
+int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataUserId(sqlite3 *db, bool isMemory,
+    std::vector<VBucket> &users)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, SELECT_COMPENSATE_SYNC_USERID_SQL, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get compensate key stmt failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizerData([stmt]() {
+        int ret = E_OK;
+        sqlite3_stmt *statement = stmt;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset compensate key stmt failed %d", ret);
+        }
+    });
+    uint32_t totalSize = 0;
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt, isMemory);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[SqliteCloudKvExecutorUtils] Get key from compensate key stmt failed. %d", errCode);
+            break;
+        }
+        VBucket key;
+        errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_USERID, CLOUD_QUERY_KEY_INDEX, stmt,
+            key, totalSize);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        users.push_back(key);
+    } while (errCode == E_OK);
+    return errCode;
+}
+
+int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncData(sqlite3 *db, bool isMemory, std::vector<VBucket> &data,
+    std::vector<VBucket> &users)
+{
+    int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(db, isMemory, data);
+    if (errCode != E_OK) {
+        LOGE("[GetWaitCompensatedSyncData] Get wait compensate sync data failed! errCode=%d", errCode);
+        return errCode;
+    }
+    errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataUserId(db, isMemory, users);
+    if (errCode != E_OK) {
+        LOGE("[GetWaitCompensatedSyncData] Get wait compensate sync data failed! errCode=%d", errCode);
+    }
+    return errCode;
+}
+
 int SqliteCloudKvExecutorUtils::QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
     QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid)
 {
@@ -1339,7 +1411,7 @@ int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const 
     const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type)
 {
     DataItem wItem = dataItem;
-    if (DBCommon::IsNeedCompensatedForUpload(uploadExtend, type)) {
+    if (DBCommon::IsNeedCompensatedForUpload(uploadExtend, type) && !wItem.dataDelete) {
         wItem.cloud_flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
     if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
@@ -1392,15 +1464,19 @@ bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
         }
     });
     int index = 1;
-    errCode = SQLiteUtils::BindInt64ToStatement(checkStmt, index++, data.timestamp[dataIndex]);
-    if (errCode != E_OK) {
-        LOGW("[SqliteCloudKvExecutorUtils] bind modify time failed %d when check data changed", errCode);
-        return true;
+    if (data.timestamp.size() > 0) {
+        errCode = SQLiteUtils::BindInt64ToStatement(checkStmt, index++, data.timestamp[dataIndex]);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] bind modify time failed %d when check data changed", errCode);
+            return true;
+        }
     }
-    errCode = SQLiteUtils::BindBlobToStatement(checkStmt, index++, data.hashKey[dataIndex]);
-    if (errCode != E_OK) {
-        LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when check data changed", errCode);
-        return true;
+    if (data.hashKey.size() > 0) {
+        errCode = SQLiteUtils::BindBlobToStatement(checkStmt, index++, data.hashKey[dataIndex]);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when check data changed", errCode);
+            return true;
+        }
     }
     errCode = SQLiteUtils::StepNext(checkStmt);
     if (errCode != E_OK) {
@@ -1408,6 +1484,42 @@ bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
         return true;
     }
     return sqlite3_column_int64(checkStmt, 0) == 0; // get index start at 0, get 0 is data changed
+}
+
+bool SqliteCloudKvExecutorUtils::CheckDataDelete(const FillGidParam &param,
+    const CloudSyncBatch &data, size_t dataIndex)
+{
+    sqlite3_stmt *checkStmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(param.first, CHECK_DATA_DELETE, checkStmt);
+    ResFinalizer finalizerData([checkStmt]() {
+        sqlite3_stmt *statement = checkStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] reset log stmt failed %d when check data delete", ret);
+        }
+    });
+    int index = 1;
+    if (data.timestamp.size() > 0) {
+        errCode = SQLiteUtils::BindInt64ToStatement(checkStmt, index++, data.timestamp[dataIndex]);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] bind modify time failed %d when check data delete", errCode);
+            return true;
+        }
+    }
+    if (data.hashKey.size() > 0) {
+        errCode = SQLiteUtils::BindBlobToStatement(checkStmt, index++, data.hashKey[dataIndex]);
+        if (errCode != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] bind hashKey failed %d when check data delete", errCode);
+            return true;
+        }
+    }
+    errCode = SQLiteUtils::StepNext(checkStmt);
+    if (errCode != E_OK) {
+        LOGW("[SqliteCloudKvExecutorUtils] step failed %d when check data delete", errCode);
+        return true;
+    }
+    return sqlite3_column_int64(checkStmt, 0) != 0; // get index start at !0, get 0 means data delete
 }
 
 void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &param,

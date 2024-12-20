@@ -29,8 +29,9 @@ OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, bool isCloud
     }
 
     if (localInfo.cloudGid.empty()) {
-        // when cloud data is deleted, we think it is different data
-        return isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
+        // when cloud or local data is deleted, we think it is different data
+        bool isLocalDelete = IsDelete(localInfo);
+        return isCloudDelete || isLocalDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
     }
 
     if (isCloudDelete) {

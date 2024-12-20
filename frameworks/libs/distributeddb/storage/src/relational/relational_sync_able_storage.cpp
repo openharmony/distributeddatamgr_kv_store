@@ -1226,8 +1226,8 @@ int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
         RelationalSchemaObject newSchema;
         errCode = GetSchemaFromDB(newSchema);
         if (errCode != E_OK) {
-            LOGE("Get schema from db when check schema.");
-            return errCode;
+            LOGE("Get schema from db when check schema. err: %d", errCode);
+            return -E_SCHEMA_MISMATCH;
         }
         errCode = schemaMgr_.ChkSchema(tableName, newSchema);
     }
@@ -1378,6 +1378,20 @@ int RelationalSyncAbleStorage::SetLogTriggerStatus(bool status)
     return errCode;
 }
 
+int RelationalSyncAbleStorage::SetCursorIncFlag(bool flag)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->SetCursorIncFlag(flag);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const CloudSyncData &data, bool fillAsset,
     bool ignoreEmptyGid)
 {
@@ -1477,7 +1491,7 @@ int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableNam
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = CreateTempSyncTriggerInner(handle, tableName);
+    errCode = CreateTempSyncTriggerInner(handle, tableName, true);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
@@ -1904,7 +1918,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = rowId;
         logInfo.hashKey = updateData.hashKey[i];
-        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, DBCommon::IsRecordIgnored(record),
+        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(tableName, DBCommon::IsRecordIgnored(record),
             logInfo, record, type);
         int errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
         if (errCode != E_OK) {
@@ -1917,7 +1931,8 @@ int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelati
     return E_OK;
 }
 
-int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
+    std::vector<std::string> &users)
 {
     std::vector<TableSchema> tables;
     int errCode = GetCloudTableWithoutShared(tables);
@@ -1933,6 +1948,40 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObje
         return errCode;
     }
     errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
+{
+    std::vector<TableSchema> tables;
+    int errCode = GetCloudTableWithoutShared(tables);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (tables.empty()) {
+        LOGI("[RDBStorage] Table is empty, no need to clear unlocking status");
+        return E_OK;
+    }
+    auto *handle = GetHandle(true, errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    for (const auto &table : tables) {
+        errCode = handle->ClearUnLockingStatus(table.name);
+        if (errCode != E_OK) {
+            LOGW("[ClearUnLockingNoNeedCompensated] clear unlocking status failed, continue! errCode=%d", errCode);
+        }
+    }
+    errCode = handle->Commit();
+    if (errCode != E_OK) {
+        LOGE("[ClearUnLockingNoNeedCompensated] commit failed %d when clear unlocking status", errCode);
+    }
     ReleaseHandle(handle);
     return errCode;
 }
@@ -2006,13 +2055,13 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
 }
 
 int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::string &tableName)
+    const std::string &tableName, bool flag)
 {
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
     if (trackerTable.IsEmpty()) {
         trackerTable.SetTableName(tableName);
     }
-    return handle->CreateTempSyncTrigger(trackerTable);
+    return handle->CreateTempSyncTrigger(trackerTable, flag);
 }
 
 bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSchema &table)

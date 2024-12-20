@@ -409,6 +409,9 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
     if (record.size() != extend.size()) {
         return DB_ERROR;
     }
+    if (forkBeforeBatchUpdateFunc_) {
+        forkBeforeBatchUpdateFunc_(tableName, record, extend, isDelete);
+    }
     std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
     DBStatus res = InnerUpdateWithoutLock(tableName, std::move(record), extend, isDelete);
     if (res != OK) {
@@ -605,6 +608,12 @@ void VirtualCloudDb::ForkQuery(const std::function<void(const std::string &, VBu
 void VirtualCloudDb::ForkUpload(const std::function<void(const std::string &, VBucket &)> &forkUploadFunc)
 {
     forkUploadFunc_ = forkUploadFunc;
+}
+
+void VirtualCloudDb::ForkBeforeBatchUpdate(const std::function<void(const std::string &, std::vector<VBucket> &,
+    std::vector<VBucket> &, bool isDelete)> &forkBeforeBatchUpdateFunc)
+{
+    forkBeforeBatchUpdateFunc_ = forkBeforeBatchUpdateFunc;
 }
 
 int32_t VirtualCloudDb::GetLockCount() const
