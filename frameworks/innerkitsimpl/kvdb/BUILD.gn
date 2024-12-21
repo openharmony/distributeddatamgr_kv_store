@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Copyright (c) 2024 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,21 +16,18 @@ import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 group("build_module") {
   deps = []
   if (!use_platform_win && !use_platforn_mac) {
-    deps += [
-      ":datamgr_common",
-    ]
+    deps += [ ":datamgr_common" ]
   }
 }
 
 config("datamgr_common_config") {
   visibility = [ ":*" ]
 
-  include_dirs = [
-    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include"
-  ]
+  include_dirs =
+      [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include" ]
 }
 
-ohos_shared_library("datamgr_common") {
+ohos_static_library("datamgr_common") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     ubsan = true

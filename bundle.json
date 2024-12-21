@@ -91,8 +91,7 @@
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
         "//foundation/distributeddatamgr/kv_store/interfaces/cj:cj_distributed_kv_store_ffi",
-        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
-        "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:build_module"
+        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils"
       ],
       "inner_kits": [
         {
@@ -123,6 +122,7 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:datamgr_common",
+          "visibility": [ "datamgr_sevice" ],
           "header": {
             "header_files": [
               "distributeddata_kvdb_ipc_interface_code.h",
