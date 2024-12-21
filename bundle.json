@@ -122,7 +122,7 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:datamgr_common",
-          "visibility": [ "datamgr_sevice" ],
+          "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
               "distributeddata_kvdb_ipc_interface_code.h",
