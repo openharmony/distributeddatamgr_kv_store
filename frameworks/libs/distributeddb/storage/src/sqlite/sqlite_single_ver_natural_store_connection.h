@@ -72,6 +72,7 @@ public:
 
     // Pragma interface.
     int Pragma(int cmd, void *parameter) override;
+    int PragmaNext(int cmd, void *parameter);
 
     // Parse event types(from observer mode).
     int TranslateObserverModeToEventTypes(unsigned mode, std::list<int> &eventTypes) const override;
@@ -212,6 +213,7 @@ private:
     bool IsFileAccessControlled() const;
 
     int PragmaSetMaxLogSize(uint64_t *limit);
+    int SetMaxValueSize(uint32_t maxValueSize);
     int ForceCheckPoint() const;
 
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;

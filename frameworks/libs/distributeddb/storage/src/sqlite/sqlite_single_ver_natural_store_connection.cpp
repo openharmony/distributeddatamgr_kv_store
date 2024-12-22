@@ -358,6 +358,21 @@ int SQLiteSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
         case PRAGMA_EXEC_CHECKPOINT:
             return ForceCheckPoint();
         default:
+            // Call of others.
+            errCode = PragmaNext(cmd, parameter);
+            break;
+    }
+
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::PragmaNext(int cmd, void *parameter)
+{
+    int errCode = E_OK;
+    switch (cmd) {
+        case PRAGMA_SET_MAX_VALUE_SIZE:
+            return SetMaxValueSize(*static_cast<uint32_t *>(parameter));
+        default:
             // Call Pragma() of super class.
             errCode = SyncAbleKvDBConnection::Pragma(cmd, parameter);
             break;
@@ -710,6 +725,19 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaSetMaxLogSize(uint64_t *limit)
         return -E_INVALID_ARGS;
     }
     return naturalStore->SetMaxLogSize(*limit);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::SetMaxValueSize(uint32_t maxValueSize)
+{
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] db is nullptr for max value size set.");
+        return -E_INVALID_DB;
+    }
+    if (maxValueSize > DBConstant::MAX_SET_VALUE_SIZE || maxValueSize < DBConstant::MAX_VALUE_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+    return naturalStore->SetMaxValueSize(maxValueSize);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::ForceCheckPoint() const
@@ -1492,7 +1520,7 @@ int SQLiteSingleVerNaturalStoreConnection::PublishInner(SingleVerNaturalStoreCom
         }
     }
 
-    // begin to insert entry to sync table
+    // begin to insert entry to sync table, no more than 4M
     errCode = CheckDataStatus(localRecord.key, localRecord.value, false);
     if (errCode != E_OK) {
         return errCode;

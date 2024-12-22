@@ -36,7 +36,7 @@ const uint8_t PACKET_TYPE_FRAGMENTED = BITX(0); // Use bit 0
 const uint8_t PACKET_TYPE_NOT_FRAGMENTED = 0;
 const uint8_t MAX_PADDING_LEN = 7;
 const uint32_t LENGTH_BEFORE_SUM_RANGE = sizeof(uint64_t) + sizeof(uint64_t);
-const uint32_t MAX_FRAME_LEN = 32 * 1024 * 1024; // Max 32 MB, 1024 is scale
+const uint32_t MAX_FRAME_LEN = 128 * 1024 * 1024; // Max 128 MB, 1024 is scale
 const uint16_t MIN_FRAGMENT_COUNT = 2; // At least a frame will be splited into 2 parts
 // LabelExchange(Ack) Frame Field Length
 const uint32_t LABEL_VER_LEN = sizeof(uint64_t);

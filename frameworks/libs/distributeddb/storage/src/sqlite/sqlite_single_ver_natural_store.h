@@ -197,6 +197,10 @@ public:
 
     uint64_t GetMaxLogSize() const;
 
+    int SetMaxValueSize(uint32_t maxValueSize);
+
+    uint32_t GetMaxValueSize() const override;
+
     void Dump(int fd) override;
 
     int IsSupportSubscribe() const override;

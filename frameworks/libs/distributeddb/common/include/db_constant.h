@@ -22,7 +22,8 @@ namespace DistributedDB {
 class DBConstant {
 public:
     static constexpr const size_t MAX_KEY_SIZE = 1024;
-    static constexpr const size_t MAX_VALUE_SIZE = 4194304;
+    static constexpr const size_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // 4M
+    static constexpr const size_t MAX_SET_VALUE_SIZE =  64 * 1024 * 1024; // 64M
     static constexpr const size_t MAX_BATCH_SIZE = 128;
     static constexpr const size_t MAX_DEV_LENGTH = 128;
     static constexpr const size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
@@ -47,7 +48,7 @@ public:
 
     static constexpr const uint32_t MAX_COLUMN  = 32767;
 
-    static constexpr const int MAX_REMOTEDATA_SIZE = 4194304;  // 4M.
+    static constexpr const int MAX_REMOTEDATA_SIZE = 4 * 1024 * 1024;  // 4M.
 
     static constexpr const int DEFAULT_ITER_TIMES = 5000;
 

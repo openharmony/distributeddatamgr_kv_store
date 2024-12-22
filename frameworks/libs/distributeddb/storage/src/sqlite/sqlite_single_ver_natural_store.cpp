@@ -298,7 +298,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
     Value &amendValue, bool &useAmendValue) const
 {
     // oriValue size may already be checked previously, but check here const little
-    if (oriValue.size() > DBConstant::MAX_VALUE_SIZE) {
+    if (oriValue.size() > GetMaxValueSize()) {
         return -E_INVALID_ARGS;
     }
     const SchemaObject &schemaObjRef = MyProp().GetSchemaConstRef();
@@ -319,7 +319,7 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
         }
         if (AmendValueShouldBeUse(errCode)) {
             std::string amended = valueObj.ToString();
-            if (amended.size() > DBConstant::MAX_VALUE_SIZE) {
+            if (amended.size() > GetMaxValueSize()) {
                 LOGE("[SqlSinStore][CheckAmendValue] ValueSize=%zu exceed limit after amend.", amended.size());
                 return -E_INVALID_FORMAT;
             }
@@ -1140,7 +1140,7 @@ void SQLiteSingleVerNaturalStore::NotifyRemovedData(std::vector<Entry> &entries)
 
         // ignore the invalid key.
         if (entries[index].key.size() > DBConstant::MAX_KEY_SIZE ||
-            entries[index].value.size() > DBConstant::MAX_VALUE_SIZE) {
+            entries[index].value.size() > GetMaxValueSize()) {
             index++;
             continue;
         }
@@ -1294,17 +1294,24 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataItems(const QueryObject &query, std
     }
     int errCode = E_OK;
     auto offset = GetLocalTimeOffset();
+    std::vector<DataItem> dataItemsRet;
     for (auto &item : dataItems) {
         // Check only the key and value size
         errCode = CheckDataStatus(item.key, item.value, (item.flag & DataItem::DELETE_FLAG) != 0);
         if (errCode != E_OK) {
-            return errCode;
+            if (item.key.empty() || item.key.size() > DBConstant::MAX_KEY_SIZE) {
+                return errCode;
+            } else {
+                LOGI("save sync data failed because of check data status fail errCode %d!", errCode);
+            }
         }
         if (offset != 0) {
             item.modifyTime = static_cast<Timestamp>(static_cast<int64_t>(item.timestamp) - offset);
             item.createTime = static_cast<Timestamp>(static_cast<int64_t>(item.writeTimestamp) - offset);
         }
+        dataItemsRet.push_back(item);
     }
+    dataItems = dataItemsRet;
     if (checkValueContent) { // LCOV_EXCL_BR_LINE
         CheckAmendValueContentForSyncProcedure(dataItems);
     }

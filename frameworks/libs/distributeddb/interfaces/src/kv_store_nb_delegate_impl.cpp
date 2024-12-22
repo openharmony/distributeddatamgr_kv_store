@@ -60,6 +60,7 @@ namespace {
         {SET_SYNC_RETRY, PRAGMA_SET_SYNC_RETRY},
         {SET_MAX_LOG_LIMIT, PRAGMA_SET_MAX_LOG_LIMIT},
         {EXEC_CHECKPOINT, PRAGMA_EXEC_CHECKPOINT},
+        {SET_MAX_VALUE_SIZE, PRAGMA_SET_MAX_VALUE_SIZE},
     };
 
     constexpr const char *INVALID_CONNECTION = "[KvStoreNbDelegate] Invalid connection for operation";
