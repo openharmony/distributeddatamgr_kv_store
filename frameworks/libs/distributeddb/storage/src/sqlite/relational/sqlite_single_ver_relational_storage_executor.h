@@ -225,6 +225,8 @@ public:
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
+
+    void CheckAndCreateTrigger(const TrackerTable &trackerTable);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 

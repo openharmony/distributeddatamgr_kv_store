@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "db_common.h"
 #include "sqlite_log_table_manager.h"
 
 namespace DistributedDB {
@@ -148,5 +149,62 @@ int SqliteLogTableManager::CreateKvCloudFlagIndex(const std::string &tableName, 
         LOGE("[LogTableManager] add cloud_flag index failed, errCode=%d", errCode);
     }
     return errCode;
+}
+
+int CheckTriggerExist(sqlite3 *db, const TableInfo &table, const std::string &triggerType, bool &exist)
+{
+    std::string checkSql = "select count(*) from sqlite_master where type = 'trigger' and tbl_name = '" +
+        table.GetTableName() + "' and name = 'naturalbase_rdb_" + table.GetTableName() + "_ON_" + triggerType + "';";
+    int count = 0;
+    int errCode = SQLiteUtils::GetCountBySql(db, checkSql, count);
+    if (errCode != E_OK) {
+        LOGW("query trigger from db fail, errCode=%d", errCode);
+        return errCode;
+    }
+    exist = count != 0;
+    return E_OK;
+}
+
+void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity)
+{
+    std::vector<std::string> sqls;
+    bool insertTriggerExist = false;
+    const std::string &tableName = table.GetTableName();
+    if (CheckTriggerExist(db, table, "INSERT", insertTriggerExist) == E_OK && !insertTriggerExist) {
+        LOGW("[%s [%zu]] Insert trigger does not exist, will be recreated",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        std::string insertTriggerSql = GetInsertTrigger(table, identity);
+        if (!insertTriggerSql.empty()) {
+            sqls.emplace_back(insertTriggerSql);
+        }
+    }
+
+    bool updateTriggerExist = false;
+    if (CheckTriggerExist(db, table, "UPDATE", updateTriggerExist) == E_OK && !updateTriggerExist) {
+        LOGW("[%s [%zu]] Update trigger does not exist, will be recreated",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        std::string updateTriggerSql = GetUpdateTrigger(table, identity);
+        if (!updateTriggerSql.empty()) {
+            sqls.emplace_back(updateTriggerSql);
+        }
+    }
+
+    bool deleteTriggerExist = false;
+    if (CheckTriggerExist(db, table, "DELETE", deleteTriggerExist) == E_OK && !deleteTriggerExist) {
+        LOGW("[%s [%zu]] Delete trigger does not exist, will be recreated",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        std::string deleteTriggerSql = GetDeleteTrigger(table, identity);
+        if (!deleteTriggerSql.empty()) {
+            sqls.emplace_back(deleteTriggerSql);
+        }
+    }
+
+    for (const auto &sql : sqls) {
+        int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGW("[%s [%zu]] Failed to recreate trigger, errCode=%d", DBCommon::StringMiddleMasking(tableName).c_str(),
+                tableName.size(), errCode);
+        }
+    }
 }
 }

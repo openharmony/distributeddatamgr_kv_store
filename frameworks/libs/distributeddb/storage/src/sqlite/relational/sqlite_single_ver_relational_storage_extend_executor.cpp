@@ -1952,5 +1952,17 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
     }
     return errCode;
 }
+
+void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const TrackerTable &trackerTable)
+{
+    TableInfo table;
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+    int errCode = AnalysisTrackerTable(trackerTable, table);
+    if (errCode != E_OK) {
+        return;
+    }
+    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    tableManager->CheckAndCreateTrigger(dbHandle_, table, "");
+}
 } // namespace DistributedDB
 #endif

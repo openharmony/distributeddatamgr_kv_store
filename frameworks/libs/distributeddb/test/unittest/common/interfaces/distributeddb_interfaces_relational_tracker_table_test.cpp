@@ -2266,6 +2266,51 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036,
 }
 
 /**
+  * @tc.name: TrackerTableTest039
+  * @tc.desc: Test SetTrackerTable repeatedly and delete trigger
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. delete triggers
+     * @tc.expected: step2. Return OK.
+     */
+    std::vector<std::string> triggerTypes = {"INSERT", "UPDATE", "DELETE"};
+    for (const auto &triggerType : triggerTypes) {
+        std::string sql = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType;
+        SQLiteUtils::ExecuteRawSQL(g_db, sql);
+    }
+    /**
+     * @tc.steps:step3. SetTrackerTable repeatedly
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step4. Check if the trigger exists
+     * @tc.expected: step4. Check OK.
+     */
+    for (const auto &triggerType : triggerTypes) {
+        std::string sql = "select count(*) from sqlite_master where type = 'trigger' and tbl_name = '" + TABLE_NAME2 +
+            "' and name = 'naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType + "';";
+        EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+    }
+    CloseStore();
+}
+
+/**
   * @tc.name: SchemaStrTest001
   * @tc.desc: Test open reOpen stroe when schemaStr is empty
   * @tc.type: FUNC
