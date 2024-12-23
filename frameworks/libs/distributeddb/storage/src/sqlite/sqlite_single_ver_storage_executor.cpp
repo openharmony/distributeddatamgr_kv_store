@@ -1039,10 +1039,11 @@ int SQLiteSingleVerStorageExecutor::Commit()
         return -E_INVALID_DB;
     }
     int errCode = SQLiteUtils::CommitTransaction(dbHandle_);
+    isTransactionOpen_ = false;
     if (errCode != E_OK) {
+        LOGE("sqlite single ver storage executor commit fail! errCode = [%d]", errCode);
         return CheckCorruptedStatus(errCode);
     }
-    isTransactionOpen_ = false;
     return E_OK;
 }
 
@@ -1052,11 +1053,11 @@ int SQLiteSingleVerStorageExecutor::Rollback()
         return -E_INVALID_DB;
     }
     int errCode = SQLiteUtils::RollbackTransaction(dbHandle_);
+    isTransactionOpen_ = false;
     if (errCode != E_OK) {
         LOGE("sqlite single ver storage executor rollback fail! errCode = [%d]", errCode);
         return CheckCorruptedStatus(errCode);
     }
-    isTransactionOpen_ = false;
     return E_OK;
 }
 

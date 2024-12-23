@@ -332,7 +332,7 @@ void SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, 
     if (isNeedFinalize) {
         int finalizeResult = sqlite3_finalize(statement);
         if (finalizeResult != SQLITE_OK) {
-            LOGD("[SQLiteUtils] finalize statement error:%d, sys:%d", finalizeResult, errno);
+            LOGE("[SQLiteUtils] finalize statement error:%d, sys:%d", finalizeResult, errno);
             innerCode = finalizeResult;
         }
         statement = nullptr;
