@@ -187,8 +187,9 @@ void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBCorruptedEvent &eventI
 
 bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, const std::string &storeId)
 {
-    if (dbPath.empty()) {
-        ZLOGW("This dbPath path is empty");
+    if (dbPath.empty() || storeId.empty()) {
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
+            StoreUtil::Anonymous(storeId).c_str());
         return false;
     }
 
@@ -202,8 +203,9 @@ bool KVDBFaultHiViewReporter::IsReportCorruptedFault(const std::string &dbPath, 
 
 void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
 {
-    if (dbPath.empty()) {
-        ZLOGW("This dbPath path is empty");
+    if (dbPath.empty() || storeId.empty()) {
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
+            StoreUtil::Anonymous(storeId).c_str());
         return;
     }
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
@@ -219,8 +221,9 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
 
 void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)
 {
-    if (dbPath.empty()) {
-        ZLOGW("This dbPath path is empty");
+    if (dbPath.empty() || storeId.empty()) {
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
+            StoreUtil::Anonymous(storeId).c_str());
         return;
     }
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
