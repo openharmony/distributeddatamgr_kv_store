@@ -47,9 +47,9 @@ public:
 
 class MyDeathRecipient : public KvStoreDeathRecipient {
 public:
-    MyDeathRecipient() {}
-    virtual ~MyDeathRecipient() {}
-    void OnRemoteDied() override {}
+    MyDeathRecipient() { }
+    virtual ~MyDeathRecipient() { }
+    void OnRemoteDied() override { }
 };
 
 DistributedKvDataManager DistributedKvDataManagerEncryptTest::manager;
@@ -91,25 +91,21 @@ void DistributedKvDataManagerEncryptTest::TearDownTestCase(void)
     (void)remove(createEnc.baseDir.c_str());
 }
 
-void DistributedKvDataManagerEncryptTest::SetUp(void)
-{}
+void DistributedKvDataManagerEncryptTest::SetUp(void) { }
 
-DistributedKvDataManagerEncryptTest::DistributedKvDataManagerEncryptTest(void)
-{}
+DistributedKvDataManagerEncryptTest::DistributedKvDataManagerEncryptTest(void) { }
 
-DistributedKvDataManagerEncryptTest::~DistributedKvDataManagerEncryptTest(void)
-{}
+DistributedKvDataManagerEncryptTest::~DistributedKvDataManagerEncryptTest(void) { }
 
-void DistributedKvDataManagerEncryptTest::TearDown(void)
-{}
+void DistributedKvDataManagerEncryptTest::TearDown(void) { }
 
 /**
-* @tc.name: kvstore_ddm_createEncryptedStore_001
-* @tc.desc: Create an encrypted KvStore.
-* @tc.type: FUNC
-* @tc.require: SR000D08K4 AR000D08KQ
-* @tc.author: liqiao
-*/
+ * @tc.name: kvstore_ddm_createEncryptedStore_001
+ * @tc.desc: Create an encrypted KvStore.
+ * @tc.type: FUNC
+ * @tc.require: SR000D08K4 AR000D08KQ
+ * @tc.author: liqiao
+ */
 HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_001, TestSize.Level1)
 {
     ZLOGI("kvstore_ddm_createEncryptedStore_001 begin.");
