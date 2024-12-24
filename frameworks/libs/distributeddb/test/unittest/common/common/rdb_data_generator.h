@@ -12,14 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef RDB_DATA_GENERATE_H
+#define RDB_DATA_GENERATE_H
 
 #include "cloud/cloud_store_types.h"
 #include "relational_virtual_device.h"
 #include "sqlite_utils.h"
 #include "virtual_cloud_db.h"
-
-#ifndef RDB_DATA_GENERATE_H
-#define RDB_DATA_GENERATE_H
 namespace DistributedDBUnitTest {
 class RDBDataGenerator {
 public:

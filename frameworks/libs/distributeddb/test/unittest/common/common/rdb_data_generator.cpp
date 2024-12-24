@@ -298,7 +298,7 @@ int RDBDataGenerator::BindOneColStmt(int cid, sqlite3_stmt *stmt, const Distribu
         case DistributedDB::TYPE_INDEX<DistributedDB::Assets>: {
             auto assets = std::get<Assets>(type);
             std::vector<uint8_t> blob;
-            int errCode =RuntimeContext::GetInstance()->AssetsToBlob(assets, blob);
+            int errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, blob);
             if (errCode != E_OK) {
                 return errCode;
             }
@@ -307,7 +307,7 @@ int RDBDataGenerator::BindOneColStmt(int cid, sqlite3_stmt *stmt, const Distribu
         case DistributedDB::TYPE_INDEX<DistributedDB::Asset>: {
             auto assets = std::get<Asset>(type);
             std::vector<uint8_t> blob;
-            int errCode =RuntimeContext::GetInstance()->AssetToBlob(assets, blob);
+            int errCode = RuntimeContext::GetInstance()->AssetToBlob(assets, blob);
             if (errCode != E_OK) {
                 return errCode;
             }

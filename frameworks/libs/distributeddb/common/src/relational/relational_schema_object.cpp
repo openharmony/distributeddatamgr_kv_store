@@ -1257,7 +1257,7 @@ std::string RelationalSchemaObject::GetOneDistributedTableString(const Distribut
     res += SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME;
     res += R"(":")";
     res += table.tableName;
-    res += R"(" ,")";
+    res += R"(", ")";
     res += SchemaConstant::KEYWORD_DISTRIBUTED_FIELD;
     res += R"(":[)";
     for (const auto &field : table.fields) {
@@ -1265,7 +1265,7 @@ std::string RelationalSchemaObject::GetOneDistributedTableString(const Distribut
         res += SchemaConstant::KEYWORD_DISTRIBUTED_COL_NAME;
         res += R"(":")";
         res += field.colName;
-        res += R"(" ,")";
+        res += R"(", ")";
         res += SchemaConstant::KEYWORD_DISTRIBUTED_IS_P2P_SYNC;
         res += R"(":)";
         if (field.isP2pSync) {

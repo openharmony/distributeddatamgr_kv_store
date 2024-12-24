@@ -114,7 +114,10 @@ public:
         return {};
     }
 
-    DB_API virtual DBStatus SetDistributedSchema(const DistributedSchema &schema) = 0;
+    DB_API virtual DBStatus SetDistributedSchema(const DistributedSchema &schema)
+    {
+        return OK;
+    }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

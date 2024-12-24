@@ -1630,20 +1630,6 @@ void DBInfoHandleTest::SetNeedAutoSync(bool needAutoSync)
     isNeedAutoSync_ = needAutoSync;
 }
 
-DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(const std::string &userId,
-    const std::string &appId, const std::string &storeId, const std::string &dbPath)
-{
-    RelationalDBProperties properties;
-    CloudDBSyncUtilsTest::InitStoreProp(dbPath, appId, userId, storeId, properties);
-    int errCode = E_OK;
-    auto store = RelationalStoreInstance::GetDataBase(properties, errCode);
-    if (store == nullptr) {
-        return nullptr;
-    }
-    auto engine = static_cast<SQLiteRelationalStore *>(store)->GetStorageEngine();
-    return static_cast<ICloudSyncStorageHook *>(engine);
-}
-
 bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) const
 {
     auto changeData = savedChangedData_.find(table);
