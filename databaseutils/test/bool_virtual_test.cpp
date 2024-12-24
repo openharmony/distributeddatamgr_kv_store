@@ -450,7 +450,8 @@ HWTEST_F(BlobVirtualTest, ReadFromBuffer, TestSize.Level0)
     uint8_t buffer[100];
     int blobSize = 5;
     *reinterpret_cast<int*>(buffer) = blobSize;
-    strncpy(reinterpret_cast<char*>(buffer + sizeof(int)), "hello",Size);
+    std::string str = "hello";
+    strncpy_s(reinterpret_cast<char*>(buffer + sizeof(int)), blobSize, str, strlen(str));
     const uint8_t* cursorPtr = buffer;
     int bufferLeftSize = sizeof(buffer);
     Blob blob;
