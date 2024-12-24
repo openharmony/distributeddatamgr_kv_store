@@ -14,15 +14,15 @@
  */
 #define LOG_TAG "DataMgrServiceProxyVirtualTest"
 
-#include <gtest/gtest.h>
 #include "datamgr_service_proxy.h"
-#include <ipc_skeleton.h>
 #include "itypes_util.h"
-#include "message_parcel.h"
-#include "types.h"
 #include "log_print.h"
-#include <vector>
+#include "message_parcel.h"
 #include "mock_remote_object.h"
+#include "types.h"
+#include <gtest/gtest.h>
+#include <ipc_skeleton.h>
+#include <vector>
 
 using namespace OHOS::DistributedKv;
 using namespace testing;
@@ -37,32 +37,28 @@ public:
 };
 
 void DataMgrServiceProxyVirtualTest::SetUpTestCase(void)
-{
-}
+{}
 
 void DataMgrServiceProxyVirtualTest::TearDownTestCase(void)
-{
-}
+{}
 
 void DataMgrServiceProxyVirtualTest::SetUp(void)
-{
-}
+{}
 
 void DataMgrServiceProxyVirtualTest::TearDown(void)
-{
-}
+{}
 
 /**
  * @tc.name: GetFeatureInterface_Success
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: GetFeatureInterface_Success test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_Success, TestSize.Level0)
 {
     ZLOGI("GetFeatureInterface_Success begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -70,20 +66,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_Success, TestSize.L
 
     auto result = proxy.GetFeatureInterface("GetFeatureInterface_Success");
     ASSERT_NE(result, nullptr);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: GetFeatureInterface_WriteDescriptorFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: GetFeatureInterface_WriteDescriptorFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_WriteDescriptorFailed, TestSize.Level0)
 {
     ZLOGI("GetFeatureInterface_WriteDescriptorFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -91,41 +86,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_WriteDescriptorFail
 
     auto result = proxy.GetFeatureInterface("GetFeatureInterface_WriteDescriptorFailed");
     ASSERT_EQ(result, nullptr);
-    delete mockImpl;
-}
-
-/**
- * @tc.name: GetFeatureInterface_WriteDescriptorFailed
- * @tc.desc:
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author:
- */
-HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_WriteDescriptorFailed, TestSize.Level0)
-{
-    ZLOGI("GetFeatureInterface_WriteDescriptorFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
-    DataMgrServiceProxy proxy(mockImpl);
-
-    EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
-        .Times(0); // SendRequest is not called
-
-    auto result = proxy.GetFeatureInterface("GetFeatureInterface_WriteDescriptorFailed");
-    ASSERT_EQ(result, nullptr);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: GetFeatureInterface_WriteNameFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: GetFeatureInterface_WriteNameFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_WriteNameFailed, TestSize.Level0)
 {
     ZLOGI("GetFeatureInterface_WriteNameFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -133,20 +106,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_WriteNameFailed, Te
 
     auto result = proxy.GetFeatureInterface("GetFeatureInterface_WriteNameFailed");
     ASSERT_EQ(result, nullptr);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: GetFeatureInterface_SendRequestError
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: GetFeatureInterface_SendRequestError test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_SendRequestError, TestSize.Level0)
 {
     ZLOGI("GetFeatureInterface_SendRequestError begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -154,20 +126,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, GetFeatureInterface_SendRequestError, T
 
     auto result = proxy.GetFeatureInterface("GetFeatureInterface_SendRequestError");
     ASSERT_EQ(result, nullptr);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: RegisterClientDeathObserver_Success
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: RegisterClientDeathObserver_Success test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_Success, TestSize.Level0)
 {
     ZLOGI("RegisterClientDeathObserver_Success begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -178,20 +149,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_Success, Te
     sptr<IRemoteObject> observer = new MockRemoteObject();
     auto status = proxy.RegisterClientDeathObserver(appId, observer);
     ASSERT_EQ(status, Status::SUCCESS);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: RegisterClientDeathObserver_WriteDescriptorFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: RegisterClientDeathObserver_WriteDescriptorFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_WriteDescriptorFailed, TestSize.Level0)
 {
     ZLOGI("RegisterClientDeathObserver_WriteDescriptorFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -202,20 +172,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_WriteDescri
     sptr<IRemoteObject> observer = new MockRemoteObject();
     auto status = proxy.RegisterClientDeathObserver(appId, observer);
     ASSERT_EQ(status, Status::IPC_ERROR);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: RegisterClientDeathObserver_WriteStringFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: RegisterClientDeathObserver_WriteStringFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_WriteStringFailed, TestSize.Level0)
 {
     ZLOGI("RegisterClientDeathObserver_WriteStringFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -226,20 +195,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_WriteString
     sptr<IRemoteObject> observer = new MockRemoteObject();
     auto status = proxy.RegisterClientDeathObserver(appId, observer);
     ASSERT_EQ(status, Status::IPC_ERROR);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: RegisterClientDeathObserver_NullObserver
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: RegisterClientDeathObserver_NullObserver test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_NullObserver, TestSize.Level0)
 {
     ZLOGI("RegisterClientDeathObserver_NullObserver begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -249,20 +217,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_NullObserve
     appId.appId = "RegisterClientDeathObserver_NullObserver";
     auto status = proxy.RegisterClientDeathObserver(appId, nullptr);
     ASSERT_EQ(status, Status::INVALID_ARGUMENT);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: RegisterClientDeathObserver_SendRequestError
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: RegisterClientDeathObserver_SendRequestError test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_SendRequestError, TestSize.Level0)
 {
     ZLOGI("RegisterClientDeathObserver_SendRequestError begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -273,20 +240,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, RegisterClientDeathObserver_SendRequest
     sptr<IRemoteObject> observer = new MockRemoteObject();
     auto status = proxy.RegisterClientDeathObserver(appId, observer);
     ASSERT_EQ(status, Status::IPC_ERROR);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: ClearAppStorage_Success
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: ClearAppStorage_Success test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_Success, TestSize.Level0)
 {
     ZLOGI("ClearAppStorage_Success begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -294,20 +260,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_Success, TestSize.Level
 
     auto result = proxy.ClearAppStorage("ClearAppStorage_Success", 1, 1, 1);
     ASSERT_EQ(result, Status::SUCCESS);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: ClearAppStorage_WriteDescriptorFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: ClearAppStorage_WriteDescriptorFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_WriteDescriptorFailed, TestSize.Level0)
 {
     ZLOGI("ClearAppStorage_WriteDescriptorFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -315,20 +280,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_WriteDescriptorFailed, 
 
     auto result = proxy.ClearAppStorage("ClearAppStorage_WriteDescriptorFailed", 1, 1, 1);
     ASSERT_EQ(result, Status::IPC_ERROR);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: ClearAppStorage_WriteDataFailed
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: ClearAppStorage_WriteDataFailed test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_WriteDataFailed, TestSize.Level0)
 {
     ZLOGI("ClearAppStorage_WriteDataFailed begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -336,20 +300,19 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_WriteDataFailed, TestSi
 
     auto result = proxy.ClearAppStorage("ClearAppStorage_WriteDataFailed", 1, 1, 1);
     ASSERT_EQ(result, Status::IPC_ERROR);
-    delete mockImpl;
 }
 
 /**
  * @tc.name: ClearAppStorage_SendRequestError
  * @tc.desc:
- * @tc.type: FUNC
+ * @tc.type: ClearAppStorage_SendRequestError test function
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_SendRequestError, TestSize.Level0)
 {
     ZLOGI("ClearAppStorage_SendRequestError begin.");
-    sptr<IRemoteObject> mockImpl = new MockRemoteObject();
+    std::shared_ptr<IRemoteObject> mockImpl = std::make_shared<MockRemoteObject>();
     DataMgrServiceProxy proxy(mockImpl);
 
     EXPECT_CALL(*mockImpl, SendRequest(_, _, _, _))
@@ -357,6 +320,5 @@ HWTEST_F(DataMgrServiceProxyVirtualTest, ClearAppStorage_SendRequestError, TestS
 
     auto result = proxy.ClearAppStorage("ClearAppStorage_SendRequestError", 1, 1, 1);
     ASSERT_EQ(result, Status::IPC_ERROR);
-    delete mockImpl;
 }
 } // namespace OHOS::Test
