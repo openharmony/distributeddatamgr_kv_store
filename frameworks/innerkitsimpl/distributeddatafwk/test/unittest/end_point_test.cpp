@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <vector>
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "file_ex.h"
 #include "types.h"
+#include <cstddef>
+#include <cstdint>
+#include <gtest/gtest.h>
+#include <unistd.h>
+#include <vector>
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
@@ -77,13 +77,11 @@ void EndPointTest::TearDownTestCase(void)
     (void)remove("/data/service/el1/public/database/odmf");
 }
 
-void EndPointTest::SetUp(void)
-{}
+void EndPointTest::SetUp(void) { }
 
-void EndPointTest::TearDown(void)
-{}
+void EndPointTest::TearDown(void) { }
 
-std::string EndPointTest::GetKey(const std::string& key)
+std::string EndPointTest::GetKey(const std::string &key)
 {
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(sizeof(uint32_t)) << deviceId_.length();
@@ -93,8 +91,8 @@ std::string EndPointTest::GetKey(const std::string& key)
 
 class EndpointMock : public Endpoint {
 public:
-    EndpointMock() {}
-    virtual ~EndpointMock() {}
+    EndpointMock() { }
+    virtual ~EndpointMock() { }
 
     Status Start() override
     {
@@ -118,7 +116,7 @@ public:
 
     uint32_t GetMtuSize(const std::string &identifier) override
     {
-        return 1 * 1024  * 1024; // 1 * 1024 * 1024 Byte.
+        return 1 * 1024 * 1024; // 1 * 1024 * 1024 Byte.
     }
 
     std::string GetLocalDeviceInfos() override
@@ -138,12 +136,12 @@ public:
 };
 
 /**
-* @tc.name: SetEndpoint001
-* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: SetEndpoint001
+ * @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(EndPointTest, SetEndpoint001, TestSize.Level1)
 {
     DistributedKvDataManager manager;
@@ -153,12 +151,12 @@ HWTEST_F(EndPointTest, SetEndpoint001, TestSize.Level1)
 }
 
 /**
-* @tc.name: SetEndpoint002
-* @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: SQL
-*/
+ * @tc.name: SetEndpoint002
+ * @tc.desc: test the SetEndpoint(std::shared_ptr<Endpoint> endpoint)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
 HWTEST_F(EndPointTest, SetEndpoint002, TestSize.Level1)
 {
     DistributedKvDataManager manager;
@@ -182,7 +180,7 @@ HWTEST_F(EndPointTest, SetIdentifier001, TestSize.Level1)
     EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
     AppId appId = { "odmf" };
     StoreId storeId = { "test_storeid" };
-    std::vector<std::string> targetDev = {"devicid1", "devicid2"};
+    std::vector<std::string> targetDev = { "devicid1", "devicid2" };
     std::string accountId = "testAccount";
     std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
     Status status = manager.SetEndpoint(endpoint);
@@ -204,7 +202,7 @@ HWTEST_F(EndPointTest, SetIdentifier002, TestSize.Level1)
     EXPECT_NE(kvStore_, nullptr) << "kvStorePtr is null.";
     AppId appId = { "" };
     StoreId storeId = { "" };
-    std::vector<std::string> targetDev = {"devicid1", "devicid2"};
+    std::vector<std::string> targetDev = { "devicid1", "devicid2" };
     std::string accountId = "testAccount";
     std::shared_ptr<EndpointMock> endpoint = std::make_shared<EndpointMock>();
     Status status = manager.SetEndpoint(endpoint);

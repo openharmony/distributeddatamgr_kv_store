@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
-#include <endian.h>
-#include <vector>
-#include <map>
 #include "datashare_predicates.h"
 #include "datashare_values_bucket.h"
 #include "distributed_kv_data_manager.h"
-#include "gtest/gtest.h"
 #include "kv_utils.h"
 #include "kvstore_datashare_bridge.h"
 #include "kvstore_result_set.h"
 #include "result_set_bridge.h"
 #include "store_errno.h"
 #include "types.h"
+#include "gtest/gtest.h"
+#include <endian.h>
+#include <map>
+#include <vector>
 
 namespace {
 using namespace testing::ext;
@@ -36,8 +36,8 @@ class KvUtilTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
-    void SetUp() {}
-    void TearDown() {}
+    void SetUp() { }
+    void TearDown() { }
 
 protected:
     static DistributedKvDataManager manager;
@@ -98,16 +98,16 @@ Blob KvUtilTest::VariantValue2Blob(const var_t &value)
     auto dblValue = std::get_if<double>(&value);
     if (dblValue != nullptr) {
         double tmp4dbl = *dblValue;
-        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp4dbl));
-        tmp = reinterpret_cast<uint8_t*>(&tmp64);
+        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t *>(&tmp4dbl));
+        tmp = reinterpret_cast<uint8_t *>(&tmp64);
         data.push_back(KvUtils::DOUBLE);
         data.insert(data.end(), tmp, tmp + sizeof(double) / sizeof(uint8_t));
     }
     auto intValue = std::get_if<int64_t>(&value);
     if (intValue != nullptr) {
         int64_t tmp4int = *intValue;
-        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp64);
+        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t *>(&tmp4int));
+        tmp = reinterpret_cast<uint8_t *>(&tmp64);
         data.push_back(KvUtils::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int64_t) / sizeof(uint8_t));
     }
@@ -121,8 +121,11 @@ Blob KvUtilTest::VariantValue2Blob(const var_t &value)
 
 void KvUtilTest::SetUpTestCase(void)
 {
-    Options options = {.createIfMissing = true, .encrypt = false, .autoSync = false,
-        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE};
+    Options options = { .createIfMissing = true,
+        .encrypt = false,
+        .autoSync = false,
+        .kvStoreType = KvStoreType::SINGLE_VERSION,
+        .schema = VALID_SCHEMA_STRICT_DEFINE };
     options.area = EL1;
     options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/kvUtilTest");
@@ -140,20 +143,19 @@ void KvUtilTest::SetUpTestCase(void)
 
 void KvUtilTest::TearDownTestCase(void)
 {
-    manager.DeleteKvStore({"kvUtilTest"}, {"test_single"},
-        "/data/service/el1/public/database/kvUtilTest");
-    (void) remove("/data/service/el1/public/database/kvUtilTest/key");
-    (void) remove("/data/service/el1/public/database/kvUtilTest/kvdb");
-    (void) remove("/data/service/el1/public/database/kvUtilTest");
+    manager.DeleteKvStore({ "kvUtilTest" }, { "test_single" }, "/data/service/el1/public/database/kvUtilTest");
+    (void)remove("/data/service/el1/public/database/kvUtilTest/key");
+    (void)remove("/data/service/el1/public/database/kvUtilTest/kvdb");
+    (void)remove("/data/service/el1/public/database/kvUtilTest");
 }
 
 /**
-* @tc.name: KvStoreResultSetToResultSetBridge
-* @tc.desc: kvStore resultSet to resultSet bridge, the former is nullptr
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: KvStoreResultSetToResultSetBridge
+ * @tc.desc: kvStore resultSet to resultSet bridge, the former is nullptr
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, KvStoreResultSetToResultSetBridgeAbnormal, TestSize.Level0)
 {
     std::shared_ptr<KvStoreResultSet> resultSet = nullptr;
@@ -162,12 +164,12 @@ HWTEST_F(KvUtilTest, KvStoreResultSetToResultSetBridgeAbnormal, TestSize.Level0)
 }
 
 /**
-* @tc.name: KvStoreResultSetToResultSetBridge
-* @tc.desc: kvStore resultSet to resultSet bridge
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: KvStoreResultSetToResultSetBridge
+ * @tc.desc: kvStore resultSet to resultSet bridge
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, KvStoreResultSetToResultSetBridge, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -185,12 +187,12 @@ HWTEST_F(KvUtilTest, KvStoreResultSetToResultSetBridge, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query equalTo
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query equalTo
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryEqualTo, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -204,12 +206,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryEqualTo, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query not equalTo
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query not equalTo
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryNotEqualTo, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -223,12 +225,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryNotEqualTo, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query greater than
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query greater than
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryGreaterThan, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -242,12 +244,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryGreaterThan, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query less than
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query less than
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryLessThan, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -261,12 +263,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryLessThan, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query greater than or equalTo
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query greater than or equalTo
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryGreaterThanOrEqualTo, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -280,12 +282,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryGreaterThanOrEqualTo, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query less than or equalTo
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query less than or equalTo
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryLessThanOrEqualTo, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -299,15 +301,15 @@ HWTEST_F(KvUtilTest, PredicatesToQueryLessThanOrEqualTo, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query in
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query in
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryIn, TestSize.Level0)
 {
-    std::vector<int> vectInt{ 1, 2 };
+    std::vector<int> vectInt { 1, 2 };
     DataSharePredicates predicates;
     predicates.In("$.age", vectInt);
     DataQuery query;
@@ -319,15 +321,15 @@ HWTEST_F(KvUtilTest, PredicatesToQueryIn, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query not in
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query not in
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryNotIn, TestSize.Level0)
 {
-    std::vector<int> vectInt{ 1, 2 };
+    std::vector<int> vectInt { 1, 2 };
     DataSharePredicates predicates;
     predicates.NotIn("$.age", vectInt);
     DataQuery query;
@@ -339,12 +341,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryNotIn, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query or, like
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query or, like
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryLike, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -362,12 +364,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryLike, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query and, unlike
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query and, unlike
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryUnlike, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -385,12 +387,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryUnlike, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is null
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is null
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryIsNull, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -404,12 +406,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryIsNull, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is not null
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is not null
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryIsNotNull, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -423,12 +425,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryIsNotNull, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is order by asc
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is order by asc
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryOrderByAsc, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -442,12 +444,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryOrderByAsc, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is order by desc
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is order by desc
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryOrderByDesc, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -461,12 +463,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryOrderByDesc, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is limit
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is limit
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryLimit, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -480,12 +482,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryLimit, TestSize.Level0)
 }
 
 /**
-* @tc.name: PredicatesToQuery
-* @tc.desc: to query is in keys
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: PredicatesToQuery
+ * @tc.desc: to query is in keys
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, PredicatesToQueryInKeys, TestSize.Level0)
 {
     std::vector<std::string> keys { "test_field", "", "^test_field", "^", "test_field_name" };
@@ -500,12 +502,12 @@ HWTEST_F(KvUtilTest, PredicatesToQueryInKeys, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket is invalid
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryAbnormal, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -522,12 +524,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryAbnormal, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value is null
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value is null
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryNull, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -539,12 +541,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryNull, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value type is int64_t
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value type is int64_t
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryInt64_t, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -562,12 +564,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryInt64_t, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value type is double
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value type is double
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryDouble, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -585,12 +587,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryDouble, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value type is string
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value type is string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryString, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -608,12 +610,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryString, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value type is bool
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value type is bool
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryBool, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -631,12 +633,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryBool, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket value type is uint8array
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket value type is uint8array
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryUint8Array, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -655,12 +657,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryUint8Array, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entry, the bucket key type is not string
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entry, the bucket key type is not string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryInvalidKey, TestSize.Level0)
 {
     DataShareValuesBucket bucket {};
@@ -678,12 +680,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntryInvalidKey, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entries, the buckets is invalid
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entries, the buckets is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntriesAbnormal, TestSize.Level0)
 {
     std::vector<DataShareValuesBucket> buckets {};
@@ -692,12 +694,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntriesAbnormal, TestSize.Level0)
 }
 
 /**
-* @tc.name: ToEntry
-* @tc.desc: dataShare values bucket to entries, the buckets has valid value
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: ToEntry
+ * @tc.desc: dataShare values bucket to entries, the buckets has valid value
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, DataShareValuesBucketToEntriesNormal, TestSize.Level0)
 {
     std::vector<DataShareValuesBucket> buckets {};
@@ -728,12 +730,12 @@ HWTEST_F(KvUtilTest, DataShareValuesBucketToEntriesNormal, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetKeys
-* @tc.desc: get keys from data share predicates, the predicates is invalid
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: GetKeys
+ * @tc.desc: get keys from data share predicates, the predicates is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, GetKeysFromDataSharePredicatesAbnormal, TestSize.Level0)
 {
     DataSharePredicates predicates;
@@ -746,12 +748,12 @@ HWTEST_F(KvUtilTest, GetKeysFromDataSharePredicatesAbnormal, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetKeys
-* @tc.desc: get keys from data share predicates, the predicates has valid value
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
+ * @tc.name: GetKeys
+ * @tc.desc: get keys from data share predicates, the predicates has valid value
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zuojiangjiang
+ */
 HWTEST_F(KvUtilTest, GetKeysFromDataSharePredicatesNormal, TestSize.Level0)
 {
     std::vector<std::string> keys { "test_field", "", "^test_field", "^", "test_field_name" };
