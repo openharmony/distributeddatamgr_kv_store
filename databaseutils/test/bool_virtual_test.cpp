@@ -15,6 +15,7 @@
 #define LOG_TAG "BlobVirtualTest"
 
 #include "blob.h"
+#include "change_notification.h"
 #include "kv_types_util.h"
 #include "types.h"
 #include <cstdint>
@@ -45,6 +46,26 @@ void BlobVirtualTest::SetUp(void)
 void BlobVirtualTest::TearDown(void)
 {}
 
+class ChangeNotificationVirtualTest : public testing::Test {
+public:
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
+};
+
+void ChangeNotificationVirtualTest::SetUpTestCase(void)
+{}
+
+void ChangeNotificationVirtualTest::TearDownTestCase(void)
+{}
+
+void ChangeNotificationVirtualTest::SetUp(void)
+{}
+
+void ChangeNotificationVirtualTest::TearDown(void)
+{}
+
 /**
  * @tc.name: DefaultConstructor
  * @tc.desc:
@@ -52,7 +73,7 @@ void BlobVirtualTest::TearDown(void)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, DefaultConstructor)
+HWTEST_F(BlobVirtualTest, DefaultConstructor, TestSize.Level0)
 {
     ZLOGI("DefaultConstructor begin.");
     Blob defaultConstructor;
@@ -66,7 +87,7 @@ HWTEST_F(BlobVirtualTest, DefaultConstructor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, CopyConstructor)
+HWTEST_F(BlobVirtualTest, CopyConstructor, TestSize.Level0)
 {
     ZLOGI("CopyConstructor begin.");
     Blob copyConstructor1("hello", 5);
@@ -81,7 +102,7 @@ HWTEST_F(BlobVirtualTest, CopyConstructor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, MoveConstructor)
+HWTEST_F(BlobVirtualTest, MoveConstructor, TestSize.Level0)
 {
     ZLOGI("MoveConstructor begin.");
     Blob moveConstructor1("hello", 5);
@@ -114,7 +135,7 @@ HWTEST_F(BlobVirtualTest, CopyAssignmentOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, MoveAssignmentOperator)
+HWTEST_F(BlobVirtualTest, MoveAssignmentOperator, TestSize.Level0)
 {
     ZLOGI("MoveAssignmentOperator begin.");
     Blob moveAssignmentOperator1("hello", 5);
@@ -132,11 +153,12 @@ HWTEST_F(BlobVirtualTest, MoveAssignmentOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ConstCharConstructorWithSize)
+HWTEST_F(BlobVirtualTest, ConstCharConstructorWithSize, TestSize.Level0)
 {
     ZLOGI("ConstCharConstructorWithSize begin.");
-    Blob blob("ConstCharConstructorWithSize", 5);
-    EXPECT_EQ(std::string(blob.Data().begin(), blob.Data().end()), "ConstCharConstructorWithSize");
+    Blob constCharConstructorWithSize("hello", 5);
+    EXPECT_EQ(std::string(constCharConstructorWithSize.Data().begin(),
+        constCharConstructorWithSize.Data().end()), "hello");
 }
 
 /**
@@ -146,7 +168,7 @@ HWTEST_F(BlobVirtualTest, ConstCharConstructorWithSize)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ConstCharConstructorWithNullTerminator)
+HWTEST_F(BlobVirtualTest, ConstCharConstructorWithNullTerminator, TestSize.Level0)
 {
     ZLOGI("ConstCharConstructorWithNullTerminator begin.");
     Blob blob("ConstCharConstructorWithNullTerminator");
@@ -160,7 +182,7 @@ HWTEST_F(BlobVirtualTest, ConstCharConstructorWithNullTerminator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, StringConstructor)
+HWTEST_F(BlobVirtualTest, StringConstructor, TestSize.Level0)
 {
     ZLOGI("StringConstructor begin.");
     std::string str = "StringConstructor";
@@ -176,7 +198,7 @@ HWTEST_F(BlobVirtualTest, StringConstructor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, StringAssignmentOperator)
+HWTEST_F(BlobVirtualTest, StringAssignmentOperator, TestSize.Level0)
 {
     ZLOGI("StringAssignmentOperator begin.");
     std::string str = "StringAssignmentOperator";
@@ -193,7 +215,7 @@ HWTEST_F(BlobVirtualTest, StringAssignmentOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ConstCharAssignmentOperator)
+HWTEST_F(BlobVirtualTest, ConstCharAssignmentOperator, TestSize.Level0)
 {
     ZLOGI("ConstCharAssignmentOperator begin.");
     std::string str = "StringAssignmentOperator";
@@ -210,7 +232,7 @@ HWTEST_F(BlobVirtualTest, ConstCharAssignmentOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, VectorConstructor)
+HWTEST_F(BlobVirtualTest, VectorConstructor, TestSize.Level0)
 {
     ZLOGI("VectorConstructor begin.");
     std::vector<uint8_t> vec = {'h', 'e', 'l', 'l', 'o'};
@@ -226,7 +248,7 @@ HWTEST_F(BlobVirtualTest, VectorConstructor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, MoveVectorConstructor)
+HWTEST_F(BlobVirtualTest, MoveVectorConstructor, TestSize.Level0)
 {
     ZLOGI("MoveVectorConstructor begin.");
     std::vector<uint8_t> vec = {'h', 'e', 'l', 'l', 'o'};
@@ -243,7 +265,7 @@ HWTEST_F(BlobVirtualTest, MoveVectorConstructor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, DataAccessor)
+HWTEST_F(BlobVirtualTest, DataAccessor, TestSize.Level0)
 {
     ZLOGI("DataAccessor begin.");
     Blob dataAccessor("hello", 5);
@@ -259,7 +281,7 @@ HWTEST_F(BlobVirtualTest, DataAccessor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, SizeAccessor)
+HWTEST_F(BlobVirtualTest, SizeAccessor, TestSize.Level0)
 {
     ZLOGI("SizeAccessor begin.");
     Blob sizeAccessor("hello", 5);
@@ -273,7 +295,7 @@ HWTEST_F(BlobVirtualTest, SizeAccessor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, RawSizeAccessor)
+HWTEST_F(BlobVirtualTest, RawSizeAccessor, TestSize.Level0)
 {
     ZLOGI("RawSizeAccessor begin.");
     Blob rawSizeAccessor("hello", 5);
@@ -287,7 +309,7 @@ HWTEST_F(BlobVirtualTest, RawSizeAccessor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, EmptyAccessor)
+HWTEST_F(BlobVirtualTest, EmptyAccessor, TestSize.Level0)
 {
     ZLOGI("EmptyAccessor begin.");
     Blob emptyAccessor;
@@ -303,7 +325,7 @@ HWTEST_F(BlobVirtualTest, EmptyAccessor)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ElementAccessOperator)
+HWTEST_F(BlobVirtualTest, ElementAccessOperator, TestSize.Level0)
 {
     ZLOGI("ElementAccessOperator begin.");
     Blob elementAccessOperator("hello", 5);
@@ -319,7 +341,7 @@ HWTEST_F(BlobVirtualTest, ElementAccessOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, EqualityOperator)
+HWTEST_F(BlobVirtualTest, EqualityOperator, TestSize.Level0)
 {
     ZLOGI("EqualityOperator begin.");
     Blob equalityOperator1("hello", 5);
@@ -336,7 +358,7 @@ HWTEST_F(BlobVirtualTest, EqualityOperator)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, Clear)
+HWTEST_F(BlobVirtualTest, Clear, TestSize.Level0)
 {
     ZLOGI("Clear begin.");
     Blob blobClear("hello", 5);
@@ -351,7 +373,7 @@ HWTEST_F(BlobVirtualTest, Clear)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ToString)
+HWTEST_F(BlobVirtualTest, ToString, TestSize.Level0)
 {
     ZLOGI("ToString begin.");
     Blob blobToString("hello", 5);
@@ -365,7 +387,7 @@ HWTEST_F(BlobVirtualTest, ToString)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, Compare)
+HWTEST_F(BlobVirtualTest, Compare, TestSize.Level0)
 {
     ZLOGI("Compare begin.");
     Blob blobCompare1("abc", 3);
@@ -383,7 +405,7 @@ HWTEST_F(BlobVirtualTest, Compare)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, StartsWith)
+HWTEST_F(BlobVirtualTest, StartsWith, TestSize.Level0)
 {
     ZLOGI("StartsWith begin.");
     Blob blobStartsWith1("abcdef", 6);
@@ -402,7 +424,7 @@ HWTEST_F(BlobVirtualTest, StartsWith)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, WriteToBuffer)
+HWTEST_F(BlobVirtualTest, WriteToBuffer, TestSize.Level0)
 {
     ZLOGI("WriteToBuffer begin.");
     Blob blobWriteToBuffer("hello", 5);
@@ -422,18 +444,96 @@ HWTEST_F(BlobVirtualTest, WriteToBuffer)
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(BlobVirtualTest, ReadFromBuffer)
+HWTEST_F(BlobVirtualTest, ReadFromBuffer, TestSize.Level0)
 {
     ZLOGI("ReadFromBuffer begin.");
     uint8_t buffer[100];
     int blobSize = 5;
     *reinterpret_cast<int*>(buffer) = blobSize;
-    memcpy(buffer + sizeof(int), "hello", blobSize);
+    strncpy(reinterpret_cast<char*>(buffer + sizeof(int)), "hello",Size);
     const uint8_t* cursorPtr = buffer;
     int bufferLeftSize = sizeof(buffer);
     Blob blob;
     EXPECT_TRUE(blob.ReadFromBuffer(cursorPtr, bufferLeftSize));
     EXPECT_EQ(std::string(blob.Data().begin(), blob.Data().end()), "hello");
     EXPECT_EQ(bufferLeftSize, sizeof(buffer) - sizeof(int) - blobSize);
+}
+
+/**
+ * @tc.name: ChangeNotificationVirtualTest001
+ * @tc.desc:
+ * @tc.type: test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(ChangeNotificationVirtualTest, ChangeNotificationVirtualTest001, TestSize.Level0)
+{
+    ZLOGI("ChangeNotificationVirtualTest001 begin.");
+    std::vector<DistributedKv::Entry> insertEntries = {{"key1", "value1"}, {"key2", "value2"}};
+    std::vector<DistributedKv::Entry> updateEntries = {{"key3", "newValue3"}};
+    std::vector<DistributedKv::Entry> deleteEntries = {{"key4", ""}};
+    std::string deviceId = "device123";
+    bool isClear = false;
+
+    OHOS::DistributedKv::ChangeNotification cn(std::move(insertEntries),
+        std::move(updateEntries), std::move(deleteEntries), deviceId, isClear);
+
+    EXPECT_TRUE(cn.GetInsertEntries().size() == 2);
+    EXPECT_TRUE(cn.GetUpdateEntries().size() == 1);
+    EXPECT_TRUE(cn.GetDeleteEntries().size() == 1);
+    EXPECT_TRUE(cn.GetDeviceId() == deviceId);
+    EXPECT_TRUE(!cn.IsClear());
+}
+
+/**
+ * @tc.name: ChangeNotificationVirtualTest002
+ * @tc.desc:
+ * @tc.type: test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(ChangeNotificationVirtualTest, ChangeNotificationVirtualTest002, TestSize.Level0)
+{
+    ZLOGI("ChangeNotificationVirtualTest002 begin.");
+    std::vector<DistributedKv::Entry> insertEntries;
+    std::vector<DistributedKv::Entry> updateEntries;
+    std::vector<DistributedKv::Entry> deleteEntries;
+    std::string deviceId = "device456";
+    bool isClear = true;
+
+    OHOS::DistributedKv::ChangeNotification cn(std::move(insertEntries),
+        std::move(updateEntries), std::move(deleteEntries), deviceId, isClear);
+
+    EXPECT_TRUE(cn.GetInsertEntries().empty());
+    EXPECT_TRUE(cn.GetUpdateEntries().empty());
+    EXPECT_TRUE(cn.GetDeleteEntries().empty());
+    EXPECT_TRUE(cn.GetDeviceId() == deviceId);
+    EXPECT_TRUE(cn.IsClear());
+}
+
+/**
+ * @tc.name: ChangeNotificationVirtualTest003
+ * @tc.desc:
+ * @tc.type: test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(ChangeNotificationVirtualTest, ChangeNotificationVirtualTest003, TestSize.Level0)
+{
+    ZLOGI("ChangeNotificationVirtualTest003 begin.");
+    std::vector<Entry> insertEntries;
+    std::vector<Entry> updateEntries = {{"keyUpdated", "newValue"}};
+    std::vector<Entry> deleteEntries;
+    std::string deviceId = "device789";
+    bool isClear = false;
+
+    OHOS::DistributedKv::ChangeNotification cn(std::move(insertEntries),
+        std::move(updateEntries), std::move(deleteEntries), deviceId, isClear);
+
+    EXPECT_TRUE(cn.GetInsertEntries().empty());
+    EXPECT_TRUE(cn.GetUpdateEntries().size() == 1);
+    EXPECT_TRUE(cn.GetDeleteEntries().empty());
+    EXPECT_TRUE(cn.GetDeviceId() == deviceId);
+    EXPECT_TRUE(!cn.IsClear());
 }
 } // namespace OHOS::Test
