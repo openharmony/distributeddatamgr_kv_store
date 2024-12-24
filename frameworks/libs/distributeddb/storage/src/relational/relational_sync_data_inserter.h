@@ -24,7 +24,8 @@
 namespace DistributedDB {
 
 struct SaveSyncDataStmt {
-    sqlite3_stmt *saveDataStmt = nullptr;
+    sqlite3_stmt *insertDataStmt = nullptr;
+    sqlite3_stmt *updateDataStmt = nullptr;
     sqlite3_stmt *saveLogStmt = nullptr;
     sqlite3_stmt *queryStmt = nullptr;
     sqlite3_stmt *rmDataStmt = nullptr;
@@ -40,8 +41,8 @@ struct SaveSyncDataStmt {
 
 class RelationalSyncDataInserter {
 public:
-    RelationalSyncDataInserter();
-    ~RelationalSyncDataInserter();
+    RelationalSyncDataInserter() = default;
+    ~RelationalSyncDataInserter() = default;
 
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
         const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
@@ -61,17 +62,26 @@ public:
     void SetTableMode(DistributedTableMode mode);
 
     int Iterate(const std::function<int (DataItem &)> &);
-    int BindInsertStatement(sqlite3_stmt *stmt, const DataItem &dataItem);
+
+    int SaveData(bool isExist, const DataItem &dataItem, const SaveSyncDataStmt &saveSyncDataStmt);
+    int BindSaveDataStatement(bool isExist, const DataItem &dataItem, const std::set<std::string> &filterSet,
+        sqlite3_stmt *stmt);
 
     int PrepareStatement(sqlite3 *db, SaveSyncDataStmt &stmt);
     int GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stmt);
     int GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt *&stmt);
 
+    int BindHashKeyAndDev(const DataItem &dataItem, sqlite3_stmt *stmt, int beginIndex);
+
+    int SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem,
+        int64_t rowid);
 private:
 
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
 
     int GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt);
+
+    int GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&stmt);
 
     std::string hashDevId_;
     std::vector<FieldInfo> remoteFields_;

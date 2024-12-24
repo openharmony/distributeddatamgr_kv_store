@@ -88,7 +88,6 @@ config("module_private_config") {
     "../syncer/src/device",
     "../syncer/src/device/multiver",
     "../syncer/src/device/singlever",
-    "//third_party/openssl/include/",
     "../gaussdb_rd/include",
     "../gaussdb_rd/include/grd_base",
     "../gaussdb_rd/include/grd_document",
@@ -156,6 +155,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
+    "unittest/common/common/rdb_data_generator.cpp",
     "unittest/common/common/system_time.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
@@ -185,27 +185,24 @@ ohos_source_set("src_file") {
     cfi_cross_dso = true
     debug = false
   }
-  deps = [
-    "//third_party/googletest:gtest_main",
-    "//third_party/sqlite:sqlite",
-  ]
 
-  configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
-  deps += [
-    "//third_party/jsoncpp:jsoncpp",
-    "//third_party/openssl:libcrypto_shared",
-  ]
+
   configs += [ ":gaussdb_rd_config" ]
   public_configs = [ ":gaussdb_rd_public_config" ]
-  configs += [ "//third_party/cJSON:cJSON_config" ]
-  deps += [ "//third_party/cJSON:cjson" ]
+
   external_deps = [
+    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
+    "googletest:gmock_main",
+    "googletest:gtest_main",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "jsoncpp:jsoncpp",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
     "zlib:libz",
   ]
   part_name = "kv_store"
@@ -222,24 +219,21 @@ template("distributeddb_unittest") {
       external_deps = []
     }
     configs = [ ":module_private_config" ]
-    deps += [
-      ":src_file",
-      "//third_party/googletest:gmock_main",
-      "//third_party/googletest:gtest_main",
-      "//third_party/sqlite:sqlite",
-    ]
-    configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
+    deps += [ ":src_file" ]
+
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
-    deps += [
-      "//third_party/jsoncpp:jsoncpp",
-      "//third_party/openssl:libcrypto_shared",
-    ]
+
     external_deps = [
       "c_utils:utils",
       "ffrt:libffrt",
+      "googletest:gmock_main",
+      "googletest:gtest_main",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
+      "jsoncpp:jsoncpp",
+      "openssl:libcrypto_shared",
+      "sqlite:sqlite",
       "zlib:libz",
     ]
   }
@@ -877,11 +871,15 @@ distributeddb_unittest("DistributedDBCloudKvStoreTest") {
       [ "unittest/common/syncer/cloud/distributeddb_cloud_kvstore_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRDBCollaborationTest") {
+  sources =
+      [ "unittest/common/storage/distributeddb_rdb_collaboration_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
-  deps = [ "//third_party/googletest:gmock" ]
-
+  deps = []
   deps += [
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
@@ -955,6 +953,7 @@ group("unittest") {
     ":DistributedDBMultiVerVacuumTest",
     ":DistributedDBNotificationChainTest",
     ":DistributedDBParcelTest",
+    ":DistributedDBRDBCollaborationTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",

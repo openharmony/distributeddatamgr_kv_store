@@ -954,4 +954,22 @@ int Metadata::GetMetaDataValueFromDB(const Key &key, MetaDataValue &metaDataValu
     }
     return DeSerializeMetaData(value, metaDataValue);
 }
+
+uint64_t Metadata::GetRemoteSoftwareVersion(const std::string &deviceId)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    return metadata.remoteSoftwareVersion;
+}
+
+int Metadata::SetRemoteSoftwareVersion(const std::string &deviceId, uint64_t version)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    metadata.remoteSoftwareVersion = version;
+    LOGI("[Metadata] Set %.3s version %" PRId64, deviceId.c_str(), version);
+    return SaveMetaDataValue(deviceId, metadata);
+}
 }  // namespace DistributedDB

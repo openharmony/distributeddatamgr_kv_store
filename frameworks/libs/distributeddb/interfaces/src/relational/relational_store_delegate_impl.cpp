@@ -280,9 +280,9 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
         return DB_ERROR;
     }
     errCode = conn_->RegisterObserverAction(observer, [observer, userId, appId, storeId](
-        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData, Origin origin) {
         if (isChangedData && observer != nullptr) {
-            observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
+            observer->OnChange(origin, changedDevice, std::move(changedData));
             LOGD("begin to observer on changed data");
             return;
         }
@@ -485,6 +485,26 @@ SyncProcess RelationalStoreDelegateImpl::GetCloudTaskStatus(uint64_t taskId)
         return syncProcess;
     }
     return conn_->GetCloudTaskStatus(taskId);
+}
+
+DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
+        return DB_ERROR;
+    }
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->SetDistributedDbSchema(schema);
+    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d",
+        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode);
+    return TransferDBErrno(errCode);
 }
 } // namespace DistributedDB
 #endif

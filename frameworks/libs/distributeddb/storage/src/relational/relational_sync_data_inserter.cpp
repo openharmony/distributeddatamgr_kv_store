@@ -14,16 +14,21 @@
  */
 
 #include "relational_sync_data_inserter.h"
+#include "cloud/cloud_storage_utils.h"
 #include "data_transformer.h"
 #include "db_common.h"
+#include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
 int SaveSyncDataStmt::ResetStatements(bool isNeedFinalize)
 {
     int errCode = E_OK;
-    if (saveDataStmt != nullptr) {
-        SQLiteUtils::ResetStatement(saveDataStmt, isNeedFinalize, errCode);
+    if (insertDataStmt != nullptr) {
+        SQLiteUtils::ResetStatement(insertDataStmt, isNeedFinalize, errCode);
+    }
+    if (updateDataStmt != nullptr) {
+        SQLiteUtils::ResetStatement(updateDataStmt, isNeedFinalize, errCode);
     }
     if (saveLogStmt != nullptr) {
         SQLiteUtils::ResetStatement(saveLogStmt, isNeedFinalize, errCode);
@@ -38,14 +43,6 @@ int SaveSyncDataStmt::ResetStatements(bool isNeedFinalize)
         SQLiteUtils::ResetStatement(rmLogStmt, isNeedFinalize, errCode);
     }
     return errCode;
-}
-
-RelationalSyncDataInserter::RelationalSyncDataInserter()
-{
-}
-
-RelationalSyncDataInserter::~RelationalSyncDataInserter()
-{
 }
 
 RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std::string &deviceName,
@@ -126,21 +123,51 @@ int RelationalSyncDataInserter::GetInsertStatement(sqlite3 *db, sqlite3_stmt *&s
     colName.pop_back();
     dataFormat.pop_back();
 
-    const std::string sql = "INSERT OR REPLACE INTO '" + insertTableName_ + "'" +
-        " (" + colName + ") VALUES (" + dataFormat + ");";
+    std::string sql = "INSERT OR REPLACE INTO '" + insertTableName_ + "'" +
+        "(" + colName + ") VALUES(" + dataFormat + ");";
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("Get saving data statement fail! errCode:%d", errCode);
+        LOGE("Get insert data statement fail! errCode:%d", errCode);
     }
     return errCode;
 }
 
-int RelationalSyncDataInserter::BindInsertStatement(sqlite3_stmt *stmt, const DataItem &dataItem)
+int RelationalSyncDataInserter::SaveData(bool isExist, const DataItem &dataItem,
+    const SaveSyncDataStmt &saveSyncDataStmt)
 {
+    sqlite3_stmt *stmt;
+    std::set<std::string> filterSet;
+    bool isUpdate = isExist && mode_ == DistributedTableMode::COLLABORATION;
+    if (isUpdate) {
+        stmt = saveSyncDataStmt.updateDataStmt;
+        for (const auto &primaryKey : localTable_.GetIdentifyKey()) {
+            filterSet.insert(primaryKey);
+        }
+    } else {
+        stmt = saveSyncDataStmt.insertDataStmt;
+    }
     if (stmt == nullptr) {
-        return -E_INVALID_ARGS;
+        LOGW("skip save data %s", DBCommon::StringMiddleMasking(DBCommon::VectorToHexString(dataItem.hashKey)).c_str());
+        return E_OK;
     }
 
+    int errCode = BindSaveDataStatement(isUpdate, dataItem, filterSet, stmt);
+    if (errCode != E_OK) {
+        LOGE("Bind data failed, errCode=%d.", errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, false, ret);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, false, ret);
+    return errCode;
+}
+
+int RelationalSyncDataInserter::BindSaveDataStatement(bool isExist, const DataItem &dataItem,
+    const std::set<std::string> &filterSet, sqlite3_stmt *stmt)
+{
     OptRowDataWithLog data;
     // deserialize by remote field info
     int errCode = DataTransformer::DeSerializeDataItem(dataItem, data, remoteFields_);
@@ -154,13 +181,18 @@ int RelationalSyncDataInserter::BindInsertStatement(sqlite3_stmt *stmt, const Da
     const auto &localTableFields = localTable_.GetFields();
     for (const auto &it : remoteFields_) {
         if (localTableFields.find(it.GetFieldName()) == localTableFields.end()) {
-            LOGD("field %s not found in local schema.", it.GetFieldName().c_str());
+            LOGD("field %s[%zu] not found in local schema.", DBCommon::StringMiddleMasking(it.GetFieldName()).c_str(),
+                it.GetFieldName().size());
             dataIdx++;
             continue; // skip fields which is orphaned in remote
         }
+        if (filterSet.find(it.GetFieldName()) != filterSet.end()) {
+            dataIdx++;
+            continue; // skip fields when update
+        }
         if (dataIdx >= data.optionalData.size()) {
             LOGD("field over size. cnt:%d, data size:%d", dataIdx, data.optionalData.size());
-            break; // cnt should less then optionalData size.
+            break; // cnt should less than optionalData size.
         }
         errCode = SQLiteUtils::BindDataValueByType(stmt, data.optionalData[dataIdx], bindIdx++);
         if (errCode != E_OK) {
@@ -169,8 +201,7 @@ int RelationalSyncDataInserter::BindInsertStatement(sqlite3_stmt *stmt, const Da
         }
         dataIdx++;
     }
-
-    return E_OK;
+    return isExist ? BindHashKeyAndDev(dataItem, stmt, bindIdx) : E_OK;
 }
 
 int RelationalSyncDataInserter::GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stmt)
@@ -212,7 +243,8 @@ int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&
     std::string dataFormat = "?, '" + hashDevId_ + "', ?, ?, ?, ?, ?";
     std::string columnList = "data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key";
     std::string sql = "INSERT OR REPLACE INTO " + tableName +
-        " (" + columnList + ") VALUES (" + dataFormat + ");";
+        " (" + columnList + ", cursor) VALUES (" + dataFormat + "," +
+        CloudStorageUtils::GetSelectIncCursorSql(query_.GetTableName()) +");";
     int errCode = SQLiteUtils::GetStatement(db, sql, logStmt);
     if (errCode != E_OK) {
         LOGE("[info statement] Get log statement fail! errCode:%d", errCode);
@@ -239,9 +271,14 @@ int RelationalSyncDataInserter::PrepareStatement(sqlite3 *db, SaveSyncDataStmt &
         LOGE("Get save log statement failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetInsertStatement(db, stmt.saveDataStmt);
+    errCode = GetInsertStatement(db, stmt.insertDataStmt);
     if (errCode != E_OK) {
         LOGE("Get insert statement failed. err=%d", errCode);
+        return errCode;
+    }
+    errCode = GetUpdateStatement(db, stmt.updateDataStmt);
+    if (errCode != E_OK) {
+        LOGE("Get update statement failed. err=%d", errCode);
     }
     return errCode;
 }
@@ -256,6 +293,110 @@ int RelationalSyncDataInserter::Iterate(const std::function<int (DataItem &)> &s
             LOGE("Save sync data item failed. err=%d", errCode);
             break;
         }
+    }
+    return errCode;
+}
+
+int RelationalSyncDataInserter::GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&stmt)
+{
+    if (stmt != nullptr) {
+        return -E_INVALID_ARGS;
+    }
+
+    std::set<std::string> identifyKeySet;
+    for (const auto &primaryKey : localTable_.GetIdentifyKey()) {
+        identifyKeySet.insert(primaryKey);
+    }
+    std::string updateValue;
+    const auto &localTableFields = localTable_.GetFields();
+    for (const auto &it : remoteFields_) {
+        if (localTableFields.find(it.GetFieldName()) == localTableFields.end()) {
+            continue; // skip fields which is orphaned in remote
+        }
+        if (identifyKeySet.find(it.GetFieldName()) == identifyKeySet.end()) {
+            if (updateValue.empty()) {
+                updateValue.append(" SET ");
+            } else {
+                updateValue.append(", ");
+            }
+            updateValue.append(it.GetFieldName()).append("=?");
+        }
+    }
+    if (updateValue.empty()) {
+        // only sync pk no need update
+        return E_OK;
+    }
+    std::string sql = "UPDATE '" + insertTableName_ + "'" + updateValue + " WHERE " +
+        std::string(DBConstant::SQLITE_INNER_ROWID) + " IN (SELECT data_key FROM " +
+        DBConstant::RELATIONAL_PREFIX + localTable_.GetTableName() + "_log ";
+    if (mode_ == DistributedTableMode::COLLABORATION) {
+        sql += "WHERE hash_key=?);";
+    } else {
+        sql += "WHERE hash_key=? AND device=? AND flag&0x01=0);";
+    }
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get update data statement fail! errCode:%d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqlite3_stmt *stmt,
+    int beginIndex)
+{
+    int errCode = SQLiteUtils::BindBlobToStatement(stmt, beginIndex++, dataItem.hashKey);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        return errCode;
+    }
+    if (mode_ != DistributedTableMode::COLLABORATION) {
+        errCode = SQLiteUtils::BindTextToStatement(stmt, beginIndex, dataItem.dev);
+        if (errCode != E_OK) {
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+        }
+    }
+    return errCode;
+}
+
+int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt,
+    const DataItem &dataItem, int64_t rowid)
+{
+    auto updateCursor = CloudStorageUtils::GetCursorIncSql(query_.GetTableName());
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, updateCursor);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncDataInserter] update cursor failed %d", errCode);
+        return errCode;
+    }
+    LogInfo logInfoGet;
+    errCode = SQLiteRelationalUtils::GetLogInfoPre(queryStmt, mode_, dataItem, logInfoGet);
+    LogInfo logInfoBind;
+    logInfoBind.hashKey = dataItem.hashKey;
+    logInfoBind.device = dataItem.dev;
+    logInfoBind.timestamp = dataItem.timestamp;
+    logInfoBind.flag = dataItem.flag;
+
+    if (errCode == -E_NOT_FOUND) { // insert
+        logInfoBind.wTimestamp = dataItem.writeTimestamp;
+        logInfoBind.originDev = dataItem.dev;
+    } else if (errCode == E_OK) { // update
+        logInfoBind.wTimestamp = logInfoGet.wTimestamp;
+        logInfoBind.originDev = logInfoGet.originDev;
+    } else {
+        LOGE("[RelationalSyncDataInserter] get log info failed %d", errCode);
+        return errCode;
+    }
+
+    // bind
+    SQLiteUtils::BindInt64ToStatement(statement, 1, rowid);  // 1 means dataKey index
+    std::vector<uint8_t> originDev(logInfoBind.originDev.begin(), logInfoBind.originDev.end());
+    SQLiteUtils::BindBlobToStatement(statement, 2, originDev);  // 2 means ori_dev index
+    SQLiteUtils::BindInt64ToStatement(statement, 3, logInfoBind.timestamp);  // 3 means timestamp index
+    SQLiteUtils::BindInt64ToStatement(statement, 4, logInfoBind.wTimestamp);  // 4 means w_timestamp index
+    SQLiteUtils::BindInt64ToStatement(statement, 5, logInfoBind.flag);  // 5 means flag index
+    SQLiteUtils::BindBlobToStatement(statement, 6, logInfoBind.hashKey);  // 6 means hashKey index
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        return E_OK;
     }
     return errCode;
 }

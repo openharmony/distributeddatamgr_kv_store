@@ -48,8 +48,10 @@ constexpr const uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 
 constexpr const uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 9; // 9 for ninth released version
 // 110 version add totalDataCount field in DataRequestPkt
 constexpr const uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE + 10; // 10 for tenth released version
+// 111 version record remote version and rdb sync with config column
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_11_0 = SOFTWARE_VERSION_BASE + 11; // 11 for tenth released version
 constexpr const uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_10_0;
+constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_11_0;
 constexpr const int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version

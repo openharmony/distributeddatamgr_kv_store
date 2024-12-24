@@ -41,6 +41,8 @@ public:
     const CipherPassword &GetPasswd() const;
     uint32_t GetIterTimes() const;
 
+    DistributedTableMode GetDistributedTableMode() const;
+
     static const std::string DISTRIBUTED_TABLE_MODE;
 
 private:

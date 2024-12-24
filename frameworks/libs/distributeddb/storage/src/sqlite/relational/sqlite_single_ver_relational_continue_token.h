@@ -43,6 +43,8 @@ public:
     int GetCloudStatement(sqlite3 *db, CloudSyncData &cloudDataResult, sqlite3_stmt *&queryStmt, bool &isFirstTime);
     void GetCloudTableSchema(TableSchema &tableSchema) const;
     int ReleaseCloudStatement();
+    bool IsUseLocalSchema() const;
+    std::string GetRemoteDev() const;
 private:
     std::string GetDeletedDataSQL() const;
     int GetQuerySyncStatement(sqlite3 *db, sqlite3_stmt *&stmt);

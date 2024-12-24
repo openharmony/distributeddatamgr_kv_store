@@ -127,6 +127,11 @@ public:
 
     bool IsNoPkTable() const;
 
+    bool IsFieldExist(const std::string &fieldName) const;
+
+    void SetDistributedTable(const DistributedTable &distributedTable);
+
+    std::vector<std::string> GetSyncField() const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;
@@ -154,6 +159,7 @@ private:
     std::vector<CompositeFields> uniqueDefines_;
     int id_ = -1;
     TrackerTable trackerTable_;
+    DistributedTable distributedTable_;
     //     a
     //  b     c
     // d  e  f    ,table_info[a] = {b,c}  [b] = {d, e}  [c] = {f}

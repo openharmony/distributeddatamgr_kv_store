@@ -53,7 +53,7 @@ public:
 
     virtual int GetSchemaFromDB(RelationalSchemaObject &schema) = 0;
 
-    virtual int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) = 0;
+    virtual int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) const = 0;
 
     virtual void ReleaseRemoteQueryContinueToken(ContinueToken &token) const = 0;
 };

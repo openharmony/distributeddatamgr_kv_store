@@ -20,6 +20,7 @@
 #include "cloud/cloud_store_types.h"
 #include "data_value.h"
 #include "sqlite_import.h"
+#include "sqlite_single_ver_relational_storage_executor.h"
 #include "table_info.h"
 
 namespace DistributedDB {
@@ -49,6 +50,18 @@ public:
     static int QueryCount(sqlite3 *db, const std::string &tableName, int64_t &count);
 
     static int GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor);
+
+    static int CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
+        SQLiteSingleVerRelationalStorageExecutor *executor);
+
+    static DistributedSchema FilterRepeatDefine(const DistributedSchema &schema);
+
+    static DistributedTable FilterRepeatDefine(const DistributedTable &table);
+
+    static int GetLogData(sqlite3_stmt *logStatement, LogInfo &logInfo);
+
+    static int GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode, const DataItem &dataItem,
+        LogInfo &logInfoGet);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

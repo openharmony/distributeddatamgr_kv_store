@@ -39,6 +39,7 @@
 #include "log_print.h"
 #include "message.h"
 #include "query.h"
+#include "relational_store_delegate.h"
 #include "relational_store_sqlite_ext.h"
 #include "store_observer.h"
 #include "store_changed_data.h"
@@ -231,6 +232,9 @@ public:
     static std::string GetKvNbStoreDirectory(const std::string &identifier, const std::string &dbFilePath,
         const std::string &dbDir);
 
+    static void BlockSync(DistributedDB::RelationalStoreDelegate &delegate, const DistributedDB::Query &query,
+        DistributedDB::SyncMode syncMode, DistributedDB::DBStatus exceptStatus,
+        const std::vector<std::string> &devices);
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 
@@ -308,6 +312,11 @@ public:
     unsigned long GetCloudCallCount() const;
     const std::string GetDataChangeDevice() const;
     DistributedDB::StoreProperty GetStoreProperty() const;
+    std::unordered_map<std::string, DistributedDB::ChangedData> GetSavedChangedData() const;
+
+    bool IsAssetChange(const std::string &table) const;
+
+    DistributedDB::Origin GetLastOrigin() const;
 private:
     unsigned long callCount_;
     unsigned long cloudCallCount_ = 0;
@@ -316,6 +325,7 @@ private:
     std::unordered_map<std::string, DistributedDB::ChangedData> expectedChangedData_;
     std::unordered_map<std::string, DistributedDB::ChangedData> savedChangedData_;
     uint32_t detailsType_ = static_cast<uint32_t>(DistributedDB::CallbackDetailsType::DEFAULT);
+    DistributedDB::Origin lastOrigin_ = DistributedDB::ORIGIN_REMOTE;
 };
 
 class KvStoreCorruptInfo {
@@ -362,6 +372,14 @@ public:
     static int GetRecordLog(sqlite3 *db, const std::string &tableName, std::vector<DistributedDB::VBucket> &records);
     static int DeleteRecord(sqlite3 *db, const std::string &tableName,
         const std::vector<std::map<std::string, std::string>> &conditions);
+    static void CloudBlockSync(const DistributedDB::CloudSyncOption &option,
+        DistributedDB::RelationalStoreDelegate *delegate,
+        DistributedDB::DBStatus expect = DistributedDB::DBStatus::OK,
+        DistributedDB::DBStatus callbackExpect = DistributedDB::DBStatus::OK);
+    static bool IsExistEmptyHashAsset(sqlite3 *db, const DistributedDB::TableSchema &schema);
+    static bool IsExistEmptyHashAsset(const DistributedDB::Assets &assets);
+    static DistributedDB::ICloudSyncStorageHook *GetRDBStorageHook(const std::string &userId,
+        const std::string &appId, const std::string &storeId, const std::string &dbPath);
 };
 
 class DBInfoHandleTest : public DistributedDB::DBInfoHandle {

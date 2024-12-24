@@ -60,11 +60,11 @@ public:
     int ResetLogStatus(std::string &tableName);
 
     int CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table, TableSyncType syncType);
+        TableInfo &table);
 
     // The parameter "identity" is a hash string that identifies a device
     int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table, TableSyncType syncType);
+        TableInfo &table);
 
     int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema, TableSyncType syncType);
@@ -265,20 +265,15 @@ private:
 
     int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 
-    int GetSyncDataPre(const DataItem &dataItem, sqlite3_stmt *queryStmt, DataItem &itemGet);
-
-    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,  bool &isDefeated);
+    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,
+        bool &isDefeated, bool &isExist, int64_t &rowId);
 
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
-    int SaveSyncDataItem(const DataItem &dataItem, SaveSyncDataStmt &saveStmt, RelationalSyncDataInserter &inserter,
-        int64_t &rowid);
+    int SaveSyncDataItem(const DataItem &dataItem, bool isExist, SaveSyncDataStmt &saveStmt,
+        RelationalSyncDataInserter &inserter, int64_t &rowid);
 
     int DeleteSyncDataItem(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt);
-
-    int GetLogInfoPre(sqlite3_stmt *queryStmt, const DataItem &dataItem, LogInfo &logInfoGet);
-
-    int SaveSyncLog(sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem, int64_t rowid);
 
     int AlterAuxTableForUpgrade(const TableInfo &oldTableInfo, const TableInfo &newTableInfo);
 

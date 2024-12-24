@@ -31,7 +31,7 @@
 
 namespace DistributedDB {
 using RelationalObserverAction =
-    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData, Origin origin)>;
 class RelationalSyncAbleStorage : public RelationalDBSyncInterface, public ICloudSyncStorageInterface,
     public virtual RefObject {
 public:
@@ -130,7 +130,7 @@ public:
 
     int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
 
-    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
+    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) const override;
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 
@@ -234,6 +234,9 @@ public:
     bool IsCurrentLogicDelete() const override;
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
+
+    void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData,
+        Origin origin);
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -264,7 +267,7 @@ private:
 
     // get
     int GetSyncDataForQuerySync(std::vector<DataItem> &dataItems, SQLiteSingleVerRelationalContinueToken *&token,
-        const DataSizeSpecInfo &dataSizeInfo) const;
+        const DataSizeSpecInfo &dataSizeInfo, RelationalSchemaObject &&filterSchema) const;
     int GetRemoteQueryData(const PreparedStmt &prepStmt, size_t packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data) const;
 
@@ -298,7 +301,7 @@ private:
 
     void ExecuteDataChangeCallback(
         const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
-        const std::string &deviceName, const ChangedData &changedData, bool isChangedData, int &observerCnt);
+        const std::string &deviceName, const ChangedData &changedData, bool isChangedData, Origin origin);
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -312,7 +315,7 @@ private:
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
 
-    LruMap<std::string, std::string> remoteDeviceSchema_;
+    mutable LruMap<std::string, std::string> remoteDeviceSchema_;
     StorageExecutor *reusedHandle_;
     mutable std::mutex reusedHandleMutex_;
 

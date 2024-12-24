@@ -59,5 +59,10 @@ void RelationalVirtualDevice::SetTableInfo(const TableInfo &tableInfo)
 {
     static_cast<VirtualRelationalVerSyncDBInterface *>(storage_)->SetTableInfo(tableInfo);
 }
+
+void RelationalVirtualDevice::SetDistributedSchema(const DistributedDB::DistributedSchema &schema)
+{
+    static_cast<VirtualRelationalVerSyncDBInterface *>(storage_)->SetDistributedSchema(schema);
+}
 } // DistributedDB
 #endif

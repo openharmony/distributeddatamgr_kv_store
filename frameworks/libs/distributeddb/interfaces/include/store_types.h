@@ -91,6 +91,7 @@ enum DBStatus {
     SQLITE_CANT_OPEN, // the sqlite cannot open
     LOCAL_ASSET_NOT_FOUND, // file manager miss local assets
     CLOUD_DISABLED, // the cloud switch has been turned off
+    DISTRIBUTED_FIELD_DECREASE, // sync fewer specified columns than last time
     BUTT_STATUS = 27394048 // end of status
 };
 
@@ -254,6 +255,7 @@ static constexpr const char *GAUSSDB_RD = "gaussdb_rd";
 static constexpr const char *SQLITE = "sqlite";
 struct ChangeProperties {
     bool isTrackedDataChange = false;
+    bool isP2pSyncDataChange = false;
 };
 
 enum IndexType : uint32_t {
@@ -285,6 +287,27 @@ struct DbIdParam {
     std::string storeId;
     std::string subUser = "";
     int32_t instanceId = 0;
+};
+
+struct DistributedField {
+    std::string colName;
+    bool isP2pSync = false; // device p2p sync with this column when it was true
+};
+
+struct DistributedTable {
+    std::string tableName;
+    std::vector<DistributedField> fields;
+};
+
+struct DistributedSchema {
+    uint32_t version = 0;
+    std::vector<DistributedTable> tables;
+};
+
+// Table mode of device data for relational store
+enum class DistributedTableMode : int {
+    COLLABORATION = 0, // Save all devices data in user table
+    SPLIT_BY_DEVICE // Save device data in each table split by device
 };
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

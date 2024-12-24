@@ -28,7 +28,7 @@
 namespace DistributedDB {
 class IRelationalStore;
 using RelationalObserverAction =
-    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData, Origin origin)>;
 class RelationalStoreConnection : public IConnection, public virtual RefObject {
 public:
     struct SyncInfo {
@@ -84,6 +84,8 @@ public:
     virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) = 0;
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
+
+    virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

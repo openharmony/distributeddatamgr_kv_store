@@ -72,6 +72,12 @@ public:
 
     // For continue token, once sync may not get all sync data, use AddOffset to continue last query
     void SetLimit(int limit, int offset);
+
+    void SetUseLocalSchema(bool isUse);
+    bool IsUseLocalSchema() const;
+
+    void SetRemoteDev(const std::string &dev);
+    std::string GetRemoteDev() const;
 protected:
     explicit QueryObject(const QueryExpression &queryExpression);
     static std::vector<QueryExpression> GetQueryExpressions(const Query &query);
@@ -110,7 +116,9 @@ private:
     bool hasPrefixKey_;
     bool hasInKeys_;
     int orderByCounts_;
+    bool isUseLocalSchema_;
     SortType sortType_ = SortType::NONE;
+    std::string remoteDev_;
 };
 }
 #endif

@@ -40,6 +40,7 @@ public:
         CipherType cipher = CipherType::DEFAULT;
         CipherPassword passwd;
         uint32_t iterateTimes = 0;
+        DistributedTableMode tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
     };
 
     DB_API DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType type = DEVICE_COOPERATION)
@@ -112,6 +113,8 @@ public:
     {
         return {};
     }
+
+    DB_API virtual DBStatus SetDistributedSchema(const DistributedSchema &schema) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

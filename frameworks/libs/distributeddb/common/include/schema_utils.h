@@ -53,6 +53,11 @@ public:
 
     static void TransTrackerSchemaToLower(const TrackerSchema &srcSchema, TrackerSchema &destSchema);
 
+    static int ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out);
+
+    static int ExtractJsonObjArray(const JsonObject &inJsonObject, const std::string &field,
+        std::vector<JsonObject> &out);
+
     SchemaUtils() = delete;
     ~SchemaUtils() = delete;
 

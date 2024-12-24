@@ -401,7 +401,8 @@ static void ProcessContinueTokenForQuerySync(const std::vector<DataItem> &dataIt
  * If error happened, token will be deleted here.
  */
 int RelationalSyncAbleStorage::GetSyncDataForQuerySync(std::vector<DataItem> &dataItems,
-    SQLiteSingleVerRelationalContinueToken *&token, const DataSizeSpecInfo &dataSizeInfo) const
+    SQLiteSingleVerRelationalContinueToken *&token, const DataSizeSpecInfo &dataSizeInfo,
+    RelationalSchemaObject &&filterSchema) const
 {
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
@@ -413,7 +414,7 @@ int RelationalSyncAbleStorage::GetSyncDataForQuerySync(std::vector<DataItem> &da
     if (handle == nullptr) {
         goto ERROR;
     }
-
+    handle->SetLocalSchema(filterSchema);
     do {
         errCode = handle->GetSyncDataByQuery(dataItems,
             Parcel::GetAppendedLen(),
@@ -468,6 +469,15 @@ int RelationalSyncAbleStorage::GetSyncDataNext(std::vector<SingleVerKvEntry *> &
         return -E_INVALID_ARGS;
     }
     RelationalSchemaObject schema = storageEngine_->GetSchema();
+    RelationalSchemaObject filterSchema;
+    if (token->IsUseLocalSchema()) {
+        filterSchema = schema;
+    } else {
+        int errCode = GetRemoteDeviceSchema(token->GetRemoteDev(), filterSchema);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
     const auto fieldInfos = schema.GetTable(token->GetQuery().GetTableName()).GetFieldInfos();
     std::vector<std::string> fieldNames;
     fieldNames.reserve(fieldInfos.size());
@@ -477,7 +487,7 @@ int RelationalSyncAbleStorage::GetSyncDataNext(std::vector<SingleVerKvEntry *> &
     token->SetFieldNames(fieldNames);
 
     std::vector<DataItem> dataItems;
-    int errCode = GetSyncDataForQuerySync(dataItems, token, dataSizeInfo);
+    int errCode = GetSyncDataForQuerySync(dataItems, token, dataSizeInfo, std::move(filterSchema));
     if (errCode != E_OK && errCode != -E_UNFINISHED) { // The code need be sent to outside except new error happened.
         continueStmtToken = static_cast<ContinueToken>(token);
         return errCode;
@@ -522,37 +532,31 @@ int RelationalSyncAbleStorage::PutSyncDataWithQuery(const QueryObject &object,
     return PutSyncData(object, dataItems, deviceName);
 }
 
-namespace {
-inline DistributedTableMode GetCollaborationMode(const std::shared_ptr<SQLiteSingleRelationalStorageEngine> &engine)
-{
-    return static_cast<DistributedTableMode>(engine->GetProperties().GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-}
-
-inline bool IsCollaborationMode(const std::shared_ptr<SQLiteSingleRelationalStorageEngine> &engine)
-{
-    return GetCollaborationMode(engine) == DistributedTableMode::COLLABORATION;
-}
-}
-
 int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems,
     const std::string &deviceName)
 {
     int errCode = E_OK;
     LOGD("[RelationalSyncAbleStorage::SaveSyncDataItems] Get write handle.");
     QueryObject query = object;
-    query.SetSchema(storageEngine_->GetSchema());
+    auto localSchema = storageEngine_->GetSchema();
+    query.SetSchema(localSchema);
 
-    RelationalSchemaObject remoteSchema;
-    errCode = GetRemoteDeviceSchema(deviceName, remoteSchema);
+    RelationalSchemaObject filterSchema;
+    errCode = GetRemoteDeviceSchema(deviceName, filterSchema);
     if (errCode != E_OK) {
         LOGE("Find remote schema failed. err=%d", errCode);
         return errCode;
     }
+    if (query.IsUseLocalSchema()) {
+        // remote send always with its table col sort
+        filterSchema.SetDistributedSchema(localSchema.GetDistributedSchema());
+    }
 
     StoreInfo info = GetStoreInfo();
     auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
-        remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), info);
+        filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
+    ChangedData data;
+    data.properties.isP2pSyncDataChange = !dataItems.empty();
     inserter.SetEntries(dataItems);
 
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
@@ -578,8 +582,11 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         // dataItems size > 0 now because already check before
         // all dataItems will write into db now, so need to observer notify here
         // if some dataItems will not write into db in the future, observer notify here need change
-        ChangedData data;
-        TriggerObserverAction(deviceName, std::move(data), false);
+        data.tableName = query.GetTableName();
+        // SPLIT_BY_DEVICE trigger observer with device, userId, appId and storeId, so trigger with isChangeData false
+        // COLLABORATION   trigger observer with changeData, so trigger with isChangeData true
+        TriggerObserverAction(deviceName, std::move(data),
+            GetDbProperties().GetDistributedTableMode() == DistributedTableMode::COLLABORATION, Origin::ORIGIN_REMOTE);
     }
 
     ReleaseHandle(handle);
@@ -667,8 +674,7 @@ int RelationalSyncAbleStorage::InterceptData(std::vector<SingleVerKvEntry *> &en
 int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &device,
     const RelationalSyncStrategy &syncStrategy)
 {
-    auto mode = storageEngine_->GetProperties().GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE,
-        DistributedTableMode::SPLIT_BY_DEVICE);
+    auto mode = storageEngine_->GetProperties().GetDistributedTableMode();
     if (mode != DistributedTableMode::SPLIT_BY_DEVICE) {
         LOGD("No need create device table in COLLABORATION mode.");
         return E_OK;
@@ -794,35 +800,38 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
 
 void RelationalSyncAbleStorage::ExecuteDataChangeCallback(
     const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
-    const std::string &deviceName, const ChangedData &changedData, bool isChangedData, int &observerCnt)
+    const std::string &deviceName, const ChangedData &changedData, bool isChangedData, Origin origin)
 {
     for (auto &action : item.second) {
         if (action.second == nullptr) {
             continue;
         }
-        observerCnt++;
         ChangedData observerChangeData = changedData;
         if (action.first != nullptr) {
             FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
         }
-        action.second(deviceName, std::move(observerChangeData), isChangedData);
+        action.second(deviceName, std::move(observerChangeData), isChangedData, origin);
     }
 }
 
 void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
     ChangedData &&changedData, bool isChangedData)
 {
+    TriggerObserverAction(deviceName, std::move(changedData), isChangedData, Origin::ORIGIN_CLOUD);
+}
+
+void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
+    bool isChangedData, Origin origin)
+{
     IncObjRef(this);
     int taskErrCode =
-        ConcurrentAdapter::ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
+        ConcurrentAdapter::ScheduleTask([this, deviceName, changedData, isChangedData, origin] () mutable {
             LOGD("begin to trigger relational observer.");
-            int observerCnt = 0;
             ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
             ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
             for (const auto &item : dataChangeCallbackMap_) {
-                ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, observerCnt);
+                ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, origin);
             }
-            LOGD("relational observer size = %d", observerCnt);
             DecObjRef(this);
         }, &dataChangeCallbackMap_);
     if (taskErrCode != E_OK) {
@@ -876,7 +885,7 @@ bool RelationalSyncAbleStorage::CheckCompatible(const std::string &schema, uint8
 int RelationalSyncAbleStorage::GetRemoteQueryData(const PreparedStmt &prepStmt, size_t packetSize,
     std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data) const
 {
-    if (IsCollaborationMode(storageEngine_) || !storageEngine_->GetSchema().IsSchemaValid()) {
+    if (!storageEngine_->GetSchema().IsSchemaValid()) {
         return -E_NOT_SUPPORT;
     }
     if (prepStmt.GetOpCode() != PreparedStmt::ExecutorOperation::QUERY || !prepStmt.IsValid()) {
@@ -968,9 +977,11 @@ int RelationalSyncAbleStorage::SaveRemoteDeviceSchema(const std::string &deviceI
     return remoteDeviceSchema_.Put(deviceId, remoteSchema);
 }
 
-int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj)
+int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId,
+    RelationalSchemaObject &schemaObj) const
 {
     if (schemaObj.IsSchemaValid()) {
+        LOGE("schema is already valid");
         return -E_INVALID_ARGS;
     }
 

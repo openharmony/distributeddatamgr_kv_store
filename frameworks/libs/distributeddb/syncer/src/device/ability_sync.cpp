@@ -423,6 +423,7 @@ int AbilitySync::AckRecv(const Message *message, ISyncTaskContext *context)
     }
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
     context->SetRemoteSoftwareVersion(remoteSoftwareVersion);
+    metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), remoteSoftwareVersion);
     if (remoteSoftwareVersion > SOFTWARE_VERSION_RELEASE_2_0) {
         errCode = AckRecvWithHighVersion(message, context, packet);
     } else {
@@ -1395,6 +1396,10 @@ void AbilitySync::InitRemoteDBAbility(ISyncTaskContext &context)
         return;
     }
     context.SetDbAbility(ability);
+    auto version = static_cast<uint32_t>(metadata_->GetRemoteSoftwareVersion(context.GetDeviceId()));
+    if (version > 0) {
+        context.SetRemoteSoftwareVersion(version);
+    }
 }
 
 void AbilitySync::RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTaskContext &context)

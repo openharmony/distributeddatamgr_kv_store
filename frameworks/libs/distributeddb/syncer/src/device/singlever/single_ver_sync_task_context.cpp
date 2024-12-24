@@ -200,10 +200,7 @@ void SingleVerSyncTaskContext::CopyTargetData(const ISyncTarget *target, const T
     if (mode_ == SyncModeType::RESPONSE_PULL) {
         responseSessionId_ = targetTmp->GetResponseSessionId();
     }
-    {
-        std::lock_guard<std::mutex> autoLock(queryMutex_);
-        query_ = targetTmp->GetQuery();
-    }
+    SetQuery(targetTmp->GetQuery());
     isQuerySync_ = targetTmp->IsQuerySync();
 }
 
@@ -388,6 +385,8 @@ void SingleVerSyncTaskContext::SetQuery(const QuerySyncObject &query)
 {
     std::lock_guard<std::mutex> autoLock(queryMutex_);
     query_ = query;
+    query_.SetUseLocalSchema(mode_ != SyncModeType::RESPONSE_PULL);
+    query_.SetRemoteDev(deviceId_);
 }
 
 QuerySyncObject SingleVerSyncTaskContext::GetQuery() const

@@ -115,6 +115,11 @@ void GenerateRecords(int recordNum, std::vector<DistributedDB::Entry> &entries, 
     int keySize = DEFAULT_NB_KEY_VALUE_SIZE, int valSize = DEFAULT_NB_KEY_VALUE_SIZE);
 
 void GenerateNumberEntryVector(int entryNum, std::vector<DistributedDB::Entry> &entries);
+
+class UnitTestCommonConstant {
+public:
+    static constexpr const char *DEVICE_B = "DEVICE_B";
+};
 } // namespace DistributedDBUnitTest
 
 #endif // DISTRIBUTEDDB_DATA_GENERATE_UNIT_H

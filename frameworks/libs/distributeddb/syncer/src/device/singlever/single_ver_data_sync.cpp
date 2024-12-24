@@ -1007,7 +1007,8 @@ int SingleVerDataSync::DataRequestRecvInner(SingleVerSyncTaskContext *context, c
     }
     GetPullEndWatermark(context, packet, pullEndWatermark);
     // save data first
-    errCode = SaveData(context, data, curType, packet->GetQuery());
+    errCode = SaveData(context, data, curType,
+        SingleVerDataSyncUtils::GetQueryFromDataRequest(*packet, *context, message->GetSessionId()));
     if (errCode != E_OK) {
         (void)SendDataAck(context, message, errCode, dataTime.endTime);
         return errCode;
@@ -1023,11 +1024,8 @@ int SingleVerDataSync::DataRequestRecvInner(SingleVerSyncTaskContext *context, c
     }
     RemotePushFinished(packet->GetSendCode(), packet->GetMode(), message->GetSessionId(),
         context->GetRequestSessionId());
-    if (curType != SyncType::QUERY_SYNC_TYPE && isUpdateWaterMark.normalUpdateMark) {
-        UpdatePeerWaterMark(curType, "", context, dataTime.endTime + 1, 0);
-    } else if (curType == SyncType::QUERY_SYNC_TYPE && packet->IsNeedUpdateWaterMark()) {
-        UpdateQueryPeerWaterMark(curType, packet->GetQueryId(), dataTime, context, isUpdateWaterMark);
-    }
+    UpdatePeerWaterMarkInner(*packet, dataTime, isUpdateWaterMark, context);
+
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1865,5 +1863,16 @@ int SingleVerDataSync::ControlCmdRequestRecv(SingleVerSyncTaskContext *context, 
         errCode = UnsubscribeRequestRecv(context, message);
     }
     return errCode;
+}
+
+void SingleVerDataSync::UpdatePeerWaterMarkInner(const DataRequestPacket &packet, const SyncTimeRange &dataTime,
+    const UpdateWaterMark &isUpdateWaterMark, const SingleVerSyncTaskContext *context)
+{
+    SyncType curType = SyncOperation::GetSyncType(packet.GetMode());
+    if (curType != SyncType::QUERY_SYNC_TYPE && isUpdateWaterMark.normalUpdateMark) {
+        UpdatePeerWaterMark(curType, "", context, dataTime.endTime + 1, 0);
+    } else if (curType == SyncType::QUERY_SYNC_TYPE && packet.IsNeedUpdateWaterMark()) {
+        UpdateQueryPeerWaterMark(curType, packet.GetQueryId(), dataTime, context, isUpdateWaterMark);
+    }
 }
 } // namespace DistributedDB

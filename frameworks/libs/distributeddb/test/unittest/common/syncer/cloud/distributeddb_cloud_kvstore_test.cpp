@@ -86,6 +86,7 @@ void DistributedDBCloudKvStoreTest::SetUpTestCase()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
     g_CloudSyncoption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     g_CloudSyncoption.users.push_back(USER_ID);
     g_CloudSyncoption.devices.push_back("cloud");
@@ -1261,7 +1262,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest007, TestSize.Level0)
  * @tc.desc: remove record without mode.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: liaoyonnghuang
+ * @tc.author: liaoyonghuang
  */
 HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest008, TestSize.Level0)
 {
@@ -1313,7 +1314,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest008, TestSize.Level0)
  * @tc.desc: remove record without mode FLAG_AND_DATA.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: liaoyonnghuang
+ * @tc.author: liaoyonghuang
  */
 HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest009, TestSize.Level0)
 {

@@ -35,6 +35,7 @@ public:
     void SetTableInfo(const TableInfo &tableInfo);
     int Sync(SyncMode mode, bool wait) override;
     void EraseSyncData(const std::string &tableName);
+    void SetDistributedSchema(const DistributedSchema &schema);
 
     template<typename T>
     void PutDeviceData(const std::string &tableName, const std::vector<T> &data)

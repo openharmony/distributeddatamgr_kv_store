@@ -40,6 +40,12 @@ protected:
     virtual void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema);
     std::string GetLogTableName(const TableInfo &table) const;
 
+    virtual std::string GetUpdatePkTrigger(const TableInfo &table, const std::string &identity);
+
+    static std::string GetUpdateTimestamp(const TableInfo &table, bool defaultNewTime);
+
+    static std::string GetUpdateWithAssignSql(const TableInfo &table, const std::string &emptyValue,
+        const std::string &matchValue, const std::string &missMatchValue);
 private:
     virtual std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) = 0;
     virtual std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) = 0;

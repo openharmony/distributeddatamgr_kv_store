@@ -35,7 +35,8 @@ QueryObject::QueryObject()
       hasLimit_(false),
       hasPrefixKey_(false),
       hasInKeys_(false),
-      orderByCounts_(0)
+      orderByCounts_(0),
+      isUseLocalSchema_(true)
 {
 }
 
@@ -72,7 +73,8 @@ QueryObject::QueryObject(const QueryExpression &queryExpression)
       hasLimit_(false),
       hasPrefixKey_(false),
       hasInKeys_(false),
-      orderByCounts_(0)
+      orderByCounts_(0),
+      isUseLocalSchema_(true)
 {
     QueryExpression queryExpressions = queryExpression;
     queryObjNodes_ = queryExpressions.GetQueryExpression();
@@ -101,7 +103,8 @@ QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std
       hasLimit_(false),
       hasPrefixKey_(false),
       hasInKeys_(false),
-      orderByCounts_(0)
+      orderByCounts_(0),
+      isUseLocalSchema_(true)
 {
     SetAttrWithQueryObjNodes();
 }
@@ -555,6 +558,26 @@ int QueryObject::CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) 
 std::vector<QueryExpression> QueryObject::GetQueryExpressions(const Query &query)
 {
     return GetQueryInfo::GetQueryExpression(query).GetQueryExpressions();
+}
+
+void QueryObject::SetUseLocalSchema(bool isUse)
+{
+    isUseLocalSchema_ = isUse;
+}
+
+bool QueryObject::IsUseLocalSchema() const
+{
+    return isUseLocalSchema_;
+}
+
+std::string QueryObject::GetRemoteDev() const
+{
+    return remoteDev_;
+}
+
+void QueryObject::SetRemoteDev(const std::string &dev)
+{
+    remoteDev_ = dev;
 }
 }
 

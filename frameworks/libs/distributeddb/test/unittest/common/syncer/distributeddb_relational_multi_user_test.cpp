@@ -1395,7 +1395,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSiz
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Prepare db1 and db2.

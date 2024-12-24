@@ -1309,11 +1309,10 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
     }
     RelationalStoreConnection *conn = static_cast<RelationalStoreConnection *>(autoLaunchItem.conn);
     (void)conn->RegisterObserverAction(autoLaunchItem.storeObserver, [this, autoLaunchItem, identifier](
-        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData, Origin origin) {
         if (isChangedData && autoLaunchItem.storeObserver) {
             LOGD("begin to observer on changed data");
-            autoLaunchItem.storeObserver->OnChange(
-                Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
+            autoLaunchItem.storeObserver->OnChange(origin, changedDevice, std::move(changedData));
             return;
         }
         std::string userId;

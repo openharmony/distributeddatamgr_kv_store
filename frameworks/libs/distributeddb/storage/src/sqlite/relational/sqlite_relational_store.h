@@ -30,7 +30,7 @@
 
 namespace DistributedDB {
 using RelationalObserverAction =
-    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData, Origin origin)>;
 class SQLiteRelationalStore : public IRelationalStore {
 public:
     SQLiteRelationalStore() = default;
@@ -108,6 +108,8 @@ public:
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId);
+
+    int SetDistributedSchema(const DistributedSchema &schema);
 private:
     void ReleaseResources();
 
