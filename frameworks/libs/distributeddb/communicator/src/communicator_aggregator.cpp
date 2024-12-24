@@ -983,6 +983,10 @@ void CommunicatorAggregator::SendOnceData()
     // <vector, extendHeadSize>
     std::vector<std::pair<std::vector<uint8_t>, uint32_t>> piecePackets;
     uint32_t mtu = adapterHandle_->GetMtuSize(taskToSend.dstTarget);
+    if (taskToSend.buffer == nullptr) {
+        LOGE("[CommAggr] buffer of taskToSend is nullptr.");
+        return;
+    }
     errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer, mtu, piecePackets);
     if (errCode != E_OK) {
         LOGE("[CommAggr] Split frame fail, errCode=%d.", errCode);

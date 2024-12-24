@@ -1695,6 +1695,10 @@ int SingleVerDataSync::GetReSendData(SyncEntry &syncData, SingleVerSyncTaskConte
 
 int SingleVerDataSync::RemoveDeviceDataIfNeed(SingleVerSyncTaskContext *context)
 {
+    if (context == nullptr) {
+        LOGE("[SingleVerDataSync][RemoveDeviceDataIfNeed] context is nullptr.");
+        return -E_INVALID_ARGS;
+    }
     if (context->GetRemoteSoftwareVersion() <= SOFTWARE_VERSION_RELEASE_3_0) {
         return E_OK;
     }
