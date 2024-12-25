@@ -334,4 +334,959 @@ HWTEST_F(SingleStoreImplMockUnitTest, put002, testing::ext::TestSize.Level1)
     }
     GTEST_LOG_(INFO) << "put002 of SingleStoreImplMockUnitTest-end";
 }
+
+/**
+* @tc.name: PutBatch001
+* @tc.desc: Put Batch.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, PutBatch001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PutBatch001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, true);
+        ASSERT_EQ(kvStore, nullptr);
+        EXPECT_EQ(kvStore->dbStore_, nullptr);
+        kvStore->dbStore_ = nullptr;
+        EXPECT_FALSE(kvStore->dbStore_ != nullptr);
+        std::vector<Entry> import;
+        for (int i = 0; i < 3; ++i) {
+            Entry ent;
+            ent.key = to_string(i).append(".k");
+            ent.value = to_string(i).append(".v");
+            import.push_back(ent);
+        }
+        Status stas = kvStore->PutBatch(import);
+        EXPECT_FALSE(stas != ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "PutBatch001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "PutBatch001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: PutBatch002
+* @tc.desc: PutBatch.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, PutBatch002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PutBatch002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> store = CreateKVStore(false, false);
+        ASSERT_EQ(store, nullptr);
+        EXPECT_EQ(store->dbStore_, nullptr);
+        std::vector<Entry> in;
+        for (int i = 0; i < 2; ++i) {
+            Entry entry;
+            entry.key = std::to_string(i).append("_key");
+            entry.value = std::to_string(i).append("_val");
+            in.emplace_back(entry);
+        }
+        std::vector<uint8_t> vec;
+        EXPECT_CALL(*convertorMock, ToLocalDBKey(_)).WillOnce(Return(vec));
+        Status stats = store->PutBatch(in);
+        EXPECT_FALSE(stats == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "PutBatch002 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "PutBatch002 of SingleStoreImplMockUnitTest-end!";
+}
+
+/**
+* @tc.name: PutBatch003
+* @tc.desc: PutBatch.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, PutBatch003, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "PutBatch003 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvSte = CreateKVStore(false, false);
+        ASSERT_EQ(kvSte, nullptr);
+        EXPECT_EQ(kvSte->dbStore_, nullptr);
+        vector<Entry> input;
+        for (int j = 0; j < 4; j++) {
+            Entry enry;
+            enry.key = to_string(j).append("_key");
+            enry.value = to_string(j).append("_val");
+            input.emplace_back(enry);
+        }
+        vector<uint8_t> vct;
+        EXPECT_CALL(*convertorMock, ToLocalDBKey(_)).WillOnce(Return(vct));
+        Status stus = kvSte->PutBatch(input);
+        EXPECT_FALSE(stus != ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "PutBatch003 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "PutBatch003 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: Delete001
+* @tc.desc: Delete Key.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Delete001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Delete001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvStre = CreateKVStore(false, false);
+        ASSERT_EQ(kvStre, nullptr);
+        EXPECT_EQ(kvStre->dbStore_, nullptr);
+        kvStre->dbStore_= nullptr;
+        EXPECT_FALSE(kvStre->dbStore_ != nullptr);
+        Blob key2("key2");
+        Status status = kvStre->Delete(key2);
+        EXPECT_FALSE(status == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "Delete001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "Delete001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: DeleteBatch001
+* @tc.desc: Delete Batch Keys.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, DeleteBatch001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "DeleteBatch001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvStoe = CreateKVStore(false, false);
+        ASSERT_EQ(kvStoe, nullptr);
+        EXPECT_EQ(kvStoe->dbStore_, nullptr);
+        kvStoe->dbStore_= nullptr;
+        EXPECT_FALSE(kvStoe->dbStore_ == nullptr);
+        vector<Key> kys;
+        for (int k = 0; k < 2; k++) {
+            Key ky = to_string(k).append(".k");
+            kys.emplace_back(ky);
+        }
+        Status status = kvStoe->DeleteBatch(kys);
+        EXPECT_FALSE(status == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "DeleteBatch001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "DeleteBatch001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: StartTransaction001
+* @tc.desc: Start Transaction.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, StartTransaction001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "StartTransaction001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> store = CreateKVStore(true, false);
+        ASSERT_EQ(store, nullptr);
+        EXPECT_EQ(store->dbStore_, nullptr);
+        store->dbStore_= nullptr;
+        EXPECT_FALSE(store->dbStore_ == nullptr);
+        Status sttus = store->StartTransaction();
+        EXPECT_FALSE(sttus == SUCCESS);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(INFO) << "StartTransaction001 of SingleStoreImplMockUnitTest happend an exception.";
+    }
+    GTEST_LOG_(INFO) << "StartTransaction001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: Commit001
+* @tc.desc: Commit.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Commit001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Commit001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvSt = CreateKVStore(false, true);
+        ASSERT_EQ(kvSt, nullptr);
+        EXPECT_EQ(kvSt->dbStore_, nullptr);
+        kvSt->dbStore_= nullptr;
+        EXPECT_FALSE(kvSt->dbStore_ == nullptr);
+        Status stats = kvSt->Commit();
+        EXPECT_FALSE(stats == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "Commit001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "Commit001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: Rollback001
+* @tc.desc: Roll back kvstore.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Rollback001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Rollback001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvre = CreateKVStore(true, false);
+        ASSERT_EQ(kvre, nullptr);
+        EXPECT_EQ(kvre->dbStore_, nullptr);
+        kvre->dbStore_= nullptr;
+        EXPECT_FALSE(kvre->dbStore_ == nullptr);
+        Status stus = kvre->Rollback();
+        EXPECT_FALSE(stus == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "Rollback001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "Rollback001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: Get001
+* @tc.desc: Get.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Get001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Get001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> stor = CreateKVStore(false, true);
+        ASSERT_EQ(stor, nullptr);
+        EXPECT_EQ(stor->dbStore_, nullptr);
+        stor->dbStore_= nullptr;
+        EXPECT_FALSE(stor->dbStore_ == nullptr);
+        size_t testLen = 9;
+        string str(testLen, 'a');
+        Blob key0(str);
+        Blob val("testvalue");
+        Status staus = stor->Get(key0, val);
+        EXPECT_FALSE(staus == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "Get001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "Get001 of SingleStoreImplMockUnitTest-end Get";
+}
+
+/**
+* @tc.name: GetEntries001
+* @tc.desc: Get Entries.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetEntries001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        vector<uint8_t> vctor;
+        shared_ptr<SingleStoreImpl> kvStre = CreateKVStore(true, false);
+        ASSERT_EQ(kvStre, nullptr);
+        EXPECT_EQ(kvStre->dbStore_, nullptr);
+        EXPECT_CALL(*convertorMock, GetPrefix(An<const Key&>())).WillOnce(Return(vctor));
+        Blob key2("unittest");
+        vector<Entry> vects;
+        for (int i = 0; i < 2; ++i) {
+            Entry entr;
+            entr.key = to_string(i).append(".key0");
+            entr.value = to_string(i).append(".val0");
+            vects.push_back(entr);
+        }
+        Status stus = kvStre->GetEntries(key2, vects);
+        EXPECT_FALSE(stus == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetDeviceEntries001
+* @tc.desc: Get device entries.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetDeviceEntries001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetDeviceEntries001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, true);
+        ASSERT_EQ(kvStore, nullptr);
+        EXPECT_EQ(kvStore->dbStore_, nullptr);
+        kvStore->dbStore_= nullptr;
+        EXPECT_FALSE(kvStore->dbStore_ == nullptr);
+        std::vector<Entry> vcts;
+        for (int l = 0; l < 5; ++l) {
+            Entry enry;
+            enry.key = to_string(l).append("-key");
+            enry.value = to_string(l).append("-val");
+            vcts.emplace_back(enry);
+        }
+        string dev = "test_device";
+        Status stats = kvStore->GetDeviceEntries(dev, vcts);
+        EXPECT_FALSE(stats == INVALID_ARGUMENT);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "GetDeviceEntries001 SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetDeviceEntries001 SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetCount001
+* @tc.desc: Get count.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetCount001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetCount001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvs = CreateKVStore(true, false);
+        ASSERT_EQ(kvs, nullptr);
+        EXPECT_EQ(kvs->dbStore_, nullptr);
+        kvs->dbStore_= nullptr;
+        EXPECT_FALSE(kvs->dbStore_ == nullptr);
+        DataQuery que;
+        int32_t count = 1;
+        Status stats = kvs->GetCount(que, count);
+        EXPECT_FALSE(stats == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "GetCount001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetCount001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetSecurityLevel001
+* @tc.desc: Get count.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetSecurityLevel001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetSecurityLevel001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvSore = CreateKVStore(true, true);
+        ASSERT_EQ(kvSore, nullptr);
+        EXPECT_EQ(kvSore->dbStore_, nullptr);
+        kvSore->dbStore_= nullptr;
+        EXPECT_FALSE(kvSore->dbStore_ == nullptr);
+        SecurityLevel securLevel = NO_LABEL;
+        Status status = kvSore->GetSecurityLevel(securLevel);
+        EXPECT_FALSE(status == SUCCESS);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "GetSecurityLevel001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetSecurityLevel001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: RemoveDeviceData001
+* @tc.desc: Remove device data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, RemoveDeviceData001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "RemoveDeviceData001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(true, false);
+        ASSERT_EQ(kvStore, nullptr);
+        EXPECT_EQ(kvStore->dbStore_, nullptr);
+        kvStore->dbStore_= nullptr;
+        EXPECT_FALSE(kvStore->dbStore_ == nullptr);
+        Status status = kvStore->RemoveDeviceData("devtest");
+        EXPECT_FALSE(status == SERVER_UNAVAILABLE);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "RemoveDeviceData001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "RemoveDeviceData001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: RemoveDeviceData002
+* @tc.desc: Remove device data.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, RemoveDeviceData002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "RemoveDeviceData002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvStre = CreateKVStore(false, true);
+        ASSERT_EQ(kvStre, nullptr);
+        EXPECT_EQ(kvStre->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        Status stts = kvStre->RemoveDeviceData("testfacility");
+        EXPECT_FALSE(stts == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "RemoveDeviceData002 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "RemoveDeviceData002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: CloudSync001
+* @tc.desc: Cloud sync.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, CloudSync001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CloudSync001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvst = CreateKVStore(true, true);
+        ASSERT_EQ(kvst, nullptr);
+        EXPECT_EQ(kvst->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        AsyncDetail asyDetail;
+        Status stus = kvst->CloudSync(asyDetail);
+        EXPECT_FALSE(stus == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "CloudSync001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "CloudSync001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: CloudSync002
+* @tc.desc: Cloud sync.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, CloudSync002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "CloudSync002 OF SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvsto = CreateKVStore(false, true);
+        ASSERT_EQ(kvsto, nullptr);
+        EXPECT_EQ(kvsto->dbStore_, nullptr);
+        shared_ptr<KVDBServiceClient> serv = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(serv, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(serv));
+        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillOnce(Return(nullptr));
+        AsyncDetail asynDeil;
+        Status stats = kvsto->CloudSync(asynDeil);
+        EXPECT_FALSE(stats == ILLEGAL_STATE);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "CloudSync002 OF SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "CloudSync002 OF SingleStoreImplMockUnitTest-end2";
+}
+
+/**
+* @tc.name: SetSyncParam001
+* @tc.desc: Set sync param.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SetSyncParam001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetSyncParam001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> store = CreateKVStore(true, false);
+        ASSERT_EQ(store, nullptr);
+        EXPECT_EQ(store->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillOnce(Return(nullptr));
+        KvSyncParam syParam{ 300 };
+        Status sttus = store->SetSyncParam(syParam);
+        EXPECT_FALSE(sttus == SERVER_UNAVAILABLE);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SetSyncParam001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "SetSyncParam001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetSyncParam001
+* @tc.desc: Get sync param.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetSyncParam001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetSyncParam001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kv = CreateKVStore(true, true);
+        ASSERT_EQ(kv, nullptr);
+        EXPECT_EQ(kv->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        KvSyncParam synPar;
+        Status stts = kv->GetSyncParam(synPar);
+        EXPECT_FALSE(stts == ILLEGAL_STATE);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "GetSyncParam001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetSyncParam001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SetCapabilityEnabled001
+* @tc.desc: Set capability enabled.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SetCapabilityEnabled001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetCapabilityEnabled001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvre = CreateKVStore(false, false);
+        ASSERT_EQ(kvre, nullptr);
+        EXPECT_EQ(kvre->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        Status stas = kvre->SetCapabilityEnabled(false);
+        EXPECT_FALSE(stas == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SetCapabilityEnabled001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "SetCapabilityEnabled001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SetCapabilityEnabled002
+* @tc.desc: Set capability enabled.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SetCapabilityEnabled002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetCapabilityEnabled002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvtore = CreateKVStore(true, false);
+        ASSERT_EQ(kvtore, nullptr);
+        EXPECT_EQ(kvtore->dbStore_, nullptr);
+        shared_ptr<KVDBServiceClient> servce = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(servce, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(servce));
+        Status sttus = kvtore->SetCapabilityEnabled(false);
+        EXPECT_FALSE(sttus == ILLEGAL_STATE);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SetCapabilityEnabled002 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "SetCapabilityEnabled002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SetCapabilityRange001
+* @tc.desc: Set capability range.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SetCapabilityRange001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetCapabilityRange001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> Stor = CreateKVStore(false, true);
+        ASSERT_EQ(Stor, nullptr);
+        EXPECT_EQ(Stor->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        vector<string> labels{"loc", "nea"};
+        vector<string> rlabels{"remot", "fa"};
+        Status saus = Stor->SetCapabilityRange(labels, rlabels);
+        EXPECT_FALSE(saus == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SetCapabilityRange001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "SetCapabilityRange001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SubscribeWithQuery001
+* @tc.desc: Subscribe with query.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SubscribeWithQuery_001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SubscribeWithQuery001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvor = CreateKVStore(true, true);
+        ASSERT_EQ(kvor, nullptr);
+        EXPECT_EQ(kvor->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        vector<string> devs{"dev5", "dev8"};
+        DataQuery que;
+        Status stst = kvor->SubscribeWithQuery(devs, que);
+        EXPECT_FALSE(stst == ILLEGAL_STATE);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SubscribeWithQuery001 of SingleStoreImplMockUnitTest happend-an exception.";
+    }
+    GTEST_LOG_(INFO) << "SubscribeWithQuery001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SubscribeWithQuery002
+* @tc.desc: Subscribe with query.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SubscribeWithQuery002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SubscribeWithQuery002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> stre = CreateKVStore(false, false);
+        ASSERT_EQ(stre, nullptr);
+        EXPECT_EQ(stre->dbStore_, nullptr);
+        shared_ptr<KVDBServiceClient> servi = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(servi, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
+        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillOnce(Return(servi));
+        vector<string> devies{"dev3", "dev7"};
+        DataQuery qery;
+        Status stus = stre->SubscribeWithQuery(devies, qery);
+        EXPECT_FALSE(stus == ALREADY_CLOSED);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(INFO) << "SubscribeWithQuery002 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "SubscribeWithQuery002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: UnsubscribeWithQuery001
+* @tc.desc: Unsubscribe with query.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, UnsubscribeWithQuery001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UnsubscribeWithQuery001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kStore = CreateKVStore(true, true);
+        ASSERT_EQ(kStore, nullptr);
+        EXPECT_EQ(kStore->dbStore_, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(nullptr));
+        vector<string> devis{"dev2", "dev4"};
+        DataQuery daqu;
+        Status state = kStore->UnsubscribeWithQuery(devis, daqu);
+        EXPECT_FALSE(state == INVALID_ARGUMENT);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "UnsubscribeWithQuery001 of SingleStoreImplMockUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "UnsubscribeWithQuery001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: UnsubscribeWithQuery002
+* @tc.desc: Unsubscribe with query.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, UnsubscribeWithQuery002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "UnsubscribeWithQuery002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kv = CreateKVStore(true, true);
+        ASSERT_EQ(kv, nullptr);
+        EXPECT_EQ(kv->dbStore_, nullptr);
+        shared_ptr<KVDBServiceClient> sev = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(sev, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(sev));
+        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillRepeatedly(Return(nullptr));
+        vector<string> des{"de1", "de3"};
+        DataQuery quer;
+        Status sus = kv->UnsubscribeWithQuery(des, quer);
+        EXPECT_FALSE(sus == STORE_ALREADY_SUBSCRIBE);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "UnsubscribeWithQuery002 of SingleStoreImplMockUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "UnsubscribeWithQuery002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: Restore001
+* @tc.desc: restore kv.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Restore001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Restore001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvs = CreateKVStore(true, true);
+        ASSERT_EQ(kvs, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(nullptr));
+        string baseDir = "/data/service/el1/public/database/SingleStoreMockImplTest";
+        string doc = "test.txt";
+        kvs->isApplication_ = true;
+        Status stae = kvs->Restore(doc, baseDir);
+        EXPECT_FALSE(stae != STORE_NOT_OPEN);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "Restore001 of SingleStoreImplMockUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "Restore001 of SingleStoreImplMockUnitTest--end.";
+}
+
+/**
+* @tc.name: Restore002
+* @tc.desc: restore kv.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, Restore002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "Restore002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvt = CreateKVStore(true, true);
+        ASSERT_EQ(kvt, nullptr);
+        std::shared_ptr<KVDBServiceClient> servce = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(servce, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(servce));
+        string baseDrect = "/data/service/el1/public/database/SingleStoreImplUnitTest";
+        string docu = "test1.txt";
+        kvt->isApplication_ = false;
+        kvt->apiVersion_ = 57; // version
+        Status sttus = kvt->Restore(docu, baseDrect);
+        EXPECT_FALSE(sttus != STORE_ALREADY_SUBSCRIBE);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "Restore002 of SingleStoreImplMockUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "Restore002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetResultSet001
+* @tc.desc: Get result Set.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetResultSet001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetResultSet001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kve = CreateKVStore(true, true);
+        ASSERT_EQ(kve, nullptr);
+        kve->dbStore_= nullptr;
+        EXPECT_FALSE(kve->dbStore_ == nullptr);
+        SingleStoreImpl::DBQuery dbQur;
+        shared_ptr<KvStoreResultSet> outp;
+        Status status = kve->GetResultSet(dbQur, outp);
+        EXPECT_FALSE(status == STORE_NOT_SUBSCRIBE);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "GetResultSet001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "GetResultSet001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: GetEntries001
+* @tc.desc: Get entries.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, GetEntries001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvr = CreateKVStore(true, true);
+        ASSERT_EQ(kvr, nullptr);
+        kvr->dbStore_= nullptr;
+        EXPECT_FALSE(kvr->dbStore_ == nullptr);
+        vector<Entry> vecots;
+        for (int j = 0; j < 3; j++) {
+            Entry enry;
+            enry.key = to_string(j).append("-k");
+            enry.value = to_string(j).append("-v");
+            vecots.push_back(enry);
+        }
+        SingleStoreImpl::DBQuery dbQuer;
+        vector<uint8_t> vcot;
+        Status stu = kvr->GetEntries(dbQuer, vcot);
+        EXPECT_FALSE(stu == NOT_FOUND);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "GetEntries001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: DoSync001
+* @tc.desc: do sync.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, DoSync001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "DoSync001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvv = CreateKVStore(true, true);
+        ASSERT_EQ(kvv, nullptr);
+        kvv->isClientSync_ = true;
+        ASSERT_FALSE(kvv->isClientSync_);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(nullptr));
+        SingleStoreImpl::SyncInfo syIn;
+        shared_ptr<SingleStoreImpl::SyncCallback> obse;
+        auto ret = kvv->DoSync(syIn, obse);
+        EXPECT_FALSE(ret == STORE_NOT_SUBSCRIBE);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "DoSync001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "DoSync001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: DoSync002
+* @tc.desc: do sync.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, DoSync002, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "DoSync002 of SingleStoreImplMockUnitTest-begin";
+    try {
+        shared_ptr<SingleStoreImpl> kvi = CreateKVStore(true, true);
+        ASSERT_EQ(kvi, nullptr);
+        kvi->isClientSync_ = true;
+        shared_ptr<KVDBServiceClient> servic = make_shared<KVDBServiceClient>(nullptr);
+        ASSERT_EQ(servic, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(servic));
+        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillRepeatedly(Return(nullptr));
+        SingleStoreImpl::SyncInfo syFo;
+        shared_ptr<SingleStoreImpl::SyncCallback> obrer;
+        auto resut = kvi->DoSync(syFo, obrer);
+        EXPECT_FALSE(resut == STORE_NOT_FOUND);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "DoSync002 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "DoSync002 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: SetConfig001
+* @tc.desc: set config.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, SetConfig001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "SetConfig001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvc = CreateKVStore(true, true);
+        ASSERT_EQ(kvc, nullptr);
+        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillRepeatedly(Return(nullptr));
+        StoreConfig storeCfig;
+        auto result = kvc->SetConfig(storeCfig);
+        EXPECT_FALSE(result == KEY_NOT_FOUND);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "SetConfig001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "SetConfig001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: DoNotifyChange001
+* @tc.desc: Do notify change.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, DoNotifyChange001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "DoNotifyChange001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kve = CreateKVStore(true, true);
+        ASSERT_EQ(kve, nullptr);
+        kve->cloudAutoSync_ = true;
+        kve->DoNotifyChange();
+        EXPECT_FALSE(!kve->cloudAutoSync_);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "DoNotifyChange001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "DoNotifyChange001 of SingleStoreImplMockUnitTest-end";
+}
+
+/**
+* @tc.name: IsRebuild001
+* @tc.desc: is rebuild.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wang dong
+*/
+HWTEST_F(SingleStoreImplMockUnitTest, IsRebuild001, testing::ext::TestSize.Level1)
+{
+    GTEST_LOG_(INFO) << "IsRebuild001 of SingleStoreImplMockUnitTest-begin";
+    try {
+        std::shared_ptr<SingleStoreImpl> kvs = CreateKVStore(true, true);
+        ASSERT_EQ(kvs, nullptr);
+        kvs->dbStore_= nullptr;
+        EXPECT_FALSE(kvs->dbStore_ == nullptr);
+        auto ret = kvs->IsRebuild();
+        EXPECT_TRUE(ret);
+    } catch (...) {
+        EXPECT_FALSE(true);
+        GTEST_LOG_(INFO) << "IsRebuild001 of SingleStoreImplMockUnitTest happend-an exception";
+    }
+    GTEST_LOG_(INFO) << "IsRebuild001 of SingleStoreImplMockUnitTest-end";
+}
 }
