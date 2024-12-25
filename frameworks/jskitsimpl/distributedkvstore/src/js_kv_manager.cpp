@@ -152,7 +152,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
             status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
             ZLOGE("Data has corrupted, rebuild db");
         }
-        if (status == CRYPT_ERROR && kvm->param_->apiVersion < API_14_VERSION) {
+        if (status == CRYPT_ERROR && kvm->param_->apiVersion < API_16_VERSION) {
             status = DATA_CORRUPTED;
         }
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
