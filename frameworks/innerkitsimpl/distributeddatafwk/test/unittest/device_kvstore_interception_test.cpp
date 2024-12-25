@@ -90,19 +90,19 @@ std::string DeviceKvStoreInterceptionTest::GetKey(const std::string &key)
     return ossd.str();
 }
 
-class DeviceObserverTestImpl : public KvStoreObserver {
+class DeviceObserverTestStubImpl : public KvStoreObserver {
 public:
     std::vector<Entry> insertEntries_Test;
     std::vector<Entry> updateEntries_Test;
     std::vector<Entry> deleteEntries__Test;
     bool isClear_ = false;
-    DeviceObserverTestImpl();
-    ~DeviceObserverTestImpl() { }
+    DeviceObserverTestStubImpl();
+    ~DeviceObserverTestStubImpl() { }
 
-    DeviceObserverTestImpl(const DeviceObserverTestImpl &) = delete;
-    DeviceObserverTestImpl &operator=(const DeviceObserverTestImpl &) = delete;
-    DeviceObserverTestImpl(DeviceObserverTestImpl &&) = delete;
-    DeviceObserverTestImpl &operator=(DeviceObserverTestImpl &&) = delete;
+    DeviceObserverTestStubImpl(const DeviceObserverTestStubImpl &) = delete;
+    DeviceObserverTestStubImpl &operator=(const DeviceObserverTestStubImpl &) = delete;
+    DeviceObserverTestStubImpl(DeviceObserverTestStubImpl &&) = delete;
+    DeviceObserverTestStubImpl &operator=(DeviceObserverTestStubImpl &&) = delete;
 
     void OnChange(const ChangeNotification &changeNotification);
 
@@ -115,7 +115,7 @@ private:
     uint64_t callCount_ = 0;
 };
 
-void DeviceObserverTestImpl::OnChange(const ChangeNotification &changeNotification)
+void DeviceObserverTestStubImpl::OnChange(const ChangeNotification &changeNotification)
 {
     callCount_++;
     insertEntries_Test = changeNotification.GetInsertEntries();
@@ -124,14 +124,14 @@ void DeviceObserverTestImpl::OnChange(const ChangeNotification &changeNotificati
     isClear_ = changeNotification.IsClear();
 }
 
-DeviceObserverTestImpl::DeviceObserverTestImpl() { }
+DeviceObserverTestStubImpl::DeviceObserverTestStubImpl() { }
 
-void DeviceObserverTestImpl::ResetToZero()
+void DeviceObserverTestStubImpl::ResetToZero()
 {
     callCount_ = 0;
 }
 
-uint64_t DeviceObserverTestImpl::GetCallCount() const
+uint64_t DeviceObserverTestStubImpl::GetCallCount() const
 {
     return callCount_;
 }
@@ -147,7 +147,7 @@ void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Statu
  * @tc.name: GetStoreId001Test
  * @tc.desc: Get a Device KvStore instance.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, GetStoreId001Test, TestSize.Level1)
@@ -162,7 +162,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, GetStoreId001Test, TestSize.Level1)
  * @tc.name: PutGetDelete001Test
  * @tc.desc: put value and delete value
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, PutGetDelete001Test, TestSize.Level1)
@@ -199,7 +199,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, PutGetDelete001Test, TestSize.Level1)
  * @tc.name: PutGetDelete001Test
  * @tc.desc: get entries1 and result set by data query.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, PutGetDelete001Test, TestSize.Level1)
@@ -253,7 +253,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, PutGetDelete001Test, TestSize.Level1)
  * @tc.name: GetPrefixQueryEntriesAndResultSetTest
  * @tc.desc: get entries1 and result set by prefix query.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, GetPrefixQueryEntriesAndResultSetTest, TestSize.Level1)
@@ -309,7 +309,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, GetPrefixQueryEntriesAndResultSetTest, T
  * @tc.name: GetInKeysQueryResultSetTest
  * @tc.desc: get entries1 and result set by prefix query.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, GetInKeysQueryResultSetTest, TestSize.Level1)
@@ -362,7 +362,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, GetInKeysQueryResultSetTest, TestSize.Le
  * @tc.name: GetPrefixEntriesAndResultSetTest
  * @tc.desc: get entries1 and result set by prefix.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, GetPrefixEntriesAndResultSetTest, TestSize.Level1)
@@ -409,12 +409,12 @@ HWTEST_F(DeviceKvStoreInterceptionTest, GetPrefixEntriesAndResultSetTest, TestSi
  * @tc.name: Subscribe001Test
  * @tc.desc: Put data and get callback.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, Subscribe001Test, TestSize.Level1)
 {
-    auto observer1 = std::make_shared<DeviceObserverTestImpl>();
+    auto observer1 = std::make_shared<DeviceObserverTestStubImpl>();
     auto subStatus1 = kvStoreTest_->SubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer1);
     EXPECT_NE(subStatus1, Status::SERVER_UNAVAILABLE) << "Subscribe observer1 failed.";
     // subscribe repeated observer1;
@@ -429,7 +429,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, Subscribe001Test, TestSize.Level1)
  * @tc.name: SyncCallback001Test
  * @tc.desc: Register sync callback.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SyncCallback001Test, TestSize.Level1)
@@ -457,7 +457,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SyncCallback001Test, TestSize.Level1)
  * @tc.name: RemoveDeviceData001Test
  * @tc.desc: Remove device data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, RemoveDeviceData001Test, TestSize.Level1)
@@ -482,7 +482,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, RemoveDeviceData001Test, TestSize.Level1
  * @tc.name: SyncData001Test
  * @tc.desc: Synchronize device data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SyncData001Test, TestSize.Level1)
@@ -498,7 +498,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SyncData001Test, TestSize.Level1)
  * @tc.name: TestSchemaStoreC001Test
  * @tc.desc: Test schema device store.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, TestSchemaStoreC001Test, TestSize.Level1)
@@ -532,7 +532,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, TestSchemaStoreC001Test, TestSize.Level1
  * @tc.name: SyncData002Test
  * @tc.desc: Synchronize device data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SyncData002Test, TestSize.Level1)
@@ -549,7 +549,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SyncData002Test, TestSize.Level1)
  * @tc.name: SetSync001Test
  * @tc.desc: Set sync parameters - success.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SetSync001Test, TestSize.Level1)
@@ -568,7 +568,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SetSync001Test, TestSize.Level1)
  * @tc.name: SetSync002Test
  * @tc.desc: Set sync parameters - failed.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SetSync002Test, TestSize.Level1)
@@ -587,7 +587,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SetSync002Test, TestSize.Level1)
  * @tc.name: SingleKvStoreDdmPutBatch001Tests
  * @tc.desc: Batch put data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SingleKvStoreDdmPutBatch001Test, TestSize.Level2)
@@ -630,7 +630,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SingleKvStoreDdmPutBatch001Test, TestSiz
  * @tc.name: SingleKvStoreDdmPutBatch002Test
  * @tc.desc: Batch update data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SingleKvStoreDdmPutBatch002Test, TestSize.Level2)
@@ -690,7 +690,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SingleKvStoreDdmPutBatch002Test, TestSiz
  * @tc.name: DdmPutBatch003Test
  * @tc.desc: Batch put data that contains invalid data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch003Test, TestSize.Level2)
@@ -718,7 +718,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch003Test, TestSize.Level2)
  * @tc.name: DdmPutBatch004Test
  * @tc.desc: Batch put data that contains invalid data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch004Test, TestSize.Level2)
@@ -755,7 +755,7 @@ static std::string SingleGenerate1025KeyLen()
  * @tc.name: DdmPutBatch005Test
  * @tc.desc: Batch put data that contains invalid data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch005Test, TestSize.Level2)
@@ -781,7 +781,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch005Test, TestSize.Level2)
  * @tc.name: DdmPutBatch006TestTest
  * @tc.desc: Batch put large data.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch006TestTest, TestSize.Level2)
@@ -829,7 +829,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmPutBatch006TestTest, TestSize.Level2)
  * @tc.name: DdmDeleteBatch001TestTest
  * @tc.desc: Batch delete data.
  * @tc.type: FUNCs
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch001TestTest, TestSize.Level2)
@@ -869,7 +869,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch001TestTest, TestSize.Leve
  * @tc.name: DdmDeleteBatch002TestTest
  * @tc.desc: Batch delete data when some keys are not in KvStore.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch002TestTest, TestSize.Level2)
@@ -910,7 +910,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch002TestTest, TestSize.Leve
  * @tc.name: DdmDeleteBatch003TestTest
  * @tc.desc: Batch delete data when some keys are invalid.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch003TestTest, TestSize.Level2)
@@ -951,7 +951,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch003TestTest, TestSize.Leve
  * @tc.name: DdmDeleteBatch004TestTest
  * @tc.desc: Batch delete data when some keys are invalid.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch004TestTest, TestSize.Level2)
@@ -997,7 +997,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch004TestTest, TestSize.Leve
  * @tc.name: DdmDeleteBatch005TestTest
  * @tc.desc: Batch delete data when some keys are invalid.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch005Test, TestSize.Level2)
@@ -1043,13 +1043,13 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DdmDeleteBatch005Test, TestSize.Level2)
  * @tc.name: Transaction001Test
  * @tc.desc: Batch delete data when some keys are invalid.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, Transaction001Test, TestSize.Level2)
 {
     EXPECT_EQ(nullptr, kvStoreTest_) << "kvStore is nullptr";
-    std::shared_ptr<DeviceObserverTestImpl> observer1 = std::make_shared<DeviceObserverTestImpl>();
+    std::shared_ptr<DeviceObserverTestStubImpl> observer1 = std::make_shared<DeviceObserverTestStubImpl>();
     observer1->ResetToZero();
 
     SubscribeType subscribeType = SubscribeType::SUBSCRIBE_TYPE_ALL;
@@ -1100,13 +1100,13 @@ HWTEST_F(DeviceKvStoreInterceptionTest, Transaction001Test, TestSize.Level2)
  * @tc.name: Transaction002Test
  * @tc.desc: Batch delete data when some keys are invalid.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, Transaction002Test, TestSize.Level2)
 {
     EXPECT_EQ(nullptr, kvStoreTest_) << "kvStore is nullptr";
-    std::shared_ptr<DeviceObserverTestImpl> observer1 = std::make_shared<DeviceObserverTestImpl>();
+    std::shared_ptr<DeviceObserverTestStubImpl> observer1 = std::make_shared<DeviceObserverTestStubImpl>();
     observer1->ResetToZero();
 
     SubscribeType subscribeType = SubscribeType::SUBSCRIBE_TYPE_ALL;
@@ -1161,7 +1161,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, Transaction002Test, TestSize.Level2)
  * @tc.name: DeviceSync001Test
  * @tc.desc: Test sync enable.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DeviceSync001Test, TestSize.Level1)
@@ -1189,7 +1189,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DeviceSync001Test, TestSize.Level1)
  * @tc.name: DeviceSync002Test
  * @tc.desc: Test sync enable.
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, DeviceSync002Test, TestSize.Level1)
@@ -1219,7 +1219,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, DeviceSync002Test, TestSize.Level1)
  * @tc.name: SyncWithCondition001Test
  * @tc.desc: sync device data with condition;
  * @tc.type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SyncWithCondition001Test, TestSize.Level1)
@@ -1237,7 +1237,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SyncWithCondition001Test, TestSize.Level
  * @tc.desc: sync device data with condition;
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: SQL
+ * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SyncWithCondition002Test, TestSize.Level1)
 {
@@ -1254,7 +1254,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SyncWithCondition002Test, TestSize.Level
  * @tc.name: SubscribeWithQuery001Test
  * desc: subscribe and sync device data with query;
  * type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, SubscribeWithQuery001Test, TestSize.Level1)
@@ -1271,7 +1271,7 @@ HWTEST_F(DeviceKvStoreInterceptionTest, SubscribeWithQuery001Test, TestSize.Leve
  * @tc.name: UnSubscribeWithQuery001Test
  * desc: subscribe and sync device data with query;
  * type: FUNC
- * @tc.require: I5DE2A
+ * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DeviceKvStoreInterceptionTest, UnSubscribeWithQuery001Test, TestSize.Level1)

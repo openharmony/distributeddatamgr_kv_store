@@ -42,8 +42,8 @@ void BlobInterceptionTest::TearDown(void) { }
  * @tc.name: SizeInterceptionTest001
  * @tc.desc: construct a check its size.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, SizeInterceptionTest001, TestSize.Level0)
 {
@@ -72,8 +72,8 @@ HWTEST_F(BlobInterceptionTest, SizeInterceptionTest001, TestSize.Level0)
  * @tc.name: EmptyInterceptionTest001
  * @tc.desc: construct a Blob.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, EmptyInterceptionTest001, TestSize.Level0)
 {
@@ -98,8 +98,8 @@ HWTEST_F(BlobInterceptionTest, EmptyInterceptionTest001, TestSize.Level0)
  * @tc.name: ClearInterceptionTest001
  * @tc.desc: construct a Blob.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, ClearInterceptionTest001, TestSize.Level0)
 {
@@ -124,8 +124,8 @@ HWTEST_F(BlobInterceptionTest, ClearInterceptionTest001, TestSize.Level0)
  * @tc.name: StartsWithInterceptionTest001
  * @tc.desc: construct a Blob and check it StartsWith function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, StartsWithInterceptionTest001, TestSize.Level0)
 {
@@ -142,8 +142,8 @@ HWTEST_F(BlobInterceptionTest, StartsWithInterceptionTest001, TestSize.Level0)
  * @tc.name: CompareInterceptionTest001
  * @tc.desc: construct a Blob and check it compare function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, CompareInterceptionTest001, TestSize.Level0)
 {
@@ -159,8 +159,8 @@ HWTEST_F(BlobInterceptionTest, CompareInterceptionTest001, TestSize.Level0)
  * @tc.name: DataInterceptionTest001
  * @tc.desc: construct a Blob and check it Data function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, DataInterceptionTest001, TestSize.Level0)
 {
@@ -176,8 +176,8 @@ HWTEST_F(BlobInterceptionTest, DataInterceptionTest001, TestSize.Level0)
  * @tc.name: ToStringInterceptionTest001
  * @tc.desc: construct a Blob and check it ToString function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, ToStringInterceptionTest001, TestSize.Level0)
 {
@@ -190,8 +190,8 @@ HWTEST_F(BlobInterceptionTest, ToStringInterceptionTest001, TestSize.Level0)
  * @tc.name: OperatorEqualInterceptionTest001
  * @tc.desc: construct a Blob and check it operator== function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorEqualInterceptionTest001, TestSize.Level0)
 {
@@ -206,8 +206,8 @@ HWTEST_F(BlobInterceptionTest, OperatorEqualInterceptionTest001, TestSize.Level0
  * @tc.name: OperatorInterceptionTest001
  * @tc.desc: construct a Blob and check it operator[] function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest001, TestSize.Level0)
 {
@@ -223,8 +223,8 @@ HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest001, TestSize.Level0)
  * @tc.name: OperatorInterceptionTest002
  * @tc.desc: construct a Blob and check it operator= function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest002, TestSize.Level0)
 {
@@ -238,8 +238,8 @@ HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest002, TestSize.Level0)
  * @tc.name: OperatorInterceptionTest003
  * @tc.desc: construct a Blob and check it operator= function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
- * @tc.author: liqiao
+ * @tc.require:
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest003, TestSize.Level0)
 {
@@ -255,7 +255,7 @@ HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest003, TestSize.Level0)
  * @tc.desc: construct a Blob and check it operator std::vector<uint8_t> && function.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangkai
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest004, TestSize.Level0)
 {
@@ -271,7 +271,7 @@ HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest004, TestSize.Level0)
  * @tc.desc: construct a Blob and check it operator std::vector<uint8_t> & function.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangkai
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest005, TestSize.Level0)
 {
@@ -285,7 +285,7 @@ HWTEST_F(BlobInterceptionTest, OperatorInterceptionTest005, TestSize.Level0)
  * @tc.desc: construct a Blob and check it RawSize function.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangkai
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, RawSizeInterceptionTest001, TestSize.Level0)
 {
@@ -300,7 +300,7 @@ HWTEST_F(BlobInterceptionTest, RawSizeInterceptionTest001, TestSize.Level0)
  * @tc.desc: construct a Blob and check it WriteToBuffer and ReadFromBuffer function.
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangkai
+ * @tc.author:
  */
 HWTEST_F(BlobInterceptionTest, WriteToBufferInterceptionTest001, TestSize.Level1)
 {
