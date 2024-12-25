@@ -132,12 +132,11 @@ int RelationalSyncDataInserter::GetInsertStatement(sqlite3 *db, sqlite3_stmt *&s
     return errCode;
 }
 
-int RelationalSyncDataInserter::SaveData(bool isExist, const DataItem &dataItem,
+int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem,
     const SaveSyncDataStmt &saveSyncDataStmt)
 {
     sqlite3_stmt *stmt;
     std::set<std::string> filterSet;
-    bool isUpdate = isExist && mode_ == DistributedTableMode::COLLABORATION;
     if (isUpdate) {
         stmt = saveSyncDataStmt.updateDataStmt;
         for (const auto &primaryKey : localTable_.GetIdentifyKey()) {

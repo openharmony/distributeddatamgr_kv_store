@@ -823,7 +823,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncDataItem(const DataItem 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &dataItem, bool isExist,
+int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &dataItem, bool isUpdate,
     SaveSyncDataStmt &saveStmt, RelationalSyncDataInserter &inserter, int64_t &rowid)
 {
     if ((dataItem.flag & DataItem::DELETE_FLAG) != 0) {
@@ -840,9 +840,9 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &d
             return errCode;
         }
     }
-    int errCode = inserter.SaveData(isExist, dataItem, saveStmt);
+    int errCode = inserter.SaveData(isUpdate, dataItem, saveStmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        if (!isExist) {
+        if (!isUpdate) {
             rowid = SQLiteUtils::GetLastRowId(dbHandle_);
         }
         errCode = E_OK;
@@ -927,7 +927,8 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(RelationalSyncDat
     if ((item.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != 0) {
         return ProcessMissQueryData(item, inserter, saveStmt.rmDataStmt, saveStmt.rmLogStmt);
     }
-    errCode = SaveSyncDataItem(item, isExist, saveStmt, inserter, rowid);
+    bool isUpdate = isExist && mode_ == DistributedTableMode::COLLABORATION;
+    errCode = SaveSyncDataItem(item, isUpdate, saveStmt, inserter, rowid);
     if (errCode == E_OK || errCode == -E_NOT_FOUND) {
         errCode = inserter.SaveSyncLog(dbHandle_, saveStmt.saveLogStmt, saveStmt.queryStmt, item, rowid);
     }

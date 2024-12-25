@@ -63,7 +63,7 @@ public:
 
     int Iterate(const std::function<int (DataItem &)> &);
 
-    int SaveData(bool isExist, const DataItem &dataItem, const SaveSyncDataStmt &saveSyncDataStmt);
+    int SaveData(bool isUpdate, const DataItem &dataItem, const SaveSyncDataStmt &saveSyncDataStmt);
     int BindSaveDataStatement(bool isExist, const DataItem &dataItem, const std::set<std::string> &filterSet,
         sqlite3_stmt *stmt);
 

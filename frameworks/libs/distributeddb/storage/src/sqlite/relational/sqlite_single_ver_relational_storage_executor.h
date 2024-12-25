@@ -270,7 +270,7 @@ private:
 
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
-    int SaveSyncDataItem(const DataItem &dataItem, bool isExist, SaveSyncDataStmt &saveStmt,
+    int SaveSyncDataItem(const DataItem &dataItem, bool isUpdate, SaveSyncDataStmt &saveStmt,
         RelationalSyncDataInserter &inserter, int64_t &rowid);
 
     int DeleteSyncDataItem(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt);

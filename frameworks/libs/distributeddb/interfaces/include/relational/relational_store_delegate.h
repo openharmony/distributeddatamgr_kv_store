@@ -114,7 +114,7 @@ public:
         return {};
     }
 
-    DB_API virtual DBStatus SetDistributedSchema(const DistributedSchema &schema)
+    DB_API virtual DBStatus SetDistributedSchema([[gnu::unused]] const DistributedSchema &schema)
     {
         return OK;
     }
