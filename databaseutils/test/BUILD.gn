@@ -38,6 +38,81 @@ ohos_unittest("DataBaseUtilsTest") {
   ]
 }
 
+ohos_unittest("DataMgrServiceProxyVirtualTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "datamgr_service_proxy_virtual_test.cpp",
+  ]
+
+  configs = [ ":database_utils_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
+  ]
+}
+
+ohos_unittest("BlobVirtualTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "bool_virtual_test.cpp",
+  ]
+
+  configs = [ ":database_utils_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
+  ]
+}
+
+ohos_unittest("DataQueryVirtualTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "data_query_virtual_test.cpp",
+  ]
+
+  configs = [ ":database_utils_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
+  ]
+}
+
 group("unittest") {
   testonly = true
 
