@@ -111,12 +111,14 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore001, TestSize.Level1)
     ZLOGI("GetKvStore001 begin.");
     DistributedKvDataManager managerVirtual;
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(notExistKvStoreVirtual, nullptr);
 
     std::shared_ptr<SingleKvStore> existKvStoreVirtual;
-    statusVirtual = managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStoreVirtual);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(existKvStoreVirtual, nullptr);
 }
@@ -132,7 +134,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore002, TestSize.Level1)
 {
     ZLOGI("GetKvStore002 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(notExistKvStoreVirtual, nullptr);
     managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
@@ -166,7 +169,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore004, TestSize.Level1)
 {
     ZLOGI("GetKvStore004 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdEmptyVirtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdEmptyVirtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStoreVirtual, nullptr);
 }
@@ -182,7 +186,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore005, TestSize.Level1)
 {
     ZLOGI("GetKvStore005 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeIdEmptyVirtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeIdEmptyVirtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStoreVirtual, nullptr);
 }
@@ -198,7 +203,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore006, TestSize.Level1)
 {
     ZLOGI("GetKvStore006 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId65Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId65Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStoreVirtual, nullptr);
 }
@@ -214,7 +220,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore007, TestSize.Level1)
 {
     ZLOGI("GetKvStore007 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId65Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId65Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStoreVirtual, nullptr);
 }
@@ -236,7 +243,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore008, TestSize.Level1)
         .enableCloud = true,
         .autoSync = true
     };
-    Status statusVirtual = managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, cloudKvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, cloudKvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(cloudKvStore, nullptr);
 }
@@ -254,17 +262,20 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStore009, TestSize.Level1)
     std::shared_ptr<SingleKvStore> kvStore = nullptr;
     Options options = createVirtual;
     options.securityLevel = S1;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
 
     managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
     options.securityLevel = S2;
-    statusVirtual = managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(kvStore, nullptr);
 
     managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
     options.securityLevel = S1;
-    statusVirtual = managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(options, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::STORE_META_CHANGED);
     EXPECT_EQ(kvStore, nullptr);
 }
@@ -283,7 +294,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, GetKvStoreInvalidSecurityLevel, Te
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
     Options invalidOption = createVirtual;
     invalidOption.securityLevel = INVALID_LABEL;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(invalidOption, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(invalidOption, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStoreVirtual, nullptr);
 }
@@ -365,7 +377,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseKvStore001, TestSize.Level1)
 {
     ZLOGI("CloseKvStore001 begin.");
     std::shared_ptr<SingleKvStore> kvStore;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore, nullptr);
 
@@ -384,7 +397,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseKvStore002, TestSize.Level1)
 {
     ZLOGI("CloseKvStore002 begin.");
     std::shared_ptr<SingleKvStore> kvStore;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore, nullptr);
 
@@ -446,7 +460,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseKvStoreMulti001, TestSize.Lev
 {
     ZLOGI("CloseKvStoreMulti001 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(notExistKvStoreVirtual, nullptr);
 
@@ -473,17 +488,20 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseKvStoreMulti002, TestSize.Lev
 {
     ZLOGI("CloseKvStoreMulti002 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStoreVirtual;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, notExistKvStoreVirtual);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(notExistKvStoreVirtual, nullptr);
 
     std::shared_ptr<SingleKvStore> existKvStore1;
-    statusVirtual = managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStore1);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStore1);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(existKvStore1, nullptr);
 
     std::shared_ptr<SingleKvStore> existKvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(noCreateVirtual, appIdVirtual, storeId64Virtual, existKvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     EXPECT_NE(existKvStore2, nullptr);
 
@@ -511,12 +529,14 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseAllKvStore001, TestSize.Level
 {
     ZLOGI("CloseAllKvStore001 begin.");
     std::shared_ptr<SingleKvStore> kvStore1;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore1, nullptr);
 
     std::shared_ptr<SingleKvStore> kvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore2, nullptr);
 
@@ -535,12 +555,14 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, CloseAllKvStore002, TestSize.Level
 {
     ZLOGI("CloseAllKvStore002 begin.");
     std::shared_ptr<SingleKvStore> kvStore;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore, nullptr);
 
     std::shared_ptr<SingleKvStore> kvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore2, nullptr);
 
@@ -562,7 +584,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, DeleteKvStore001, TestSize.Level1)
 {
     ZLOGI("DeleteKvStore001 begin.");
     std::shared_ptr<SingleKvStore> kvStore;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore, nullptr);
 
@@ -584,7 +607,8 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, DeleteKvStore002, TestSize.Level1)
 {
     ZLOGI("DeleteKvStore002 begin.");
     std::shared_ptr<SingleKvStore> kvStore;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore, nullptr);
 
@@ -647,11 +671,13 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, DeleteAllKvStore001, TestSize.Leve
 {
     ZLOGI("DeleteAllKvStore001 begin.");
     std::shared_ptr<SingleKvStore> kvStore1;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore1, nullptr);
     std::shared_ptr<SingleKvStore> kvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore2, nullptr);
     Status stat = managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
@@ -679,11 +705,13 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, DeleteAllKvStore002, TestSize.Leve
 {
     ZLOGI("DeleteAllKvStore002 begin.");
     std::shared_ptr<SingleKvStore> kvStore1;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore1, nullptr);
     std::shared_ptr<SingleKvStore> kvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore2, nullptr);
     Status stat = managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
@@ -718,11 +746,13 @@ HWTEST_F(DistributedKvDataManagerVirtualTest, DeleteAllKvStore004, TestSize.Leve
 {
     ZLOGI("DeleteAllKvStore004 begin.");
     std::shared_ptr<SingleKvStore> kvStore1;
-    Status statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
+    Status statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeId64Virtual, kvStore1);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore1, nullptr);
     std::shared_ptr<SingleKvStore> kvStore2;
-    statusVirtual = managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
+    statusVirtual =
+        managerVirtual.GetSingleKvStore(createVirtual, appIdVirtual, storeIdTestVirtual, kvStore2);
     ASSERT_EQ(statusVirtual, Status::SUCCESS);
     ASSERT_NE(kvStore2, nullptr);
     Status stat = managerVirtual.CloseKvStore(appIdVirtual, storeId64Virtual);
