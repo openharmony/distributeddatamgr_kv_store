@@ -187,7 +187,7 @@ Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> d
     }
     auto fullName = info.baseDir + BACKUP_TOP_PATH + "/" + info.storeId + "/" + backupFile.name;
     auto password = GetRestorePassword(backupFile.name, info.baseDir, info.appId, info.storeId).password;
-    auto dbStatus = dbStore->Import(fullName, password);
+    auto dbStatus = dbStore->Import(fullName, password, isCheckIntegrity);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     return status;
 }
