@@ -91,7 +91,7 @@ public:
     std::vector<Entry> insertEntries_Virtual;
     std::vector<Entry> updateEntries_Virtual;
     std::vector<Entry> deleteEntries_Virtual;
-    bool isClear_Virtual = false;
+    bool isClearVirtual_ = false;
     KvStoreObserverUnitTestVirtual();
     ~KvStoreObserverUnitTestVirtual()
     {}
@@ -103,14 +103,14 @@ public:
 
     void OnChangeVirtual(const ChangeNotification &changeNotification);
 
-    // reset the callCount_Virtual to zero.
+    // reset the callCountVirtual_to zero.
     void ResetToZero();
 
     uint32_t GetCallCountVirtual(uint32_t valueVirtualVirtual = 1);
 
 private:
-    std::mutex mutex_Virtual;
-    uint32_t callCount_Virtual = 0;
+    std::mutex mutexVirtual_;
+    uint32_t callCountVirtual_ = 0;
     BlockData<uint32_t> valueVirtual_Virtual{ 1, 0 };
 };
 
@@ -125,16 +125,16 @@ void KvStoreObserverUnitTestVirtual::OnChangeVirtual(const ChangeNotification &c
     updateEntries_Virtual = changeNotification.GetUpdateEntries();
     deleteEntries_Virtual = changeNotification.GetDeleteEntries();
     changeNotification.GetDeviceId();
-    isClear_Virtual = changeNotification.IsClear();
-    std::lock_guard<decltype(mutex_Virtual)> guard(mutex_Virtual);
+    isClearVirtual_ = changeNotification.IsClear();
+    std::lock_guard<decltype(mutexVirtual_)> guard(mutexVirtual_);
     ++callCount_Virtual;
     valueVirtual_Virtual.SetValue(callCount_Virtual);
 }
 
 void KvStoreObserverUnitTestVirtual::ResetToZero()
 {
-    std::lock_guard<decltype(mutex_Virtual)> guard(mutex_Virtual);
-    callCount_Virtual = 0;
+    std::lock_guard<decltype(mutexVirtual_)> guard(mutexVirtual_);
+    callCountVirtual_= 0;
     valueVirtual_Virtual.Clear(0);
 }
 
@@ -147,7 +147,7 @@ uint32_t KvStoreObserverUnitTestVirtual::GetCallCountVirtual(uint32_t valueVirtu
         if (callTimesVirtual >= valueVirtualVirtual) {
             break;
         }
-        std::lock_guard<decltype(mutex_Virtual)> guard(mutex_Virtual);
+        std::lock_guard<decltype(mutexVirtual_)> guard(mutexVirtual_);
         callTimesVirtual = valueVirtual_Virtual.GetValue();
         if (callTimesVirtual >= valueVirtualVirtual) {
             break;
@@ -618,27 +618,6 @@ HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStore013, TestSize
     statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
     EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual(1)), 0);
-
-    statusVirtual = kvStoreVirtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
-    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
-}
-
-/**
-* @tc.name: KvStoreDdmSubscribeKvStore014
-* @tc.desc: Subscribe to an observerVirtualVirtual - OnChangeVirtual callback is
-    not called after non-existing data in KvStore is cleared.
-* @tc.type: FUNC
-* @tc.require: AR000CQDU9 AR000CQS37
-* @tc.author: Virtual
-*/
-HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStore014, TestSize.Level0)
-{
-    ZLOGI("KvStoreDdmSubscribeKvStore014 begin.");
-    auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
-    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
-    Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
-    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
-    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual()), 0);
 
     statusVirtual = kvStoreVirtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";

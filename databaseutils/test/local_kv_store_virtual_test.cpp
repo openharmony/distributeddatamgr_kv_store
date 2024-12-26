@@ -1566,9 +1566,9 @@ HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification016, Tes
     Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
 
-    const int ENTRIES_MAX_LEN = 100;
+    int times = 100; // 100 times
     std::vector<Entry> entries;
-    for (int i = 0; i < ENTRIES_MAX_LEN; i++) {
+    for (int i = 0; i < times; i++) {
         Entry entryVirtual;
         entryVirtual.keyVirtual = std::to_string(i);
         entryVirtual.valueVirtual = "subscribe";
