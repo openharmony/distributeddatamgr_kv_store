@@ -55,7 +55,8 @@ void KVDBNotifierClientVirtualTest::TearDown(void)
 
 class MockDevManager : public DevManager {
 public:
-    string ToUUID(const string &device) override {
+    string ToUUID(const string &device) override
+    {
         if (device == "device1") {
             return "uuid1";
         }
@@ -65,10 +66,12 @@ public:
 
 class MockKvStoreSyncCallback : public KvStoreSyncCallback {
 public:
-    void SyncCompleted(const map<string, Status> &results) override {
+    void SyncCompleted(const map<string, Status> &results) override
+    {
         syncCompletedCalled = true;
     }
-    void SyncCompleted(const map<string, Status> &results, uint64_t sequenceId) override {
+    void SyncCompleted(const map<string, Status> &results, uint64_t sequenceId) override
+    {
         syncCompletedWithIdCalled = true;
     }
     bool syncCompletedCalled = false;
@@ -77,7 +80,8 @@ public:
 
 class MockKvStoreObserver : public KvStoreObserver {
 public:
-    void OnSwitchChange(const SwitchNotification &notification) override {
+    void OnSwitchChange(const SwitchNotification &notification) override
+    {
         onSwitchChangeCalled = true;
     }
     bool onSwitchChangeCalled = false;
@@ -85,7 +89,8 @@ public:
 
 class MockAsyncDetail : public AsyncDetail {
 public:
-    void operator()(ProgressDetail &&detail) override {
+    void operator()(ProgressDetail &&detail) override
+    {
         asyncDetailCalled = true;
     }
     bool asyncDetailCalled = false;
@@ -93,7 +98,8 @@ public:
 
 class KVDBNotifierClientTest : public testing::Test {
 protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         devManager = make_shared<MockDevManager>();
         notifierClient = make_unique<KVDBNotifierClient>();
     }
@@ -297,7 +303,8 @@ HWTEST_F(KVDBNotifierStubVirtualTest, OnRemoteRequest_ValidCodeAndDescriptor_Sho
 
     EXPECT_CALL(*stub, OnSyncCompleted(testing::Ref(data), testing::_)).WillOnce(testing::Return(ERR_NONE));
 
-    int32_t result = stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::SYNC_COMPLETED), data, reply, option);
+    int32_t result =
+        stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::SYNC_COMPLETED), data, reply, option);
     EXPECT_EQ(result, ERR_NONE);
 }
 
@@ -316,7 +323,8 @@ HWTEST_F(KVDBNotifierStubVirtualTest, OnRemoteRequest_InvalidDescriptor_ShouldRe
     MessageOption option;
     data.WriteInterfaceToken(u"InvalidDescriptor");
 
-    int32_t result = stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::SYNC_COMPLETED), data, reply, option);
+    int32_t result =
+        stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::SYNC_COMPLETED), data, reply, option);
     EXPECT_EQ(result, -1);
 }
 
@@ -335,8 +343,10 @@ HWTEST_F(KVDBNotifierStubVirtualTest, OnRemoteRequest_CodeOutOfBound_ShouldRetur
     MessageOption option;
     data.WriteInterfaceToken(KVDBNotifierStub::GetDescriptor());
 
-    int32_t result = stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT), data, reply, option);
-    EXPECT_EQ(result, IPCObjectStub::OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT), data, reply, option));
+    int32_t result =
+        stub->OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT), data, reply, option);
+    EXPECT_EQ(result,
+        IPCObjectStub::OnRemoteRequest(static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT), data, reply, option));
 }
 
 /**

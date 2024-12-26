@@ -29,6 +29,16 @@ using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::Test {
+static constexpr const char *KEY = "key";
+static constexpr const char *VALUE = "value";
+static constexpr const char *VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
+                                                            "\"SCHEMA_MODE\":\"STRICT\","
+                                                            "\"SCHEMA_SKIPSIZE\":0,"
+                                                            "\"SCHEMA_DEFINE\":"
+                                                            "{"
+                                                            "\"age\":\"INTEGER, NOT NULL\""
+                                                            "},"
+                                                            "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 using var_t = std::variant<std::monostate, int64_t, double, std::string, bool, std::vector<uint8_t>>;
 class KvUtilVirtualTest : public testing::Test {
 public:
@@ -40,16 +50,7 @@ public:
 protected:
     static DistributedKvDataManager managerVirtual;
     static std::shared_ptr<SingleKvStore> singleKvStoreVirtual;
-    static constexpr const char *KEY = "key";
-    static constexpr const char *VALUE = "value";
-    static constexpr const char *VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
-                                                              "\"SCHEMA_MODE\":\"STRICT\","
-                                                              "\"SCHEMA_SKIPSIZE\":0,"
-                                                              "\"SCHEMA_DEFINE\":"
-                                                              "{"
-                                                              "\"age\":\"INTEGER, NOT NULL\""
-                                                              "},"
-                                                              "\"SCHEMA_INDEXES\":[\"$.age\"]}";
+
     static std::string Entry2Str(const Entry &entry);
     static void ClearEntry(Entry &entry);
     static Blob VariantValue2Blob(const var_t &value);
@@ -60,11 +61,13 @@ DistributedKvDataManager KvUtilVirtualTest::managerVirtual;
 
 void KvUtilVirtualTest::SetUp(void)
 {
-    ZLOGI("SetUp begin.");}
+    ZLOGI("SetUp begin.");
+}
 
 void KvUtilVirtualTest::TearDown(void)
 {
-    ZLOGI("TearDown begin.");}
+    ZLOGI("TearDown begin.");
+}
 
 std::string KvUtilVirtualTest::Entry2Str(const Entry &entry)
 {
