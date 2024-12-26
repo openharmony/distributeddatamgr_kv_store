@@ -1014,3 +1014,1127 @@ HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification007, Tes
     statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
 }
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification008
+* @tc.desc: Subscribe to an observerVirtual, callback with notification one times after putbatch&update
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification008, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification008 begin.");
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+    entries.clear();
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe_modify";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe_modify";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->updateEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe_modify", observerVirtual->updateEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->updateEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe_modify", observerVirtual->updateEntries_[1].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification009
+* @tc.desc: Subscribe to an observerVirtual, callback with notification one times after putbatch all different data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification009, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification009 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 3);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->insertEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[2].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification010
+* @tc.desc: Subscribe to an observerVirtual,
+    callback with notification one times after putbatch both different and same data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification010, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification010 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id1";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id2";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification011
+* @tc.desc: Subscribe to an observerVirtual, callback with notification one times after putbatch all same data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification011, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification011 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id1";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id1";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 1);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification012
+* @tc.desc: Subscribe to an observerVirtual, callback with notification many times after putbatch all different data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification012, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification012 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id4";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id5";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 3);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->insertEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[2].valueVirtual.ToString());
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification012b
+* @tc.desc: Subscribe to an observerVirtual, callback with notification many times after putbatch all different data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification012b, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification012b begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id4";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id5";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries2);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 2);
+    EXPECT_EQ("Id4", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id5", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification013
+* @tc.desc: Subscribe to an observerVirtual,
+    callback with notification many times after putbatch both different and same data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification013, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification013 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id1";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id4";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 3);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->insertEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[2].valueVirtual.ToString());
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification013b
+* @tc.desc: Subscribe to an observerVirtual,
+    callback with notification many times after putbatch both different and same data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification013b, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification013b begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id1";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id4";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+    statusVirtual = kvStore_Virtual->PutBatch(entries2);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 1);
+    EXPECT_EQ("Id1", observerVirtual->updateEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->updateEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 1);
+    EXPECT_EQ("Id4", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification014
+* @tc.desc: Subscribe to an observerVirtual, callback with notification many times after putbatch all same data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification014, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification014 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id1";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id2";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 3);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->insertEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[2].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries2);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->updateEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->updateEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->updateEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->updateEntries_[1].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification015
+* @tc.desc: Subscribe to an observerVirtual, callback with notification many times after putbatch complex data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification015, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification015 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id1";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id1";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id2";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[1].valueVirtual.ToString());
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification015b
+* @tc.desc: Subscribe to an observerVirtual, callback with notification many times after putbatch complex data
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification015b, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification015b begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries1Virtual;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id1";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries1Virtual.push_back(entryVirtual1);
+    entries1Virtual.push_back(entryVirtual2);
+    entries1Virtual.push_back(entryVirtual3);
+
+    std::vector<Entry> entries2;
+    Entry entryVirtual4, entryVirtual5;
+    entryVirtual4.keyVirtual = "Id1";
+    entryVirtual4.valueVirtual = "subscribe";
+    entryVirtual5.keyVirtual = "Id2";
+    entryVirtual5.valueVirtual = "subscribe";
+    entries2.push_back(entryVirtual4);
+    entries2.push_back(entryVirtual5);
+    statusVirtual = kvStore_Virtual->PutBatch(entries2);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 1);
+    EXPECT_EQ("Id1", observerVirtual->updateEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->updateEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 1);
+    EXPECT_EQ("Id2", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification016
+* @tc.desc: Pressure test subscribe, callback with notification many times after putbatch
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification016, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification016 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    int times = 100; // 100 times
+    std::vector<Entry> entries;
+    for (int i = 0; i < times; i++) {
+        Entry entryVirtual;
+        entryVirtual.keyVirtual = std::to_string(i);
+        entryVirtual.valueVirtual = "subscribe";
+        entries.push_back(entryVirtual);
+    }
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 100);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification017
+* @tc.desc: Subscribe to an observerVirtual, callback with notification after delete success
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification017, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification017 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete("Id1");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 1);
+    EXPECT_EQ("Id1", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[0].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification018
+* @tc.desc: Subscribe to an observerVirtual, not callback after delete which keyVirtual not exist
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification018, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification018 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete("Id4");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification019
+* @tc.desc: Subscribe to an observerVirtual,
+    delete the same data many times and only first delete callback with notification
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification019, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification019 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete("Id1");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 1);
+    EXPECT_EQ("Id1", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[0].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->Delete("Id1");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 1); // not callback so not clear
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification020
+* @tc.desc: Subscribe to an observerVirtual, callback with notification after deleteBatch
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification020, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification020 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id1");
+    keys.push_back("Id2");
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->deleteEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[1].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification021
+* @tc.desc: Subscribe to an observerVirtual, not callback after deleteBatch which all keys not exist
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification021, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification021 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id4");
+    keys.push_back("Id5");
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification022
+* @tc.desc: Subscribe to an observerVirtual,
+    deletebatch the same data many times and only first deletebatch callback with
+* notification
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification022, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification022 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id1";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id2";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id3";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id1");
+    keys.push_back("Id2");
+
+    Status statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 2);
+    EXPECT_EQ("Id1", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id2", observerVirtual->deleteEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[1].valueVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 2); // not callback so not clear
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification023
+* @tc.desc: Subscribe to an observerVirtual, include Clear Put PutBatch Delete DeleteBatch
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification023, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification023 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    Key key1Virtual = "Id1";
+    Value value1Virtual = "subscribe";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id2";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id3";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id4";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id2");
+    keys.push_back("Id3");
+
+    statusVirtual = kvStore_Virtual->Put(key1Virtual, value1Virtual); // insert or update keyVirtual-valueVirtual
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore put data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete(key1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(4)), 4);
+    // every callback will clear vector
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 2);
+    EXPECT_EQ("Id2", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("Id3", observerVirtual->deleteEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("subscribe", observerVirtual->deleteEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification024
+* @tc.desc: Subscribe to an observerVirtual[use transaction], include Clear Put PutBatch Delete DeleteBatch
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification024, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification024 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    Key key1Virtual = "Id1";
+    Value value1Virtual = "subscribe";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id2";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id3";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id4";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id2");
+    keys.push_back("Id3");
+
+    statusVirtual = kvStore_Virtual->StartTransaction();
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore startTransaction return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Put(key1Virtual, value1Virtual); // insert or update keyVirtual-valueVirtual
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore put data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete(key1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Commit();
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Commit return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification025
+* @tc.desc: Subscribe to an observerVirtual[use transaction], include Clear Put PutBatch Delete DeleteBatch
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification025, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification025 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    Key key1Virtual = "Id1";
+    Value value1Virtual = "subscribe";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual1, entryVirtual2, entryVirtual3;
+    entryVirtual1.keyVirtual = "Id2";
+    entryVirtual1.valueVirtual = "subscribe";
+    entryVirtual2.keyVirtual = "Id3";
+    entryVirtual2.valueVirtual = "subscribe";
+    entryVirtual3.keyVirtual = "Id4";
+    entryVirtual3.valueVirtual = "subscribe";
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id2");
+    keys.push_back("Id3");
+
+    statusVirtual = kvStore_Virtual->StartTransaction();
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore startTransaction return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Put(key1Virtual, value1Virtual); // insert or update keyVirtual-valueVirtual
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore put data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Delete(key1Virtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->DeleteBatch(keys);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore DeleteBatch data return wrong statusVirtual";
+    statusVirtual = kvStore_Virtual->Rollback();
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore Commit return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 0);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 0);
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+    observerVirtual = nullptr;
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification026
+* @tc.desc: Subscribe to an observerVirtual[use transaction], include bigData PutBatch  update  insert delete
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification026, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026 begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual0, entryVirtual1, entryVirtual2, entryVirtual3, entryVirtual4;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueVirtual size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtual = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueVirtual size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+    Value value2Virtual = val2;
+
+    entryVirtual0.keyVirtual = "SingleKvStoreDdmPutBatch006_0";
+    entryVirtual0.valueVirtual = "beijing";
+    entryVirtual1.keyVirtual = "SingleKvStoreDdmPutBatch006_1";
+    entryVirtual1.valueVirtual = valueVirtual;
+    entryVirtual2.keyVirtual = "SingleKvStoreDdmPutBatch006_2";
+    entryVirtual2.valueVirtual = valueVirtual;
+    entryVirtual3.keyVirtual = "SingleKvStoreDdmPutBatch006_3";
+    entryVirtual3.valueVirtual = "ZuiHouBuZhiTianZaiShui";
+    entryVirtual4.keyVirtual = "SingleKvStoreDdmPutBatch006_4";
+    entryVirtual4.valueVirtual = valueVirtual;
+
+    entries.push_back(entryVirtual0);
+    entries.push_back(entryVirtual1);
+    entries.push_back(entryVirtual2);
+    entries.push_back(entryVirtual3);
+    entries.push_back(entryVirtual4);
+
+    statusVirtual = kvStore_Virtual->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtual->insertEntries_.size()), 5);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_0", observerVirtual->insertEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("beijing", observerVirtual->insertEntries_[0].valueVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_1", observerVirtual->insertEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_2", observerVirtual->insertEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3", observerVirtual->insertEntries_[3].keyVirtual.ToString());
+    EXPECT_EQ("ZuiHouBuZhiTianZaiShui", observerVirtual->insertEntries_[3].valueVirtual.ToString());
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification026b
+* @tc.desc: Subscribe to an observerVirtual[use transaction], include bigData PutBatch  update  insert delete
+* @tc.type: FUNC
+* @tc.require: I5GG0N
+* @tc.author: sql
+*/
+HWTEST_F(LocalKvStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification026b, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026b begin.");
+    auto observerVirtual = std::make_shared<DeviceObserverTest>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStore_Virtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entries;
+    Entry entryVirtual5, entryVirtual6, entryVirtual7;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueVirtual size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtual = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueVirtual size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
+    entryVirtual5.keyVirtual = "SingleKvStoreDdmPutBatch006_2";
+    entryVirtual5.valueVirtual = val2;
+    entryVirtual6.keyVirtual = "SingleKvStoreDdmPutBatch006_3";
+    entryVirtual6.valueVirtual = "ManChuanXingMengYaXingHe";
+    entryVirtual7.keyVirtual = "SingleKvStoreDdmPutBatch006_4";
+    entryVirtual7.valueVirtual = val2;
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entryVirtual5);
+    updateEntries.push_back(entryVirtual6);
+    updateEntries.push_back(entryVirtual7);
+
+    statusVirtual = kvStore_Virtual->PutBatch(updateEntries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putBatch update data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtual->updateEntries_.size()), 3);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_2", observerVirtual->updateEntries_[0].keyVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3", observerVirtual->updateEntries_[1].keyVirtual.ToString());
+    EXPECT_EQ("ManChuanXingMengYaXingHe", observerVirtual->updateEntries_[1].valueVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_4", observerVirtual->updateEntries_[2].keyVirtual.ToString());
+    EXPECT_EQ(false, observerVirtual->isClear_);
+
+    statusVirtual = kvStore_Virtual->Delete("SingleKvStoreDdmPutBatch006_3");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtual->GetCallCount(3)), 3);
+    EXPECT_EQ(static_cast<int>(observerVirtual->deleteEntries_.size()), 1);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3", observerVirtual->deleteEntries_[0].keyVirtual.ToString());
+
+    statusVirtual = kvStore_Virtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
