@@ -1884,6 +1884,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where flag & 0x02 == 0x02;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+    EXPECT_EQ(g_observer->GetLastOrigin(), Origin::ORIGIN_CLOUD);
     CloseDb();
 }
 

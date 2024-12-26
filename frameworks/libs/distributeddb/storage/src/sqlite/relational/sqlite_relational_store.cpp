@@ -158,7 +158,7 @@ int SQLiteRelationalStore::CheckTableModeFromMeta(DistributedTableMode mode, boo
         return E_OK; // First set table mode.
     }
 
-    if (orgMode != mode) {
+    if (orgMode == DistributedTableMode::COLLABORATION && orgMode != mode) {
         LOGE("Check distributed table mode mismatch, orgMode=%d, openMode=%d", orgMode, mode);
         return -E_INVALID_ARGS;
     }
@@ -183,8 +183,7 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
     // Empty schema means no distributed table has been used, we may set DB to any table mode
     // If there is a schema but no table mode, it is the 'SPLIT_BY_DEVICE' mode of old version
     bool isSchemaEmpty = (errCode == -E_NOT_FOUND);
-    auto mode = static_cast<DistributedTableMode>(
-        properties.GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = properties.GetDistributedTableMode();
     errCode = CheckTableModeFromMeta(mode, isSchemaEmpty);
     if (errCode != E_OK) {
         LOGE("Get distributed table mode from meta failed. errcode=%d", errCode);
@@ -207,7 +206,7 @@ int SQLiteRelationalStore::SaveTableModeToMeta(DistributedTableMode mode)
 {
     const Key modeKey(DISTRIBUTED_TABLE_MODE, DISTRIBUTED_TABLE_MODE + strlen(DISTRIBUTED_TABLE_MODE));
     Value modeVal;
-    DBCommon::StringToVector(std::to_string(mode), modeVal);
+    DBCommon::StringToVector(std::to_string(static_cast<int>(mode)), modeVal);
     int errCode = storageEngine_->PutMetaData(modeKey, modeVal);
     if (errCode != E_OK) {
         LOGE("Save relational schema to meta table failed. %d", errCode);
@@ -439,8 +438,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
 
-    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
 
     std::string localIdentity; // collaboration mode need local identify
     if (mode == DistributedTableMode::COLLABORATION) {
@@ -475,12 +473,6 @@ int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
 
 int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 {
-    auto tableMode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-    if (tableMode == DistributedTableMode::COLLABORATION) {
-        LOGE("Not support remove device data in collaboration mode.");
-        return -E_NOT_SUPPORT;
-    }
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfoMap tables = localSchema.GetTables();
     std::vector<std::string> cloudTableNameList;
@@ -511,13 +503,6 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 
 int SQLiteRelationalStore::RemoveDeviceData()
 {
-    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-    if (mode == DistributedTableMode::COLLABORATION) {
-        LOGE("Not support remove device data in collaboration mode.");
-        return -E_NOT_SUPPORT;
-    }
-
     std::vector<std::string> tableNameList = GetAllDistributedTableName();
     if (tableNameList.empty()) {
         return E_OK;
@@ -562,13 +547,6 @@ int SQLiteRelationalStore::RemoveDeviceData()
 
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
 {
-    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-    if (mode == DistributedTableMode::COLLABORATION) {
-        LOGE("Not support remove device data in collaboration mode.");
-        return -E_NOT_SUPPORT;
-    }
-
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     auto iter = tables.find(tableName);
     if (tables.empty() || (!tableName.empty() && iter == tables.end())) {
@@ -774,13 +752,6 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
 
     if (!sqliteStorageEngine_->GetSchema().IsSchemaValid()) {
         LOGW("not a distributed relational store.");
-        return -E_NOT_SUPPORT;
-    }
-    const auto &properties = sqliteStorageEngine_->GetProperties();
-    int tableMode =
-        properties.GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE);
-    if (tableMode != DistributedTableMode::SPLIT_BY_DEVICE) {
-        LOGW("only support split mode.");
         return -E_NOT_SUPPORT;
     }
 
@@ -1588,6 +1559,23 @@ int SQLiteRelationalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
 SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 {
     return cloudSyncer_->GetCloudTaskStatus(taskId);
+}
+
+int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
+{
+    if (sqliteStorageEngine_ == nullptr || storageEngine_ == nullptr) {
+        LOGE("[RelationalStore] engine was not initialized");
+        return -E_INVALID_DB;
+    }
+    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (isSchemaChange) {
+        LOGI("[RelationalStore] schema was changed by setting distributed schema");
+        storageEngine_->NotifySchemaChanged();
+    }
+    return E_OK;
 }
 } // namespace DistributedDB
 #endif

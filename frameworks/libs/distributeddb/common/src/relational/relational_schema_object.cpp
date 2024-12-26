@@ -89,6 +89,7 @@ void RelationalSchemaObject::GenerateSchemaString()
     }
     schemaString_ += R"(])";
     schemaString_ += GetReferencePropertyString();
+    schemaString_ += GetDistributedSchemaString();
     schemaString_ += "}";
 }
 
@@ -556,7 +557,11 @@ int RelationalSchemaObject::ParseRelationalSchema(const JsonObject &inJsonObject
     if (errCode != E_OK) {
         return errCode;
     }
-    return ParseCheckReferenceProperty(inJsonObject);
+    errCode = ParseCheckReferenceProperty(inJsonObject);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return ParseDistributedSchema(inJsonObject);
 }
 
 namespace {
@@ -631,7 +636,7 @@ int RelationalSchemaObject::ParseCheckTableMode(const JsonObject &inJsonObject)
     }
 
     tableMode_ = SchemaUtils::Strip(fieldValue.stringValue) == SchemaConstant::KEYWORD_TABLE_SPLIT_DEVICE ?
-        DistributedDB::SPLIT_BY_DEVICE : DistributedTableMode::COLLABORATION;
+        DistributedTableMode::SPLIT_BY_DEVICE : DistributedTableMode::COLLABORATION;
     return E_OK;
 }
 
@@ -1165,6 +1170,288 @@ int RelationalSchemaObject::ParseCheckTrackerAction(const JsonObject &inJsonObje
         LOGE("[RelationalSchema][Parse] get TRACKER_ACTION failed %d", errCode);
     }
     return errCode;
+}
+
+bool RelationalSchemaObject::CheckDistributedSchemaChange(const DistributedSchema &schema)
+{
+    if (schema.version != dbSchema_.version) {
+        return true;
+    }
+    std::map<std::string, std::vector<DistributedField>, CaseInsensitiveComparator> tableSchema;
+    for (const auto &table : dbSchema_.tables) {
+        tableSchema[table.tableName] = table.fields;
+    }
+    if (tableSchema.size() != schema.tables.size()) {
+        return true;
+    }
+    for (const auto &table : schema.tables) {
+        if (tableSchema.find(table.tableName) == tableSchema.end()) {
+            return true;
+        }
+        if (CheckDistributedFieldChange(tableSchema[table.tableName], table.fields)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RelationalSchemaObject::CheckDistributedFieldChange(const std::vector<DistributedField> &source,
+    const std::vector<DistributedField> &target)
+{
+    std::map<std::string, DistributedField, CaseInsensitiveComparator> fields;
+    for (const auto &field : source) {
+        fields[field.colName] = field;
+    }
+    if (fields.size() != target.size()) {
+        return true;
+    }
+    for (const auto &field : target) {
+        if (fields.find(field.colName) == fields.end()) {
+            return true;
+        }
+        if (fields[field.colName].isP2pSync != field.isP2pSync) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void RelationalSchemaObject::SetDistributedSchema(const DistributedSchema &schema)
+{
+    dbSchema_ = schema;
+    GenerateSchemaString();
+}
+
+DistributedSchema RelationalSchemaObject::GetDistributedSchema() const
+{
+    return dbSchema_;
+}
+
+std::string RelationalSchemaObject::GetDistributedSchemaString()
+{
+    std::string res;
+    res += R"(,")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_SCHEMA;
+    res += R"(":{)";
+    res += R"(")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_VERSION;
+    res += R"(":)";
+    res += std::to_string(dbSchema_.version);
+    res += R"(,")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_TABLE;
+    res += R"(":[)";
+    for (const auto &table : dbSchema_.tables) {
+        res += GetOneDistributedTableString(table) + ",";
+    }
+    if (!dbSchema_.tables.empty()) {
+        res.pop_back();
+    }
+    res += R"(]})";
+    return res;
+}
+
+std::string RelationalSchemaObject::GetOneDistributedTableString(const DistributedTable &table)
+{
+    std::string res;
+    res += R"({")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME;
+    res += R"(":")";
+    res += table.tableName;
+    res += R"(", ")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_FIELD;
+    res += R"(":[)";
+    for (const auto &field : table.fields) {
+        res += R"({")";
+        res += SchemaConstant::KEYWORD_DISTRIBUTED_COL_NAME;
+        res += R"(":")";
+        res += field.colName;
+        res += R"(", ")";
+        res += SchemaConstant::KEYWORD_DISTRIBUTED_IS_P2P_SYNC;
+        res += R"(":)";
+        if (field.isP2pSync) {
+            res += "true";
+        } else {
+            res += "false";
+        }
+        res += R"(},)";
+    }
+    if (!table.fields.empty()) {
+        res.pop_back();
+    }
+    res += R"(]})";
+    return res;
+}
+
+int RelationalSchemaObject::ParseDistributedSchema(const JsonObject &inJsonObject)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_SCHEMA})) {
+        return E_OK;
+    }
+
+    JsonObject schemaObj;
+    int errCode = SchemaUtils::ExtractJsonObj(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_SCHEMA, schemaObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    FieldValue fieldValue;
+    errCode = GetMemberFromJsonObject(schemaObj, SchemaConstant::KEYWORD_DISTRIBUTED_VERSION,
+        FieldType::LEAF_FIELD_INTEGER, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    dbSchema_.version = static_cast<uint32_t>(fieldValue.integerValue);
+    return ParseDistributedTables(schemaObj);
+}
+
+int RelationalSchemaObject::ParseDistributedTables(const JsonObject &inJsonObject)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_TABLE})) {
+        return E_OK;
+    }
+
+    std::vector<JsonObject> tablesObj;
+    int errCode = SchemaUtils::ExtractJsonObjArray(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_TABLE, tablesObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    for (const auto &tableObj : tablesObj) {
+        errCode = ParseDistributedTable(tableObj);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseDistributedTable(const JsonObject &inJsonObject)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME})) {
+        return E_OK;
+    }
+
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME,
+        FieldType::LEAF_FIELD_STRING, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    DistributedTable table;
+    table.tableName = fieldValue.stringValue;
+    errCode = ParseDistributedFields(inJsonObject, table.fields);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    dbSchema_.tables.push_back(std::move(table));
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseDistributedFields(const JsonObject &inJsonObject,
+    std::vector<DistributedField> &fields)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_FIELD})) {
+        return E_OK;
+    }
+
+    std::vector<JsonObject> fieldsObj;
+    int errCode = SchemaUtils::ExtractJsonObjArray(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_FIELD, fieldsObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    for (const auto &fieldObj : fieldsObj) {
+        DistributedField field;
+        errCode = ParseDistributedField(fieldObj, field);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        fields.push_back(std::move(field));
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseDistributedField(const JsonObject &inJsonObject, DistributedField &field)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_COL_NAME,
+        FieldType::LEAF_FIELD_STRING, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    field.colName = fieldValue.stringValue;
+    errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_IS_P2P_SYNC,
+        FieldType::LEAF_FIELD_BOOL, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    field.isP2pSync = fieldValue.boolValue;
+    return E_OK;
+}
+
+bool RelationalSchemaObject::IsNeedSkipSyncField(const FieldInfo &fieldInfo, const std::string &tableName,
+    bool ignoreTableNonExist) const
+{
+    bool splitByDevice = tableMode_ == DistributedTableMode::SPLIT_BY_DEVICE;
+    if (splitByDevice) {
+        return false;
+    }
+    auto it = tables_.find(tableName);
+    if (it == tables_.end()) {
+        LOGW("[RelationalSchemaObject][IsNeedSkipSyncField] Unknown table %s size %zu",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return false;
+    }
+    auto pks = it->second.GetPrimaryKey();
+    for (const auto &pk : pks) {
+        if (DBCommon::CaseInsensitiveCompare(fieldInfo.GetFieldName(), pk.second)) {
+            return false;
+        }
+    }
+    auto match = std::find_if(dbSchema_.tables.begin(), dbSchema_.tables.end(),
+        [&tableName](const DistributedTable &distributedTable) {
+        return DBCommon::CaseInsensitiveCompare(distributedTable.tableName, tableName);
+    });
+    if (match == dbSchema_.tables.end()) {
+        return !ignoreTableNonExist;
+    }
+    auto matchField = std::find_if(match->fields.begin(), match->fields.end(),
+        [&fieldInfo](const DistributedField &distributedField) {
+        return distributedField.isP2pSync &&
+            DBCommon::CaseInsensitiveCompare(distributedField.colName, fieldInfo.GetFieldName());
+    });
+    return matchField == match->fields.end();
+}
+
+std::vector<FieldInfo> RelationalSchemaObject::GetSyncFieldInfo(const std::string &tableName,
+    bool ignoreTableNonExist) const
+{
+    std::vector<FieldInfo> res;
+    auto it = tables_.find(tableName);
+    if (it == tables_.end()) {
+        LOGW("[RelationalSchemaObject][GetSyncFieldInfo] Unknown table %s size %zu",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return res;
+    }
+    for (const auto &fieldInfo : it->second.GetFieldInfos()) {
+        if (IsNeedSkipSyncField(fieldInfo, tableName, ignoreTableNonExist)) {
+            continue;
+        }
+        res.push_back(fieldInfo);
+    }
+    return res;
+}
+
+DistributedTable RelationalSchemaObject::GetDistributedTable(const std::string &table) const
+{
+    auto match = std::find_if(dbSchema_.tables.begin(), dbSchema_.tables.end(),
+        [&table](const DistributedTable &distributedTable) {
+        return DBCommon::CaseInsensitiveCompare(distributedTable.tableName, table);
+    });
+    if (match == dbSchema_.tables.end()) {
+        return {};
+    }
+    return *match;
 }
 }
 #endif

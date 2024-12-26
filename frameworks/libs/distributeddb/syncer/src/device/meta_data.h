@@ -37,6 +37,7 @@ struct MetaDataValue {
     uint64_t syncMark = 0; // 0x1 ability sync finish 0x2 time sync finish
     uint64_t remoteSchemaVersion = 0; // reset zero when local schema change
     int64_t systemTimeOffset = 0; // record dev time offset
+    uint64_t remoteSoftwareVersion = 0; // record remote version
 };
 
 struct LocalMetaData {
@@ -173,6 +174,10 @@ public:
     std::pair<int, uint64_t> GetLocalSchemaVersion();
 
     int SetLocalSchemaVersion(uint64_t schemaVersion);
+
+    uint64_t GetRemoteSoftwareVersion(const std::string &deviceId);
+
+    int SetRemoteSoftwareVersion(const std::string &deviceId, uint64_t version);
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);

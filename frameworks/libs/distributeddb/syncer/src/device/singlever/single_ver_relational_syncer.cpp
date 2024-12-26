@@ -184,6 +184,12 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
         LOGE("[SingleVerRelationalSyncer] QuerySyncObject check failed");
         return errCode;
     }
+    const RelationalSchemaObject &schemaObj = static_cast<RelationalDBSyncInterface *>(storage)->GetSchemaInfo();
+    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION &&
+        schemaObj.GetDistributedSchema().tables.empty()) {
+        LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
+        return -E_SCHEMA_MISMATCH;
+    }
     if (param.mode == SUBSCRIBE_QUERY) {
         return -E_NOT_SUPPORT;
     }

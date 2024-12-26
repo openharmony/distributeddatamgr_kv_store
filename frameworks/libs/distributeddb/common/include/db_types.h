@@ -158,12 +158,6 @@ enum class StorageType : int32_t {
     STORAGE_TYPE_BLOB
 };
 
-// Table mode of device data for relational store
-enum DistributedTableMode : int {
-    COLLABORATION = 0, // Save all devices data in user table
-    SPLIT_BY_DEVICE // Save device data in each table split by device
-};
-
 struct CaseInsensitiveComparator {
     bool operator() (const std::string& first, const std::string& second) const
     {

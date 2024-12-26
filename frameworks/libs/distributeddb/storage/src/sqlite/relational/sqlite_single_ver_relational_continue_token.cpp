@@ -20,7 +20,8 @@ namespace DistributedDB {
 SQLiteSingleVerRelationalContinueToken::SQLiteSingleVerRelationalContinueToken(
     const SyncTimeRange &timeRange, const QueryObject &queryObject)
     : isGettingDeletedData_(false), queryObj_(queryObject), tableName_(queryObj_.GetTableName()), timeRange_(timeRange)
-{}
+{
+}
 
 bool SQLiteSingleVerRelationalContinueToken::CheckValid() const
 {
@@ -210,6 +211,16 @@ int SQLiteSingleVerRelationalContinueToken::ReleaseCloudStatement()
     SQLiteUtils::ResetStatement(queryStmt_, true, errCode);
     queryStmt_ = nullptr;
     return errCode;
+}
+
+bool SQLiteSingleVerRelationalContinueToken::IsUseLocalSchema() const
+{
+    return queryObj_.IsUseLocalSchema();
+}
+
+std::string SQLiteSingleVerRelationalContinueToken::GetRemoteDev() const
+{
+    return queryObj_.GetRemoteDev();
 }
 }  // namespace DistributedDB
 #endif

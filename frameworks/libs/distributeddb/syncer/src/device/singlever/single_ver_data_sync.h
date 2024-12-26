@@ -255,6 +255,9 @@ protected:
 
     int DataRequestRecvInner(SingleVerSyncTaskContext *context, const Message *message, WaterMark &pullEndWatermark);
 
+    void UpdatePeerWaterMarkInner(const DataRequestPacket &packet, const SyncTimeRange &dataTime,
+        const UpdateWaterMark &isUpdateWaterMark, const SingleVerSyncTaskContext *context);
+
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;
     ICommunicator* communicateHandle_;

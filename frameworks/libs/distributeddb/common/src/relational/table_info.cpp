@@ -812,4 +812,31 @@ bool TableInfo::IsNoPkTable() const
     }
     return false;
 }
+
+bool TableInfo::IsFieldExist(const std::string &fieldName) const
+{
+    if (fields_.find(fieldName) != fields_.end()) {
+        return true;
+    }
+    LOGE("[TableInfo][IsFieldExist] table %s table len %zu not exist field %s",
+        DBCommon::StringMiddleMasking(tableName_).c_str(), tableName_.size(),
+        DBCommon::StringMiddleMasking(fieldName).c_str());
+    return false;
+}
+
+void TableInfo::SetDistributedTable(const DistributedTable &distributedTable)
+{
+    distributedTable_ = distributedTable;
+}
+
+std::vector<std::string> TableInfo::GetSyncField() const
+{
+    std::vector<std::string> res;
+    for (const auto &item : distributedTable_.fields) {
+        if (item.isP2pSync) {
+            res.push_back(item.colName);
+        }
+    }
+    return res;
+}
 } // namespace DistributeDB

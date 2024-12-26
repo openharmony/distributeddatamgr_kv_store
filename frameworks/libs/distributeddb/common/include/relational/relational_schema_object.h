@@ -66,6 +66,17 @@ public:
     std::set<std::string> CompareReferenceProperty(const std::vector<TableReferenceProperty> &others) const;
     std::map<std::string, std::map<std::string, bool>> GetReachableRef();
     std::map<std::string, int> GetTableWeight();
+
+    bool CheckDistributedSchemaChange(const DistributedSchema &schema);
+    void SetDistributedSchema(const DistributedSchema &schema);
+    DistributedSchema GetDistributedSchema() const;
+
+    bool IsNeedSkipSyncField(const FieldInfo &fieldInfo, const std::string &tableName,
+        bool ignoreTableNonExist = true) const;
+
+    std::vector<FieldInfo> GetSyncFieldInfo(const std::string &tableName, bool ignoreTableNonExist = true) const;
+
+    DistributedTable GetDistributedTable(const std::string &table) const;
 private:
     int CompareAgainstSchemaObject(const std::string &inSchemaString, std::map<std::string, int> &cmpRst) const;
 
@@ -94,6 +105,9 @@ private:
     int ParseCheckReferenceColumns(const JsonObject &inJsonObject, TableReferenceProperty &tableReferenceProperty);
     // parse one reference column pair
     int ParseCheckReferenceColumn(const JsonObject &inJsonObject, TableReferenceProperty &tableReferenceProperty);
+    int ParseDistributedSchema(const JsonObject &inJsonObject); // parse distributed schema if need
+    int ParseDistributedTables(const JsonObject &inJsonObject); // parse distributed tables if need
+    int ParseDistributedTable(const JsonObject &inJsonObject); // parse distributed table if need
 
     void GenerateSchemaString();
     void GenerateTrackerSchemaString();
@@ -110,6 +124,13 @@ private:
     void RefreshReachableRef(const TableReferenceProperty &referenceProperty);
     void CalculateTableWeight(const std::set<std::string> &startNodes,
         const std::map<std::string, std::set<std::string>> &nextNodes);
+    std::string GetDistributedSchemaString();
+
+    static bool CheckDistributedFieldChange(const std::vector<DistributedField> &source,
+        const std::vector<DistributedField> &target);
+    static std::string GetOneDistributedTableString(const DistributedTable &table);
+    static int ParseDistributedFields(const JsonObject &inJsonObject, std::vector<DistributedField> &fields);
+    static int ParseDistributedField(const JsonObject &inJsonObject, DistributedField &field);
 
     bool isValid_ = false; // set to true after parse success from string or add at least one relational table
     SchemaType schemaType_ = SchemaType::RELATIVE; // Default RELATIVE
@@ -120,6 +141,7 @@ private:
     std::vector<TableReferenceProperty> referenceProperty_;
     std::map<std::string, std::map<std::string, bool>> reachableReference_;
     std::map<std::string, int> tableWeight_;
+    DistributedSchema dbSchema_;
 
     DistributedTableMode tableMode_ = DistributedTableMode::SPLIT_BY_DEVICE;
 };

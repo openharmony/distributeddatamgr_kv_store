@@ -127,6 +127,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
         }
         TableInfo tableInfo = table.second;
         tableInfo.SetTrackerTable(trackerSchemaObj.GetTrackerTable(table.first));
+        tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.first));
         auto manager = LogTableManagerFactory::GetTableManager(mode, tableInfo.GetTableSyncType());
         errCode = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
         if (errCode != E_OK) {

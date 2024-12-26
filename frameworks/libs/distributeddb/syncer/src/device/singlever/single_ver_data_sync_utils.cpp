@@ -646,4 +646,13 @@ void SingleVerDataSyncUtils::CacheInitWaterMark(SingleVerSyncTaskContext *contex
     context->SetInitDeletedMark(deletedMark);
     LOGI("[SingleVerDataSync][CacheInitWaterMark] startMark %" PRIu64 " deletedMark %" PRIu64, startMark, deletedMark);
 }
+
+QuerySyncObject SingleVerDataSyncUtils::GetQueryFromDataRequest(const DataRequestPacket &packet,
+    const SingleVerSyncTaskContext &context, uint32_t sessionId)
+{
+    auto query = packet.GetQuery();
+    query.SetRemoteDev(context.GetDeviceId());
+    query.SetUseLocalSchema(sessionId == context.GetRequestSessionId());
+    return query;
+}
 }

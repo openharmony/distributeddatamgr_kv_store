@@ -34,8 +34,7 @@ SQLiteSingleRelationalStorageEngine::~SQLiteSingleRelationalStorageEngine()
 StorageExecutor *SQLiteSingleRelationalStorageEngine::NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite,
     bool isMemDb)
 {
-    auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE,
-        DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = properties_.GetDistributedTableMode();
     return new (std::nothrow) SQLiteSingleVerRelationalStorageExecutor(dbHandle, isWrite, mode);
 }
 
@@ -281,13 +280,9 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     table.SetTableName(tableName);
     table.SetTableSyncType(tableSyncType);
     table.SetTrackerTable(GetTrackerSchema().GetTrackerTable(tableName));
+    table.SetDistributedTable(schema.GetDistributedTable(tableName));
     if (isUpgraded) {
         table.SetSourceTableReference(schema.GetTable(tableName).GetTableReference());
-    }
-    if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION) {
-        LOGE("current is trackerTable, not support creating device distributed table. %d", errCode);
-        (void)handle->Rollback();
-        return -E_NOT_SUPPORT;
     }
     errCode = CreateDistributedTable(handle, isUpgraded, identity, table, schema);
     if (errCode != E_OK) {
@@ -305,8 +300,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
     bool isUpgraded, const std::string &identity, TableInfo &table, RelationalSchemaObject &schema)
 {
-    auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = properties_.GetDistributedTableMode();
     TableSyncType tableSyncType = table.GetTableSyncType();
     std::string tableName = table.GetTableName();
     int errCode = handle->InitCursorToMeta(tableName);
@@ -314,7 +308,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
         LOGE("init cursor to meta failed. %d", errCode);
         return errCode;
     }
-    errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
+    errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         return errCode;
@@ -355,8 +349,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
         return errCode;
     }
 
-    auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = properties_.GetDistributedTableMode();
     errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema, syncType);
     if (errCode != E_OK) {
         LOGE("Upgrade distributed table failed. %d", errCode);
@@ -511,9 +504,6 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
 int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo,
     bool &isFirstCreate)
 {
-    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        return -E_NOT_SUPPORT;
-    }
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
         OperatePerm::NORMAL_PERM, errCode));
@@ -672,8 +662,7 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
         LOGE("Save schema to meta table for reference failed. %d", errCode);
         return errCode;
     }
-    auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
-        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    auto mode = properties_.GetDistributedTableMode();
     for (auto &table : schema.GetTables()) {
         if (table.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
             continue;
@@ -1126,6 +1115,75 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
             (void)handle->Rollback();
             return errCode;
         }
+    }
+    return handle->Commit();
+}
+
+std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(const DistributedSchema &schema)
+{
+    std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
+    auto schemaObj = GetSchema();
+    std::pair<int, bool> res = {E_OK, schemaObj.CheckDistributedSchemaChange(schema)};
+    auto &[errCode, isSchemaChange] = res;
+    if (!isSchemaChange) {
+        auto localSchema = schemaObj.GetDistributedSchema();
+        if (localSchema.version != 0 && localSchema.version >= schema.version) {
+            LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
+            errCode = -E_INVALID_ARGS;
+        }
+        return res;
+    }
+    errCode = SetDistributedSchemaInner(schemaObj, schema);
+    if (errCode == E_OK) {
+        SetSchema(schemaObj);
+    }
+    return res;
+}
+
+int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSchemaObject &schemaObj,
+    const DistributedSchema &schema)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer resFinalizer([this, handle]() {
+        auto rdbHandle = handle;
+        ReleaseExecutor(rdbHandle);
+    });
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteRelationalUtils::CheckDistributedSchemaValid(schemaObj, schema, handle);
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        return errCode;
+    }
+    bool isFirstCreate = schemaObj.GetDistributedSchema().tables.empty();
+    if (!isFirstCreate) {
+        for (const auto &table : schema.tables) {
+            TableInfo tableInfo = schemaObj.GetTable(table.tableName);
+            if (tableInfo.Empty()) {
+                continue;
+            }
+            errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType());
+            if (errCode != E_OK) {
+                LOGE("Failed to refresh trigger while setting up distributed schema: %d", errCode);
+                (void)handle->Rollback();
+                return errCode;
+            }
+        }
+    }
+    schemaObj.SetDistributedSchema(schema);
+    errCode = SaveSchemaToMetaTable(handle, schemaObj);
+    if (errCode != E_OK) {
+        LOGE("Save schema to meta table for set distributed schema failed. %d", errCode);
+        (void)handle->Rollback();
+        return errCode;
     }
     return handle->Commit();
 }

@@ -202,5 +202,53 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable005, TestSize.L
         index++;
     }
 }
+
+/**
+ * @tc.name: SetDistributedSchema001
+ * @tc.desc: Set distributed schema
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, SetDistributedSchema001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a DistributedSchema;
+     */
+    RelationalSchemaObject schema;
+    DistributedSchema distributedSchema;
+    distributedSchema.version = SOFTWARE_VERSION_CURRENT;
+    DistributedTable table;
+    DistributedField field;
+    field.colName = "field1";
+    field.isP2pSync = true;
+    table.fields.push_back(field);
+    field.colName = "field2";
+    field.isP2pSync = false;
+    table.fields.push_back(field);
+    table.tableName = "table1";
+    distributedSchema.tables.push_back(table);
+    table.tableName = "table2";
+    distributedSchema.tables.push_back(table);
+    schema.SetDistributedSchema(distributedSchema);
+    /**
+     * @tc.steps: step2. DistributedSchema to json string and parse it;
+     * @tc.expected: DistributedSchema is same.
+     */
+    auto schemaStr = schema.ToSchemaString();
+    RelationalSchemaObject parseSchemaObj;
+    EXPECT_EQ(parseSchemaObj.ParseFromSchemaString(schemaStr), E_OK);
+    auto parseSchema = parseSchemaObj.GetDistributedSchema();
+    EXPECT_EQ(parseSchema.version, distributedSchema.version);
+    ASSERT_EQ(parseSchema.tables.size(), distributedSchema.tables.size());
+    for (size_t i = 0; i < parseSchema.tables.size(); ++i) {
+        EXPECT_EQ(parseSchema.tables[i].tableName, distributedSchema.tables[i].tableName);
+        ASSERT_EQ(parseSchema.tables[i].fields.size(), distributedSchema.tables[i].fields.size());
+        for (size_t j = 0; j < parseSchema.tables[i].fields.size(); ++j) {
+            EXPECT_EQ(parseSchema.tables[i].fields[j].colName, distributedSchema.tables[i].fields[j].colName);
+            EXPECT_EQ(parseSchema.tables[i].fields[j].isP2pSync, distributedSchema.tables[i].fields[j].isP2pSync);
+        }
+    }
+}
 }
 #endif // RELATIONAL_STORE

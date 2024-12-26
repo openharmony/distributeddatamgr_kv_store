@@ -966,7 +966,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017,
      * @tc.steps:step2. Create DEVICE_COOPERATION DistributedTable
      * @tc.expected: step2. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step3. operator data on table2
@@ -1022,10 +1022,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest018,
 
     /**
      * @tc.steps:step2. SetTrackerTable on table2
-     * @tc.expected: step2. Return NOT_SUPPORT.
+     * @tc.expected: step2. Return OK.
      */
     TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
 
     /**
      * @tc.steps:step3. operator data on table2
@@ -1036,10 +1036,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest018,
 
     /**
      * @tc.steps:step4. unSetTrackerTable
-     * @tc.expected: step4. Return NOT_SUPPORT.
+     * @tc.expected: step4. Return OK.
      */
     schema.trackerColNames = {};
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
 
     /**
      * @tc.steps:step5. operator data on table2
@@ -2307,6 +2307,73 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039,
         EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
     }
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest038
+  * @tc.desc: Test create distributed table with DEVICE_COOPERATION mode then set tracker table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tankaisheng
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create DEVICE_COOPERATION DistributedTable
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. SetTrackerTable on table2
+     * @tc.expected: step2. Return OK.
+     */
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+
+    /**
+     * @tc.steps:step3. Insert data to table2 then check tracker table data
+     * @tc.expected: step3. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    std::string checkInsertSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where cursor='10';";
+    ASSERT_EQ(sqlite3_exec(g_db, checkInsertSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step4. Update data to table2 then check tracker table data
+     * @tc.expected: step4. Return E_OK.
+     */
+    uint64_t updateNum = 2;
+    BatchUpdateTableName2Data(updateNum, LOCAL_TABLE_TRACKER_NAME_SET2);
+    int index = 0;
+    string checkUpdateSql = "select json_extract(extend_field, '$.name'), cursor from " +
+       DBCommon::GetLogTableName(TABLE_NAME2) + " where data_key <= " + std::to_string(updateNum);
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, checkUpdateSql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string extendVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
+        EXPECT_EQ(extendVal, "1");
+        std::string cursorVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
+        EXPECT_EQ(cursorVal, std::to_string(num + (++index)));
+    }
+
+    /**
+     * @tc.steps:step5. Delete data to table2 then check tracker table data
+     * @tc.expected: step5. Return E_OK.
+     */
+    BatchDeleteTableName2Data(num / HALF);
+    std::string checkDeleteSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " where cursor='17';";
+    ASSERT_EQ(sqlite3_exec(g_db, checkDeleteSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
     CloseStore();
 }
 

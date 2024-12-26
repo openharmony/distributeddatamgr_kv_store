@@ -37,6 +37,10 @@ public:
     void SchemaChange() override;
 
     bool IsSchemaCompatible() const override;
+
+    bool IsRemoteSupportFieldSync() const;
+
+    int GetDistributedSchema(RelationalSchemaObject &schemaObj) const;
 protected:
     ~SingleVerRelationalSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;

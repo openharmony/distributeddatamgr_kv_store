@@ -660,7 +660,9 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
 
-    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[3])); // 3 is param index
+    auto changeStatus = static_cast<uint64_t>(sqlite3_value_int(argv[3])); // 3 is param index
+    bool isTrackerChange = (changeStatus & CloudDbConstant::ON_CHANGE_TRACKER) != 0;
+    bool isP2pChange = (changeStatus & CloudDbConstant::ON_CHANGE_P2P) != 0;
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -672,10 +674,13 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
         if (isExistObserver) {
             auto itTable = g_clientChangedDataMap[hashFileName].tableData.find(tableName);
             if (itTable != g_clientChangedDataMap[hashFileName].tableData.end()) {
-                itTable->second.isTrackedDataChange =
-                    (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
+                itTable->second.isTrackedDataChange |= isTrackerChange;
+                itTable->second.isP2pSyncDataChange |= isP2pChange;
             } else {
-                DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
+                DistributedDB::ChangeProperties properties = {
+                    .isTrackedDataChange = isTrackerChange,
+                    .isP2pSyncDataChange = isP2pChange
+                };
                 g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
             }
         }

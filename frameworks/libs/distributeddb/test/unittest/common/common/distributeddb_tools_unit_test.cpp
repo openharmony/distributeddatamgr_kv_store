@@ -28,11 +28,14 @@
 #include <sys/types.h>
 
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_sync_utils_test.h"
 #include "cloud/cloud_db_types.h"
+#include "cloud/virtual_cloud_data_translate.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
 #include "platform_specific.h"
+#include "res_finalizer.h"
 #include "runtime_config.h"
 #include "single_ver_data_packet.h"
 #include "sqlite_relational_utils.h"
@@ -700,6 +703,24 @@ std::string DistributedDBToolsUnitTest::GetKvNbStoreDirectory(const std::string 
     return dbDir + "/" + identifierName + "/" + dbFilePath;
 }
 
+void DistributedDBToolsUnitTest::BlockSync(RelationalStoreDelegate &delegate, const Query &query,
+    DistributedDB::SyncMode syncMode, DistributedDB::DBStatus exceptStatus,
+    const std::vector<std::string> &devices)
+{
+    std::map<std::string, std::vector<TableStatus>> statusMap;
+    SyncStatusCallback callBack = [&statusMap](
+        const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+        statusMap = devicesMap;
+    };
+    DBStatus callStatus = delegate.Sync(devices, syncMode, query, callBack, true);
+    EXPECT_EQ(callStatus, OK);
+    for (const auto &tablesRes : statusMap) {
+        for (const auto &tableStatus : tablesRes.second) {
+            EXPECT_EQ(tableStatus.status, exceptStatus);
+        }
+    }
+}
+
 KvStoreObserverUnitTest::KvStoreObserverUnitTest() : callCount_(0), isCleared_(false)
 {}
 
@@ -797,6 +818,7 @@ void RelationalStoreObserverUnitTest::OnChange(
 {
     cloudCallCount_++;
     savedChangedData_[data.tableName] = data;
+    lastOrigin_ = origin;
     LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
 }
 
@@ -940,6 +962,11 @@ const std::string RelationalStoreObserverUnitTest::GetDataChangeDevice() const
 DistributedDB::StoreProperty RelationalStoreObserverUnitTest::GetStoreProperty() const
 {
     return storeProperty_;
+}
+
+std::unordered_map<std::string, DistributedDB::ChangedData> RelationalStoreObserverUnitTest::GetSavedChangedData() const
+{
+    return savedChangedData_;
 }
 
 DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
@@ -1304,6 +1331,18 @@ void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
     DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect,
     DistributedDB::DBStatus callbackExpect)
 {
+    DistributedDB::CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.query = query;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    CloudBlockSync(option, delegate, expect, callbackExpect);
+}
+
+void RelationalTestUtils::CloudBlockSync(const DistributedDB::CloudSyncOption &option,
+    DistributedDB::RelationalStoreDelegate *delegate,
+    DistributedDB::DBStatus expect, DistributedDB::DBStatus callbackExpect)
+{
     ASSERT_NE(delegate, nullptr);
     std::mutex dataMutex;
     std::condition_variable cv;
@@ -1320,7 +1359,7 @@ void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
             }
         }
     };
-    ASSERT_EQ(delegate->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, DBConstant::MAX_TIMEOUT), expect);
+    ASSERT_EQ(delegate->Sync(option, callback), expect);
     if (expect != DistributedDB::DBStatus::OK) {
         return;
     }
@@ -1510,6 +1549,62 @@ int RelationalTestUtils::DeleteRecord(sqlite3 *db, const std::string &tableName,
     return errCode;
 }
 
+bool RelationalTestUtils::IsExistEmptyHashAsset(sqlite3 *db, const DistributedDB::TableSchema &schema)
+{
+    if (db == nullptr) {
+        return false;
+    }
+    std::vector<Field> assetCol;
+    for (const auto &field : schema.fields) {
+        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+            assetCol.push_back(field);
+        }
+    }
+    if (assetCol.empty()) {
+        return false;
+    }
+    std::string sql = "SELECT ";
+    for (const auto &field : assetCol) {
+        sql += field.colName + ",";
+    }
+    sql.pop_back();
+    sql += " FROM " + schema.name;
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return false;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+    });
+    VirtualCloudDataTranslate translate;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        for (int index = 0; index < static_cast<int>(assetCol.size()); index++) {
+            Value value;
+            (void)SQLiteUtils::GetColumnBlobValue(stmt, index, value);
+            Assets assets;
+            if (assetCol[index].type == TYPE_INDEX<Asset>) {
+                assets.push_back(translate.BlobToAsset(value));
+            } else {
+                assets = translate.BlobToAssets(value);
+            }
+            if (IsExistEmptyHashAsset(assets)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool RelationalTestUtils::IsExistEmptyHashAsset(const DistributedDB::Assets &assets)
+{
+    return std::any_of(assets.begin(), assets.end(), [](const Asset &asset) {
+        return asset.hash.empty();
+    });
+}
+
 bool DBInfoHandleTest::IsSupport()
 {
     std::lock_guard<std::mutex> autoLock(supportMutex_);
@@ -1533,5 +1628,19 @@ void DBInfoHandleTest::SetNeedAutoSync(bool needAutoSync)
 {
     std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
     isNeedAutoSync_ = needAutoSync;
+}
+
+bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) const
+{
+    auto changeData = savedChangedData_.find(table);
+    if (changeData == savedChangedData_.end()) {
+        return false;
+    }
+    return changeData->second.type == ChangedDataType::ASSET;
+}
+
+DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
+{
+    return lastOrigin_;
 }
 } // namespace DistributedDBUnitTest

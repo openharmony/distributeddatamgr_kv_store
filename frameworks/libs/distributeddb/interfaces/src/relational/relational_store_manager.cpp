@@ -99,6 +99,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
 
     RelationalDBProperties properties;
     properties.SetStringProp(RelationalDBProperties::DATA_DIR, canonicalDir);
+    properties.SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(option.tableMode));
     properties.SetIdentifier(userId_, appId_, storeId, subUser_, instanceId_);
     properties.SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
     if (option.isEncryptedDb) {

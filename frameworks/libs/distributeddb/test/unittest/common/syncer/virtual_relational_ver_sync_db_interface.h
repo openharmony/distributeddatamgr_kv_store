@@ -113,7 +113,7 @@ public:
 
     int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
 
-    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
+    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) const override;
 
     int GetSchemaFromDB(RelationalSchemaObject &schema) override;
 
@@ -122,6 +122,8 @@ public:
     int GetSecurityOption(SecurityOption &option) const override;
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
+
+    void SetDistributedSchema(const DistributedSchema &schema);
 private:
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::map<std::string, std::map<std::string, VirtualRowData>, CaseInsensitiveComparator> syncData_;
@@ -134,6 +136,8 @@ private:
     SecurityOption secOption_;
     bool permitCreateDistributedTable_ = true;
     uint64_t dbCreateTime_;
+    mutable std::mutex remoteSchemaMutex_;
+    std::map<std::string, std::string> remoteSchema_;
 };
 }
 #endif

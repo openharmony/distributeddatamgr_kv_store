@@ -165,8 +165,7 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
         LOGE("Failed to check store path, the input path does not match with cached store.");
         return -E_INVALID_ARGS;
     }
-    if (prop.GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE) !=
-        existedProp.GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE)) {
+    if (prop.GetDistributedTableMode() != existedProp.GetDistributedTableMode()) {
         LOGE("Failed to check table mode.");
         return -E_INVALID_ARGS;
     }

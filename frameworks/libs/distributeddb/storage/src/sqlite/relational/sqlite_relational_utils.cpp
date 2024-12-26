@@ -465,4 +465,191 @@ int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, 
     }
     return cursor == DBConstant::INVALID_CURSOR ? errCode : E_OK;
 }
+
+void GetFieldsNeedContain(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
+    std::set<std::string> &fieldsNeedContain)
+{
+    for (const auto &syncField : syncFields) {
+        fieldsNeedContain.insert(syncField.GetFieldName());
+    }
+    for (const auto &primaryKey : tableInfo.GetPrimaryKey()) {
+        fieldsNeedContain.insert(primaryKey.second);
+    }
+    const std::vector<CompositeFields> &uniqueDefines = tableInfo.GetUniqueDefine();
+    for (const auto &compositeFields : uniqueDefines) {
+        for (const auto &fieldName : compositeFields) {
+            fieldsNeedContain.insert(fieldName);
+        }
+    }
+    const FieldInfoMap &fieldInfoMap = tableInfo.GetFields();
+    for (const auto &entry : fieldInfoMap) {
+        const FieldInfo &fieldInfo = entry.second;
+        if (fieldInfo.IsNotNull() && fieldInfo.GetDefaultValue().empty()) {
+            fieldsNeedContain.insert(fieldInfo.GetFieldName());
+        }
+    }
+}
+
+int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
+    const std::vector<DistributedField> &fields)
+{
+    if (fields.empty()) {
+        LOGE("fields cannot be empty");
+        return -E_SCHEMA_MISMATCH;
+    }
+    for (const auto &field : fields) {
+        if (!tableInfo.IsFieldExist(field.colName)) {
+            LOGE("Column[%s [%zu]] not found in table", DBCommon::StringMiddleMasking(field.colName).c_str(),
+                 field.colName.size());
+            return -E_SCHEMA_MISMATCH;
+        }
+    }
+    std::set<std::string> fieldsNeedContain;
+    GetFieldsNeedContain(tableInfo, syncFields, fieldsNeedContain);
+    std::set<std::string> fieldsMap;
+    for (auto &field : fields) {
+        fieldsMap.insert(field.colName);
+    }
+    for (auto &fieldNeedContain : fieldsNeedContain) {
+        if (fieldsMap.find(fieldNeedContain) == fieldsMap.end()) {
+            LOGE("Required column[%s [%zu]] not found", DBCommon::StringMiddleMasking(fieldNeedContain).c_str(),
+                fieldNeedContain.size());
+            return -E_DISTRIBUTED_FIELD_DECREASE;
+        }
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj,
+    const DistributedSchema &schema, SQLiteSingleVerRelationalStorageExecutor *executor)
+{
+    if (executor == nullptr) {
+        LOGE("[RDBUtils][CheckDistributedSchemaValid] executor is null");
+        return -E_INVALID_ARGS;
+    }
+    sqlite3 *db;
+    int errCode = executor->GetDbHandle(db);
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils][CheckDistributedSchemaValid] sqlite handle failed %d", errCode);
+        return errCode;
+    }
+    for (const auto &table : schema.tables) {
+        if (table.tableName.empty()) {
+            LOGE("[RDBUtils][CheckDistributedSchemaValid] Table name cannot be empty");
+            return -E_SCHEMA_MISMATCH;
+        }
+        TableInfo tableInfo;
+        errCode = SQLiteUtils::AnalysisSchema(db, table.tableName, tableInfo);
+        if (errCode != E_OK) {
+            LOGE("[RDBUtils][CheckDistributedSchemaValid] analyze table %s failed %d",
+                DBCommon::StringMiddleMasking(table.tableName).c_str(), errCode);
+            return errCode == -E_NOT_FOUND ? -E_SCHEMA_MISMATCH : errCode;
+        }
+        errCode = CheckDistributedSchemaFields(tableInfo, schemaObj.GetSyncFieldInfo(table.tableName, false),
+            table.fields);
+        if (errCode != E_OK) {
+            LOGE("[CheckDistributedSchema] Check fields of [%s [%zu]] fail",
+                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size());
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+DistributedSchema SQLiteRelationalUtils::FilterRepeatDefine(const DistributedSchema &schema)
+{
+    DistributedSchema res;
+    res.version = schema.version;
+    std::set<std::string> tableName;
+    std::list<DistributedTable> tableList;
+    for (auto it = schema.tables.rbegin();it != schema.tables.rend(); it++) {
+        if (tableName.find(it->tableName) != tableName.end()) {
+            continue;
+        }
+        tableName.insert(it->tableName);
+        tableList.push_front(FilterRepeatDefine(*it));
+    }
+    for (auto &item : tableList) {
+        res.tables.push_back(std::move(item));
+    }
+    return res;
+}
+
+DistributedTable SQLiteRelationalUtils::FilterRepeatDefine(const DistributedTable &table)
+{
+    DistributedTable res;
+    res.tableName = table.tableName;
+    std::set<std::string> fieldName;
+    std::list<DistributedField> fieldList;
+    for (auto it = table.fields.rbegin();it != table.fields.rend(); it++) {
+        if (fieldName.find(it->colName) != fieldName.end()) {
+            continue;
+        }
+        fieldName.insert(it->colName);
+        fieldList.push_front(*it);
+    }
+    for (auto &item : fieldList) {
+        res.fields.push_back(std::move(item));
+    }
+    return res;
+}
+
+int SQLiteRelationalUtils::GetLogData(sqlite3_stmt *logStatement, LogInfo &logInfo)
+{
+    logInfo.dataKey = sqlite3_column_int64(logStatement, 0);  // 0 means dataKey index
+
+    std::vector<uint8_t> dev;
+    int errCode = SQLiteUtils::GetColumnBlobValue(logStatement, 1, dev);  // 1 means dev index
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Get dev failed %d", errCode);
+        return errCode;
+    }
+    logInfo.device = std::string(dev.begin(), dev.end());
+
+    std::vector<uint8_t> oriDev;
+    errCode = SQLiteUtils::GetColumnBlobValue(logStatement, 2, oriDev);  // 2 means ori_dev index
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Get ori dev failed %d", errCode);
+        return errCode;
+    }
+    logInfo.originDev = std::string(oriDev.begin(), oriDev.end());
+    logInfo.timestamp = static_cast<uint64_t>(sqlite3_column_int64(logStatement, 3));  // 3 means timestamp index
+    logInfo.wTimestamp = static_cast<uint64_t>(sqlite3_column_int64(logStatement, 4));  // 4 means w_timestamp index
+    logInfo.flag = static_cast<uint64_t>(sqlite3_column_int64(logStatement, 5));  // 5 means flag index
+    logInfo.flag &= (~DataItem::LOCAL_FLAG);
+    logInfo.flag &= (~DataItem::UPDATE_FLAG);
+    errCode = SQLiteUtils::GetColumnBlobValue(logStatement, 6, logInfo.hashKey);  // 6 means hashKey index
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Get hashKey failed %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode,
+    const DataItem &dataItem, LogInfo &logInfoGet)
+{
+    if (queryStmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::BindBlobToStatement(queryStmt, 1, dataItem.hashKey);  // 1 means hash key index.
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Bind hashKey failed %d", errCode);
+        return errCode;
+    }
+    if (mode != DistributedTableMode::COLLABORATION) {
+        errCode = SQLiteUtils::BindTextToStatement(queryStmt, 2, dataItem.dev);  // 2 means device index.
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRDBUtils] Bind dev failed %d", errCode);
+            return errCode;
+        }
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(queryStmt, false); // rdb not exist mem db
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = -E_NOT_FOUND;
+    } else {
+        errCode = SQLiteRelationalUtils::GetLogData(queryStmt, logInfoGet);
+    }
+    return errCode;
+}
 } // namespace DistributedDB

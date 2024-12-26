@@ -123,6 +123,25 @@ void MultiCombineTest(FuzzedDataProvider *fdp, const std::string &tableName,
     g_delegate->ExecuteSql(sqlCondition, sqlRecords);
 }
 
+void TestDistributedSchema(FuzzedDataProvider *fdp)
+{
+    DistributedSchema schema;
+    schema.version = fdp->ConsumeIntegral<uint32_t>();
+    auto fieldSize = fdp->ConsumeIntegral<uint32_t>() % 30; // 30 is mod for field size
+    auto tableSize = fdp->ConsumeIntegral<uint32_t>() % 30; // 30 is mod for table size
+    for (uint32_t i = 0; i < tableSize; ++i) {
+        DistributedTable table;
+        table.tableName = fdp->ConsumeRandomLengthString();
+        for (uint32_t j = 0; j < fieldSize; j++) {
+            DistributedField field;
+            field.colName = fdp->ConsumeRandomLengthString();
+            table.fields.push_back(field);
+        }
+        schema.tables.push_back(table);
+    }
+    g_delegate->SetDistributedSchema(schema);
+}
+
 void CombineTest(const uint8_t *data, size_t size)
 {
     auto observer = new (std::nothrow) DistributedDB::StoreObserver;
@@ -173,6 +192,8 @@ void CombineTest(const uint8_t *data, size_t size)
     g_delegate->UnRegisterObserver();
     delete observer;
     observer = nullptr;
+
+    TestDistributedSchema(&fdp);
 }
 }
 

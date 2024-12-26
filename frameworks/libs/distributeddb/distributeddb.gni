@@ -156,6 +156,7 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sqlite/query_sync_object.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/cloud_sync_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/collaboration_log_table_manager.cpp",
+  "${distributeddb_path}/storage/src/sqlite/relational/device_tracker_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/log_table_manager_factory.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/relational_remote_query_continue_token.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/simple_tracker_log_table_manager.cpp",

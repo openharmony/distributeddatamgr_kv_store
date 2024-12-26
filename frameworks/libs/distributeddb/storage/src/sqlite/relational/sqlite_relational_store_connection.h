@@ -68,6 +68,8 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
+
+    int SetDistributedDbSchema(const DistributedSchema &schema) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

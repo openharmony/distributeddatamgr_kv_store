@@ -336,8 +336,10 @@ int VirtualRelationalVerSyncDBInterface::ExecuteQuery(const PreparedStmt &prepSt
 }
 
 int VirtualRelationalVerSyncDBInterface::SaveRemoteDeviceSchema(const std::string &deviceId,
-    const std::string &remoteSchema, uint8_t type)
+    const std::string &remoteSchema, [[gnu::unused]] uint8_t type)
 {
+    std::lock_guard<std::mutex> autoLock(remoteSchemaMutex_);
+    remoteSchema_[deviceId] = remoteSchema;
     return E_OK;
 }
 
@@ -347,9 +349,18 @@ int VirtualRelationalVerSyncDBInterface::GetSchemaFromDB(RelationalSchemaObject 
 }
 
 int VirtualRelationalVerSyncDBInterface::GetRemoteDeviceSchema(const std::string &deviceId,
-    RelationalSchemaObject &schemaObj)
+    RelationalSchemaObject &schemaObj) const
 {
-    return E_OK;
+    if (schemaObj.IsSchemaValid()) {
+        LOGE("schema is already valid");
+        return -E_INVALID_ARGS;
+    }
+    std::lock_guard<std::mutex> autoLock(remoteSchemaMutex_);
+    auto schema = remoteSchema_.find(deviceId);
+    if (schema == remoteSchema_.end()) {
+        return -E_NOT_FOUND;
+    }
+    return schemaObj.ParseFromSchemaString(schema->second);
 }
 
 void VirtualRelationalVerSyncDBInterface::SetPermitCreateDistributedTable(bool permitCreateDistributedTable)
@@ -384,6 +395,12 @@ void VirtualRelationalVerSyncDBInterface::ReleaseRemoteQueryContinueToken(Contin
     delete remoteToken;
     remoteToken = nullptr;
     token = nullptr;
+}
+
+void VirtualRelationalVerSyncDBInterface::SetDistributedSchema(const DistributedDB::DistributedSchema &schema)
+{
+    schemaObj_.SetTableMode(DistributedTableMode::COLLABORATION);
+    schemaObj_.SetDistributedSchema(schema);
 }
 }
 #endif

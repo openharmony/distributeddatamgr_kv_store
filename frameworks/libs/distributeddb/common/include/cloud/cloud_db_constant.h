@@ -88,6 +88,9 @@ public:
     static constexpr const int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
     static constexpr const int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
     static constexpr const int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
+
+    static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;
+    static constexpr const uint32_t ON_CHANGE_P2P = 0x2;
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

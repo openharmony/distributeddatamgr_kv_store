@@ -66,5 +66,11 @@ uint32_t RelationalDBProperties::GetIterTimes() const
 {
     return iterTimes_;
 }
+
+DistributedTableMode RelationalDBProperties::GetDistributedTableMode() const
+{
+    auto defaultMode = static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE);
+    return static_cast<DistributedTableMode>(GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, defaultMode));
+}
 }
 #endif

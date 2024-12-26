@@ -114,6 +114,9 @@ public:
     static void UpdateSyncProcess(SingleVerSyncTaskContext *context, const DataRequestPacket *packet);
 
     static void CacheInitWaterMark(SingleVerSyncTaskContext *context, SingleVerDataSync *dataSync);
+
+    static QuerySyncObject GetQueryFromDataRequest(const DataRequestPacket &packet,
+        const SingleVerSyncTaskContext &context, uint32_t sessionId);
 private:
     static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet, int mode);

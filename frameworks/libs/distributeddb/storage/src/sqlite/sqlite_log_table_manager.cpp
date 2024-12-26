@@ -33,7 +33,11 @@ int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const Table
     if (!deleteTrigger.empty()) {
         sqls.emplace_back(deleteTrigger);
     }
-    // add insert,update,delete trigger
+    std::string updatePkTrigger = GetUpdatePkTrigger(table, identity);
+    if (!updatePkTrigger.empty()) {
+        sqls.emplace_back(updatePkTrigger);
+    }
+    // add insert,update,delete,update pk trigger
     for (const auto &sql : sqls) {
         int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (errCode != E_OK) {
@@ -149,6 +153,36 @@ int SqliteLogTableManager::CreateKvCloudFlagIndex(const std::string &tableName, 
         LOGE("[LogTableManager] add cloud_flag index failed, errCode=%d", errCode);
     }
     return errCode;
+}
+
+std::string SqliteLogTableManager::GetUpdatePkTrigger([[gnu::unused]] const TableInfo &table,
+    [[gnu::unused]] const std::string &identity)
+{
+    return "";
+}
+
+std::string SqliteLogTableManager::GetUpdateTimestamp(const TableInfo &table, bool defaultNewTime)
+{
+    return GetUpdateWithAssignSql(table, "get_sys_time(0)", "get_sys_time(0)",
+        defaultNewTime ? "get_sys_time(0)" : "timestamp");
+}
+
+std::string SqliteLogTableManager::GetUpdateWithAssignSql(const TableInfo &table, const std::string &emptyValue,
+    const std::string &matchValue, const std::string &missMatchValue)
+{
+    auto syncFields = table.GetSyncField();
+    if (syncFields.empty() || table.GetFields().size() <= syncFields.size()) {
+        return emptyValue;
+    }
+    std::string sql = " CASE WHEN (";
+    for (const auto &field : syncFields) {
+        sql.append("(").append("OLD.").append(field).append("!= NEW.").append(field).append(") OR");
+    }
+    // pop last OR
+    sql.pop_back();
+    sql.pop_back();
+    sql.append(") THEN ").append(matchValue).append(" ELSE ").append(missMatchValue).append(" END");
+    return sql;
 }
 
 int CheckTriggerExist(sqlite3 *db, const TableInfo &table, const std::string &triggerType, bool &exist)

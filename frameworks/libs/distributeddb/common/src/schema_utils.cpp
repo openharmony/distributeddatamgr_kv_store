@@ -515,4 +515,50 @@ void SchemaUtils::TransTrackerSchemaToLower(const TrackerSchema &srcSchema, Trac
         destSchema.trackerColNames.insert(DBCommon::ToLowerCase(srcName));
     }
 }
+
+int SchemaUtils::ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field,
+    JsonObject &out)
+{
+    FieldType fieldType;
+    auto fieldPath = FieldPath {field};
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::INTERNAL_FIELD_OBJECT != fieldType) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
+            SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    errCode = inJsonObject.GetObjectByFieldPath(fieldPath, out);
+    if (errCode != E_OK) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    return E_OK;
+}
+
+int SchemaUtils::ExtractJsonObjArray(const JsonObject &inJsonObject, const std::string &field,
+    std::vector<JsonObject> &out)
+{
+    FieldType fieldType;
+    auto fieldPath = FieldPath {field};
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
+            SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    errCode = inJsonObject.GetObjectArrayByFieldPath(fieldPath, out);
+    if (errCode != E_OK) {
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    return E_OK;
+}
 } // namespace DistributedDB

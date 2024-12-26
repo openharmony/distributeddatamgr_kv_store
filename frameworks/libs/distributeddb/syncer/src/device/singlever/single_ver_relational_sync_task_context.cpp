@@ -15,6 +15,7 @@
 
 #include "single_ver_relational_sync_task_context.h"
 #include "db_common.h"
+#include "relational_db_sync_interface.h"
 
 #ifdef RELATIONAL_STORE
 namespace DistributedDB {
@@ -28,8 +29,26 @@ SingleVerRelationalSyncTaskContext::~SingleVerRelationalSyncTaskContext()
 
 std::string SingleVerRelationalSyncTaskContext::GetQuerySyncId() const
 {
+    RelationalSchemaObject schemaObj;
+    if (!IsRemoteSupportFieldSync() || GetDistributedSchema(schemaObj) != E_OK) {
+        std::lock_guard<std::mutex> autoLock(querySyncIdMutex_);
+        return querySyncId_;
+    }
+
+    std::string tableName = GetQuery().GetRelationTableName();
+    std::vector<FieldInfo> fieldsInfo = schemaObj.GetSyncFieldInfo(tableName);
+    std::vector<std::string> strFields(fieldsInfo.size());
+    for (const auto &field : fieldsInfo) {
+        strFields.push_back(field.GetFieldName());
+    }
+    std::sort(strFields.begin(), strFields.end());
+    std::string splitFields;
+    for (const auto &strField : strFields) {
+        splitFields += strField;
+    }
+    std::string queryFieldsSyncId = DBCommon::TransferHashString(splitFields);
     std::lock_guard<std::mutex> autoLock(querySyncIdMutex_);
-    return querySyncId_;
+    return querySyncId_ + DBCommon::TransferStringToHex(queryFieldsSyncId);
 }
 
 std::string SingleVerRelationalSyncTaskContext::GetDeleteSyncId() const
@@ -106,6 +125,21 @@ bool SingleVerRelationalSyncTaskContext::IsSchemaCompatible() const
         }
     }
     return true;
+}
+
+bool SingleVerRelationalSyncTaskContext::IsRemoteSupportFieldSync() const
+{
+    return GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_10_0;
+}
+
+int SingleVerRelationalSyncTaskContext::GetDistributedSchema(RelationalSchemaObject &schemaObj) const
+{
+    auto *relationalDbSyncInterface = static_cast<RelationalDBSyncInterface*>(syncInterface_);
+    if (SyncTaskContext::GetMode() == SyncModeType::RESPONSE_PULL) {
+        return relationalDbSyncInterface->GetRemoteDeviceSchema(GetDeviceId(), schemaObj);
+    }
+    schemaObj = relationalDbSyncInterface->GetSchemaInfo();
+    return E_OK;
 }
 }
 #endif

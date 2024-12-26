@@ -61,6 +61,8 @@ public:
     std::pair<std::vector<std::string>, int> CalTableRef(const std::vector<std::string> &tableNames,
         const std::map<std::string, std::string> &sharedTableOriginNames);
     int UpdateExtendField(const TrackerSchema &schema);
+
+    std::pair<int, bool> SetDistributedSchema(const DistributedSchema &schema);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
@@ -121,6 +123,8 @@ private:
 
     int CheckIfExistUserTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const DataBaseSchema &cloudSchema,
         const std::map<std::string, std::string> &alterTableNames, const RelationalSchemaObject &schema);
+
+    int SetDistributedSchemaInner(RelationalSchemaObject &schemaObj, const DistributedSchema &schema);
 
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;

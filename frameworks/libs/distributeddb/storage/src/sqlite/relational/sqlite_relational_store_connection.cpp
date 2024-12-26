@@ -16,6 +16,7 @@
 #include "sqlite_relational_store_connection.h"
 #include "db_errno.h"
 #include "log_print.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
 SQLiteRelationalStoreConnection::SQLiteRelationalStoreConnection(SQLiteRelationalStore *store)
@@ -475,6 +476,16 @@ SyncProcess SQLiteRelationalStoreConnection::GetCloudTaskStatus(uint64_t taskId)
     SyncProcess process = store->GetCloudTaskStatus(taskId);
     DecObjRef(this);
     return process;
+}
+
+int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSchema &schema)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set distributed schema");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetDistributedSchema(SQLiteRelationalUtils::FilterRepeatDefine(schema));
 }
 }
 #endif

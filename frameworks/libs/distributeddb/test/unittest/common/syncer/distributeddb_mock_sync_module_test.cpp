@@ -39,10 +39,8 @@
 #include "single_ver_kv_syncer.h"
 #include "single_ver_relational_sync_task_context.h"
 #include "virtual_communicator_aggregator.h"
-#include "virtual_single_ver_sync_db_Interface.h"
-#ifdef DATA_SYNC_CHECK_003
 #include "virtual_relational_ver_sync_db_interface.h"
-#endif
+#include "virtual_single_ver_sync_db_Interface.h"
 
 using namespace testing::ext;
 using namespace testing;
@@ -1881,6 +1879,57 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Leve
     RefObject::KillAndDecObjRef(context);
     RefObject::KillAndDecObjRef(communicator);
 }
+
+/**
+ * @tc.name: SyncTaskContextCheck007
+ * @tc.desc: test get query sync id for field sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare context
+     * @tc.expected: OK
+     */
+    auto context = new (std::nothrow) SingleVerRelationalSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    SingleVerSyncStateMachine stateMachine;
+    VirtualCommunicator communicator("device", nullptr);
+    VirtualRelationalVerSyncDBInterface dbSyncInterface;
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
+    (void)context->Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)stateMachine.Initialize(context, &dbSyncInterface, metadata, &communicator);
+    /**
+     * @tc.steps: step2. prepare table and query
+     * @tc.expected: OK
+     */
+    FieldInfo field;
+    field.SetFieldName("abc");
+    field.SetColumnId(0);
+    TableInfo table;
+    table.SetTableName("tableA");
+    table.AddField(field);
+    RelationalSchemaObject schemaObj;
+    schemaObj.AddRelationalTable(table);
+    dbSyncInterface.SetSchemaInfo(schemaObj);
+    QuerySyncObject query;
+    query.SetTableName("tableA");
+    context->SetQuery(query);
+    /**
+     * @tc.steps: step3. get and check queryId
+     * @tc.expected: OK
+     */
+    context->SetRemoteSoftwareVersion(SOFTWARE_VERSION_CURRENT);
+    std::string expectQuerySyncId = DBCommon::TransferStringToHex(DBCommon::TransferHashString("abc"));
+    std::string actualQuerySyncId = context->GetQuerySyncId();
+    EXPECT_EQ(expectQuerySyncId, actualQuerySyncId);
+    context->Clear();
+    RefObject::KillAndDecObjRef(context);
+}
+
 #ifdef RUN_AS_ROOT
 /**
  * @tc.name: TimeChangeListenerTest001
