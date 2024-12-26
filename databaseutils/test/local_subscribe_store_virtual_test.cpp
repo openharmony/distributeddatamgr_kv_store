@@ -134,7 +134,7 @@ void KvStoreObserverUnitTestVirtual::OnChangeVirtual(const ChangeNotification &c
 void KvStoreObserverUnitTestVirtual::ResetToZero()
 {
     std::lock_guard<decltype(mutexVirtual_)> guard(mutexVirtual_);
-    callCountVirtual_= 0;
+    callCountVirtual_ = 0;
     valueVirtual_Virtual.Clear(0);
 }
 
