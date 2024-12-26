@@ -94,6 +94,8 @@ ohos_unittest("DataQueryVirtualTest") {
   sources = [
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
     "data_query_virtual_test.cpp",
+    "delegate_mgr_callback_virtual_test.cpp",
+    "distributed_kv_data_manager_vritual_test.cpp",
   ]
 
   configs = [ ":database_utils_config" ]

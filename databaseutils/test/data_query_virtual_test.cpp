@@ -738,4 +738,447 @@ HWTEST_F(DataQueryVirtualTest, NotInString, TestSize.Level0)
     EXPECT_EQ(queryNotInString.str_,
         std::string(DataQuery::NOT_IN) + " " + DataQuery::TYPE_STRING + " field1 testValue");
 }
+
+/**
+ * @tc.name: Like_ValidFieldAndValue_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: Like_ValidFieldAndValue_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, Like_ValidFieldAndValue_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("Like_ValidFieldAndValue_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryLikeMock = std::make_shared<DataQuery>();
+    DataQuery queryLike;
+    EXPECT_CALL(*queryLikeMock, Like("field", "value")).Times(1);
+    queryLike.Like("field", "value");
+    EXPECT_EQ(queryLike.ToString(), std::string(DataQuery::LIKE) + " field value");
+}
+
+/**
+ * @tc.name: Unlike_ValidFieldAndValue_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: Unlike_ValidFieldAndValue_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, Unlike_ValidFieldAndValue_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("Unlike_ValidFieldAndValue_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryUnlikeMock = std::make_shared<DataQuery>();
+    DataQuery queryUnlike;
+    EXPECT_CALL(*queryUnlikeMock, NotLike("field", "value")).Times(1);
+    queryUnlike.Unlike("field", "value");
+    EXPECT_EQ(queryUnlike.ToString(), std::string(DataQuery::NOT_LIKE) + " field1 testValue");
+}
+
+/**
+ * @tc.name: And_AppendsAndToQuery
+ * @tc.desc:
+ * @tc.type: And_AppendsAndToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, And_AppendsAndToQuery, TestSize.Level0)
+{
+    ZLOGI("And_AppendsAndToQuery begin.");
+    std::shared_ptr<DataQuery> queryAndMock = std::make_shared<DataQuery>();
+    DataQuery queryAnd;
+    EXPECT_CALL(*queryAndMock, And()).Times(1);
+    queryAnd.And();
+    EXPECT_EQ(queryAnd.ToString(), " AND");
+}
+
+/**
+ * @tc.name: Or_AppendsOrToQuery
+ * @tc.desc:
+ * @tc.type: Or_AppendsOrToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, Or_AppendsOrToQuery, TestSize.Level0)
+{
+    ZLOGI("Or_AppendsOrToQuery begin.");
+    std::shared_ptr<DataQuery> queryOrMock = std::make_shared<DataQuery>();
+    DataQuery queryOr;
+    EXPECT_CALL(*queryOrMock, Or()).Times(1);
+    queryOr.Or();
+    EXPECT_EQ(queryOr.ToString(), " OR");
+}
+
+/**
+ * @tc.name: OrderByAsc_ValidField_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: OrderByAsc_ValidField_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, OrderByAsc_ValidField_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("OrderByAsc_ValidField_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryOrderByAscMock = std::make_shared<DataQuery>();
+    DataQuery queryOrderByAsc;
+    EXPECT_CALL(*queryOrderByAscMock, OrderBy("field")).Times(1);
+    queryOrderByAsc.OrderByAsc("field");
+    EXPECT_EQ(queryOrderByAsc.ToString(), " ORDER BY ASC field");
+}
+
+/**
+ * @tc.name: OrderByDesc_ValidField_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: OrderByDesc_ValidField_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, OrderByDesc_ValidField_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("OrderByDesc_ValidField_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryOrderByDescMock = std::make_shared<DataQuery>();
+    DataQuery queryOrderByDesc;
+    EXPECT_CALL(*queryOrderByDescMock, OrderBy("field", false)).Times(1);
+    queryOrderByDesc.OrderByDesc("field");
+    EXPECT_EQ(queryOrderByDesc.ToString(), " ORDER BY DESC field");
+}
+
+/**
+ * @tc.name: OrderByWriteTime_Ascending_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: OrderByWriteTime_Ascending_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, OrderByWriteTime_Ascending_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("OrderByWriteTime_Ascending_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryOrderByWriteTimeMock = std::make_shared<DataQuery>();
+    DataQuery queryOrderByWriteTime;
+    EXPECT_CALL(*queryOrderByWriteTimeMock, OrderByWriteTime(true)).Times(1);
+    queryOrderByWriteTime.OrderByWriteTime(true);
+    EXPECT_EQ(queryOrderByWriteTime.ToString(), " ORDER BY WRITE_TIME ASC");
+}
+
+/**
+ * @tc.name: OrderByWriteTime_Descending_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: OrderByWriteTime_Descending_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, OrderByWriteTime_Descending_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("OrderByWriteTime_Descending_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryOrderByWriteTimeMock = std::make_shared<DataQuery>();
+    DataQuery queryOrderByWriteTime;
+    EXPECT_CALL(*queryMock, OrderByWriteTime(false)).Times(1);
+    queryOrderByWriteTime.OrderByWriteTime(false);
+    EXPECT_EQ(queryOrderByWriteTime.ToString(), " ORDER BY WRITE_TIME DESC");
+}
+
+/**
+ * @tc.name: Limit_ValidNumberAndOffset_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: Limit_ValidNumberAndOffset_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, Limit_ValidNumberAndOffset_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("Limit_ValidNumberAndOffset_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryLimitMock = std::make_shared<DataQuery>();
+    DataQuery queryLimit;
+    EXPECT_CALL(*queryLimitMock, Limit(10, 0)).Times(1);
+    queryLimit.Limit(10, 0);
+    EXPECT_EQ(queryLimit.ToString(), " LIMIT 10 0");
+}
+
+/**
+ * @tc.name: BeginGroup_AppendsBeginGroupToQuery
+ * @tc.desc:
+ * @tc.type: BeginGroup_AppendsBeginGroupToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, BeginGroup_AppendsBeginGroupToQuery, TestSize.Level0)
+{
+    ZLOGI("BeginGroup_AppendsBeginGroupToQuery begin.");
+    std::shared_ptr<DataQuery> queryBeginGroupMock = std::make_shared<DataQuery>();
+    DataQuery queryBeginGroup;
+    EXPECT_CALL(*queryBeginGroupMock, BeginGroup()).Times(1);
+    queryBeginGroup.BeginGroup();
+    EXPECT_EQ(queryBeginGroup.ToString(), " (");
+}
+
+/**
+ * @tc.name: EndGroup_AppendsEndGroupToQuery
+ * @tc.desc:
+ * @tc.type: EndGroup_AppendsEndGroupToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, EndGroup_AppendsEndGroupToQuery, TestSize.Level0)
+{
+    ZLOGI("EndGroup_AppendsEndGroupToQuery begin.");
+    std::shared_ptr<DataQuery> queryEndGroupMock = std::make_shared<DataQuery>();
+    DataQuery queryEndGroup;
+    EXPECT_CALL(*queryEndGroupMock, EndGroup()).Times(1);
+    queryEndGroup.EndGroup();
+    EXPECT_EQ(queryEndGroup.ToString(), " )");
+}
+
+/**
+ * @tc.name: KeyPrefix_ValidPrefix_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: KeyPrefix_ValidPrefix_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, KeyPrefix_ValidPrefix_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("KeyPrefix_ValidPrefix_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryKeyPrefixMock = std::make_shared<DataQuery>();
+    DataQuery queryKeyPrefix;
+    EXPECT_CALL(*queryKeyPrefixMock, KeyPrefix("prefix")).Times(1);
+    queryKeyPrefix.KeyPrefix("prefix");
+    EXPECT_EQ(queryKeyPrefix.ToString(), " KEY_PREFIX prefix");
+}
+
+/**
+ * @tc.name: DeviceId_ValidDeviceId_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: DeviceId_ValidDeviceId_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, DeviceId_ValidDeviceId_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("DeviceId_ValidDeviceId_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryDeviceIdMock = std::make_shared<DataQuery>();
+    DataQuery queryDeviceId;
+    EXPECT_CALL(*queryDeviceIdMock, DeviceId("deviceId")).Times(1);
+    queryDeviceId.DeviceId("deviceId");
+    EXPECT_EQ(queryDeviceId.ToString(), " DEVICE_ID deviceId");
+}
+
+/**
+ * @tc.name: SetSuggestIndex_ValidIndex_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: SetSuggestIndex_ValidIndex_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, SetSuggestIndex_ValidIndex_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("DeviceId_ValidDeviceId_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> querySetSuggestIndexMock = std::make_shared<DataQuery>();
+    DataQuery querySetSuggestIndex;
+    EXPECT_CALL(*querySetSuggestIndexMock, SuggestIndex("index")).Times(1);
+    querySetSuggestIndex.SetSuggestIndex("index");
+    EXPECT_EQ(querySetSuggestIndex.ToString(), " SUGGEST_INDEX index");
+}
+
+/**
+ * @tc.name: InKeys_ValidKeys_AppendsToQuery
+ * @tc.desc:
+ * @tc.type: InKeys_ValidKeys_AppendsToQuery test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, InKeys_ValidKeys_AppendsToQuery, TestSize.Level0)
+{
+    ZLOGI("InKeys_ValidKeys_AppendsToQuery begin.");
+    std::shared_ptr<DataQuery> queryInKeysMock = std::make_shared<DataQuery>();
+    DataQuery queryInKeys;
+    std::vector<std::string> keys = {"key1", "key2"};
+    EXPECT_CALL(*queryInKeysMock, InKeys(keys)).Times(1);
+    queryInKeys.InKeys(keys);
+    EXPECT_EQ(queryInKeys.ToString(), " IN_KEYS START_IN key1 key2 END_IN");
+}
+
+/**
+ * @tc.name: ToString_QueryTooLong_ReturnsEmptyString
+ * @tc.desc:
+ * @tc.type: ToString_QueryTooLong_ReturnsEmptyString test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, ToString_QueryTooLong_ReturnsEmptyString, TestSize.Level0)
+{
+    ZLOGI("ToString_QueryTooLong_ReturnsEmptyString begin.");
+    DataQuery queryToString;
+    queryToString.str_.assign(MAX_QUERY_LENGTH + 1, 'a');
+    EXPECT_EQ(queryToString.ToString(), "");
+}
+
+/**
+ * @tc.name: AppendCommon_ValidInput_CorrectAppending
+ * @tc.desc:
+ * @tc.type: AppendCommon_ValidInput_CorrectAppending test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, AppendCommon_ValidInput_CorrectAppending, TestSize.Level0)
+{
+    ZLOGI("AppendCommon_ValidInput_CorrectAppending begin.");
+    DataQuery queryAppendCommon;
+    string keyword = "key";
+    string fieldType = "type";
+    string field = "field";
+    int value = 123;
+    queryAppendCommon.AppendCommon(keyword, fieldType, field, value);
+    EXPECT_EQ(queryAppendCommon.GetQuery(), " key type field 123");
+}
+
+/**
+ * @tc.name: AppendCommonString_ValidInput_CorrectAppending
+ * @tc.desc:
+ * @tc.type: AppendCommonString_ValidInput_CorrectAppending test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, AppendCommonString_ValidInput_CorrectAppending, TestSize.Level0)
+{
+    ZLOGI("AppendCommonString_ValidInput_CorrectAppending begin.");
+    DataQuery queryAppendCommonString;
+    string keyword = "key";
+    string fieldType = "type";
+    string field = "field";
+    string value = "value";
+    queryAppendCommonString.AppendCommonString(keyword, fieldType, field, value);
+    EXPECT_EQ(queryAppendCommonString.GetQuery(), " key type field value");
+}
+
+/**
+ * @tc.name: AppendCommonBoolean_ValidInput_CorrectAppending
+ * @tc.desc:
+ * @tc.type: AppendCommonBoolean_ValidInput_CorrectAppending test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, AppendCommonBoolean_ValidInput_CorrectAppending, TestSize.Level0)
+{
+    ZLOGI("AppendCommonBoolean_ValidInput_CorrectAppending begin.");
+    DataQuery queryAppendCommonBoolean;
+    string keyword = "key";
+    string fieldType = "type";
+    string field = "field";
+    bool value = true;
+    queryAppendCommonBoolean.AppendCommonBoolean(keyword, fieldType, field, value);
+    EXPECT_EQ(queryAppendCommonBoolean.GetQuery(), " key type field true");
+}
+
+/**
+ * @tc.name: AppendCommonList_ValidInput_CorrectAppending
+ * @tc.desc:
+ * @tc.type: AppendCommonList_ValidInput_CorrectAppending test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, AppendCommonList_ValidInput_CorrectAppending, TestSize.Level0)
+{
+    ZLOGI("AppendCommonList_ValidInput_CorrectAppending begin.");
+    DataQuery queryAppendCommonList;
+    string keyword = "key";
+    string fieldType = "type";
+    string field = "field";
+    vector<int> valueList = {1, 2, 3};
+    queryAppendCommonList.AppendCommonList(keyword, fieldType, field, valueList);
+    EXPECT_EQ(queryAppendCommonList.GetQuery(), " key type field ( 1 2 3 )");
+}
+
+/**
+ * @tc.name: AppendCommonListString_ValidInput_CorrectAppending
+ * @tc.desc:
+ * @tc.type: AppendCommonListString_ValidInput_CorrectAppending test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, AppendCommonListString_ValidInput_CorrectAppending, TestSize.Level0)
+{
+    ZLOGI("AppendCommonListString_ValidInput_CorrectAppending begin.");
+    DataQuery queryAppendCommonListString;
+    string keyword = "key";
+    string fieldType = "type";
+    string field = "field";
+    vector<string> valueList = {"value1", "value2"};
+    queryAppendCommonListString.AppendCommonListString(keyword, fieldType, field, valueList);
+    EXPECT_EQ(queryAppendCommonListString.GetQuery(), " key type field ( value1 value2 )");
+}
+
+/**
+ * @tc.name: EscapeSpace_ValidInput_CorrectEscaping
+ * @tc.desc:
+ * @tc.type: EscapeSpace_ValidInput_CorrectEscaping test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, EscapeSpace_ValidInput_CorrectEscaping, TestSize.Level0)
+{
+    ZLOGI("EscapeSpace_ValidInput_CorrectEscaping begin.");
+    DataQuery queryEscapeSpace;
+    string input = "field with space";
+    queryEscapeSpace.EscapeSpace(input);
+    EXPECT_EQ(input, "field\\ with\\ space");
+}
+
+/**
+ * @tc.name: ValidateField_ValidField_ReturnsTrue
+ * @tc.desc:
+ * @tc.type: ValidateField_ValidField_ReturnsTrue test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, ValidateField_ValidField_ReturnsTrue, TestSize.Level0)
+{
+    ZLOGI("ValidateField_ValidField_ReturnsTrue begin.");
+    DataQuery queryValidateField;
+    string field = "validField";
+    EXPECT_TRUE(queryValidateField.ValidateField(field));
+}
+
+/**
+ * @tc.name: ValidateField_EmptyField_ReturnsFalse
+ * @tc.desc:
+ * @tc.type: ValidateField_EmptyField_ReturnsFalse test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, ValidateField_EmptyField_ReturnsFalse, TestSize.Level0)
+{
+    ZLOGI("ValidateField_EmptyField_ReturnsFalse begin.");
+    DataQuery queryValidateField;
+    string field = "";
+    EXPECT_FALSE(queryValidateField.ValidateField(field));
+}
+
+/**
+ * @tc.name: ValidateField_FieldWithSpecialChar_ReturnsFalse
+ * @tc.desc:
+ * @tc.type: ValidateField_FieldWithSpecialChar_ReturnsFalse test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, ValidateField_FieldWithSpecialChar_ReturnsFalse, TestSize.Level0)
+{
+    ZLOGI("ValidateField_FieldWithSpecialChar_ReturnsFalse begin.");
+    DataQuery queryValidateField;
+    string field = "field with special*char";
+    EXPECT_FALSE(queryValidateField.ValidateField(field));
+}
+
+/**
+ * @tc.name: BasicToString_ValidInput_CorrectConversion
+ * @tc.desc:
+ * @tc.type: BasicToString_ValidInput_CorrectConversion test function
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DataQueryVirtualTest, BasicToString_ValidInput_CorrectConversion, TestSize.Level0)
+{
+    ZLOGI("BasicToString_ValidInput_CorrectConversion begin.");
+    DataQuery queryBasicToString;
+    int value = 456;
+    string result = queryBasicToString.BasicToString(value);
+    EXPECT_EQ(result, "456");
+}
 } // namespace OHOS::Test
