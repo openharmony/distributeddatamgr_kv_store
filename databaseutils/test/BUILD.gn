@@ -96,6 +96,8 @@ ohos_unittest("DataQueryVirtualTest") {
     "data_query_virtual_test.cpp",
     "delegate_mgr_callback_virtual_test.cpp",
     "distributed_kv_data_manager_vritual_test.cpp",
+    "kv_utils_virtual_test.cpp",
+    "kvdb_notifier_virtual_test.cpp",
   ]
 
   configs = [ ":database_utils_config" ]
