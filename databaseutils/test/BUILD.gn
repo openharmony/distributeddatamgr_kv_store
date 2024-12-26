@@ -98,6 +98,8 @@ ohos_unittest("DataQueryVirtualTest") {
     "distributed_kv_data_manager_vritual_test.cpp",
     "kv_utils_virtual_test.cpp",
     "kvdb_notifier_virtual_test.cpp",
+    "kvstore_datashare_bridge_virtual_test.cpp",
+    "local_kv_store_virtual_test.cpp",
   ]
 
   configs = [ ":database_utils_config" ]
