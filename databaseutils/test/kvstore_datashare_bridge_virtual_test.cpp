@@ -167,7 +167,7 @@ void KvstoreDatashareBridgeVirtualTest::TearDownTestCase(void)
 
 class MockKvStoreResultSet : public KvStoreResultSet {
 public:
-    MockKvStoreResultSet(int count) : count_(count)
+    explicit MockKvStoreResultSet(int count) : count_(count)
     {
     }
 
@@ -373,15 +373,15 @@ HWTEST_F(KvStoreServiceDeathNotifierVirtualTest, GetDistributedKvDataService_Pro
 }
 
 /**
-* @tc.name: RegisterClientDeathObserver_ProxyExists_RegistersObserver
+* @tc.name: RegisterClientDeathObserver_ProxyExists
 * @tc.desc:
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: sql
 */
-HWTEST_F(KvStoreServiceDeathNotifierVirtualTest, RegisterClientDeathObserver_ProxyExists_RegistersObserver, TestSize.Level0)
+HWTEST_F(KvStoreServiceDeathNotifierVirtualTest, RegisterClientDeathObserver_ProxyExists, TestSize.Level0)
 {
-    ZLOGI("RegisterClientDeathObserver_ProxyExists_RegistersObserver begin.");
+    ZLOGI("RegisterClientDeathObserver_ProxyExists begin.");
     auto &instance = KvStoreServiceDeathNotifier::GetInstance();
     instance.kvDataServiceProxy_ = new DataMgrServiceProxy(nullptr);
 
