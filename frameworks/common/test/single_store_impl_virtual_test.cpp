@@ -73,8 +73,8 @@ public:
     void TearDown();
 
     std::shared_ptr<SingleKvStore> kvStoreImpl;
-    static constexpr int MAX_RESULTSET_SIZE_VIRTUAL = 8;
-    std::shared_ptr<SingleKvStore> CreateKVStoreDB(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
+    static constexpr int maxSize = 8;
+    std::shared_ptr<SingleKvStore> CreateKVStoreDB(std::string storeIdTest, KvStoreType type, bool encrypt);
     std::shared_ptr<SingleStoreImpl> CreateKVStoreDB(bool autosync = false);
 };
 
@@ -127,10 +127,11 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplVirtualTest::CreateKVStoreDB(boo
     optionsTest.baseDirTest = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     StoreFactory storeFactoryTest;
     auto dbManagerTest = storeFactoryTest.GetDBManager(optionsTest.baseDirTest, appId11);
-    auto dbPasswordTest = SecurityManager::GetInstance().GetDBPassword(storeId11.storeId11, optionsTest.baseDirTest, optionsTest.encrypt);
+    auto dbPasswordTest =
+        SecurityManager::GetInstance().GetDBPassword(storeId11.storeId, optionsTest.baseDirTest, optionsTest.encrypt);
     DBStatus dbStatus = DBStatus::DB_ERROR;
     dbManagerTest->GetKvStore(storeId11, storeFactoryTest.GetDBOption(optionsTest, dbPasswordTest),
-        [&dbManagerTest, &singleKvStore, &appId11, &dbStatus, &optionsTest, &storeFactoryTest](auto statusTest, auto *store) {
+        [&dbManagerTest, &singleKvStore, &appId11, &dbStatus, &optionsTest](auto statusTest, auto *store) {
             dbStatus = statusTest;
             if (store == nullptr) {
                 return;
@@ -842,21 +843,21 @@ HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_QueryTest, TestSize.Le
 
     DataQuery dataQuery;
     dataQuery.KeyPrefix("k_");
-    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE_VIRTUAL + 1);
-    for (int i = 0; i < MAX_RESULTSET_SIZE_VIRTUAL; i++) {
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(maxSize + 1);
+    for (int i = 0; i < maxSize; i++) {
         std::shared_ptr<KvStoreResultSet> outputPragram;
         statusTest = kvStoreImpl->GetResultSet(dataQuery, outputs[i]);
         EXPECT_EQ(statusTest, SUCCESS);
     }
 
-    statusTest = kvStoreImpl->GetResultSet(dataQuery, outputs[MAX_RESULTSET_SIZE_VIRTUAL]);
+    statusTest = kvStoreImpl->GetResultSet(dataQuery, outputs[maxSize]);
     EXPECT_EQ(statusTest, OVER_MAX_LIMITS);
     statusTest = kvStoreImpl->CloseResultSet(outputs[0]);
     EXPECT_EQ(statusTest, SUCCESS);
-    statusTest = kvStoreImpl->GetResultSet(dataQuery, outputs[MAX_RESULTSET_SIZE_VIRTUAL]);
+    statusTest = kvStoreImpl->GetResultSet(dataQuery, outputs[maxSize]);
     EXPECT_EQ(statusTest, SUCCESS);
 
-    for (int i = 1; i <= MAX_RESULTSET_SIZE_VIRTUAL; i++) {
+    for (int i = 1; i <= maxSize; i++) {
         statusTest = kvStoreImpl->CloseResultSet(outputs[i]);
         EXPECT_EQ(statusTest, SUCCESS);
     }
@@ -882,22 +883,22 @@ HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_PrefixTest, TestSize.L
     auto statusTest = kvStoreImpl->PutBatch(inputPragram);
     EXPECT_EQ(statusTest, SUCCESS);
 
-    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE_VIRTUAL + 1);
-    for (int i = 0; i < MAX_RESULTSET_SIZE_VIRTUAL; i++) {
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(maxSize + 1);
+    for (int i = 0; i < maxSize; i++) {
         std::shared_ptr<KvStoreResultSet> outputPragram;
         statusTest = kvStoreImpl->GetResultSet({ "k_i" }, outputs[i]);
         EXPECT_EQ(statusTest, SUCCESS);
     }
 
-    statusTest = kvStoreImpl->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE_VIRTUAL]);
+    statusTest = kvStoreImpl->GetResultSet({ "" }, outputs[maxSize]);
     EXPECT_EQ(statusTest, OVER_MAX_LIMITS);
 
     statusTest = kvStoreImpl->CloseResultSet(outputs[0]);
     EXPECT_EQ(statusTest, SUCCESS);
-    statusTest = kvStoreImpl->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE_VIRTUAL]);
+    statusTest = kvStoreImpl->GetResultSet({ "" }, outputs[maxSize]);
     EXPECT_EQ(statusTest, SUCCESS);
 
-    for (int i = 1; i <= MAX_RESULTSET_SIZE_VIRTUAL; i++) {
+    for (int i = 1; i <= maxSize; i++) {
         statusTest = kvStoreImpl->CloseResultSet(outputs[i]);
         EXPECT_EQ(statusTest, SUCCESS);
     }
@@ -1156,7 +1157,7 @@ HWTEST_F(SingleStoreImplVirtualTest, RemoveDeviceDataTest, TestSize.Level0)
     EXPECT_EQ(statusTest, SUCCESS);
     EXPECT_EQ(countSum, 10);
     std::string baseDirTest = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
-    statusTest = StoreManagerTest::GetInstance().Delete({ "SingleStoreImplVirtualTest" }, { "DeviceKVStore" }, baseDirTest);
+    statusTest = StoreManagerTest::GetInstance().Delete({ "SingleStoreImplVirtualTest" }, { "Device" }, baseDirTest);
     EXPECT_EQ(statusTest, SUCCESS);
 }
 
@@ -1835,7 +1836,6 @@ HWTEST_F(SingleStoreImplVirtualTest, SetConfigTest, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetDeviceEntries001Test, TestSize.Level1)
 {
-    std::string PKG_NAME_EX = "_distributed_data";
     std::shared_ptr<SingleStoreImpl> singleKvStore;
     singleKvStore = CreateKVStoreDB();
     EXPECT_NE(singleKvStore, nullptr);
@@ -1847,7 +1847,6 @@ HWTEST_F(SingleStoreImplVirtualTest, GetDeviceEntries001Test, TestSize.Level1)
     statusTest = singleKvStore->GetDeviceEntries(device, outputPragram);
     EXPECT_EQ(statusTest, SUCCESS);
     DevInfo devinfo;
-    std::string PKG_NAME = std::to_string(getpid()) + PKG_NAME_EX;
     DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, devinfo);
     EXPECT_NE(std::string(devinfo.deviceId), "");
     statusTest = singleKvStore->GetDeviceEntries(std::string(devinfo.deviceId), outputPragram);
