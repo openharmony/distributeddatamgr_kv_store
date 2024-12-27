@@ -46,7 +46,7 @@ void SingleKvStoreAsyncVirtualTest::SetUpTestCase(void)
 {
     DistributedKvDataManager managerVirtual;
     Options optionsVirtual = { .createIfMissing = true, .encrypt = false, .autoSync = true,
-                        .kvStoreType = KvStoreType::SINGLE_VERSION, .dataType = DataType::TYPE_DYNAMICAL };
+        .kvStoreType = KvStoreType::SINGLE_VERSION, .dataType = DataType::TYPE_DYNAMICAL };
     optionsVirtual.area = EL1;
     optionsVirtual.securityLevel = S1;
     optionsVirtual.baseDir = std::string("/data/service/el1/public/database/asyncgettest");
@@ -1078,15 +1078,15 @@ HWTEST_F(SingleKvStoreQueryVirtualTest, DataQueryLimitValidField, TestSize.Level
 }
 
 /**
-* @tc.name: SingleKvStoreQueryNotEqualTo
+* @tc.name: SingleKvStoreQueryNotEqualTo1
 * @tc.desc: queryVirtual single kvStore by dataQuery, the predicate is notEqualTo
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: sql
 */
-HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualTo, TestSize.Level0)
+HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualTo1, TestSize.Level0)
 {
-    ZLOGI("SingleKvStoreQueryNotEqualTo begin.");
+    ZLOGI("SingleKvStoreQueryNotEqualTo1 begin.");
     DistributedKvDataManager managerVirtual;
     Options optionsVirtual = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
@@ -1125,13 +1125,50 @@ HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualTo, TestSize.L
 
     closeResultSetStatus = singleKvStoreVirtual->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
+}
+
+/**
+* @tc.name: SingleKvStoreQueryNotEqualTo2
+* @tc.desc: queryVirtual single kvStore by dataQuery, the predicate is notEqualTo
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: sql
+*/
+HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualTo2, TestSize.Level0)
+{
+    ZLOGI("SingleKvStoreQueryNotEqualTo2 begin.");
+    DistributedKvDataManager managerVirtual;
+    Options optionsVirtual1 = { .createIfMissing = true, .encrypt = true, .autoSync = true,
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    optionsVirtual1.area = EL1;
+    optionsVirtual1.securityLevel = S1;
+    optionsVirtual1.baseDir = "/data/service/el1/public/database/SingleKvStoreQueryVirtualTest";
+    AppId appIdVirtual1 = { "SingleKvStoreQueryVirtualTest" };
+    StoreId storeIdVirtual1 = { "SingleKvStoreClientQueryTestStoreId1" };
+    statusVirtualGetKvStore =
+        managerVirtual.GetSingleKvStore(optionsVirtual1, appIdVirtual1, storeIdVirtual1, singleKvStoreVirtual1);
+    ASSERT_NE(singleKvStoreVirtual1, nullptr) << "kvStorePtr is null.";
+    singleKvStoreVirtual1->Put("test_key_1", "{\"name\":1}");
+    singleKvStoreVirtual1->Put("test_key_2", "{\"name\":2}");
+    singleKvStoreVirtual1->Put("test_key_3", "{\"name\":3}");
+
+    DataQuery queryVirtual1;
+    queryVirtual1.NotEqualTo("$.name", 3);
+    std::vector<Entry> results;
+    Status statusVirtual1 = singleKvStoreVirtual->GetEntries(queryVirtual1, results);
+    ASSERT_EQ(statusVirtual1, Status::SUCCESS);
+    ASSERT_TRUE(results.size() == 2);
+    results.clear();
+    Status statusVirtual2 = singleKvStoreVirtual->GetEntries(queryVirtual1, results);
+    ASSERT_EQ(statusVirtual2, Status::SUCCESS);
+    ASSERT_TRUE(results.size() == 2);
 
     int resultSize1;
-    Status statusVirtual5 = singleKvStoreVirtual->GetCount(queryVirtual, resultSize1);
+    Status statusVirtual5 = singleKvStoreVirtual->GetCount(queryVirtual1, resultSize1);
     ASSERT_EQ(statusVirtual5, Status::SUCCESS);
     ASSERT_TRUE(resultSize1 == 2);
     int resultSize2;
-    Status statusVirtual6 = singleKvStoreVirtual->GetCount(queryVirtual, resultSize2);
+    Status statusVirtual6 = singleKvStoreVirtual->GetCount(queryVirtual1, resultSize2);
     ASSERT_EQ(statusVirtual6, Status::SUCCESS);
     ASSERT_TRUE(resultSize2 == 2);
 
@@ -1145,15 +1182,15 @@ HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualTo, TestSize.L
 }
 
 /**
-* @tc.name: SingleKvStoreQueryNotEqualToAndEqualTo
+* @tc.name: SingleKvStoreQueryNotEqualToAndEqualTo1
 * @tc.desc: queryVirtual single kvStore by dataQuery, the predicate is notEqualTo and equalTo
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: sql
 */
-HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualToAndEqualTo, TestSize.Level0)
+HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualToAndEqualTo1, TestSize.Level0)
 {
-    ZLOGI("SingleKvStoreQueryNotEqualToAndEqualTo begin.");
+    ZLOGI("SingleKvStoreQueryNotEqualToAndEqualTo1 begin.");
     DistributedKvDataManager managerVirtual;
     Options optionsVirtual = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
@@ -1194,13 +1231,52 @@ HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualToAndEqualTo, 
 
     closeResultSetStatus = singleKvStoreVirtual->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
+}
+
+/**
+* @tc.name: SingleKvStoreQueryNotEqualToAndEqualTo2
+* @tc.desc: queryVirtual single kvStore by dataQuery, the predicate is notEqualTo and equalTo
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: sql
+*/
+HWTEST_F(SingleKvStoreQueryVirtualTest, SingleKvStoreQueryNotEqualToAndEqualTo2, TestSize.Level0)
+{
+    ZLOGI("SingleKvStoreQueryNotEqualToAndEqualTo2 begin.");
+    DistributedKvDataManager managerVirtual;
+    Options optionsVirtual1 = { .createIfMissing = true, .encrypt = true, .autoSync = true,
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
+    optionsVirtual1.area = EL1;
+    optionsVirtual1.securityLevel = S1;
+    optionsVirtual1.baseDir = "/data/service/el1/public/database/SingleKvStoreQueryVirtualTest";
+    AppId appIdVirtual = { "SingleKvStoreQueryVirtualTest" };
+    StoreId storeIdVirtual = { "SingleKvStoreClientQueryTestStoreId2" };
+    statusVirtualGetKvStore =
+        managerVirtual.GetSingleKvStore(optionsVirtual1, appIdVirtual, storeIdVirtual, singleKvStoreVirtual1);
+    ASSERT_NE(singleKvStoreVirtual1, nullptr) << "kvStorePtr is null.";
+    singleKvStoreVirtual1->Put("test_key_1", "{\"name\":1}");
+    singleKvStoreVirtual1->Put("test_key_2", "{\"name\":2}");
+    singleKvStoreVirtual1->Put("test_key_3", "{\"name\":3}");
+
+    DataQuery queryVirtual;
+    queryVirtual.NotEqualTo("$.name", 3);
+    queryVirtual.And();
+    queryVirtual.EqualTo("$.name", 1);
+    std::vector<Entry> results1;
+    Status statusVirtual1 = singleKvStoreVirtual1->GetEntries(queryVirtual, results1);
+    ASSERT_EQ(statusVirtual1, Status::SUCCESS);
+    ASSERT_TRUE(results1.size() == 1);
+    std::vector<Entry> results2;
+    Status statusVirtual2 = singleKvStoreVirtual1->GetEntries(queryVirtual, results2);
+    ASSERT_EQ(statusVirtual2, Status::SUCCESS);
+    ASSERT_TRUE(results2.size() == 1);
 
     int resultSize1;
-    Status statusVirtual5 = singleKvStoreVirtual->GetCount(queryVirtual, resultSize1);
+    Status statusVirtual5 = singleKvStoreVirtual1->GetCount(queryVirtual, resultSize1);
     ASSERT_EQ(statusVirtual5, Status::SUCCESS);
     ASSERT_TRUE(resultSize1 == 1);
     int resultSize2;
-    Status statusVirtual6 = singleKvStoreVirtual->GetCount(queryVirtual, resultSize2);
+    Status statusVirtual6 = singleKvStoreVirtual1->GetCount(queryVirtual, resultSize2);
     ASSERT_EQ(statusVirtual6, Status::SUCCESS);
     ASSERT_TRUE(resultSize2 == 1);
 
