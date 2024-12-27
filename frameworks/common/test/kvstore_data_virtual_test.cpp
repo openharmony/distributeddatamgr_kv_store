@@ -15,7 +15,6 @@
 #defInfoine LOGTAG "KvStoreDataTest"
 #include <gtest/gtest.h>
 #include <unistd.h>
-
 #include "accesstokenkit.h"
 #include "account/accountdelegate.h"
 #include "bootstrap.h"
@@ -64,7 +63,6 @@ using SharingCfmTest = OHOS::KvData::SharingUtil::SharingCfmTest;
 using Confirmation = OHOS::KvData::Confirmation;
 using CenterCode = OHOS::DistributedData::SharingCenter::SharingCode;
 using statusVirtual = OHOS::KvData::KvService::statusVirtual;
-
 void AllocHapToken(const HapPolicyParams &policy)
 {
     HapInfoParams info = {
@@ -164,7 +162,6 @@ KvInfo KvServerMock::GetServerInfo(int32t userId01, bool needSpaceInfo)
     kvInfo.remainSpace = REMAINSPACE;
     kvInfo.totalSpace = TATALSPACE;
     kvInfo.enableKv = true;
-
     KvInfo::AppInfo appInfoTest;
     appInfoTest.bundleName = TESTKVBUNDLE;
     appInfoTest.appId = TESTKVAPPID;
@@ -219,7 +216,6 @@ void KvStoreDataTest::InitSchemaMeta()
     db.name = TESTKVSTORE;
     db.alias = TESTKVDATABASE;
     db.tables.emplaceback(tableMeta);
-
     schemaMetaTest.version = 1;
     schemaMetaTest.bundleName = TESTKVBUNDLE;
     schemaMetaTest.databases.emplaceback(db);
@@ -301,7 +297,6 @@ void KvStoreDataTest::TearDown()
 * @tc.name: GetSchema
 * @tc.desc: GetSchema from kv when no schema in meta.
 * @tc.type: FUNC
-* @tc.require:
 */
 HWTESTF(KvStoreDataTest, GetSchemaTest, TestSize.Level0)
 {
@@ -323,7 +318,6 @@ HWTESTF(KvStoreDataTest, GetSchemaTest, TestSize.Level0)
 /**
 * @tc.name: QueryStatistics
 * @tc.desc: The query interface failed because kvInfo could not be found from the metadata.
-* @tc.type: FUNC
 */
 HWTESTF(KvStoreDataTest, QueryStatistics001Test, TestSize.Level0)
 {
@@ -339,7 +333,6 @@ HWTESTF(KvStoreDataTest, QueryStatistics001Test, TestSize.Level0)
 /**
 * @tc.name: QueryStatistics
 * @tc.desc: The query interface failed because SchemaMeta could not be found from the metadata.
-* @tc.type: FUNC
 */
 HWTESTF(KvStoreDataTest, QueryStatistics002Test, TestSize.Level0)
 {
@@ -365,7 +358,6 @@ HWTESTF(KvStoreDataTest, QueryStatistics002Test, TestSize.Level0)
 /**
 * @tc.name: QueryStatistics
 * @tc.desc: Query the statistics of kv records in a specified db.
-* @tc.type: FUNC
 */
 HWTESTF(KvStoreDataTest, QueryStatistics003Test, TestSize.Level0)
 {
@@ -401,7 +393,6 @@ HWTESTF(KvStoreDataTest, QueryStatistics003Test, TestSize.Level0)
 * @tc.name: QueryStatistics
 * @tc.desc: Query the statistics of all local db kv records.
 * @tc.type: FUNC
-* @tc.require:
 */
 HWTESTF(KvStoreDataTest, QueryStatistics004Test, TestSize.Level0)
 {
@@ -436,7 +427,6 @@ HWTESTF(KvStoreDataTest, QueryStatistics004Test, TestSize.Level0)
 * @tc.name: QueryLastSyncInfo001
 * @tc.desc: The query last sync info interface failed because account is false.
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryLastSyncInfo001Test, TestSize.Level0)
 {
@@ -466,7 +456,6 @@ HWTESTF(KvStoreDataTest, QueryLastSyncInfo002Test, TestSize.Level0)
 * @tc.name: QueryLastSyncInfo003
 * @tc.desc: The query last sync info interface failed because storeId is false.
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryLastSyncInfo003Test, TestSize.Level0)
 {
@@ -480,7 +469,6 @@ HWTESTF(KvStoreDataTest, QueryLastSyncInfo003Test, TestSize.Level0)
 * @tc.name: QueryLastSyncInfo004
 * @tc.desc: The query last sync info interface failed when switch is close.
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryLastSyncInfo004Test, TestSize.Level0)
 {
@@ -502,7 +490,6 @@ HWTESTF(KvStoreDataTest, QueryLastSyncInfo004Test, TestSize.Level0)
 * @tc.name: QueryLastSyncInfo005
 * @tc.desc: The query last sync info interface failed when app kv switch is close.
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryLastSyncInfo005Test, TestSize.Level0)
 {
@@ -527,7 +514,6 @@ HWTESTF(KvStoreDataTest, QueryLastSyncInfo005Test, TestSize.Level0)
 * @tc.name: QueryLastSyncInfo006
 * @tc.desc: The query last sync info interface failed when schema is invalid.
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryLastSyncInfo006Test, TestSize.Level0)
 {
@@ -550,7 +536,6 @@ HWTESTF(KvStoreDataTest, QueryLastSyncInfo006Test, TestSize.Level0)
 * @tc.name: Share
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Share001Test, TestSize.Level0)
 {
@@ -565,7 +550,6 @@ HWTESTF(KvStoreDataTest, Share001Test, TestSize.Level0)
 * @tc.name: ChangePrivilege
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, ChangePrivilege001Test, TestSize.Level0)
 {
@@ -580,7 +564,6 @@ HWTESTF(KvStoreDataTest, ChangePrivilege001Test, TestSize.Level0)
 * @tc.name: Unshare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Unshare001Test, TestSize.Level0)
 {
@@ -595,7 +578,6 @@ HWTESTF(KvStoreDataTest, Unshare001Test, TestSize.Level0)
 * @tc.name: ConfirmInvitation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, ConfirmInvitation001Test, TestSize.Level0)
 {
@@ -610,7 +592,6 @@ HWTESTF(KvStoreDataTest, ConfirmInvitation001Test, TestSize.Level0)
 * @tc.name: ChangeConfirmation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, ChangeConfirmation001Test, TestSize.Level0)
 {
@@ -625,7 +606,6 @@ HWTESTF(KvStoreDataTest, ChangeConfirmation001Test, TestSize.Level0)
 * @tc.name: Exit
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Exit001Test, TestSize.Level0)
 {
@@ -639,7 +619,6 @@ HWTESTF(KvStoreDataTest, Exit001Test, TestSize.Level0)
 * @tc.name: Query
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Query001Test, TestSize.Level0)
 {
@@ -653,7 +632,6 @@ HWTESTF(KvStoreDataTest, Query001Test, TestSize.Level0)
 * @tc.name: QueryByInvitation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryByInvitation001Test, TestSize.Level0)
 {
@@ -667,7 +645,6 @@ HWTESTF(KvStoreDataTest, QueryByInvitation001Test, TestSize.Level0)
 * @tc.name: AllocResourceAndShare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, AllocResourceAndShare001Test, TestSize.Level0)
 {
@@ -699,7 +676,6 @@ HWTESTF(KvStoreDataTest, AllocResourceAndShare001Test, TestSize.Level0)
 * @tc.name: SetKvStrategy
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SetKvStrategy001Test, TestSize.Level0)
 {
@@ -717,7 +693,6 @@ HWTESTF(KvStoreDataTest, SetKvStrategy001Test, TestSize.Level0)
 * @tc.name: SetGlobalKvStrategy
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SetGlobalKvStrategy001Test, TestSize.Level0)
 {
@@ -735,7 +710,6 @@ HWTESTF(KvStoreDataTest, SetGlobalKvStrategy001Test, TestSize.Level0)
 * @tc.name: Clean
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Clean001Test, TestSize.Level0)
 {
@@ -757,7 +731,6 @@ HWTESTF(KvStoreDataTest, Clean001Test, TestSize.Level0)
 * @tc.name: Clean
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Clean002Test, TestSize.Level0)
 {
@@ -789,7 +762,6 @@ HWTESTF(KvStoreDataTest, Clean002Test, TestSize.Level0)
 * @tc.name: NotifyDataChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, NotifyDataChange001Test, TestSize.Level0)
 {
@@ -801,7 +773,6 @@ HWTESTF(KvStoreDataTest, NotifyDataChange001Test, TestSize.Level0)
 * @tc.name: NotifyDataChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, NotifyDataChange002Test, TestSize.Level0)
 {
@@ -833,7 +804,6 @@ HWTESTF(KvStoreDataTest, NotifyDataChange002Test, TestSize.Level0)
 * @tc.name: NotifyDataChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, NotifyDataChange003Test, TestSize.Level0)
 {
@@ -858,7 +828,6 @@ HWTESTF(KvStoreDataTest, NotifyDataChange003Test, TestSize.Level0)
 * @tc.name: OnReady
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnReady001Test, TestSize.Level0)
 {
@@ -873,7 +842,6 @@ HWTESTF(KvStoreDataTest, OnReady001Test, TestSize.Level0)
 * @tc.name: Offline
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, Offline001Test, TestSize.Level0)
 {
@@ -888,7 +856,6 @@ HWTESTF(KvStoreDataTest, Offline001Test, TestSize.Level0)
 * @tc.name: KvShare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, KvShare001Test, TestSize.Level0)
 {
@@ -916,7 +883,6 @@ HWTESTF(KvStoreDataTest, KvShare001Test, TestSize.Level0)
 * @tc.name: OnUserChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnUserChange001Test, TestSize.Level0)
 {
@@ -938,7 +904,6 @@ HWTESTF(KvStoreDataTest, OnUserChange001Test, TestSize.Level0)
 * @tc.name: DisableKv
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, DisableKv001Test, TestSize.Level0)
 {
@@ -952,7 +917,6 @@ HWTESTF(KvStoreDataTest, DisableKv001Test, TestSize.Level0)
 * @tc.name: ChangeAppSwitch
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, ChangeAppSwitchTest, TestSize.Level0)
 {
@@ -970,7 +934,6 @@ HWTESTF(KvStoreDataTest, ChangeAppSwitchTest, TestSize.Level0)
 * @tc.name: EnableKv
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, EnableKvTest, TestSize.Level0)
 {
@@ -986,7 +949,6 @@ HWTESTF(KvStoreDataTest, EnableKvTest, TestSize.Level0)
 * @tc.name: OnEnableKv
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnEnableKvTest, TestSize.Level0)
 {
@@ -1007,7 +969,6 @@ HWTESTF(KvStoreDataTest, OnEnableKvTest, TestSize.Level0)
 * @tc.name: OnDisableKv
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnDisableKvTest, TestSize.Level0)
 {
@@ -1026,7 +987,6 @@ HWTESTF(KvStoreDataTest, OnDisableKvTest, TestSize.Level0)
 * @tc.name: OnChangeAppSwitch
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnChangeAppSwitchTest, TestSize.Level0)
 {
@@ -1047,7 +1007,6 @@ HWTESTF(KvStoreDataTest, OnChangeAppSwitchTest, TestSize.Level0)
 * @tc.name: OnClean
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnCleanTest, TestSize.Level0)
 {
@@ -1068,7 +1027,6 @@ HWTESTF(KvStoreDataTest, OnCleanTest, TestSize.Level0)
 * @tc.name: OnNotifyDataChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnNotifyDataChangeTest, TestSize.Level0)
 {
@@ -1088,7 +1046,6 @@ HWTESTF(KvStoreDataTest, OnNotifyDataChangeTest, TestSize.Level0)
 * @tc.name: OnNotifyChange
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnNotifyChangeTest, TestSize.Level0)
 {
@@ -1110,7 +1067,6 @@ HWTESTF(KvStoreDataTest, OnNotifyChangeTest, TestSize.Level0)
 * @tc.name: OnQueryStatistics
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnQueryStatisticsTest, TestSize.Level0)
 {
@@ -1131,7 +1087,6 @@ HWTESTF(KvStoreDataTest, OnQueryStatisticsTest, TestSize.Level0)
 * @tc.name: OnQueryLastSyncInfo
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnQueryLastSyncInfoTest, TestSize.Level0)
 {
@@ -1152,7 +1107,6 @@ HWTESTF(KvStoreDataTest, OnQueryLastSyncInfoTest, TestSize.Level0)
 * @tc.name: OnSetGlobalKvStrategy
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnSetGlobalKvStrategyTest, TestSize.Level0)
 {
@@ -1174,7 +1128,6 @@ HWTESTF(KvStoreDataTest, OnSetGlobalKvStrategyTest, TestSize.Level0)
 * @tc.name: OnAllocResourceAndShare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnAllocResourceAndShareTest, TestSize.Level0)
 {
@@ -1198,7 +1151,6 @@ HWTESTF(KvStoreDataTest, OnAllocResourceAndShareTest, TestSize.Level0)
 * @tc.name: OnShare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnShareTest, TestSize.Level0)
 {
@@ -1220,7 +1172,6 @@ HWTESTF(KvStoreDataTest, OnShareTest, TestSize.Level0)
 * @tc.name: OnUnshare
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnUnshareTest, TestSize.Level0)
 {
@@ -1242,7 +1193,6 @@ HWTESTF(KvStoreDataTest, OnUnshareTest, TestSize.Level0)
 * @tc.name: OnExit
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnExitTest, TestSize.Level0)
 {
@@ -1263,7 +1213,6 @@ HWTESTF(KvStoreDataTest, OnExitTest, TestSize.Level0)
 * @tc.name: OnChangePrivilege
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnChangePrivilegeTest, TestSize.Level0)
 {
@@ -1285,7 +1234,6 @@ HWTESTF(KvStoreDataTest, OnChangePrivilegeTest, TestSize.Level0)
 * @tc.name: OnQuery
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnQueryTest, TestSize.Level0)
 {
@@ -1306,7 +1254,6 @@ HWTESTF(KvStoreDataTest, OnQueryTest, TestSize.Level0)
 * @tc.name: OnQueryByInvitation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnQueryByInvitationTest, TestSize.Level0)
 {
@@ -1327,7 +1274,6 @@ HWTESTF(KvStoreDataTest, OnQueryByInvitationTest, TestSize.Level0)
 * @tc.name: OnConfirmInvitation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnConfirmInvitationTest, TestSize.Level0)
 {
@@ -1349,7 +1295,6 @@ HWTESTF(KvStoreDataTest, OnConfirmInvitationTest, TestSize.Level0)
 * @tc.name: OnChangeConfirmation
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnChangeConfirmationTest, TestSize.Level0)
 {
@@ -1371,7 +1316,6 @@ HWTESTF(KvStoreDataTest, OnChangeConfirmationTest, TestSize.Level0)
 * @tc.name: OnSetKvStrategy
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnSetKvStrategyTest, TestSize.Level0)
 {
@@ -1392,7 +1336,6 @@ HWTESTF(KvStoreDataTest, OnSetKvStrategyTest, TestSize.Level0)
 * @tc.name: SharingUtil001
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SharingUtil001Test, TestSize.Level0)
 {
@@ -1414,7 +1357,6 @@ HWTESTF(KvStoreDataTest, SharingUtil001Test, TestSize.Level0)
 * @tc.name: SharingUtil002
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SharingUtil002Test, TestSize.Level0)
 {
@@ -1436,7 +1378,6 @@ HWTESTF(KvStoreDataTest, SharingUtil002Test, TestSize.Level0)
 * @tc.name: SharingUtil003
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SharingUtil003Test, TestSize.Level0)
 {
@@ -1450,7 +1391,6 @@ HWTESTF(KvStoreDataTest, SharingUtil003Test, TestSize.Level0)
 * @tc.name: SharingUtil004
 * @tc.desc:
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SharingUtil004Test, TestSize.Level0)
 {
@@ -1474,7 +1414,6 @@ HWTESTF(KvStoreDataTest, SharingUtil004Test, TestSize.Level0)
 * @tc.name: DoKvSync
 * @tc.desc: Test the exec uninitialized and initialized scenarios
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, DoKvSyncTest, TestSize.Level0)
 {
@@ -1500,7 +1439,6 @@ HWTESTF(KvStoreDataTest, DoKvSyncTest, TestSize.Level0)
 * @tc.name: GetPostEventTask
 * @tc.desc: Test the interface to verify the package name and tableMeta name
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetPostEventTaskTest, TestSize.Level0)
 {
@@ -1526,7 +1464,6 @@ HWTESTF(KvStoreDataTest, GetPostEventTaskTest, TestSize.Level0)
 * @tc.name: GetRetryer
 * @tc.desc: Test the input parameters of different interfaces
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetRetryerTest, TestSize.Level0)
 {
@@ -1551,7 +1488,6 @@ HWTESTF(KvStoreDataTest, GetRetryerTest, TestSize.Level0)
 * @tc.name: GetCallback
 * @tc.desc: Test the processing logic of different progress callbacks
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetCallbackTest, TestSize.Level0)
 {
@@ -1588,7 +1524,6 @@ HWTESTF(KvStoreDataTest, GetCallbackTest, TestSize.Level0)
 * @tc.name: GetInterval
 * @tc.desc: Test the Interval transformation logic of the interface
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetIntervalTest, TestSize.Level0)
 {
@@ -1606,7 +1541,6 @@ HWTESTF(KvStoreDataTest, GetIntervalTest, TestSize.Level0)
 * @tc.name: GetKvSyncInfo
 * @tc.desc: Test get kvInfo
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetKvSyncInfoTest, TestSize.Level0)
 {
@@ -1625,7 +1559,6 @@ HWTESTF(KvStoreDataTest, GetKvSyncInfoTest, TestSize.Level0)
 * @tc.name: RetryCallback
 * @tc.desc: Test the retry logic
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, RetryCallbackTest, TestSize.Level0)
 {
@@ -1655,7 +1588,6 @@ HWTESTF(KvStoreDataTest, RetryCallbackTest, TestSize.Level0)
 * @tc.name: UpdateKvInfoFromServer
 * @tc.desc: Test updating kvinfo from the server
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, UpdateKvInfoFromServerTest, TestSize.Level0)
 {
@@ -1667,7 +1599,6 @@ HWTESTF(KvStoreDataTest, UpdateKvInfoFromServerTest, TestSize.Level0)
 * @tc.name: GetKvInfo
 * @tc.desc: Test get kvInfo
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetKvInfoTest, TestSize.Level0)
 {
@@ -1680,7 +1611,6 @@ HWTESTF(KvStoreDataTest, GetKvInfoTest, TestSize.Level0)
 * @tc.name: SubTask
 * @tc.desc: Test the subtask execution logic
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, SubTaskTest, TestSize.Level0)
 {
@@ -1700,7 +1630,6 @@ HWTESTF(KvStoreDataTest, SubTaskTest, TestSize.Level0)
 * @tc.name: ConvertCursor
 * @tc.desc: Test the cursorMock conversion logic when the ResultSet is empty and non-null
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, ConvertCursorTest, TestSize.Level0)
 {
@@ -1720,7 +1649,6 @@ HWTESTF(KvStoreDataTest, ConvertCursorTest, TestSize.Level0)
 * @tc.name: GetDbInfoFromExtraData
 * @tc.desc: Test the GetDbInfoFromExtraData function input parameters of different parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetDbInfoFromExtraDataTest, TestSize.Level0)
 {
@@ -1765,7 +1693,6 @@ HWTESTF(KvStoreDataTest, GetDbInfoFromExtraDataTest, TestSize.Level0)
 * @tc.name: QueryTableStatistic
 * @tc.desc: Test the QueryTableStatistic function input parameters of different parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, QueryTableStatisticTest, TestSize.Level0)
 {
@@ -1794,7 +1721,6 @@ HWTESTF(KvStoreDataTest, QueryTableStatisticTest, TestSize.Level0)
 * @tc.name: GetSchemaMeta
 * @tc.desc: Test the GetSchemaMeta function input parameters of different parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetSchemaMetaTest, TestSize.Level0)
 {
@@ -1836,7 +1762,6 @@ HWTESTF(KvStoreDataTest, GetSchemaMetaTest, TestSize.Level0)
 * @tc.name: GetAppSchemaFromServer
 * @tc.desc: Test the GetAppSchemaFromServer function input parameters of different parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetAppSchemaFromServerTest, TestSize.Level0)
 {
@@ -1865,7 +1790,6 @@ HWTESTF(KvStoreDataTest, GetAppSchemaFromServerTest, TestSize.Level0)
 * @tc.name: OnAppUninstall
 * @tc.desc: Test the OnAppUninstall function delete the subscription data
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, OnAppUninstallTest, TestSize.Level0)
 {
@@ -1892,7 +1816,6 @@ HWTESTF(KvStoreDataTest, OnAppUninstallTest, TestSize.Level0)
 * @tc.name: GetKvInfo
 * @tc.desc: Test the GetKvInfo with invalid parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, GetKvInfo001Test, TestSize.Level0)
 {
@@ -1915,7 +1838,6 @@ HWTESTF(KvStoreDataTest, GetKvInfo001Test, TestSize.Level0)
 * @tc.name: PreShare
 * @tc.desc: Test the PreShare with invalid parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, PreShareTest, TestSize.Level0)
 {
@@ -1937,7 +1859,6 @@ HWTESTF(KvStoreDataTest, PreShareTest, TestSize.Level0)
 * @tc.name: InitSubTask
 * @tc.desc: Test the InitSubTask with invalid parameters
 * @tc.type: FUNC
-* @tc.require:
  */
 HWTESTF(KvStoreDataTest, InitSubTaskTest, TestSize.Level0)
 {
