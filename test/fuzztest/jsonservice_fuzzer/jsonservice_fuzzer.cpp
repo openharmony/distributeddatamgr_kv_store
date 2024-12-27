@@ -120,7 +120,7 @@ void MakeDirctionary(const char *dirTest)
     }
 }
 
-std::string getMaxString()
+std::string GetMaxString()
 {
     std::string str = "{";
     for (int i = 0; i <= MAX_SIZE_NUM_TEST; i++) {
@@ -161,26 +161,11 @@ void InsertDocOneFuzzTest(const std::string &documentVirtualData)
     std::string collectName2(HALF_BYTES, 'a');
     GRD_InsertDocument(g_datatest, collectName2.c_str(), documentVirtual15.c_str(), 0);
     const char *collectName = "collection@!#";
-    std::string documentVirtual16 = "{\"id\" : \"10\", \"name\" : \"" + documentVirtualData + "\"}";
-    GRD_InsertDocument(g_datatest, collectName, documentVirtual16.c_str(), GRD_OK);
-    std::string collectName1(MORE_HALF_HALF_BYTES, 'k');
-    std::string documentVirtual17 = "{\"id\" : \"10\", \"name\" : \"" + documentVirtualData + "\"}";
-    GRD_InsertDocument(g_datatest, collectName1.c_str(), documentVirtual17.c_str(), GRD_OK);
     std::string documentVirtual18 = "({\"level1\" : {\"level2\" : {\"level3\" : {\"level4\": {\"level5\" : 1}},\
         \"level3_2\" : \"" +
         documentVirtualData + "\"}},\"id\":\"14\"})";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual18.c_str(), 0);
-    std::string documentVirtual19 =
-        "({\"level1\" : {\"level2\" : {\"level3\" : [{ \"level5\" : \"" + documentVirtualData + "\",\
-        \"level5_2\":\"" +
-        documentVirtualData + "\"}, \"" + documentVirtualData + "\",\"" + documentVirtualData + "\"], \"level3_2\":\
-        \"" +
-        documentVirtualData + "\"}}, \"id\":\"14\"})";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual19.c_str(), 0);
-    std::string documentVirtual20 =
-        "({\"level1\" : {\"level2\" : {\"level3\" : { \"level4\" : \"" + documentVirtualData + "\"},\
-        \"level3_2\" : \"" +
-        documentVirtualData + "\"}}, \"id\":\"14\"})";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual20.c_str(), 0);
     std::string documentVirtual21 = "{\"id\" : \"21\", \"name\" : \"" + documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, collectName, documentVirtual21.c_str(), GRD_OK);
@@ -201,17 +186,9 @@ void InsertDocTwoFuzzTest(const std::string &documentVirtualData)
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual21.c_str(), 0);
     std::string documentVirtual22 = "{\"id\" : \"16\", \"name\" : \"" + documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual22.c_str(), 0);
-    std::string documentVirtual23 =
-        "{\"id\" : \"17\", \"level1\" : {\"level2\" : {\"level3\" : {\"level4\" : " + documentVirtualData + "\
-        } } }, \"level1_2\" : \"" +
-        documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual23.c_str(), 0);
     std::string documentVirtual24 = documentVirtualData;
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual24.c_str(), 0);
-    std::string documentVirtual25 =
-        "{\"name\" : \"" + documentVirtualData + "\", \"age\" : " + documentVirtualData + ",\
-                            \"friend\" : {\"name\" : \" " +
-        documentVirtualData + "\"}, \"id\" : \"19\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual25.c_str(), 0);
     std::string collectName3 = std::string(HALF_HALF_BYTES, 'k');
     std::string documentVirtual26 = "{\"id\" : \"22\", \"name\" : \"" + documentVirtualData + "\"}";
@@ -256,9 +233,6 @@ void InsertDocThreeFuzzTest(const std::string &documentVirtualData)
     GRD_CreateCollect(g_datatest, collectName5.c_str(), "", 0);
     GRD_InsertDocument(g_datatest, collectName5.c_str(), documentVirtual34.c_str(), 0);
 
-    std::string documentVirtual35 = "{\"id\" : \"25_0\", \"level1\" : {\"level2\" : {\"level3\" :\
-        {\"level4\" : \"" +
-        documentVirtualData + "\"}}} , \"level1_2\" : \"" + documentVirtualData + "\" }";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual35.c_str(), 0);
 
     std::string documentVirtual36 = "{\"id\" : \"25_1\", \"class_name\" : \"" + documentVirtualData +
@@ -269,23 +243,7 @@ void InsertDocThreeFuzzTest(const std::string &documentVirtualData)
         documentVirtualData + "\", \"" + documentVirtualData + "\", 0, \"" + documentVirtualData + "\"] }]}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual36.c_str(), 0);
 
-    std::string documentVirtual37 = "{\"id\" : \"25_2\", \"class_name\" : \"" + documentVirtualData +
-        "\", \"signed_info\" : true, \
-        \"student_info\" : [{\"name\":\"" +
-        documentVirtualData + "\", \"age\" : " + documentVirtualData + ", \"sex\" : \"male\"}, \
-        [\"" +
-        documentVirtualData + "\", \"" + documentVirtualData + "\", 0, \"" +
-        documentVirtualData + "\", {\"0ab\" : null}]]}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual37.c_str(), 0);
-
-    std::string documentVirtual38 = "{\"id\" : \"25_3\", \"class_name\" : \"" + documentVirtualData +
-        "\", \"signed_info\" : true, \
-        \"student_info\" : [{\"name\":\"" +
-        documentVirtualData + "\", \"age\" : " + documentVirtualData + ", \"sex\" : \"male\"}, \
-        { \"newName1\" : [\"" +
-        documentVirtualData + "\", \"" + documentVirtualData + "\", 0, \"" +
-        documentVirtualData + "\", {\"level5\" : 1}] }]}";
-    GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual38.c_str(), 0);
 }
 
 void InsertDocFourFuzzTest(const std::string &longId, const std::string &documentVirtualData)
@@ -301,8 +259,6 @@ void InsertDocFourFuzzTest(const std::string &longId, const std::string &documen
         documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual40.c_str(), 0);
     std::string documentVirtual41 = "{\"id\" : \"36_0\", \"stringType\" : \"" + documentVirtualData +
-        "\", \"numType\" : " + documentVirtualData + ", \"BoolType\" : true,\
-                          \"nullType\" : null, \"arrayType\" : " +
         documentVirtualData + ", \"objectType\" : {\"A\" : 3}}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual41.c_str(), 0);
 
@@ -663,9 +619,6 @@ void FindDocumentThreeFuzzTest(const std::string &input)
     projectInfo = "{\"name\": " + input + ", \"item\": " + input + "}";
     FindDocumentWithFlagFuzzTest(filt, projectInfo, flag);
     filt = "{\"id\" : \"4\"}";
-    projectInfo = "{\"name\": " + input + ", \"person.grade1\": " + input + ", \
-            \"person.shool1\": " +
-        input + ", \"person.age1\": " + input + "}";
     flag = 0;
     FindDocumentWithFlagFuzzTest(filt, projectInfo, flag);
     projectInfo = "{\"name\": false, \"person.grade1\": false, \
