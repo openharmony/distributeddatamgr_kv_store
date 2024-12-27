@@ -161,9 +161,7 @@ void InsertDocOneFuzzTest(const std::string &documentVirtualData)
     std::string collectName2(HALF_BYTES, 'a');
     GRD_InsertDocument(g_datatest, collectName2.c_str(), documentVirtual15.c_str(), 0);
     const char *collectName = "collection@!#";
-    std::string documentVirtual18 = "({\"level1\" : {\"level2\" : {\"level3\" : {\"level4\": {\"level5\" : 1}},\
-        \"level3_2\" : \"" +
-        documentVirtualData + "\"}},\"id\":\"14\"})";
+    std::string documentVirtual18 = "{\"id\" : \"18\", \"name\" : \"" + documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual18.c_str(), 0);
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual19.c_str(), 0);
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual20.c_str(), 0);
@@ -235,15 +233,15 @@ void InsertDocThreeFuzzTest(const std::string &documentVirtualData)
 
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual35.c_str(), 0);
 
-    std::string documentVirtual36 = "{\"id\" : \"25_1\", \"class_name\" : \"" + documentVirtualData +
-        "\", \"signed_info\" : true, \
-        \"student_info\" : [{\"name\":\"" +
-        documentVirtualData + "\", \"age\" : " + documentVirtualData + ", \"sex\" : \"male\"}, \
-        { \"newName1\" : [\"" +
-        documentVirtualData + "\", \"" + documentVirtualData + "\", 0, \"" + documentVirtualData + "\"] }]}";
-    GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual36.c_str(), 0);
+    std::string documentVirtual36 = "{\"id\" : \"36_4\", \"name\" : \"" + documentVirtualData + "\"}";
+    GRD_CreateCollect(g_datatest, collectName5.c_str(), "", 0);
+    GRD_InsertDocument(g_datatest, collectName5.c_str(), documentVirtual36.c_str(), 0);
 
+    GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual36.c_str(), 0);
+    std::string documentVirtual37 = "{\"id\" : \"37_4\", \"name\" : \"" + documentVirtualData + "\"}";
     GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual37.c_str(), 0);
+    std::string documentVirtual38 = "{\"id\" : \"38_8\", \"name\" : \"" + documentVirtualData + "\"}";
+    GRD_InsertDocument(g_datatest, COLLECT_NAME, documentVirtual38.c_str(), 0);
 }
 
 void InsertDocFourFuzzTest(const std::string &longId, const std::string &documentVirtualData)
