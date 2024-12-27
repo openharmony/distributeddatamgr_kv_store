@@ -1964,23 +1964,22 @@ HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0
 }
 
 /**
-* @tc.name: KvStoreDdmSubscribeKvStoreNotification026
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification0261
 * @tc.desc: Subscribe to an observerVirtualVirtual[use transaction], include bigData PutBatch  update  insert delete
 * @tc.type: FUNC
 * @tc.require: AR000CIFGM
 * @tc.author: Virtual
 */
-HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification026, TestSize.Level0)
+HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0261, TestSize.Level0)
 {
-    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026 begin.");
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0261 begin.");
     auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
     SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
     Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
 
     std::vector<Entry> entriesVirtual;
-    Entry entryVirtual0, entryVirtual1, entryVirtual2, entryVirtual3, entryVirtual4,
-        entryVirtual5, entryVirtual6, entryVirtual7;
+    Entry entryVirtual0, entryVirtual1, entryVirtual2;
 
     int maxValueSize = 2 * 1024 * 1024; // max valueVirtualVirtual size is 2M.
     std::vector<uint8_t> val(maxValueSize);
@@ -2002,14 +2001,67 @@ HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0
     entryVirtual1.valueVirtualVirtual = valueVirtualVirtual;
     entryVirtual2.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_2";
     entryVirtual2.valueVirtualVirtual = valueVirtualVirtual;
+
+    entriesVirtual.push_back(entryVirtual0);
+    entriesVirtual.push_back(entryVirtual1);
+    entriesVirtual.push_back(entryVirtual2);
+
+    statusVirtual = kvStoreVirtual->PutBatch(entriesVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putbatch data return wrong statusVirtual";
+
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual()), 1);
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->insertEntries_Virtual.size()), 5);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_0",
+        observerVirtualVirtual->insertEntries_Virtual[0].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("beijing",
+        observerVirtualVirtual->insertEntries_Virtual[0].valueVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_1",
+        observerVirtualVirtual->insertEntries_Virtual[1].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_2",
+        observerVirtualVirtual->insertEntries_Virtual[2].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3",
+        observerVirtualVirtual->insertEntries_Virtual[3].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("ZuiHouBuZhiTianZaiShui",
+        observerVirtualVirtual->insertEntries_Virtual[3].valueVirtualVirtual.ToString());
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification0262
+* @tc.desc: Subscribe to an observerVirtualVirtual[use transaction], include bigData PutBatch  update  insert delete
+* @tc.type: FUNC
+* @tc.require: AR000CIFGM
+* @tc.author: Virtual
+*/
+HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0262, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0262 begin.");
+    auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entriesVirtual;
+    Entry entryVirtual3, entryVirtual4;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueVirtualVirtual size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtualVirtual = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueVirtualVirtual size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtual2 = val2;
+
     entryVirtual3.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_3";
     entryVirtual3.valueVirtualVirtual = "ZuiHouBuZhiTianZaiShui";
     entryVirtual4.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_4";
     entryVirtual4.valueVirtualVirtual = valueVirtualVirtual;
 
-    entriesVirtual.push_back(entryVirtual0);
-    entriesVirtual.push_back(entryVirtual1);
-    entriesVirtual.push_back(entryVirtual2);
     entriesVirtual.push_back(entryVirtual3);
     entriesVirtual.push_back(entryVirtual4);
 
@@ -2033,23 +2085,22 @@ HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0
 }
 
 /**
-* @tc.name: KvStoreDdmSubscribeKvStoreNotification026b
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification0263
 * @tc.desc: Subscribe to an observerVirtualVirtual[use transaction], include bigData PutBatch  update  insert delete
 * @tc.type: FUNC
 * @tc.require: AR000CIFGM
 * @tc.author: Virtual
 */
-HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification026b, TestSize.Level0)
+HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0263, TestSize.Level0)
 {
-    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026b begin.");
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0263 begin.");
     auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
     SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
     Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
 
     std::vector<Entry> entriesVirtual;
-    Entry entryVirtual0, entryVirtual1, entryVirtual2, entryVirtual3, entryVirtual4,
-        entryVirtual5, entryVirtual6, entryVirtual7;
+    Entry entryVirtual5;
 
     int maxValueSize = 2 * 1024 * 1024; // max valueVirtualVirtual size is 2M.
     std::vector<uint8_t> val(maxValueSize);
@@ -2063,17 +2114,136 @@ HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0
     for (int i = 0; i < maxValueSize2; i++) {
         val2[i] = static_cast<uint8_t>(i);
     }
-    Value valueVirtual2 = val2;
 
     entryVirtual5.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_2";
     entryVirtual5.valueVirtualVirtual = val2;
+
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entryVirtual5);
+
+    statusVirtual = kvStoreVirtual->PutBatch(updateEntries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putBatch update data return wrong statusVirtual";
+
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->updateEntries_Virtual.size()), 3);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_2",
+        observerVirtualVirtual->updateEntries_Virtual[0].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3",
+        observerVirtualVirtual->updateEntries_Virtual[1].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("ManChuanXingMengYaXingHe",
+        observerVirtualVirtual->updateEntries_Virtual[1].valueVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_4",
+        observerVirtualVirtual->updateEntries_Virtual[2].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ(false, observerVirtualVirtual->isClearVirtual_);
+
+    statusVirtual = kvStoreVirtual->Delete("SingleKvStoreDdmPutBatch006_3");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual(3)), 3);
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->deleteEntries_Virtual.size()), 1);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3",
+        observerVirtualVirtual->deleteEntries_Virtual[0].valueVirtualVirtualVirtualVirtual.ToString());
+
+    statusVirtual = kvStoreVirtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification0264
+* @tc.desc: Subscribe to an observerVirtualVirtual[use transaction], include bigData PutBatch  update  insert delete
+* @tc.type: FUNC
+* @tc.require: AR000CIFGM
+* @tc.author: Virtual
+*/
+HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0264, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0264 begin.");
+    auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entriesVirtual;
+    Entry entryVirtual6;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueVirtualVirtual size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtualVirtual = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueVirtualVirtual size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
     entryVirtual6.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_3";
     entryVirtual6.valueVirtualVirtual = "ManChuanXingMengYaXingHe";
+
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entryVirtual6);
+    statusVirtual = kvStoreVirtual->PutBatch(updateEntries);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putBatch update data return wrong statusVirtual";
+
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual(2)), 2);
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->updateEntries_Virtual.size()), 3);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_2",
+        observerVirtualVirtual->updateEntries_Virtual[0].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3",
+        observerVirtualVirtual->updateEntries_Virtual[1].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ("ManChuanXingMengYaXingHe",
+        observerVirtualVirtual->updateEntries_Virtual[1].valueVirtualVirtual.ToString());
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_4",
+        observerVirtualVirtual->updateEntries_Virtual[2].valueVirtualVirtualVirtualVirtual.ToString());
+    EXPECT_EQ(false, observerVirtualVirtual->isClearVirtual_);
+
+    statusVirtual = kvStoreVirtual->Delete("SingleKvStoreDdmPutBatch006_3");
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore delete data return wrong statusVirtual";
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->GetCallCountVirtual(3)), 3);
+    EXPECT_EQ(static_cast<int>(observerVirtualVirtual->deleteEntries_Virtual.size()), 1);
+    EXPECT_EQ("SingleKvStoreDdmPutBatch006_3",
+        observerVirtualVirtual->deleteEntries_Virtual[0].valueVirtualVirtualVirtualVirtual.ToString());
+
+    statusVirtual = kvStoreVirtual->UnSubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "UnSubscribeKvStore return wrong statusVirtual";
+}
+
+/**
+* @tc.name: KvStoreDdmSubscribeKvStoreNotification0265
+* @tc.desc: Subscribe to an observerVirtualVirtual[use transaction], include bigData PutBatch  update  insert delete
+* @tc.type: FUNC
+* @tc.require: AR000CIFGM
+* @tc.author: Virtual
+*/
+HWTEST_F(LocalSubscribeStoreVirtualTest, KvStoreDdmSubscribeKvStoreNotification0265, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0265 begin.");
+    auto observerVirtualVirtual = std::make_shared<KvStoreObserverUnitTestVirtual>();
+    SubscribeType subscribeTypeVirtual = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusVirtual = kvStoreVirtual->SubscribeKvStore(subscribeTypeVirtual, observerVirtualVirtual);
+    EXPECT_EQ(Status::SUCCESS, statusVirtual) << "SubscribeKvStore return wrong statusVirtual";
+
+    std::vector<Entry> entriesVirtual;
+    Entry entryVirtual7;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueVirtualVirtual size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueVirtualVirtual = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueVirtualVirtual size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
     entryVirtual7.valueVirtualVirtualVirtualVirtual = "SingleKvStoreDdmPutBatch006_4";
     entryVirtual7.valueVirtualVirtual = val2;
     std::vector<Entry> updateEntries;
-    updateEntries.push_back(entryVirtual5);
-    updateEntries.push_back(entryVirtual6);
+
     updateEntries.push_back(entryVirtual7);
     statusVirtual = kvStoreVirtual->PutBatch(updateEntries);
     EXPECT_EQ(Status::SUCCESS, statusVirtual) << "KvStore putBatch update data return wrong statusVirtual";
