@@ -133,17 +133,14 @@ int RelationalSyncDataInserter::GetInsertStatement(sqlite3 *db, sqlite3_stmt *&s
 }
 
 int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem,
-    const SaveSyncDataStmt &saveSyncDataStmt)
+    SaveSyncDataStmt &saveSyncDataStmt)
 {
-    sqlite3_stmt *stmt;
+    sqlite3_stmt *&stmt = isUpdate ? saveSyncDataStmt.updateDataStmt : saveSyncDataStmt.insertDataStmt;
     std::set<std::string> filterSet;
     if (isUpdate) {
-        stmt = saveSyncDataStmt.updateDataStmt;
         for (const auto &primaryKey : localTable_.GetIdentifyKey()) {
             filterSet.insert(primaryKey);
         }
-    } else {
-        stmt = saveSyncDataStmt.insertDataStmt;
     }
     if (stmt == nullptr) {
         LOGW("skip save data %s", DBCommon::StringMiddleMasking(DBCommon::VectorToHexString(dataItem.hashKey)).c_str());
@@ -345,13 +342,13 @@ int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqli
 {
     int errCode = SQLiteUtils::BindBlobToStatement(stmt, beginIndex++, dataItem.hashKey);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        LOGE("[RelationalSyncDataInserter] bind hash key failed %d", errCode);
         return errCode;
     }
     if (mode_ != DistributedTableMode::COLLABORATION) {
         errCode = SQLiteUtils::BindTextToStatement(stmt, beginIndex, dataItem.dev);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            LOGE("[RelationalSyncDataInserter] bind dev failed %d", errCode);
         }
     }
     return errCode;
