@@ -101,6 +101,7 @@ ohos_unittest("DataQueryVirtualTest") {
     "kvstore_datashare_bridge_virtual_test.cpp",
     "local_kv_store_virtual_test.cpp",
     "local_subscribe_store_virtual_test.cpp",
+    "single_kvstore_query_virtual_test.cpp",
   ]
 
   configs = [ ":database_utils_config" ]
