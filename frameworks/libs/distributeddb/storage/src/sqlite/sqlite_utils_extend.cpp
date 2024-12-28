@@ -612,45 +612,39 @@ int SQLiteUtils::BindDataValueByType(sqlite3_stmt *statement, const std::optiona
 int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd,
     uint32_t iterTimes)
 {
-    if (passwd.GetSize() != 0) {
-        int errCode = SetKeyInner(db, type, passwd, iterTimes);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        // set sha1 algo for old version
-        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set sha algo failed:%d", errCode);
-            return errCode;
-        }
-        // try to get user version
-        errCode = SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] verify version failed:%d", errCode);
-            if (errno == EKEYREVOKED) {
-                return -E_EKEYREVOKED;
-            }
-            if (errCode == -E_BUSY) {
-                return errCode;
-            }
-            return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
-        }
-        // try to update rekey sha algo by rekey operation
-        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set rekey sha algo failed:%d", errCode);
-            return errCode;
-        }
-        if (setWal) {
-            errCode = SQLiteUtils::ExecuteRawSQL(db, WAL_MODE_SQL);
-            if (errCode != E_OK) {
-                LOGE("[SQLite][UpdateCipherShaAlgo] execute wal sql failed: %d", errCode);
-                return errCode;
-            }
-        }
-        return Rekey(db, passwd);
+    int errCode = SetKeyInner(db, type, passwd, iterTimes);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+    // set sha1 algo for old version
+    errCode = SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set sha algo failed:%d", errCode);
+        return errCode;
+    }
+    // try to get user version
+    errCode = SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][UpdateCipherShaAlgo] verify version failed:%d", errCode);
+        if (errno == EKEYREVOKED) {
+            return -E_EKEYREVOKED;
+        }
+        return errCode;
+    }
+    // try to update rekey sha algo by rekey operation
+    errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set rekey sha algo failed:%d", errCode);
+        return errCode;
+    }
+    if (setWal) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, WAL_MODE_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLite][UpdateCipherShaAlgo] execute wal sql failed: %d", errCode);
+            return errCode;
+        }
+    }
+    return Rekey(db, passwd);
 }
 
 int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated, bool isCheckMeta)
