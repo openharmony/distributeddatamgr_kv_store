@@ -85,7 +85,7 @@ class MockKvStoreDelegate : public DistributedDB::KvStoreDelegate {
 public:
     ~MockKvStoreDelegate() = default;
 
-    DBStatusTest Sync(const std::vector<std::string> &devicesVirtual, DistributedDB::SyncMode mode, const Query &queryMock,
+    DBStatusTest Sync(const std::vector<std::string> &devicesVirtual, DistributedDB::SyncMode mode,
         const SyncStatusCallback &onComplete, bool wait) override
     {
         return DBStatusTest::OK;
