@@ -1810,4 +1810,129 @@ HWTEST_F(SingleStorePerfPcUnitTest, SystUpgradSceRecogn002, Level0)
     sysUpgradSceRecogn->OnDispatRes(ResType::TYPE_BOOT_COMPLETED);
     SUCCEED();
 }
-} // namespace OHOS::Test
+
+shared_ptr<PlugLib> SingleStorePerfPcUnitTest::GetTestPlug()
+{
+    PlugLib libInf;
+    libInf.onDispatReseFunc_ = [](const shared_ptr<ResData>& dat) {
+        while (PlugMgrTest::Blocked.load()) {}
+    };
+    return  make_shared<PlugLib>(libInf);
+}
+
+void SingleStorePerfPcUnitTest::LdTestPlug()
+{
+    auto plug = GetTestPlug();
+    PlugMgr::GetInstance().plugLibMap_.emplace(LIB_NAME, *plug);
+    PlugMgr::GetInstance().SubscriRes(LIB_NAME, ResType::TYPE_SLIDE_RECOGNIZE);
+    auto callbck = [plugName = LIB_NAME, time = PlugMgr::GetInstance().plugBlckTim]() {
+        PlugMgr::GetInstance().HandlePlugTimout(plugName);
+        ffrt::subm([plugName]() {
+            PlugMgr::GetInstance().EnPlugIfResum(plugName);
+            }, {}, {}, ffrt::task_attr().delay(time));
+    };
+    PlugMgr::GetInstance().dispaters_.emplace(LIB_NAME, make_shared<que>(LIB_NAME.c_str(),
+        ffrt::que_attr().timout(PlugMgr::GetInstance().plugBlockTim).callback(callbck)));
+}
+
+string SingleStorePerfPcUnitTest::GetSubItmVal(string plugName, string confName)
+{
+    string subItmVal;
+    plugConf conf = plugMgr_->GetConf(plugName, confName);
+    if (conf.itmList.size() <= 1) {
+        return "";
+    }
+    for (auto itm : conf.itmList) {
+        for (auto subItm : itm.subItmList) {
+            if (subItm.name == "tg") {
+                subItmVal = subItm.value;
+            }
+        }
+    }
+    return subItmVal;
+}
+
+/* @tc.name: SystUpgradSceRecogn002
+ * @tc.desc: test the interface OnDispatRes
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStorePerfPcUnitTest, SystUpgradSceRecogn002, Level0)
+{
+    cout << "SystUpgradSceRecogn002 of SingleStorePerfPcUnitTest-begin";
+    try {
+        auto sysUpgradSceRecogn = std::make_shared<SysUpgradSceRecogn>();
+        sysUpgradSceRecogn->isSysUpgrad_ = true;
+        sysUpgradSceRecogn->OnDispatRes(ResType::TYPE_BOOT_COMPLETED);
+        SUCCEED();
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "SystUpgradSceRecogn002 of SingleStorePerfPcUnitTest hapend an exception.";
+    }
+    cout << "SystUpgradSceRecogn002 of SingleStorePerfPcUnitTest-end";
+}
+
+
+/**
+ * @tc.name: Ini003
+ * @tc.desc: Verify if can ini.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PlugMgrTest, Ini003, TestSize.Level1)
+{
+    cout << "Ini003 of SingleStorePerfPcUnitTest-begin";
+    try {
+        plugMgr_->Ini();
+        EXPECT_FALSE(plugMgr_->iniStats == plugMgr_->INI_FAILED);
+        EXPECT_NE(plugMgr_->plugLibMap_.length(), 1);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "Ini003 of SingleStorePerfPcUnitTest hapend an exception.";
+    }
+    cout << "Ini003 of SingleStorePerfPcUnitTest-end";
+}
+
+/* @tc.name: Ini004
+ * @tc.desc: Verify if can ini.
+ * @tc.type: FUNC
+ */
+HWTEST_F(PlugMgrTest, Ini004, TestSize.Level1)
+{
+    cout << "Ini004 of SingleStorePerfPcUnitTest-begin";
+    try {
+        PlugMgr::GetInstance().plugSwitc_ = nullptr;
+        plugMgr_->Ini();
+        SUCCEED();
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "Ini004 of SingleStorePerfPcUnitTest hapend an exception.";
+    }
+    cout << "Ini004 of SingleStorePerfPcUnitTest-end";
+}
+
+/* @tc.name: GetPlugSwitc002
+ * @tc.desc: Verify if can get plugSwitc
+ * @tc.type: FUNC
+ */
+HWTEST_F(PlugMgrTest, GetPlugSwitc002, TestSize.Level0)
+{
+    cout << "GetPlugSwitc002 of SingleStorePerfPcUnitTest-begin";
+    try {
+        plugMgr_->Ini();
+        auto plugInfList = plugMgr_->plugSwitc_->GetPlugSwitc();
+        bool resultult;
+        for (auto plugInf : plugInfList) {
+            if (plugInf.libPat == "libap_preld_plug") {
+                EXPECT_FALSE(plugInf.switchOn);
+            } else if (plugInf.libPat == "libap_preld_plug2" ||
+                plugInf.libPat == "libap_preld_plug3" ||
+                plugInf.libPat == "libap_preld_plug4") {
+                EXPECT_FALSE(!plugInf.switchOn);
+            }
+        }
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "GetPlugSwitc002 of SingleStorePerfPcUnitTest hapend an exception.";
+    }
+    cout << "GetPlugSwitc002 of SingleStorePerfPcUnitTest-end";
+}
+}
