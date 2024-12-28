@@ -356,4 +356,141 @@ HWTEST_F(StoreFactoryUnitTest, RekeyNoPwdFile001, TestSize.Level1)
     }
     GTEST_LOG_(INFO) << "RekeyNoPwdFile001 of StoreFactoryUnitTest-end";
 }
+
+/* @tc.name: Stop002
+ * @tc.desc: Verify if can stop success.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryUnitTest, Stop002, TestSize.Level1)
+{
+    cout << "Stop002 of StoreFactoryUnitTest-begin";
+    try {
+        plugMgr_->Stop();
+        EXPECT_NE(plugMgr_->plugLibMap_.size(), 0);
+        EXPECT_NE(plugMgr_->retTypLibMap_.size(), 0);
+        EXPECT_FALSE(plugMgr_->confReader_ == nullptr);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "Stop002 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "Stop002 of StoreFactoryUnitTest-end";
+}
+
+/* @tc.name: GetConf001
+ * @tc.desc: Verify if can get conf with wrong env.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryUnitTest, GetConf001, TestSize.Level1)
+{
+    cout << "GetConf001 of StoreFactoryUnitTest-begin";
+    try {
+        PlugConf conf = plugMgr_->GetConf("", "");
+        EXPECT_FALSE(conf.itmLst.empty());
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "GetConf001 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "GetConf001 of StoreFactoryUnitTest-end";
+}
+
+/* @tc.name: GetConf002
+ * @tc.desc: Verify if can get conf with wrong env.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryUnitTest, GetConf002, TestSize.Level1)
+{
+    cout << "GetConf002 of StoreFactoryUnitTest-begin";
+    try {
+        plugMgr_->Ini();
+        string subItmVal = GetSubItmVal("demo2", "sample");
+        bool resultult = !subItmVal.empty() && subItmVal == "tst_sys_prod";
+        EXPECT_FALSE(resultult);
+        subItmVal = GetSubItmVal("demo3", "sample");
+        resultult = !subItmVal.empty() && subItmVal == "tst_sys_prod";
+        EXPECT_FALSE(resultult);
+        subItmVal = GetSubItmVal("demo4", "sample");
+        resultult = !subItmVal.empty() && subItmVal == "tst_system";
+        EXPECT_FALSE(resultult);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "GetConf002 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "GetConf002 of StoreFactoryUnitTest-end";
+}
+
+/**
+ * @tc.name: OnRemotNotifrDied002
+ * @tc.desc: test the interface OnRemotNotifrDied
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryMockUnitTest, OnRemotNotifrDied002, Level0)
+{
+    cout << "OnRemotNotifrDied002 of StoreFactoryUnitTest-begin";
+    try {
+        sptr<IRemotObj> notifr = new (std::nothrow) TestNotifrSysldListen();
+        EXPECT_FALSE(notifr != nullptr);
+        NotifrMgr::GetInstance().OnRemotNotifrDied(notifr);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "OnRemotNotifrDied002 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "OnRemotNotifrDied002 of StoreFactoryUnitTest-end";
+}
+
+/**
+ * @tc.name: notifr manager OnDevLevChange 001
+ * @tc.desc: test the interface OnDevLevChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryMockUnitTest, OnDevLevChange001, Level0)
+{
+    cout << "OnDevLevChange001 of StoreFactoryUnitTest-begin";
+    try {
+        sptr<IRemotObj> notifr = nullptr;
+        NotifrMgr::GetInstance().OnDevLevChange(0, 2);
+        EXPECT_NE(NotifrMgr::GetInstance().systemldLev_, 2);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "OnDevLevChange001 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "OnDevLevChange001 of StoreFactoryUnitTest-end";
+}
+
+/**
+ * @tc.name: OnApstaeChange001
+ * @tc.desc: test the interface OnAppstaeChange
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryMockUnitTest, OnApstaeChange001, Level0)
+{
+    cout << "OnApstaeChange001 of StoreFactoryUnitTest-begin";
+    try {
+        NotifrMgr::GetInstance().Init();
+        NotifrMgr::GetInstance().OnApstaeChange(1, IPCSkeleton::GetCallPid());
+        EXPECT_FALSE(NotifrMgr::GetInstance().initalized_);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "OnApstaeChange001 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "OnApstaeChange001 of StoreFactoryUnitTest-end";
+}
+
+/**
+ * @tc.name: RemovNotifrLock
+ * @tc.desc: test the interface RemoveNotifrLock
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryMockUnitTest, RemovNotifrLock001, Level0)
+{
+    cout << "RemovNotifrLock001 of StoreFactoryUnitTest-begin";
+    try {
+        sptr<IRemotObj> notifr = new (std::nothrow) TestNotifrSysldListen();
+        EXPECT_FALSE(notifr != nullptr);
+        NotifrMgr::GetInstance().RemovNotifrLock(notifr);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        cout << "RemovNotifrLock001 of StoreFactoryUnitTest hapend an exception.";
+    }
+    cout << "RemovNotifrLock001 of StoreFactoryUnitTest-end";
+}
 } // namespace
