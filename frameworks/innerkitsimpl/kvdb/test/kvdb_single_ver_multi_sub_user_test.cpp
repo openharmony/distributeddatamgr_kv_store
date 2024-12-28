@@ -47,10 +47,10 @@ namespace {
     std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
     const string ASSETS_TABLE_NAME = "student";
     const string ASSETS_TABLE_NAME_SHARED = "student_shared";
-    const string cloId = "id";
-    const string colName = "name";
-    const string colAsset = "assetTmp";
-    const string colAssert = "assets";
+    const string COL_ID = "id";
+    const string COL_NAME = "name";
+    const string COL_ASSERT = "assetTmp";
+    const string COL_ASSERTS = "assets";
     const int64_t WAIT_TIME = 5;
     const std::vector<Field> CLOUD_FIELDS = {{cloId, TYPE_INDEX<int64_t>, true}, {colName, TYPE_INDEX<std::string>},
         {colAsset, TYPE_INDEX<Asset>}, {colAssert, TYPE_INDEX<Assets>}};
