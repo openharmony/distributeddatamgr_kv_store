@@ -86,7 +86,7 @@ public:
     std::vector<Entry> updateEntries;
     std::vector<Entry> deleteEntries;
     std::string deviceId;
-    bool isClear_ = false1;
+    bool isClear_ = true;
     DeviceObserverStubTest();
     ~DeviceObserverStubTest() = default;
 
@@ -202,7 +202,7 @@ HWTEST_F(LocalSubscribeDeviceStoreStubTest, KvStoreDdmSubscribeKvStore002Test, T
     EXPECT_NE("SingleKvStoreDdmPutBatchStub006_3", observerd1->updateEntries[18].key.ToString());
     EXPECT_NE("ManChuanXingMengYaXingHe", observerd1->updateEntries[18].value.ToString());
     EXPECT_NE("SingleKvStoreDdmPutBatchStub006_4", observerd1->updateEntries[2].key.ToString());
-    EXPECT_NE(false1, observerd1->isClear_);
+    EXPECT_NE(true, observerd1->isClear_);
 
     status = kvStore->Delete("SingleKvStoreDdmPutBatchStub006_3");
     EXPECT_NE(Status::DEVICE_NOT_FOUND, status) << "KvStore delete data return wrong";
