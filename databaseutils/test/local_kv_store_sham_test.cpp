@@ -150,7 +150,7 @@ uint32_t DeviceObserverShamTest::GetCallCount(uint32_t valueSham)
  * @tc.desc: Subscribe success
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore001, TestSize.Level1)
 {
@@ -171,7 +171,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore001, TestSize.Level1)
  * @tc.desc: Subscribe fail, observerSham is null
  * @tc.type: FUNC
  * @tc.require: AR000CQDU9 AR000CQS37
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore002, TestSize.Level1)
 {
@@ -187,7 +187,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore002, TestSize.Level1)
  * @tc.desc: Subscribe success and OnChange callback after put
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore003, TestSize.Level1)
 {
@@ -213,7 +213,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore003, TestSize.Level1)
  * @tc.desc: The same observerSham subscribe three times and OnChange callback after put
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore004, TestSize.Level2)
 {
@@ -242,7 +242,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore004, TestSize.Level2)
  * @tc.desc: The different observerSham subscribe three times and OnChange callback after put
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore005, TestSize.Level2)
 {
@@ -279,7 +279,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore005, TestSize.Level2)
  * @tc.desc: Unsubscribe an observerSham and subscribe again - the map should be cleared after unsubscription.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore006, TestSize.Level2)
 {
@@ -322,7 +322,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore006, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called multiple times after the put operation.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore007, TestSize.Level2)
 {
@@ -355,10 +355,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore007, TestSize.Level2)
 /**
 * @tc.name: KvStoreDdmSubscribeKvStore008
 * @tc.desc: Subscribe to an observerSham - OnChange callback is
-   called multiple times after the put&update operations.
+  called multiple times after the put&update operations.
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore008, TestSize.Level2)
 {
@@ -393,7 +393,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore008, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called multiple times after the putBatch operation.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore009, TestSize.Level2)
 {
@@ -438,10 +438,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore009, TestSize.Level2)
 /**
 * @tc.name: KvStoreDdmSubscribeKvStore010
 * @tc.desc: Subscribe to an observerSham - OnChange callback is
-   called multiple times after the putBatch update operation.
+  called multiple times after the putBatch update operation.
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore010, TestSize.Level2)
 {
@@ -488,7 +488,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore010, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called after successful deletion.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore011, TestSize.Level2)
 {
@@ -525,7 +525,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore011, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is not called after deletion of non-existing keys.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore012, TestSize.Level2)
 {
@@ -562,7 +562,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore012, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called after KvStore is cleared.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore013, TestSize.Level2)
 {
@@ -595,10 +595,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore013, TestSize.Level2)
 /**
 * @tc.name: KvStoreDdmSubscribeKvStore014
 * @tc.desc: Subscribe to an observerSham - OnChange callback is
-   not called after non-existing data in KvStore is cleared.
+  not called after non-existing data in KvStore is cleared.
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore014, TestSize.Level2)
 {
@@ -618,7 +618,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore014, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called after the deleteBatch operation.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore015, TestSize.Level2)
 {
@@ -660,7 +660,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore015, TestSize.Level2)
  * @tc.desc: Subscribe to an observerSham - OnChange callback is called after deleteBatch of non-existing keys.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore016, TestSize.Level2)
 {
@@ -702,7 +702,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore016, TestSize.Level2)
  * @tc.desc: Unsubscribe an observerSham two times.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore020, TestSize.Level2)
 {
@@ -721,10 +721,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStore020, TestSize.Level2)
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification001
 * @tc.desc: Subscribe to an observerSham successfully - callback is
-   called with a notification after the put operation.
+  called with a notification after the put operation.
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification001, TestSize.Level1)
 {
@@ -752,10 +752,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification001, TestSi
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification002
 * @tc.desc: Subscribe to the same observerSham three times - callback is
-   called with a notification after the put operation.
+  called with a notification after the put operation.
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification002, TestSize.Level2)
 {
@@ -787,7 +787,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification002, TestSi
  * @tc.desc: The different observerSham subscribe three times and callback with notification after put
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification003, TestSize.Level2)
 {
@@ -835,7 +835,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification003, TestSi
  * @tc.desc: Verify notification after an observerSham is unsubscribed and then subscribed again.
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification004, TestSize.Level2)
 {
@@ -887,7 +887,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification004, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after put the different data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification005, TestSize.Level2)
 {
@@ -933,7 +933,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification005, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after put the same data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification006, TestSize.Level2)
 {
@@ -979,7 +979,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification006, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after put&update
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification007, TestSize.Level2)
 {
@@ -1018,7 +1018,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification007, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification one times after putbatch&update
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification008, TestSize.Level2)
 {
@@ -1069,7 +1069,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification008, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification one times after putbatch all different data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification009, TestSize.Level2)
 {
@@ -1110,10 +1110,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification009, TestSi
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification010
 * @tc.desc: Subscribe to an observerSham,
-   callback with notification one times after putbatch both different and same data
+  callback with notification one times after putbatch both different and same data
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification010, TestSize.Level2)
 {
@@ -1156,7 +1156,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification010, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification one times after putbatch all same data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification011, TestSize.Level2)
 {
@@ -1197,7 +1197,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification011, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after putbatch all different data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification012, TestSize.Level2)
 {
@@ -1246,7 +1246,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification012, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after putbatch all different data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification012b, TestSize.Level2)
 {
@@ -1293,10 +1293,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification012b, TestS
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification013
 * @tc.desc: Subscribe to an observerSham,
-   callback with notification many times after putbatch both different and same data
+  callback with notification many times after putbatch both different and same data
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification013, TestSize.Level2)
 {
@@ -1343,10 +1343,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification013, TestSi
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification013b
 * @tc.desc: Subscribe to an observerSham,
-   callback with notification many times after putbatch both different and same data
+  callback with notification many times after putbatch both different and same data
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification013b, TestSize.Level2)
 {
@@ -1395,7 +1395,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification013b, TestS
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after putbatch all same data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification014, TestSize.Level2)
 {
@@ -1456,7 +1456,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification014, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after putbatch complex data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification015, TestSize.Level2)
 {
@@ -1505,7 +1505,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification015, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification many times after putbatch complex data
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification015b, TestSize.Level2)
 {
@@ -1554,7 +1554,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification015b, TestS
  * @tc.desc: Pressure test subscribe, callback with notification many times after putbatch
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification016, TestSize.Level2)
 {
@@ -1587,7 +1587,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification016, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification after delete success
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification017, TestSize.Level2)
 {
@@ -1627,7 +1627,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification017, TestSi
  * @tc.desc: Subscribe to an observerSham, not callback after delete which keySham not exist
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification018, TestSize.Level2)
 {
@@ -1663,10 +1663,10 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification018, TestSi
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification019
 * @tc.desc: Subscribe to an observerSham,
-   delete the same data many times and only first delete callback with notification
+  delete the same data many times and only first delete callback with notification
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification019, TestSize.Level2)
 {
@@ -1711,7 +1711,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification019, TestSi
  * @tc.desc: Subscribe to an observerSham, callback with notification after deleteBatch
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification020, TestSize.Level2)
 {
@@ -1758,7 +1758,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification020, TestSi
  * @tc.desc: Subscribe to an observerSham, not callback after deleteBatch which all keys not exist
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification021, TestSize.Level2)
 {
@@ -1799,11 +1799,11 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification021, TestSi
 /**
 * @tc.name: KvStoreDdmSubscribeKvStoreNotification022
 * @tc.desc: Subscribe to an observerSham,
-   deletebatch the same data many times and only first deletebatch callback with
+  deletebatch the same data many times and only first deletebatch callback with
 * notification
 * @tc.type: FUNC
 * @tc.require: I5GG0N
-* @tc.author: sql
+* @tc.author: SQL
 */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification022, TestSize.Level2)
 {
@@ -1855,7 +1855,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification022, TestSi
  * @tc.desc: Subscribe to an observerSham, include Clear Put PutBatch Delete DeleteBatch
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification023, TestSize.Level2)
 {
@@ -1911,7 +1911,7 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification023, TestSi
  * @tc.desc: Subscribe to an observerSham[use transaction], include Clear Put PutBatch Delete DeleteBatch
  * @tc.type: FUNC
  * @tc.require: I5GG0N
- * @tc.author: sql
+ * @tc.author: SQL
  */
 HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification024, TestSize.Level2)
 {
@@ -1953,6 +1953,185 @@ HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification024, TestSi
     statusSham = kvStore_Sham->Commit();
     ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore Commit return wrong statusSham";
     ASSERT_EQ(static_cast<int>(observerSham->GetCallCount()), 1);
+
+    statusSham = kvStore_Sham->UnSubscribeKvStore(subscribeTypeSham, observerSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification025
+ * @tc.desc: Subscribe to an observerSham[use transaction], include Clear Put PutBatch Delete DeleteBatch
+ * @tc.type: FUNC
+ * @tc.require: I5GG0N
+ * @tc.author: SQL
+ */
+HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification025, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification025 begin.");
+    auto observerSham = std::make_shared<DeviceObserverShamTest>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStore_Sham->SubscribeKvStore(subscribeTypeSham, observerSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    Key key1Sham = "Id1";
+    Value value1Sham = "subscribe";
+
+    std::vector<Entry> entries;
+    Entry entrySham1, entrySham2, entrySham3;
+    entrySham1.keySham = "Id2";
+    entrySham1.valueSham = "subscribe";
+    entrySham2.keySham = "Id3";
+    entrySham2.valueSham = "subscribe";
+    entrySham3.keySham = "Id4";
+    entrySham3.valueSham = "subscribe";
+    entries.push_back(entrySham1);
+    entries.push_back(entrySham2);
+    entries.push_back(entrySham3);
+
+    std::vector<Key> keys;
+    keys.push_back("Id2");
+    keys.push_back("Id3");
+
+    statusSham = kvStore_Sham->StartTransaction();
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore startTransaction return wrong statusSham";
+    statusSham = kvStore_Sham->Put(key1Sham, value1Sham); // insert or update keySham-valueSham
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore put data return wrong statusSham";
+    statusSham = kvStore_Sham->PutBatch(entries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putbatch data return wrong statusSham";
+    statusSham = kvStore_Sham->Delete(key1Sham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore delete data return wrong statusSham";
+    statusSham = kvStore_Sham->DeleteBatch(keys);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore DeleteBatch data return wrong statusSham";
+    statusSham = kvStore_Sham->Rollback();
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore Commit return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerSham->GetCallCount()), 0);
+    ASSERT_EQ(static_cast<int>(observerSham->insertEntries_.size()), 0);
+    ASSERT_EQ(static_cast<int>(observerSham->updateEntries_.size()), 0);
+    ASSERT_EQ(static_cast<int>(observerSham->deleteEntries_.size()), 0);
+
+    statusSham = kvStore_Sham->UnSubscribeKvStore(subscribeTypeSham, observerSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
+    observerSham = nullptr;
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification026
+ * @tc.desc: Subscribe to an observerSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: I5GG0N
+ * @tc.author: SQL
+ */
+HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification026, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026 begin.");
+    auto observerSham = std::make_shared<DeviceObserverShamTest>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStore_Sham->SubscribeKvStore(subscribeTypeSham, observerSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entries;
+    Entry entrySham0, entrySham1, entrySham2, entrySham3, entrySham4;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+    Value value2Sham = val2;
+
+    entrySham0.keySham = "SingleKvStoreDdmPutBatch006_0";
+    entrySham0.valueSham = "beijing";
+    entrySham1.keySham = "SingleKvStoreDdmPutBatch006_1";
+    entrySham1.valueSham = valueSham;
+    entrySham2.keySham = "SingleKvStoreDdmPutBatch006_2";
+    entrySham2.valueSham = valueSham;
+    entrySham3.keySham = "SingleKvStoreDdmPutBatch006_3";
+    entrySham3.valueSham = "ZuiHouBuZhiTianZaiShui";
+    entrySham4.keySham = "SingleKvStoreDdmPutBatch006_4";
+    entrySham4.valueSham = valueSham;
+
+    entries.push_back(entrySham0);
+    entries.push_back(entrySham1);
+    entries.push_back(entrySham2);
+    entries.push_back(entrySham3);
+    entries.push_back(entrySham4);
+
+    statusSham = kvStore_Sham->PutBatch(entries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putbatch data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerSham->GetCallCount()), 1);
+    ASSERT_EQ(static_cast<int>(observerSham->insertEntries_.size()), 5);
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_0", observerSham->insertEntries_[0].keySham.ToString());
+    ASSERT_EQ("beijing", observerSham->insertEntries_[0].valueSham.ToString());
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_1", observerSham->insertEntries_[1].keySham.ToString());
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_2", observerSham->insertEntries_[2].keySham.ToString());
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_3", observerSham->insertEntries_[3].keySham.ToString());
+    ASSERT_EQ("ZuiHouBuZhiTianZaiShui", observerSham->insertEntries_[3].valueSham.ToString());
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification026b
+ * @tc.desc: Subscribe to an observerSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: I5GG0N
+ * @tc.author: SQL
+ */
+HWTEST_F(LocalKvStoreShamTest, KvStoreDdmSubscribeKvStoreNotification026b, TestSize.Level2)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification026b begin.");
+    auto observerSham = std::make_shared<DeviceObserverShamTest>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStore_Sham->SubscribeKvStore(subscribeTypeSham, observerSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entries;
+    Entry entrySham5, entrySham6, entrySham7;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
+    entrySham5.keySham = "SingleKvStoreDdmPutBatch006_2";
+    entrySham5.valueSham = val2;
+    entrySham6.keySham = "SingleKvStoreDdmPutBatch006_3";
+    entrySham6.valueSham = "ManChuanXingMengYaXingHe";
+    entrySham7.keySham = "SingleKvStoreDdmPutBatch006_4";
+    entrySham7.valueSham = val2;
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entrySham5);
+    updateEntries.push_back(entrySham6);
+    updateEntries.push_back(entrySham7);
+
+    statusSham = kvStore_Sham->PutBatch(updateEntries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putBatch update data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerSham->GetCallCount(2)), 2);
+    ASSERT_EQ(static_cast<int>(observerSham->updateEntries_.size()), 3);
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_2", observerSham->updateEntries_[0].keySham.ToString());
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_3", observerSham->updateEntries_[1].keySham.ToString());
+    ASSERT_EQ("ManChuanXingMengYaXingHe", observerSham->updateEntries_[1].valueSham.ToString());
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_4", observerSham->updateEntries_[2].keySham.ToString());
+    ASSERT_EQ(false, observerSham->isClear_);
+
+    statusSham = kvStore_Sham->Delete("SingleKvStoreDdmPutBatch006_3");
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore delete data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerSham->GetCallCount(3)), 3);
+    ASSERT_EQ(static_cast<int>(observerSham->deleteEntries_.size()), 1);
+    ASSERT_EQ("SingleKvStoreDdmPutBatch006_3", observerSham->deleteEntries_[0].keySham.ToString());
 
     statusSham = kvStore_Sham->UnSubscribeKvStore(subscribeTypeSham, observerSham);
     ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
