@@ -177,6 +177,7 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplVirtualTest::CreateKVStore(bool 
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetStoreId, TestSize.Level0)
 {
+    ZLOGI("GetStoreId begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto storeIdVirtual = kvStoreVirtual_->GetStoreId();
     EXPECT_EQ(storeIdVirtual.storeIdVirtual, "SingleKVStore");
@@ -191,6 +192,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetStoreId, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, Put, TestSize.Level0)
 {
+    ZLOGI("Put begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto statusVirtual = kvStoreVirtual_->Put({ "Put Test" }, { "Put Value" });
     EXPECT_EQ(statusVirtual, SUCCESS);
@@ -211,6 +213,7 @@ HWTEST_F(SingleStoreImplVirtualTest, Put, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, Put_Invalid_Key, TestSize.Level0)
 {
+    ZLOGI("Put_Invalid_Key begin.");
     std::shared_ptr<SingleKvStore> kvStoreVirtual;
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "DeviceKVStore" };
@@ -256,6 +259,7 @@ HWTEST_F(SingleStoreImplVirtualTest, Put_Invalid_Key, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, PutBatch, TestSize.Level0)
 {
+    ZLOGI("PutBatch begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> entries;
     for (int i = 0; i < 10; ++i) {
@@ -269,12 +273,13 @@ HWTEST_F(SingleStoreImplVirtualTest, PutBatch, TestSize.Level0)
 }
 
 /**
- * @tc.name: GetStoreId
+ * @tc.name: IsRebuild
  * @tc.desc: test IsRebuild
  * @tc.type: FUNC
  */
 HWTEST_F(SingleStoreImplVirtualTest, IsRebuild, TestSize.Level0)
 {
+    ZLOGI("IsRebuild begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto statusVirtual = kvStoreVirtual_->IsRebuild();
     EXPECT_EQ(statusVirtual, false);
@@ -287,6 +292,7 @@ HWTEST_F(SingleStoreImplVirtualTest, IsRebuild, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, PutBatch001, TestSize.Level1)
 {
+    ZLOGI("PutBatch001 begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     size_t totalLength = SingleStoreImpl::MAX_VALUE_LENGTH + 1; // create an out-of-limit large number
     char fillChar = 'a';
@@ -316,6 +322,7 @@ HWTEST_F(SingleStoreImplVirtualTest, PutBatch001, TestSize.Level1)
  */
 HWTEST_F(SingleStoreImplVirtualTest, Delete, TestSize.Level0)
 {
+    ZLOGI("Delete begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto statusVirtual = kvStoreVirtual_->Put({ "Put Test" }, { "Put Value" });
     EXPECT_EQ(statusVirtual, SUCCESS);
@@ -340,6 +347,7 @@ HWTEST_F(SingleStoreImplVirtualTest, Delete, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, DeleteBatch, TestSize.Level0)
 {
+    ZLOGI("DeleteBatch begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> entries;
     for (int i = 0; i < 10; ++i) {
@@ -374,6 +382,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DeleteBatch, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, Transaction, TestSize.Level0)
 {
+    ZLOGI("Transaction begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto statusVirtual = kvStoreVirtual_->StartTransaction();
     EXPECT_EQ(statusVirtual, SUCCESS);
@@ -395,6 +404,7 @@ HWTEST_F(SingleStoreImplVirtualTest, Transaction, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore, TestSize.Level0)
 {
+    ZLOGI("SubscribeKvStore begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto observer = std::make_shared<TestObserverVirtual>();
     auto statusVirtual = kvStoreVirtual_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
@@ -444,6 +454,7 @@ HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore002, TestSize.Level0)
 {
+    ZLOGI("SubscribeKvStore002 begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::shared_ptr<TestObserverVirtual> subscribedObserver;
     std::shared_ptr<TestObserverVirtual> unSubscribedObserver;
@@ -503,6 +514,7 @@ HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore002, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore003, TestSize.Level0)
 {
+    ZLOGI("SubscribeKvStore003 begin.");
     auto observer = std::make_shared<TestObserverVirtual>();
     std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
     kvStoreVirtual = CreateKVStore();
@@ -521,6 +533,7 @@ HWTEST_F(SingleStoreImplVirtualTest, SubscribeKvStore003, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, UnsubscribeKvStore, TestSize.Level0)
 {
+    ZLOGI("UnsubscribeKvStore begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     auto observer = std::make_shared<TestObserverVirtual>();
     auto statusVirtual = kvStoreVirtual_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
@@ -552,6 +565,7 @@ HWTEST_F(SingleStoreImplVirtualTest, UnsubscribeKvStore, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Prefix, TestSize.Level0)
 {
+    ZLOGI("GetEntries_Prefix begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     for (int i = 0; i < 10; ++i) {
@@ -583,6 +597,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Prefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Less_Prefix, TestSize.Level0)
 {
+    ZLOGI("GetEntries_Less_Prefix begin.");
     std::shared_ptr<SingleKvStore> kvStoreVirtual;
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "DeviceKVStore" };
@@ -627,6 +642,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Less_Prefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Greater_Prefix, TestSize.Level0)
 {
+    ZLOGI("GetEntries_Greater_Prefix begin.");
     std::shared_ptr<SingleKvStore> kvStoreVirtual;
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "DeviceKVStore" };
@@ -674,6 +690,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetEntries_Greater_Prefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetEntries_DataQuery, TestSize.Level0)
 {
+    ZLOGI("GetEntries_DataQuery begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     for (int i = 0; i < 10; ++i) {
@@ -708,6 +725,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetEntries_DataQuery, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetResultSet_Prefix, TestSize.Level0)
 {
+    ZLOGI("GetResultSet_Prefix begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) {
@@ -747,6 +765,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetResultSet_Prefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetResultSet_Query, TestSize.Level0)
 {
+    ZLOGI("GetResultSet_Query begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) {
@@ -788,6 +807,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetResultSet_Query, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseResultSet, TestSize.Level0)
 {
+    ZLOGI("CloseResultSet begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) {
@@ -837,6 +857,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseResultSet, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseResultSet001, TestSize.Level0)
 {
+    ZLOGI("CloseResultSet001 begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::shared_ptr<KvStoreResultSet> output;
     output = nullptr;
@@ -853,6 +874,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseResultSet001, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_Query, TestSize.Level0)
 {
+    ZLOGI("ResultSetMaxSizeTest_Query begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     /**
      * @tc.steps:step1. Put the entry into the database.
@@ -909,6 +931,7 @@ HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_Query, TestSize.Level0
  */
 HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
 {
+    ZLOGI("ResultSetMaxSizeTest_Prefix begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     /**
      * @tc.steps:step1. Put the entry into the database.
@@ -963,6 +986,7 @@ HWTEST_F(SingleStoreImplVirtualTest, ResultSetMaxSizeTest_Prefix, TestSize.Level
  */
 HWTEST_F(SingleStoreImplVirtualTest, MaxLogSizeTest, TestSize.Level0)
 {
+    ZLOGI("MaxLogSizeTest begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     /**
      * @tc.steps:step1. Put the random entry into the database.
@@ -1013,7 +1037,7 @@ HWTEST_F(SingleStoreImplVirtualTest, MaxLogSizeTest, TestSize.Level0)
 }
 
 /**
- * @tc.name: MaxTest002
+ * @tc.name: MaxLogSizeTest002
  * @tc.desc: test if the default max limit of wal is 200MB
  * @tc.type: FUNC
  * @tc.require: I4XVQQ
@@ -1102,6 +1126,7 @@ HWTEST_F(SingleStoreImplVirtualTest, MaxLogSizeTest002, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, Move_Offset, TestSize.Level0)
 {
+    ZLOGI("Move_Offset begin.");
     std::vector<Entry> input;
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1159,6 +1184,7 @@ HWTEST_F(SingleStoreImplVirtualTest, Move_Offset, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetCount, TestSize.Level0)
 {
+    ZLOGI("GetCount begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) {
@@ -1188,6 +1214,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetCount, TestSize.Level0)
 
 void ChangeOwnerToService(std::string baseDirVirtual, std::string hashId)
 {
+    ZLOGI("ChangeOwnerToService begin.");
     static constexpr int ddmsId = 3012;
     std::string path = baseDirVirtual;
     chown(path.c_str(), ddmsId, ddmsId);
@@ -1215,6 +1242,7 @@ void ChangeOwnerToService(std::string baseDirVirtual, std::string hashId)
  */
 HWTEST_F(SingleStoreImplVirtualTest, RemoveDeviceData, TestSize.Level0)
 {
+    ZLOGI("RemoveDeviceData begin.");
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     EXPECT_NE(store, nullptr);
     std::vector<Entry> input;
@@ -1257,6 +1285,7 @@ HWTEST_F(SingleStoreImplVirtualTest, RemoveDeviceData, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetSecurityLevel, TestSize.Level0)
 {
+    ZLOGI("GetSecurityLevel begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     SecurityLevel securityLevel = NO_LABEL;
     auto statusVirtual = kvStoreVirtual_->GetSecurityLevel(securityLevel);
@@ -1273,6 +1302,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetSecurityLevel, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, RegisterSyncCallback, TestSize.Level0)
 {
+    ZLOGI("RegisterSyncCallback begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     class TestSyncCallback : public KvStoreSyncCallback {
     public:
@@ -1293,6 +1323,7 @@ HWTEST_F(SingleStoreImplVirtualTest, RegisterSyncCallback, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, UnRegisterSyncCallback, TestSize.Level0)
 {
+    ZLOGI("UnRegisterSyncCallback begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     class TestSyncCallback : public KvStoreSyncCallback {
     public:
@@ -1315,6 +1346,7 @@ HWTEST_F(SingleStoreImplVirtualTest, UnRegisterSyncCallback, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, disableBackup, TestSize.Level0)
 {
+    ZLOGI("disableBackup begin.");
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStoreNoBackup" };
     std::shared_ptr<SingleKvStore> kvStoreNoBackup;
@@ -1336,6 +1368,7 @@ HWTEST_F(SingleStoreImplVirtualTest, disableBackup, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, PutOverMaxValue, TestSize.Level0)
 {
+    ZLOGI("PutOverMaxValue begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::string valueVirtual;
     int maxsize = 1024 * 1024;
@@ -1355,6 +1388,7 @@ HWTEST_F(SingleStoreImplVirtualTest, PutOverMaxValue, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, DeleteOverMaxKey, TestSize.Level0)
 {
+    ZLOGI("DeleteOverMaxKey begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::string str;
     int maxsize = 1024;
@@ -1372,7 +1406,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DeleteOverMaxKey, TestSize.Level0)
 }
 
 /**
- * @tc.name: GetEntriesOverMaxKey
+ * @tc.name: GetEntriesOverMaxPrefix
  * @tc.desc: get entries the by prefix and the prefix size  over the limits
  * @tc.type: FUNC
  * @tc.require: I605H3
@@ -1380,6 +1414,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DeleteOverMaxKey, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetEntriesOverMaxPrefix, TestSize.Level0)
 {
+    ZLOGI("GetEntriesOverMaxPrefix begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::string str;
     int maxsize = 1024;
@@ -1401,6 +1436,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetEntriesOverMaxPrefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetResultSetOverMaxPrefix, TestSize.Level0)
 {
+    ZLOGI("GetResultSetOverMaxPrefix begin.");
     EXPECT_NE(kvStoreVirtual_, nullptr);
     std::string str;
     int maxsize = 1024;
@@ -1422,6 +1458,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetResultSetOverMaxPrefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, RemoveNullDeviceData, TestSize.Level0)
 {
+    ZLOGI("RemoveNullDeviceData begin.");
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     EXPECT_NE(store, nullptr);
     std::vector<Entry> input;
@@ -1458,6 +1495,7 @@ HWTEST_F(SingleStoreImplVirtualTest, RemoveNullDeviceData, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseKVStoreWithInvalidAppId, TestSize.Level0)
 {
+    ZLOGI("CloseKVStoreWithInvalidAppId begin.");
     AppId appIdVirtual = { "" };
     StoreId storeIdVirtual = { "SingleKVStore" };
     Status statusVirtual = StoreManager::GetInstance().CloseKVStore(appIdVirtual, storeIdVirtual);
@@ -1473,6 +1511,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseKVStoreWithInvalidAppId, TestSize.Leve
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseKVStoreWithInvalidStoreId, TestSize.Level0)
 {
+    ZLOGI("CloseKVStoreWithInvalidStoreId begin.");
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "" };
     Status statusVirtual = StoreManager::GetInstance().CloseKVStore(appIdVirtual, storeIdVirtual);
@@ -1488,6 +1527,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseKVStoreWithInvalidStoreId, TestSize.Le
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseAllKVStore, TestSize.Level0)
 {
+    ZLOGI("CloseAllKVStore begin.");
     AppId appIdVirtual = { "SingleStoreImplVirtualTestCloseAll" };
     std::vector<std::shared_ptr<SingleKvStore>> kvStores;
     for (int i = 0; i < 5; i++) {
@@ -1520,6 +1560,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseAllKVStore, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, CloseAllKVStoreWithInvalidAppId, TestSize.Level0)
 {
+    ZLOGI("CloseAllKVStoreWithInvalidAppId begin.");
     AppId appIdVirtual = { "" };
     Status statusVirtual = StoreManager::GetInstance().CloseAllKVStore(appIdVirtual);
     EXPECT_EQ(statusVirtual, INVALID_ARGUMENT);
@@ -1534,6 +1575,7 @@ HWTEST_F(SingleStoreImplVirtualTest, CloseAllKVStoreWithInvalidAppId, TestSize.L
  */
 HWTEST_F(SingleStoreImplVirtualTest, DeleteWithInvalidAppId, TestSize.Level0)
 {
+    ZLOGI("DeleteWithInvalidAppId begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "" };
     StoreId storeIdVirtual = { "SingleKVStore" };
@@ -1550,6 +1592,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DeleteWithInvalidAppId, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, DeleteWithInvalidStoreId, TestSize.Level0)
 {
+    ZLOGI("DeleteWithInvalidStoreId begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "" };
@@ -1566,6 +1609,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DeleteWithInvalidStoreId, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithPersistentFalse begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStorePersistentFalse" };
@@ -1591,6 +1635,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithPersistentFalse, TestSize.Lev
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithInvalidType, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithInvalidType begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImpStore";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStoreInvalidType" };
@@ -1615,6 +1660,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithInvalidType, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithCreateIfMissingFalse begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStoreCreateIfMissingFalse" };
@@ -1640,6 +1686,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithCreateIfMissingFalse, TestSiz
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithAutoSync, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithAutoSync begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStoreAutoSync" };
@@ -1667,6 +1714,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithAutoSync, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithAreaEL2, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithAreaEL2 begin.");
     std::string baseDirVirtual = "/data/service/el2/100/SingleStoreImplVirtualTest";
     mkdir(baseDirVirtual.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 
@@ -1695,6 +1743,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithAreaEL2, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
 {
+    ZLOGI("GetKVStoreWithRebuildTrue begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SingleKVStoreRebuildFalse" };
@@ -1722,6 +1771,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, GetStaticStore, TestSize.Level0)
 {
+    ZLOGI("GetStaticStore begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "StaticStoreTest" };
@@ -1750,6 +1800,7 @@ HWTEST_F(SingleStoreImplVirtualTest, GetStaticStore, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, StaticStoreAsyncGet, TestSize.Level0)
 {
+    ZLOGI("StaticStoreAsyncGet begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "StaticStoreAsyncGetTest" };
@@ -1786,6 +1837,7 @@ HWTEST_F(SingleStoreImplVirtualTest, StaticStoreAsyncGet, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, StaticStoreAsyncGetEntries, TestSize.Level0)
 {
+    ZLOGI("StaticStoreAsyncGetEntries begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "StaticStoreAsyncGetEntriesTest" };
@@ -1823,6 +1875,7 @@ HWTEST_F(SingleStoreImplVirtualTest, StaticStoreAsyncGetEntries, TestSize.Level0
  */
 HWTEST_F(SingleStoreImplVirtualTest, DynamicStoreAsyncGet, TestSize.Level0)
 {
+    ZLOGI("DynamicStoreAsyncGet begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "DynamicStoreAsyncGetTest" };
@@ -1861,6 +1914,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DynamicStoreAsyncGet, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplVirtualTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
 {
+    ZLOGI("DynamicStoreAsyncGetEntries begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "DynamicStoreAsyncGetEntriesTest" };
@@ -1908,6 +1962,7 @@ HWTEST_F(SingleStoreImplVirtualTest, DynamicStoreAsyncGetEntries, TestSize.Level
  */
 HWTEST_F(SingleStoreImplVirtualTest, SetConfig, TestSize.Level0)
 {
+    ZLOGI("SetConfig begin.");
     std::string baseDirVirtual = "/data/service/el1/public/database/SingleStoreImplVirtualTest";
     AppId appIdVirtual = { "SingleStoreImplVirtualTest" };
     StoreId storeIdVirtual = { "SetConfigTest" };
@@ -1927,31 +1982,5 @@ HWTEST_F(SingleStoreImplVirtualTest, SetConfig, TestSize.Level0)
     StoreConfig storeConfig;
     storeConfig.cloudConfig.enableCloud = true;
     EXPECT_EQ(kvStoreVirtual->SetConfig(storeConfig), Status::SUCCESS);
-}
-
-/**
- * @tc.name: GetDeviceEntries001
- * @tc.desc:
- * @tc.type: FUNC
- */
-HWTEST_F(SingleStoreImplVirtualTest, GetDeviceEntries001, TestSize.Level1)
-{
-    std::string PKG_NAME_EX = "_distributed_data";
-    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
-    kvStoreVirtual = CreateKVStore();
-    EXPECT_NE(kvStoreVirtual, nullptr);
-    std::vector<Entry> output;
-    std::string device = DevManager::GetInstance().GetUnEncryptedUuid();
-    std::string devices = "GetDeviceEntriestest";
-    auto statusVirtual = kvStoreVirtual->GetDeviceEntries("", output);
-    EXPECT_EQ(statusVirtual, INVALID_ARGUMENT);
-    statusVirtual = kvStoreVirtual->GetDeviceEntries(device, output);
-    EXPECT_EQ(statusVirtual, SUCCESS);
-    DevInfo devinfo;
-    std::string PKG_NAME = std::to_string(getpid()) + PKG_NAME_EX;
-    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, devinfo);
-    EXPECT_NE(std::string(devinfo.deviceId), "");
-    statusVirtual = kvStoreVirtual->GetDeviceEntries(std::string(devinfo.deviceId), output);
-    EXPECT_EQ(statusVirtual, SUCCESS);
 }
 } // namespace OHOS::Test
