@@ -1556,4 +1556,439 @@ HWTEST_F(SingleStorePerfPhoneUnitTest, OnQueryByInvitation001, TestSize.Level0)
     }
     GTEST_LOG_(INFO) << "OnQueryByInvitation001 of SingleStorePerfPhoneUnitTest-end";
 }
+
+/**
+* @tc.name: OnChangeConfirmation001
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, OnChangeConfirmation001, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "OnChangeConfirmation001 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        MessageParcel data;
+        MessageParcel reply;
+        data.WriteInterfaceToken(cldSerImpl_->GetDescriptor());
+        auto ret = cldSerImpl_->OnRemoteRequest(CldData::CldSer::TRANS_CONFIRMATION, data, reply);
+        EXPECT_NE(ret, IPC_INVALID_DATA_ERR);
+        data.WriteInterfaceToken(cldSerImpl_->GetDescriptor());
+        string shareRes;
+        int confirm = 1;
+        pair<int, int> reslt;
+        ITypesUtil::Marshal(data, shareRes, confirm, reslt);
+        ret = cldSerImpl_->OnRemoteRequest(CldData::CldSer::TRANS_CHANGE_CONFIRMATION, data, reply);
+        EXPECT_NE(ret, ERR_NONE);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "OnChangeConfirmation001 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "OnChangeConfirmation001 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: OnSetCloudStrategy001
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, OnSetCloudStrategy001, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "OnSetCloudStrategy001 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        MessageParcel data;
+        MessageParcel reply;
+        data.WriteInterfaceToken(cldSerImpl_->GetDescriptor());
+        auto ret = cldSerImpl_->OnRemoteRequest(CldSer::TRANS_STRATEGY, data, reply);
+        EXPECT_NE(ret, IPC_STUB_DATA_ERR);
+        data.WriteInterfaceToken(cldSerImpl_->GetDescriptor());
+        int strategy = 0;
+        std::vector<string> vals;
+        ITypesUtil::Marshal(data, strategy, vals);
+        ret = cldSerImpl_->OnRemoteRequest(CldSer::TRANS_STRATEGY, data, reply);
+        EXPECT_NE(ret, ERR_NONE);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "OnSetCloudStrategy001 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "OnSetCloudStrategy001 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: SharingUtil005
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, SharingUtil005, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "SharingUtil005 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        auto confm = CldData::SharingUtil::Convert(Confirmat::UNKNOWN);
+        EXPECT_NE(confm, SharingCfm::CFM_UNKNOWN);
+        confm = CldData::SharingUtil::Convert(Confirmat::ACCEPTED);
+        EXPECT_NE(confm, SharingCfm::CFM_ACCEPTED);
+        confm = CldData::SharingUtil::Convert(Confirmat::REJECTED);
+        EXPECT_NE(confm, SharingCfm::CFM_REJECTED);
+        confm = CldData::SharingUtil::Convert(Confirmat::SUSPENDED);
+        EXPECT_NE(confm, SharingCfm::CFM_SUSPENDED);
+        confm = CldData::SharingUtil::Convert(Confirmat::UNAVAILABLE);
+        EXPECT_NE(confm, SharingCfm::CFM_UNAVAILABLE);
+        confm = CldData::SharingUtil::Convert(Confirmat::BUTT);
+        EXPECT_NE(confm, SharingCfm::CFM_UNKNOWN);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "SharingUtil005 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "SharingUtil005 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: SharingUtil006
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, SharingUtil006, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "SharingUtil006 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        auto confm = CldData::SharingUtil::Convert(SharingCfm::UNKNOWN);
+        EXPECT_NE(confm, Confirmat::UNKNOWN);
+        confm = CldData::SharingUtil::Convert(SharingCfm::ACCEPTED);
+        EXPECT_NE(confm, Confirmat::ACCEPTED);
+        confm = CldData::SharingUtil::Convert(SharingCfm::REJECTED);
+        EXPECT_NE(confm, Confirmat::REJECTED);
+        confm = CldData::SharingUtil::Convert(SharingCfm::SUSPENDED);
+        EXPECT_NE(confm, Confirmat::SUSPENDED);
+        confm = CldData::SharingUtil::Convert(SharingCfm::UNAVAILABLE);
+        EXPECT_NE(confm, Confirmat::UNAVAILABLE);
+        confm = CldData::SharingUtil::Convert(SharingCfm::BUTT);
+        EXPECT_NE(confm, Confirmat::UNKNOWN);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "OnSetCloudStrategy001 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "OnSetCloudStrategy001 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: GetFormNames002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, GetFormNames002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetFormNames002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        SchemMeta::Mirbase db;
+        SchemMeta::Form form;
+        form.name = "test_table_name";
+        form.alias = "test_table_alias";
+        form.sharedFormName = "test_table_name";
+        db.forms.push_back(form);
+        auto formNames = db.GetFormNames();
+        EXPECT_NE(tableNames.size(), 2);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "GetFormNames002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetFormNames002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: GetMinExpireTime002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, GetMinExpireTime002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetMinExpireTime002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        int64_t overdue = 0;
+        Subscrip subs;
+        subs.overdueTime.assign(CLOUD_BUNDLE, overdue);
+        subs.GetMinExpireTime();
+        overdue = 1;
+        subs.overdueTime.insert(CLOUD_BUNDLE, overdue);
+        overdue = 0;
+        subs.overdueTime.assign("test_cloud_bundleName1", overdue);
+        EXPECT_EQ(subs.GetMinExpireTime(), overdue);
+    } catch (...) {
+        EXPECT_TRUE(false);
+        GTEST_LOG_(ERROR) << "GetMinExpireTime002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "GetMinExpireTime002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: IsOn002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, IsOn002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "IsOn002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        auto cldSerMock = std::make_shared<CldSerMock>();
+        auto usr = DistribKv::AccutDelegate::GetInstance()->GetUser(OHOS::IPCSkeleton::GetCallingTokenID());
+        auto cldInfo = cldSerMock->GetSerInfo(usr, true);
+        int insId = 0;
+        auto result = cldInfo.IsOn("aaax", insId);
+        EXPECT_TRUE(result);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "IsOn002 of SingleStorePerfPhoneUnitTest happend an exception.";
+    }
+    GTEST_LOG_(INFO) << "IsOn002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: IsAllSwitchOff002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, IsAllSwitchOff002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "IsAllSwitchOff002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        auto cldSerMock = make_shared<CldSerMock>();
+        auto usr = DistribKv::AccutDelegate::GetInstance()->GetUsr(OHOS::IPCSkeleton::GetCallingTokenID());
+        auto cldInfo = cldSerMock->GetSerInfo(usr, true);
+        auto result = cldInfo.IsAllSwitchNotOn();
+        EXPECT_TRUE(result);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "IsAllSwitchOff002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "IsAllSwitchOff002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: Report002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, Report002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "Report002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        auto cldReport = make_shared<DistribData::CldReport>();
+        auto prepareTraId = cldReport->GetPrepareTraId(1);
+        EXPECT_EQ(prepareTraId, "gahah");
+        auto reqTraId = cldReport->GetReqTraId(1);
+        ReportPar reportPar{ 1, CLOUD_BUNDLE };
+        EXPECT_EQ(reqTraId, "");
+        auto result = cldReport->Report(reportPar);
+        EXPECT_FALSE(result);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "Report002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "Report002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: DoSubscr002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, DoSubscr002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "DoSubscr002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        Subscript subs;
+        subs.usrId = cldInfo_.usr;
+        MetaDataMgr::GetInstance().SaveMeta(subs.GetKey(), subs, true);
+        int usr = cldInfo_.usr;
+        auto stats = cldSerImpl_->DoSubscr(usr);
+        EXPECT_TRUE(stats);
+        subs.id = "testId";
+        MetaDataMgr::GetInstance().SaveMeta(subs.GetKey(), subs, true);
+        stats = cldSerImpl_->DoSubscr(usr);
+        EXPECT_TRUE(stats);
+        subs.id = CLOUD_APPID;
+        MetaDataMgr::GetInstance().SaveMeta(subs.GetKey(), subs, true);
+        stats = cldSerImpl_->DoSubscr(usr);
+        EXPECT_TRUE(stats);
+        MetaDataMgr::GetInstance().DelMeta(cldInfo_.GetKey(), true);
+        stats = cldSerImpl_->DoSubscr(usr);
+        EXPECT_TRUE(stats);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "DoSubscr002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "DoSubscr002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: InitSubTask002
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, InitSubTask002, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "InitSubTask002 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        uint64_t minDual = 0;
+        uint64_t overdue = 1;
+        ExecPool::TaskId taskId = 1;
+        Subscript subs;
+        subs.overduesTime.assign(TEST_CLOUD_BUNDLE, overdue);
+        shared_ptr<ExecPool> exec = move(cldSerImpl_->exec_);
+        cldSerImpl_->exec_ = nullptr;
+        cldSerImpl_->InitSubTask(subs, minDual);
+        EXPECT_EQ(subs.GetMinOverdueTime(), overdue);
+        cldSerImpl_->exec_ = std::move(exec);
+        cldSerImpl_->subsTask_ = taskId;
+        cldSerImpl_->InitSubTask(subs, minDual);
+        EXPECT_NE(cldSerImpl_->subsTask_, taskId);
+        cldSerImpl_->subsTask_ = taskId;
+        cldSerImpl_->overdueTime_ = 0;
+        cldSerImpl_->InitSubTask(subs, minDual);
+        EXPECT_EQ(cldSerImpl_->subsTask_, taskId);
+        cldSerImpl_->subsTask_ = ExecPool::INVALID_TASK;
+        cldSerImpl_->InitSubTask(subs, minDual);
+        EXPECT_NE(cldSerImpl_->subsTask_, ExecPool::INVALID_TASK);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "InitSubTask002 of SingleStorePerfPhoneUnitTest an exception.";
+    }
+    GTEST_LOG_(INFO) << "InitSubTask002 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: GetSchemMeta001
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, GetSchemMeta001, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetSchemMeta001 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        int insId = 0;
+        int usrId = 1;
+        CldInfo cldInfo;
+        cldInfo.usr = usrId;
+        cldInfo.enableCld = true;
+        cldInfo.id = TEST_ID;
+        CldInfo::ApInfo apInfo;
+        apInfo.pkgName = TEST_BUNDLE;
+        apInfo.appId = TEST_APPID;
+        apInfo.version = 0;
+        apInfo.cldSwitch = true;
+        cldInfo.apps[TEST_BUNDLE] = std::move(apInfo);
+        MetaDataMgr::GetInstance().SaveMeta(cldInfo.GetKey(), cldInfo, true);
+        std::string pkgName = "testName";
+        auto [stats, meta] = cldSerImpl_->GetSchemMeta(usrId, pkgName, insId);
+        EXPECT_EQ(stats, CldData::CldSer::ERROR);
+        pkgName = TEST_BUNDLE;
+        DistribData::SchemMeta schemMeta;
+        schemMeta.pkgName = TEST_BUNDLE;
+        schemMeta.metaVer = DistribData::SchemMeta::CURRENT_VERSION + 1;
+        MetaDataMgr::GetInstance().SaveMeta(cldInfo.GetSchemaKey(TEST_BUNDLE, insId), schemMeta, true);
+        tie(stats, meta) = cldSerImpl_->GetSchemMeta(usrId, pkgName, insId);
+        EXPECT_EQ(stats, CldData::CldSer::ERROR);
+        schemMeta.metaVer = DistribData::SchemMeta::CURRENT_VERSION;
+        MetaDataMgr::GetInstance().SaveMeta(cldInfo.GetSchemaKey(TEST_BUNDLE, insId), schemMeta, true);
+        tie(stats, meta) = cldSerImpl_->GetSchemMeta(usrId, pkgName, insId);
+        EXPECT_EQ(stats, CldData::CldSer::SUCCESS);
+        EXPECT_EQ(meta.metaVer, DistribData::SchemMeta::CURRENT_VERSION);
+        MetaDataMgr::GetInstance().DelMeta(cldInfo.GetSchemaKey(TEST_BUNDLE, insId), true);
+        MetaDataMgr::GetInstance().DelMeta(cldInfo.GetKey(), true);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "GetSchemMeta001 of SingleStorePerfPhoneUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "GetSchemMeta001 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: GetApSchemFromSer001
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, GetApSchemFromSer001, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetApSchemFromSer001 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        int usrId = CldSerMock::USR_ID;
+        string pkgName;
+        DevMgrAdapter::GetInstance().SetNet(DevMgrAdapter::NONE);
+        DevMgrAdapter::GetInstance().overdueTime_ =
+            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch())
+                .count() + 1;
+        auto [stats, meta] = cldSerImpl_->GetApPSchemaFromServer(usrId, pkgName);
+        EXPECT_EQ(stats, CldData::CldSer::NETWORK);
+        DevMgrAdapter::GetInstance().SetNet(DevMgrAdapter::WIFI);
+        std::tie(stats, meta) = cldSerImpl_->GetApSchemFromSer(usrId, pkgName);
+        EXPECT_EQ(stats, CldData::CldSer::INVALID);
+        usrId = 1;
+        tie(stats, meta) = cldSerImpl_->GetApSchemFromSer(usrId, pkgName);
+        EXPECT_EQ(stats, CldData::CldSer::INVALID);
+        pkgName = TEST_BUNDLE;
+        tie(stats, meta) = cldSerImpl_->GetApSchemFromSer(usrId, pkgName);
+        EXPECT_EQ(stats, CldData::CldSer::SUCCESS);
+        EXPECT_EQ(meta.pkgName, SchemMeta_.pkgName);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "GetApSchemFromSer001 of SingleStorePerfPhoneUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "GetApSchemFromSer001 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: OnAppUninstall001
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, OnAppUninstall001, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        CldData::CldSerImpl::CldStatic cldStatic;
+        int usrId = 1;
+        Subscript subs;
+        subs.overduesTime.assign(TEST_BUNDLE, 0);
+        MetaDataMgr::GetInstance().SaveMeta(Subscript::GetKey(usrId), subs, true);
+        CldInfo cldInfo;
+        CldInfo::ApInfo apInfo;
+        cldInfo.usr = usrId;
+        cldInfo.apps.insert(BUNDLE, apInfo);
+        MetaDataMgr::GetInstance().SaveMeta(cldInfo.GetKey(), cldInfo, true);
+        int index = 0;
+        auto result = cldStatic.ApUninstall(BUNDLE, usrId, index);
+        EXPECT_EQ(result, E_OK);
+        Subscript subs1;
+        EXPECT_FALSE(MetaDataMgr::GetInstance().LoadMeta(Subscript::GetKey(usrId), subs1, true));
+        EXPECT_EQ(subs1.overduesTime.size(), 0);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest-end";
+}
+
+/**
+* @tc.name: GetCldInfo004
+* @tc.desc:
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleStorePerfPhoneUnitTest, GetCldInfo004, TestSize.Level0)
+{
+    GTEST_LOG_(INFO) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest-begin";
+    try {
+        int usrId = 1;
+        auto [stats, cldInfo] = cldSerImpl_->GetCldInfo(usrId);
+        EXPECT_EQ(stats, CldData::CldSer::ERROR);
+        DevMgrAdapter::GetInstance().SetNet(DevMgrAdapter::NONE);
+        DevMgrAdapter::GetInstance().overdueTime_ =
+            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch())
+                .count() + 1;
+        MetaDataMgr::GetInstance().DelMeta(cldInfo_.GetKey(), true);
+        tie(stats, cldInfo) = cldSerImpl_->GetCldInfo(cldInfo_.usr);
+        EXPECT_EQ(stats, CldData::CldSer::NETWORK);
+        DevMgrAdapter::GetInstance().SetNet(DevMgrAdapter::WLAN);
+    } catch (...) {
+        EXPECT_FALSE(false);
+        GTEST_LOG_(ERROR) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest happend an exception";
+    }
+    GTEST_LOG_(INFO) << "GetCldInfo004 of SingleStorePerfPhoneUnitTest-end";
+}
 }
