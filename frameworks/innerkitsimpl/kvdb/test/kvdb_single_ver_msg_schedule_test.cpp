@@ -154,7 +154,8 @@ HWTEST_F(KvDBSingleVerMsgScheduleTest, MsgSchedule002, TestSize.Level0)
 HWTEST_F(KvDBSingleVerMsgScheduleTest, MsgSchedule003, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. put message session1_seq1, session2_seq1, session1_seq2, session2_seq2, and handle session1_seq1
+     * @tc.steps: step1. put message session1_seq1, session2_seq1,
+     * session1_seq2, session2_seq2, and handle session1_seq1
      * @tc.expected: handle ok
      */
     SingleVerDataMessageSchedule msgSchedule;
