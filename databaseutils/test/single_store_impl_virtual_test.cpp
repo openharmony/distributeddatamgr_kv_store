@@ -1983,4 +1983,165 @@ HWTEST_F(SingleStoreImplVirtualTest, SetConfig, TestSize.Level0)
     storeConfig.cloudConfig.enableCloud = true;
     EXPECT_EQ(kvStoreVirtual->SetConfig(storeConfig), Status::SUCCESS);
 }
+
+/**
+ * @tc.name: GetDeviceEntries001
+ * @tc.desc:
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, GetDeviceEntries001, TestSize.Level1)
+{
+    ZLOGI("GetDeviceEntries001 begin.");
+    std::string str = "_distributed_data";
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr);
+    std::vector<Entry> output;
+    std::string device = DevManager::GetInstance().GetUnEncryptedUuid();
+    std::string devices = "GetDeviceEntriestest";
+    auto statusVirtual = kvStoreVirtual->GetDeviceEntries("", output);
+    EXPECT_EQ(statusVirtual, INVALID_ARGUMENT);
+    statusVirtual = kvStoreVirtual->GetDeviceEntries(device, output);
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    DevInfo devinfo;
+    std::string strName = std::to_string(getpid()) + str;
+    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(strName, devinfo);
+    EXPECT_NE(std::string(devinfo.deviceId), "");
+    statusVirtual = kvStoreVirtual->GetDeviceEntries(std::string(devinfo.deviceId), output);
+    EXPECT_EQ(statusVirtual, SUCCESS);
+}
+
+/**
+ * @tc.name: DoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, DoSync001, TestSize.Level1)
+{
+    ZLOGI("DoSync001 begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr) << "kvStorePtr is null.";
+    std::string deviceId = "no_exist_device_id";
+    std::vector<std::string> deviceIds = { deviceId };
+    uint32_t allowedDelayMs = 200;
+    kvStoreVirtual->isClientSync_ = false;
+    auto syncStatus = kvStoreVirtual->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    kvStoreVirtual->isClientSync_ = true;
+    kvStoreVirtual->syncObserver_ = nullptr;
+    syncStatus = kvStoreVirtual->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+}
+
+/**
+ * @tc.name: SetCapabilityEnabled001
+ * @tc.desc: enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, SetCapabilityEnabled001, TestSize.Level1)
+{
+    ZLOGI("SetCapabilityEnabled001 begin.");
+    EXPECT_NE(kvStoreVirtual_, nullptr);
+    auto statusVirtual = kvStoreVirtual_->SetCapabilityEnabled(true);
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    statusVirtual = kvStoreVirtual_->SetCapabilityEnabled(false);
+    EXPECT_EQ(statusVirtual, SUCCESS);
+}
+
+/**
+ * @tc.name: DoClientSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, DoClientSync001, TestSize.Level1)
+{
+    ZLOGI("DoClientSync001 begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr);
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.mode = SyncMode::PULL;
+    syncInfo.seqId = 10; // syncInfo seqId
+    syncInfo.devices = { "networkId" };
+    std::shared_ptr<SyncCallback> observer;
+    observer = nullptr;
+    auto statusVirtual = kvStoreVirtual->DoClientSync(syncInfo, observer);
+    EXPECT_EQ(statusVirtual, DB_ERROR);
+}
+
+/**
+ * @tc.name: DoNotifyChange001
+ * @tc.desc: called within timeout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, DoNotifyChange001, TestSize.Level1)
+{
+    ZLOGI("DoNotifyChange001 begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr) << "kvStorePtr is null.";
+    auto statusVirtual = kvStoreVirtual->Put({ "Put Test" }, { "Put Value" });
+    EXPECT_EQ(kvStoreVirtual->notifyExpiredTime_, 0);
+    kvStoreVirtual->cloudAutoSync_ = true;
+    statusVirtual = kvStoreVirtual->Put({ "Put Test" }, { "Put Value" });
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    auto notifyExpiredTime = kvStoreVirtual->notifyExpiredTime_;
+    EXPECT_NE(notifyExpiredTime, 0);
+    statusVirtual = kvStoreVirtual->Put({ "Put Test1" }, { "Put Value1" });
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    EXPECT_EQ(notifyExpiredTime, kvStoreVirtual->notifyExpiredTime_);
+    sleep(1);
+    statusVirtual = kvStoreVirtual->Put({ "Put Test2" }, { "Put Value2" });
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    EXPECT_NE(notifyExpiredTime, kvStoreVirtual->notifyExpiredTime_);
+}
+
+/**
+ * @tc.name: DoAutoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, DoAutoSync001, TestSize.Level1)
+{
+    ZLOGI("DoAutoSync001 begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore(true);
+    EXPECT_NE(kvStoreVirtual, nullptr);
+    kvStoreVirtual->isApplication_ = true;
+    auto statusVirtual = kvStoreVirtual->Put({ "Put Test" }, { "Put Value" });
+    EXPECT_EQ(statusVirtual, SUCCESS);
+    EXPECT_EQ(!kvStoreVirtual->autoSync_ || !kvStoreVirtual->isApplication_, false);
+}
+
+/**
+ * @tc.name: IsRemoteChanged
+ * @tc.desc: is remote changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, IsRemoteChanged, TestSize.Level0)
+{
+    ZLOGI("IsRemoteChanged begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr);
+    bool ret = kvStoreVirtual->IsRemoteChanged("");
+    EXPECT_TRUE(ret);
+}
+
+/**
+ * @tc.name: ReportDBCorruptedFault
+ * @tc.desc: report DB corrupted fault
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplVirtualTest, ReportDBCorruptedFault, TestSize.Level0)
+{
+    ZLOGI("ReportDBCorruptedFault begin.");
+    std::shared_ptr<SingleStoreImpl> kvStoreVirtual;
+    kvStoreVirtual = CreateKVStore();
+    EXPECT_NE(kvStoreVirtual, nullptr);
+    Status statusVirtual = DATA_CORRUPTED;
+    kvStoreVirtual->ReportDBCorruptedFault(statusVirtual);
+    EXPECT_TRUE(statusVirtual == DATA_CORRUPTED);
+}
 } // namespace OHOS::Test

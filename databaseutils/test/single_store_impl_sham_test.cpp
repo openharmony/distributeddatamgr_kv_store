@@ -1993,4 +1993,138 @@ HWTEST_F(SingleStoreImplShamTest, GetDeviceEntries001, TestSize.Level0)
     statusSham = kvStoreSham->GetDeviceEntries(std::string(devinfo.deviceId), output);
     ASSERT_EQ(statusSham, SUCCESS);
 }
+
+/**
+ * @tc.name: DoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, DoSync001, TestSize.Level0)
+{
+    ZLOGI("DoSync001 start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore();
+    ASSERT_NE(kvStoreSham, nullptr) << "kvStorePtr is null.";
+    std::string deviceId = "no_exist_device_id";
+    std::vector<std::string> deviceIds = { deviceId };
+    uint32_t allowedDelayMs = 200;
+    kvStoreSham->isClientSync_ = false;
+    auto syncStatus = kvStoreSham->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    ASSERT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    kvStoreSham->isClientSync_ = true;
+    kvStoreSham->syncObserver_ = nullptr;
+    syncStatus = kvStoreSham->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    ASSERT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+}
+
+/**
+ * @tc.name: SetCapabilityEnabled001
+ * @tc.desc: enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, SetCapabilityEnabled001, TestSize.Level0)
+{
+    ZLOGI("SetCapabilityEnabled001 start.");
+    ASSERT_NE(kvStoreSham_, nullptr);
+    auto statusSham = kvStoreSham_->SetCapabilityEnabled(true);
+    ASSERT_EQ(statusSham, SUCCESS);
+    statusSham = kvStoreSham_->SetCapabilityEnabled(false);
+    ASSERT_EQ(statusSham, SUCCESS);
+}
+
+/**
+ * @tc.name: DoClientSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, DoClientSync001, TestSize.Level0)
+{
+    ZLOGI("DoClientSync001 start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore();
+    ASSERT_NE(kvStoreSham, nullptr);
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.mode = SyncMode::PULL;
+    syncInfo.seqId = 10; // syncInfo seqId
+    syncInfo.devices = { "networkId" };
+    std::shared_ptr<SyncCallback> observer;
+    observer = nullptr;
+    auto statusSham = kvStoreSham->DoClientSync(syncInfo, observer);
+    ASSERT_EQ(statusSham, DB_ERROR);
+}
+
+/**
+ * @tc.name: DoNotifyChange001
+ * @tc.desc: called within timeout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, DoNotifyChange001, TestSize.Level0)
+{
+    ZLOGI("DoNotifyChange001 start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore();
+    ASSERT_NE(kvStoreSham, nullptr) << "kvStorePtr is null.";
+    auto statusSham = kvStoreSham->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(kvStoreSham->notifyExpiredTime_, 0);
+    kvStoreSham->cloudAutoSync_ = true;
+    statusSham = kvStoreSham->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(statusSham, SUCCESS);
+    auto notifyExpiredTime = kvStoreSham->notifyExpiredTime_;
+    ASSERT_NE(notifyExpiredTime, 0);
+    statusSham = kvStoreSham->Put({ "Put Test1" }, { "Put Value1" });
+    ASSERT_EQ(statusSham, SUCCESS);
+    ASSERT_EQ(notifyExpiredTime, kvStoreSham->notifyExpiredTime_);
+    sleep(1);
+    statusSham = kvStoreSham->Put({ "Put Test2" }, { "Put Value2" });
+    ASSERT_EQ(statusSham, SUCCESS);
+    ASSERT_NE(notifyExpiredTime, kvStoreSham->notifyExpiredTime_);
+}
+
+/**
+ * @tc.name: DoAutoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, DoAutoSync001, TestSize.Level0)
+{
+    ZLOGI("DoAutoSync001 start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore(true);
+    ASSERT_NE(kvStoreSham, nullptr);
+    kvStoreSham->isApplication_ = true;
+    auto statusSham = kvStoreSham->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(statusSham, SUCCESS);
+    ASSERT_EQ(!kvStoreSham->autoSync_ || !kvStoreSham->isApplication_, false);
+}
+
+/**
+ * @tc.name: IsRemoteChanged
+ * @tc.desc: is remote changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, IsRemoteChanged, TestSize.Level0)
+{
+    ZLOGI("IsRemoteChanged start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore();
+    ASSERT_NE(kvStoreSham, nullptr);
+    bool ret = kvStoreSham->IsRemoteChanged("");
+    ASSERT_TRUE(ret);
+}
+
+/**
+ * @tc.name: ReportDBCorruptedFault
+ * @tc.desc: report DB corrupted fault
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplShamTest, ReportDBCorruptedFault, TestSize.Level0)
+{
+    ZLOGI("ReportDBCorruptedFault start.");
+    std::shared_ptr<SingleStoreImpl> kvStoreSham;
+    kvStoreSham = CreateKVStore();
+    ASSERT_NE(kvStoreSham, nullptr);
+    Status statusSham = DATA_CORRUPTED;
+    kvStoreSham->ReportDBCorruptedFault(statusSham);
+    ASSERT_TRUE(statusSham == DATA_CORRUPTED);
+}
 } // namespace OHOS::Test

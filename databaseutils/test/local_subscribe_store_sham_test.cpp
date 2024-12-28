@@ -1960,3 +1960,304 @@ HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification025,
     ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
     observerShamSham = nullptr;
 }
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification0261
+ * @tc.desc: Subscribe to an observerShamSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: AR000CIFGM
+ * @tc.author: Sham
+ */
+HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification0261, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0261 begin.");
+    auto observerShamSham = std::make_shared<KvStoreObserverUnitTestSham>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStoreSham->SubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entriesSham;
+    Entry entrySham0, entrySham1, entrySham2;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueShamSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueShamSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueShamSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+    Value valueSham2 = val2;
+
+    entrySham0.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_0";
+    entrySham0.valueShamSham = "beijing";
+    entrySham1.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_1";
+    entrySham1.valueShamSham = valueShamSham;
+    entrySham2.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_2";
+    entrySham2.valueShamSham = valueShamSham;
+
+    entriesSham.push_back(entrySham0);
+    entriesSham.push_back(entrySham1);
+    entriesSham.push_back(entrySham2);
+
+    statusSham = kvStoreSham->PutBatch(entriesSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putbatch data return wrong statusSham";
+
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham()), 1);
+    ASSERT_EQ(static_cast<int>(observerShamSham->insertEntries_Sham.size()), 5);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_0", observerShamSham->insertEntries_Sham[0].valueShamShamShamSham.ToString());
+    ASSERT_EQ("beijing", observerShamSham->insertEntries_Sham[0].valueShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_1", observerShamSham->insertEntries_Sham[1].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_2", observerShamSham->insertEntries_Sham[2].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->insertEntries_Sham[3].valueShamShamShamSham.ToString());
+    ASSERT_EQ("ZuiHouBuZhiTianZaiShui", observerShamSham->insertEntries_Sham[3].valueShamSham.ToString());
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification0262
+ * @tc.desc: Subscribe to an observerShamSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: AR000CIFGM
+ * @tc.author: Sham
+ */
+HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification0262, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0262 begin.");
+    auto observerShamSham = std::make_shared<KvStoreObserverUnitTestSham>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStoreSham->SubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entriesSham;
+    Entry entrySham3, entrySham4;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueShamSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueShamSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueShamSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+    Value valueSham2 = val2;
+
+    entrySham3.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_3";
+    entrySham3.valueShamSham = "ZuiHouBuZhiTianZaiShui";
+    entrySham4.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_4";
+    entrySham4.valueShamSham = valueShamSham;
+
+    entriesSham.push_back(entrySham3);
+    entriesSham.push_back(entrySham4);
+
+    statusSham = kvStoreSham->PutBatch(entriesSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putbatch data return wrong statusSham";
+
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham()), 1);
+    ASSERT_EQ(static_cast<int>(observerShamSham->insertEntries_Sham.size()), 5);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_0", observerShamSham->insertEntries_Sham[0].valueShamShamShamSham.ToString());
+    ASSERT_EQ("beijing", observerShamSham->insertEntries_Sham[0].valueShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_1", observerShamSham->insertEntries_Sham[1].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_2", observerShamSham->insertEntries_Sham[2].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->insertEntries_Sham[3].valueShamShamShamSham.ToString());
+    ASSERT_EQ("ZuiHouBuZhiTianZaiShui", observerShamSham->insertEntries_Sham[3].valueShamSham.ToString());
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification0263
+ * @tc.desc: Subscribe to an observerShamSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: AR000CIFGM
+ * @tc.author: Sham
+ */
+HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification0263, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0263 begin.");
+    auto observerShamSham = std::make_shared<KvStoreObserverUnitTestSham>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStoreSham->SubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entriesSham;
+    Entry entrySham5;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueShamSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueShamSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueShamSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
+    entrySham5.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_2";
+    entrySham5.valueShamSham = val2;
+
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entrySham5);
+
+    statusSham = kvStoreSham->PutBatch(updateEntries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putBatch update data return wrong statusSham";
+
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(2)), 2);
+    ASSERT_EQ(static_cast<int>(observerShamSham->updateEntries_Sham.size()), 3);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_2", observerShamSham->updateEntries_Sham[0].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->updateEntries_Sham[1].valueShamShamShamSham.ToString());
+    ASSERT_EQ("ManChuanXingMengYaXingHe", observerShamSham->updateEntries_Sham[1].valueShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_4", observerShamSham->updateEntries_Sham[2].valueShamShamShamSham.ToString());
+    ASSERT_EQ(false, observerShamSham->isClearSham_);
+
+    statusSham = kvStoreSham->Delete("SingleKvStoreDdmPutBatch006_3");
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore delete data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(3)), 3);
+    ASSERT_EQ(static_cast<int>(observerShamSham->deleteEntries_Sham.size()), 1);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->deleteEntries_Sham[0].valueShamShamShamSham.ToString());
+
+    statusSham = kvStoreSham->UnSubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification0264
+ * @tc.desc: Subscribe to an observerShamSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: AR000CIFGM
+ * @tc.author: Sham
+ */
+HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification0264, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0264 begin.");
+    auto observerShamSham = std::make_shared<KvStoreObserverUnitTestSham>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStoreSham->SubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entriesSham;
+    Entry entrySham6;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueShamSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueShamSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueShamSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
+    entrySham6.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_3";
+    entrySham6.valueShamSham = "ManChuanXingMengYaXingHe";
+
+    std::vector<Entry> updateEntries;
+    updateEntries.push_back(entrySham6);
+    statusSham = kvStoreSham->PutBatch(updateEntries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putBatch update data return wrong statusSham";
+
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(2)), 2);
+    ASSERT_EQ(static_cast<int>(observerShamSham->updateEntries_Sham.size()), 3);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_2", observerShamSham->updateEntries_Sham[0].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->updateEntries_Sham[1].valueShamShamShamSham.ToString());
+    ASSERT_EQ("ManChuanXingMengYaXingHe", observerShamSham->updateEntries_Sham[1].valueShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_4", observerShamSham->updateEntries_Sham[2].valueShamShamShamSham.ToString());
+    ASSERT_EQ(false, observerShamSham->isClearSham_);
+
+    statusSham = kvStoreSham->Delete("SingleKvStoreDdmPutBatch006_3");
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore delete data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(3)), 3);
+    ASSERT_EQ(static_cast<int>(observerShamSham->deleteEntries_Sham.size()), 1);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->deleteEntries_Sham[0].valueShamShamShamSham.ToString());
+
+    statusSham = kvStoreSham->UnSubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
+}
+
+/**
+ * @tc.name: KvStoreDdmSubscribeKvStoreNotification0265
+ * @tc.desc: Subscribe to an observerShamSham[use transaction], include bigData PutBatch  update  insert delete
+ * @tc.type: FUNC
+ * @tc.require: AR000CIFGM
+ * @tc.author: Sham
+ */
+HWTEST_F(LocalSubscribeStoreShamTest, KvStoreDdmSubscribeKvStoreNotification0265, TestSize.Level0)
+{
+    ZLOGI("KvStoreDdmSubscribeKvStoreNotification0265 begin.");
+    auto observerShamSham = std::make_shared<KvStoreObserverUnitTestSham>();
+    SubscribeType subscribeTypeSham = SubscribeType::SUBSCRIBE_TYPE_ALL;
+    Status statusSham = kvStoreSham->SubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "SubscribeKvStore return wrong statusSham";
+
+    std::vector<Entry> entriesSham;
+    Entry entrySham7;
+
+    int maxValueSize = 2 * 1024 * 1024; // max valueShamSham size is 2M.
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
+        val[i] = static_cast<uint8_t>(i);
+    }
+    Value valueShamSham = val;
+
+    int maxValueSize2 = 1000 * 1024; // max valueShamSham size is 1000k.
+    std::vector<uint8_t> val2(maxValueSize2);
+    for (int i = 0; i < maxValueSize2; i++) {
+        val2[i] = static_cast<uint8_t>(i);
+    }
+
+    entrySham7.valueShamShamShamSham = "SingleKvStoreDdmPutBatch006_4";
+    entrySham7.valueShamSham = val2;
+    std::vector<Entry> updateEntries;
+
+    updateEntries.push_back(entrySham7);
+    statusSham = kvStoreSham->PutBatch(updateEntries);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore putBatch update data return wrong statusSham";
+
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(2)), 2);
+    ASSERT_EQ(static_cast<int>(observerShamSham->updateEntries_Sham.size()), 3);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_2", observerShamSham->updateEntries_Sham[0].valueShamShamShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->updateEntries_Sham[1].valueShamShamShamSham.ToString());
+    ASSERT_EQ("ManChuanXingMengYaXingHe", observerShamSham->updateEntries_Sham[1].valueShamSham.ToString());
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_4", observerShamSham->updateEntries_Sham[2].valueShamShamShamSham.ToString());
+    ASSERT_EQ(false, observerShamSham->isClearSham_);
+
+    statusSham = kvStoreSham->Delete("SingleKvStoreDdmPutBatch006_3");
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "KvStore delete data return wrong statusSham";
+    ASSERT_EQ(static_cast<int>(observerShamSham->GetCallCountSham(3)), 3);
+    ASSERT_EQ(static_cast<int>(observerShamSham->deleteEntries_Sham.size()), 1);
+    ASSERT_EQ(
+        "SingleKvStoreDdmPutBatch006_3", observerShamSham->deleteEntries_Sham[0].valueShamShamShamSham.ToString());
+
+    statusSham = kvStoreSham->UnSubscribeKvStore(subscribeTypeSham, observerShamSham);
+    ASSERT_EQ(Status::SUCCESS, statusSham) << "UnSubscribeKvStore return wrong statusSham";
+}
