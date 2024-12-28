@@ -409,7 +409,7 @@ namespace {
         sqlite3_stmt *sql = nullptr;
         EXPECT_EQ(PrepareSelect(KvDb, sql, g_table), SQLITE_OK);
         int rowCount = 0;
-        while (true) {
+        while (rowCount < 10) {
             int rc = sqlite3_step(sql);
             if (rc != SQLITE_ROW) {
                 LOGD("GetSyncData Exist by code[%d]", rc);
