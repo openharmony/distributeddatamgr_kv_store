@@ -167,10 +167,12 @@ void KvDBMultiVerP2PSyncTest::SetUp(void)
     EXCEPT_EQ(g_deviceC->Initialize(g_communicatorAggregator, syncInterface), E_OK);
     g_communicatorAggregator->Enable();
 
-    auto PermissionCheckTestCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                const std::string &deviceId, uint8_t flag) -> bool {
-                                return true;};
-    EXPECT_EQ(g_mgr.SetPermissionCheckTestCallback(PermissionCheckTestCallback), OK);
+    auto permissionCheckTestCallback = [] (const std::string &userId, const std::string &appId,
+                                const std::string &storeId, const std::string &deviceId,
+                                uint8_t flag) -> bool {
+                                return true;
+                                };
+    EXPECT_EQ(g_mgr.SetPermissionCheckTestCallback(permissionCheckTestCallback), OK);
 }
 
 void KvDBMultiVerP2PSyncTest::TearDown(void)
@@ -696,9 +698,9 @@ static MultiVerCommitNode MakeMultiVerCommitA()
     commit.commitId = vector<uint8_t>(1, 11); // 1 is length, 11 is value
     commit.leftParent = vector<uint8_t>(2, 22); // 2 is length, 22 is value
     commit.rightParent = vector<uint8_t>(3, 33); // 3 is length, 33 is value
-    commit.timestamp = 111; // 444 is value
-    commit.version = 222; // 5555 is value
-    commit.isLocal = 333; // 66666 is value
+    commit.timestamp = 1; // 444 is value
+    commit.version = 2; // 5555 is value
+    commit.isLocal = 3; // 66666 is value
     commit.deviceInfo = "AAAAAA";
     return commit;
 }
@@ -709,9 +711,9 @@ static MultiVerCommitNode MakeMultiVerCommitB()
     commit.commitId = vector<uint8_t>(9, 99); // 9 is length, 99 is value
     commit.leftParent = vector<uint8_t>(8, 88); // 8 is length, 88 is value
     commit.rightParent = vector<uint8_t>(7, 77); // 7 is length, 77 is value
-    commit.timestamp = 111; // 666 is value
-    commit.version = 5552225; // 5555 is value
-    commit.isLocal = 2222; // 44444 is value
+    commit.timestamp = 1; // 666 is value
+    commit.version = 5; // 5555 is value
+    commit.isLocal = 2; // 44444 is value
     commit.deviceInfo = "BBBBBB";
     return commit;
 }
@@ -1056,19 +1058,19 @@ HWTEST_F(KvDBMultiVerP2PSyncTest, MultiVerRequestPacket001, TestSize.Level1)
 static void MakeMultiVerAckPacketA(MultiVerAckPacket &packet)
 {
     std::vector<std::vector<uint8_t>> entryVec;
-    entryVec.push_back(vector<uint8_t>(222, 11)); // 111 is length, 11 is value
-    entryVec.push_back(vector<uint8_t>(333, 22)); // 222 is length, 22 is value
+    entryVec.push_back(vector<uint8_t>(2, 2)); // 111 is length, 11 is value
+    entryVec.push_back(vector<uint8_t>(3, 3)); // 222 is length, 22 is value
     packet.SetData(entryVec);
-    packet.SetErrorCode(333); // 333 is errorcode
+    packet.SetErrorCode(5); // 333 is errorcode
 }
 
 static void MakeMultiVerAckpacketC(MultiVerAckPacket &packet)
 {
     std::vector<std::vector<uint8_t>> entryVec;
-    entryVec.push_back(vector<uint8_t>(444, 99)); // 999 is length, 99 is value
-    entryVec.push_back(vector<uint8_t>(555, 88)); // 888 is length, 88 is value
+    entryVec.push_back(vector<uint8_t>(4, 9)); // 999 is length, 99 is value
+    entryVec.push_back(vector<uint8_t>(5,7)); // 888 is length, 88 is value
     packet.SetData(entryVec);
-    packet.SetErrorCode(777); // 777 is errorcode
+    packet.SetErrorCode(1); // 777 is errorcode
 }
 
 static bool IsMultiAckPacketisEqual(const MultiVerAckPacket &packetA, const MultiVerAckPacket &packetC)
@@ -1594,17 +1596,18 @@ HWTEST_F(KvDBMultiVerP2PSyncTest, PermissionCheckTest002, TestSize.Level2)
      * @tc.steps: step1. SetPermissionCheckTestCallback
      * @tc.expected: step1. return OK.
      */
-    auto PermissionCheckTestCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
+    auto permissionCheckTestCallback = [] (const std::string &userId, const std::string &appId,
+                                        const std::string &storeId, const std::string &deviceId,
+                                        uint8_t flag) -> bool {
                                         if (flag & CHECK_FLAG_SEND) {
-                                            LOGD("in RunPermissionCheckTest callback func, check not pass, flag:%d", flag);
+                                            LOGD("in RunPermissionCheckTest check not pass, flag:%d", flag);
                                             return false;
                                         } else {
-                                            LOGD("in RunPermissionCheckTest callback func, check pass, flag:%d", flag);
+                                            LOGD("in RunPermissionCheckTest check pass, flag:%d", flag);
                                             return true;
                                         }
                                         };
-    EXPECT_EQ(g_mgr.SetPermissionCheckTestCallback(PermissionCheckTestCallback), OK);
+    EXPECT_EQ(g_mgr.SetPermissionCheckTestCallback(permissionCheckTestCallback), OK);
 
     /**
      * @tc.steps: step2. open a KvStoreNbDelegate as deviceA
