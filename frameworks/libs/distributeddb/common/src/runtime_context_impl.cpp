@@ -1259,4 +1259,14 @@ void RuntimeContextImpl::SetBatchDownloadAssets(bool isBatchDownload)
 {
     isBatchDownloadAssets_ = isBatchDownload;
 }
+
+std::shared_ptr<AssetsDownloadManager> RuntimeContextImpl::GetAssetsDownloadManager()
+{
+    std::lock_guard<std::mutex> autoLock(assetsDownloadManagerLock_);
+    if (assetsDownloadManager_ != nullptr) {
+        return assetsDownloadManager_;
+    }
+    assetsDownloadManager_ = std::make_shared<AssetsDownloadManager>();
+    return assetsDownloadManager_;
+}
 } // namespace DistributedDB

@@ -12,13 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "cloud/cloud_sync_utils.h"
+
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
+#include "db_dfx_adapter.h"
 #include "db_errno.h"
 #include "log_print.h"
-#include "cloud/cloud_sync_utils.h"
 
 namespace DistributedDB {
 int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
@@ -649,5 +651,139 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo(const Clo
     taskInfo.storeId = oriTaskInfo.storeId;
     taskInfo.prepareTraceId = oriTaskInfo.prepareTraceId;
     return taskInfo;
+}
+
+void CloudSyncUtils::CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
+    std::vector<std::string> &pkColNames)
+{
+    for (auto &data : downloadData.data) {
+        bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
+        bool isContainAllPk = true;
+        for (auto &pkColName : pkColNames) {
+            if (data.count(pkColName) == 0) {
+                isContainAllPk = false;
+                break;
+            }
+        }
+        std::string gid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        if (!isVersionExist || !isContainAllPk) {
+            LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
+                static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
+        }
+    }
+}
+
+bool CloudSyncUtils::IsNeedUpdateAsset(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+            continue;
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
+            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::tuple<int, DownloadList, ChangedData> CloudSyncUtils::GetDownloadListByGid(
+    const std::shared_ptr<StorageProxy> &proxy, const std::vector<std::string> &data, const std::string &table)
+{
+    std::tuple<int, DownloadList, ChangedData> res;
+    std::vector<std::string> pkColNames;
+    std::vector<Field> assetFields;
+    auto &[errCode, downloadList, changeData] = res;
+    errCode = proxy->GetPrimaryColNamesWithAssetsFields(table, pkColNames, assetFields);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncUtils] Get %s pk names by failed %d", DBCommon::StringMiddleMasking(table).c_str(), errCode);
+        return res;
+    }
+    changeData.tableName = table;
+    changeData.type = ChangedDataType::ASSET;
+    changeData.field = pkColNames;
+    for (const auto &gid : data) {
+        VBucket assetInfo;
+        VBucket record;
+        record[CloudDbConstant::GID_FIELD] = gid;
+        DataInfoWithLog dataInfo;
+        errCode = proxy->GetInfoByPrimaryKeyOrGid(table, record, false, dataInfo, assetInfo);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncUtils] Get download list by gid failed %s %d", gid.c_str(), errCode);
+            break;
+        }
+        Type prefix;
+        std::vector<Type> pkVal;
+        OpType strategy = OpType::UPDATE;
+        errCode = CloudSyncUtils::GetCloudPkVals(dataInfo.primaryKeys, pkColNames, dataInfo.logInfo.dataKey, pkVal);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncUtils] HandleTagAssets cannot get primary key value list. %d", errCode);
+            break;
+        }
+        if (IsSinglePrimaryKey(pkColNames) && !pkVal.empty()) {
+            prefix = pkVal[0];
+        }
+        auto assetsMap = AssetOperationUtils::FilterNeedDownloadAsset(assetInfo);
+        downloadList.push_back(
+            std::make_tuple(dataInfo.logInfo.cloudGid, prefix, strategy, assetsMap, dataInfo.logInfo.hashKey,
+                pkVal, dataInfo.logInfo.timestamp));
+    }
+    return res;
+}
+
+void CloudSyncUtils::UpdateMaxTimeWithDownloadList(const DownloadList &downloadList, const std::string &table,
+    std::map<std::string, int64_t> &downloadBeginTime)
+{
+    auto origin = downloadBeginTime[table];
+    for (const auto &item : downloadList) {
+        auto timestamp = std::get<CloudSyncUtils::TIMESTAMP_INDEX>(item);
+        downloadBeginTime[table] = std::max(static_cast<int64_t>(timestamp), downloadBeginTime[table]);
+    }
+    if (downloadBeginTime[table] == origin) {
+        downloadBeginTime[table]++;
+    }
+}
+
+bool CloudSyncUtils::IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit)
+{
+    auto &assets = std::get<CloudSyncUtils::ASSETS_INDEX>(downloadAssetUnit);
+    for (const auto &item : assets) {
+        for (const auto &asset : item.second) {
+            if ((AssetOperationUtils::EraseBitMask(asset.status) & static_cast<uint32_t>(AssetStatus::DOWNLOADING))
+                != 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
+    ChangedData &&changedData)
+{
+    int ret = proxy->NotifyChangedData(dev, std::move(changedData));
+    if (ret != E_OK) {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, ret});
+        LOGE("[CloudSyncer] Cannot notify changed data while downloading, %d.", ret);
+    } else {
+        DBDfxAdapter::ReportBehavior(
+            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::SUCC, ret});
+    }
+    return ret;
 }
 }

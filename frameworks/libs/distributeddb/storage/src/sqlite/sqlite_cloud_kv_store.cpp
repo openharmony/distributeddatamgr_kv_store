@@ -369,7 +369,18 @@ int SqliteCloudKvStore::FillCloudAssetForDownload(const std::string &tableName, 
     return E_OK;
 }
 
+int SqliteCloudKvStore::FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset,
+    bool isDownloadSuccess)
+{
+    return E_OK;
+}
+
 int SqliteCloudKvStore::SetLogTriggerStatus(bool status)
+{
+    return E_OK;
+}
+
+int SqliteCloudKvStore::SetLogTriggerStatusForAsyncDownload(bool status)
 {
     return E_OK;
 }
@@ -382,6 +393,17 @@ int SqliteCloudKvStore::SetCursorIncFlag(bool status)
 int SqliteCloudKvStore::CheckQueryValid(const QuerySyncObject &query)
 {
     return E_OK;
+}
+
+std::pair<int, std::vector<std::string>> SqliteCloudKvStore::GetDownloadAssetTable()
+{
+    return {};
+}
+
+std::pair<int, std::vector<std::string>> SqliteCloudKvStore::GetDownloadAssetRecords(
+    const std::string &tableName, int64_t beginTime)
+{
+    return {};
 }
 
 bool SqliteCloudKvStore::IsSharedTable(const std::string &tableName)
@@ -576,7 +598,7 @@ bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const L
 }
 
 int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
-    std::vector<std::string> &users)
+    std::vector<std::string> &users, bool isQueryDownloadRecords)
 {
     std::shared_ptr<DataBaseSchema> cloudSchema;
     (void)GetCloudDbSchema(cloudSchema);
@@ -604,13 +626,11 @@ int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &sy
         if (syncDataPk.empty()) {
             continue;
         }
-        QuerySyncObject syncObject;
-        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, true, syncObject);
+        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, true, syncQuery);
         if (errCode != E_OK) {
             LOGW("[SqliteCloudKvStore] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
             continue;
         }
-        syncQuery.push_back(syncObject);
         for (auto &oneRow : syncDataUserId) {
             std::string user;
             errCode = CloudStorageUtils::GetStringFromCloudData(CloudDbConstant::CLOUD_KV_FIELD_USERID, oneRow, user);

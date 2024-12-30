@@ -93,6 +93,44 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlagByGid(const std::string &tableName,
+    const std::string &gid, VBucket dbAssets)
+{
+    if (CloudStorageUtils::IsAssetsContainDownloadRecord(dbAssets)) {
+        return E_OK;
+    }
+    std::string sql;
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=flag&(~0x1000) where cloud_gid = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get stmt failed clean downloading flag:%d, tableName:%s, length:%zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gid);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]bind gid failed when clean downloading flag:%d, tableName:%s, length:%zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[RDBExecutor]clean downloading flag failed:%d, tableName:%s, length:%zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGE("[RDBExecutor]reset stmt when clean downloading flag:%d, tableName:%s, length:%zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+    }
+    return errCode != E_OK ? errCode : ret;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const TableSchema &tableSchema,
     VBucket &vBucket, bool isDownloadSuccess)
 {
@@ -132,13 +170,16 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetAfterDownloadFail, CloudStorageUtils::FillAssetsAfterDownloadFail);
     }
-
     sqlite3_stmt *stmt = nullptr;
     errCode = GetFillDownloadAssetStatement(tableSchema.name, dbAssets, assetsField, stmt);
     if (errCode != E_OK) {
         return errCode;
     }
     errCode = ExecuteFillDownloadAssetStatement(stmt, assetsField.size() + 1, cloudGid);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CleanDownloadingFlagByGid(tableSchema.name, cloudGid, dbAssets);
     int ret = CleanDownloadChangedAssets(vBucket, assetOpType);
     return errCode == E_OK ? ret : errCode;
 }
@@ -1831,7 +1872,7 @@ void SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsUploadFinished(const st
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const TableSchema &table,
-    std::vector<VBucket> &data)
+    std::vector<VBucket> &data, bool isQueryDownloadRecords)
 {
     std::string sql = "SELECT ";
     std::vector<Field> pkFields;
@@ -1847,7 +1888,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const
         return E_OK;
     }
     sql.pop_back();
-    sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE " + FLAG_IS_WAIT_COMPENSATED_SYNC;
+    if (isQueryDownloadRecords) {
+        sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE " +
+            FLAG_IS_WAIT_COMPENSATED_CONTAIN_DOWNLOAD_SYNC;
+    } else {
+        sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE " + FLAG_IS_WAIT_COMPENSATED_SYNC;
+    }
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {

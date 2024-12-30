@@ -68,7 +68,12 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
+    int FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
+
     int SetLogTriggerStatus(bool status) override;
+
+    int SetLogTriggerStatusForAsyncDownload(bool status) override;
+
     int SetCursorIncFlag(bool status) override;
 
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) override;
@@ -102,12 +107,18 @@ public:
     bool IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
         SingleVerConflictResolvePolicy policy) override;
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users) override;
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users,
+        bool isQueryDownloadRecords) override;
 
     int ReviseLocalModTime(const std::string &tableName,
         const std::vector<ReviseModTimeInfo> &revisedData) override;
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetTable() override;
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
+        int64_t beginTime) override;
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 

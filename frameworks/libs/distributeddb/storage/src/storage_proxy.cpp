@@ -274,19 +274,19 @@ int StorageProxy::GetCloudGid(const QuerySyncObject &querySyncObject, bool isClo
     return store_->GetCloudGid(tableSchema, querySyncObject, isCloudForcePush, isCompensatedTask, cloudGid);
 }
 
-int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, bool useTransaction,
     DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (!transactionExeFlag_.load()) {
+    if (useTransaction && !transactionExeFlag_.load()) {
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
 
-    int errCode = store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
+    int errCode = store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, useTransaction, dataInfoWithLog, assetInfo);
     if (errCode == E_OK) {
         dataInfoWithLog.logInfo.timestamp = EraseNanoTime(dataInfoWithLog.logInfo.timestamp);
         dataInfoWithLog.logInfo.wTimestamp = EraseNanoTime(dataInfoWithLog.logInfo.wTimestamp);
@@ -421,6 +421,16 @@ int StorageProxy::NotifyChangedData(const std::string &deviceName, ChangedData &
     return E_OK;
 }
 
+int StorageProxy::FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy]the store is nullptr when fill asset for async download");
+        return -E_INVALID_DB;
+    }
+    return store_->FillCloudAssetForAsyncDownload(tableName, asset, isDownloadSuccess);
+}
+
 int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -434,13 +444,17 @@ int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucke
     return store_->FillCloudAssetForDownload(tableName, asset, isDownloadSuccess);
 }
 
-int StorageProxy::SetLogTriggerStatus(bool status)
+int StorageProxy::SetLogTriggerStatus(bool status, bool isAsyncDownload)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->SetLogTriggerStatus(status);
+    if (isAsyncDownload) {
+        return store_->SetLogTriggerStatusForAsyncDownload(status);
+    } else {
+        return store_->SetLogTriggerStatus(status);
+    }
 }
 
 int StorageProxy::FillCloudLogAndAsset(OpType opType, const CloudSyncData &data)
@@ -522,7 +536,7 @@ int StorageProxy::ClearAllTempSyncTrigger()
 
 int StorageProxy::IsSharedTable(const std::string &tableName, bool &IsSharedTable)
 {
-    std::unique_lock<std::shared_mutex> writeLock(storeMutex_);
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
@@ -543,8 +557,8 @@ void StorageProxy::FillCloudGidIfSuccess(const OpType opType, const CloudSyncDat
     }
 }
 
-std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
-    const Bytes &hashKey, VBucket &assets)
+std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, bool isAsyncDownload,
+    const std::string &gid, const Bytes &hashKey, VBucket &assets)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -556,7 +570,11 @@ std::pair<int, uint32_t> StorageProxy::GetAssetsByGidOrHashKey(const std::string
         LOGE("get cloud table schema failed: %d", errCode);
         return { errCode, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
-    return store_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    if (isAsyncDownload) {
+        return store_->GetAssetsByGidOrHashKeyForAsyncDownload(tableSchema, gid, hashKey, assets);
+    } else {
+        return store_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    }
 }
 
 int StorageProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -568,22 +586,28 @@ int StorageProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
     return store_->SetIAssetLoader(loader);
 }
 
-int StorageProxy::UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo)
+int StorageProxy::UpdateRecordFlag(const std::string &tableName, bool isAsyncDownload, bool recordConflict,
+    const LogInfo &logInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->UpdateRecordFlag(tableName, recordConflict, logInfo);
+    if (isAsyncDownload) {
+        return store_->UpdateRecordFlagForAsyncDownload(tableName, recordConflict, logInfo);
+    } else {
+        return store_->UpdateRecordFlag(tableName, recordConflict, logInfo);
+    }
 }
 
-int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users)
+int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users,
+    bool isQueryDownloadRecords)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->GetCompensatedSyncQuery(syncQuery, users);
+    return store_->GetCompensatedSyncQuery(syncQuery, users, isQueryDownloadRecords);
 }
 
 int StorageProxy::ClearUnLockingNoNeedCompensated()
@@ -603,6 +627,16 @@ int StorageProxy::MarkFlagAsConsistent(const std::string &tableName, const Downl
         return -E_INVALID_DB;
     }
     return store_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
+}
+
+int StorageProxy::MarkFlagAsAssetAsyncDownload(const std::string &tableName, const DownloadData &downloadData,
+    const std::set<std::string> &gidFilters)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->MarkFlagAsAssetAsyncDownload(tableName, downloadData, gidFilters);
 }
 
 void StorageProxy::OnSyncFinish()
@@ -727,5 +761,35 @@ int StorageProxy::GetLocalDataCount(const std::string &tableName, int &dataCount
         return false;
     }
     return store_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
+}
+
+std::pair<int, std::vector<std::string>> StorageProxy::GetDownloadAssetTable()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy] no store found when get downloading assets table");
+        return {false, std::vector<std::string>()};
+    }
+    return store_->GetDownloadAssetTable();
+}
+
+std::pair<int, std::vector<std::string>> StorageProxy::GetDownloadAssetRecords(const std::string &tableName,
+    int64_t beginTime)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy] no store found when get downloading assets");
+        return {false, std::vector<std::string>()};
+    }
+    return store_->GetDownloadAssetRecords(tableName, beginTime);
+}
+
+void StorageProxy::BeforeUploadTransaction()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->DoBeforeUploadTransaction();
 }
 }

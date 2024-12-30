@@ -22,6 +22,7 @@
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"
+#include "cloud/assets_download_manager.h"
 #include "cloud/icloud_data_translate.h"
 #include "db_info_handle.h"
 #include "icommunicator_aggregator.h"
@@ -205,6 +206,8 @@ public:
 
     virtual bool IsBatchDownloadAssets() const = 0;
     virtual void SetBatchDownloadAssets(bool isBatchDownload) = 0;
+
+    virtual std::shared_ptr<AssetsDownloadManager> GetAssetsDownloadManager() = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

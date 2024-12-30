@@ -53,13 +53,17 @@ public:
 
     void BatchRemoveLocalAssets(const std::string &tableName, std::vector<AssetRecord> &removeAssets) override;
 
-    int GetBatchDownloadCount();
+    uint32_t GetBatchDownloadCount();
 
-    int GetBatchRemoveCount();
+    uint32_t GetBatchRemoveCount();
 
     void Reset();
 
     void ForkBatchDownload(const BatchDownloadCallback &callback);
+
+    DBStatus CancelDownload() override;
+
+    uint32_t GetCancelCount() const;
 private:
     DBStatus RemoveLocalAssetsInner(const std::string &tableName, const std::string &gid, const Type &prefix,
         std::map<std::string, Assets> &assets);
@@ -68,11 +72,12 @@ private:
     DBStatus downloadStatus_ = OK;
     DBStatus removeStatus_ = OK;
     DBStatus batchRemoveStatus_ = OK;
+    std::atomic<uint32_t> downloadCount_ = 0;
+    std::atomic<uint32_t> removeCount_ = 0;
+    std::atomic<uint32_t> cancelCount_ = 0;
     DownloadCallBack downloadCallBack_;
     RemoveAssetsCallBack removeAssetsCallBack_;
     RemoveLocalAssetsCallBack removeLocalAssetsCallBack_;
-    std::atomic<int> downloadCount_ = 0;
-    std::atomic<int> removeCount_ = 0;
     BatchDownloadCallback batchDownloadCallback_;
 };
 }

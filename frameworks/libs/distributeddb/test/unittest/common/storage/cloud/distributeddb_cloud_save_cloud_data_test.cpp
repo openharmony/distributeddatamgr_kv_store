@@ -283,7 +283,8 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo),
+            expectCode);
         if (expectCode == E_OK) {
             if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
                 int64_t val = -1;
@@ -465,7 +466,7 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gid;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), E_OK);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 
@@ -546,7 +547,8 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gid;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo),
+            expectCode);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 

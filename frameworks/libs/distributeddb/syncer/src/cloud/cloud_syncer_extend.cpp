@@ -27,7 +27,6 @@
 #include "kv_store_errno.h"
 #include "log_print.h"
 #include "runtime_context.h"
-#include "storage_proxy.h"
 #include "store_types.h"
 #include "strategy_factory.h"
 #include "version.h"
@@ -284,7 +283,7 @@ std::pair<int, uint32_t> CloudSyncer::GetDBAssets(bool isSharedTable, const Inne
         LOGE("[CloudSyncer] begin transaction before download failed %d", errCode);
         return res;
     }
-    res = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, downloadItem.gid,
+    res = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, info.isAsyncDownload, downloadItem.gid,
         downloadItem.hashKey, dbAssets);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         if (errCode != -E_CLOUD_GID_MISMATCH) {
@@ -340,8 +339,16 @@ std::map<std::string, Assets>& CloudSyncer::BackFillAssetsAfterDownload(int down
 int CloudSyncer::IsNeedSkipDownload(bool isSharedTable, int &errCode, const InnerProcessInfo &info,
     const DownloadItem &downloadItem, VBucket &dbAssets)
 {
-    auto [tmpCode, status] = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
-    if (tmpCode == -E_CLOUD_GID_MISMATCH) {
+    std::pair<int, uint32_t> res = { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK)};
+    auto &ret = res.first;
+    auto &status = res.second;
+    if (info.isAsyncDownload) {
+        res = storageProxy_->GetAssetsByGidOrHashKey(info.tableName, info.isAsyncDownload, downloadItem.gid,
+            downloadItem.hashKey, dbAssets);
+    } else {
+        res = GetDBAssets(isSharedTable, info, downloadItem, dbAssets);
+    }
+    if (ret == -E_CLOUD_GID_MISMATCH) {
         LOGW("[CloudSyncer] skip download asset because gid mismatch");
         errCode = E_OK;
         return true;
@@ -351,9 +358,10 @@ int CloudSyncer::IsNeedSkipDownload(bool isSharedTable, int &errCode, const Inne
         errCode = E_OK;
         return true;
     }
-    if (tmpCode != E_OK) {
-        LOGE("[CloudSyncer] Get assets from DB failed: %d, return errCode: %d", tmpCode, errCode);
-        errCode = (errCode != E_OK) ? errCode : tmpCode;
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer]%s download get assets from DB failed: %d, return errCode: %d",
+            info.isAsyncDownload ? "Async" : "Sync", ret, errCode);
+        errCode = (errCode != E_OK) ? errCode : ret;
         return true;
     }
     return false;
@@ -472,7 +480,7 @@ void CloudSyncer::SeparateNormalAndFailAssets(const std::map<std::string, Assets
     }
 }
 
-int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
+int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
     int errCode = storageProxy_->SetLogTriggerStatus(false);
@@ -496,7 +504,7 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
             SeparateNormalAndFailAssets(assetsMap, normalAssets, failedAssets);
         }
         if (!downloadItem.recordConflict) {
-            errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
+            errCode = FillCloudAssets(info, normalAssets, failedAssets);
             if (errCode != E_OK) {
                 break;
             }
@@ -512,7 +520,8 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
             logInfo.timestamp = 0u;
         }
 
-        errCode = storageProxy_->UpdateRecordFlag(tableName, downloadItem.recordConflict, logInfo);
+        errCode = storageProxy_->UpdateRecordFlag(
+            info.tableName, info.isAsyncDownload, downloadItem.recordConflict, logInfo);
         if (errCode != E_OK) {
             break;
         }
@@ -522,11 +531,63 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, const st
     return errCode == E_OK ? ret : errCode;
 }
 
+int CloudSyncer::CommitDownloadAssetsForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
+    DownloadCommitList &commitList, uint32_t &successCount)
+{
+    int errCode = storageProxy_->SetLogTriggerStatus(false, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (auto &item : commitList) {
+        std::string gid = std::get<0>(item); // 0 means gid is the first element in assetsInfo
+        // 1 means assetsMap info [colName, assets] is the forth element in downloadList[i]
+        std::map<std::string, Assets> assetsMap = std::get<1>(item);
+        bool setAllNormal = std::get<2>(item); // 2 means whether the download return is E_OK
+        VBucket normalAssets;
+        VBucket failedAssets;
+        normalAssets[CloudDbConstant::GID_FIELD] = gid;
+        failedAssets[CloudDbConstant::GID_FIELD] = gid;
+        if (setAllNormal) {
+            for (auto &[key, asset] : assetsMap) {
+                normalAssets[key] = std::move(asset);
+            }
+        } else {
+            SeparateNormalAndFailAssets(assetsMap, normalAssets, failedAssets);
+        }
+        if (!downloadItem.recordConflict) {
+            errCode = FillCloudAssets(info, normalAssets, failedAssets);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+        LogInfo logInfo;
+        logInfo.cloudGid = gid;
+        // download must contain gid, just set the default value here.
+        logInfo.dataKey = DBConstant::DEFAULT_ROW_ID;
+        logInfo.hashKey = downloadItem.hashKey;
+        logInfo.timestamp = downloadItem.timestamp;
+        // there are failed assets, reset the timestamp to prevent the flag from being marked as consistent.
+        if (failedAssets.size() > 1) {
+            logInfo.timestamp = 0u;
+        }
+
+        errCode = storageProxy_->UpdateRecordFlag(
+            info.tableName, info.isAsyncDownload, downloadItem.recordConflict, logInfo);
+        if (errCode != E_OK) {
+            break;
+        }
+        successCount++;
+    }
+    int ret = storageProxy_->SetLogTriggerStatus(true, true);
+    return errCode == E_OK ? ret : errCode;
+}
+
 void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
-    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery, users);
+    bool isQueryDownloadRecords = IsAsyncDownloadFinished();
+    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery, users, isQueryDownloadRecords);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] Generate compensated sync failed by get query! errCode = %d", errCode);
         return;
@@ -634,11 +695,22 @@ int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         downloadList = currentContext_.assetDownloadList;
     }
-    std::set<std::string> gidFilters;
-    for (const auto &tuple: downloadList) {
-        gidFilters.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
+    std::set<std::string> downloadGid;
+    std::set<std::string> consistentGid;
+    for (const auto &tuple : downloadList) {
+        if (CloudSyncUtils::IsContainDownloading(tuple)) {
+            downloadGid.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
+        }
+        consistentGid.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
     }
-    return storageProxy_->MarkFlagAsConsistent(param.tableName, param.downloadData, gidFilters);
+    if (IsCurrentAsyncDownloadTask()) {
+        int errCode = storageProxy_->MarkFlagAsAssetAsyncDownload(param.tableName, param.downloadData, downloadGid);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Failed to mark flag consistent errCode %d", errCode);
+            return errCode;
+        }
+    }
+    return storageProxy_->MarkFlagAsConsistent(param.tableName, param.downloadData, consistentGid);
 }
 
 int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
@@ -800,6 +872,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
         }
     }
     DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
+    TriggerAsyncDownloadAssetsInTaskIfNeed(isFirstDownload);
     return E_OK;
 }
 
@@ -834,14 +907,18 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     cloudTaskInfos_[taskId] = std::move(taskInfo);
     if (cloudTaskInfos_[taskId].priorityTask) {
         priorityTaskQueue_.push_back(taskId);
-        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, taskId %" PRIu64,
-            cloudTaskInfos_[taskId].storeId.c_str(), cloudTaskInfos_[taskId].taskId);
+        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, taskId %" PRIu64 " async %d",
+            cloudTaskInfos_[taskId].storeId.c_str(),
+            cloudTaskInfos_[taskId].taskId,
+            static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
         return E_OK;
     }
     if (!MergeTaskInfo(cloudSchema, taskId)) {
         taskQueue_.push_back(taskId);
-        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64, cloudTaskInfos_[taskId].storeId.c_str(),
-            cloudTaskInfos_[taskId].taskId);
+        LOGI("[CloudSyncer] Add task ok, storeId %.3s, taskId %" PRIu64 " async %d",
+            cloudTaskInfos_[taskId].storeId.c_str(),
+            cloudTaskInfos_[taskId].taskId,
+            static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
     }
     return E_OK;
 }
@@ -918,7 +995,8 @@ bool CloudSyncer::IsTasksCanMerge(TaskId taskId, TaskId tryMergeTaskId)
     const auto &taskInfo = cloudTaskInfos_[taskId];
     const auto &tryMergeTaskInfo = cloudTaskInfos_[tryMergeTaskId];
     return IsTaskCanMerge(taskInfo) && IsTaskCanMerge(tryMergeTaskInfo) &&
-        taskInfo.devices == tryMergeTaskInfo.devices;
+        taskInfo.devices == tryMergeTaskInfo.devices &&
+        taskInfo.asyncDownloadAssets == tryMergeTaskInfo.asyncDownloadAssets;
 }
 
 bool CloudSyncer::MergeTaskTablesIfConsistent(TaskId sourceId, TaskId targetId)
@@ -1235,33 +1313,6 @@ void CloudSyncer::MarkUploadFinishIfNeed(const std::string &table)
     currentContext_.processRecorder->MarkUploadFinish(currentContext_.currentUserIndex, table, true);
 }
 
-bool CloudSyncer::IsNeedUpdateAsset(const VBucket &data)
-{
-    for (const auto &item : data) {
-        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
-        if (asset != nullptr) {
-            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-            lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
-                return true;
-            }
-            continue;
-        }
-        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
-        if (assets == nullptr) {
-            continue;
-        }
-        for (const auto &oneAsset : *assets) {
-            uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-            lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 SyncProcess CloudSyncer::GetCloudTaskStatus(uint64_t taskId) const
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1409,7 +1460,7 @@ int CloudSyncer::CloudDbBatchDownloadAssets(TaskId taskId, const DownloadList &d
     }
     // prepare download data
     auto [downloadRecord, removeAssets, downloadAssets] =
-        GetDownloadRecords(downloadList, dupHashKeySet, isSharedTable, info);
+        GetDownloadRecords(downloadList, dupHashKeySet, isSharedTable, IsAsyncDownloadAssets(taskId), info);
     std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> detail = {
         std::move(downloadRecord), std::move(removeAssets), std::move(downloadAssets), isSharedTable
     };
@@ -1441,7 +1492,7 @@ void CloudSyncer::FillDownloadItem(const std::set<Key> &dupHashKeySet, const Dow
 }
 
 CloudSyncer::DownloadAssetDetail CloudSyncer::GetDownloadRecords(const DownloadList &downloadList,
-    const std::set<Key> &dupHashKeySet, bool isSharedTable, const InnerProcessInfo &info)
+    const std::set<Key> &dupHashKeySet, bool isSharedTable, bool isAsyncDownloadAssets, const InnerProcessInfo &info)
 {
     DownloadItemRecords downloadRecord;
     RemoveAssetsRecords removeAssets;
@@ -1455,6 +1506,9 @@ CloudSyncer::DownloadAssetDetail CloudSyncer::GetDownloadRecords(const DownloadL
             record.downloadItem.gid, record.downloadItem.prefix, std::move(record.assetsToRemove)
         };
         removeAssets.push_back(std::move(removeAsset));
+        if (isAsyncDownloadAssets) {
+            record.assetsToDownload.clear();
+        }
         IAssetLoader::AssetRecord downloadAsset = {
             record.downloadItem.gid, record.downloadItem.prefix, std::move(record.assetsToDownload)
         };
@@ -1554,24 +1608,248 @@ void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
     }
 }
 
-void CloudSyncer::CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
-    std::vector<std::string> &pkColNames)
+void CloudSyncer::WaitCurTaskFinished()
 {
-    for (auto &data : downloadData.data) {
-        bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
-        bool isContainAllPk = true;
-        for (auto &pkColName : pkColNames) {
-            if (data.count(pkColName) == 0) {
-                isContainAllPk = false;
-                break;
-            }
-        }
-        std::string gid;
-        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
-        if (!isVersionExist || !isContainAllPk) {
-            LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
-                static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
+        CancelBackgroundDownloadAssetsTask();
+    std::unique_lock<std::mutex> uniqueLock(dataLock_);
+    if (currentContext_.currentTaskId != INVALID_TASK_ID) {
+        LOGI("[CloudSyncer] begin wait current task %" PRIu64 " finished", currentContext_.currentTaskId);
+        contextCv_.wait(uniqueLock, [this]() {
+            return currentContext_.currentTaskId == INVALID_TASK_ID;
+        });
+        LOGI("[CloudSyncer] current task has been finished");
+    }
+}
+
+bool CloudSyncer::IsAsyncDownloadAssets(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].asyncDownloadAssets;
+}
+
+void CloudSyncer::TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload)
+{
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (!cloudTaskInfos_[currentContext_.currentTaskId].asyncDownloadAssets) {
+            return;
         }
     }
+    if (isFirstDownload) {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (currentContext_.isNeedUpload) {
+            return;
+        }
+    }
+    TriggerAsyncDownloadAssetsIfNeed();
+}
+
+void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
+{
+    TaskId taskId = INVALID_TASK_ID;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (asyncTaskId_ != INVALID_TASK_ID || closed_) {
+            LOGI("[CloudSyncer] No need generate async task now asyncTaskId %" PRIu64 " closed %d",
+                static_cast<int>(asyncTaskId_), static_cast<int>(closed_));
+            return;
+        }
+        lastTaskId_++;
+        asyncTaskId_ = lastTaskId_;
+        taskId = asyncTaskId_;
+        IncObjRef(this);
+    }
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([taskId, this]() {
+        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " begin", taskId);
+        BackgroundDownloadAssetsTask();
+        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " finished", taskId);
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            asyncTaskId_ = INVALID_TASK_ID;
+        }
+        asyncTaskCv_.notify_all();
+        DecObjRef(this);
+    });
+    if (errCode == E_OK) {
+        LOGI("[CloudSyncer] Schedule asyncTaskId %" PRIu64 " success", taskId);
+    } else {
+        LOGW("[CloudSyncer] Schedule BackgroundDownloadAssetsTask failed %d", errCode);
+        DecObjRef(this);
+    }
+}
+
+void CloudSyncer::BackgroundDownloadAssetsTask()
+{
+    // remove listener first
+    CancelDownloadListener();
+    // add download count and register listener if failed
+    auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
+    IncObjRef(this);
+    auto [errCode, listener] = manager->BeginDownloadWithListener([this](void *) {
+        TriggerAsyncDownloadAssetsIfNeed();
+    }, [this]() {
+        DecObjRef(this);
+    });
+    if (errCode == E_OK) {
+        // increase download count success
+        DecObjRef(this);
+        CancelDownloadListener();
+        DoBackgroundDownloadAssets();
+        RuntimeContext::GetInstance()->GetAssetsDownloadManager()->FinishDownload();
+        return;
+    }
+    if (listener != nullptr) {
+        std::lock_guard<std::mutex> autoLock(listenerMutex_);
+        waitDownloadListener_ = listener;
+        return;
+    }
+    LOGW("[CloudSyncer] BeginDownloadWithListener failed %d", errCode);
+    DecObjRef(this);
+}
+
+void CloudSyncer::CancelDownloadListener()
+{
+    NotificationChain::Listener *waitDownloadListener = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(listenerMutex_);
+        if (waitDownloadListener_ != nullptr) {
+            waitDownloadListener = waitDownloadListener_;
+            waitDownloadListener_ = nullptr;
+        }
+    }
+    if (waitDownloadListener != nullptr) {
+        waitDownloadListener->Drop(true);
+        waitDownloadListener = nullptr;
+    }
+}
+
+void CloudSyncer::DoBackgroundDownloadAssets()
+{
+    bool allDownloadFinish = true;
+    std::map<std::string, int64_t> downloadBeginTime;
+    do {
+        auto [errCode, tables] = storageProxy_->GetDownloadAssetTable();
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Get download asset table failed %d", errCode);
+            return;
+        }
+        allDownloadFinish = true;
+        for (const auto &table : tables) {
+            if (cancelAsyncTask_ || closed_) {
+                LOGW("[CloudSyncer] exit task by cancel %d closed %d", static_cast<int>(cancelAsyncTask_),
+                    static_cast<int>(closed_));
+                return;
+            }
+            errCode = BackgroundDownloadAssetsByTable(table, downloadBeginTime);
+            if (errCode == E_OK) {
+                allDownloadFinish = false;
+            } else if (errCode == -E_FINISHED) {
+                errCode = E_OK;
+            } else {
+                LOGW("[CloudSyncer] BackgroundDownloadAssetsByTable table %s failed %d",
+                    DBCommon::StringMiddleMasking(table).c_str(), errCode);
+            }
+        }
+    } while (!allDownloadFinish);
+}
+
+void CloudSyncer::CancelBackgroundDownloadAssetsTaskIfNeed()
+{
+    bool cancelDownload = true;
+    {
+        std::unique_lock<std::mutex> uniqueLock(dataLock_);
+        if (cloudTaskInfos_[currentContext_.currentTaskId].asyncDownloadAssets || asyncTaskId_ == INVALID_TASK_ID) {
+            return;
+        }
+        if (cloudTaskInfos_[currentContext_.currentTaskId].compensatedTask) {
+            cancelDownload = false;
+        }
+    }
+    CancelBackgroundDownloadAssetsTask(cancelDownload);
+}
+
+void CloudSyncer::CancelBackgroundDownloadAssetsTask(bool cancelDownload)
+{
+    cancelAsyncTask_ = true;
+    if (cancelDownload) {
+        cloudDB_.CancelDownload();
+    }
+    std::unique_lock<std::mutex> uniqueLock(dataLock_);
+    if (asyncTaskId_ != INVALID_TASK_ID) {
+        LOGI("[CloudSyncer] begin wait async download task % " PRIu64 " finished", asyncTaskId_);
+        asyncTaskCv_.wait(uniqueLock, [this]() {
+            return asyncTaskId_ == INVALID_TASK_ID;
+        });
+        LOGI("[CloudSyncer] async download task has been finished");
+    }
+    cancelAsyncTask_ = false;
+}
+
+int CloudSyncer::BackgroundDownloadAssetsByTable(const std::string &table,
+    std::map<std::string, int64_t> &downloadBeginTime)
+{
+    auto [errCode, downloadData] = storageProxy_->GetDownloadAssetRecords(table, downloadBeginTime[table]);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (downloadData.empty()) {
+        LOGD("[CloudSyncer] table %s async download finished", DBCommon::StringMiddleMasking(table).c_str());
+        return -E_FINISHED;
+    }
+
+    bool isSharedTable = false;
+    errCode = storageProxy_->IsSharedTable(table, isSharedTable);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] check is shared table failed %d", errCode);
+        return errCode;
+    }
+    DownloadList downloadList;
+    ChangedData changedAssets;
+    std::tie(errCode, downloadList, changedAssets) = CloudSyncUtils::GetDownloadListByGid(storageProxy_, downloadData,
+        table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    CloudSyncUtils::UpdateMaxTimeWithDownloadList(downloadList, table, downloadBeginTime);
+    std::set<Key> dupHashKeySet;
+    InnerProcessInfo info;
+    info.tableName = table;
+    info.isAsyncDownload = true;
+
+    // prepare download data
+    auto [downloadRecord, removeAssets, downloadAssets] =
+        GetDownloadRecords(downloadList, dupHashKeySet, isSharedTable, false, info);
+    std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords, bool> detail = {
+        std::move(downloadRecord), std::move(removeAssets), std::move(downloadAssets), isSharedTable
+    };
+    errCode = BatchDownloadAndCommitRes(downloadList, dupHashKeySet, info, changedAssets, detail);
+    NotifyChangedDataWithDefaultDev(std::move(changedAssets));
+    return errCode;
+}
+
+bool CloudSyncer::IsCurrentAsyncDownloadTask()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[currentContext_.currentTaskId].asyncDownloadAssets;
+}
+
+bool CloudSyncer::IsAsyncDownloadFinished() const
+{
+    return asyncTaskId_ == INVALID_TASK_ID;
+}
+
+void CloudSyncer::NotifyChangedDataWithDefaultDev(ChangedData &&changedData)
+{
+    auto table = changedData.tableName;
+    int ret = CloudSyncUtils::NotifyChangeData(CloudDbConstant::DEFAULT_CLOUD_DEV, storageProxy_,
+        std::move(changedData));
+    if (ret != E_OK) {
+        LOGW("[CloudSyncer] Notify %s change data failed %d", DBCommon::StringMiddleMasking(table).c_str(), ret);
+    }
+}
+
+void CloudSyncer::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
+{
+    cloudDB_.SetGenCloudVersionCallback(callback);
 }
 }

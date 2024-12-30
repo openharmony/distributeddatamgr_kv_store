@@ -1161,7 +1161,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest003, Te
     EXPECT_EQ(kvStoreObj.ReleaseCloudDataToken(continueStmtToken), E_OK);
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
-    EXPECT_EQ(kvStoreObj.GetCompensatedSyncQuery(syncQuery, users), E_OK);
+    EXPECT_EQ(kvStoreObj.GetCompensatedSyncQuery(syncQuery, users, true), E_OK);
 
     /**
      * @tc.steps: step2. Call interfaces when class para is null.

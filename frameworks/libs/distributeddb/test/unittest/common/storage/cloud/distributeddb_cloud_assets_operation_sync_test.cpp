@@ -1675,8 +1675,8 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchNormalDownloadAsset001,
 
     Query query = Query::Select().FromTable({ tableName_ });
     BlockSync(query, delegate_);
-    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 2); // download 2 times
-    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0);   // remove 0 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 2u); // download 2 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0u);   // remove 0 times
     virtualAssetLoader_->Reset();
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
@@ -1706,14 +1706,14 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchAbnormalDownloadAsset00
 
     Query query = Query::Select().FromTable({ tableName_ });
     BlockSync(query, delegate_);
-    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 1); // download 1 times
-    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0);   // remove 0 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 1u); // download 1 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0u);   // remove 0 times
     virtualAssetLoader_->Reset();
 
     virtualAssetLoader_->ForkBatchDownload(nullptr);
     BlockSync(query, delegate_);
-    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 2); // download 2 times
-    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0);   // remove 0 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 2u); // download 2 times
+    EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0u);   // remove 0 times
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
 }

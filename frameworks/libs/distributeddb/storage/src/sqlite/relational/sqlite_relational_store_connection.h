@@ -70,6 +70,8 @@ public:
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 
     int SetDistributedDbSchema(const DistributedSchema &schema) override;
+
+    int GetDownloadingAssetsCount(int32_t &count) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

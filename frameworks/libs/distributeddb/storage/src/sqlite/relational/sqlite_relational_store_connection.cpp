@@ -487,5 +487,15 @@ int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSch
     }
     return store->SetDistributedSchema(SQLiteRelationalUtils::FilterRepeatDefine(schema));
 }
+
+int SQLiteRelationalStoreConnection::GetDownloadingAssetsCount(int32_t &count)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->GetDownloadingAssetsCount(count);
+}
 }
 #endif

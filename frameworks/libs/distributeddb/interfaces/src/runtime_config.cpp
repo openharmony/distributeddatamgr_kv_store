@@ -203,5 +203,11 @@ void RuntimeConfig::SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate>
 {
     RuntimeContext::GetInstance()->SetCloudTranslate(dataTranslate);
 }
+
+DBStatus RuntimeConfig::SetAsyncDownloadAssetsConfig(const AsyncDownloadAssetsConfig &config)
+{
+    return TransferDBErrno(RuntimeContext::GetInstance()->GetAssetsDownloadManager()
+        ->SetAsyncDownloadAssetsConfig(config));
+}
 } // namespace DistributedDB
 #endif

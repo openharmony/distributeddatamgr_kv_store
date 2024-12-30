@@ -118,6 +118,11 @@ public:
     {
         return OK;
     }
+
+    DB_API virtual std::pair<DBStatus, int32_t> GetDownloadingAssetsCount()
+    {
+        return {OK, 0};
+    }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

@@ -506,5 +506,19 @@ DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSche
         DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode);
     return TransferDBErrno(errCode);
 }
+
+std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
+        return {DB_ERROR, 0};
+    }
+    int32_t count = 0;
+    int errCode = conn_->GetDownloadingAssetsCount(count);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] get downloading assets count failed:%d", errCode);
+    }
+    return {TransferDBErrno(errCode), count};
+}
 } // namespace DistributedDB
 #endif

@@ -484,6 +484,40 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level
 }
 
 /**
+ * @tc.name: RDBLockSyncTest001
+ * @tc.desc: Test sync deleted data which status is LOCKING.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBLockSyncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init deleted data which status is LOCKING.
+     * @tc.expected: step1. return ok.
+     */
+    int dataCount = 10;
+    InsertLocalData(0, dataCount, ASSETS_TABLE_NAME, true);
+    CloudSyncOption option1 = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option1);
+    std::vector<std::vector<uint8_t>> hashKeys;
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 0", db, hashKeys);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKeys, db), OK);
+    std::string sql = "delete from " + ASSETS_TABLE_NAME + " where _rowid_ = 0";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    /**
+     * @tc.steps:step2. sync, check upload info
+     * @tc.expected: step2. return ok.
+     */
+    CloudSyncOption option2 = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT,
+        false, true);
+    CallSync(option2);
+    for (const auto &table : g_syncProcess.tableProcess) {
+        EXPECT_TRUE(table.second.upLoadInfo.successCount != 0u);
+    }
+}
+
+/**
  * @tc.name: RDBConflictCloudSync001
  * @tc.desc: Both cloud and local are available, local version is empty, with cloud updates before upload
  * @tc.type: FUNC

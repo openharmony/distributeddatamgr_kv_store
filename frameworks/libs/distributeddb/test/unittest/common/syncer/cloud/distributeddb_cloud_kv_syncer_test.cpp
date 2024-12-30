@@ -541,7 +541,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
      * @tc.steps:step2. Test Query parsing Process
      * @tc.expected: step2 OK.
      */
-    QuerySyncObject syncObject;
+    std::vector<QuerySyncObject> syncObject;
     std::vector<VBucket> syncDataPk;
     VBucket bucket;
     bucket.insert_or_assign(std::string("k"), std::string("k"));
@@ -550,16 +550,16 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
     ASSERT_EQ(CloudStorageUtils::GetSyncQueryByPk(tableName, syncDataPk, true, syncObject), E_OK);
 
     Bytes bytes;
-    bytes.resize(syncObject.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+    bytes.resize(syncObject[0].CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
     Parcel parcel(bytes.data(), bytes.size());
-    ASSERT_EQ(syncObject.SerializeData(parcel, SOFTWARE_VERSION_CURRENT), E_OK);
+    ASSERT_EQ(syncObject[0].SerializeData(parcel, SOFTWARE_VERSION_CURRENT), E_OK);
 
     /**
      * @tc.steps:step3. Check Node's type is QueryNodeType::IN.
      * @tc.expected: step3 OK.
      */
     std::vector<QueryNode> queryNodes;
-    syncObject.ParserQueryNodes(bytes, queryNodes);
+    syncObject[0].ParserQueryNodes(bytes, queryNodes);
     ASSERT_EQ(queryNodes[0].type, QueryNodeType::IN);
 }
 

@@ -1269,12 +1269,7 @@ int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
 int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
     DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
-    if (transactionHandle_ == nullptr) {
-        LOGE(" the transaction has not been started");
-        return -E_INVALID_DB;
-    }
-
-    return GetInfoByPrimaryKeyOrGidInner(transactionHandle_, tableName, vBucket, dataInfoWithLog, assetInfo);
+    return GetInfoByPrimaryKeyOrGid(tableName, vBucket, true, dataInfoWithLog, assetInfo);
 }
 
 int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -1910,7 +1905,7 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
 }
 
 int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
-    std::vector<std::string> &users)
+    std::vector<std::string> &users, bool isQueryDownloadRecords)
 {
     std::vector<TableSchema> tables;
     int errCode = GetCloudTableWithoutShared(tables);
@@ -1925,7 +1920,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObje
     if (handle == nullptr || errCode != E_OK) {
         return errCode;
     }
-    errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery);
+    errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery, isQueryDownloadRecords);
     ReleaseHandle(handle);
     return errCode;
 }
@@ -1986,7 +1981,7 @@ int RelationalSyncAbleStorage::GetCloudTableWithoutShared(std::vector<TableSchem
 }
 
 int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery)
+    const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery, bool isQueryDownloadRecords)
 {
     int errCode = E_OK;
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
@@ -1999,7 +1994,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         }
 
         std::vector<VBucket> syncDataPk;
-        errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
+        errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk, isQueryDownloadRecords);
         if (errCode != E_OK) {
             LOGW("[RDBStorageEngine] Get wait compensated sync data failed, continue! errCode=%d", errCode);
             errCode = E_OK;
@@ -2009,14 +2004,12 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
             // no data need to compensated sync
             continue;
         }
-        QuerySyncObject syncObject;
-        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, false, syncObject);
+        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, false, syncQuery);
         if (errCode != E_OK) {
             LOGW("[RDBStorageEngine] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
             errCode = E_OK;
             continue;
         }
-        syncQuery.push_back(syncObject);
     }
     if (errCode == E_OK) {
         errCode = handle->Commit();

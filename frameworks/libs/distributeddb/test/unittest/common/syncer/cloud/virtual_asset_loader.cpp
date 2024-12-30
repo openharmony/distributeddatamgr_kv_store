@@ -147,12 +147,12 @@ void VirtualAssetLoader::BatchRemoveLocalAssets(const std::string &tableName,
     }
 }
 
-int VirtualAssetLoader::GetBatchDownloadCount()
+uint32_t VirtualAssetLoader::GetBatchDownloadCount()
 {
     return downloadCount_;
 }
 
-int VirtualAssetLoader::GetBatchRemoveCount()
+uint32_t VirtualAssetLoader::GetBatchRemoveCount()
 {
     return removeCount_;
 }
@@ -166,5 +166,16 @@ void VirtualAssetLoader::Reset()
 void VirtualAssetLoader::ForkBatchDownload(const BatchDownloadCallback &callback)
 {
     batchDownloadCallback_ = callback;
+}
+
+DBStatus VirtualAssetLoader::CancelDownload()
+{
+    cancelCount_++;
+    return OK;
+}
+
+uint32_t VirtualAssetLoader::GetCancelCount() const
+{
+    return cancelCount_;
 }
 }

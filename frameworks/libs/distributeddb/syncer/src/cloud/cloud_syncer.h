@@ -241,9 +241,6 @@ protected:
 
     int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
-    int SaveChangedData(SyncParam &param, size_t dataIndex, const DataInfo &dataInfo,
-        std::vector<std::pair<Key, size_t>> &deletedList);
-
     int DoDownloadAssets(bool skipSave, SyncParam &param);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
@@ -252,7 +249,7 @@ protected:
 
     bool NeedNotifyChangedData(const ChangedData &changedData);
 
-    int NotifyChangedData(ChangedData &&changedData);
+    int NotifyChangedDataInCurrentTask(ChangedData &&changedData);
 
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
         bool setNormalStatus, int &errCode);
@@ -267,10 +264,9 @@ protected:
 
     void TagUploadAssets(CloudSyncData &uploadData);
 
-    int FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
-        VBucket &failedAssets);
+    int FillCloudAssets(InnerProcessInfo &info, VBucket &normalAssets, VBucket &failedAssets);
 
-    int HandleDownloadResult(const DownloadItem &downloadItem, const std::string &tableName,
+    int HandleDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, uint32_t &successCount);
 
     int FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
@@ -381,7 +377,10 @@ protected:
     int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
-    int CommitDownloadAssets(const DownloadItem &downloadItem, const std::string &tableName,
+    int CommitDownloadAssets(const DownloadItem &downloadItem, InnerProcessInfo &info,
+        DownloadCommitList &commitList, uint32_t &successCount);
+
+    int CommitDownloadAssetsForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, uint32_t &successCount);
 
     void SeparateNormalAndFailAssets(const std::map<std::string, Assets> &assetsMap, VBucket &normalAssets,
@@ -440,8 +439,6 @@ protected:
 
     void MarkUploadFinishIfNeed(const std::string &table);
 
-    bool IsNeedUpdateAsset(const VBucket &data);
-
     int GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo);
 
     void ProcessVersionConflictInfo(InnerProcessInfo &innerProcessInfo, uint32_t retryCount);
@@ -459,7 +456,7 @@ protected:
     using DownloadAssetsRecords = std::vector<IAssetLoader::AssetRecord>;
     using DownloadAssetDetail = std::tuple<DownloadItemRecords, RemoveAssetsRecords, DownloadAssetsRecords>;
     DownloadAssetDetail GetDownloadRecords(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
-        bool isSharedTable, const InnerProcessInfo &info);
+        bool isSharedTable, bool isAsyncDownloadAssets, const InnerProcessInfo &info);
 
     int BatchDownloadAndCommitRes(const DownloadList &downloadList, const std::set<Key> &dupHashKeySet,
         InnerProcessInfo &info, ChangedData &changedAssets,
@@ -473,7 +470,29 @@ protected:
 
     void CheckDataAfterDownload(const std::string &tableName);
 
-    void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData, std::vector<std::string> &pkColNames);
+    bool IsAsyncDownloadAssets(TaskId taskId);
+
+    void TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload);
+
+    void TriggerAsyncDownloadAssetsIfNeed();
+
+    void BackgroundDownloadAssetsTask();
+
+    void CancelDownloadListener();
+
+    void DoBackgroundDownloadAssets();
+
+    void CancelBackgroundDownloadAssetsTaskIfNeed();
+
+    void CancelBackgroundDownloadAssetsTask(bool cancelDownload = true);
+
+    int BackgroundDownloadAssetsByTable(const std::string &table, std::map<std::string, int64_t> &downloadBeginTime);
+
+    bool IsCurrentAsyncDownloadTask();
+
+    bool IsAsyncDownloadFinished() const;
+
+    void NotifyChangedDataWithDefaultDev(ChangedData &&changedData);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
@@ -506,6 +525,11 @@ protected:
     // 2. Whether the local data need update for different flag when the local time is larger.
     bool isKvScene_;
     std::atomic<SingleVerConflictResolvePolicy> policy_;
+    std::condition_variable asyncTaskCv_;
+    TaskId asyncTaskId_;
+    std::atomic<bool> cancelAsyncTask_;
+    std::mutex listenerMutex_;
+    NotificationChain::Listener *waitDownloadListener_;
 
     static constexpr const TaskId INVALID_TASK_ID = 0u;
     static constexpr const int MAX_HEARTBEAT_FAILED_LIMIT = 2;

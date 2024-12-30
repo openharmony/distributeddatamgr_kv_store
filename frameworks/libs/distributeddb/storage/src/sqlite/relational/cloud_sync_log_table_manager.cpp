@@ -91,7 +91,7 @@ std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
 {
     std::string logTblName = GetLogTableName(table);
-    std::string tableName = table.GetTableName();
+    const std::string &tableName = table.GetTableName();
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + tableName + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + tableName + "'\n";
@@ -126,7 +126,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
 {
     (void)identity;
     std::string logTblName = GetLogTableName(table);
-    std::string tableName = table.GetTableName();
+    const std::string &tableName = table.GetTableName();
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
@@ -135,7 +135,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     updateTrigger += "\t UPDATE " + logTblName;
-    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02|0x20";
+    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=(flag&0x1000)|0x02|0x20";
     if (!table.GetTrackerTable().IsEmpty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
@@ -155,7 +155,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
 std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, const std::string &identity)
 {
     (void)identity;
-    std::string tableName = table.GetTableName();
+    const std::string &tableName = table.GetTableName();
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + tableName + "_ON_DELETE BEFORE DELETE \n";
     deleteTrigger += "ON '" + tableName + "'\n";
@@ -189,7 +189,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
 std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableInfo &table)
 {
     std::vector<std::string> dropTriggers;
-    std::string tableName = table.GetTableName();
+    const std::string &tableName = table.GetTableName();
     std::string insertTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_INSERT; ";
     std::string updateTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_UPDATE; ";
     std::string deleteTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_DELETE; ";
