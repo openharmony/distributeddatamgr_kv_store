@@ -321,6 +321,33 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore009, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetKvStore010
+ * @tc.desc: After remove database path and mkdir and get kv store.
+ * @tc.type: FUNC
+ */
+HWTEST_F(DistributedKvDataManagerTest, GetKvStore010, TestSize.Level1)
+{
+    ZLOGI("GetKvStore010 begin.");
+    std::shared_ptr<SingleKvStore> kvStore = nullptr;
+    auto status = manager.GetSingleKvStore(create, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    EXPECT_NE(kvStore, nullptr);
+
+    status = manager.CloseKvStore(appId, storeId64);
+    EXPECT_EQ(status, Status::SUCCESS);
+    kvStore = nullptr;
+    EXPECT_EQ(kvStore, nullptr);
+
+    (void)remove((create.baseDir + "/kvdb").c_str());
+    (void)remove(create.baseDir.c_str());
+    (void)mkdir(create.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+
+    status = manager.GetSingleKvStore(create, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    EXPECT_NE(kvStore, nullptr);
+}
+
+/**
  * @tc.name: GetKvStoreInvalidSecurityLevel
  * @tc.desc: Get a SingleKvStore with a 64
  * -byte storeId, the callback function should receive INVALID_ARGUMENT
