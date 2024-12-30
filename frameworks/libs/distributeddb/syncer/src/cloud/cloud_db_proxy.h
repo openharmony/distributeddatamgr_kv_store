@@ -82,6 +82,8 @@ public:
 
     int BatchRemoveLocalAssets(const std::string &tableName, std::vector<IAssetLoader::AssetRecord> &removeAssets);
 
+    void CancelDownload();
+
     static int GetInnerErrorCode(DBStatus status);
 protected:
     class CloudActionContext {
@@ -144,7 +146,7 @@ protected:
         std::pair<int, uint64_t> lockStatus_;
         std::pair<int, std::string> cursorStatus_;
     };
-    enum InnerActionCode : uint8_t {
+    enum class InnerActionCode : uint8_t {
         INSERT = 0,
         UPDATE,
         DELETE,
@@ -194,12 +196,14 @@ protected:
     static void CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &originalRecords, const std::vector<int> &indexes,
         std::vector<IAssetLoader::AssetRecord> &newRecords);
 
+    static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, InnerActionCode action);
+
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
     std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs_;
     std::shared_ptr<IAssetLoader> iAssetLoader_;
-    std::atomic<int64_t> timeout_;
+    std::atomic<bool> isDownloading_;
 
     mutable std::mutex genVersionMutex_;
     GenerateCloudVersionCallback genVersionCallback_;

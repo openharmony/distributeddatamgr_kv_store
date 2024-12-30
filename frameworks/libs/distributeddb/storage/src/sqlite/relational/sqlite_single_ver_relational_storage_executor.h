@@ -140,6 +140,7 @@ public:
         const TrackerTable &trackerTable, DownloadData &downloadData);
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
+    int FillCloudAssetForAsyncDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
         std::vector<std::string> &notifyTableList);
@@ -200,11 +201,15 @@ public:
 
     int CleanUploadFinishedFlag(const std::string &tableName);
 
-    int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data);
+    int GetWaitCompensatedSyncDataPk(const TableSchema &table, std::vector<VBucket> &data,
+        bool isQueryDownloadRecords);
 
     int ClearUnLockingStatus(const std::string &tableName);
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters);
+
+    int MarkFlagAsAssetAsyncDownload(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
     int CheckInventoryData(const std::string &tableName);
@@ -227,6 +232,22 @@ public:
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
 
     void CheckAndCreateTrigger(const TrackerTable &trackerTable);
+
+    int GetDownloadingAssetsCount(const TableSchema &tableSchema, int32_t &totalCount);
+
+    int GetDownloadingCount(const std::string &tableName, int32_t &count);
+
+    int GetDownloadAssetGid(const TableSchema &tableSchema, std::vector<std::string> &gids,
+        int64_t beginTime = 0, bool abortWithLimit = false);
+
+    int GetDownloadAssetRecordsInner(const TableSchema &tableSchema, int64_t beginTime, std::vector<std::string> &gids);
+
+    int GetDownloadAssetRecordsByGid(const TableSchema &tableSchema, const std::string gid,
+        std::vector<VBucket> &assets);
+
+    int CleanDownloadingFlag(const std::string &tableName);
+
+    int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -295,6 +316,8 @@ private:
         CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
+
+    int GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field, Type &cloudValue);
 
     int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, DownloadData &downloadData, std::map<int, int> &statisticMap);
@@ -475,11 +498,16 @@ private:
     int LogicDeleteCloudData(const std::string &tableName, const VBucket &vBucket,
         const TableSchema &tableSchema, const TrackerTable &trackerTable);
 
+    bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
+        uint32_t &count);
+
     static constexpr const char *CONSISTENT_FLAG = "0x20";
-    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x20";
+    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x1020";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
     static constexpr const char *FLAG_IS_WAIT_COMPENSATED_SYNC =
         "(a.flag & 0x10 != 0 and a.status = 0) or a.status = 1";
+    static constexpr const char *FLAG_IS_WAIT_COMPENSATED_CONTAIN_DOWNLOAD_SYNC =
+        "(a.flag & 0x10 != 0 and a.status = 0) or a.status = 1 or (a.flag & 0x1000 != 0 and a.status = 0)";
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

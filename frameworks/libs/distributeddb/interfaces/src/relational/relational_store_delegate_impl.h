@@ -87,6 +87,8 @@ public:
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 
     DBStatus SetDistributedSchema(const DistributedSchema &schema) override;
+
+    std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

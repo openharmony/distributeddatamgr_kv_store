@@ -17,6 +17,7 @@ distributeddb_path =
 distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
   "${distributeddb_path}/common/src/cloud/asset_operation_utils.cpp",
+  "${distributeddb_path}/common/src/cloud/assets_download_manager.cpp",
   "${distributeddb_path}/common/src/concurrent_adapter.cpp",
   "${distributeddb_path}/common/src/data_compression.cpp",
   "${distributeddb_path}/common/src/data_value.cpp",
@@ -143,6 +144,7 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/relational/relational_store_connection.cpp",
   "${distributeddb_path}/storage/src/relational/relational_store_instance.cpp",
   "${distributeddb_path}/storage/src/relational/relational_sync_able_storage.cpp",
+  "${distributeddb_path}/storage/src/relational/relational_sync_able_storage_extend.cpp",
   "${distributeddb_path}/storage/src/relational/relational_sync_data_inserter.cpp",
   "${distributeddb_path}/storage/src/relational/relationaldb_properties.cpp",
   "${distributeddb_path}/storage/src/result_entries_window.cpp",

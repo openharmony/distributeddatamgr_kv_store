@@ -182,7 +182,7 @@ static Assets TagAssetsInner(const std::string &assetFieldName, VBucket &covered
             // fill asset id for upload data
             coveredAsset.assetId = beCoveredAsset.assetId;
         }
-        if (!setNormalStatus && !beCoveredAsset.hash.empty() && beCoveredAsset.hash != coveredAsset.hash) {
+        if (!setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else if (setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
@@ -223,7 +223,7 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
 static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const bool setNormalStatus, Assets &res,
     int &errCode)
 {
-    if (!setNormalStatus && beCovered.hash.empty()) {
+    if (!setNormalStatus && AssetOperationUtils::IsAssetNeedDownload(beCovered)) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res, errCode);
     } else if (covered.hash != beCovered.hash) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);

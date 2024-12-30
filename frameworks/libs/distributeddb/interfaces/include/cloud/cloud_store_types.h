@@ -157,6 +157,7 @@ struct CloudSyncOption {
     // default, upload insert need lock
     LockAction lockAction = LockAction::INSERT;
     std::string prepareTraceId;
+    bool asyncDownloadAssets = false;
 };
 
 enum class QueryNodeType : uint32_t {
@@ -198,6 +199,11 @@ struct CloudSyncConfig {
     int32_t maxUploadCount = 30;             // default max upload 30 records
     int32_t maxUploadSize  = 1024 * 512 * 3; // default max upload 1024 * 512 * 3 = 1.5m
     int32_t maxRetryConflictTimes = -1;      // default max retry -1 is unlimited retry times
+};
+
+struct AsyncDownloadAssetsConfig {
+    uint32_t maxDownloadTask = 1; // valid range in [1, 12] max async download task in process
+    uint32_t maxDownloadAssetsCount = 100; // valid range in [1, 2000] max async download assets count in one batch
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

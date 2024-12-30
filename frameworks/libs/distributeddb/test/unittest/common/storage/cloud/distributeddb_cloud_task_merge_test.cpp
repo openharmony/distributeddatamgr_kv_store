@@ -102,6 +102,8 @@ protected:
     void InsertUserTableRecord(const std::string &tableName, int64_t recordCounts, int64_t begin = 0);
     void CheckCloudTableCount(const std::vector<std::string> &tableName, int64_t expectCount);
     void SetForkQueryForCloudMergeSyncTest001(std::atomic<int> &count);
+    static SyncProcessCallback GetProcessCallback(const std::function<void(DBStatus)> &checkFinish,
+        std::mutex &callbackMutex, std::condition_variable &callbackCv, size_t &finishCount);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -247,6 +249,27 @@ void DistributedDBCloudTaskMergeTest::SetForkQueryForCloudMergeSyncTest001(std::
     });
 }
 
+SyncProcessCallback DistributedDBCloudTaskMergeTest::GetProcessCallback(
+    const std::function<void(DBStatus)> &checkFinish, std::mutex &callbackMutex,
+    std::condition_variable &callbackCv, size_t &finishCount)
+{
+    return [checkFinish, &callbackCv, &callbackMutex, &finishCount](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                if (checkFinish) {
+                    checkFinish(item.second.errCode);
+                }
+                {
+                    std::lock_guard<std::mutex> callbackAutoLock(callbackMutex);
+                    finishCount++;
+                }
+                LOGW("current finish %zu", finishCount);
+                callbackCv.notify_one();
+            }
+        }
+    };
+}
+
 /**
  * @tc.name: CloudSyncMergeTaskTest001
  * @tc.desc: test merge sync task
@@ -278,18 +301,7 @@ HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest001, TestSize.Le
     std::mutex callbackMutex;
     std::condition_variable callbackCv;
     size_t finishCount = 0u;
-    auto callback1 = [&callbackCv, &callbackMutex, &finishCount](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
-            if (item.second.process == DistributedDB::FINISHED) {
-                {
-                    std::lock_guard<std::mutex> callbackAutoLock(callbackMutex);
-                    finishCount++;
-                }
-                LOGW("current finish %zu", finishCount);
-                callbackCv.notify_one();
-            }
-        }
-    };
+    auto callback1 = GetProcessCallback(nullptr, callbackMutex, callbackCv, finishCount);
 
     Query normalQuery2 = Query::Select().FromTable({ tableNameB_ });
     PrepareOption(option, normalQuery2, true);
@@ -460,6 +472,35 @@ HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest003, TestSize.Le
     syncThread2.join();
     syncThread3.join();
     syncThread4.join();
+}
+
+/**
+ * @tc.name: CloudSyncMergeTaskTest004
+ * @tc.desc: test merge sync task with async download asset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest004, TestSize.Level0)
+{
+    size_t finishCount = 0u;
+    std::mutex callbackMutex;
+    std::condition_variable callbackCv;
+    auto callback = GetProcessCallback([](DBStatus status) {
+        EXPECT_EQ(status, OK);
+    }, callbackMutex, callbackCv, finishCount);
+
+    Query normalQuery = Query::Select().FromTable({ tableNameA_ });
+    CloudSyncOption option;
+    PrepareOption(option, normalQuery, true);
+    ASSERT_EQ(delegate_->Sync(option, callback), OK);
+    option.asyncDownloadAssets = true;
+    ASSERT_EQ(delegate_->Sync(option, callback), OK);
+
+    std::unique_lock<std::mutex> callbackLock(callbackMutex);
+    callbackCv.wait(callbackLock, [&finishCount]() {
+        return (finishCount >= 2u); // download 2 times
+    });
 }
 }
 #endif

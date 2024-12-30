@@ -103,6 +103,22 @@ public:
         const SyncProcessCallback &onProcess);
 
     static CloudSyncer::CloudTaskInfo InitCompensatedSyncTaskInfo(const CloudSyncer::CloudTaskInfo &oriTaskInfo);
+
+    static void CheckQueryCloudData(std::string &traceId, DownloadData &downloadData,
+        std::vector<std::string> &pkColNames);
+
+    static bool IsNeedUpdateAsset(const VBucket &data);
+
+    static std::tuple<int, DownloadList, ChangedData> GetDownloadListByGid(const std::shared_ptr<StorageProxy> &proxy,
+        const std::vector<std::string> &data, const std::string &table);
+
+    static void UpdateMaxTimeWithDownloadList(const DownloadList &downloadList, const std::string &table,
+        std::map<std::string, int64_t> &downloadBeginTime);
+
+    static int NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
+        ChangedData &&changedData);
+
+    static bool IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

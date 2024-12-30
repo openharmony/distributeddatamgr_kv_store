@@ -86,6 +86,8 @@ public:
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 
     virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
+
+    virtual int GetDownloadingAssetsCount(int32_t &count) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -986,7 +986,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest015, TestSize.Level0)
 
     ret = proxy.BatchDownload(TABLE_NAME, downloadAssets);
     EXPECT_EQ(ret, E_OK);
-    EXPECT_EQ(virtialAssetLoader->GetBatchDownloadCount(), 1);
+    EXPECT_EQ(virtialAssetLoader->GetBatchDownloadCount(), 1u);
     EXPECT_EQ(totalRecordsUsed, 2);
     EXPECT_EQ(downloadAssets[0].status, OK);
     EXPECT_EQ(downloadAssets[1].status, DB_ERROR);
@@ -994,6 +994,22 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest015, TestSize.Level0)
     EXPECT_EQ(downloadAssets[3].status, NOT_FOUND);
     uintExpected = 3;
     EXPECT_EQ(downloadAssets[3].assets["a2"][0].version, uintExpected);
+}
+
+/**
+ * @tc.name: CloudDBProxyTest016
+ * @tc.desc: Verify cancel download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest016, TestSize.Level0)
+{
+    auto proxy = std::make_shared<CloudDBProxy>();
+    auto loader = make_shared<VirtualAssetLoader>();
+    proxy->SetIAssetLoader(loader);
+    proxy->CancelDownload();
+    EXPECT_EQ(loader->GetCancelCount(), 0u);
 }
 
 /**

@@ -323,6 +323,14 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
         }
         notifyTableList = tableNameList;
     }
+    for (const auto &tableName: tableNameList) {
+        errCode = CleanDownloadingFlag(tableName);
+        if (errCode != E_OK) {
+            LOGE("Fail to clean downloading flag, %d, tableName:%s, length:%zu",
+                errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            return errCode;
+        }
+    }
     errCode = SetLogTriggerStatus(true);
     if (errCode != E_OK) {
         LOGE("Fail to set log trigger on when clean cloud data, %d", errCode);
@@ -1407,6 +1415,46 @@ int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsConsistent(const std::st
     return errCode == E_OK ? ret : errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsAssetAsyncDownload(const std::string &tableName,
+    const DownloadData &downloadData, const std::set<std::string> &gidFilters)
+{
+    if (downloadData.data.empty()) {
+        return E_OK;
+    }
+    if (downloadData.data.size() != downloadData.opType.size()) {
+        LOGE("The num of data:%zu an opType:%zu is not equal.", downloadData.data.size(), downloadData.opType.size());
+        return -E_CLOUD_ERROR;
+    }
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=flag|0x1000 WHERE cloud_gid=?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[Storage Executor]Get mark flag as asset async download stmt failed, %d.", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    for (const auto &gid : gidFilters) {
+        SQLiteUtils::ResetStatement(stmt, false, ret);
+        if (ret != E_OK) {
+            LOGE("[Storage Executor]Reset stmt failed:%d", ret);
+            break;
+        }
+        errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gid);
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+        } else {
+            LOGW("[Storage Executor]Step mark flag as asset async download stmt failed %d gid %s",
+                errCode, gid.c_str());
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudVersionForUpload(const std::string &tableName,
     const CloudSyncBatch &batchData)
 {
@@ -1590,6 +1638,40 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
     return E_OK;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field,
+    Type &cloudValue)
+{
+    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Asset asset;
+        VBucket bucket;
+        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (AssetOperationUtils::IsAssetNeedDownload(asset)) {
+            bucket.insert_or_assign(field.colName, asset);
+            assetsV.push_back(bucket);
+        }
+    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Assets assets;
+        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets)) {
+            return E_OK;
+        }
+        for (const auto &asset : assets) {
+            if (AssetOperationUtils::IsAssetNeedDownload(asset)) {
+                VBucket bucket;
+                bucket.insert_or_assign(field.colName, asset);
+                assetsV.push_back(bucket);
+            }
+        }
+    }
+    return E_OK;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *&stmt,
     const std::vector<Field> &assetFields, VBucket &assetInfo)
 {
@@ -1762,6 +1844,184 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateDeleteDataExtendField(const 
         LOGW("[RDBExecutor][UpdateDeleteDataExtendField] Reset stmt failed %d", ret);
     }
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSchema &tableSchema,
+    std::vector<std::string> &gids, int64_t beginTime, bool abortWithLimit)
+{
+    std::string sql = "SELECT cloud_gid FROM " + DBCommon::GetLogTableName(tableSchema.name) +
+        " WHERE flag&0x1000=0x1000 AND timestamp >= ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get gid statement failed, %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, 1, beginTime);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] bind time failed %d when get download asset gid", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        return errCode;
+    }
+    uint32_t count = 0;
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt, false);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[RDBExecutor]Get downloading assets gid failed. %d", errCode);
+            break;
+        }
+        std::string gid;
+        errCode = SQLiteUtils::GetColumnTextValue(stmt, 0, gid);
+        if (errCode != E_OK) {
+            LOGW("[RDBExecutor]Get downloading assets gid failed %d when get col", errCode);
+            continue;
+        }
+        gids.push_back(gid);
+        if (AbortGetDownloadAssetGidIfNeed(tableSchema, gid, abortWithLimit, count)) {
+            break;
+        }
+    } while (errCode == E_OK);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetRecordsByGid(const TableSchema &tableSchema,
+    const std::string gid, std::vector<VBucket> &assets)
+{
+    std::vector<Field> assetFields;
+    std::string sql = "SELECT";
+    for (const auto &field: tableSchema.fields) {
+        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+            assetFields.emplace_back(field);
+            sql += " b." + field.colName + ",";
+        }
+    }
+    if (assetFields.empty()) {
+        return E_OK;
+    }
+    sql.pop_back(); // remove last ,
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE a.cloud_gid = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get downloading asset records statement failed, %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gid);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int index = 0;
+        for (const auto &field: assetFields) {
+            Type value;
+            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, value);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = GetDownloadAsset(assets, field, value);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("step get downloading asset records statement failed %d.", errCode);
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadingCount(const std::string &tableName, int32_t &count)
+{
+    std::string sql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName) + " WHERE flag&0x1000=0x1000;";
+    int errCode = SQLiteUtils::GetCountBySql(dbHandle_, sql, count);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Query local data count failed: %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadingAssetsCount(
+    const TableSchema &tableSchema, int32_t &totalCount)
+{
+    std::vector<std::string> gids;
+    int errCode = GetDownloadAssetGid(tableSchema, gids);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get downloading assets gid failed: %d", errCode);
+        return errCode;
+    }
+    for (const auto &gid : gids) {
+        std::vector<VBucket> assets;
+        errCode = GetDownloadAssetRecordsByGid(tableSchema, gid, assets);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
+            return errCode;
+        }
+        totalCount += assets.size();
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetRecordsInner(
+    const TableSchema &tableSchema, int64_t beginTime, std::vector<std::string> &gids)
+{
+    int errCode = GetDownloadAssetGid(tableSchema, gids, beginTime, true);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get downloading assets gid failed: %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlag(const std::string &tableName)
+{
+    std::string sql;
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=flag&(~0x1000);";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get stmt failed clean downloading flag: %d, tableName: %s, length: %zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[RDBExecutor]Clean downloading flag failed: %d, tableName: %s, length: %zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (ret != E_OK) {
+        LOGE("[RDBExecutor]Reset stmt failed clean downloading flag: %d", ret);
+    }
+    return errCode != E_OK ? errCode : ret;
+}
+
+bool SQLiteSingleVerRelationalStorageExecutor::AbortGetDownloadAssetGidIfNeed(
+    const DistributedDB::TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
+    uint32_t &count)
+{
+    if (!abortWithLimit) {
+        return false;
+    }
+    std::vector<VBucket> assets;
+    int errCode = GetDownloadAssetRecordsByGid(tableSchema, gid, assets);
+    if (errCode != E_OK) {
+        LOGW("[RDBExecutor]Get downloading assets failed %d gid %s", errCode, gid.c_str());
+        return false;
+    }
+    count += assets.size();
+    return count >= RuntimeContext::GetInstance()->GetAssetsDownloadManager()->GetMaxDownloadAssetsCount();
 }
 } // namespace DistributedDB
 #endif

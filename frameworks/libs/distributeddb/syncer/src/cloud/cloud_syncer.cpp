@@ -43,7 +43,10 @@ CloudSyncer::CloudSyncer(
       hasKvRemoveTask(false),
       timerId_(0u),
       isKvScene_(isKvScene),
-      policy_(policy)
+      policy_(policy),
+      asyncTaskId_(INVALID_TASK_ID),
+      cancelAsyncTask_(false),
+      waitDownloadListener_(nullptr)
 {
     if (storageProxy_ != nullptr) {
         id_ = storageProxy_->GetIdentify();
@@ -181,6 +184,7 @@ void CloudSyncer::DoSyncIfNeed()
         if (PrepareSync(triggerTaskId) != E_OK) {
             break;
         }
+        CancelBackgroundDownloadAssetsTaskIfNeed();
         // do sync logic
         std::vector<std::string> usersList;
         {
@@ -293,6 +297,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
     if (!needUpload) {
         return E_OK;
     }
+    storageProxy_->BeforeUploadTransaction();
     int errCode = storageProxy_->StartTransaction();
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] start transaction failed before doing upload.");
@@ -572,28 +577,37 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &cove
     return res;
 }
 
-int CloudSyncer::FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
-    VBucket &failedAssets)
+int CloudSyncer::FillCloudAssets(InnerProcessInfo &info, VBucket &normalAssets, VBucket &failedAssets)
 {
     int ret = E_OK;
     if (normalAssets.size() > 1) {
-        ret = storageProxy_->FillCloudAssetForDownload(tableName, normalAssets, true);
+        if (info.isAsyncDownload) {
+            ret = storageProxy_->FillCloudAssetForAsyncDownload(info.tableName, normalAssets, true);
+        } else {
+            ret = storageProxy_->FillCloudAssetForDownload(info.tableName, normalAssets, true);
+        }
         if (ret != E_OK) {
-            LOGE("[CloudSyncer] Can not fill normal cloud assets for download");
+            LOGE("[CloudSyncer]%s download: Can not fill normal assets for download",
+                info.isAsyncDownload ? "Async" : "Sync");
             return ret;
         }
     }
     if (failedAssets.size() > 1) {
-        ret = storageProxy_->FillCloudAssetForDownload(tableName, failedAssets, false);
+        if (info.isAsyncDownload) {
+            ret = storageProxy_->FillCloudAssetForAsyncDownload(info.tableName, failedAssets, false);
+        } else {
+            ret = storageProxy_->FillCloudAssetForDownload(info.tableName, failedAssets, false);
+        }
         if (ret != E_OK) {
-            LOGE("[CloudSyncer] Can not fill abnormal assets for download");
+            LOGE("[CloudSyncer]%s download: Can not fill abnormal assets for download",
+                info.isAsyncDownload ? "Async" : "Sync");
             return ret;
         }
     }
     return E_OK;
 }
 
-int CloudSyncer::HandleDownloadResult(const DownloadItem &downloadItem, const std::string &tableName,
+int CloudSyncer::HandleDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
     successCount = 0;
@@ -602,7 +616,7 @@ int CloudSyncer::HandleDownloadResult(const DownloadItem &downloadItem, const st
         LOGE("[CloudSyncer] start transaction Failed before handle download.");
         return errCode;
     }
-    errCode = CommitDownloadAssets(downloadItem, tableName, commitList, successCount);
+    errCode = CommitDownloadAssets(downloadItem, info, commitList, successCount);
     if (errCode != E_OK) {
         successCount = 0;
         int ret = E_OK;
@@ -902,7 +916,7 @@ bool CloudSyncer::NeedNotifyChangedData(const ChangedData &changedData)
     return true;
 }
 
-int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
+int CloudSyncer::NotifyChangedDataInCurrentTask(ChangedData &&changedData)
 {
     if (!NeedNotifyChangedData(changedData)) {
         return E_OK;
@@ -920,15 +934,7 @@ int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
         // We use first device name as the target of NotifyChangedData
         deviceName = devices[0];
     }
-    int ret = storageProxy_->NotifyChangedData(deviceName, std::move(changedData));
-    if (ret != E_OK) {
-        DBDfxAdapter::ReportBehavior(
-            {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, ret});
-        LOGE("[CloudSyncer] Cannot notify changed data while downloading, %d.", ret);
-    }
-    DBDfxAdapter::ReportBehavior(
-        {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::FAIL, ret});
-    return ret;
+    return CloudSyncUtils::NotifyChangeData(deviceName, storageProxy_, std::move(changedData));
 }
 
 void CloudSyncer::NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload)
@@ -1008,7 +1014,7 @@ int CloudSyncer::DoDownloadAssets(bool skipSave, SyncParam &param)
         return errCode;
     }
     if (!isSharedTable) {
-        (void)NotifyChangedData(std::move(changedAssets));
+        (void)NotifyChangedDataInCurrentTask(std::move(changedAssets));
     }
     if (ret == -E_TASK_PAUSED) {
         LOGD("[CloudSyncer] current task was paused, abort download asset");
@@ -1047,7 +1053,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
             return ret;
         }
         // call OnChange to notify changedData object first time (without Assets)
-        ret = NotifyChangedData(std::move(param.changedData));
+        ret = NotifyChangedDataInCurrentTask(std::move(param.changedData));
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot notify changed data due to error %d", ret);
             return ret;
@@ -1697,7 +1703,12 @@ int CloudSyncer::CommitDownloadResult(const DownloadItem &downloadItem, InnerPro
         return E_OK;
     }
     uint32_t successCount = 0u;
-    int ret = HandleDownloadResult(downloadItem, info.tableName, commitList, successCount);
+    int ret = E_OK;
+    if (info.isAsyncDownload) {
+        ret = CommitDownloadAssetsForAsyncDownload(downloadItem, info, commitList, successCount);
+    } else {
+        ret = HandleDownloadResult(downloadItem, info, commitList, successCount);
+    }
     if (errCode == E_OK) {
         info.downLoadInfo.failCount += (commitList.size() - successCount);
         info.downLoadInfo.successCount -= (commitList.size() - successCount);
@@ -1743,7 +1754,7 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
-    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index],
+    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index], true,
         logInfo, localAssetInfo);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         return errCode;
@@ -1770,7 +1781,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         }
         errCode = E_OK;
     }
-    logInfo.logInfo.isNeedUpdateAsset = IsNeedUpdateAsset(localAssetInfo);
+    logInfo.logInfo.isNeedUpdateAsset = CloudSyncUtils::IsNeedUpdateAsset(localAssetInfo);
     return errCode;
 }
 
@@ -2048,7 +2059,7 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
     param.info.tableStatus = ProcessStatus::PROCESSING;
     param.downloadData = {};
     int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData);
-    CheckQueryCloudData(cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
+    CloudSyncUtils::CheckQueryCloudData(cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
     if (ret == -E_QUERY_END) {
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;
@@ -2118,11 +2129,6 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     return info;
 }
 
-void CloudSyncer::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
-{
-    cloudDB_.SetGenCloudVersionCallback(callback);
-}
-
 std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
 {
     std::vector<CloudTaskInfo> infoList;
@@ -2136,15 +2142,5 @@ std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
     resumeTaskInfos_.clear();
     currentContext_.notifier = nullptr;
     return infoList;
-}
-
-void CloudSyncer::WaitCurTaskFinished()
-{
-    LOGD("[CloudSyncer] begin wait current task finished");
-    std::unique_lock<std::mutex> uniqueLock(dataLock_);
-    contextCv_.wait(uniqueLock, [this]() {
-        return currentContext_.currentTaskId == INVALID_TASK_ID;
-    });
-    LOGD("[CloudSyncer] current task has been finished");
 }
 } // namespace DistributedDB

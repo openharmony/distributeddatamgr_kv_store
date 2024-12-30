@@ -447,7 +447,6 @@ Type CloudStorageUtils::GetAssetFromAssets(Type &value)
 int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
-    AssetStatus status = static_cast<AssetStatus>(asset.status);
     uint32_t lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
     switch (flag) {
         case AssetOpType::DELETE: {
@@ -456,13 +455,6 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
                 lowStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
                 (asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
                 return -E_NOT_FOUND;
-            }
-            break;
-        }
-        case AssetOpType::INSERT:
-        case AssetOpType::UPDATE: {
-            if (status != AssetStatus::NORMAL) {
-                asset.hash = std::string("");
             }
             break;
         }
@@ -943,19 +935,7 @@ int CloudStorageUtils::FillAssetAfterDownloadFail(Asset &asset, Asset &dbAsset,
     if (status != AssetStatus::ABNORMAL) {
         return FillAssetAfterDownload(asset, dbAsset, assetOpType);
     }
-    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     dbAsset = asset;
-    switch (flag) {
-        case AssetOpType::INSERT:
-        case AssetOpType::DELETE:
-        case AssetOpType::UPDATE: {
-            dbAsset.hash = std::string("");
-            break;
-        }
-        default:
-            // other flag type do not need to clear hash
-            break;
-    }
     return E_OK;
 }
 
@@ -1498,10 +1478,41 @@ std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
         " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
 }
 
+int CloudStorageUtils::FillQueryByPK(const std::string &tableName, bool isKv, std::map<std::string, size_t> dataIndex,
+    std::vector<std::map<std::string, std::vector<Type>>> syncPkVec, std::vector<QuerySyncObject> &syncQuery)
+{
+    for (const auto syncPk : syncPkVec) {
+        Query query = Query::Select().From(tableName);
+        if (isKv) {
+            QueryUtils::FillQueryInKeys(syncPk, dataIndex, query);
+        } else {
+            for (const auto &[col, pkList] : syncPk) {
+                QueryUtils::FillQueryIn(col, pkList, dataIndex[col], query);
+            }
+        }
+        auto objectList = QuerySyncObject::GetQuerySyncObject(query);
+        if (objectList.size() != 1u) { // only support one QueryExpression
+            return -E_INTERNAL_ERROR;
+        }
+        syncQuery.push_back(objectList[0]);
+    }
+    return E_OK;
+}
+
+void CloudStorageUtils::PutSyncPkVec(const std::string &col, std::map<std::string, std::vector<Type>> &syncPk,
+    std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec)
+{
+    if (syncPk[col].size() >= CloudDbConstant::MAX_CONDITIONS_SIZE) {
+        syncPkVec.push_back(syncPk);
+        syncPk[col].clear();
+    }
+}
+
 int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
-    QuerySyncObject &querySyncObject)
+    std::vector<QuerySyncObject> &syncQuery)
 {
     std::map<std::string, size_t> dataIndex;
+    std::vector<std::map<std::string, std::vector<Type>>> syncPkVec;
     std::map<std::string, std::vector<Type>> syncPk;
     int ignoreCount = 0;
     for (const auto &oneRow : data) {
@@ -1519,6 +1530,7 @@ int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std:
             if (!isFind && value.index() != TYPE_INDEX<Nil>) {
                 dataIndex[col] = value.index();
                 syncPk[col].push_back(value);
+                PutSyncPkVec(col, syncPk, syncPkVec);
                 continue;
             }
             if (isFind && dataIndex[col] != value.index()) {
@@ -1526,23 +1538,32 @@ int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std:
                 continue;
             }
             syncPk[col].push_back(value);
+            PutSyncPkVec(col, syncPk, syncPkVec);
         }
     }
+    syncPkVec.push_back(syncPk);
     LOGI("match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
-    Query query = Query::Select().From(tableName);
-    if (isKv) {
-        QueryUtils::FillQueryInKeys(syncPk, dataIndex, query);
-    } else {
-        for (const auto &[col, pkList] : syncPk) {
-            QueryUtils::FillQueryIn(col, pkList, dataIndex[col], query);
+    return FillQueryByPK(tableName, isKv, dataIndex, syncPkVec, syncQuery);
+}
+
+bool CloudStorageUtils::IsAssetsContainDownloadRecord(VBucket &dbAssets)
+{
+    for (auto &item: dbAssets) {
+        if (IsAsset(item.second)) {
+            Asset asset;
+            GetValueFromType(item.second, asset);
+            if (AssetOperationUtils::IsAssetNeedDownload(asset)) {
+                return true;
+            }
+        } else if (IsAssets(item.second)) {
+            Assets assets;
+            GetValueFromType(item.second, assets);
+            if (AssetOperationUtils::IsAssetsNeedDownload(assets)) {
+                return true;
+            }
         }
     }
-    auto objectList = QuerySyncObject::GetQuerySyncObject(query);
-    if (objectList.size() != 1u) { // only support one QueryExpression
-        return -E_INTERNAL_ERROR;
-    }
-    querySyncObject = objectList[0];
-    return E_OK;
+    return false;
 }
 
 int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,

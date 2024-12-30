@@ -890,12 +890,12 @@ int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices) c
     return errCode;
 }
 
-std::vector<std::string> SQLiteRelationalStore::GetAllDistributedTableName()
+std::vector<std::string> SQLiteRelationalStore::GetAllDistributedTableName(TableSyncType tableSyncType)
 {
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     std::vector<std::string> tableNames;
     for (const auto &table : tables) {
-        if (table.second.GetTableSyncType() == TableSyncType::CLOUD_COOPERATION) {
+        if (table.second.GetTableSyncType() != tableSyncType) {
             continue;
         }
         tableNames.push_back(table.second.GetTableName());
@@ -1134,6 +1134,11 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
     for (const auto &item : object) {
         std::string tableName = item.GetRelationTableName();
         syncTableNames.emplace_back(tableName);
+        if (item.IsContainQueryNodes() && option.asyncDownloadAssets) {
+            LOGE("[RelationalStore] not support async download assets with query table %s length %zu",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
+            return -E_NOT_SUPPORT;
+        }
     }
     errCode = CheckTableName(syncTableNames);
     if (errCode != E_OK) {
@@ -1215,11 +1220,12 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
     info.compensatedTask = option.compensatedSyncOnly;
-    info.users.push_back("");
+    info.users.emplace_back("");
     info.lockAction = option.lockAction;
     info.merge = option.merge;
     info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
     info.prepareTraceId = option.prepareTraceId;
+    info.asyncDownloadAssets = option.asyncDownloadAssets;
 }
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
@@ -1576,6 +1582,37 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
         storageEngine_->NotifySchemaChanged();
     }
     return E_OK;
+}
+
+int SQLiteRelationalStore::GetDownloadingAssetsCount(int32_t &count)
+{
+    std::vector<std::string> tableNameList = GetAllDistributedTableName(TableSyncType::CLOUD_COOPERATION);
+    if (tableNameList.empty()) {
+        return E_OK;
+    }
+
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    for (const auto &tableName : tableNameList) {
+        TableSchema tableSchema;
+        int errCode = storageEngine_->GetCloudTableSchema(tableName, tableSchema);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStore] Get schema failed when get download assets count, %d, tableName: %s, length: %zu",
+                errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            break;
+        }
+        errCode = handle->GetDownloadingAssetsCount(tableSchema, count);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStore] Get download assets count failed: %d, tableName: %s, length: %zu",
+                errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            break;
+        }
+    }
+    ReleaseHandle(handle);
+    return errCode;
 }
 } // namespace DistributedDB
 #endif

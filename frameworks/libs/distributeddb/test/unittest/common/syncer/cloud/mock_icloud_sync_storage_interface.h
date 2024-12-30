@@ -45,13 +45,17 @@ public:
     MOCK_METHOD4(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));
     MOCK_METHOD3(FillCloudAssetForDownload, int(const std::string &, VBucket &, bool));
+    MOCK_METHOD3(FillCloudAssetForAsyncDownload, int(const std::string &, VBucket &, bool));
     MOCK_METHOD1(SetLogTriggerStatus, int(bool));
+    MOCK_METHOD1(SetLogTriggerStatusForAsyncDownload, int(bool));
     MOCK_METHOD4(FillCloudLogAndAsset, int(OpType, const CloudSyncData &, bool, bool));
     MOCK_CONST_METHOD0(GetIdentify, std::string());
     MOCK_METHOD1(CheckQueryValid, int(const QuerySyncObject &));
     MOCK_METHOD1(IsSharedTable, bool(const std::string &));
     MOCK_CONST_METHOD0(GetCloudSyncConfig, CloudSyncConfig());
     MOCK_METHOD3(GetLocalDataCount, int(const std::string &, int &, int &));
+    MOCK_METHOD0(GetDownloadAssetTable, std::pair<int, std::vector<std::string>>(void));
+    MOCK_METHOD2(GetDownloadAssetRecords, std::pair<int, std::vector<std::string>>(const std::string &, int64_t));
 };
 
 }

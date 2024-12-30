@@ -59,6 +59,11 @@ public:
     virtual void BatchRemoveLocalAssets(const std::string &tableName, std::vector<AssetRecord> &removeAssets)
     {
     }
+
+    virtual DBStatus CancelDownload()
+    {
+        return OK;
+    }
 };
 } // namespace DistributedDB
 

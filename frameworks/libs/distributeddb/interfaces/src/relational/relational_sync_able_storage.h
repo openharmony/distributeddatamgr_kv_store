@@ -179,7 +179,12 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
+    int FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
+
     int SetLogTriggerStatus(bool status) override;
+
+    int SetLogTriggerStatusForAsyncDownload(bool status) override;
+
     int SetCursorIncFlag(bool flag) override;
 
     int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) override;
@@ -206,17 +211,27 @@ public:
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets) override;
 
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKeyForAsyncDownload(
+        const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey, VBucket &assets) override;
+
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 
     int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo) override;
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users) override;
+    int UpdateRecordFlagForAsyncDownload(const std::string &tableName, bool recordConflict,
+        const LogInfo &logInfo) override;
+
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users,
+        bool isQueryDownloadRecords) override;
 
     int ClearUnLockingNoNeedCompensated() override;
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters) override;
+
+    int MarkFlagAsAssetAsyncDownload(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters) override;
 
     CloudSyncConfig GetCloudSyncConfig() const override;
@@ -237,6 +252,15 @@ public:
 
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData,
         Origin origin);
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetTable() override;
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
+        int64_t beginTime) override;
+
+    int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, bool useTransaction,
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) override;
+
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -292,7 +316,7 @@ private:
     int GetCloudTableWithoutShared(std::vector<TableSchema> &tables);
 
     int GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
-        const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery);
+        const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery, bool isQueryDownloadRecords);
 
     int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
         bool flag = false);

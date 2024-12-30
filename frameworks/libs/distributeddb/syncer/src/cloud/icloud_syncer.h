@@ -21,8 +21,9 @@
 #include "query_sync_object.h"
 #include "ref_object.h"
 namespace DistributedDB {
-using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key,
-    std::vector<Type>, Timestamp>>;
+using DownloadAssetUnit = std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key,
+    std::vector<Type>, Timestamp>;
+using DownloadList = std::vector<DownloadAssetUnit>;
 class ICloudSyncer : public virtual RefObject {
 public:
     using TaskId = uint64_t;
@@ -31,9 +32,12 @@ public:
         bool compensatedTask = false;
         bool pause = false;
         bool resume = false;
+        bool merge = false;
+        bool asyncDownloadAssets = false;
+        int errCode = 0;
         SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
         ProcessStatus status = ProcessStatus::PREPARED;
-        int errCode = 0;
+        LockAction lockAction = LockAction::INSERT;
         TaskId taskId = 0u;
         int64_t timeout = 0;
         SyncProcessCallback callback;
@@ -41,8 +45,6 @@ public:
         std::vector<std::string> devices;
         std::vector<QuerySyncObject> queryList;
         std::vector<std::string> users;
-        LockAction lockAction = LockAction::INSERT;
-        bool merge = false;
         std::string storeId;
         std::string prepareTraceId;
     };
@@ -58,6 +60,7 @@ public:
         Info downLoadInfo;
         Info upLoadInfo;
         UploadRetryInfo retryInfo;
+        bool isAsyncDownload = false;
     };
 
     struct WithoutRowIdData {

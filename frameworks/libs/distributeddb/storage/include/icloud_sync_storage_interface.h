@@ -81,9 +81,22 @@ public:
             uploadStartFunc_();
         }
     }
+
+    void SetBeforeUploadTransaction(const std::function<void (void)> &func)
+    {
+        beforeUploadTransaction_ = func;
+    }
+
+    void DoBeforeUploadTransaction()
+    {
+        if (beforeUploadTransaction_) {
+            beforeUploadTransaction_();
+        }
+    }
 protected:
     std::function<void (void)> syncFinishFunc_;
     std::function<void (void)> uploadStartFunc_;
+    std::function<void (void)> beforeUploadTransaction_;
 };
 
 class ICloudSyncStorageInterface : public ICloudSyncStorageHook {
@@ -141,7 +154,12 @@ public:
 
     virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) = 0;
 
+    virtual int FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset,
+        bool isDownloadSuccess) = 0;
+
     virtual int SetLogTriggerStatus(bool status) = 0;
+
+    virtual int SetLogTriggerStatusForAsyncDownload(bool status) = 0;
 
     virtual int SetCursorIncFlag(bool flag)
     {
@@ -177,6 +195,12 @@ public:
         return { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
     }
 
+    virtual std::pair<int, uint32_t> GetAssetsByGidOrHashKeyForAsyncDownload(const TableSchema &tableSchema,
+        const std::string &gid, const Bytes &hashKey, VBucket &assets)
+    {
+        return { E_OK, static_cast<uint32_t>(LockStatus::UNLOCK) };
+    }
+
     virtual int SetIAssetLoader([[gnu::unused]] const std::shared_ptr<IAssetLoader> &loader)
     {
         return E_OK;
@@ -188,8 +212,14 @@ public:
         return E_OK;
     }
 
+    virtual int UpdateRecordFlagForAsyncDownload([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] bool recordConflict, [[gnu::unused]] const LogInfo &logInfo)
+    {
+        return E_OK;
+    }
+
     virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery,
-        [[gnu::unused]] std::vector<std::string> &users)
+        [[gnu::unused]] std::vector<std::string> &users, [[gnu::unused]] bool isQueryDownloadRecords)
     {
         return E_OK;
     }
@@ -200,6 +230,12 @@ public:
     }
 
     virtual int MarkFlagAsConsistent([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] const DownloadData &downloadData, [[gnu::unused]] const std::set<std::string> &gidFilters)
+    {
+        return E_OK;
+    }
+
+    virtual int MarkFlagAsAssetAsyncDownload([[gnu::unused]] const std::string &tableName,
         [[gnu::unused]] const DownloadData &downloadData, [[gnu::unused]] const std::set<std::string> &gidFilters)
     {
         return E_OK;
@@ -246,7 +282,7 @@ public:
     virtual int GetCursor(const std::string &tableName, uint64_t &cursor)
     {
         cursor = DBConstant::INVALID_CURSOR;
-        return E_NOT_SUPPORT;
+        return -E_NOT_SUPPORT;
     }
 
     virtual bool IsCurrentLogicDelete() const
@@ -255,6 +291,17 @@ public:
     }
 
     virtual int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) = 0;
+
+    virtual std::pair<int, std::vector<std::string>> GetDownloadAssetTable() = 0;
+
+    virtual std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
+        int64_t beginTime) = 0;
+
+    virtual int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+        [[gnu::unused]] bool useTransaction, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
+    {
+        return GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
+    }
 };
 }
 

@@ -57,7 +57,7 @@ public:
     void WakeUpSyncer() override;
 
     // for test mock
-    const RelationalSyncAbleStorage *GetStorageEngine()
+    RelationalSyncAbleStorage *GetStorageEngine()
     {
         return storageEngine_;
     }
@@ -110,6 +110,8 @@ public:
     SyncProcess GetCloudTaskStatus(uint64_t taskId);
 
     int SetDistributedSchema(const DistributedSchema &schema);
+
+    int GetDownloadingAssetsCount(int32_t &count);
 private:
     void ReleaseResources();
 
@@ -144,7 +146,7 @@ private:
 
     int GetExistDevices(std::set<std::string> &hashDevices) const;
 
-    std::vector<std::string> GetAllDistributedTableName();
+    std::vector<std::string> GetAllDistributedTableName(TableSyncType tableSyncType = DEVICE_COOPERATION);
 
     int CheckBeforeSync(const CloudSyncOption &option);
 

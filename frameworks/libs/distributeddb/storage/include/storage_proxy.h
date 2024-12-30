@@ -77,7 +77,7 @@ public:
     int GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush,
         bool isCompensatedTask, std::vector<std::string> &cloudGid);
 
-    int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+    int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, bool useTransaction,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
@@ -98,7 +98,9 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
 
-    int SetLogTriggerStatus(bool status);
+    int FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
+
+    int SetLogTriggerStatus(bool status, bool isAsyncDownload = false);
 
     int SetCursorIncFlag(bool flag);
 
@@ -120,18 +122,23 @@ public:
 
     void FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data);
 
-    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid,
-        const Bytes &hashKey, VBucket &assets);
+    std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const std::string &tableName, bool isAsyncDownload,
+        const std::string &gid, const Bytes &hashKey, VBucket &assets);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
-    int UpdateRecordFlag(const std::string &tableName, bool recordConflict, const LogInfo &logInfo);
+    int UpdateRecordFlag(const std::string &tableName, bool isAsyncDownload, bool recordConflict,
+        const LogInfo &logInfo);
 
-    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users);
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery, std::vector<std::string> &users,
+        bool isQueryDownloadRecords);
 
     int ClearUnLockingNoNeedCompensated();
 
     int MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+        const std::set<std::string> &gidFilters);
+
+    int MarkFlagAsAssetAsyncDownload(const std::string &tableName, const DownloadData &downloadData,
         const std::set<std::string> &gidFilters);
 
     void SetUser(const std::string &user);
@@ -164,6 +171,13 @@ public:
     bool IsCurrentLogicDelete() const;
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount);
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetTable();
+
+    std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
+        int64_t beginTime);
+
+    void BeforeUploadTransaction();
 protected:
     void Init();
 

@@ -355,7 +355,6 @@ void CheckDownloadFailedForTest002(sqlite3 *&db)
         ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
         ASSERT_EQ(assets.size(), 2u); // 2 is asset num
         for (size_t i = 0; i < assets.size(); ++i) {
-            EXPECT_EQ(assets[i].hash, "");
             EXPECT_EQ(assets[i].status, AssetStatus::ABNORMAL);
         }
     }
@@ -2415,7 +2414,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestS
             EXPECT_EQ(asset.status, AssetStatus::NORMAL);
         }
     }
-    EXPECT_EQ(g_virtualAssetLoader->GetBatchDownloadCount(), 0);
+    EXPECT_EQ(g_virtualAssetLoader->GetBatchDownloadCount(), 0u);
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
 }
 

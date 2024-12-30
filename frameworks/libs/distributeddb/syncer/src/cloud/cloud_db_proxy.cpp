@@ -21,7 +21,7 @@
 
 namespace DistributedDB {
 CloudDBProxy::CloudDBProxy()
-    : timeout_(0)
+    : isDownloading_(false)
 {
 }
 
@@ -66,7 +66,7 @@ void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
     iAssetLoader_ = loader;
 }
 
-static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, uint8_t action)
+void CloudDBProxy::RecordSyncDataTimeStampLog(std::vector<VBucket> &data, InnerActionCode action)
 {
     if (data.empty()) {
         LOGI("[CloudDBProxy] sync data is empty");
@@ -89,7 +89,7 @@ static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, uint8_t actio
     }
 
     LOGI("[CloudDBProxy] sync action is %d and size is %d, sync data: first timestamp %lld, last timestamp %lld",
-        action, data.size(), first, last);
+        static_cast<int>(action), data.size(), first, last);
 }
 
 int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
@@ -103,7 +103,7 @@ int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket>
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     context->MoveInRecordAndExtend(record, extend);
     context->SetTableName(tableName);
-    int errCode = InnerAction(context, cloudDb, INSERT);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::INSERT);
     uploadInfo = context->GetInfo();
     retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
@@ -121,7 +121,7 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     context->SetTableName(tableName);
     context->MoveInRecordAndExtend(record, extend);
-    int errCode = InnerAction(context, cloudDb, UPDATE);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::UPDATE);
     uploadInfo = context->GetInfo();
     retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
@@ -139,7 +139,7 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     context->MoveInRecordAndExtend(record, extend);
     context->SetTableName(tableName);
-    int errCode = InnerAction(context, cloudDb, DELETE);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::DELETE);
     uploadInfo = context->GetInfo();
     retryCount = context->GetRetryCount();
     context->MoveOutRecordAndExtend(record, extend);
@@ -156,7 +156,7 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     context->MoveInQueryExtendAndData(extend, data);
     context->SetTableName(tableName);
-    int errCode = InnerAction(context, cloudDb, QUERY);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::QUERY);
     context->MoveOutQueryExtendAndData(extend, data);
     for (auto &item : data) {
         for (auto &row : item) {
@@ -167,7 +167,7 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
             DBCommon::RemoveDuplicateAssetsData(*assets);
         }
     }
-    RecordSyncDataTimeStampLog(data, QUERY);
+    RecordSyncDataTimeStampLog(data, InnerActionCode::QUERY);
     return errCode;
 }
 
@@ -180,7 +180,7 @@ std::pair<int, uint64_t> CloudDBProxy::Lock()
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     std::pair<int, uint64_t> lockStatus;
-    int errCode = InnerAction(context, cloudDb, LOCK);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::LOCK);
     context->MoveOutLockStatus(lockStatus);
     lockStatus.first = errCode;
     return lockStatus;
@@ -194,7 +194,7 @@ int CloudDBProxy::UnLock()
     }
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
-    return InnerAction(context, cloudDb, UNLOCK);
+    return InnerAction(context, cloudDb, InnerActionCode::UNLOCK);
 }
 
 int CloudDBProxy::Close()
@@ -241,7 +241,7 @@ int CloudDBProxy::HeartBeat()
 
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
-    return InnerAction(context, cloudDb, HEARTBEAT);
+    return InnerAction(context, cloudDb, InnerActionCode::HEARTBEAT);
 }
 
 bool CloudDBProxy::IsNotExistCloudDB() const
@@ -261,7 +261,9 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
         LOGE("Asset loader has not been set %d", -E_NOT_SET);
         return -E_NOT_SET;
     }
+    isDownloading_ = true;
     DBStatus status = iAssetLoader_->Download(tableName, gid, prefix, assets);
+    isDownloading_ = false;
     if (status != OK) {
         LOGW("[CloudDBProxy] download asset failed %d", static_cast<int>(status));
     }
@@ -314,7 +316,7 @@ std::pair<int, std::string> CloudDBProxy::GetEmptyCursor(const std::string &tabl
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     context->SetTableName(tableName);
-    int errCode = InnerAction(context, cloudDb, GET_EMPTY_CURSOR);
+    int errCode = InnerAction(context, cloudDb, InnerActionCode::GET_EMPTY_CURSOR);
     std::pair<int, std::string> cursorStatus;
     context->MoveOutCursorStatus(cursorStatus);
     cursorStatus.first = errCode;
@@ -342,19 +344,19 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     uint32_t recordSize = record.size();
 
     switch (action) {
-        case INSERT: {
+        case InnerActionCode::INSERT: {
             status = cloudDb->BatchInsert(context->GetTableName(), std::move(record), extend);
             context->MoveInExtend(extend);
             context->SetInfo(CloudWaterType::INSERT, status, recordSize);
             break;
         }
-        case UPDATE: {
+        case InnerActionCode::UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
             context->MoveInExtend(extend);
             context->SetInfo(CloudWaterType::UPDATE, status, recordSize);
             break;
         }
-        case DELETE: {
+        case InnerActionCode::DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
             context->MoveInRecordAndExtend(record, extend);
             context->SetInfo(CloudWaterType::DELETE, status, recordSize);
@@ -380,31 +382,31 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
     bool setResAlready = false;
     LOGD("[CloudDBProxy] action %" PRIu8 " begin", static_cast<uint8_t>(action));
     switch (action) {
-        case INSERT:
-        case UPDATE:
-        case DELETE:
+        case InnerActionCode::INSERT:
+        case InnerActionCode::UPDATE:
+        case InnerActionCode::DELETE:
             status = DMLActionTask(context, cloudDb, action);
             break;
-        case QUERY: {
+        case InnerActionCode::QUERY: {
             status = QueryAction(context, cloudDb);
             if (status == QUERY_END) {
                 setResAlready = true;
             }
             break;
         }
-        case GET_EMPTY_CURSOR:
+        case InnerActionCode::GET_EMPTY_CURSOR:
             status = InnerActionGetEmptyCursor(context, cloudDb);
             break;
-        case LOCK:
+        case InnerActionCode::LOCK:
             status = InnerActionLock(context, cloudDb);
             break;
-        case UNLOCK:
+        case InnerActionCode::UNLOCK:
             status = cloudDb->UnLock();
             if (status != OK) {
                 LOGE("[CloudDBProxy] UnLock cloud DB failed: %d", static_cast<int>(status));
             }
             break;
-        case HEARTBEAT:
+        case InnerActionCode::HEARTBEAT:
             status = cloudDb->HeartBeat();
             if (status != OK) {
                 LOGE("[CloudDBProxy] Heart beat error: %d", static_cast<int>(status));
@@ -753,7 +755,9 @@ int CloudDBProxy::BatchOperateAssetsInner(const std::string &tableName,
         return -E_NOT_SET;
     }
     if (operationType == CloudDBProxy::BATCH_DOWNLOAD) {
+        isDownloading_ = true;
         iAssetLoader_->BatchDownload(tableName, necessaryRecords);
+        isDownloading_ = false;
     } else if (operationType == CloudDBProxy::BATCH_REMOVE_LOCAL) {
         iAssetLoader_->BatchRemoveLocalAssets(tableName, necessaryRecords);
     } else {
@@ -802,6 +806,22 @@ void CloudDBProxy::CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &origin
         originalRecords[index].status = newRecords[i].status;
         originalRecords[index].assets = std::move(newRecords[i].assets);
         i++;
+    }
+}
+
+void CloudDBProxy::CancelDownload()
+{
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("[CloudDBProxy] Asset loader has not been set %d when cancel", -E_NOT_SET);
+        return;
+    }
+    if (!isDownloading_) {
+        return;
+    }
+    DBStatus status = iAssetLoader_->CancelDownload();
+    if (status != OK) {
+        LOGW("[CloudDBProxy] cancel download failed %d", static_cast<int>(status));
     }
 }
 }

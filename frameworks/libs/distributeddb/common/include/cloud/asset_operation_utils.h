@@ -41,6 +41,9 @@ public:
     static uint32_t EraseBitMask(uint32_t status);
     static void UpdateAssetsFlag(std::vector<VBucket> &from, std::vector<VBucket> &target);
     static void FilterDeleteAsset(VBucket &record);
+    static std::map<std::string, Assets> FilterNeedDownloadAsset(VBucket &record);
+    static bool IsAssetNeedDownload(const Asset &asset);
+    static bool IsAssetsNeedDownload(const Assets &assets);
 private:
     static void Init();
     static AssetOperationUtils::AssetOpType DefaultOperation(const Asset &, const Assets &);
@@ -53,6 +56,9 @@ private:
     static Assets GetAssets(const std::string &colName, const VBucket &rowData);
     static void MergeAssetFlag(const Assets &from, Asset &target);
     static void MergeAssetsFlag(const Assets &from, Type &target);
+    static void FillDownloadAssetIfNeed(const std::string &field, const Asset &asset,
+        std::map<std::string, Assets> &beFilledAssets);
+    static bool IsFirstDownloadAsset(const Asset &asset);
     static constexpr uint32_t BIT_MASK_COUNT = 16;
 };
 }

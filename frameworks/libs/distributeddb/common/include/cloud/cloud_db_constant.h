@@ -89,6 +89,13 @@ public:
     static constexpr const int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
     static constexpr const int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
 
+    static constexpr const int32_t MAX_ASYNC_DOWNLOAD_TASK = 12; // max async download task in process
+    static constexpr const int32_t MIN_ASYNC_DOWNLOAD_TASK = 1;
+    static constexpr const int32_t MAX_ASYNC_DOWNLOAD_ASSETS = 2000; // max async download assets count in one batch
+    static constexpr const int32_t MIN_ASYNC_DOWNLOAD_ASSETS = 1;
+
+    static constexpr const int32_t MAX_CONDITIONS_SIZE = 100;
+
     static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;
     static constexpr const uint32_t ON_CHANGE_P2P = 0x2;
 };

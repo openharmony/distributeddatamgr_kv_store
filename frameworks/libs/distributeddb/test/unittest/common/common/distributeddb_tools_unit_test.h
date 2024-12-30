@@ -378,6 +378,8 @@ public:
         DistributedDB::DBStatus callbackExpect = DistributedDB::DBStatus::OK);
     static bool IsExistEmptyHashAsset(sqlite3 *db, const DistributedDB::TableSchema &schema);
     static bool IsExistEmptyHashAsset(const DistributedDB::Assets &assets);
+    static DistributedDB::ICloudSyncStorageHook *GetRDBStorageHook(const std::string &userId,
+        const std::string &appId, const std::string &storeId, const std::string &dbPath);
 };
 
 class DBInfoHandleTest : public DistributedDB::DBInfoHandle {

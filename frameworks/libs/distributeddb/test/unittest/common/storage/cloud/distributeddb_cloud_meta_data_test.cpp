@@ -239,11 +239,11 @@ namespace {
         EXPECT_EQ(proxyObj.GetPrimaryColNamesWithAssetsFields(TABLE_NAME_1, colNames, assetFields), -E_INVALID_ARGS);
         VBucket assetInfo;
         DataInfoWithLog log;
-        EXPECT_EQ(proxyObj.GetInfoByPrimaryKeyOrGid(TABLE_NAME_1, assetInfo, log, assetInfo),
+        EXPECT_EQ(proxyObj.GetInfoByPrimaryKeyOrGid(TABLE_NAME_1, assetInfo, true, log, assetInfo),
             -E_INVALID_DB);
         EXPECT_EQ(proxyObj.FillCloudAssetForDownload(TABLE_NAME_1, assetInfo, true), -E_INVALID_DB);
         const Bytes hashKey;
-        std::pair<int, uint32_t> res = proxyObj.GetAssetsByGidOrHashKey(TABLE_NAME_1, "", hashKey, assetInfo);
+        std::pair<int, uint32_t> res = proxyObj.GetAssetsByGidOrHashKey(TABLE_NAME_1, false, "", hashKey, assetInfo);
         EXPECT_EQ(res.first, -E_INVALID_DB);
         std::string str = proxyObj.GetIdentify();
         const std::string emptyStr = "";
@@ -284,7 +284,7 @@ namespace {
         proxyObj.FillCloudGidIfSuccess(OpType::INSERT, data);
         std::vector<QuerySyncObject> syncQuery;
         std::vector<std::string> users;
-        EXPECT_EQ(proxyObj.GetCompensatedSyncQuery(syncQuery, users), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.GetCompensatedSyncQuery(syncQuery, users, true), -E_INVALID_DB);
         proxyObj.OnSyncFinish();
         proxyObj.OnUploadStart();
         std::shared_ptr<DataBaseSchema> cloudSchema;

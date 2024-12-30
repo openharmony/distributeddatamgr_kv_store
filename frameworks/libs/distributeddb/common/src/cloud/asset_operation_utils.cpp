@@ -255,4 +255,63 @@ void AssetOperationUtils::MergeAssetsFlag(const Assets &from, Type &target)
         }
     }
 }
+
+std::map<std::string, Assets> AssetOperationUtils::FilterNeedDownloadAsset(VBucket &record)
+{
+    std::map<std::string, Assets> res;
+    for (const auto &[field, value] : record) {
+        if (value.index() != TYPE_INDEX<Assets> && value.index() != TYPE_INDEX<Asset>) {
+            continue;
+        }
+        if (value.index() == TYPE_INDEX<Assets>) {
+            Assets assets = std::get<Assets>(value);
+            for (const auto &asset : assets) {
+                FillDownloadAssetIfNeed(field, asset, res);
+            }
+        } else {
+            Asset asset = std::get<Asset>(value);
+            FillDownloadAssetIfNeed(field, asset, res);
+        }
+    }
+    return res;
+}
+
+void AssetOperationUtils::FillDownloadAssetIfNeed(const std::string &field, const Asset &asset,
+    std::map<std::string, Assets> &beFilledAssets)
+{
+    if (!IsAssetNeedDownload(asset)) {
+        return;
+    }
+    Asset tempAsset = asset;
+    if (IsFirstDownloadAsset(asset)) {
+        tempAsset.flag = static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT);
+        tempAsset.status = static_cast<uint32_t>(DistributedDB::AssetStatus::INSERT);
+    } else {
+        tempAsset.flag = static_cast<uint32_t>(DistributedDB::AssetOpType::UPDATE);
+        tempAsset.status = static_cast<uint32_t>(DistributedDB::AssetStatus::UPDATE);
+    }
+    beFilledAssets[field].push_back(tempAsset);
+}
+
+bool AssetOperationUtils::IsAssetNeedDownload(const Asset &asset)
+{
+    auto rawStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    return rawStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+        rawStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+}
+
+bool AssetOperationUtils::IsAssetsNeedDownload(const Assets &assets)
+{
+    for (const Asset &asset: assets) {
+        if (AssetOperationUtils::IsAssetNeedDownload(asset)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AssetOperationUtils::IsFirstDownloadAsset(const Asset &asset)
+{
+    return (asset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0;
+}
 }
