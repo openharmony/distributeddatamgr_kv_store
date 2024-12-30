@@ -494,9 +494,11 @@ int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &pass
             return errCode;
         }
 #ifndef OMIT_ENCRYPT
-        errCode = UpdateCipherShaAlgo(db, setWal, type, passwd, iterTimes);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteUtils][Setkey] upgrade cipher sha algo failed:%d", errCode);
+        if (passwd.GetSize() != 0) {
+            errCode = UpdateCipherShaAlgo(db, setWal, type, passwd, iterTimes);
+            if (errCode != E_OK) {
+                LOGE("[SQLiteUtils][Setkey] upgrade cipher sha algo failed:%d", errCode);
+            }
         }
 #endif
     }
