@@ -25,17 +25,17 @@
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS::Security::AccessToken;
-std::string BUNDLE_NAME = "ohos.distributeddatamgrtest.demo";
 namespace OHOS::Test {
+std::string BUNDLE_NAME = "ohos.distributeddatamgrtest.demo";
+static constexpr int32_t TEST_USERID = 100;
+static constexpr int32_t APP_INDEX = 0;
 class DistributedDataMgrTest : public testing::Test {
 public:
     static DistributedDataMgr manager;
-    static void SetUpTestCase(void) {};
-    static void TearDownTestCase(void) {};
-    void SetUp() {};
-    void TearDown() {};
-    static constexpr int32_t TEST_USERID = 100;
-    static constexpr int32_t APP_INDEX = 0;
+    static void SetUpTestCase(void){};
+    static void TearDownTestCase(void){};
+    void SetUp(){};
+    void TearDown(){};
 };
 DistributedDataMgr DistributedDataMgrTest::manager;
 
@@ -48,8 +48,7 @@ DistributedDataMgr DistributedDataMgrTest::manager;
  */
 HWTEST_F(DistributedDataMgrTest, ClearAppStorage001, TestSize.Level1)
 {
-    auto tokenId = AccessTokenKit::GetNativeTokenId("foundation");
-    SetSelfTokenID(tokenId);
+    auto tokenId = 0;
     auto ret = manager.ClearAppStorage(BUNDLE_NAME, TEST_USERID, APP_INDEX, tokenId);
     EXPECT_EQ(ret, Status::SUCCESS);
 }
