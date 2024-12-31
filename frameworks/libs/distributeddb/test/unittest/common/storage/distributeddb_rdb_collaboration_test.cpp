@@ -766,4 +766,50 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level0)
     EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
     EXPECT_EQ(count, 1);
 }
+
+/**
+ * @tc.name: NormalSync010
+ * @tc.desc: Test sync without not null col.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Recreate not null table
+     * @tc.expected: step1.ok
+     */
+    std::string sql = std::string("DROP TABLE ").append(DEVICE_SYNC_TABLE);
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InitTable(tableSchema, true, *db_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    /**
+     * @tc.steps: step2. Insert one data
+     * @tc.expected: step2.ok
+     */
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, 1, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Sync without str col
+     * @tc.expected: step3.ok
+     */
+    Query query = Query::Select(tableSchema.name);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, DB_ERROR, {deviceB_->GetDeviceId()});
+    /**
+     * @tc.steps: step4. Check if the distributed table exists
+     * @tc.expected: step4.ok
+     */
+    int count = 0;
+    sql = std::string("select count(*) from ")
+            .append(RelationalStoreManager::GetDistributedLogTableName(DEVICE_SYNC_TABLE));
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
+    EXPECT_EQ(count, 0);
+}
 }

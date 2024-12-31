@@ -27,22 +27,32 @@ int RDBDataGenerator::InitDatabase(const DataBaseSchema &schema, sqlite3 &db)
         return errCode;
     }
     for (const auto &table : schema.tables) {
-        std::string sql = "CREATE TABLE IF NOT EXISTS " + table.name + "(";
-        for (const auto &field : table.fields) {
-            sql += field.colName + " " + GetTypeText(field.type);
-            if (field.primary) {
-                sql += " PRIMARY KEY,";
-            } else {
-                sql += ",";
-            }
-        }
-        sql.pop_back();
-        sql += ");";
-        errCode = RelationalTestUtils::ExecSql(&db, sql);
+        errCode = InitTable(table, false, db);
         if (errCode != SQLITE_OK) {
-            LOGE("execute sql failed %d, sql is %s", errCode, sql.c_str());
             break;
         }
+    }
+    return errCode;
+}
+
+int RDBDataGenerator::InitTable(const DistributedDB::TableSchema &table, bool notNullWithStr, sqlite3 &db)
+{
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + table.name + "(";
+    for (const auto &field : table.fields) {
+        sql += field.colName + " " + GetTypeText(field.type);
+        if (field.primary) {
+            sql += " PRIMARY KEY";
+        }
+        if (notNullWithStr && field.type == TYPE_INDEX<std::string>) {
+            sql += " NOT NULL";
+        }
+        sql += ",";
+    }
+    sql.pop_back();
+    sql += ");";
+    int errCode = RelationalTestUtils::ExecSql(&db, sql);
+    if (errCode != SQLITE_OK) {
+        LOGE("execute sql failed %d, sql is %s", errCode, sql.c_str());
     }
     return errCode;
 }
