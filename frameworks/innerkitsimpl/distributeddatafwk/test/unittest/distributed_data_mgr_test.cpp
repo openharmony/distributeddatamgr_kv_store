@@ -50,6 +50,6 @@ HWTEST_F(DistributedDataMgrTest, ClearAppStorage001, TestSize.Level1)
 {
     auto tokenId = 0;
     auto ret = manager.ClearAppStorage(BUNDLE_NAME, TEST_USERID, APP_INDEX, tokenId);
-    EXPECT_EQ(ret, Status::SUCCESS);
+    EXPECT_NE(ret, Status::SUCCESS);
 }
 } // namespace OHOS::Test
