@@ -121,6 +121,18 @@
           }
         },
         {
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:datamgr_common",
+          "visibility": [ "datamgr_service" ],
+          "header": {
+            "header_files": [
+              "distributeddata_kvdb_ipc_interface_code.h",
+              "kv_types_util.h",
+              "kvdb_service.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include"
+          }
+        },
+        {
           "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
           "header": {
             "header_files": [
