@@ -55,25 +55,14 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         return DB_ERROR;
     }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = conn_->DoClean(mode);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+#endif
     return OK;
-}
-
-int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
-        return -1;
-    }
-    int32_t count = conn_->GetCloudSyncTaskCount();
-    if (count == -1) {
-        LOGE("[RelationalStore Delegate] Failed to get cloud sync task count.");
-    }
-    return count;
 }
 
 DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
@@ -227,43 +216,6 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-    const SyncProcessCallback &onProcess, int64_t waitTime)
-{
-    CloudSyncOption option;
-    option.devices = devices;
-    option.mode = mode;
-    option.query = query;
-    option.waitTime = waitTime;
-    return Sync(option, onProcess);
-}
-
-DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
-{
-    if (conn_ == nullptr || conn_->SetCloudDB(cloudDb) != E_OK) {
-        return DB_ERROR;
-    }
-    return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
-{
-    DataBaseSchema cloudSchema = schema;
-    if (!ParamCheckUtils::CheckSharedTableName(cloudSchema)) {
-        LOGE("[RelationalStore Delegate] SharedTableName check failed!");
-        return INVALID_ARGS;
-    }
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
-    // create shared table and set cloud db schema
-    int errorCode = conn_->PrepareAndSetCloudDbSchema(cloudSchema);
-    if (errorCode != E_OK) {
-        LOGE("[RelationalStore Delegate] set cloud schema failed!");
-    }
-    return TransferDBErrno(errorCode);
-}
-
 DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
 {
     if (observer == nullptr) {
@@ -296,6 +248,7 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
     return TransferDBErrno(errCode);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
     if (conn_ == nullptr || conn_->SetIAssetLoader(loader) != E_OK) {
@@ -303,6 +256,7 @@ DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAss
     }
     return OK;
 }
+#endif
 
 DBStatus RelationalStoreDelegateImpl::UnRegisterObserver()
 {
@@ -322,12 +276,6 @@ DBStatus RelationalStoreDelegateImpl::UnRegisterObserver(StoreObserver *observer
         return DB_ERROR;
     }
     return TransferDBErrno(conn_->UnRegisterObserverAction(observer));
-}
-
-DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
-{
-    uint64_t taskId = 0;
-    return Sync(option, onProcess, taskId);
 }
 
 DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
@@ -443,6 +391,85 @@ DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, c
     return OK;
 }
 
+DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
+        return DB_ERROR;
+    }
+
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->SetDistributedDbSchema(schema);
+    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d",
+        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode);
+    return TransferDBErrno(errCode);
+}
+
+std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
+        return {DB_ERROR, 0};
+    }
+    int32_t count = 0;
+    int errCode = conn_->GetDownloadingAssetsCount(count);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] get downloading assets count failed:%d", errCode);
+    }
+    return {TransferDBErrno(errCode), count};
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+    const SyncProcessCallback &onProcess, int64_t waitTime)
+{
+    CloudSyncOption option;
+    option.devices = devices;
+    option.mode = mode;
+    option.query = query;
+    option.waitTime = waitTime;
+    return Sync(option, onProcess);
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    if (conn_ == nullptr || conn_->SetCloudDB(cloudDb) != E_OK) {
+        return DB_ERROR;
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
+{
+    DataBaseSchema cloudSchema = schema;
+    if (!ParamCheckUtils::CheckSharedTableName(cloudSchema)) {
+        LOGE("[RelationalStore Delegate] SharedTableName check failed!");
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    // create shared table and set cloud db schema
+    int errorCode = conn_->PrepareAndSetCloudDbSchema(cloudSchema);
+    if (errorCode != E_OK) {
+        LOGE("[RelationalStore Delegate] set cloud schema failed!");
+    }
+    return TransferDBErrno(errorCode);
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    uint64_t taskId = 0;
+    return Sync(option, onProcess, taskId);
+}
+
 DBStatus RelationalStoreDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     if (conn_ == nullptr) {
@@ -486,39 +513,18 @@ SyncProcess RelationalStoreDelegateImpl::GetCloudTaskStatus(uint64_t taskId)
     }
     return conn_->GetCloudTaskStatus(taskId);
 }
-
-DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema)
+int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
 {
     if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
-        return DB_ERROR;
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return -1;
     }
-    std::string userId;
-    std::string appId;
-    std::string storeId;
-    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
-    if (errCode != E_OK) {
-        LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
-        return TransferDBErrno(errCode);
+    int32_t count = conn_->GetCloudSyncTaskCount();
+    if (count == -1) {
+        LOGE("[RelationalStore Delegate] Failed to get cloud sync task count.");
     }
-    errCode = conn_->SetDistributedDbSchema(schema);
-    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d",
-        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode);
-    return TransferDBErrno(errCode);
+    return count;
 }
-
-std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
-        return {DB_ERROR, 0};
-    }
-    int32_t count = 0;
-    int errCode = conn_->GetDownloadingAssetsCount(count);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] get downloading assets count failed:%d", errCode);
-    }
-    return {TransferDBErrno(errCode), count};
-}
+#endif
 } // namespace DistributedDB
 #endif

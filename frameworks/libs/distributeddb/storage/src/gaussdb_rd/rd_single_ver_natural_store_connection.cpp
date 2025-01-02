@@ -742,6 +742,7 @@ int RdSingleVerNaturalStoreConnection::GetWatermarkInfo(const std::string &devic
     return -E_NOT_SUPPORT;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int RdSingleVerNaturalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     return -E_NOT_SUPPORT;
@@ -755,5 +756,6 @@ int RdSingleVerNaturalStoreConnection::SetCloudDB(const std::map<std::string, st
 void RdSingleVerNaturalStoreConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
 {
 }
+#endif
 }
 // namespace DistributedDB

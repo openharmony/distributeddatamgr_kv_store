@@ -524,7 +524,9 @@ std::function<int(void)> SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(cons
             return errCode;
         }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         CleanAllWaterMark();
+#endif
         if (IsExtendedCacheDBMode()) {
             errCode = RemoveDeviceDataInCacheMode(hashDev, isNeedNotify);
         } else {

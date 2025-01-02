@@ -241,11 +241,13 @@ protected:
 
     void ReleaseResources();
 
-    ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
-
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas() override;
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
+
     bool CheckSchemaSupportForCloudSync() const override;
+#endif
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);

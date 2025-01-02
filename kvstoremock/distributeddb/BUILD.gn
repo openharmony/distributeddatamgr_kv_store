@@ -88,6 +88,7 @@ group("build_module") {
   }
 }
 distrdb_sources = distributeddb_src
+distrdb_sources += distributeddb_cloud_src
 
 config("distrdb_config") {
   visibility = [ ":*" ]

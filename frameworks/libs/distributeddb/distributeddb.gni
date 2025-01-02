@@ -14,6 +14,10 @@
 distributeddb_path =
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb"
 
+declare_args() {
+  kv_store_cloud = true
+}
+
 distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
   "${distributeddb_path}/common/src/cloud/asset_operation_utils.cpp",
@@ -205,20 +209,6 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sync_able_engine.cpp",
   "${distributeddb_path}/storage/src/upgrader/single_ver_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/upgrader/single_ver_schema_database_upgrader.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_force_pull_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_force_push_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_merge_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_sync_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_db_proxy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_locker.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_syncer.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_syncer_extend.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_sync_state_machine.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_sync_tag_assets.cpp",
-  "${distributeddb_path}/syncer/src/cloud/cloud_sync_utils.cpp",
-  "${distributeddb_path}/syncer/src/cloud/process_notifier.cpp",
-  "${distributeddb_path}/syncer/src/cloud/process_recorder.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy_factory.cpp",
   "${distributeddb_path}/syncer/src/device/ability_sync.cpp",
   "${distributeddb_path}/syncer/src/device/commit_history_sync.cpp",
   "${distributeddb_path}/syncer/src/device/communicator_proxy.cpp",
@@ -262,6 +252,23 @@ distributeddb_src = [
   "${distributeddb_path}/syncer/src/sync_config.cpp",
   "${distributeddb_path}/syncer/src/sync_operation.cpp",
   "${distributeddb_path}/syncer/src/time_helper.cpp",
+]
+
+distributeddb_cloud_src = [
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_pull_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_push_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_merge_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_sync_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_db_proxy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_locker.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_syncer.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_syncer_extend.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_sync_state_machine.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_sync_tag_assets.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_sync_utils.cpp",
+  "${distributeddb_path}/syncer/src/cloud/process_notifier.cpp",
+  "${distributeddb_path}/syncer/src/cloud/process_recorder.cpp",
+  "${distributeddb_path}/syncer/src/cloud/strategy_factory.cpp",
 ]
 
 distributeddb_src_rd = [

@@ -220,6 +220,7 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 // Stop syncer
 void SyncAbleKvDB::StopSyncer(bool isClosedOperation, bool isStopTaskOnly)
 {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     {
         std::unique_lock<std::mutex> lock(cloudSyncerLock_);
         if (cloudSyncer_ != nullptr) {
@@ -232,6 +233,7 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation, bool isStopTaskOnly)
             }
         }
     }
+#endif
     NotificationChain::Listener *userChangeListener = nullptr;
     {
         std::unique_lock<std::mutex> lock(syncerOperateLock_);
@@ -247,12 +249,14 @@ void SyncAbleKvDB::StopSyncer(bool isClosedOperation, bool isStopTaskOnly)
 
 void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
 {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     if (!isClosedOperation && userChangeListener_ != nullptr) {
         std::unique_lock<std::mutex> lock(cloudSyncerLock_);
         if (cloudSyncer_ != nullptr) {
             cloudSyncer_->StopAllTasks();
         }
     }
+#endif
     ReSetSyncModuleActive();
     syncer_.Close(isClosedOperation);
     if (started_) {
@@ -525,13 +529,16 @@ void SyncAbleKvDB::ResetSyncStatus()
     syncer_.ResetSyncStatus();
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 ICloudSyncStorageInterface *SyncAbleKvDB::GetICloudSyncInterface() const
 {
     return nullptr;
 }
+#endif
 
 void SyncAbleKvDB::StartCloudSyncer()
 {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     auto cloudStorage = GetICloudSyncInterface();
     if (cloudStorage == nullptr) {
         return;
@@ -549,6 +556,7 @@ void SyncAbleKvDB::StartCloudSyncer()
             LOGW("[SyncAbleKvDB][StartCloudSyncer] start cloud syncer and cloud syncer was not initialized");
         }
     }
+#endif
 }
 
 TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
@@ -559,6 +567,39 @@ TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
     return syncer_.GetLocalTimeOffset();
 }
 
+std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
+{
+    return {};
+}
+
+int32_t SyncAbleKvDB::GetTaskCount()
+{
+    int32_t taskCount = 0;
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    auto cloudSyncer = GetAndIncCloudSyncer();
+    if (cloudSyncer != nullptr) {
+        taskCount += cloudSyncer->GetCloudSyncTaskCount();
+        RefObject::DecObjRef(cloudSyncer);
+    }
+    if (NeedStartSyncer()) {
+        return taskCount;
+    }
+#endif
+    taskCount += syncer_.GetTaskCount();
+    return taskCount;
+}
+
+CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
+{
+    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
+    if (cloudSyncer_ == nullptr) {
+        return nullptr;
+    }
+    RefObject::IncObjRef(cloudSyncer_);
+    return cloudSyncer_;
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {
@@ -656,31 +697,6 @@ int SyncAbleKvDB::CleanAllWaterMark()
     return E_OK;
 }
 
-int32_t SyncAbleKvDB::GetTaskCount()
-{
-    int32_t taskCount = 0;
-    auto cloudSyncer = GetAndIncCloudSyncer();
-    if (cloudSyncer != nullptr) {
-        taskCount += cloudSyncer->GetCloudSyncTaskCount();
-        RefObject::DecObjRef(cloudSyncer);
-    }
-    if (NeedStartSyncer()) {
-        return taskCount;
-    }
-    taskCount += syncer_.GetTaskCount();
-    return taskCount;
-}
-
-CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
-{
-    std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
-    if (cloudSyncer_ == nullptr) {
-        return nullptr;
-    }
-    RefObject::IncObjRef(cloudSyncer_);
-    return cloudSyncer_;
-}
-
 void SyncAbleKvDB::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
 {
     auto cloudSyncer = GetAndIncCloudSyncer();
@@ -692,13 +708,9 @@ void SyncAbleKvDB::SetGenCloudVersionCallback(const GenerateCloudVersionCallback
     RefObject::DecObjRef(cloudSyncer);
 }
 
-std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
-{
-    return {};
-}
-
 bool SyncAbleKvDB::CheckSchemaSupportForCloudSync() const
 {
     return true; // default is valid
 }
+#endif
 }

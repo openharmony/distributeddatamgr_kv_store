@@ -51,7 +51,10 @@ public:
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) = 0;
 
-    DB_API virtual int32_t GetCloudSyncTaskCount() = 0;
+    DB_API virtual int32_t GetCloudSyncTaskCount()
+    {
+        return 0;
+    }
 
     DB_API DBStatus RemoveDeviceData(const std::string &device, ClearMode mode = DEFAULT)
     {
@@ -67,13 +70,22 @@ public:
     // remove all device data
     DB_API virtual DBStatus RemoveDeviceData() = 0;
 
-    DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-         const Query &query, const SyncProcessCallback &onProcess,
-         int64_t waitTime) = 0;
+    DB_API virtual DBStatus Sync([[gnu::unused]] const std::vector<std::string> &devices,
+         [[gnu::unused]] SyncMode mode, [[gnu::unused]] const Query &query,
+         [[gnu::unused]] const SyncProcessCallback &onProcess, [[gnu::unused]] int64_t waitTime)
+    {
+        return OK;
+    }
 
-    DB_API virtual DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
+    DB_API virtual DBStatus SetCloudDB([[gnu::unused]] const std::shared_ptr<ICloudDb> &cloudDb)
+    {
+        return OK;
+    }
 
-    DB_API virtual DBStatus SetCloudDbSchema(const DataBaseSchema &schema) = 0;
+    DB_API virtual DBStatus SetCloudDbSchema([[gnu::unused]] const DataBaseSchema &schema)
+    {
+        return OK;
+    }
 
     // just support one observer exist at same time
     DB_API virtual DBStatus RegisterObserver(StoreObserver *observer) = 0;
@@ -82,9 +94,16 @@ public:
 
     DB_API virtual DBStatus UnRegisterObserver(StoreObserver *observer) = 0;
 
-    DB_API virtual DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
+    DB_API virtual DBStatus SetIAssetLoader([[gnu::unused]] const std::shared_ptr<IAssetLoader> &loader)
+    {
+        return OK;
+    }
 
-    DB_API virtual DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
+    DB_API virtual DBStatus Sync([[gnu::unused]] const CloudSyncOption &option,
+        [[gnu::unused]] const SyncProcessCallback &onProcess)
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus SetTrackerTable(const TrackerSchema &schema) = 0;
 
@@ -100,7 +119,10 @@ public:
         RecordStatus status = RecordStatus::WAIT_COMPENSATED_SYNC) = 0;
 
     // set the config for cloud sync task
-    DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
+    DB_API virtual DBStatus SetCloudSyncConfig([[gnu::unused]] const CloudSyncConfig &config)
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus Sync([[gnu::unused]] const CloudSyncOption &option,
         [[gnu::unused]] const SyncProcessCallback &onProcess,

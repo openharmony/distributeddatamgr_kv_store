@@ -35,11 +35,9 @@ public:
     // Close and release the connection.
     int Close() override;
     int SyncToDevice(SyncInfo &info) override;
-    int32_t GetCloudSyncTaskCount() override;
     std::string GetIdentifier() override;
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
-    int DoClean(ClearMode mode) override;
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;
     int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
@@ -47,9 +45,6 @@ public:
     int UnRegisterObserverAction(const StoreObserver *observer) override;
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
-    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
-    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) override;
-    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
@@ -63,15 +58,26 @@ public:
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) override;
 
+    int SetDistributedDbSchema(const DistributedSchema &schema) override;
+
+    int GetDownloadingAssetsCount(int32_t &count) override;
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int DoClean(ClearMode mode) override;
+
+    int32_t GetCloudSyncTaskCount() override;
+
+    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
+
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) override;
+
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
+
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
-
-    int SetDistributedDbSchema(const DistributedSchema &schema) override;
-
-    int GetDownloadingAssetsCount(int32_t &count) override;
+#endif
 protected:
 
     int Pragma(int cmd, void *parameter) override;

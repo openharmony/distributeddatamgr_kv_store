@@ -32,8 +32,6 @@ public:
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 
-    int32_t GetCloudSyncTaskCount() override;
-
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
 
     DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
@@ -50,22 +48,11 @@ public:
 
     DBStatus RemoveDeviceData() override;
 
-    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) override;
-
-    DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
-
-    DBStatus SetCloudDbSchema(const DataBaseSchema &schema) override;
-
     DBStatus RegisterObserver(StoreObserver *observer) override;
 
     DBStatus UnRegisterObserver() override;
 
     DBStatus UnRegisterObserver(StoreObserver *observer) override;
-
-    DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
-
-    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     DBStatus SetTrackerTable(const TrackerSchema &schema) override;
 
@@ -80,15 +67,30 @@ public:
     DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
         RecordStatus status) override;
 
+    DBStatus SetDistributedSchema(const DistributedSchema &schema) override;
+
+    std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int32_t GetCloudSyncTaskCount() override;
+
+    DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
+
+    DBStatus SetCloudDbSchema(const DataBaseSchema &schema) override;
+
+    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+        const SyncProcessCallback &onProcess, int64_t waitTime) override;
+
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 
-    DBStatus SetDistributedSchema(const DistributedSchema &schema) override;
-
-    std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
+    DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
+#endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

@@ -251,13 +251,24 @@ public:
     DB_API virtual std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) = 0;
 
     // sync with cloud
-    DB_API virtual DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
+    DB_API virtual DBStatus Sync([[gnu::unused]] const CloudSyncOption &option,
+        [[gnu::unused]] const SyncProcessCallback &onProcess)
+    {
+        return OK;
+    }
 
     // set cloud db with user
-    DB_API virtual DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) = 0;
+    DB_API virtual DBStatus SetCloudDB(
+        [[gnu::unused]] const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+    {
+        return OK;
+    }
 
     // set cloud schema
-    DB_API virtual DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) = 0;
+    DB_API virtual DBStatus SetCloudDbSchema([[gnu::unused]] const std::map<std::string, DataBaseSchema> &schema)
+    {
+        return OK;
+    }
 
     // remove device data for cloud
     DB_API virtual DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) = 0;
@@ -269,18 +280,27 @@ public:
     DB_API virtual int32_t GetTaskCount() = 0;
 
     // set generate cloud version callback
-    DB_API virtual void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) = 0;
+    DB_API virtual void SetGenCloudVersionCallback([[gnu::unused]] const GenerateCloudVersionCallback &callback)
+    {
+        return;
+    }
 
     // get cloud version by device
     DB_API virtual std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(
-        const std::string &device) = 0;
+        [[gnu::unused]] const std::string &device)
+    {
+        return {};
+    }
 
     // This API is not recommended. Before using this API, you need to understand the API usage rules.
     // The interceptor works when receive data.
     DB_API virtual DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
 
     // set the config for cloud sync task
-    DB_API virtual DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
+    DB_API virtual DBStatus SetCloudSyncConfig([[gnu::unused]] const CloudSyncConfig &config)
+    {
+        return OK;
+    }
 
     // Get Entries by the device(uuid) in sync_data.
     // If device is empty, it would return all the entries which was written by local device.

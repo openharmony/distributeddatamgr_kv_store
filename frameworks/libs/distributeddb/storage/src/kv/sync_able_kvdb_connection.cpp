@@ -397,6 +397,17 @@ int SyncAbleKvDBConnection::GetWatermarkInfo(const std::string &device, Watermar
     return kvDB->GetWatermarkInfo(device, info);
 }
 
+int32_t SyncAbleKvDBConnection::GetTaskCount()
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        LOGW("[SyncAbleKvDBConnection] Get task count with null db");
+        return -1;
+    }
+    return kvDB->GetTaskCount();
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
@@ -423,16 +434,6 @@ int SyncAbleKvDBConnection::SetCloudDB(const std::map<std::string, std::shared_p
     return kvDB->SetCloudDB(cloudDBs);
 }
 
-int32_t SyncAbleKvDBConnection::GetTaskCount()
-{
-    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
-    if (kvDB == nullptr) {
-        LOGW("[SyncAbleKvDBConnection] Get task count with null db");
-        return -1;
-    }
-    return kvDB->GetTaskCount();
-}
-
 void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
 {
     auto *kvDB = GetDB<SyncAbleKvDB>();
@@ -442,6 +443,7 @@ void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersi
     }
     kvDB->SetGenCloudVersionCallback(callback);
 }
+#endif
 
 int SyncAbleKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
 {

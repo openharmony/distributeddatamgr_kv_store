@@ -81,6 +81,7 @@ ohos_fuzztest("FileOperFuzzTest") {
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/fileoper_fuzzer"
 
   sources = distributeddb_src
+  sources += distributeddb_cloud_src
   sources += [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
@@ -111,6 +112,7 @@ ohos_fuzztest("FileOperFuzzTest") {
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "USE_DISTRIBUTEDDB_CLOUD",
   ]
 
   external_deps = [

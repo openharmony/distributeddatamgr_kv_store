@@ -1021,8 +1021,10 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     if (syncer == nullptr) {
         errCode = removeFunc();
     } else {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         errCode = syncer->CleanKvCloudData(removeFunc);
         DecObjRef(syncer);
+#endif
     }
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] CleanKvCloudData with notify failed:%d", errCode);
@@ -1039,14 +1041,18 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     if (syncer == nullptr) {
         errCode = removeFunc();
     } else {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         errCode = syncer->CleanKvCloudData(removeFunc);
         DecObjRef(syncer);
+#endif
     }
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] CleanKvCloudData with mode [%d] failed:%d", mode, errCode);
         return errCode;
     }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     CleanAllWaterMark();
+#endif
     errCode = EraseAllDeviceWaterMark(DBCommon::TransferHashString(deviceName));
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Erase all device water mark failed %d with mode [%d]", errCode, mode);
@@ -1064,14 +1070,18 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     if (syncer == nullptr) {
         errCode = removeFunc();
     } else {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         errCode = syncer->CleanKvCloudData(removeFunc);
         DecObjRef(syncer);
+#endif
     }
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] CleanKvCloudData with user and mode [%d] failed:%d", mode, errCode);
         return errCode;
     }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     CleanAllWaterMark();
+#endif
     errCode = EraseAllDeviceWaterMark(DBCommon::TransferHashString(deviceName));
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Erase all device water mark failed %d with user and mode [%d]", errCode, mode);
@@ -2080,6 +2090,7 @@ void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarg
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 ICloudSyncStorageInterface *SQLiteSingleVerNaturalStore::GetICloudSyncInterface() const
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
@@ -2092,12 +2103,6 @@ int SQLiteSingleVerNaturalStore::SetCloudDbSchema(const std::map<std::string, Da
     return sqliteCloudKvStore_->SetCloudDbSchema(schema);
 }
 
-std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSchemas()
-{
-    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-    return sqliteCloudKvStore_->GetDataBaseSchemas();
-}
-
 bool SQLiteSingleVerNaturalStore::CheckSchemaSupportForCloudSync() const
 {
     auto schemaType = GetSchemaObject().GetSchemaType();
@@ -2106,6 +2111,13 @@ bool SQLiteSingleVerNaturalStore::CheckSchemaSupportForCloudSync() const
         return false;
     }
     return true;
+}
+#endif
+
+std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSchemas()
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    return sqliteCloudKvStore_->GetDataBaseSchemas();
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

@@ -50,7 +50,6 @@ public:
     // Close and release the connection.
     virtual int Close() = 0;
     virtual int SyncToDevice(SyncInfo &info) = 0;
-    virtual int32_t GetCloudSyncTaskCount() = 0;
     virtual std::string GetIdentifier() = 0;
     virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) = 0;
     virtual int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) = 0;
@@ -58,14 +57,10 @@ public:
     virtual int RemoveDeviceData() = 0;
     virtual int RemoveDeviceData(const std::string &device) = 0;
     virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
-    virtual int DoClean(ClearMode mode) = 0;
     virtual int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) = 0;
     virtual int UnRegisterObserverAction(const StoreObserver *observer) = 0;
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
-    virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
-    virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
-    virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
@@ -79,15 +74,27 @@ public:
 
     virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
 
+    virtual int GetDownloadingAssetsCount(int32_t &count) = 0;
+
+    virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    virtual int32_t GetCloudSyncTaskCount() = 0;
+
+    virtual int DoClean(ClearMode mode) = 0;
+
+    virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
+
+    virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
+
+    virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
+
     virtual int SetCloudSyncConfig(const CloudSyncConfig &config) = 0;
 
     virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) = 0;
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
-
-    virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
-
-    virtual int GetDownloadingAssetsCount(int32_t &count) = 0;
+#endif
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -73,6 +73,7 @@ ohos_fuzztest("StorageFuzzTest") {
   fuzz_config_file = "../storage_fuzzer"
 
   sources = distributeddb_src
+  sources += distributeddb_cloud_src
   sources += [
     "../../../test/fuzztest/common/distributeddb_tools_test.cpp",
     "../../../test/fuzztest/common/fuzzer_data.cpp",
@@ -98,6 +99,7 @@ ohos_fuzztest("StorageFuzzTest") {
     "SQLITE_EXPORT_SYMBOLS",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "USE_DISTRIBUTEDDB_CLOUD",
   ]
 
   deps = [

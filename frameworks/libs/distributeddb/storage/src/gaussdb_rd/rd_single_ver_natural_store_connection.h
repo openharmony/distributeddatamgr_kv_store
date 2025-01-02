@@ -102,12 +102,13 @@ public:
 
     int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
-
+#endif
 private:
     int CheckRdMonoStatus(OperatePerm perm);
 

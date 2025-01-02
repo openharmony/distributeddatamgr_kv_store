@@ -106,8 +106,6 @@ public:
 
     int UpdateKey(const UpdateKeyCallback &callback) override;
 
-    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
-
     int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
 
     int UnRegisterObserverAction(const KvStoreObserver *observer) override;
@@ -116,11 +114,16 @@ public:
 
     int RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 
+    int GetEntries(const std::string &device, std::vector<Entry> &entries) const override;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
+#endif
 
-    int GetEntries(const std::string &device, std::vector<Entry> &entries) const override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

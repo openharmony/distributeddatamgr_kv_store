@@ -168,29 +168,31 @@ public:
 
     std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
 
-    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
-
-    DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
-
-    DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
-
     DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 
     int32_t GetTaskCount() override;
 
-    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
-
-    std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
-
     DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
-
-    DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const override;
 
     DatabaseStatus GetDatabaseStatus() const override;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    DBStatus SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs) override;
+
+    DBStatus SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema) override;
+
+    void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
+
+    DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
+#endif
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

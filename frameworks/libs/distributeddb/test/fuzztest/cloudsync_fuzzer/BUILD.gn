@@ -74,6 +74,7 @@ ohos_fuzztest("CloudsyncFuzzTest") {
   fuzz_config_file = "../cloudsync_fuzzer"
 
   sources = distributeddb_src
+  sources += distributeddb_cloud_src
   sources += [
     "../../../test/fuzztest/cloudsync_fuzzer/cloudsync_fuzzer.cpp",
     "../../../test/fuzztest/common/distributeddb_tools_test.cpp",
@@ -102,6 +103,7 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "SQLITE_EXPORT_SYMBOLS",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "USE_DISTRIBUTEDDB_CLOUD",
   ]
 
   deps = [
