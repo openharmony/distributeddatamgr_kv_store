@@ -395,8 +395,6 @@ private:
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
-    int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
-
     int BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey, sqlite3_stmt *&stmt);
     int DoCleanShareTableDataAndLog(const std::vector<std::string> &tableNameList);
     int SetDataOnShareTableWithLogicDelete(const std::string &tableName, const std::string &logTableName);

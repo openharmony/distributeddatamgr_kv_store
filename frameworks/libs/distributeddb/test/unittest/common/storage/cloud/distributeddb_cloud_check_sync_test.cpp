@@ -1042,6 +1042,60 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CloudSyncTest009
+ * @tc.desc: reopen database and sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. insert 1 record to user table
+     * @tc.expected: step1. OK.
+     */
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, actualCount);
+    /**
+     * @tc.steps: step2. sync data to cloud
+     * @tc.expected: step2. OK.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 1);
+    /**
+     * @tc.steps: step3. drop data table then close db
+     * @tc.expected: step3. OK.
+     */
+    std::string deleteSql = "DROP TABLE IF EXISTS " + tableName_ + ";";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, deleteSql), DBStatus::OK);
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    /**
+     * @tc.steps: step4. recreate data table and reopen database
+     * @tc.expected: step4. OK.
+     */
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, g_createSQL), DBStatus::OK);
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
+    ASSERT_NE(delegate_, nullptr);
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
+    DataBaseSchema dataBaseSchema = GetSchema();
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
+    /**
+     * @tc.steps: step5. sync and cloud data should be deleted
+     * @tc.expected: step5. OK.
+     */
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 0);
+}
+
+/**
  * @tc.name: CloudSyncObserverTest001
  * @tc.desc: test cloud sync multi observer
  * @tc.type: FUNC

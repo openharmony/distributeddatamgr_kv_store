@@ -182,8 +182,6 @@ public:
 
     static constexpr const int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 
-    static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
-
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr const int32_t DEFAULT_ROW_ID = -1;
     static constexpr const int STR_TO_LL_BY_DEVALUE = 10;
