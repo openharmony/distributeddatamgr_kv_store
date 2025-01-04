@@ -19,7 +19,8 @@
       "default",
       "tablet",
       "phone",
-      "2in1"
+      "2in1",
+      "wearable"
     ],
     "distro": {
       "deliveryWithInstall": true,
