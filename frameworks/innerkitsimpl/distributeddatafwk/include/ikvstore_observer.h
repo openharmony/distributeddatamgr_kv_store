@@ -47,16 +47,6 @@ public:
     int OnRemoteRequest(uint32_t code, MessageParcel &data,
                         MessageParcel &reply, MessageOption &option) override;
 };
-
-class API_EXPORT KvStoreObserverProxy : public IRemoteProxy<IKvStoreObserver> {
-public:
-    explicit KvStoreObserverProxy(const sptr<IRemoteObject> &impl);
-    ~KvStoreObserverProxy() = default;
-    void OnChange(const ChangeNotification &changeNotification) override;
-    void OnChange(const DataOrigin &origin, Keys &&keys) override;
-private:
-    static inline BrokerDelegator<KvStoreObserverProxy> delegator_;
-};
 }  // namespace DistributedKv
 }  // namespace OHOS
 
