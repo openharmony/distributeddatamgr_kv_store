@@ -172,6 +172,7 @@ int SQLiteRelationalStoreConnection::RemoveDeviceData()
     return errCode;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int32_t SQLiteRelationalStoreConnection::GetCloudSyncTaskCount()
 {
     auto *store = GetDB<SQLiteRelationalStore>();
@@ -200,6 +201,7 @@ int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
     }
     return errCode;
 }
+#endif
 
 int SQLiteRelationalStoreConnection::RemoveDeviceData(const std::string &device)
 {
@@ -301,6 +303,7 @@ int SQLiteRelationalStoreConnection::RemoteQuery(const std::string &device, cons
     return store->RemoteQuery(device, condition, timeout, GetConnectionId(), result);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStoreConnection::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
@@ -341,6 +344,7 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     }
     return ret;
 }
+#endif
 
 int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId)
 {
@@ -421,6 +425,7 @@ int SQLiteRelationalStoreConnection::UpsertData(RecordStatus status, const std::
     return store->UpsertData(status, tableName, records);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStoreConnection::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
@@ -477,6 +482,7 @@ SyncProcess SQLiteRelationalStoreConnection::GetCloudTaskStatus(uint64_t taskId)
     DecObjRef(this);
     return process;
 }
+#endif
 
 int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSchema &schema)
 {

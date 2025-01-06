@@ -90,11 +90,13 @@ void SQLiteRelationalStore::ReleaseResources()
         sqliteStorageEngine_->ClearEnginePasswd();
         sqliteStorageEngine_ = nullptr;
     }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     if (cloudSyncer_ != nullptr) {
         cloudSyncer_->Close();
         RefObject::KillAndDecObjRef(cloudSyncer_);
         cloudSyncer_ = nullptr;
     }
+#endif
     RefObject::DecObjRef(storageEngine_);
 }
 
@@ -288,8 +290,9 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         // to guarantee the life cycle of sync module and syncAbleEngine_ are the same, then the sync module will not
         // be destructed when close store
         storageEngine_->SetSyncAbleEngine(syncAbleEngine_);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         cloudSyncer_ = new (std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(storageEngine_), false);
-
+#endif
         errCode = CheckDBMode();
         if (errCode != E_OK) {
             break;
@@ -383,11 +386,13 @@ void SQLiteRelationalStore::DecreaseConnectionCounter(uint64_t connectionId)
     // Sync Close
     syncAbleEngine_->Close();
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     if (cloudSyncer_ != nullptr) {
         cloudSyncer_->Close();
         RefObject::KillAndDecObjRef(cloudSyncer_);
         cloudSyncer_ = nullptr;
     }
+#endif
 
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_ = nullptr;
@@ -462,6 +467,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     return errCode;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
 {
     if (cloudSyncer_ == nullptr) {
@@ -500,6 +506,7 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 
     return errCode;
 }
+#endif
 
 int SQLiteRelationalStore::RemoveDeviceData()
 {
@@ -903,6 +910,7 @@ std::vector<std::string> SQLiteRelationalStore::GetAllDistributedTableName(Table
     return tableNames;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
 {
     if (cloudSyncer_ == nullptr) {
@@ -912,6 +920,7 @@ int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
     cloudSyncer_->SetCloudDB(cloudDb);
     return E_OK;
 }
+#endif
 
 void SQLiteRelationalStore::AddFields(const std::vector<Field> &newFields, const std::set<std::string> &equalFields,
     std::vector<Field> &addFields)
@@ -1013,6 +1022,7 @@ bool SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std
     return true;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &schema)
 {
     if (storageEngine_ == nullptr) {
@@ -1041,6 +1051,7 @@ int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &
     cloudSyncer_->SetIAssetLoader(loader);
     return E_OK;
 }
+#endif
 
 int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
 {
@@ -1051,6 +1062,7 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
     return storageEngine_->ChkSchema(tableName);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId)
 {
     if (storageEngine_ == nullptr) {
@@ -1227,6 +1239,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.prepareTraceId = option.prepareTraceId;
     info.asyncDownloadAssets = option.asyncDownloadAssets;
 }
+#endif
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 {
@@ -1285,10 +1298,12 @@ int SQLiteRelationalStore::CleanWaterMark(SQLiteSingleVerRelationalStorageExecut
             return errCode;
         }
     }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     errCode = cloudSyncer_->CleanWaterMarkInMemory(clearWaterMarkTable);
     if (errCode != E_OK) {
         LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", errCode);
     }
+#endif
     return errCode;
 }
 
@@ -1519,6 +1534,7 @@ int SQLiteRelationalStore::InitSQLiteStorageEngine(const RelationalDBProperties 
     return E_OK;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
 {
     if (storageEngine_ == nullptr) {
@@ -1566,6 +1582,7 @@ SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 {
     return cloudSyncer_->GetCloudTaskStatus(taskId);
 }
+#endif
 
 int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
 {

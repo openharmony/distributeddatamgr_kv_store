@@ -105,15 +105,17 @@ public:
 
     TimeOffset GetLocalTimeOffset();
 
+    virtual void SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
+
+    int32_t GetTaskCount();
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
 
-    int32_t GetTaskCount();
-
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
-
-    virtual void SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
+#endif
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 
@@ -143,15 +145,19 @@ protected:
 
     void TriggerSync(int notifyEvent);
 
+    CloudSyncer *GetAndIncCloudSyncer();
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
-
-    CloudSyncer *GetAndIncCloudSyncer();
+#endif
 protected:
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual bool CheckSchemaSupportForCloudSync() const;
+#endif
 private:
     int RegisterEventType(EventType type);
 
@@ -159,10 +165,12 @@ private:
 
     void StartCloudSyncer();
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
 
     int CheckSyncOption(const CloudSyncOption &option, const CloudSyncer &syncer);
+#endif
 
     SyncerProxy syncer_;
     std::atomic<bool> started_;

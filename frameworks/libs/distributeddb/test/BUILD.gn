@@ -113,6 +113,7 @@ config("module_private_config") {
     "TRACE_SQLITE_EXECUTE",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "USE_DISTRIBUTEDDB_CLOUD",
   ]
   if (is_ohos) {
     defines += [ "USE_FFRT" ]
@@ -124,6 +125,7 @@ ohos_source_set("src_file") {
   testonly = true
 
   sources = distributeddb_src
+  sources += distributeddb_cloud_src
   sources += [
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",

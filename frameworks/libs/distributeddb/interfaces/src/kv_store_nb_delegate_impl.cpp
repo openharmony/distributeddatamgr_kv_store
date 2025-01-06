@@ -1179,37 +1179,6 @@ std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const
     return res;
 }
 
-DBStatus KvStoreNbDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    return TransferDBErrno(conn_->Sync(option, onProcess));
-}
-
-DBStatus KvStoreNbDelegateImpl::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    if (cloudDBs.empty()) {
-        LOGE("[KvStoreNbDelegate] no cloud db");
-        return INVALID_ARGS;
-    }
-    return TransferDBErrno(conn_->SetCloudDB(cloudDBs));
-}
-
-DBStatus KvStoreNbDelegateImpl::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    return TransferDBErrno(conn_->SetCloudDbSchema(schema));
-}
-
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, ClearMode mode)
 {
     if (conn_ == nullptr) {
@@ -1255,6 +1224,95 @@ int32_t KvStoreNbDelegateImpl::GetTaskCount()
     return conn_->GetTaskCount();
 }
 
+DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->SetReceiveDataInterceptor(interceptor);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] Set receive data interceptor");
+    return TransferDBErrno(errCode);
+}
+
+DBStatus KvStoreNbDelegateImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->GetEntries(device, entries);
+    if (errCode == E_OK) {
+        return OK;
+    }
+    LOGE("[KvStoreNbDelegate] Get the entries failed:%d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+KvStoreNbDelegate::DatabaseStatus KvStoreNbDelegateImpl::GetDatabaseStatus() const
+{
+    KvStoreNbDelegate::DatabaseStatus status;
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return status;
+    }
+    status.isRebuild = conn_->IsRebuild();
+    LOGI("[KvStoreNbDelegate] rebuild %d", static_cast<int>(status.isRebuild));
+    return status;
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+DBStatus KvStoreNbDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->Sync(option, onProcess));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (cloudDBs.empty()) {
+        LOGE("[KvStoreNbDelegate] no cloud db");
+        return INVALID_ARGS;
+    }
+    return TransferDBErrno(conn_->SetCloudDB(cloudDBs));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetCloudDbSchema(schema));
+}
+
+DBStatus KvStoreNbDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (!DBCommon::CheckCloudSyncConfigValid(config)) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetCloudSyncConfig(config);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] Set cloud sync config");
+    return TransferDBErrno(errCode);
+}
+
 void KvStoreNbDelegateImpl::SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback)
 {
     if (conn_ == nullptr || callback == nullptr) {
@@ -1290,61 +1348,5 @@ std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::G
     res.first = TransferDBErrno(errCode);
     return res;
 }
-
-DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    int errCode = conn_->SetReceiveDataInterceptor(interceptor);
-    if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
-    }
-    LOGI("[KvStoreNbDelegate] Set receive data interceptor");
-    return TransferDBErrno(errCode);
-}
-
-DBStatus KvStoreNbDelegateImpl::SetCloudSyncConfig(const CloudSyncConfig &config)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    if (!DBCommon::CheckCloudSyncConfigValid(config)) {
-        return INVALID_ARGS;
-    }
-    int errCode = conn_->SetCloudSyncConfig(config);
-    if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Set cloud sync config errCode:%d", errCode);
-    }
-    LOGI("[KvStoreNbDelegate] Set cloud sync config");
-    return TransferDBErrno(errCode);
-}
-
-DBStatus KvStoreNbDelegateImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    int errCode = conn_->GetEntries(device, entries);
-    if (errCode == E_OK) {
-        return OK;
-    }
-    LOGE("[KvStoreNbDelegate] Get the entries failed:%d", errCode);
-    return TransferDBErrno(errCode);
-}
-
-KvStoreNbDelegate::DatabaseStatus KvStoreNbDelegateImpl::GetDatabaseStatus() const
-{
-    KvStoreNbDelegate::DatabaseStatus status;
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return status;
-    }
-    status.isRebuild = conn_->IsRebuild();
-    LOGI("[KvStoreNbDelegate] rebuild %d", static_cast<int>(status.isRebuild));
-    return status;
-}
+#endif
 } // namespace DistributedDB

@@ -48,10 +48,6 @@ public:
 
     int Sync(const ISyncer::SyncParma &syncParam, uint64_t connectionId);
 
-    int32_t GetCloudSyncTaskCount();
-
-    int CleanCloudData(ClearMode mode);
-
     void ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection);
 
     void WakeUpSyncer() override;
@@ -83,15 +79,9 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
-    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
-
-    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
-
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int ChkSchema(const TableName &tableName);
-
-    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);
 
     int SetTrackerTable(const TrackerSchema &trackerSchema);
 
@@ -105,13 +95,25 @@ public:
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 
-    int SetCloudSyncConfig(const CloudSyncConfig &config);
-
-    SyncProcess GetCloudTaskStatus(uint64_t taskId);
-
     int SetDistributedSchema(const DistributedSchema &schema);
 
     int GetDownloadingAssetsCount(int32_t &count);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
+
+    int32_t GetCloudSyncTaskCount();
+
+    int CleanCloudData(ClearMode mode);
+
+    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
+
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);
+
+    int SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    SyncProcess GetCloudTaskStatus(uint64_t taskId);
+#endif
 private:
     void ReleaseResources();
 
@@ -156,9 +158,6 @@ private:
 
     int CheckTableName(const std::vector<std::string> &tableNames);
 
-    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
-        CloudSyncer::CloudTaskInfo &info);
-
     int CleanWaterMark(SQLiteSingleVerRelationalStorageExecutor *&handle, std::set<std::string> &clearWaterMarkTable);
 
     int InitTrackerSchemaFromMeta();
@@ -182,8 +181,12 @@ private:
 
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
-    int CheckCloudSchema(const DataBaseSchema &schema);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        CloudSyncer::CloudTaskInfo &info);
 
+    int CheckCloudSchema(const DataBaseSchema &schema);
+#endif
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

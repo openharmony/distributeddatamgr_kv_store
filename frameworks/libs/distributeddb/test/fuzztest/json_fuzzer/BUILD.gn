@@ -37,6 +37,7 @@ config("module_private_config") {
     "USING_HILOG_LOGGER",
     "USE_SQLITE_SYMBOLS",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "USE_DISTRIBUTEDDB_CLOUD",
   ]
 }
 

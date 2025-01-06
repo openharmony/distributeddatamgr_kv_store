@@ -1891,6 +1891,7 @@ int SQLiteSingleVerNaturalStoreConnection::UpdateKey(const DistributedDB::Update
     return errCode;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema)
 {
     int errCode = E_OK;
@@ -1925,6 +1926,7 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::
     }
     return naturalStore->SetCloudDbSchema(schema);
 }
+#endif
 
 int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(const KvStoreObserver *observer,
     const ObserverAction &action)
@@ -1978,6 +1980,7 @@ int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceData(const std::string &d
     return naturalStore->RemoveDeviceData(device, user, mode);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleVerNaturalStoreConnection::GetCloudVersion(const std::string &device,
     std::map<std::string, std::string> &versionMap)
 {
@@ -1997,6 +2000,7 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncCon
     }
     return naturalStore->SetCloudSyncConfig(config);
 }
+#endif
 
 void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
     SQLiteSingleVerNaturalStore &naturalStore)
