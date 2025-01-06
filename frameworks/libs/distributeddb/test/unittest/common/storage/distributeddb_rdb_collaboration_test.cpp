@@ -127,7 +127,7 @@ TableSchema DistributedDBRDBCollaborationTest::GetTableSchema(bool upgrade)
     tableSchema.fields.push_back(field);
     field.colName = "int_field2";
     tableSchema.fields.push_back(field);
-    field.colName = "str_field";
+    field.colName = "123";
     field.type = TYPE_INDEX<std::string>;
     tableSchema.fields.push_back(field);
     if (upgrade) {

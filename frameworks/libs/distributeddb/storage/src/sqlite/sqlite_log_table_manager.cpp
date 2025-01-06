@@ -176,7 +176,7 @@ std::string SqliteLogTableManager::GetUpdateWithAssignSql(const TableInfo &table
     }
     std::string sql = " CASE WHEN (";
     for (const auto &field : syncFields) {
-        sql.append("(").append("OLD.").append(field).append("!= NEW.").append(field).append(") OR");
+        sql.append("(").append("OLD.'").append(field).append("'!= NEW.'").append(field).append("') OR");
     }
     // pop last OR
     sql.pop_back();

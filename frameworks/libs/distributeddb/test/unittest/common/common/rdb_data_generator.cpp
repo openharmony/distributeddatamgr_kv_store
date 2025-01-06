@@ -39,7 +39,7 @@ int RDBDataGenerator::InitTable(const DistributedDB::TableSchema &table, bool no
 {
     std::string sql = "CREATE TABLE IF NOT EXISTS " + table.name + "(";
     for (const auto &field : table.fields) {
-        sql += field.colName + " " + GetTypeText(field.type);
+        sql += "'" + field.colName + "' " + GetTypeText(field.type);
         if (field.primary) {
             sql += " PRIMARY KEY";
         }
@@ -359,9 +359,9 @@ std::string RDBDataGenerator::GetUpdateSQL(const TableSchema &schema)
     std::string noPkFields;
     for (const auto &field : schema.fields) {
         if (field.primary) {
-            pkFields += field.colName + "=?,";
+            pkFields += "'" + field.colName + "'=?,";
         } else {
-            noPkFields += field.colName + "=?,";
+            noPkFields += "'" + field.colName + "'=?,";
         }
     }
     pkFields.pop_back();
