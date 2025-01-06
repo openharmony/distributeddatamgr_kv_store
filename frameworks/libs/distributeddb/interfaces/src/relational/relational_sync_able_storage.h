@@ -263,6 +263,12 @@ public:
     int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, bool useTransaction,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) override;
 
+    void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData,
+        Origin origin);
+
+    void PrintCursorChange(const std::string &tableName) override;
+
+    int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -328,6 +334,9 @@ private:
     void ExecuteDataChangeCallback(
         const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
         const std::string &deviceName, const ChangedData &changedData, bool isChangedData, Origin origin);
+
+    void SaveCursorChange(const std::string &tableName, uint64_t currCursor);
+
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -366,6 +375,8 @@ private:
     CloudSyncConfig cloudSyncConfig_;
 
     CloudUploadRecorder uploadRecorder_;
+
+    std::map<std::string, std::pair<uint64_t, uint64_t>> cursorChangeMap_;
 };
 }  // namespace DistributedDB
 #endif

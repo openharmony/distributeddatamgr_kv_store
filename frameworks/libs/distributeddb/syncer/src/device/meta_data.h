@@ -79,7 +79,7 @@ public:
 
     int SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool isNeedHash);
 
-    int SaveLocalTimeOffset(TimeOffset timeOffset);
+    int SaveLocalTimeOffset(TimeOffset timeOffset, bool saveIntoDb = true);
 
     TimeOffset GetLocalTimeOffset() const;
 

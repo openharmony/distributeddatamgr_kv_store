@@ -1328,13 +1328,11 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
         UpdateLocalAssetId(vBucket, field.colName, asset);
         Asset *assetDBPtr = std::get_if<Asset>(&assetInfo[field.colName]);
         if (assetDBPtr == nullptr) {
+            isNotIncCursor = true;
             return true;
         }
         const Asset &assetDB = *assetDBPtr;
-        if (assetDB.assetId != asset.assetId) {
-            return true;
-        }
-        if (asset.status != AssetStatus::NORMAL) {
+        if (assetDB.assetId != asset.assetId || asset.status != AssetStatus::NORMAL) {
             isNotIncCursor = true;
             return true;
         }
@@ -1344,17 +1342,16 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_
         UpdateLocalAssetsId(vBucket, field.colName, assets);
         Assets *assetsDBPtr = std::get_if<Assets>(&assetInfo[field.colName]);
         if (assetsDBPtr == nullptr) {
+            isNotIncCursor = true;
             return true;
         }
         Assets &assetsDB = *assetsDBPtr;
         if (assets.size() != assetsDB.size()) {
+            isNotIncCursor = true;
             return true;
         }
         for (uint32_t i = 0; i < assets.size(); ++i) {
-            if (assets[i].assetId != assetsDB[i].assetId) {
-                return true;
-            }
-            if (assets[i].status != AssetStatus::NORMAL) {
+            if (assets[i].assetId != assetsDB[i].assetId || assets[i].status != AssetStatus::NORMAL) {
                 isNotIncCursor = true;
                 return true;
             }
@@ -1888,7 +1885,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSch
         LOGE("[RDBExecutor] bind time failed %d when get download asset gid", errCode);
         SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
-    }
+     }
     uint32_t count = 0;
     do {
         errCode = SQLiteUtils::StepWithRetry(stmt, false);

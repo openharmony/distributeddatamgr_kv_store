@@ -125,7 +125,7 @@ int Metadata::SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool
     return SaveMetaDataValue(deviceId, metadata, isNeedHash);
 }
 
-int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset)
+int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset, bool saveIntoDb)
 {
     std::string timeOffsetString = std::to_string(timeOffset);
     std::vector<uint8_t> timeOffsetValue(timeOffsetString.begin(), timeOffsetString.end());
@@ -134,7 +134,10 @@ int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset)
 
     std::lock_guard<std::mutex> lockGuard(localTimeOffsetLock_);
     localTimeOffset_ = timeOffset;
-    LOGD("Metadata::SaveLocalTimeOffset offset = %" PRId64, timeOffset);
+    LOGI("Metadata::SaveLocalTimeOffset offset = %" PRId64 " save db %d", timeOffset, static_cast<int>(saveIntoDb));
+    if (!saveIntoDb) {
+        return E_OK;
+    }
     int errCode = SetMetadataToDb(localTimeOffsetValue, timeOffsetValue);
     if (errCode != E_OK) {
         LOGE("Metadata::SaveLocalTimeOffset SetMetadataToDb failed errCode:%d", errCode);
@@ -265,8 +268,9 @@ int64_t Metadata::StringToLong(const std::vector<uint8_t> &value) const
 {
     std::string valueString(value.begin(), value.end());
     int64_t longData = std::strtoll(valueString.c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
-    if (errno == ERANGE) {
-        longData = 0;
+    if (errno == ERANGE && (longData == LLONG_MAX || longData == LLONG_MIN)) {
+        LOGW("[Metadata][StringToLong] convert string '%s' to number failed, longData = %" PRId64,
+            valueString.c_str(), longData);
     }
     LOGD("Metadata::StringToLong longData = %" PRId64, longData);
     return longData;

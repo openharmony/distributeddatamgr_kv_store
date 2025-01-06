@@ -43,6 +43,7 @@ struct AutoLaunchOption {
     bool syncDualTupleMode = false; // communicator label use dualTuple hash or not
     uint32_t iterateTimes = 0;
     int conflictResolvePolicy = LAST_WIN;
+    DistributedTableMode tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
 };
 
 struct AutoLaunchParam {

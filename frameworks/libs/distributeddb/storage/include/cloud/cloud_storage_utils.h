@@ -107,7 +107,7 @@ public:
     static std::string GetCursorIncSql(const std::string &tableName);
     static std::string GetCursorIncSqlWhenAllow(const std::string &tableName);
     static std::string GetCursorUpgradeSql(const std::string &tableName);
-    static std::string GetUpdateUploadFinishedSql(const std::string &tableName);
+    static std::string GetUpdateUploadFinishedSql(const std::string &tableName, bool isExistAssetsDownload);
 
     static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
@@ -116,8 +116,8 @@ public:
     static std::pair<int, std::vector<uint8_t>> GetHashValueWithPrimaryKeyMap(const VBucket &vBucket,
         const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
         bool allowEmpty);
-    static std::string GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
-        const LogInfo &logInfo, const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
+    static std::string GetUpdateRecordFlagSql(UpdateRecordFlagStruct updateRecordFlag, const LogInfo &logInfo,
+        const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
     static std::string GetUpdateRecordFlagSqlUpload(const std::string &tableName, bool recordConflict,
         const LogInfo &logInfo, const VBucket &uploadExtend = {}, const CloudWaterType &type = CloudWaterType::BUTT);
     static int BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
@@ -196,13 +196,19 @@ public:
     static int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,
         std::vector<QuerySyncObject> &syncQuery);
 
-    static bool IsAssetsContainDownloadRecord(VBucket &dbAssets);
+    static bool IsAssetsContainDownloadRecord(const VBucket &dbAssets);
 
-    using CloudSyncParam = std::pair<const std::string &, const CloudWaterType &>;
+    struct CloudSyncParam {
+        std::string tableName;
+        CloudWaterType type;
+        TableSchema tableSchema;
+    };
 
     static int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
         const CloudSyncParam &param, const CloudSyncBatch &updateData, CloudUploadRecorder &recorder,
         bool isLock = false);
+
+    static int FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &extend);
 
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);

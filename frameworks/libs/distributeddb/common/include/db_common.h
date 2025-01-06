@@ -156,6 +156,9 @@ public:
     static bool ConvertToUInt64(const std::string &str, uint64_t &value);
 
     static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
+
+    static std::set<std::string, CaseInsensitiveComparator> TransformToCaseInsensitive(
+        const std::vector<std::string> &origin);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

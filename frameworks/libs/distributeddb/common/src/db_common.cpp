@@ -875,4 +875,14 @@ void DBCommon::RemoveDuplicateAssetsData(std::vector<Asset> &assets)
         arrIndex++;
     }
 }
+
+std::set<std::string, CaseInsensitiveComparator> DBCommon::TransformToCaseInsensitive(
+    const std::vector<std::string> &origin)
+{
+    std::set<std::string, CaseInsensitiveComparator> res;
+    for (const auto &item : origin) {
+        res.insert(item);
+    }
+    return res;
+}
 } // namespace DistributedDB

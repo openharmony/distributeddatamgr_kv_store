@@ -30,7 +30,9 @@ public:
     struct CloudTaskInfo {
         bool priorityTask = false;
         int32_t priorityLevel = 0;
+        int32_t priorityLevel = 0;
         bool compensatedTask = false;
+        bool isAssetsOnly = false;
         bool isAssetsOnly = false;
         bool pause = false;
         bool resume = false;

@@ -141,7 +141,8 @@ public:
 
     int UpdateAssetStatusForAssetOnly(const TableSchema &tableSchema, VBucket &asset);
 
-    int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
+    int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess,
+        uint64_t &currCursor);
     int FillCloudAssetForAsyncDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
@@ -156,7 +157,7 @@ public:
     int GetCursor(const std::string &tableName, uint64_t &cursor);
 
     int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
-    int CreateTrackerTable(const TrackerTable &trackerTable, bool checkData);
+    int CreateTrackerTable(const TrackerTable &trackerTable, const TableInfo &table, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 
@@ -199,7 +200,8 @@ public:
 
     int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
-    void MarkFlagAsUploadFinished(const std::string &tableName, const Key &hashKey, Timestamp timestamp);
+    void MarkFlagAsUploadFinished(const std::string &tableName, const Key &hashKey, Timestamp timestamp,
+        bool isExistAssetsDownload);
 
     int CleanUploadFinishedFlag(const std::string &tableName);
 
@@ -251,7 +253,9 @@ public:
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 
-    int CompareSchemaTableColumns(const std::string &tableName);
+    void CheckAndCreateTrigger(const TableInfo &table);
+
+    int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -274,7 +278,7 @@ private:
 
     int SetCursor(const std::string &tableName, uint64_t cursor);
 
-    int IncreaseCursorOnAssetData(const std::string &tableName, const std::string &gid);
+    int IncreaseCursorOnAssetData(const std::string &tableName, const std::string &gid, uint64_t &currCursor);
 
     int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys,
         bool distinguishCloudFlag);
@@ -313,7 +317,7 @@ private:
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
-        TableInfo &tableInfo);
+        const TableInfo &tableInfo);
     int CleanExtendAndCursorForDeleteData(const std::string &tableName);
 
     int GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder, sqlite3_stmt *statement,
@@ -393,6 +397,9 @@ private:
 
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
+
+    int UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &tableName,
+        const std::string &calPrimaryKeyHash, const TableInfo &tableInfo);
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
@@ -475,17 +482,17 @@ private:
     int UpdateAssetsIdForOneRecord(const TableSchema &tableSchema, const std::string &sql,
         const std::vector<Asset> &assetOfOneRecord, const std::vector<Assets> &assetsOfOneRecord);
 
-    bool IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket,
-        bool &isNotIncCursor);
-
     bool IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt, const VBucket &vBucket, const Field &field,
         VBucket &assetInfo, bool &isNotIncCursor);
+
+    bool IsNeedUpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket,
+        bool &isNotIncCursor);
 
     int UpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
 
     int64_t GetDataFlag();
 
-    std::string GetUpdateDataFlagSql();
+    std::string GetUpdateDataFlagSql(const VBucket &data);
 
     std::string GetDev();
 
@@ -506,7 +513,7 @@ private:
         uint32_t &count);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
-    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = flag & 0x1020";
+    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
     static constexpr const char *FLAG_IS_WAIT_COMPENSATED_SYNC =
         "(a.flag & 0x10 != 0 and a.status = 0) or a.status = 1";

@@ -235,7 +235,7 @@ private:
 
     // TimeTick
     mutable std::mutex timeTickMonitorLock_;
-    std::unique_ptr<TimeTickMonitor> timeTickMonitor_;
+    std::shared_ptr<TimeTickMonitor> timeTickMonitor_;
 
     mutable std::shared_mutex permissionCheckCallbackMutex_ {};
     PermissionCheckCallback permissionCheckCallback_;

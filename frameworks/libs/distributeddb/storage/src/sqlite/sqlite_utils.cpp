@@ -765,11 +765,10 @@ int GetSchemaIndexList(sqlite3 *db, const std::string &tableName, std::vector<st
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::string indexName;
             (void) SQLiteUtils::GetColumnTextValue(statement, 1, indexName);  // 1 means index name
-            std::string origin;
-            (void) SQLiteUtils::GetColumnTextValue(statement, 3, origin);  // 3 means index type, whether unique
-            if (origin == "c") { // 'c' means index created by user declare
+            int unique = sqlite3_column_int64(statement, 2);  // 2 means index type, whether unique
+            if (unique == 0) { // 0 means index created by user declare
                 indexList.push_back(indexName);
-            } else if (origin == "u") { // 'u' means an unique define
+            } else if (unique == 1) { // 1 means an unique define
                 uniqueList.push_back(indexName);
             }
         } else {

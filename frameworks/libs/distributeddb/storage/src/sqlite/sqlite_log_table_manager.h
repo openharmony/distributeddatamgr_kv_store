@@ -46,6 +46,8 @@ protected:
 
     static std::string GetUpdateWithAssignSql(const TableInfo &table, const std::string &emptyValue,
         const std::string &matchValue, const std::string &missMatchValue);
+
+    static std::string CalcPkHash(const std::string &references, const std::vector<std::string> &pk);
 private:
     virtual std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) = 0;
     virtual std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) = 0;

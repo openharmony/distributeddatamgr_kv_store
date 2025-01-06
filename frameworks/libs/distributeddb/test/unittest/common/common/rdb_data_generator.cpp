@@ -37,11 +37,19 @@ int RDBDataGenerator::InitDatabase(const DataBaseSchema &schema, sqlite3 &db)
 
 int RDBDataGenerator::InitTable(const DistributedDB::TableSchema &table, bool notNullWithStr, sqlite3 &db)
 {
+    return InitTable(table, notNullWithStr, false, db);
+}
+
+int RDBDataGenerator::InitTable(const TableSchema &table, bool notNullWithStr, bool isAutoIncrement, sqlite3 &db)
+{
     std::string sql = "CREATE TABLE IF NOT EXISTS " + table.name + "(";
     for (const auto &field : table.fields) {
         sql += "'" + field.colName + "' " + GetTypeText(field.type);
         if (field.primary) {
             sql += " PRIMARY KEY";
+            if (isAutoIncrement) {
+                sql += " AUTOINCREMENT";
+            }
         }
         if (notNullWithStr && field.type == TYPE_INDEX<std::string>) {
             sql += " NOT NULL ON CONFLICT IGNORE";
@@ -61,7 +69,7 @@ std::string RDBDataGenerator::GetTypeText(int type)
 {
     switch (type) {
         case DistributedDB::TYPE_INDEX<int64_t>:
-            return "INT";
+            return "INTEGER";
         case DistributedDB::TYPE_INDEX<std::string>:
             return "TEXT";
         case DistributedDB::TYPE_INDEX<DistributedDB::Assets>:
@@ -401,6 +409,7 @@ DistributedDB::DistributedSchema RDBDataGenerator::ParseSchema(const Distributed
             DistributedField distributedField;
             distributedField.isP2pSync = syncOnlyPk ? field.primary : true;
             distributedField.colName = field.colName;
+            distributedField.isSpecified = field.primary;
             table.fields.push_back(distributedField);
         }
         table.tableName = item.name;

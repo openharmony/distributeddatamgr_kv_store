@@ -147,6 +147,31 @@ int RelationalSyncAbleStorage::UpdateAssetStatusForAssetOnly(const std::string &
     return errCode;
 }
 
+void RelationalSyncAbleStorage::PrintCursorChange(const std::string &tableName)
+{
+    auto iter = cursorChangeMap_.find(tableName);
+    if (iter == cursorChangeMap_.end()) {
+        return;
+    }
+    LOGI("[RelationalSyncAbleStorage] Upgrade cursor from %d to %d when asset download success.",
+        cursorChangeMap_[tableName].first, cursorChangeMap_[tableName].second);
+    cursorChangeMap_.erase(tableName);
+}
+
+void RelationalSyncAbleStorage::SaveCursorChange(const std::string &tableName, uint64_t currCursor)
+{
+    auto iter = cursorChangeMap_.find(tableName);
+    if (iter == cursorChangeMap_.end()) {
+        std::pair<uint64_t, uint64_t> initCursors = {currCursor, currCursor};
+        cursorChangeMap_.insert(std::pair<std::string, std::pair<uint64_t, uint64_t>>(tableName, initCursors));
+        return;
+    }
+    std::pair<uint64_t, uint64_t> minMaxCursors = iter->second;
+    uint64_t minCursor = std::min(minMaxCursors.first, currCursor);
+    uint64_t maxCursor = std::max(minMaxCursors.second, currCursor);
+    cursorChangeMap_[tableName] = {minCursor, maxCursor};
+}
+
 int RelationalSyncAbleStorage::FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset,
     bool isDownloadSuccess)
 {
@@ -168,15 +193,17 @@ int RelationalSyncAbleStorage::FillCloudAssetForAsyncDownload(const std::string 
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return errCode;
     }
-    errCode = handle->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
+    uint64_t currCursor = DBConstant::INVALID_CURSOR;
+    errCode = handle->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess, currCursor);
     if (errCode != E_OK) {
         LOGE("fill cloud asset for download failed:%d, tableName:%s, length:%zu",
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
     }
+    SaveCursorChange(tableName, currCursor);
     ReleaseHandle(handle);
     return errCode;
 }
- 
+
 int RelationalSyncAbleStorage::UpdateRecordFlagForAsyncDownload(const std::string &tableName, bool recordConflict,
     const LogInfo &logInfo)
 {
@@ -186,7 +213,12 @@ int RelationalSyncAbleStorage::UpdateRecordFlagForAsyncDownload(const std::strin
         LOGE("executor is null when update flag for async download.");
         return errCode;
     }
-    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, recordConflict, logInfo);
+    UpdateRecordFlagStruct updateRecordFlag = {
+        .tableName = tableName,
+        .isRecordConflict = recordConflict,
+        .isInconsistency = false
+    };
+    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(updateRecordFlag, logInfo);
     errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
     if (errCode != E_OK) {
         LOGE("update flag for async download failed:%d, tableName:%s, length:%zu",
@@ -195,7 +227,7 @@ int RelationalSyncAbleStorage::UpdateRecordFlagForAsyncDownload(const std::strin
     ReleaseHandle(handle);
     return errCode;
 }
- 
+
 int RelationalSyncAbleStorage::SetLogTriggerStatusForAsyncDownload(bool status)
 {
     int errCode = E_OK;
@@ -211,7 +243,7 @@ int RelationalSyncAbleStorage::SetLogTriggerStatusForAsyncDownload(bool status)
     ReleaseHandle(handle);
     return errCode;
 }
- 
+
 std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKeyForAsyncDownload(
     const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey, VBucket &assets)
 {
@@ -231,6 +263,24 @@ std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKeyForAs
     }
     ReleaseHandle(handle);
     return {ret, status};
+}
+
+int RelationalSyncAbleStorage::GetLockStatusByGid(const std::string &tableName, const std::string &gid,
+    LockStatus &status)
+{
+    if (tableName.empty() || gid.empty()) {
+        LOGE("[RelationalSyncAbleStorage] invalid table name or gid.");
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] handle is null when get lock status by gid.");
+        return errCode;
+    }
+    errCode = handle->GetLockStatusByGid(tableName, gid, status);
+    ReleaseHandle(handle);
+    return errCode;
 }
 }
 #endif

@@ -769,13 +769,13 @@ int CommunicatorAggregator::RegCallbackToAdapter()
     }
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
-    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int softBusErrCode) {
-            LOGI("[CommAggr] Send able dev=%.3s, softBusErrCode=%d", target.c_str(), softBusErrCode);
-            if (softBusErrCode == E_OK) {
+    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int deviceCommErrCode) {
+            LOGI("[CommAggr] Send able dev=%.3s, deviceCommErrCode=%d", target.c_str(), deviceCommErrCode);
+            if (deviceCommErrCode == E_OK) {
                 (void)IncreaseSendSequenceId(target);
                 OnSendable(target);
             }
-            scheduler_.SetSoftBusErrCode(target, softBusErrCode);
+            scheduler_.SetDeviceCommErrCode(target, deviceCommErrCode);
         },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {

@@ -470,9 +470,57 @@ int SqliteCloudKvExecutorUtils::OperateCloudData(sqlite3 *db, bool isMemory, int
     });
     errCode = BindStmt(logStmt, dataStmt, index, opType, downloadData);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] BindStmt data stmt failed %d opType %d", errCode, static_cast<int>(opType));
         return errCode;
     }
-    return StepStmt(logStmt, dataStmt, isMemory);
+    errCode = StepStmt(logStmt, dataStmt, isMemory);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] StepStmt data stmt failed %d opType %d", errCode, static_cast<int>(opType));
+        return errCode;
+    }
+    if (opType == OpType::INSERT || opType == OpType::UPDATE || opType == OpType::DELETE) {
+        return OperateOtherUserLog(db, isMemory, index, downloadData);
+    }
+    return errCode;
+}
+
+int SqliteCloudKvExecutorUtils::OperateOtherUserLog(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData)
+{
+    auto [errCode, dataItem] = GetDataItem(index, downloadData);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    sqlite3_stmt *logStmt = nullptr;
+    std::string sql = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_flag  = cloud_flag & ~0x2000"
+                        "WHERE userid != ? AND hash_key = ?";
+    errCode = SQLiteUtils::GetStatement(db, sql, logStmt);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Get operate other log statement failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizerData([logStmt]() {
+        sqlite3_stmt *statement = logStmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset operate other log stmt failed %d ", ret);
+        }
+    });
+    errCode = SQLiteUtils::BindTextToStatement(logStmt, BIND_INSERT_USER_INDEX, downloadData.user);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind operate other log user failed %d when insert", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(logStmt, BIND_INSERT_HASH_KEY_INDEX, dataItem.hashKey);
+    if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] Bind operate other log hashKey failed %d when insert", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepNext(logStmt, isMemory);
+    if (errCode == -E_FINISHED) {
+        return E_OK;
+    }
+    return errCode;
 }
 
 std::string SqliteCloudKvExecutorUtils::GetOperateDataSql(OpType opType)
@@ -597,7 +645,7 @@ int SqliteCloudKvExecutorUtils::BindInsertStmt(sqlite3_stmt *logStmt, sqlite3_st
 }
 
 int SqliteCloudKvExecutorUtils::BindInsertLogStmt(sqlite3_stmt *logStmt, const std::string &user,
-    const DataItem &dataItem)
+    const DataItem &dataItem, bool isTagLogin)
 {
     int errCode = SQLiteUtils::BindTextToStatement(logStmt, BIND_INSERT_USER_INDEX, user);
     if (errCode != E_OK) {
@@ -619,7 +667,8 @@ int SqliteCloudKvExecutorUtils::BindInsertLogStmt(sqlite3_stmt *logStmt, const s
         LOGE("[SqliteCloudKvExecutorUtils] Bind version failed %d when insert", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(logStmt, BIND_INSERT_CLOUD_FLAG_INDEX, dataItem.cloud_flag);
+    int64_t flag = dataItem.cloud_flag | (isTagLogin ? static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER) : 0x00);
+    errCode = SQLiteUtils::BindInt64ToStatement(logStmt, BIND_INSERT_CLOUD_FLAG_INDEX, flag);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind cloud_flag failed %d when insert", errCode);
     }
@@ -1441,7 +1490,7 @@ int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const 
             errCode = BindUpdateLogStmt(logStmt, user, wItem);
         }
     } else {
-        errCode = BindInsertLogStmt(logStmt, user, wItem);
+        errCode = BindInsertLogStmt(logStmt, user, wItem, false);
     }
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] fill cloud gid failed. %d", errCode);

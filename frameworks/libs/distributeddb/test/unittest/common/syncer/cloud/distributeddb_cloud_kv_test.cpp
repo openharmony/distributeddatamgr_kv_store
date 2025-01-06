@@ -2247,6 +2247,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level0)
     ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db_, openFlag, nullptr) == SQLITE_OK);
     std::string sql = "UPDATE sync_data SET modify_time = modify_time + modify_time where rowid>0";
     EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+    EXPECT_EQ(sqlite3_close_v2(db_), SQLITE_OK);
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
     /**
      * @tc.steps: step3. put {k, v2} in another device

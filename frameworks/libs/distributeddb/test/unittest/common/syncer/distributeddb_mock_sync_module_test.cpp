@@ -1153,6 +1153,55 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest005, TestSize.Level3)
 }
 
 /**
+ * @tc.name: SyncLifeTest006
+ * @tc.desc: Test close and sync concurrently
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest006, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Init syncer
+     * @tc.expected: step1. Return OK.
+     */
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    const std::string DEVICE_B = "deviceB";
+    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
+    std::string userId = "userid_0";
+    std::string storeId = "storeId_0";
+    std::string appId = "appid_0";
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
+    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
+    syncDBInterface->SetIdentifier(identifierVec);
+    /**
+     * @tc.steps:step2. close and sync concurrently
+     * @tc.expected: step2. No deadlock occurs
+     */
+    for (int i = 0; i < 100; i++) { // run 100 times
+        EXPECT_EQ(syncer->Initialize(syncDBInterface, true), E_OK);
+        virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
+        std::thread writeThread([syncer, &DEVICE_B]() {
+            EXPECT_EQ(syncer->Sync({DEVICE_B}, PUSH_AND_PULL, nullptr, nullptr, true), E_OK);
+        });
+        std::thread closeThread([syncer, &syncDBInterface]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            EXPECT_EQ(syncer->Close(true), E_OK);
+        });
+        closeThread.join();
+        writeThread.join();
+    }
+    syncer = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+}
+
+/**
  * @tc.name: MessageScheduleTest001
  * @tc.desc: Test MessageSchedule stop timer when no message.
  * @tc.type: FUNC

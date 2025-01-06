@@ -134,7 +134,6 @@ protected:
         TaskContext context;
         SyncParam syncParam;
         bool upload = false; // task pause when upload
-        bool skipQuery = false; // task should skip query now
         size_t lastDownloadIndex = 0u;
         Timestamp lastLocalWatermark = 0u;
         int downloadStatus = E_OK;
@@ -245,7 +244,7 @@ protected:
 
     int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
-    int DoDownloadAssets(bool skipSave, SyncParam &param);
+    int DoDownloadAssets(SyncParam &param);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -366,6 +365,11 @@ protected:
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
     int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
+
+    int BatchInsertOrUpdate(Info &uploadInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo,
+        bool isInsert);
+
+    int BackFillAfterBatchUpload(CloudSyncData &uploadData, bool isInsert, int batchUploadResult);
 
     int BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
@@ -508,6 +512,8 @@ protected:
 
     bool IsCurrentAsyncDownloadTask();
 
+    bool CanStartAsyncDownload() const;
+
     int GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj, VBucket &extend);
 
     int QueryCloudGidForAssetsOnly(
@@ -519,13 +525,17 @@ protected:
     int SetAssetsMapAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
         std::map<std::string, AssetsMap> &gidAssetsMap);
 
-    bool IsAsyncDownloadFinished() const;
-
     void NotifyChangedDataWithDefaultDev(ChangedData &&changedData);
 
     bool IsAlreadyHaveCompensatedSyncTask();
 
     bool TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTaskId);
+
+    int FillCloudAssetsForOneRecord(const std::string &gid, const std::map<std::string, Assets> &assetsMap,
+        InnerProcessInfo &info, bool setAllNormal, bool &isExistAssetDownloadFail);
+
+    int UpdateRecordFlagForOneRecord(const std::string &gid, const DownloadItem &downloadItem, InnerProcessInfo &info,
+        bool isExistAssetDownloadFail);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

@@ -158,6 +158,24 @@ int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isM
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
 }
+
+int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
+{
+    std::string sql = "SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
+        DBCommon::TransferStringToHex(std::string(DBConstant::LOCALTIME_OFFSET_KEY)) + "';";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        errCode = E_OK;
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
 }
 
 std::string GetExtendValue(const TrackerTable &trackerTable)
@@ -178,7 +196,7 @@ std::string GetExtendValue(const TrackerTable &trackerTable)
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName,
-    const std::string &calPrimaryKeyHash, TableInfo &tableInfo)
+    const std::string &calPrimaryKeyHash, const TableInfo &tableInfo)
 {
     int64_t timeOffset = 0;
     int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
@@ -237,6 +255,41 @@ int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableN
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &tableName,
+    const std::string &calPrimaryKeyHash, const TableInfo &tableInfo)
+{
+    int64_t timeOffset = 0;
+    int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int64_t localTimeOffset = 0;
+    errCode = GetMetaLocalTimeOffset(db, localTimeOffset);
+    if (errCode != E_OK) {
+        LOGE("Failed to get local timeOffset.%d", errCode);
+        return errCode;
+    }
+    std::string timeOffsetStr = std::to_string(timeOffset);
+    std::string logTable = DBCommon::GetLogTableName(tableName);
+    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
+    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
+    static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
+    Timestamp currentLocalTime = TimeHelper::GetCurrentLocalTime(timeOffset, localTimeOffset);
+    std::string currentLocalTimeStr = std::to_string(currentLocalTime);
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " +
+    currentLocalTimeStr + " + " + rowid + ", " + timeOffsetStr + " + " + rowid + ", " + flag + ", " +
+    calPrimaryKeyHash + ", '', " + "'', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Failed to initialize device type log data.%d", errCode);
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded,
     const std::string &identity, TableInfo &table)
 {
@@ -256,10 +309,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         LOGE("[CreateDistributedTable] create log table failed");
         return errCode;
     }
-
+    std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
     std::string tableName = table.GetTableName();
+    if (!table.GetTrackerTable().GetTableName().empty() &&
+        table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        errCode = UpdateTrackerTableTimeStamp(dbHandle_, tableName, calPrimaryKeyHash, table);
+    }
     if ((!isUpgraded) && table.GetTrackerTable().GetTableName().empty()) {
-        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
         if (errCode != E_OK) {
             return errCode;
@@ -991,18 +1047,11 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncItems(RelationalSyncDataIn
         }
     }
 
-    int errCode = SetLogTriggerStatus(false);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SaveSyncDataItems(inserter);
+    int errCode = SaveSyncDataItems(inserter);
     if (errCode != E_OK) {
         LOGE("Save sync data items failed. errCode=%d", errCode);
         goto END;
     }
-
-    errCode = SetLogTriggerStatus(true);
 END:
     if (useTrans) {
         if (errCode == E_OK) {
@@ -1263,24 +1312,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const st
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, bool &onceDropped)
-{
-    std::string keyStr = DBConstant::TABLE_WAS_DROPPED + tableName;
-    Key key;
-    DBCommon::StringToVector(keyStr, key);
-    Value value;
-
-    int errCode = GetKvData(key, value);
-    if (errCode == E_OK) {
-        onceDropped = true;
-        return E_OK;
-    } else if (errCode == -E_NOT_FOUND) {
-        onceDropped = false;
-        return E_OK;
-    }
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::CleanResourceForDroppedTable(const std::string &tableName)
 {
     int errCode = DeleteDistributedDeviceTable({}, tableName); // Clean the auxiliary tables for the dropped table
@@ -1322,19 +1353,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
 
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // The table in schema was dropped
-            errCode = DeleteDistributedDeviceTable({}, tableName); // Clean the auxiliary tables for the dropped table
+            errCode = CleanResourceForDroppedTable(tableName);
             if (errCode != E_OK) {
-                LOGE("Delete device tables for missing distributed table failed. %d", errCode);
-                break;
-            }
-            errCode = DeleteDistributedLogTable(tableName);
-            if (errCode != E_OK) {
-                LOGE("Delete log tables for missing distributed table failed. %d", errCode);
-                break;
-            }
-            errCode = DeleteTableTrigger(tableName);
-            if (errCode != E_OK) {
-                LOGE("Delete trigger for missing distributed table failed. %d", errCode);
+                LOGE("Clean resource for dropped table failed. %d", errCode);
                 break;
             }
             missingTables.emplace_back(tableName);
@@ -1343,7 +1364,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
             break;
         }
         errCode = E_OK; // Check result ok for distributed table is still exists
-        SQLiteUtils::ResetStatement(stmt, false, errCode);
+        SQLiteUtils::ResetStatement(stmt, false, ret);
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return CheckCorruptedStatus(errCode);
@@ -1878,7 +1899,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
                 return errCode;
             }
         } else {
-            updateLogSql += GetUpdateDataFlagSql() + ", cloud_gid = ?";
+            updateLogSql += GetUpdateDataFlagSql(vBucket) + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
             CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
         }
@@ -1893,6 +1914,32 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     if (errCode != E_OK) {
         LOGE("Get update log statement failed when update cloud data, %d", errCode);
     }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::string &tableName, const std::string &gid,
+    LockStatus &status)
+{
+    std::string sql = "select status from " + DBCommon::GetLogTableName(tableName) + " where cloud_gid = '" +
+        gid + "';";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get stmt failed when get lock status: %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        status = static_cast<LockStatus>(sqlite3_column_int(stmt, 0));
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("Not found lock status.");
+        errCode = -E_NOT_FOUND;
+    } else {
+        LOGE("Get lock status failed: %d", errCode);
+    }
+    int resetRet;
+    SQLiteUtils::ResetStatement(stmt, true, resetRet);
     return errCode;
 }
 } // namespace DistributedDB

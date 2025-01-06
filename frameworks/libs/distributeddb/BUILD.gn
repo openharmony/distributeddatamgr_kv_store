@@ -44,7 +44,6 @@ config("distrdb_config") {
     "syncer/src/device",
     "syncer/src/device/multiver",
     "syncer/src/device/singlever",
-    "//third_party/openssl/include/",
   ]
 
   defines = [
@@ -70,7 +69,10 @@ config("distrdb_config") {
   if (is_ohos) {
     defines += [ "USE_FFRT" ]
   }
-  if (kv_store_cloud) {
+  if (os_level == "standard" && kv_store_support_icu) {
+    defines += [ "DISTRIBUTEDDB_SUPPORT_ICU" ]
+  }
+  if (datamgr_kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }
 }
@@ -105,7 +107,7 @@ ohos_shared_library("distributeddb") {
     debug = false
   }
   sources = distributeddb_src
-  if (kv_store_cloud) {
+  if (datamgr_kv_store_cloud) {
     sources += distributeddb_cloud_src
   }
 
@@ -126,6 +128,10 @@ ohos_shared_library("distributeddb") {
     "hitrace:hitrace_meter",
     "zlib:shared_libz",
   ]
+
+  if (os_level == "standard" && kv_store_support_icu) {
+    external_deps += [ "icu:shared_icuuc" ]
+  }
 
   public_external_deps = [
     "jsoncpp:jsoncpp",

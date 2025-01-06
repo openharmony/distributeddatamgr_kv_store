@@ -57,7 +57,8 @@ enum class LogInfoFlag : uint32_t {
     FLAG_SYSTEM_RECORD = 0x200,
     FLAG_UPLOAD_FINISHED = 0x400,
     FLAG_LOGIC_DELETE_FOR_LOGOUT = 0x800,
-    Flag_ASSET_DOWNLOADING_FOR_ASYNC = 0x1000,
+    FLAG_ASSET_DOWNLOADING_FOR_ASYNC = 0x1000,
+    FLAG_LOGIN_USER = 0x2000, // same hash key, login user's data
 };
 
 struct RowDataWithLog {
@@ -84,6 +85,12 @@ struct OptTableDataWithLog {
 struct DataInfoWithLog {
     LogInfo logInfo;
     VBucket primaryKeys;
+};
+
+struct UpdateRecordFlagStruct {
+    std::string tableName;
+    bool isRecordConflict;
+    bool isInconsistency;
 };
 
 class DataTransformer {

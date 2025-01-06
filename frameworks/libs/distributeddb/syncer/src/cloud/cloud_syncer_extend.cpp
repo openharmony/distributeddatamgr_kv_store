@@ -77,17 +77,7 @@ int CloudSyncer::GetCloudGidAndFillExtend(TaskId taskId, const std::string &tabl
         LOGE("[CloudSyncer] Failed to get cloud gid when fill extend, %d.", errCode);
         return errCode;
     }
-    Bytes bytes;
-    bytes.resize(obj.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
-    Parcel parcel(bytes.data(), bytes.size());
-    errCode = obj.SerializeData(parcel, SOFTWARE_VERSION_CURRENT);
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] Query serialize failed %d", errCode);
-        return errCode;
-    }
-    extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::QUERY_FIELD);
-    extend[CloudDbConstant::QUERY_FIELD] = bytes;
-    return E_OK;
+    return CloudStorageUtils::FillCloudQueryToExtend(obj, extend);
 }
 
 int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
@@ -99,13 +89,18 @@ int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName,
 
     QuerySyncObject obj = GetQuerySyncObject(tableName);
     if (obj.IsContainQueryNodes()) {
-        int errCode = GetCloudGidAndFillExtend(taskId, tableName, obj, extend);
+        return GetCloudGidAndFillExtend(taskId, tableName, obj, extend);
+    }
+    if (IsCompensatedTask(taskId)) {
+        int errCode = GetCloudGid(taskId, tableName, obj);
         if (errCode != E_OK) {
             return errCode;
         }
-    } else {
-        extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::FULL_TABLE);
+        if (obj.IsContainQueryNodes()) {
+            return CloudStorageUtils::FillCloudQueryToExtend(obj, extend);
+        }
     }
+    extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::FULL_TABLE);
     return E_OK;
 }
 
@@ -170,96 +165,76 @@ void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
 
 int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
 {
-    uint32_t retryCount = 0;
-    int errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
-        uploadData.insData.extend, insertInfo, retryCount);
-    innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
-    innerProcessInfo.upLoadInfo.failCount += insertInfo.failCount;
-    innerProcessInfo.upLoadInfo.insertCount += insertInfo.successCount;
-    if (errCode == -E_CLOUD_VERSION_CONFLICT) {
-        ProcessVersionConflictInfo(innerProcessInfo, retryCount);
-    }
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer][BatchInsert] BatchInsert with error, ret is %d.", errCode);
-    }
-    if (uploadData.isCloudVersionRecord) {
-        return errCode;
-    }
-    bool isSharedTable = false;
-    int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
-    if (ret != E_OK) {
-        LOGE("[CloudSyncer] DoBatchUpload cannot judge the table is shared table. %d", ret);
-        return ret;
-    }
-    if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode, CloudWaterType::INSERT);
-        if (ret != E_OK) {
-            LOGW("[CloudSyncer][BatchInsert] FillAssetIdToAssets with error, ret is %d.", ret);
-        }
-    }
-    if (errCode != E_OK) {
-        storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
-        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.insData.extend);
-        if (isSkip) {
-            LOGI("[CloudSyncer][BatchInsert] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
-            return E_OK;
-        } else {
-            LOGE("[CloudSyncer][BatchInsert] errCode: %d, can not skip assets missing record.", errCode);
-            return errCode;
-        }
-    }
-    // we need to fill back gid after insert data to cloud.
-    int errorCode = storageProxy_->FillCloudLogAndAsset(OpType::INSERT, uploadData);
-    if ((errorCode != E_OK) || (ret != E_OK)) {
-        LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", errorCode);
-        return ret == E_OK ? errorCode : ret;
-    }
-    return E_OK;
+    return BatchInsertOrUpdate(insertInfo, uploadData, innerProcessInfo, true);
 }
 
 int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
 {
+    return BatchInsertOrUpdate(updateInfo, uploadData, innerProcessInfo, false);
+}
+
+int CloudSyncer::BatchInsertOrUpdate(Info &uploadInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo,
+    bool isInsert)
+{
     uint32_t retryCount = 0;
-    int errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
-        uploadData.updData.extend, updateInfo, retryCount);
-    innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
-    innerProcessInfo.upLoadInfo.failCount += updateInfo.failCount;
-    innerProcessInfo.upLoadInfo.updateCount += updateInfo.successCount;
+    int errCode = E_OK;
+    if (isInsert) {
+        errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
+            uploadData.insData.extend, uploadInfo, retryCount);
+        innerProcessInfo.upLoadInfo.insertCount += uploadInfo.successCount;
+    } else {
+        errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
+            uploadData.updData.extend, uploadInfo, retryCount);
+        innerProcessInfo.upLoadInfo.updateCount += uploadInfo.successCount;
+    }
+    innerProcessInfo.upLoadInfo.successCount += uploadInfo.successCount;
+    innerProcessInfo.upLoadInfo.failCount += uploadInfo.failCount;
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         ProcessVersionConflictInfo(innerProcessInfo, retryCount);
     }
     if (errCode != E_OK) {
-        LOGE("[CloudSyncer][BatchUpdate] BatchUpdate with error, ret is %d.", errCode);
+        LOGE("[CloudSyncer][BatchInsertOrUpdate] BatchInsertOrUpdate with error, ret is %d.", errCode);
     }
     if (uploadData.isCloudVersionRecord) {
         return errCode;
     }
+    return BackFillAfterBatchUpload(uploadData, isInsert, errCode);
+}
+
+int CloudSyncer::BackFillAfterBatchUpload(CloudSyncData &uploadData, bool isInsert, int batchUploadResult)
+{
     bool isSharedTable = false;
     int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
     if (ret != E_OK) {
-        LOGE("[CloudSyncer] DoBatchUpload cannot judge the table is shared table. %d", ret);
+        LOGE("[CloudSyncer] BackFillAfterBatchUpload cannot judge the table is shared table. %d", ret);
         return ret;
     }
+    int errCode = batchUploadResult;
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode, CloudWaterType::UPDATE);
+        CloudWaterType type = isInsert ? CloudWaterType::INSERT : CloudWaterType::UPDATE;
+        CloudSyncBatch &data = isInsert ? uploadData.insData : uploadData.updData;
+        ret = CloudSyncUtils::FillAssetIdToAssets(data, errCode, type);
         if (ret != E_OK) {
-            LOGW("[CloudSyncer][BatchUpdate] FillAssetIdToAssets with error, ret is %d.", ret);
+            LOGW("[CloudSyncer][BackFillAfterBatchUpload] FillAssetIdToAssets with error, ret is %d.", ret);
         }
     }
+    OpType opType = isInsert ? OpType::INSERT : OpType::UPDATE;
     if (errCode != E_OK) {
-        storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
-        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(uploadData.updData.extend);
+        storageProxy_->FillCloudGidIfSuccess(opType, uploadData);
+        CloudSyncBatch &data = isInsert ? uploadData.insData : uploadData.updData;
+        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(data.extend);
         if (isSkip) {
-            LOGI("[CloudSyncer][BatchUpdate] Try to FillCloudLogAndAsset when assets missing. errCode: %d", errCode);
+            LOGI("[CloudSyncer][BackFillAfterBatchUpload] Try to FillCloudLogAndAsset when assets missing: %d",
+                errCode);
             return E_OK;
         } else {
-            LOGE("[CloudSyncer][BatchUpdate] errCode: %d, can not skip assets missing record.", errCode);
+            LOGE("[CloudSyncer][BackFillAfterBatchUpload] errCode: %d, can not skip assets missing record.", errCode);
             return errCode;
         }
     }
-    int errorCode = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE, uploadData);
+    int errorCode = storageProxy_->FillCloudLogAndAsset(opType, uploadData);
     if ((errorCode != E_OK) || (ret != E_OK)) {
-        LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errorCode);
+        LOGE("[CloudSyncer] Failed to fill back when doing upload insData or updData, %d.", errorCode);
         return ret == E_OK ? errorCode : ret;
     }
     return E_OK;
@@ -553,6 +528,40 @@ int CloudSyncer::CommitDownloadAssets(const DownloadItem &downloadItem, InnerPro
     return errCode == E_OK ? ret : errCode;
 }
 
+int CloudSyncer::FillCloudAssetsForOneRecord(const std::string &gid, const std::map<std::string, Assets> &assetsMap,
+    InnerProcessInfo &info, bool setAllNormal, bool &isExistAssetDownloadFail)
+{
+    VBucket normalAssets;
+    VBucket failedAssets;
+    normalAssets[CloudDbConstant::GID_FIELD] = gid;
+    failedAssets[CloudDbConstant::GID_FIELD] = gid;
+    if (setAllNormal) {
+        for (auto &[key, asset] : assetsMap) {
+            normalAssets[key] = std::move(asset);
+        }
+    } else {
+        SeparateNormalAndFailAssets(assetsMap, normalAssets, failedAssets);
+    }
+    isExistAssetDownloadFail = failedAssets.size() > 1; // There is initially one element present
+    return FillCloudAssets(info, normalAssets, failedAssets);
+}
+
+int CloudSyncer::UpdateRecordFlagForOneRecord(const std::string &gid, const DownloadItem &downloadItem,
+    InnerProcessInfo &info, bool isExistAssetDownloadFail)
+{
+    LogInfo logInfo;
+    logInfo.cloudGid = gid;
+    // download must contain gid, just set the default value here.
+    logInfo.dataKey = DBConstant::DEFAULT_ROW_ID;
+    logInfo.hashKey = downloadItem.hashKey;
+    logInfo.timestamp = downloadItem.timestamp;
+    // there are failed assets, reset the timestamp to prevent the flag from being marked as consistent.
+    if (isExistAssetDownloadFail) {
+        logInfo.timestamp = 0u;
+    }
+    return storageProxy_->UpdateRecordFlag(info.tableName, info.isAsyncDownload, downloadItem.recordConflict, logInfo);
+}
+
 int CloudSyncer::CommitDownloadAssetsForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
@@ -565,36 +574,21 @@ int CloudSyncer::CommitDownloadAssetsForAsyncDownload(const DownloadItem &downlo
         // 1 means assetsMap info [colName, assets] is the forth element in downloadList[i]
         std::map<std::string, Assets> assetsMap = std::get<1>(item);
         bool setAllNormal = std::get<2>(item); // 2 means whether the download return is E_OK
-        VBucket normalAssets;
-        VBucket failedAssets;
-        normalAssets[CloudDbConstant::GID_FIELD] = gid;
-        failedAssets[CloudDbConstant::GID_FIELD] = gid;
-        if (setAllNormal) {
-            for (auto &[key, asset] : assetsMap) {
-                normalAssets[key] = std::move(asset);
-            }
-        } else {
-            SeparateNormalAndFailAssets(assetsMap, normalAssets, failedAssets);
+        LockStatus status = LockStatus::BUTT;
+        errCode = storageProxy_->GetLockStatusByGid(info.tableName, gid, status);
+        if (errCode == E_OK && status != LockStatus::UNLOCK) {
+            continue;
         }
+
+        bool isExistAssetDownloadFail = false;
         if (!downloadItem.recordConflict) {
-            errCode = FillCloudAssets(info, normalAssets, failedAssets);
+            errCode = FillCloudAssetsForOneRecord(gid, assetsMap, info, setAllNormal, isExistAssetDownloadFail);
             if (errCode != E_OK) {
                 break;
             }
         }
-        LogInfo logInfo;
-        logInfo.cloudGid = gid;
-        // download must contain gid, just set the default value here.
-        logInfo.dataKey = DBConstant::DEFAULT_ROW_ID;
-        logInfo.hashKey = downloadItem.hashKey;
-        logInfo.timestamp = downloadItem.timestamp;
-        // there are failed assets, reset the timestamp to prevent the flag from being marked as consistent.
-        if (failedAssets.size() > 1) {
-            logInfo.timestamp = 0u;
-        }
 
-        errCode = storageProxy_->UpdateRecordFlag(
-            info.tableName, info.isAsyncDownload, downloadItem.recordConflict, logInfo);
+        errCode = UpdateRecordFlagForOneRecord(gid, downloadItem, info, isExistAssetDownloadFail);
         if (errCode != E_OK) {
             break;
         }
@@ -609,7 +603,7 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
     int errCode =
-        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(IsAsyncDownloadFinished(), storageProxy_, users, syncQuery);
+        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(CanStartAsyncDownload(), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         return;
@@ -618,8 +612,13 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
         LOGD("[CloudSyncer] Not need generate compensated sync");
         return;
     }
-    Sync(taskInfo);
-    LOGI("[CloudSyncer] Generate compensated sync finished");
+    for (const auto &it : syncQuery) {
+        CloudTaskInfo compensatedTaskInfo = taskInfo;
+        compensatedTaskInfo.queryList.push_back(it);
+        Sync(compensatedTaskInfo);
+        taskInfo.callback = nullptr;
+        LOGI("[CloudSyncer] Generate compensated sync finished");
+    }
 }
 
 void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam)
@@ -1004,8 +1003,8 @@ std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBase
     cloudTaskInfos_[beMergeTask].status = ProcessStatus::FINISHED;
     processNotifier->SetAllTableFinish();
     processNotifier->NotifyProcess(cloudTaskInfos_[beMergeTask], {}, true);
-    cloudTaskInfos_.erase(beMergeTask);
     RemoveTaskFromQueue(cloudTaskInfos_[beMergeTask].priorityLevel, beMergeTask);
+    cloudTaskInfos_.erase(beMergeTask);
     LOGW("[CloudSyncer] TaskId %" PRIu64 " has been merged", beMergeTask);
     return res;
 }
@@ -1589,6 +1588,7 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
         }
         index++;
     }
+    storageProxy_->PrintCursorChange(info.tableName);
     return errorCode;
 }
 
@@ -1640,7 +1640,7 @@ void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
 
 void CloudSyncer::WaitCurTaskFinished()
 {
-        CancelBackgroundDownloadAssetsTask();
+    CancelBackgroundDownloadAssetsTask();
     std::unique_lock<std::mutex> uniqueLock(dataLock_);
     if (currentContext_.currentTaskId != INVALID_TASK_ID) {
         LOGI("[CloudSyncer] begin wait current task %" PRIu64 " finished", currentContext_.currentTaskId);
@@ -1764,20 +1764,23 @@ void CloudSyncer::DoBackgroundDownloadAssets()
             return;
         }
         allDownloadFinish = true;
-        for (const auto &table : tables) {
+        std::list<std::string> tableQueue(tables.begin(), tables.end());
+        while (!tableQueue.empty()) {
             if (cancelAsyncTask_ || closed_) {
                 LOGW("[CloudSyncer] exit task by cancel %d closed %d", static_cast<int>(cancelAsyncTask_),
                     static_cast<int>(closed_));
                 return;
             }
-            errCode = BackgroundDownloadAssetsByTable(table, downloadBeginTime);
+            errCode = BackgroundDownloadAssetsByTable(tableQueue.front(), downloadBeginTime);
             if (errCode == E_OK) {
                 allDownloadFinish = false;
             } else if (errCode == -E_FINISHED) {
+                tableQueue.pop_front();
                 errCode = E_OK;
             } else {
                 LOGW("[CloudSyncer] BackgroundDownloadAssetsByTable table %s failed %d",
-                    DBCommon::StringMiddleMasking(table).c_str(), errCode);
+                    DBCommon::StringMiddleMasking(tableQueue.front()).c_str(), errCode);
+                tableQueue.pop_front();
             }
         }
     } while (!allDownloadFinish);
@@ -2051,8 +2054,12 @@ bool CloudSyncer::IsCurrentAsyncDownloadTask()
     return cloudTaskInfos_[currentContext_.currentTaskId].asyncDownloadAssets;
 }
 
-bool CloudSyncer::IsAsyncDownloadFinished() const
+bool CloudSyncer::CanStartAsyncDownload() const
 {
+    if (!RuntimeContext::GetInstance()->GetAssetsDownloadManager()->CanStartNewTask()) {
+        LOGW("[CloudSyncer] Too many download tasks");
+        return false;
+    }
     return asyncTaskId_ == INVALID_TASK_ID;
 }
 
@@ -2134,7 +2141,7 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
     int errCode =
-        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(IsAsyncDownloadFinished(), storageProxy_, users, syncQuery);
+        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(CanStartAsyncDownload(), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         // if failed, finshed the task directly.
@@ -2153,10 +2160,8 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
         cloudTaskInfos_[triggerTaskId].users = userList;
         cloudTaskInfos_[triggerTaskId].table.clear();
         cloudTaskInfos_[triggerTaskId].queryList.clear();
-        for (const auto &query : syncQuery) {
-            cloudTaskInfos_[triggerTaskId].table.push_back(query.GetRelationTableName());
-            cloudTaskInfos_[triggerTaskId].queryList.push_back(query);
-        }
+        cloudTaskInfos_[triggerTaskId].table.push_back(syncQuery[0].GetRelationTableName());
+        cloudTaskInfos_[triggerTaskId].queryList.push_back(syncQuery[0]);
     }
     return true;
 }

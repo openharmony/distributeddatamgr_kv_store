@@ -526,3 +526,33 @@ HWTEST_F(DistributedDBTimeSyncTest, SetTimeSyncFinish001, TestSize.Level0)
     EXPECT_FALSE(g_metadataA->IsTimeSyncFinish(DEVICE_B));
     RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
 }
+
+/**
+ * @tc.name: TimeHelper001
+ * @tc.desc: Verify init time helper will not record offset into db.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBTimeSyncTest, TimeHelper001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Initialize the metadata
+     * @tc.expected: step1. Initialize successfully
+     */
+    EXPECT_EQ(g_metadataA->Initialize(g_syncInterfaceA), E_OK);
+    /**
+     * @tc.steps: step2. Record INT64_MAX as timestamp and init time helper
+     * @tc.expected: step2. Init without recording offset into db
+     */
+    ASSERT_EQ(g_syncInterfaceA->PutData({'k'}, {'v'}, INT64_MAX, 0), E_OK);
+    std::string keyStr(DBConstant::LOCALTIME_OFFSET_KEY);
+    Key key(keyStr.begin(), keyStr.end());
+    Value before;
+    g_syncInterfaceA->GetMetaData(key, before);
+    TimeHelper timeHelper;
+    EXPECT_EQ(timeHelper.Initialize(g_syncInterfaceA, g_metadataA), E_OK);
+    Value after;
+    g_syncInterfaceA->GetMetaData(key, after);
+    EXPECT_EQ(after, before);
+}

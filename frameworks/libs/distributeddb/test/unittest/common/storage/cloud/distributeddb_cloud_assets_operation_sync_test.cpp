@@ -390,7 +390,8 @@ void DistributedDBCloudAssetsOperationSyncTest::CheckAssetsCount(const std::vect
 void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount,
     int &removeCount)
 {
-    virtualAssetLoader_->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    virtualAssetLoader_->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::string sql = "UPDATE " + tableName_ + " SET assets = NULL WHERE id = 0;";
@@ -1004,7 +1005,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation011, T
         UpdateLocalTableRecord(tableName_, 0, 1);
         return OK;
     });
-    virtualAssetLoader_->ForkDownload([](std::map<std::string, Assets> &assets) {
+    virtualAssetLoader_->ForkDownload([](const std::string &tableName, std::map<std::string, Assets> &assets) {
         EXPECT_TRUE(false);
     });
     BlockSync(query, delegate_);
@@ -1075,6 +1076,42 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation013, T
      */
     UpdateLocalAssetRecord(tableName_, 0, 1);
     const int cursor = 2;
+    std::string sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=1";
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(cursor), nullptr), SQLITE_OK);
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step3. check modified data cursor and cursor is not changed.
+     * @tc.expected: step3. ok.
+     */
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(cursor), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SyncWithAssetOperation014
+ * @tc.desc: Test device data does not change while sync and cursor will not changes
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert 5 records and sync.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 5;
+    RelationalTestUtils::InsertCloudRecord(0, actualCount, tableName_, virtualCloudDb_);
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    /**
+     * @tc.steps:step2. modify data and sync.
+     * @tc.expected: step2. ok.
+     */
+    UpdateLocalAssetRecord(tableName_, 0, 1);
+    const int cursor = 6;
     std::string sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=1";
     EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(cursor), nullptr), SQLITE_OK);

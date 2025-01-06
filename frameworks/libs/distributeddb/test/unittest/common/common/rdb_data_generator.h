@@ -26,6 +26,9 @@ public:
 
     static int InitTable(const DistributedDB::TableSchema &table, bool notNullWithStr, sqlite3 &db);
 
+    static int InitTable(const DistributedDB::TableSchema &table, bool notNullWithStr, bool isAutoIncrement,
+        sqlite3 &db);
+
     static DistributedDB::DBStatus InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart,
         const DistributedDB::DataBaseSchema &schema,
         const std::shared_ptr<DistributedDB::VirtualCloudDb> &virtualCloudDb);

@@ -443,19 +443,8 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
 
-    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
-
-    std::string localIdentity; // collaboration mode need local identify
-    if (mode == DistributedTableMode::COLLABORATION) {
-        int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
-        if (errCode != E_OK || localIdentity.empty()) {
-            LOGD("Get local identity failed, can not create.");
-            return -E_NOT_SUPPORT;
-        }
-    }
-
     bool schemaChanged = false;
-    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
+    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(""),
         schemaChanged, syncType, trackerSchemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
@@ -1122,6 +1111,9 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
         LOGE("[RelationalStore] priority level is invalid value:%d", option.priorityLevel);
         return -E_INVALID_ARGS;
     }
+    if (option.compensatedSyncOnly && option.asyncDownloadAssets) {
+        return -E_NOT_SUPPORT;
+    }
     int errCode = CheckQueryValid(option);
     if (errCode != E_OK) {
         return errCode;
@@ -1273,27 +1265,77 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 {
-    int errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
+    TableInfo tableInfo;
+    bool isFirstCreate = false;
+    bool isNoTableInSchema = false;
+    int errCode = CheckTrackerTable(trackerSchema, tableInfo, isNoTableInSchema, isFirstCreate);
+    if (errCode != E_OK) {
+        if (errCode != -E_IGNORE_DATA) {
+            return errCode;
+        }
+        auto *handle = GetHandle(true, errCode);
+        if (handle != nullptr) {
+            handle->CheckAndCreateTrigger(tableInfo);
+            ReleaseHandle(handle);
+        }
+        return E_OK;
+    }
+    errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] update [%s [%zu]] extend_field failed: %d",
             DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(), errCode);
         return errCode;
     }
-    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
-    TableInfo tableInfo = localSchema.GetTable(trackerSchema.tableName);
-    if (tableInfo.Empty()) {
-        return sqliteStorageEngine_->SetTrackerTable(trackerSchema);
+    if (isNoTableInSchema) {
+        return sqliteStorageEngine_->SetTrackerTable(trackerSchema, tableInfo, isFirstCreate);
     }
-    bool isFirstCreate = false;
-    errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo, isFirstCreate);
-    if (errCode != E_OK) {
-        return errCode == -E_IGNORE_DATA ? E_OK : errCode;
-    }
+    sqliteStorageEngine_->CacheTrackerSchema(trackerSchema);
     errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType(), true);
     if (errCode != E_OK) {
+        LOGE("[RelationalStore] create distributed table of [%s [%zu]] failed: %d",
+            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(), errCode);
         return errCode;
     }
     return sqliteStorageEngine_->SaveTrackerSchema(trackerSchema.tableName, isFirstCreate);
+}
+
+int SQLiteRelationalStore::CheckTrackerTable(const TrackerSchema &trackerSchema, TableInfo &table,
+    bool &isNoTableInSchema, bool &isFirstCreate)
+{
+    const RelationalSchemaObject &tracker = sqliteStorageEngine_->GetTrackerSchema();
+    isFirstCreate = tracker.GetTrackerTable(trackerSchema.tableName).GetTableName().empty();
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    table = localSchema.GetTable(trackerSchema.tableName);
+    TrackerTable trackerTable;
+    trackerTable.Init(trackerSchema);
+    int errCode = E_OK;
+    if (table.Empty()) {
+        isNoTableInSchema = true;
+        table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+        auto *handle = GetHandle(true, errCode);
+        if (handle == nullptr) {
+            return errCode;
+        }
+        errCode = handle->AnalysisTrackerTable(trackerTable, table);
+        ReleaseHandle(handle);
+        if (errCode != E_OK) {
+            LOGE("[CheckTrackerTable] analysis table schema failed %d.", errCode);
+            return errCode;
+        }
+    } else {
+        table.SetTrackerTable(trackerTable);
+        errCode = table.CheckTrackerTable();
+        if (errCode != E_OK) {
+            LOGE("[CheckTrackerTable] check tracker table schema failed. %d", errCode);
+            return errCode;
+        }
+    }
+    if (!trackerSchema.isForceUpgrade && !tracker.GetTrackerTable(trackerSchema.tableName).IsChanging(trackerSchema)) {
+        LOGW("[CheckTrackerTable] tracker schema is no change, table[%s [%zu]]",
+            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size());
+        return -E_IGNORE_DATA;
+    }
+    return E_OK;
 }
 
 int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)

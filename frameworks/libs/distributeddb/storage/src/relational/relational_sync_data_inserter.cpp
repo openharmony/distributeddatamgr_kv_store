@@ -235,23 +235,30 @@ int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt 
 
 int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt)
 {
+    std::string conflictPk;
+    std::string selCondition;
+    if (mode_ == DistributedTableMode::COLLABORATION) {
+        conflictPk = "ON CONFLICT(hash_key)";
+        selCondition = " WHERE hash_key = ?;";
+    } else {
+        conflictPk = "ON CONFLICT(hash_key, device)";
+        selCondition = " WHERE hash_key = ? AND device = ?;";
+    }
     const std::string tableName = DBConstant::RELATIONAL_PREFIX + query_.GetTableName() + "_log";
     std::string dataFormat = "?, '" + hashDevId_ + "', ?, ?, ?, ?, ?";
     std::string columnList = "data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key";
-    std::string sql = "INSERT OR REPLACE INTO " + tableName +
+    std::string sql = "INSERT INTO " + tableName +
         " (" + columnList + ", cursor) VALUES (" + dataFormat + "," +
-        CloudStorageUtils::GetSelectIncCursorSql(query_.GetTableName()) +");";
+        CloudStorageUtils::GetSelectIncCursorSql(query_.GetTableName()) +") " + conflictPk +
+        " DO UPDATE SET data_key = excluded.data_key, device = excluded.device,"
+        " ori_device = excluded.ori_device, timestamp = excluded.timestamp, wtimestamp = excluded.wtimestamp,"
+        " flag = excluded.flag, cursor = excluded.cursor;";
     int errCode = SQLiteUtils::GetStatement(db, sql, logStmt);
     if (errCode != E_OK) {
         LOGE("[info statement] Get log statement fail! errCode:%d", errCode);
         return errCode;
     }
-    std::string selectSql = "select " + columnList + " from " + tableName;
-    if (mode_ == DistributedTableMode::COLLABORATION) {
-        selectSql += " where hash_key = ?;";
-    } else {
-        selectSql += " where hash_key = ? and device = ?;";
-    }
+    std::string selectSql = "SELECT " + columnList + " FROM " + tableName + selCondition;
     errCode = SQLiteUtils::GetStatement(db, selectSql, queryStmt);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(logStmt, true, errCode);
@@ -357,14 +364,8 @@ int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqli
 int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt,
     const DataItem &dataItem, int64_t rowid)
 {
-    auto updateCursor = CloudStorageUtils::GetCursorIncSql(query_.GetTableName());
-    int errCode = SQLiteUtils::ExecuteRawSQL(db, updateCursor);
-    if (errCode != E_OK) {
-        LOGE("[RelationalSyncDataInserter] update cursor failed %d", errCode);
-        return errCode;
-    }
     LogInfo logInfoGet;
-    errCode = SQLiteRelationalUtils::GetLogInfoPre(queryStmt, mode_, dataItem, logInfoGet);
+    int errCode = SQLiteRelationalUtils::GetLogInfoPre(queryStmt, mode_, dataItem, logInfoGet);
     LogInfo logInfoBind;
     logInfoBind.hashKey = dataItem.hashKey;
     logInfoBind.device = dataItem.dev;

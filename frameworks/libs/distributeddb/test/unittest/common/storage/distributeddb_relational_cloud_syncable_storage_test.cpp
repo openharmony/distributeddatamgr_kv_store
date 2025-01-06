@@ -766,6 +766,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
     CreateLogTable(g_tableName);
     int64_t insCount = 100;
     InitLogData(insCount, 0, insCount, insCount, g_logTblName);
+    CreateAndInitUserTable(0, 0, {});
     CloudSyncData syncData(g_tableName);
     SetDbSchema(g_tableSchema);
 

@@ -1019,7 +1019,7 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     return ret;
 }
 
-int CloudSyncer::DoDownloadAssets(bool skipSave, SyncParam &param)
+int CloudSyncer::DoDownloadAssets(SyncParam &param)
 {
     // Begin downloading assets
     ChangedData changedAssets;
@@ -1033,15 +1033,6 @@ int CloudSyncer::DoDownloadAssets(bool skipSave, SyncParam &param)
     if (!isSharedTable) {
         (void)NotifyChangedDataInCurrentTask(std::move(changedAssets));
     }
-    if (ret == -E_TASK_PAUSED) {
-        LOGD("[CloudSyncer] current task was paused, abort download asset");
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = true;
-        return ret;
-    } else if (skipSave) {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = false;
-    }
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot notify downloadAssets due to error %d", ret);
     }
@@ -1051,32 +1042,30 @@ int CloudSyncer::DoDownloadAssets(bool skipSave, SyncParam &param)
 int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param)
 {
     ChangedData changedData;
-    bool skipSave = false;
-    {
-        bool currentTableResume = IsCurrentTableResume(taskId, false);
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (currentTableResume && resumeTaskInfos_[currentContext_.currentTaskId].skipQuery) {
-            skipSave = true;
+    InnerProcessInfo tmpInfo = param.info;
+    param.changedData = changedData;
+    param.downloadData.opType.resize(param.downloadData.data.size());
+    param.downloadData.existDataKey.resize(param.downloadData.data.size());
+    param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
+    int ret = SaveDataInTransaction(taskId, param);
+    if (ret != E_OK) {
+        return ret;
+    }
+    // call OnChange to notify changedData object first time (without Assets)
+    ret = NotifyChangedDataInCurrentTask(std::move(param.changedData));
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Cannot notify changed data due to error %d", ret);
+        return ret;
+    }
+
+    ret = DoDownloadAssets(param);
+    if (ret == -E_TASK_PAUSED) {
+        param.info = tmpInfo;
+        if (IsAsyncDownloadAssets(taskId)) {
+            UpdateCloudWaterMark(taskId, param);
+            (void)SaveCloudWaterMark(param.tableName, taskId);
         }
     }
-    int ret;
-    if (!skipSave) {
-        param.changedData = changedData;
-        param.downloadData.opType.resize(param.downloadData.data.size());
-        param.downloadData.existDataKey.resize(param.downloadData.data.size());
-        param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
-        ret = SaveDataInTransaction(taskId, param);
-        if (ret != E_OK) {
-            return ret;
-        }
-        // call OnChange to notify changedData object first time (without Assets)
-        ret = NotifyChangedDataInCurrentTask(std::move(param.changedData));
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Cannot notify changed data due to error %d", ret);
-            return ret;
-        }
-    }
-    ret = DoDownloadAssets(skipSave, param);
     if (ret != E_OK) {
         return ret;
     }
@@ -1695,7 +1684,7 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
         storageProxy_->Rollback();
         return errCode;
     }
-
+    LOGI("[CloudSyncer] Clean cloud data success, mode=%d", mode);
     if (!assets.empty() && mode == FLAG_AND_DATA) {
         errCode = cloudDB_.RemoveLocalAssets(assets);
         if (errCode != E_OK) {
@@ -1703,6 +1692,7 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
             storageProxy_->Rollback();
             return errCode;
         }
+        LOGI("[CloudSyncer] Remove local asset success, size=%zu", assets.size());
     }
 
     storageProxy_->Commit();

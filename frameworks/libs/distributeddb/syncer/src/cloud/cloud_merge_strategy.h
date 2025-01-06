@@ -35,6 +35,8 @@ private:
     OpType TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete,
         bool isLocalDelete);
 
+    OpType TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo);
+
     OpType TagLocalNotExist(bool isCloudDelete);
     bool JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo);
 };

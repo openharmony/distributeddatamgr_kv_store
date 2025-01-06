@@ -1143,6 +1143,51 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp001, TestS
 }
 
 /**
+ * @tc.name: GetQueryLastTimestamp002
+ * @tc.desc: Test Metadata::GetQueryLastTimestamp when timestamp out of INT64 range.
+ * @tc.type: FUNC
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. initialize storage with fake meta data
+     * @tc.expected: step1. E_OK
+     */
+    const int64_t validInt64Num1 = 3000000000000000000; // a random valid int64 number
+    const int64_t validInt64Num2 = 3000000000000000001; // a random valid int64 number
+    // key is queryId, value is: [stored timestamp in db, expect return value of GetQueryLastTimestamp]
+    std::map<std::string, std::pair<std::string, int64_t>> idValueMap = {
+        {"regular1", {"3000000000000000000", validInt64Num1}},
+        {"max", {"9223372036854775807", INT64_MAX}},
+        {"min", {"-9223372036854775808", INT64_MIN}},
+        {"overMax", {"9223372036854775808", INT64_MAX}},
+        {"underMin", {"-9223372036854775809", INT64_MIN}},
+        {"regular2", {"3000000000000000001", validInt64Num2}}};
+    Key metaKey;
+    Value value;
+    VirtualSingleVerSyncDBInterface storage;
+    for (auto &pair : idValueMap) {
+        std::string keyStr = DBConstant::SUBSCRIBE_QUERY_PREFIX + DBCommon::TransferHashString(pair.first);
+        DBCommon::StringToVector(keyStr, metaKey);
+        DBCommon::StringToVector(pair.second.first, value);
+        EXPECT_EQ(storage.PutMetaData(metaKey, value, false), E_OK);
+    }
+    /**
+     * @tc.steps: step2. call GetQueryLastTimestamp with different query id
+     * @tc.expected: step2. get the correct return value
+     */
+    Metadata meta;
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+    for (auto &pair : idValueMap) {
+        auto &queryId = pair.first;
+        auto &expectVal = pair.second.second; 
+        EXPECT_EQ(meta.GetQueryLastTimestamp("any", queryId), static_cast<uint64_t>(expectVal));
+    }
+}
+
+/**
  * @tc.name: MetaDataExceptionBranch001
  * @tc.desc: Test execption branch of meata data.
  * @tc.type: FUNC

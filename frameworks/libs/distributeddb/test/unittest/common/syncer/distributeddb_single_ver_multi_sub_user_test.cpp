@@ -492,6 +492,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSiz
 
     PermissionCheckCallbackV4 nullCallback = nullptr;
     EXPECT_EQ(mgr1.SetPermissionCheckCallback(nullCallback), OK);
+    CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
 
 /**

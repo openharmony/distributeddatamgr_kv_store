@@ -20,7 +20,7 @@
 #include "iAssetLoader.h"
 
 namespace DistributedDB {
-using DownloadCallBack = std::function<void (std::map<std::string, Assets> &assets)>;
+using DownloadCallBack = std::function<void (const std::string &tableName, std::map<std::string, Assets> &assets)>;
 using RemoveAssetsCallBack = std::function<DBStatus (const std::vector<Asset> &assets)>;
 using RemoveLocalAssetsCallBack = std::function<DBStatus (std::map<std::string, Assets> &assets)>;
 using BatchDownloadCallback = std::function<DBStatus (int rowIndex, std::map<std::string, Assets> &assets)>;

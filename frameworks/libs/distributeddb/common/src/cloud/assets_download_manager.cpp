@@ -119,6 +119,12 @@ uint32_t AssetsDownloadManager::GetMaxDownloadAssetsCount() const
     return config_.maxDownloadAssetsCount;
 }
 
+bool AssetsDownloadManager::CanStartNewTask() const
+{
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
+    return config_.maxDownloadTask > currentDownloadCount_;
+}
+
 int AssetsDownloadManager::InitNotificationChain()
 {
     if (notificationChain_ != nullptr) {

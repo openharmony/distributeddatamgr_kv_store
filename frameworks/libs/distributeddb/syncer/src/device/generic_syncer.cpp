@@ -296,6 +296,7 @@ int GenericSyncer::RemoveSyncOperation(int syncId)
         syncIdMap_.erase(syncId);
         return E_OK;
     }
+    LOGE("[Syncer] RemoveSyncOperation, id %d not found", syncId);
     return -E_INVALID_ARGS;
 }
 
@@ -387,13 +388,22 @@ void GenericSyncer::AddSyncOperation(ISyncEngine *engine, SyncOperation *operati
         return;
     }
 
-    LOGD("[Syncer] AddSyncOperation.");
+    LOGD("[Syncer] AddSyncOperation, sync id: %d.", operation->GetSyncId());
     engine->AddSyncOperation(operation);
 
     if (operation->CheckIsAllFinished()) {
+        LOGD("[Syncer] AddSyncOperation, sync id: %d, but all finished.", operation->GetSyncId());
         return;
     }
 
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (closing_ || !initialized_) {
+            LOGE("[Syncer] Syncer has been closed, return");
+            operation->SetUnfinishedDevStatus(SyncOperation::OP_FAILED);
+            return;
+        }
+    }
     std::lock_guard<std::mutex> lock(operationMapLock_);
     syncOperationMap_.insert(std::pair<int, SyncOperation *>(operation->GetSyncId(), operation));
     // To make sure operation alive before WaitIfNeed out
@@ -537,6 +547,7 @@ bool GenericSyncer::IsValidDevices(const std::vector<std::string> &devices) cons
 
 void GenericSyncer::ClearSyncOperations(bool isClosedOperation)
 {
+    LOGD("[Syncer] begin clear sync operations");
     std::vector<SyncOperation *> syncOperation;
     {
         std::lock_guard<std::mutex> lock(operationMapLock_);
@@ -563,6 +574,7 @@ void GenericSyncer::ClearSyncOperations(bool isClosedOperation)
         RefObject::DecObjRef(operation);
     }
     ClearInnerResource(isClosedOperation);
+    LOGD("[Syncer] clear sync operations done");
 }
 
 void GenericSyncer::ClearInnerResource(bool isClosedOperation)
@@ -570,6 +582,9 @@ void GenericSyncer::ClearInnerResource(bool isClosedOperation)
     {
         std::lock_guard<std::mutex> lock(operationMapLock_);
         for (auto &iter : syncOperationMap_) {
+            if (iter.second->IsBlockSync()) {
+                iter.second->NotifyIfNeed();
+            }
             RefObject::KillAndDecObjRef(iter.second);
             iter.second = nullptr;
         }

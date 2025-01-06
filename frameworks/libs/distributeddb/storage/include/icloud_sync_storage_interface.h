@@ -304,6 +304,13 @@ public:
     {
         return GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
     }
+
+    virtual void PrintCursorChange([[gnu::unused]] const std::string &tableName) {}
+
+    virtual int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status)
+    {
+        return E_OK;
+    }
 };
 }
 

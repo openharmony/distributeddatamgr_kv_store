@@ -812,11 +812,11 @@ void CloudDBProxy::CopyAssetsBack(std::vector<IAssetLoader::AssetRecord> &origin
 void CloudDBProxy::CancelDownload()
 {
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
-    if (iAssetLoader_ == nullptr) {
-        LOGE("[CloudDBProxy] Asset loader has not been set %d when cancel", -E_NOT_SET);
+    if (!isDownloading_) {
         return;
     }
-    if (!isDownloading_) {
+    if (iAssetLoader_ == nullptr) {
+        LOGE("[CloudDBProxy] Asset loader has not been set %d when cancel", -E_NOT_SET);
         return;
     }
     DBStatus status = iAssetLoader_->CancelDownload();

@@ -43,8 +43,8 @@ public:
     const RelationalDBProperties &GetProperties() const;
     void SetProperties(const RelationalDBProperties &properties);
 
-    int SetTrackerTable(const TrackerSchema &schema);
-    int CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo, bool &isFirstCreate);
+    int SetTrackerTable(const TrackerSchema &schema, const TableInfo &tableInfo, bool isFirstCreate);
+    void CacheTrackerSchema(const TrackerSchema &schema);
     int GetOrInitTrackerSchemaFromMeta();
     int SaveTrackerSchema(const std::string &tableName, bool isFirstCreate);
 

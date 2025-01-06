@@ -371,60 +371,15 @@ struct Group {
     std::string groupId = "";
 };
 
-/**
- * @brief Cloud config
-*/
-struct CloudConfig {
-    /**
-     * @brief enable cloud
-    */
-    bool enableCloud = false;
-    /**
-     * @brief Set cloud sync is auto sync
-    */
-    bool autoSync = false;
-};
-
 enum IndexType : uint32_t {
     /**
-      * use btree index type in database
+     * use btree index type in database
     */
     BTREE = 0,
     /**
-      * use hash index type in database
+     * use hash index type in database
     */
     HASH,
-};
-
-/**
- * @brief Data type, that determined the way and timing of data synchronization.
-*/
-enum DataType : uint32_t {
-    /**
-      * TYPE_STATICS: means synchronize on link establishment or device online.
-    */
-    TYPE_STATICS = 0,
-
-    /**
-      * TYPE_DYNAMICAL: means synchronize on link establishment.
-      * synchronize can also triggered by the sync and async get interface.
-    */
-    TYPE_DYNAMICAL,
-};
-
-/**
- * @brief Verify data synchronization based on the account type.
-*/
-enum AuthType : uint32_t {
-    /**
-      * DEFAULT: means all types of checks.
-    */
-    DEFAULT = 0,
-
-    /**
-      * IDENTICAL_ACCOUNT_CHECK: means verify the same account type.
-    */
-    IDENTICAL_ACCOUNT
 };
 
 /**
@@ -543,15 +498,6 @@ struct Options {
     */
     bool isClientSync = false;
     /**
-     * Whether the sync need compress.
-    */
-    bool isNeedCompress = true;
-    /**
-     * Indicates data type.
-     * Only dynamic data support auto sync.
-    */
-    DataType dataType = DataType::TYPE_DYNAMICAL;
-    /**
      * config database details.
     */
     struct Config {
@@ -559,22 +505,6 @@ struct Options {
         uint32_t pageSize = 32u;
         uint32_t cacheSize = 2048u;
     } config;
-    /**
-     * Set cloud config of kv store.
-    */
-    CloudConfig cloudConfig;
-    /**
-     * Set authType of kv store.
-    */
-    AuthType authType = AuthType::DEFAULT;
-    /**
-     * Application sdk version.
-    */
-    int32_t apiVersion = 9;
-    /**
-    * Sub user config for system ability.
-    */
-    int32_t subUser = 0;
 };
 
 /**

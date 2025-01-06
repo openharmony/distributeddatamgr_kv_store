@@ -1156,7 +1156,16 @@ void SyncWithQuery(vector<std::string> &devices, const Query &query, const SyncM
     DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, mode, result, query);
     EXPECT_TRUE(status == OK);
     for (const auto &deviceId : devices) {
-        ASSERT_EQ(result[deviceId], targetStatus);
+        if (targetStatus == COMM_FAILURE) {
+            // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
+            // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
+            // The returned status is COMM_FAILURE.
+            // If syncTaskContext of deviceB is not executed first, the error code is transparently transmitted.
+            EXPECT_TRUE((result[deviceId] == static_cast<DBStatus>(-E_PERIPHERAL_INTERFACE_FAIL)) ||
+                (result[deviceId] == COMM_FAILURE));
+        } else {
+            ASSERT_EQ(result[deviceId], targetStatus);
+        }
     }
 }
 
@@ -2487,5 +2496,53 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
     EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 0);
     g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: KVTimeChange002
+ * @tc.desc: test NotifyTimestampChanged will not stuck when notify delegate with no metadata
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open a new store with STORE_ID_3
+     * @tc.expected: step1. open success
+     */
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = SecurityLabel::S3;
+    option.secOption.securityFlag = SecurityFlag::SECE;
+    KvStoreNbDelegate *delegate2 = nullptr;
+    g_mgr.GetKvStore(STORE_ID_3, option, [&delegate2](DBStatus status, KvStoreNbDelegate *delegate) {
+        delegate2 = delegate;
+        EXPECT_EQ(status, OK);
+    });
+    ASSERT_TRUE(delegate2 != nullptr);
+    /**
+     * @tc.steps: step2. STORE_ID_3 sync once so that it will be notified when time change
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    EXPECT_EQ(g_tool.SyncTest(delegate2, devices, SYNC_MODE_PULL_ONLY, result, true), OK);
+    /**
+     * @tc.steps: step3. deviceA call sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    Sync(devices, OK);
+    /**
+     * @tc.steps: step4. call NotifyTimestampChanged
+     * @tc.expected: step4. expect no deadlock
+     */
+    RuntimeContext::GetInstance()->NotifyTimestampChanged(100);
+    /**
+     * @tc.steps: step5. clean up the created db
+     */
+    ASSERT_EQ(g_mgr.CloseKvStore(delegate2), OK);
+    delegate2 = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID_3) == OK);
 }
 }

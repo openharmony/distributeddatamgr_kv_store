@@ -1236,7 +1236,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Le
      * @tc.expected: step2. return ok.
      */
 #ifdef USE_FFRT
-    EXPECT_NE(count, num * num);
+    EXPECT_LE(count, num * num);
 #else
     EXPECT_EQ(count, num * num);
 #endif
@@ -1459,6 +1459,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest003, TestSiz
     sql = "delete from " + tableName + " where id in (2,12,22,32)";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     CheckDataStatus(tableName, " status = 1 and data_key = -1 ", db, 3); // 3 is changed count
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 DistributedDB::StoreObserver::StoreChangedInfo g_changedData;
@@ -1734,6 +1735,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), INVALID_ARGS);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 /**

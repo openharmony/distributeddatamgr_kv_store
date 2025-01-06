@@ -1186,11 +1186,18 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
         sql += "(b.cloud_gid == '' and (b.flag & 0x20 != 0) and (b.flag & 0x02 = 0) and (b.flag & 0x08 != 0x08) and";
         sql += " (b.flag & 0x01 = 0) and (b.status = 0)) OR ";
     }
-    if (isCompensatedTask && mode == CloudWaterType::DELETE) {
+    if (mode == CloudWaterType::DELETE && isCompensatedTask) {
         // deleted data does not have primary key, requires gid to compensate sync
         sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01) AND b.cloud_gid != '') OR ";
-    } else if (queryObjNodes_.empty() && mode != CloudWaterType::INSERT) { // means unPriorityTask and not insert
-        sql += "(b.status != 1) AND ";
+    }
+    if (mode == CloudWaterType::DELETE || mode == CloudWaterType::UPDATE) {
+        if (queryObjNodes_.empty() && isCompensatedTask) {
+            sql += "0 ";
+            return;
+        }
+        if (queryObjNodes_.empty()) {
+            sql += "(b.status != 1) AND ";
+        }
     }
     if (isCloudForcePush) {
         sql += " (b.flag & 0x04 != 0x04)";
@@ -1231,7 +1238,11 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
     sql += " WHERE ";
     if (isCompensatedTask) {
         // deleted data does not have primary key, requires gid to compensate sync
-        sql += " (b.status = 1 AND (b.flag & 0x01 = 0x01)) OR ";
+        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01)) ";
+        if (queryObjNodes_.empty()) {
+            return;
+        }
+        sql += "OR ";
     }
     // actually, b.cloud_gid will not be null.
     sql += isCloudForcePush ? " (b.flag & 0x04 != 0x04) AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";

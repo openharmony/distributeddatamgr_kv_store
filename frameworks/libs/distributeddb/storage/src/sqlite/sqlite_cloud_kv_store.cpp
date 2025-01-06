@@ -575,6 +575,12 @@ void SqliteCloudKvStore::ReleaseUploadRecord(const std::string &tableName, const
 bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
     SingleVerConflictResolvePolicy policy)
 {
+    // if local not delete and cloud is different user, insert data to local by timestamp
+    if (localInfo.dataKey != -1 && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
+        (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0 &&
+        localInfo.wTimestamp > cloudInfo.wTimestamp) {
+        return false;
+    }
     std::string cloudInfoDev;
     auto decodeCloudInfoDev = DBBase64Utils::Decode(cloudInfo.device);
     if (!decodeCloudInfoDev.empty()) {
