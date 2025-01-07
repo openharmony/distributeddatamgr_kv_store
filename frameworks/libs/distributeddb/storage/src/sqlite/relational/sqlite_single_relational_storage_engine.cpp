@@ -175,7 +175,7 @@ int SaveTrackerSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handl
     return errCode;
 }
 
-int SaveSyncTableTypeToMeta(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
     TableSyncType syncType)
 {
     Key key;
@@ -185,6 +185,12 @@ int SaveSyncTableTypeToMeta(SQLiteSingleVerRelationalStorageExecutor *handle, co
     int errCode = handle->PutKvData(key, value);
     if (errCode != E_OK) {
         LOGE("Save sync table type to meta table failed. %d", errCode);
+        return errCode;
+    }
+    DBCommon::StringToVector(DBConstant::TABLE_WAS_DROPPED + tableName, key);
+    errCode = handle->DeleteMetaData({ key });
+    if (errCode != E_OK) {
+        LOGE("Save table drop flag to meta table failed. %d", errCode);
     }
     return errCode;
 }
@@ -318,7 +324,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
         return errCode;
     }
 
-    errCode = SaveSyncTableTypeToMeta(handle, tableName, tableSyncType);
+    errCode = SaveSyncTableTypeAndDropFlagToMeta(handle, tableName, tableSyncType);
     if (errCode != E_OK) {
         LOGE("Save sync table type or drop flag to meta table failed. %d", errCode);
     }

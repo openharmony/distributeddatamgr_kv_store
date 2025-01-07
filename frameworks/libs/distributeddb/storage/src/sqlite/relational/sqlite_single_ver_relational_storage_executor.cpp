@@ -322,6 +322,32 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     return CreateRelationalLogTable(mode, isUpgraded, identity, table);
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const std::string &tableName)
+{
+    bool onceDropped = false;
+    int errCode = IsTableOnceDropped(tableName, onceDropped);
+    if (!onceDropped) {
+        // do not return error code to make sure main procedure will continue
+        return E_OK;
+    }
+    LOGI("[CompareSchemaTableColumns] table once dropped check schema. table name is %s length is %zu",
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+    TableInfo newTableInfo;
+    errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, newTableInfo);
+    if (errCode != E_OK) {
+        LOGE("[CompareSchemaTableColumns] analysis table schema failed. %d", errCode);
+        return errCode;
+    }
+    // new table should has same or compatible upgrade
+    TableInfo tableInfo = localSchema_.GetTable(tableName);
+    errCode = tableInfo.CompareWithTable(newTableInfo, localSchema_.GetSchemaVersion());
+    if (errCode == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
+        LOGE("[CompareSchemaTableColumns] Not support with incompatible table.");
+        return -E_SCHEMA_MISMATCH;
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
     DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema, TableSyncType syncType)
 {
@@ -1238,6 +1264,24 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const st
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, deleteSql);
     if (errCode != E_OK) {
         LOGE("Delete distributed log table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, bool &onceDropped)
+{
+    std::string keyStr = DBConstant::TABLE_WAS_DROPPED + tableName;
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+
+    int errCode = GetKvData(key, value);
+    if (errCode == E_OK) {
+        onceDropped = true;
+        return E_OK;
+    } else if (errCode == -E_NOT_FOUND) {
+        onceDropped = false;
+        return E_OK;
     }
     return errCode;
 }
