@@ -849,4 +849,31 @@ int StorageProxy::GetLockStatusByGid(const std::string &tableName, const std::st
     }
     return store_->GetLockStatusByGid(tableName, gid, status);
 }
+
+bool StorageProxy::IsContainAssetsTable()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("store is nullptr when check contain assets table");
+        return false;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema = nullptr;
+    int errCode = store_->GetCloudDbSchema(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("Cannot get cloud schema: %d when check contain assets table", errCode);
+        return false;
+    }
+    if (cloudSchema == nullptr) {
+        LOGE("Not set cloud schema when check contain assets table");
+        return false;
+    }
+    for (const auto &table : cloudSchema->tables) {
+        for (const auto &field : table.fields) {
+            if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 }

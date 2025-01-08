@@ -268,7 +268,7 @@ public:
 
     void PrintCursorChange(const std::string &tableName) override;
 
-    int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
+    int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

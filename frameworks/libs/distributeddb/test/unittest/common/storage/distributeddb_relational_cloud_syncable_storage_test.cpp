@@ -1676,5 +1676,23 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
     ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 }
+
+/**
+ * @tc.name: ContainAssetsTable001
+ * @tc.desc: Test cloud schema contain asset table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ContainAssetsTable001, TestSize.Level0)
+{
+    ASSERT_NE(g_storageProxy, nullptr);
+    EXPECT_FALSE(g_storageProxy->IsContainAssetsTable());
+    ASSERT_NE(g_cloudStore, nullptr);
+    DataBaseSchema dataBaseSchema;
+    dataBaseSchema.tables.push_back(g_tableSchema);
+    EXPECT_EQ(g_cloudStore->SetCloudDbSchema(dataBaseSchema), E_OK);
+    EXPECT_TRUE(g_storageProxy->IsContainAssetsTable());
+}
 }
 #endif // RELATIONAL_STORE

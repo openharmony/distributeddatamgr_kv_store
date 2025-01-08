@@ -1086,14 +1086,15 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
         return res;
     }
     if (!isSchemaChange) {
-        auto localSchema = schemaObj.GetDistributedSchema();
-        if (localSchema.version != 0 && localSchema.version >= schema.version) {
-            LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
-            errCode = -E_INVALID_ARGS;
-        }
         return res;
     }
-    errCode = SetDistributedSchemaInner(schemaObj, schema);
+    auto localSchema = schemaObj.GetDistributedSchema();
+    if (localSchema.version != 0 && localSchema.version >= schema.version) {
+        LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
+        errCode = -E_INVALID_ARGS;
+    } else {
+        errCode = SetDistributedSchemaInner(schemaObj, schema);
+    }
     if (errCode == E_OK) {
         SetSchema(schemaObj);
     }

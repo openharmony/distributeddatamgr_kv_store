@@ -521,6 +521,11 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema008, TestSize.Level0)
      */
     DistributedSchema distributedSchema1 = {0, {{DEVICE_SYNC_TABLE, {{"pk", false}}}}};
     EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema1), SCHEMA_MISMATCH);
+    /**
+     * @tc.steps: step4. Test set same distributed schema
+     * @tc.expected: step4. return OK
+     */
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
 }
 
 /**
@@ -1134,7 +1139,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
     deviceB_->SetDistributedSchema(distributedSchema);
     int errCode = SQLiteUtils::ExecuteRawSQL(db_, std::string("CREATE UNIQUE INDEX U_INDEX ON ")
-        .append(tableSchema.name).append("(str_field)"));
+        .append(tableSchema.name).append("('123')"));
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(tableSchema.name, TableSyncType::DEVICE_COOPERATION), OK);
     EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);

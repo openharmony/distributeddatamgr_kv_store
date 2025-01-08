@@ -72,7 +72,7 @@ config("distrdb_config") {
   if (os_level == "standard" && kv_store_support_icu) {
     defines += [ "DISTRIBUTEDDB_SUPPORT_ICU" ]
   }
-  if (datamgr_kv_store_cloud) {
+  if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }
 }
@@ -107,7 +107,7 @@ ohos_shared_library("distributeddb") {
     debug = false
   }
   sources = distributeddb_src
-  if (datamgr_kv_store_cloud) {
+  if (kv_store_cloud) {
     sources += distributeddb_cloud_src
   }
 

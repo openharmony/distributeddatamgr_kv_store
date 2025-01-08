@@ -684,7 +684,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload005, Te
     virtualAssetLoader_->ForkDownload([&](const std::string &tableName,
         std::map<std::string, Assets> &) {
         std::vector<std::vector<uint8_t>> hashKey;
-        CloudDBSyncUtilsTest::GetHashKey(table, "data_key <= 5", db_, hashKey); // lock half of the data
+        CloudDBSyncUtilsTest::GetHashKey(table, "data_key < 5", db_, hashKey); // lock half of the data
         EXPECT_EQ(Lock(table, hashKey, db_), OK);
     });
     /**

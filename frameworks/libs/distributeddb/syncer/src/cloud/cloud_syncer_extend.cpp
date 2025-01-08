@@ -1676,6 +1676,10 @@ void CloudSyncer::TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload)
 
 void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
 {
+    if (!storageProxy_->IsContainAssetsTable()) {
+        LOGD("[CloudSyncer] No exist table contain assets, skip async download asset check");
+        return;
+    }
     TaskId taskId = INVALID_TASK_ID;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);

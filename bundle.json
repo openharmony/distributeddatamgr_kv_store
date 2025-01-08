@@ -41,7 +41,7 @@
     ],
     "features": [
       "kv_store_support_icu",
-      "datamgr_kv_store_cloud"
+      "kv_store_cloud"
     ],
     "adapted_system_type": [
       "standard"
