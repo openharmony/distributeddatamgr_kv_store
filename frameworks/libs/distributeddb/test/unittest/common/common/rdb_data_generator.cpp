@@ -44,7 +44,7 @@ int RDBDataGenerator::InitTable(const DistributedDB::TableSchema &table, bool no
             sql += " PRIMARY KEY";
         }
         if (notNullWithStr && field.type == TYPE_INDEX<std::string>) {
-            sql += " NOT NULL";
+            sql += " NOT NULL ON CONFLICT IGNORE";
         }
         sql += ",";
     }
