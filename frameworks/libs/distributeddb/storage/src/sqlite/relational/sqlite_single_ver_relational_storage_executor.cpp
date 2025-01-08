@@ -114,11 +114,6 @@ int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, Tabl
             return -E_NOT_SUPPORT;
         }
 
-        if (DBCommon::HasConstraint(trimedSql, "ON CONFLICT", " )", " ")) {
-            LOGE("[CreateDistributedTable] Not support create distributed table with 'ON CONFLICT' constraint.");
-            return -E_NOT_SUPPORT;
-        }
-
         if (mode == DistributedTableMode::COLLABORATION) {
             if (DBCommon::HasConstraint(trimedSql, "REFERENCES", " )", " ")) {
                 LOGE("[CreateDistributedTable] Not support create distributed table with 'FOREIGN KEY' constraint.");
