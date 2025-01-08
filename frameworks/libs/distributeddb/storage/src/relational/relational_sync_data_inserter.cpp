@@ -315,7 +315,7 @@ int RelationalSyncDataInserter::GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&s
             } else {
                 updateValue.append(", ");
             }
-            updateValue.append(it.GetFieldName()).append("=?");
+            updateValue.append("'").append(it.GetFieldName()).append("'=?");
         }
     }
     if (updateValue.empty()) {
