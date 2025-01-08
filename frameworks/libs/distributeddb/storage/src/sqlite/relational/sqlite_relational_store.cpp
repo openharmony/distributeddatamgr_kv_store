@@ -1055,6 +1055,19 @@ int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &
 
 int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
 {
+    // check schema is ok
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[SQLiteRelationalStore][ChkSchema] handle is nullptr");
+        return errCode;
+    }
+    errCode = handle->CompareSchemaTableColumns(tableName);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore][ChkSchema] local schema info incompatible %d.", errCode);
+        return errCode;
+    }
     if (storageEngine_ == nullptr) {
         LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
         return -E_INVALID_DB;

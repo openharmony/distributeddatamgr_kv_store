@@ -248,6 +248,8 @@ public:
     int CleanDownloadingFlag(const std::string &tableName);
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
+
+    int CompareSchemaTableColumns(const std::string &tableName);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -393,9 +395,9 @@ private:
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
 
-    int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
+    int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
 
-    int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
+    int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
     int BindUpdateVersionStatement(const VBucket &vBucket, const Bytes &hashKey, sqlite3_stmt *&stmt);
     int DoCleanShareTableDataAndLog(const std::vector<std::string> &tableNameList);

@@ -187,7 +187,7 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
         LOGE("Save sync table type to meta table failed. %d", errCode);
         return errCode;
     }
-    DBCommon::StringToVector(DBConstant::TABLE_IS_DROPPED + tableName, key);
+    DBCommon::StringToVector(DBConstant::TABLE_WAS_DROPPED + tableName, key);
     errCode = handle->DeleteMetaData({ key });
     if (errCode != E_OK) {
         LOGE("Save table drop flag to meta table failed. %d", errCode);
