@@ -250,7 +250,7 @@ public:
         VBucket &coveredData, VBucket &beCoveredData, bool setNormalStatus = false)
     {
         int ret = E_OK;
-        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus, ret);
+        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus, false, ret);
     }
 
     bool TestIsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)

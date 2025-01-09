@@ -93,6 +93,7 @@ public:
         AssetsGroupMap assetsGroupMap;
         std::string cloudWaterMarkForAssetsOnly;
         std::map<std::string, AssetsMap> gidAssetsMap; // only used for assets only.
+        bool isForcePullAseets = false;
     };
 
     struct DataInfo {

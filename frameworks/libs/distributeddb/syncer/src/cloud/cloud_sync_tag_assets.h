@@ -29,8 +29,21 @@
 
 
 namespace DistributedDB {
-Assets TagAssetsInSingleCol(
-    VBucket &coveredData, VBucket &beCoveredData, const Field &assetField, bool setNormalStatus, int &errCode);
+struct TagAssetsInfo {
+    VBucket &coveredData;
+    VBucket &beCoveredData;
+    bool setNormalStatus = false;
+    bool isFrocePullAssets = false;
+};
+
+struct TagAssetInfo {
+    Asset &covered;
+    Asset &beCovered;
+    bool setNormalStatus = false;
+    bool isFrocePullAssets = false;
+};
+
+Assets TagAssetsInSingleCol(TagAssetsInfo &tagAssetsInfo, const Field &assetField, int &errCode);
 Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBucket);
 void TagAssetsInSingleCol(const Field &assetField, bool isInsert, VBucket &coveredData);
 } // namespace DistributedDB

@@ -256,7 +256,7 @@ protected:
     int NotifyChangedDataInCurrentTask(ChangedData &&changedData);
 
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
-        bool setNormalStatus, int &errCode);
+        bool setNormalStatus, bool isForcePullAseets, int &errCode);
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 

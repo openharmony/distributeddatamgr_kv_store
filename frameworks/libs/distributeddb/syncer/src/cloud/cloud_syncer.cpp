@@ -556,7 +556,7 @@ bool CloudSyncer::IsDataContainAssets()
 }
 
 std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
-    bool setNormalStatus, int &errCode)
+    bool setNormalStatus, bool isForcePullAseets, int &errCode)
 {
     // Define a map to store the result
     std::map<std::string, Assets> res = {};
@@ -566,8 +566,9 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &cove
         assetFields = currentContext_.assetFields[currentContext_.tableName];
     }
     // For every column contain asset or assets, assetFields are in context
+    TagAssetsInfo tagAssetsInfo = {coveredData, beCoveredData, setNormalStatus, isForcePullAseets};
     for (const Field &assetField : assetFields) {
-        Assets assets = TagAssetsInSingleCol(coveredData, beCoveredData, assetField, setNormalStatus, errCode);
+        Assets assets = TagAssetsInSingleCol(tagAssetsInfo, assetField, errCode);
         if (!assets.empty()) {
             res[assetField.colName] = assets;
         }
@@ -732,7 +733,8 @@ int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &pa
         case OpType::NOT_HANDLE:
         case OpType::ONLY_UPDATE_GID:
         case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO: { // means upload need this data
-            (void)TagAssetsInSingleRecord(localAssetInfo, param.downloadData.data[idx], true, ret);
+            (void)TagAssetsInSingleRecord(
+                localAssetInfo, param.downloadData.data[idx], true, param.isForcePullAseets, ret);
             for (const auto &[col, value]: localAssetInfo) {
                 param.downloadData.data[idx].insert_or_assign(col, value);
             }
@@ -764,7 +766,7 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
     }
     AssetOperationUtils::FilterDeleteAsset(param.downloadData.data[idx]);
     std::map<std::string, Assets> assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo,
-        false, ret);
+        false, param.isForcePullAseets, ret);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] TagAssetsInSingleRecord report ERROR in download data");
         return ret;
@@ -2091,6 +2093,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     param.groupNum = queryObject.GetGroupNum();
     param.assetsGroupMap = queryObject.GetAssetsOnlyGroupMap();
     param.isVaildForAssetsOnly = queryObject.IsValidForAssetsOnly();
+    param.isForcePullAseets = IsModeForcePull(taskId) && queryObject.IsContainQueryNodes();
     return ret;
 }
 

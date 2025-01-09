@@ -1509,5 +1509,36 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, 
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).EndGroup();
     PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::ASSET_NOT_FOUND_FOR_DOWN_ONLY);
 }
+
+/**
+  * @tc.name: DownloadAssetsOnly021
+  * @tc.desc: test force pull mode pull mode can forcibly pull assets.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly021, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    /**
+     * @tc.steps:step2. Download id 0 with force pull mode.
+     * @tc.expected: step2. return ok.
+     */
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup();
+    PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    /**
+     * @tc.steps:step3. check data type.
+     * @tc.expected: step3. return ok.
+     */
+    auto data = g_observer->GetSavedChangedData();
+    EXPECT_EQ(data.size(), 1u);
+    EXPECT_EQ(data[ASSETS_TABLE_NAME].type, ChangedDataType::ASSET);
+}
 } // namespace
 #endif // RELATIONAL_STORE
