@@ -1170,4 +1170,49 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
     EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
     EXPECT_EQ(count, 1);
 }
+
+/**
+ * @tc.name: SetSchema013
+ * @tc.desc: Test set tracker table for device table and check if timestamp has changed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    DistributedSchema distributedSchema = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk", "int_field1"});
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    TrackerSchema trackerSchema = {
+        .tableName = DEVICE_SYNC_TABLE, .extendColNames = {"int_field1"}, .trackerColNames = {"int_field1"}
+    };
+    /**
+     * @tc.steps: step2. Insert one data and query timestamp
+     * @tc.expected: step2.ok
+     */
+    EXPECT_EQ(RDBDataGenerator::InsertLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
+    sqlite3_stmt *stmt = nullptr;
+    std::string sql = "select timestamp from " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) +
+        " where data_key=0";
+    EXPECT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timestamp1 = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    /**
+     * @tc.steps: step3. Set tracker table and query timestamp
+     * @tc.expected: step3.Equal
+     */
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), WITH_INVENTORY_DATA);
+    EXPECT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timestamp2 = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    EXPECT_EQ(timestamp1, timestamp2);
+}
 }

@@ -377,7 +377,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
 int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable,
     const TableInfo &table, bool checkData)
 {
-    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<SimpleTrackerLogTableManager>();
     if (trackerTable.IsEmpty()) {
         // drop trigger
         return tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
@@ -393,13 +393,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
     if (errCode != E_OK) {
         return errCode;
     }
-    std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
     errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
     if (errCode != E_OK) {
         LOGE("clean tracker log info for deleted data failed %d.", errCode);
         return errCode;
     }
-    errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
+    errCode = GeneLogInfoForExistedData(dbHandle_, "", table, tableManager);
     if (errCode != E_OK) {
         LOGE("general tracker log info for existed data failed %d.", errCode);
         return errCode;

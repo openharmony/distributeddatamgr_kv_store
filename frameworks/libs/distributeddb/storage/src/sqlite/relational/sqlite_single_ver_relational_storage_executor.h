@@ -29,6 +29,7 @@
 #include "relational_row_data.h"
 #include "relational_store_delegate.h"
 #include "relational_sync_data_inserter.h"
+#include "sqlite_log_table_manager.h"
 #include "sqlite_single_ver_relational_continue_token.h"
 #include "sqlite_storage_executor.h"
 #include "sqlite_utils.h"
@@ -316,8 +317,9 @@ private:
 
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
-    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
-        const TableInfo &tableInfo);
+    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr);
+
     int CleanExtendAndCursorForDeleteData(const std::string &tableName);
 
     int GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder, sqlite3_stmt *statement,
@@ -398,8 +400,8 @@ private:
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
 
-    int UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &tableName,
-        const std::string &calPrimaryKeyHash, const TableInfo &tableInfo);
+    int UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isRowReplace);
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);

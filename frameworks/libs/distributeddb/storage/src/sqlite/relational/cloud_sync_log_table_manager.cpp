@@ -87,6 +87,15 @@ std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
     return "PRIMARY KEY(hash_key)";
 }
 
+std::string CloudSyncLogTableManager::GetConflictPkSql(const TableInfo &table)
+{
+    auto primaryKey = table.GetPrimaryKey();
+    if (primaryKey[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
+        return "ON CONFLICT(hash_key, cloud_gid)";
+    }
+    return "ON CONFLICT(hash_key)";
+}
+
 // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
 std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
 {

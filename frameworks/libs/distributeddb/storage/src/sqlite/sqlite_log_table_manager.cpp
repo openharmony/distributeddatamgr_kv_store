@@ -258,4 +258,9 @@ std::string SqliteLogTableManager::CalcPkHash(const std::string &references, con
     }
     return sql;
 }
+
+std::string SqliteLogTableManager::GetConflictPkSql(const TableInfo &table)
+{
+    return "ON CONFLICT(hash_key)";
+}
 }
