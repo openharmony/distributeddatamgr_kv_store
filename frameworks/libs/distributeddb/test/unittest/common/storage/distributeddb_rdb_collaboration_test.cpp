@@ -204,7 +204,13 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level0)
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
     EXPECT_EQ(delegate_->CreateDistributedTable(CLOUD_SYNC_TABLE, TableSyncType::CLOUD_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", CLOUD_SYNC_TABLE);
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema)), OK);
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema);
+    for (auto &table : distributedSchema.tables) {
+        for (auto &field : table.fields) {
+            field.isSpecified = false;
+        }
+    }
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     /**
      * @tc.steps: step2. Insert update delete local
      * @tc.expected: step2.ok

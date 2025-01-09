@@ -525,6 +525,9 @@ bool IsDistributedPkInvalid(const TableInfo &tableInfo,
         return false;
     }
     if (tableInfo.GetAutoIncrement()) {
+        if (distributedPk.empty()) {
+            return false;
+        }
         auto uniqueDefine = tableInfo.GetUniqueDefine();
         bool isMissMatch = true;
         for (const auto &item : uniqueDefine) {
