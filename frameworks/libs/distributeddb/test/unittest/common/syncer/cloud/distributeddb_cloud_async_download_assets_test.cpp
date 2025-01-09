@@ -35,7 +35,7 @@ using namespace std;
 
 namespace {
 string g_testDir;
-const std::string QUERY_INCONSISTENT_SQL = 
+const std::string QUERY_INCONSISTENT_SQL =
     "select count(*) from naturalbase_rdb_aux_AsyncDownloadAssetsTest_log where flag&0x20!=0;";
 class DistributedDBCloudAsyncDownloadAssetsTest : public testing::Test {
 public:

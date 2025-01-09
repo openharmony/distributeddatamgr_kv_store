@@ -69,9 +69,6 @@ config("distrdb_config") {
   if (is_ohos) {
     defines += [ "USE_FFRT" ]
   }
-  if (os_level == "standard" && kv_store_support_icu) {
-    defines += [ "DISTRIBUTEDDB_SUPPORT_ICU" ]
-  }
   if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }
@@ -128,10 +125,6 @@ ohos_shared_library("distributeddb") {
     "hitrace:hitrace_meter",
     "zlib:shared_libz",
   ]
-
-  if (os_level == "standard" && kv_store_support_icu) {
-    external_deps += [ "icu:shared_icuuc" ]
-  }
 
   public_external_deps = [
     "jsoncpp:jsoncpp",

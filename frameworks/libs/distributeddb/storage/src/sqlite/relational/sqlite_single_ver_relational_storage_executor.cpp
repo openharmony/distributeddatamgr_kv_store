@@ -268,7 +268,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTableTimeStamp(sqlite
     std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
     std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
     static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
-    Timestamp currentLocalTime = TimeHelper::GetCurrentLocalTime(timeOffset, localTimeOffset);
+    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
+    Timestamp currentLocalTime = currentSysTime + localTimeOffset;
     std::string currentLocalTimeStr = std::to_string(currentLocalTime);
     std::string insertPrefix = isRowReplace ? "INSERT OR REPLACE INTO " : "INSERT INTO ";
     std::string insertSuffix = isRowReplace ? ";" : " " + logMgrPtr->GetConflictPkSql(tableInfo) + " DO UPDATE SET "
@@ -1308,6 +1309,24 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const st
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, bool &onceDropped)
+{
+    std::string keyStr = DBConstant::TABLE_WAS_DROPPED + tableName;
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+
+    int errCode = GetKvData(key, value);
+    if (errCode == E_OK) {
+        onceDropped = true;
+        return E_OK;
+    } else if (errCode == -E_NOT_FOUND) {
+        onceDropped = false;
+        return E_OK;
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::CleanResourceForDroppedTable(const std::string &tableName)
 {
     int errCode = DeleteDistributedDeviceTable({}, tableName); // Clean the auxiliary tables for the dropped table
@@ -1335,9 +1354,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
     }
     const std::string checkSql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;";
     sqlite3_stmt *stmt = nullptr;
+    int ret = E_OK;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, checkSql, stmt);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
         return errCode;
     }
     for (const auto &tableName : tableNames) {
@@ -1362,7 +1382,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
         errCode = E_OK; // Check result ok for distributed table is still exists
         SQLiteUtils::ResetStatement(stmt, false, ret);
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 

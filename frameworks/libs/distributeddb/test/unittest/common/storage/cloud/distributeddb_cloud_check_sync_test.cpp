@@ -1043,7 +1043,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
 
 /**
  * @tc.name: CloudSyncTest009
- * @tc.desc: reopen database and sync 
+ * @tc.desc: reopen database and sync
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong

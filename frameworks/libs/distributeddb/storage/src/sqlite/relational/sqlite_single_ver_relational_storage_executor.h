@@ -254,6 +254,8 @@ public:
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 
+    int CompareSchemaTableColumns(const std::string &tableName);
+
     void CheckAndCreateTrigger(const TableInfo &table);
 
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);

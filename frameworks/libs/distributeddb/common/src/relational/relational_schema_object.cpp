@@ -472,11 +472,12 @@ int RelationalSchemaObject::ParseCheckTrackerExtendName(const JsonObject &inJson
         if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
             if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) { // LCOV_EXCL_BR_LINE
                 LOGE("[RelationalSchema][Parse] Invalid characters in extend name, err=%d.", errCode);
-            } else {
+                return -E_SCHEMA_PARSE_FAIL;
+            } else if (!fieldValue.stringValue.empty()) {
                 resultTable.SetExtendName(fieldValue.stringValue);
                 resultTable.SetExtendNames({fieldValue.stringValue});
-                return E_OK;
             }
+            return E_OK;
         }
         LOGE("[RelationalSchema][Parse] Get extend col names fieldType failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;

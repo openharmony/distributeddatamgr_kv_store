@@ -142,8 +142,9 @@ namespace {
     void CheckExtendAndCursor(uint64_t num, int start, const std::string &tableName, bool addNum = true)
     {
         int index = 0;
-        string querySql = "select json_extract(extend_field, '$.name'), cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
-            "_log" + " where data_key <= " + std::to_string(num);
+        string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
+            std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" + " where data_key <= " +
+            std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -1823,7 +1824,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestS
      * @tc.steps:step2. ExecuteSql concurrently
      * @tc.expected: step2. Return OK.
      */
-    std::thread readThread([&](){
+    std::thread readThread([&]() {
         SqlCondition condition;
         std::vector<VBucket> records;
         condition.readOnly = true;
@@ -1832,7 +1833,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestS
             EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
         }
     });
-    std::thread transactionThread([&](){
+    std::thread transactionThread([&]() {
         SqlCondition condition;
         condition.readOnly = true;
         std::vector<VBucket> records;
@@ -2641,7 +2642,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, Te
 
 /**
  * @tc.name: TrackerTableTest041
- * @tc.desc: Test cursor increases when set tracker table after create distributed table by DEVICE_COOPERATION type 
+ * @tc.desc: Test cursor increases when set tracker table after create distributed table by DEVICE_COOPERATION type
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: suyue

@@ -252,9 +252,6 @@ public:
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
 
-    void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData,
-        Origin origin);
-
     std::pair<int, std::vector<std::string>> GetDownloadAssetTable() override;
 
     std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,

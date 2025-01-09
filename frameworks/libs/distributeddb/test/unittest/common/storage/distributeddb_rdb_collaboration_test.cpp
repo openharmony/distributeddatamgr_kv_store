@@ -423,7 +423,8 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level0)
     UnRegisterClientObserver(db_);
 }
 
-std::string GetTriggerSql(const std::string &tableName, const std::string &triggerTypeName, sqlite3 *db) {
+std::string GetTriggerSql(const std::string &tableName, const std::string &triggerTypeName, sqlite3 *db)
+{
     if (db == nullptr) {
         return "";
     }

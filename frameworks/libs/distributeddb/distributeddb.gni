@@ -15,7 +15,6 @@ distributeddb_path =
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb"
 
 declare_args() {
-  kv_store_support_icu = true
   kv_store_cloud = true
 }
 

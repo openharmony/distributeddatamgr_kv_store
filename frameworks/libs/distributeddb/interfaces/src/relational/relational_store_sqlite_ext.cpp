@@ -1315,6 +1315,43 @@ int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_
     return errCode;
 }
 
+int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
+{
+    std::string keyStr = DBConstant::TABLE_WAS_DROPPED + tableName;
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    DBCommon::StringToVector("1", value); // 1 means delete
+    std::string sql = "INSERT OR REPLACE INTO naturalbase_rdb_aux_metadata VALUES(?, ?);";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SaveDeleteFlagToDB] prepare statement failed, %d", errCode);
+        return -E_ERROR;
+    }
+
+    if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
+        (void)sqlite3_finalize(statement);
+        LOGE("[SaveDeleteFlagToDB] bind key failed, %d", errCode);
+        return -E_ERROR;
+    }
+    if (sqlite3_bind_blob(statement, 2, static_cast<const void *>(value.data()), value.size(), // 2 is column index
+        SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
+        (void)sqlite3_finalize(statement);
+        LOGE("[SaveDeleteFlagToDB] bind value failed, %d", errCode);
+        return -E_ERROR;
+    }
+    errCode = sqlite3_step(statement);
+    if (errCode != SQLITE_DONE) {
+        LOGE("[SaveDeleteFlagToDB] step failed, %d", errCode);
+        (void)sqlite3_finalize(statement);
+        return -E_ERROR;
+    }
+    (void)sqlite3_finalize(statement);
+    return E_OK;
+}
+
 void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *schemaName)
 {
     if (db == nullptr || tableName == nullptr || schemaName == nullptr) {
@@ -1332,6 +1369,10 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
     std::string tableStr = std::string(tableName);
     std::string logTblName = DBCommon::GetLogTableName(tableStr);
     if (CheckTableExists(db, logTblName)) {
+        if (SaveDeleteFlagToDB(db, tableStr) != E_OK) {
+            // the failure of this step does not affect the following step, so we just write log
+            LOGW("[ClearTheLogAfterDropTable] save delete flag failed.");
+        }
         std::string tableType = DEVICE_TYPE;
         if (GetTableSyncType(db, tableStr, tableType) != E_OK) {
             return;
