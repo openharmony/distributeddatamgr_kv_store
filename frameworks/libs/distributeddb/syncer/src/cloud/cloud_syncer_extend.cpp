@@ -129,7 +129,7 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
     return querySyncObject;
 }
 
-void CloudSyncer::UpdateProcessWhenUploadFailed(InnerProcessInfo &info)
+void CloudSyncer::UpdateProccessWhenUploadFailed(InnerProcessInfo &info)
 {
     info.tableStatus = ProcessStatus::FINISHED;
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -144,7 +144,7 @@ void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
         LOGE("[CloudSyncer] Failed to do upload, %d", errCode);
         info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
     }
-    UpdateProcessWhenUploadFailed(info);
+    UpdateProccessWhenUploadFailed(info);
 }
 
 int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)

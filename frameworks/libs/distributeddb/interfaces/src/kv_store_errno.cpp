@@ -99,7 +99,7 @@ DBStatus TransferDBErrno(int err, bool isPass)
     return DB_ERROR;
 }
 
-int TransferDBStatusToErr(DBStatus dbStatus)
+int TransferDBstatusToErr(DBStatus dbStatus)
 {
     for (const auto &item : ERRNO_MAP) {
         if (item.status == dbStatus) {

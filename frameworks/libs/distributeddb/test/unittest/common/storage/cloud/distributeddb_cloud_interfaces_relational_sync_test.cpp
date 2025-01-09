@@ -1749,7 +1749,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest017, TestS
     DeleteUserTableRecord(db, 0, localCount);
     callSync(g_tables, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     /**
-     * @tc.steps: step3. check local and cloud num
+     * @tc.steps: step3. check local and clod num
      */
     CheckCloudTotalCount({30L, 20L});
     std::string sql = "select count(*) from " + DBCommon::GetLogTableName(g_tables[0]) +

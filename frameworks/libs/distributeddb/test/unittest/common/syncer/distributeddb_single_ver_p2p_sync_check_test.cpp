@@ -876,7 +876,7 @@ void SyncWithDeviceOffline(vector<std::string> &devices, Key &key, const Query &
      */
     // If syncTaskContext of deviceB is scheduled to be executed first, ClearAllSyncTask is
     // invoked when OfflineHandleByDevice is triggered, and SyncOperation::Finished() is triggered in advance.
-    // The returned status is COMM_FAILURE.
+    // The returned status is COMM_FAILURE
     SyncWithQuery(devices, query, COMM_FAILURE);
 }
 

@@ -544,7 +544,7 @@ int RuntimeContextImpl::SetSecurityOption(const std::string &filePath, const Sec
     DBStatus dbErrCode = systemApiAdapter_->SetSecurityOption(fileRealPath, option);
     if (dbErrCode != OK) {
         LOGE("SetSecurityOption failed, errCode = %d", dbErrCode);
-        return TransferDBStatusToErr(dbErrCode);
+        return TransferDBstatusToErr(dbErrCode);
     }
     return E_OK;
 }

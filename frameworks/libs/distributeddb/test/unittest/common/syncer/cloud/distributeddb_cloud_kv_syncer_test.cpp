@@ -566,7 +566,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
         entry.value = value;
         entries.push_back(entry);
     }
-
+ 
     ASSERT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
     CloudSyncOption syncOption;
     syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
@@ -574,7 +574,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
     syncOption.users.push_back(USER_ID_2);
     syncOption.devices.push_back("cloud");
     BlockSync(kvDelegatePtrS1_, OK, syncOption);
-
+ 
     /**
      * @tc.steps: step2. kvDelegatePtrS2_ only sync user0 from cloud.
      * @tc.expected: step2. return ok.
@@ -582,7 +582,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
     syncOption.users.clear();
     syncOption.users.push_back(USER_ID);
     BlockSync(kvDelegatePtrS2_, OK, syncOption);
-
+ 
     /**
      * @tc.steps: step3. kvDelegatePtrS2_ delete 100 data.
      * @tc.expected: step3. return ok.
@@ -594,7 +594,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
         keys.push_back(key);
     }
     ASSERT_EQ(kvDelegatePtrS2_->DeleteBatch(keys), OK);
-
+ 
     /**
      * @tc.steps: step4. kvDelegatePtrS2_ sync to cloud with user0 user2.
      * @tc.expected: step4. return ok.
@@ -602,7 +602,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
     syncOption.users.clear();
     syncOption.users.push_back(USER_ID);
     syncOption.users.push_back(USER_ID_2);
-
+ 
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;

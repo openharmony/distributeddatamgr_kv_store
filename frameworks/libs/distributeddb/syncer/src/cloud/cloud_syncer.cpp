@@ -322,7 +322,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
             continue;
         }
         errCode = PrepareAndUpload(taskInfo, i);
-        if (errCode == -E_TASK_PAUSED) { // should re download [paused table, last table]
+        if (errCode == -E_TASK_PAUSED) { // should re download  [paused table , last table]
             for (size_t j = i; j < taskInfo.table.size(); ++j) {
                 MarkDownloadFinishIfNeed(taskInfo.table[j], false);
             }

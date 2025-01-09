@@ -1227,7 +1227,7 @@ int SQLiteSingleVerStorageExecutor::SaveSyncDataToDatabase(const DataItem &dataI
 }
 
 DataOperStatus SQLiteSingleVerStorageExecutor::JudgeSyncSaveType(DataItem &dataItem,
-    const DataItem &itemGet, const std::string &devName, bool isHashKeyExisted, bool isPermitForceWrite)
+    const DataItem &itemGet, const DeviceInfo &deviceInfo, bool isHashKeyExisted, bool isPermitForceWrite)
 {
     DataOperStatus status;
     status.isDeleted = ((dataItem.flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG ||
@@ -1238,12 +1238,13 @@ DataOperStatus SQLiteSingleVerStorageExecutor::JudgeSyncSaveType(DataItem &dataI
         } else {
             status.preStatus = DataStatus::EXISTED;
         }
-        std::string deviceName = DBCommon::TransferHashString(devName);
+        std::string deviceName = DBCommon::TransferHashString(deviceInfo.deviceName);
         if (itemGet.writeTimestamp >= dataItem.writeTimestamp) {
             // for multi user mode, no permit to forcewrite
-            if ((!deviceName.empty()) && IsFromDataOwner(itemGet, deviceName) && isPermitForceWrite) {
-                LOGI("Force overwrite the data:%" PRIu64 " vs %" PRIu64,
-                    itemGet.writeTimestamp, dataItem.writeTimestamp);
+            if (((!deviceName.empty()) && IsFromDataOwner(itemGet, deviceName) && isPermitForceWrite) ||
+                deviceInfo.isLocal) {
+                LOGI("Force overwrite the data:%" PRIu64 " vs %" PRIu64 " isLocal %d",
+                    itemGet.writeTimestamp, dataItem.writeTimestamp, static_cast<int>(deviceInfo.isLocal));
                 status.isDefeated = false;
                 dataItem.writeTimestamp = itemGet.writeTimestamp + 1;
                 dataItem.timestamp = itemGet.timestamp;
@@ -1318,7 +1319,7 @@ int SQLiteSingleVerStorageExecutor::PrepareForNotifyConflictAndObserver(DataItem
         return ResetSaveSyncStatements(-E_IGNORE_DATA);
     }
 
-    notify.dataStatus = JudgeSyncSaveType(dataItem, notify.getData, deviceInfo.deviceName, isHashKeyExisted,
+    notify.dataStatus = JudgeSyncSaveType(dataItem, notify.getData, deviceInfo, isHashKeyExisted,
         isPermitForceWrite);
     InitCommitNotifyDataKeyStatus(notify.committedData, notify.hashKey, notify.dataStatus);
 

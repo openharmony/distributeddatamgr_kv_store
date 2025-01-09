@@ -1022,7 +1022,7 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
         if (errCode == E_OK) {
             sql += ", cursor = " + std::to_string(cursor + 1) + " ";
         } else {
-            LOGW("[RDBExecutor] Increase cursor failed when delete log: %d", errCode);
+            LOGW("[RDBExecutor] Increase cursor failed when delete log: %d.", errCode);
         }
     }
     return sql;
@@ -1638,7 +1638,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;
 }
-
+ 
 int SQLiteSingleVerRelationalStorageExecutor::BindAssetFiledToBlobStatement(const TableSchema &tableSchema,
     const std::vector<Asset> &assetOfOneRecord, const std::vector<Assets> &assetsOfOneRecord, sqlite3_stmt *&stmt)
 {
@@ -1940,7 +1940,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearUnLockingStatus(const std::st
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        LOGE("[Storage Eexcute] Step update record status stmt failed, %d.", errCode);
+        LOGE("[Storage Executor]Step update record status stmt failed, %d", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;

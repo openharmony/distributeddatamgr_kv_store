@@ -560,8 +560,8 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation006, T
     virtualAssetLoader_->ForkRemoveLocalAssets(nullptr);
 }
 
-/**
- * @tc.name: SyncWithAssetOperation007
+ /**
+ * @tc.name: SyncWithAssetOperation006
  * @tc.desc: Test assetId fill when assetId changed
  * @tc.type: FUNC
  * @tc.require:
@@ -592,15 +592,15 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation007, T
      */
     std::string sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=1";
     EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-            reinterpret_cast<void *>(7), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(7), nullptr), SQLITE_OK);
     sql = "SELECT cursor FROM " + DBCommon::GetLogTableName(tableName_) + " where data_key=5";
     EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-            reinterpret_cast<void *>(5), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(5), nullptr), SQLITE_OK);
 }
 
 /**
  * @tc.name: SyncWithAssetOperation009
- * @tc.desc: Test asset remove local and check db asset empty finally
+ * @tc.desc: Test asset remove local and check db asset empty finally.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
@@ -828,7 +828,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Leve
      * @tc.expected: step2. ok.
      */
     int dataCnt = -1;
-    std::string checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_) + " where cursor = 5";
+    std::string checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_)  + " where cursor = 5";
     RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
         dataCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
@@ -842,8 +842,8 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Leve
         records.push_back(record);
     }
     EXPECT_EQ(delegate_->UpsertData(tableName_, records), OK);
-    // check cursor has been increase
-    checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_) + " where cursor = 10";
+    // check cursor has been increased
+    checkLogSql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName_)  + " where cursor = 10";
     RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
         dataCnt = sqlite3_column_int(stmt, 0);
         return E_OK;

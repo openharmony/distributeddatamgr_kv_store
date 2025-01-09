@@ -254,7 +254,7 @@ namespace DistributedDB {
 
     constexpr const char *REMOVE_CLOUD_DEV_DATA_BY_DEVID_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x100!=0);";
-
+    
     constexpr const char *REMOVE_CLOUD_ALL_DEV_DATA_VERSION_SQL =
         "DELETE FROM sync_data WHERE key LIKE 'naturalbase_cloud_version_%' AND length(device)!=0;";
 

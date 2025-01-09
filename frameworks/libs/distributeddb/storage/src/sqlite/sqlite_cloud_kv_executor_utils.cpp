@@ -1328,7 +1328,7 @@ int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataUserId(sqlite3 *db, bo
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, SELECT_COMPENSATE_SYNC_USERID_SQL, stmt);
     if (errCode != E_OK) {
-        LOGE("[SqliteCloudKvExecutorUtils] Get compensate key stmt failed %d", errCode);
+        LOGE("[SqliteCloudKvExecutorUtils] Get compensate userid stmt failed %d", errCode);
         return errCode;
     }
     ResFinalizer finalizerData([stmt]() {
@@ -1359,18 +1359,18 @@ int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataUserId(sqlite3 *db, bo
     } while (errCode == E_OK);
     return errCode;
 }
-
+ 
 int SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncData(sqlite3 *db, bool isMemory, std::vector<VBucket> &data,
     std::vector<VBucket> &users)
 {
     int errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataPk(db, isMemory, data);
     if (errCode != E_OK) {
-        LOGE("[GetWaitCompensatedSyncData] Get wait compensate sync data failed! errCode=%d", errCode);
+        LOGW("[GetWaitCompensatedSyncData] Get wait compensated sync date failed! errCode=%d", errCode);
         return errCode;
     }
     errCode = SqliteCloudKvExecutorUtils::GetWaitCompensatedSyncDataUserId(db, isMemory, users);
     if (errCode != E_OK) {
-        LOGE("[GetWaitCompensatedSyncData] Get wait compensate sync data failed! errCode=%d", errCode);
+        LOGW("[GetWaitCompensatedSyncData] Get wait compensated sync date failed! errCode=%d", errCode);
     }
     return errCode;
 }

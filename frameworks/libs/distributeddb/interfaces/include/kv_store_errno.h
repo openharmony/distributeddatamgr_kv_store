@@ -23,6 +23,6 @@ namespace DistributedDB {
 DBStatus TransferDBErrno(int err, bool isPass = false);
 
 // Transfer the DBStatus to db error code, return dbStatus if no matching error code
-int TransferDBStatusToErr(DBStatus dbStatus);
+int TransferDBstatusToErr(DBStatus dbStatus);
 } // DistributedDB
 #endif // KV_STORE_ERRNO_H
