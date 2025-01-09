@@ -1885,7 +1885,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSch
         LOGE("[RDBExecutor] bind time failed %d when get download asset gid", errCode);
         SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
-     }
+    }
     uint32_t count = 0;
     do {
         errCode = SQLiteUtils::StepWithRetry(stmt, false);

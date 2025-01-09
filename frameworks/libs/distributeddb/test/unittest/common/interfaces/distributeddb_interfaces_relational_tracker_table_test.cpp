@@ -2437,6 +2437,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038,
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
         EXPECT_EQ(cursorVal, std::to_string(num + (++index)));
     }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     /**
      * @tc.steps:step5. Delete data to table2 then check tracker table data

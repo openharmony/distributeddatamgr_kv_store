@@ -444,6 +444,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest001, TestSize.Level0)
 
     EXPECT_EQ(loop->Initialize(), E_OK);
     EXPECT_EQ(loop->Initialize(), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(loop);
 }
 
 /**
@@ -528,6 +529,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest001, TestSize.Level0)
     event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
     ASSERT_NE(event, nullptr);
     EXPECT_EQ(errCode, E_OK);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
 /**
@@ -554,6 +556,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest002, TestSize.Level0)
      * @tc.expected: step2. return INVALID_ARGS
      */
     EXPECT_EQ(event->SetAction(nullptr), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
 /**
@@ -590,6 +593,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest003, TestSize.Level0)
     events |= ET_READ;
     EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
     EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
 /**
@@ -632,6 +636,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest004, TestSize.Level0)
     ASSERT_EQ(g_loop->Add(event), E_OK);
     EXPECT_EQ(event->AddEvents(events), E_OK);
     EXPECT_EQ(event->RemoveEvents(events), E_OK);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
 /**
@@ -650,6 +655,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest005, TestSize.Level0)
     EventTime eventTime = -1; // -1 is invalid arg
     IEvent *event = new (std::nothrow) EventImpl(eventTime);
     ASSERT_NE(event, nullptr);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 
     /**
      * @tc.steps:step2. instantiation event with eventFd, events, eventTime
@@ -659,6 +665,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest005, TestSize.Level0)
     EventsMask events = 1u; // 1 means ET_READ
     EventImpl *eventImpl = new (std::nothrow) EventImpl(eventFd, events, eventTime);
     ASSERT_NE(eventImpl, nullptr);
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
 
 /**
@@ -688,6 +695,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest006, TestSize.Level0)
     EXPECT_EQ(event->SetTimeout(eventTime), E_OK);
     eventTime = -1; // -1 is invalid args
     EXPECT_EQ(event->SetTimeout(eventTime), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
 /**
@@ -725,6 +733,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest007, TestSize.Level0)
     eventImpl->SetEvents(false, events);
     EXPECT_EQ(eventImpl->GetEvents(), 1u); // 1 means ET_READ
     EXPECT_FALSE(eventImpl->GetTimeoutPoint(eventTime));
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
 
 /**
@@ -760,5 +769,6 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventTest008, TestSize.Level0)
      * @tc.expected: step3. return INVALID_ARGS
      */
     EXPECT_EQ(eventImpl->Dispatch(), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
 }
