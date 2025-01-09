@@ -41,8 +41,8 @@ typedef enum GRD_CutMode {
 } GRD_CutModeE;
 
 typedef enum GRD_ExtractMode {
-    Extract_TF_IDF = 0,
-    Extract_BUTT  // INVALID ExtractMode
+    EXTRACT_TF_IDF = 0,
+    EXTRACT_BUTT  // INVALID ExtractMode
 } GRD_ExtractModeE;
 
 typedef struct GRD_TokenizerParam {

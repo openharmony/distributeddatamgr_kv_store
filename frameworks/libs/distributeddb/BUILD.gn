@@ -90,8 +90,8 @@ config("distrdb_public_config") {
 
 group("build_module") {
   deps = [
-    ":distributeddb",
     ":customtokenizer",
+    ":distributeddb",
   ]
 }
 
@@ -146,16 +146,12 @@ config("tokenizer_config") {
     "$tokenizer_path/sqlite_adapter/include",
     "$tokenizer_path/sqlite_adapter/src",
   ]
-  defines = [
-    "HARMONY_OS",
-  ]
+  defines = [ "HARMONY_OS" ]
 }
 
 config("tokenizer_public_config") {
   visibility = [ ":*" ]
-  include_dirs = [
-    "$tokenizer_path/sqlite_adapter/include",
-  ]
+  include_dirs = [ "$tokenizer_path/sqlite_adapter/include" ]
 }
 
 ohos_shared_library("customtokenizer") {
@@ -168,9 +164,9 @@ ohos_shared_library("customtokenizer") {
     debug = false
   }
   sources = [
-  "$tokenizer_path/sqlite_adapter/src/tokenizer_api_mgr.cpp",
-  "$tokenizer_path/sqlite_adapter/src/tokenizer_api.cpp",
-  "$tokenizer_path/sqlite_adapter/src/tokenizer_sqlite.cpp",
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_api.cpp",
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_api_mgr.cpp",
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_sqlite.cpp",
   ]
 
   configs = [ ":tokenizer_config" ]
@@ -186,9 +182,7 @@ ohos_shared_library("customtokenizer") {
     "hilog:libhilog",
   ]
 
-  public_external_deps = [
-    "sqlite:sqlite",
-  ]
+  public_external_deps = [ "sqlite:sqlite" ]
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]

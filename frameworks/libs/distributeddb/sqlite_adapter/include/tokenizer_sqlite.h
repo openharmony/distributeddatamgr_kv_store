@@ -30,11 +30,11 @@
 extern "C" {
 #endif  // __cplusplus
 
-typedef int (*xTokenFn)(void *, int, const char *, int, int, int);
+typedef int (*XTokenFn)(void *, int, const char *, int, int, int);
 
 GRD_API int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Fts5Tokenizer **ppOut);
-GRD_API int fts5_customtokenizer_xTokenize(
-    Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText, xTokenFn xToken);
+GRD_API int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText,
+    int nText, XTokenFn xToken);
 GRD_API void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr);
 
 GRD_API int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi);

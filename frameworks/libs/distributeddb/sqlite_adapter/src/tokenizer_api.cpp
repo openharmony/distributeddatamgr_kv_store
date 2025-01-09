@@ -18,7 +18,7 @@
 
 namespace CNTokenizer {
 
-static GRD_CNTokenizerApiT g_tokenizerApi = {0};
+static GRD_CNTokenizerApiT g_tokenizerApi = {};
 
 GRD_API int32_t GRD_TokenizerInit(const char *userDictPath, const char *userStopWordPath, GRD_TokenizerParamT param)
 {
