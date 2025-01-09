@@ -228,6 +228,17 @@ void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
         validStatusForAssetsOnly_ = expressions_[fromTable_].GetExpressionStatusForAssetsOnly();
         return;
     }
+    if (queryInfo_.empty()) {
+        LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    } else if (queryInfo_.back().operFlag != QueryObjType::AND) {
+        LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    } else {
+        queryInfo_.pop_back();
+    }
     if (assetsGroupMap_.find(groupNum_) != assetsGroupMap_.end()) {
         LOGE("[QueryExpression]assets only already set!");
         validStatusForAssetsOnly_ = -E_INVALID_ARGS;
