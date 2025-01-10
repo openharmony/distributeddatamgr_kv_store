@@ -59,6 +59,9 @@ SingleStoreImpl::SingleStoreImpl(
         isApplication_ = true;
         apiVersion_ = options.apiVersion;
     }
+    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
+        isCheckIntegrity_ = true;
+    }
 }
 
 SingleStoreImpl::~SingleStoreImpl()
@@ -764,7 +767,7 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
         }
     }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_ };
-    auto status = BackupManager::GetInstance().Backup(info, dbStore_);
+    auto status = BackupManager::GetInstance().Backup(info, dbStore_, isCheckIntegrity_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
@@ -779,12 +782,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (service != nullptr) {
         service->Close({ appId_ }, { storeId_ });
     }
-    bool isCheckIntegrity = false;
-    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
-        isCheckIntegrity = true;
-    }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_ };
-    auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity);
+    auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());

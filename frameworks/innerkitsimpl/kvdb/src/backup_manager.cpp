@@ -106,10 +106,17 @@ void BackupManager::CleanTmpData(const std::string &name)
     StoreUtil::Remove(tmpName);
 }
 
-Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore)
+Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
+    }
+    if (isCheckIntegrity) {
+        auto dbStatus = dbStore->CheckIntegrity();
+        if (dbStatus != DistributedDB::DBStatus::OK) {
+            ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
+            return StoreUtil::ConvertStatus(dbStatus);
+        }
     }
     if (info.name.size() == 0 || info.baseDir.size() == 0 || info.storeId.size() == 0 ||
         info.name == AUTO_BACKUP_NAME) {
