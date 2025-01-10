@@ -89,7 +89,10 @@ config("distrdb_public_config") {
 }
 
 group("build_module") {
-  deps = [ ":distributeddb" ]
+  deps = [
+    ":customtokenizer",
+    ":distributeddb",
+  ]
 }
 
 ohos_shared_library("distributeddb") {
@@ -129,6 +132,57 @@ ohos_shared_library("distributeddb") {
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
   ]
+
+  subsystem_name = "distributeddatamgr"
+  innerapi_tags = [ "platformsdk_indirect" ]
+  part_name = "kv_store"
+}
+
+tokenizer_path = "."
+
+config("tokenizer_config") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "$tokenizer_path/sqlite_adapter/include",
+    "$tokenizer_path/sqlite_adapter/src",
+  ]
+  defines = [ "HARMONY_OS" ]
+}
+
+config("tokenizer_public_config") {
+  visibility = [ ":*" ]
+  include_dirs = [ "$tokenizer_path/sqlite_adapter/include" ]
+}
+
+ohos_shared_library("customtokenizer") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+  sources = [
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_api.cpp",
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_api_mgr.cpp",
+    "$tokenizer_path/sqlite_adapter/src/tokenizer_sqlite.cpp",
+  ]
+
+  configs = [ ":tokenizer_config" ]
+  public_configs = [ ":tokenizer_public_config" ]
+
+  cflags_cc = [
+    "-fvisibility=hidden",
+    "-Os",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
+
+  public_external_deps = [ "sqlite:sqlite" ]
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]
