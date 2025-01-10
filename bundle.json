@@ -121,7 +121,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:datamgr_common",
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
           "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
@@ -129,15 +129,13 @@
               "executor_pool.h",
               "pool.h",
               "priority_queue.h",
-              "types.h",
-              "kvstore_sync_callback.h",
-              "store_errno.h"
+              "types.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:datamgr_common",
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
           "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
@@ -147,7 +145,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:kvdb_inner_lite",
+          "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:kvdb_inner_lite",
           "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
@@ -158,7 +156,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb:kvdb_inner_lite",
+          "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:kvdb_inner_lite",
           "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
@@ -167,6 +165,17 @@
               "kvdb_service.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include"
+          }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:kvdb_inner_lite",
+          "visibility": [ "datamgr_service" ],
+          "header": {
+            "header_files": [
+              "kvstore_sync_callback.h",
+              "store_errno.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
           }
         },
         {

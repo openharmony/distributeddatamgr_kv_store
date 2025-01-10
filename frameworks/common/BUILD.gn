@@ -16,8 +16,6 @@ config("datamgr_common_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
-    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
     "${kv_store_base_path}/frameworks/common",
     "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
   ]
@@ -32,34 +30,6 @@ ohos_static_library("datamgr_common") {
     cfi_cross_dso = true
     debug = false
   }
-
-  public_configs = [ ":datamgr_common_config" ]
-
-  subsystem_name = "distributeddatamgr"
-  part_name = "kv_store"
-}
-
-ohos_static_library("kvdb_inner_lite") {
-  branch_protector_ret = "pac_ret"
-  sanitize = {
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
-
-  sources = [
-    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
-  ]
-
-  external_deps = [
-    "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-  ]
 
   public_configs = [ ":datamgr_common_config" ]
 
