@@ -12,19 +12,13 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
-
-group("build_module") {
-  deps = []
-  if (!use_platform_win && !use_platforn_mac) {
-    deps += [ ":datamgr_common" ]
-  }
-}
-
 config("datamgr_common_config") {
   visibility = [ ":*" ]
 
-  include_dirs =
-      [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include" ]
+  include_dirs = [
+    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+  ]
 }
 
 ohos_static_library("datamgr_common") {
