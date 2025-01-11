@@ -82,6 +82,8 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
 
+    int UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset);
+
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 

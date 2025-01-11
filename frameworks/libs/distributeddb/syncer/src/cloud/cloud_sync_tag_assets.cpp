@@ -134,9 +134,12 @@ void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asse
         AssetOpType::INSERT : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
 }
 
-std::pair<bool, Assets> TagForNotContainsAsset(const std::string &assetFieldName, VBucket &coveredData,
-    VBucket &beCoveredData, bool setNormalStatus, int &errCode)
+std::pair<bool, Assets> TagForNotContainsAsset(
+    const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo, int &errCode)
 {
+    bool setNormalStatus = tagAssetsInfo.setNormalStatus;
+    VBucket &coveredData = tagAssetsInfo.coveredData;
+    VBucket &beCoveredData = tagAssetsInfo.beCoveredData;
     std::pair<bool, Assets> res = { true, {} };
     bool beCoveredHasAssets = IsDataContainField<Assets>(assetFieldName, beCoveredData);
     bool coveredHasAssets = IsDataContainField<Assets>(assetFieldName, coveredData);
@@ -158,9 +161,12 @@ std::pair<bool, Assets> TagForNotContainsAsset(const std::string &assetFieldName
     return { false, {} };
 }
 
-static Assets TagAssetsInner(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
-    bool setNormalStatus, int &errCode)
+static Assets TagAssetsInner(const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo, int &errCode)
 {
+    VBucket &coveredData = tagAssetsInfo.coveredData;
+    VBucket &beCoveredData = tagAssetsInfo.beCoveredData;
+    bool setNormalStatus = tagAssetsInfo.setNormalStatus;
+    bool isFrocePullAssets = tagAssetsInfo.isFrocePullAssets;
     Assets res = {};
     if (!std::holds_alternative<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData)) ||
         !std::holds_alternative<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData))) {
@@ -182,7 +188,7 @@ static Assets TagAssetsInner(const std::string &assetFieldName, VBucket &covered
             // fill asset id for upload data
             coveredAsset.assetId = beCoveredAsset.assetId;
         }
-        if (!setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
+        if (!setNormalStatus && (beCoveredAsset.hash != coveredAsset.hash || isFrocePullAssets)) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else if (setNormalStatus && beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
@@ -209,23 +215,25 @@ static Assets TagAssetsInner(const std::string &assetFieldName, VBucket &covered
 
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 // use VBucket rather than Type because we need to check whether it is empty
-Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
-    bool setNormalStatus, int &errCode)
+Assets TagAssets(const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo, int &errCode)
 {
-    auto [isReturn, resAsset] = TagForNotContainsAsset(assetFieldName, coveredData, beCoveredData,
-        setNormalStatus, errCode);
+    auto [isReturn, resAsset] = TagForNotContainsAsset(assetFieldName, tagAssetsInfo, errCode);
     if (isReturn) {
         return resAsset;
     }
-    return TagAssetsInner(assetFieldName, coveredData, beCoveredData, setNormalStatus, errCode);
+    return TagAssetsInner(assetFieldName, tagAssetsInfo, errCode);
 }
 
-static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const bool setNormalStatus, Assets &res,
+static void TagCoveredAssetInner(TagAssetInfo &tagAssetInfo, Assets &res,
     int &errCode)
 {
+    Asset &covered = tagAssetInfo.covered;
+    Asset &beCovered = tagAssetInfo.beCovered;
+    bool setNormalStatus = tagAssetInfo.setNormalStatus;
+    bool isFrocePullAssets = tagAssetInfo.isFrocePullAssets;
     if (!setNormalStatus && AssetOperationUtils::IsAssetNeedDownload(beCovered)) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res, errCode);
-    } else if (covered.hash != beCovered.hash) {
+    } else if (covered.hash != beCovered.hash || isFrocePullAssets) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
     } else {
         Assets tmpAssets = {};
@@ -233,10 +241,31 @@ static void TagCoveredAssetInner(Asset &covered, const Asset &beCovered, const b
     }
 }
 
-// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
-Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
-    bool setNormalStatus, int &errCode)
+void TagAssetCoveredWithNoAsset(
+    const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo, Assets &res, int &errCode)
 {
+    VBucket &coveredData = tagAssetsInfo.coveredData;
+    VBucket &beCoveredData = tagAssetsInfo.beCoveredData;
+    bool setNormalStatus = tagAssetsInfo.setNormalStatus;
+    if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
+            std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+        if (!setNormalStatus) {
+            // only not normal need fillback asset data
+            coveredData[assetFieldName] = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
+        }
+    } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
+        TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
+            std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+    }
+}
+
+// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
+Assets TagAsset(const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo, int &errCode)
+{
+    VBucket &coveredData = tagAssetsInfo.coveredData;
+    VBucket &beCoveredData = tagAssetsInfo.beCoveredData;
+    bool setNormalStatus = tagAssetsInfo.setNormalStatus;
     Assets res = {};
     bool beCoveredHasAsset = IsDataContainField<Asset>(assetFieldName, beCoveredData) ||
         IsDataContainField<Assets>(assetFieldName, beCoveredData);
@@ -251,17 +280,7 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         return res;
     }
     if (!coveredHasAsset) {
-        if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
-            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
-                std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
-            if (!setNormalStatus) {
-                // only not normal need fillback asset data
-                coveredData[assetFieldName] = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
-            }
-        } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
-            TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
-                std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
-        }
+        TagAssetCoveredWithNoAsset(assetFieldName, tagAssetsInfo, res, errCode);
         return res;
     }
     Asset &covered = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, coveredData));
@@ -285,7 +304,8 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
         // fill asset id for upload data
         covered.assetId = beCovered.assetId;
     }
-    TagCoveredAssetInner(covered, beCovered, setNormalStatus, res, errCode);
+    TagAssetInfo tagAssetInfo = {covered, beCovered, tagAssetsInfo.setNormalStatus, tagAssetsInfo.isFrocePullAssets};
+    TagCoveredAssetInner(tagAssetInfo, res, errCode);
     return res;
 }
 
@@ -339,18 +359,17 @@ void TagAssetForUpload(const std::string &filedName, bool isInsert, VBucket &cov
 }
 } // namespace
 
-Assets TagAssetsInSingleCol(
-    VBucket &coveredData, VBucket &beCoveredData, const Field &assetField, bool setNormalStatus, int &errCode)
+Assets TagAssetsInSingleCol(TagAssetsInfo &tagAssetsInfo, const Field &assetField, int &errCode)
 {
     // Define a list to store the tagged result
     Assets assets = {};
     switch (assetField.type) {
         case TYPE_INDEX<Assets>: {
-            assets = TagAssets(assetField.colName, coveredData, beCoveredData, setNormalStatus, errCode);
+            assets = TagAssets(assetField.colName, tagAssetsInfo, errCode);
             break;
         }
         case TYPE_INDEX<Asset>: {
-            assets = TagAsset(assetField.colName, coveredData, beCoveredData, setNormalStatus, errCode);
+            assets = TagAsset(assetField.colName, tagAssetsInfo, errCode);
             break;
         }
         default:

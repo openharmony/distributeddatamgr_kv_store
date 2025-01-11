@@ -63,6 +63,9 @@ public:
     static std::vector<QuerySyncObject> GetQuerySyncObject(const Query &query);
 
     static int ParserQueryNodes(const Bytes &bytes, std::vector<QueryNode> &queryNodes);
+
+    int GetQuerySyncObjectFromGroup(int64_t groupId, QuerySyncObject &obj);
+
 private:
     explicit QuerySyncObject(const QueryExpression &expression);
     uint32_t CalculateLen() const;

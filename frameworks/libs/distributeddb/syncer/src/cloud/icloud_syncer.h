@@ -29,7 +29,9 @@ public:
     using TaskId = uint64_t;
     struct CloudTaskInfo {
         bool priorityTask = false;
+        int32_t priorityLevel = 0;
         bool compensatedTask = false;
+        bool isAssetsOnly = false;
         bool pause = false;
         bool resume = false;
         bool merge = false;
@@ -47,6 +49,8 @@ public:
         std::vector<std::string> users;
         std::string storeId;
         std::string prepareTraceId;
+        uint32_t groupNum = 0;
+        AssetsGroupMap assetsGroupMap;
     };
 
     struct UploadRetryInfo {
@@ -83,6 +87,13 @@ public:
         bool isLastBatch = false;
         WithoutRowIdData withoutRowIdData;
         std::vector<std::vector<Type>> insertPk;
+        bool isAssetsOnly = false;
+        bool isVaildForAssetsOnly = false;
+        uint32_t groupNum = 0;
+        AssetsGroupMap assetsGroupMap;
+        std::string cloudWaterMarkForAssetsOnly;
+        std::map<std::string, AssetsMap> gidAssetsMap; // only used for assets only.
+        bool isForcePullAseets = false;
     };
 
     struct DataInfo {

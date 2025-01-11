@@ -41,6 +41,7 @@ public:
     MOCK_METHOD1(ReleaseCloudDataToken, int(ContinueToken &));
     MOCK_METHOD4(GetInfoByPrimaryKeyOrGid, int(const std::string &, const VBucket &, DataInfoWithLog &, VBucket &));
     MOCK_METHOD2(PutCloudSyncData, int(const std::string &, DownloadData &));
+    MOCK_METHOD2(UpdateAssetStatusForAssetOnly, int(const std::string &, VBucket &));
     MOCK_METHOD3(TriggerObserverAction, void(const std::string &, ChangedData &&, bool));
     MOCK_METHOD4(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));

@@ -220,6 +220,52 @@ void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, cons
     endKey_ = keyEnd;
 }
 
+void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
+{
+    isAssetsOnly_ = true;
+    if (useFromTable_) {
+        expressions_[fromTable_].QueryAssetsOnly(assets);
+        validStatusForAssetsOnly_ = expressions_[fromTable_].GetExpressionStatusForAssetsOnly();
+        return;
+    }
+    if (queryInfo_.empty()) {
+        LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    } else if (queryInfo_.back().operFlag != QueryObjType::AND) {
+        LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    } else {
+        queryInfo_.pop_back();
+    }
+    if (assetsGroupMap_.find(groupNum_) != assetsGroupMap_.end()) {
+        LOGE("[QueryExpression]assets only already set!");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    }
+    if (assets.empty()) {
+        LOGE("[QueryExpression]assets map can not be empty!");
+        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        return;
+    }
+    for (const auto &item : assets) {
+        if (item.second.empty() && item.first.empty()) {
+            LOGE("[QueryExpression]assets filed or asset name can not be empty!");
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            return;
+        }
+    }
+    assetsGroupMap_[groupNum_] = assets;
+    for (uint32_t i = 0; i <= groupNum_; i++) {
+        if (assetsGroupMap_.find(i) == assetsGroupMap_.end()) {
+            LOGE("[QueryExpression]asset group " PRIu32 " not found, may be AssetsOnly interface use in wrong way.", i);
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            return;
+        }
+    }
+}
+
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
 {
     if (useFromTable_) {
@@ -303,6 +349,12 @@ void QueryExpression::BeginGroup()
         expressions_[fromTable_].BeginGroup();
         return;
     }
+    if (isAssetsOnly_) {
+        auto iter = queryInfo_.rbegin();
+        if (iter != queryInfo_.rend() && (*iter).operFlag != QueryObjType::OR) {
+            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        }
+    }
     SetNotSupportIfFromTables();
     queryInfo_.emplace_back(QueryObjNode{QueryObjType::BEGIN_GROUP, std::string(),
         QueryValueType::VALUE_TYPE_NULL, std::vector<FieldValue>()});
@@ -315,6 +367,7 @@ void QueryExpression::EndGroup()
         return;
     }
     SetNotSupportIfFromTables();
+    groupNum_++;
     queryInfo_.emplace_back(QueryObjNode{QueryObjType::END_GROUP, std::string(),
         QueryValueType::VALUE_TYPE_NULL, std::vector<FieldValue>()});
 }
@@ -404,6 +457,11 @@ int QueryExpression::GetExpressionStatus() const
     return validStatus_;
 }
 
+int QueryExpression::GetExpressionStatusForAssetsOnly() const
+{
+    return validStatusForAssetsOnly_;
+}
+
 std::vector<QueryExpression> QueryExpression::GetQueryExpressions() const
 {
     if (!useFromTable_) {
@@ -473,5 +531,20 @@ int QueryExpression::RangeParamCheck() const
         return -E_INVALID_ARGS;
     }
     return E_OK;
+}
+
+bool QueryExpression::IsAssetsOnly() const
+{
+    return isAssetsOnly_;
+}
+
+AssetsGroupMap QueryExpression::GetAssetsOnlyGroupMap() const
+{
+    return assetsGroupMap_;
+}
+
+uint32_t QueryExpression::GetGroupNum() const
+{
+    return groupNum_;
 }
 } // namespace DistributedDB

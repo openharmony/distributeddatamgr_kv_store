@@ -619,6 +619,7 @@ CloudSyncer::CloudTaskInfo CloudSyncUtils::InitCompensatedSyncTaskInfo()
 {
     CloudSyncer::CloudTaskInfo taskInfo;
     taskInfo.priorityTask = true;
+    taskInfo.priorityLevel = CloudDbConstant::COMMON_TASK_PRIORITY_LEVEL;
     taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
     taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
     taskInfo.callback = nullptr;
@@ -772,6 +773,55 @@ bool CloudSyncUtils::IsContainDownloading(const DownloadAssetUnit &downloadAsset
     return false;
 }
 
+int CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(
+    size_t idx, ICloudSyncer::SyncParam &param, std::map<std::string, Assets> &downloadAssetsMap)
+{
+    std::string gid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(
+        CloudDbConstant::GID_FIELD, param.downloadData.data[idx], gid);
+    if (errCode != E_OK) {
+        LOGE("Get gid from bucket fail when get download assets only map from download data, error code %d", errCode);
+        return errCode;
+    }
+
+    auto assetsMap = param.gidAssetsMap[gid];
+    for (auto &item : param.downloadData.data[idx]) {
+        auto findAssetList = assetsMap.find(item.first);
+        if (findAssetList == assetsMap.end()) {
+            continue;
+        }
+        Asset *asset = std::get_if<Asset>(&item.second);
+        if (asset != nullptr) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&asset](const std::string &a) { return a == asset->name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = *asset;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+            continue;
+        }
+        Assets *assets = std::get_if<Assets>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &assetItem : (*assets)) {
+            auto matchName = std::find_if(findAssetList->second.begin(),
+                findAssetList->second.end(),
+                [&assetItem](const std::string &a) { return a == assetItem.name; });
+            if (matchName != findAssetList->second.end()) {
+                Asset tmpAsset = assetItem;
+                tmpAsset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+                tmpAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+                downloadAssetsMap[item.first].push_back(tmpAsset);
+            }
+        }
+    }
+    return E_OK;
+}
+
 int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
     ChangedData &&changedData)
 {
@@ -785,5 +835,135 @@ int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_p
             {__func__, Scene::CLOUD_SYNC, State::END, Stage::CLOUD_NOTIFY, StageResult::SUCC, ret});
     }
     return ret;
+}
+
+int CloudSyncUtils::GetQueryAndUsersForCompensatedSync(bool isQueryDownloadRecords,
+    std::shared_ptr<StorageProxy> &storageProxy, std::vector<std::string> &users,
+    std::vector<QuerySyncObject> &syncQuery)
+{
+    int errCode = storageProxy->GetCompensatedSyncQuery(syncQuery, users, isQueryDownloadRecords);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
+        return errCode;
+    }
+    if (syncQuery.empty()) {
+        LOGD("[CloudSyncer] Not need generate compensated sync");
+    }
+    return E_OK;
+}
+
+void CloudSyncUtils::GetUserListForCompensatedSync(
+    CloudDBProxy &cloudDB, const std::vector<std::string> &users, std::vector<std::string> &userList)
+{
+    auto cloudDBs = cloudDB.GetCloudDB();
+    if (cloudDBs.empty()) {
+        LOGW("[CloudSyncer][GetUserListForCompensatedSync] not set cloud db");
+        return;
+    }
+    for (auto &[user, cloudDb] : cloudDBs) {
+        auto it = std::find(users.begin(), users.end(), user);
+        if (it != users.end()) {
+            userList.push_back(user);
+        }
+    }
+}
+
+bool CloudSyncUtils::SetAssetsMapByCloudGid(
+    std::vector<std::string> &cloudGid, const AssetsMap &groupAssetsMap, std::map<std::string, AssetsMap> &gidAssetsMap)
+{
+    bool isFindOneRecord = false;
+    for (auto &iter : cloudGid) {
+        auto gidIter = gidAssetsMap.find(iter);
+        if (gidIter == gidAssetsMap.end()) {
+            continue;
+        }
+        for (const auto &pair : groupAssetsMap) {
+            if (gidIter->second.find(pair.first) == gidIter->second.end()) {
+                gidIter->second[pair.first] = pair.second;
+            } else {
+                // merge assets
+                gidIter->second[pair.first].insert(pair.second.begin(), pair.second.end());
+            }
+        }
+        isFindOneRecord = true;
+    }
+    return isFindOneRecord;
+}
+
+bool CloudSyncUtils::CheckAssetsOnlyIsEmptyInGroup(
+    const std::map<std::string, AssetsMap> &gidAssetsMap, const AssetsMap &assetsMap)
+{
+    if (gidAssetsMap.empty()) {
+        return true;
+    }
+    for (const auto &item : gidAssetsMap) {
+        const auto &gidAssets = item.second;
+        if (gidAssets.empty()) {
+            return true;
+        }
+        bool isMatch = true;
+        for (const auto &assets : assetsMap) {
+            auto iter = gidAssets.find(assets.first);
+            if (iter == gidAssets.end()) {
+                isMatch = false;
+                break;
+            }
+            if (!std::includes(iter->second.begin(), iter->second.end(), assets.second.begin(), assets.second.end())) {
+                isMatch = false;
+                break;
+            }
+        }
+        if (isMatch) {
+            // find one match, so group is not empty.
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CloudSyncUtils::IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, bool isDownloading)
+{
+    if (assetsMap.empty()) {
+        return false;
+    }
+    for (auto &item : assetsMap) {
+        auto &assetNameList = item.second;
+        auto findAssetField = queryData.find(item.first);
+        if (findAssetField == queryData.end() || assetNameList.empty()) {
+            // if not find asset field or assetNameList is empty, mean this is not asset only data.
+            return false;
+        }
+
+        Asset *asset = std::get_if<Asset>(&(findAssetField->second));
+        if (asset != nullptr) {
+            // if is Asset type, assetNameList size must be 1.
+            if (assetNameList.size() != 1u || *(assetNameList.begin()) != asset->name ||
+                asset->status == AssetStatus::DELETE) {
+                // if data is delele, also not asset only data.
+                return false;
+            }
+            if (isDownloading) {
+                asset->status = static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+            }
+            continue;
+        }
+
+        Assets *assets = std::get_if<Assets>(&(findAssetField->second));
+        if (assets == nullptr) {
+            return false;
+        }
+        for (auto &assetName : assetNameList) {
+            auto findAsset = std::find_if(
+                assets->begin(), assets->end(), [&assetName](const Asset &a) { return a.name == assetName; });
+            if (findAsset == assets->end() || (*findAsset).status == AssetStatus::DELETE) {
+                // if data is delele, also not asset only data.
+                return false;
+            }
+            if (isDownloading) {
+                (*findAsset).status = AssetStatus::DOWNLOADING;
+            }
+        }
+    }
+    return true;
 }
 }

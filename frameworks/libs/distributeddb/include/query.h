@@ -151,6 +151,8 @@ public:
 
     DB_API Query &Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
 
+    DB_API Query &AssetsOnly(const AssetsMap &assets);
+
     friend class GetQueryInfo;
     DB_API ~Query() = default;
     DB_API Query() = default;

@@ -115,10 +115,28 @@ public:
     static void UpdateMaxTimeWithDownloadList(const DownloadList &downloadList, const std::string &table,
         std::map<std::string, int64_t> &downloadBeginTime);
 
+    static bool IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit);
+
+    static int GetDownloadAssetsOnlyMapFromDownLoadData(
+        size_t idx, ICloudSyncer::SyncParam &param, std::map<std::string, Assets> &downloadAssetsMap);
+
     static int NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
         ChangedData &&changedData);
 
-    static bool IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit);
+    static int GetQueryAndUsersForCompensatedSync(bool isQueryDownloadRecords,
+        std::shared_ptr<StorageProxy> &storageProxy, std::vector<std::string> &users,
+        std::vector<QuerySyncObject> &syncQuery);
+
+    static void GetUserListForCompensatedSync(
+        CloudDBProxy &cloudDB, const std::vector<std::string> &users, std::vector<std::string> &userList);
+
+    static bool SetAssetsMapByCloudGid(std::vector<std::string> &cloudGid, const AssetsMap &groupAssetsMap,
+        std::map<std::string, AssetsMap> &gidAssetsMap);
+
+    static bool CheckAssetsOnlyIsEmptyInGroup(
+        const std::map<std::string, AssetsMap> &gidAssetsMap, const AssetsMap &assetsMap);
+
+    static bool IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, bool isDownloading);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

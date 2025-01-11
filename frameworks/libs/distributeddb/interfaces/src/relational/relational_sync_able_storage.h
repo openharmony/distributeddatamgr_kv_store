@@ -174,6 +174,8 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
 
+    int UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset) override;
+
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) override;
 

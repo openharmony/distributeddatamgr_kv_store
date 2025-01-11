@@ -126,6 +126,27 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
     return errCode;
 }
 
+int RelationalSyncAbleStorage::UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when save cloud data, %d", errCode);
+        return errCode;
+    }
+    RelationalSchemaObject localSchema = GetSchemaInfo();
+    transactionHandle_->SetLocalSchema(localSchema);
+    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = transactionHandle_->UpdateAssetStatusForAssetOnly(tableSchema, asset);
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
+}
+
 int RelationalSyncAbleStorage::FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset,
     bool isDownloadSuccess)
 {

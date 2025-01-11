@@ -125,6 +125,8 @@ public:
 
     void QueryByKeyRange(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
 
+    void QueryAssetsOnly(const AssetsMap &assets);
+
     std::vector<uint8_t> GetPreFixKey() const;
 
     std::vector<uint8_t> GetBeginKey() const;
@@ -155,6 +157,12 @@ public:
     int GetExpressionStatus() const;
     std::vector<QueryExpression> GetQueryExpressions() const;
     int RangeParamCheck() const;
+
+    bool IsAssetsOnly() const;
+    AssetsGroupMap GetAssetsOnlyGroupMap() const;
+    uint32_t GetGroupNum() const;
+    int GetExpressionStatusForAssetsOnly() const;
+
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
@@ -182,6 +190,10 @@ private:
     std::list<std::string> tableSequence_;
     std::map<std::string, QueryExpression> expressions_;
     int validStatus_ = 0;
+    uint32_t groupNum_ = 0;
+    bool isAssetsOnly_ = false;
+    AssetsGroupMap assetsGroupMap_;
+    int validStatusForAssetsOnly_ = 0;
 };
 
 // specialize for double

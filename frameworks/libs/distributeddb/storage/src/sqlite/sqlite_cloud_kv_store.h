@@ -64,6 +64,8 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
 
+    int UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &vBucket) override;
+
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;

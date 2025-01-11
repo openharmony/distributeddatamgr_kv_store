@@ -38,6 +38,8 @@
 
 namespace DistributedDB {
 using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
+const std::string CLOUD_PRIORITY_TASK_STRING = "priority";
+const std::string CLOUD_COMMON_TASK_STRING = "common";
 class CloudSyncer : public ICloudSyncer {
 public:
     explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy, bool isKvScene = false,
@@ -208,6 +210,8 @@ protected:
     int QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
         DownloadData &downloadData);
 
+    size_t GetCurrentCommonTaskNum();
+
     int CheckTaskIdValid(TaskId taskId);
 
     int GetCurrentTableName(std::string &tableName);
@@ -233,7 +237,7 @@ protected:
     void SetTaskFailed(TaskId taskId, int errCode);
 
     int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
-        std::map<std::string, LogInfo> &localLogInfoCache);
+        std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &localInfo);
 
     int SaveData(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -252,7 +256,7 @@ protected:
     int NotifyChangedDataInCurrentTask(ChangedData &&changedData);
 
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
-        bool setNormalStatus, int &errCode);
+        bool setNormalStatus, bool isForcePullAseets, int &errCode);
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 
@@ -261,6 +265,9 @@ protected:
 
     int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
         VBucket &localAssetInfo);
+
+    int TagDownloadAssetsForAssetOnly(
+        const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo, VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);
 
@@ -273,6 +280,9 @@ protected:
         VBucket &extend);
 
     int GetCloudGid(TaskId taskId, const std::string &tableName, QuerySyncObject &obj);
+
+    int GetCloudGid(
+        TaskId taskId, const std::string &tableName, QuerySyncObject &obj, std::vector<std::string> &cloudGid);
 
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
@@ -302,7 +312,7 @@ protected:
 
     TaskId GetNextTaskId();
 
-    void MarkCurrentTaskPausedIfNeed();
+    void MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo);
 
     void SetCurrentTaskFailedWithoutLock(int errCode);
 
@@ -400,6 +410,8 @@ protected:
 
     bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
 
+    void RemoveTaskFromQueue(int32_t priorityLevel, TaskId taskId);
+
     std::pair<bool, TaskId> TryMergeTask(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId tryTaskId);
 
     bool IsTaskCanMerge(const CloudTaskInfo &taskInfo);
@@ -488,16 +500,36 @@ protected:
 
     int BackgroundDownloadAssetsByTable(const std::string &table, std::map<std::string, int64_t> &downloadBeginTime);
 
+    int CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param);
+
+    int CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param, DataInfoWithLog &logInfo);
+
+    int PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, std::vector<VBucket> &localInfo);
+
     bool IsCurrentAsyncDownloadTask();
+
+    int GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj, VBucket &extend);
+
+    int QueryCloudGidForAssetsOnly(
+        TaskId taskId, SyncParam &param, int64_t groupIdx, std::vector<std::string> &cloudGid);
+
+    int GetEmptyGidAssetsMapFromDownloadData(
+        const std::vector<VBucket> &data, std::map<std::string, AssetsMap> &gidAssetsMap);
+
+    int SetAssetsMapAndEraseDataForAssetsOnly(TaskId taskId, SyncParam &param, std::vector<VBucket> &downloadData,
+        std::map<std::string, AssetsMap> &gidAssetsMap);
 
     bool IsAsyncDownloadFinished() const;
 
     void NotifyChangedDataWithDefaultDev(ChangedData &&changedData);
 
+    bool IsAlreadyHaveCompensatedSyncTask();
+
+    bool TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTaskId);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
-    std::list<TaskId> taskQueue_;
-    std::list<TaskId> priorityTaskQueue_;
+    std::multimap<int, TaskId, std::greater<int>> taskQueue_;
     std::map<TaskId, CloudTaskInfo> cloudTaskInfos_;
     std::map<TaskId, ResumeTaskInfo> resumeTaskInfos_;
 

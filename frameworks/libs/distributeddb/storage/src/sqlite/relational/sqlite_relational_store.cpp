@@ -1117,6 +1117,11 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
         return -E_INVALID_ARGS;
     }
+    if (option.priorityLevel < CloudDbConstant::PRIORITY_TASK_DEFALUT_LEVEL ||
+        option.priorityLevel > CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
+        LOGE("[RelationalStore] priority level is invalid value:%d", option.priorityLevel);
+        return -E_INVALID_ARGS;
+    }
     int errCode = CheckQueryValid(option);
     if (errCode != E_OK) {
         return errCode;
@@ -1163,6 +1168,17 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
             LOGE("[RelationalStore] not support async download assets with query table %s length %zu",
                 DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
             return -E_NOT_SUPPORT;
+        }
+        if (item.IsAssetsOnly()) {
+            if (option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
+                LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
+                return -E_NOT_SUPPORT;
+            }
+            if (option.priorityLevel != CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
+                LOGE("[RelationalStore] priorityLevel must be 2 when sync with assets only, now is %d",
+                    option.priorityLevel);
+                return -E_INVALID_ARGS;
+            }
         }
     }
     errCode = CheckTableName(syncTableNames);
@@ -1245,6 +1261,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
     info.compensatedTask = option.compensatedSyncOnly;
+    info.priorityLevel = option.priorityLevel;
     info.users.emplace_back("");
     info.lockAction = option.lockAction;
     info.merge = option.merge;

@@ -93,7 +93,7 @@ void VirtualCloudSyncer::Notify(bool notifyIfError)
 size_t VirtualCloudSyncer::GetQueueCount()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    return taskQueue_.size();
+    return GetCurrentCommonTaskNum();
 }
 
 void VirtualCloudSyncer::SetCurrentTaskInfo(const SyncProcessCallback &callback,

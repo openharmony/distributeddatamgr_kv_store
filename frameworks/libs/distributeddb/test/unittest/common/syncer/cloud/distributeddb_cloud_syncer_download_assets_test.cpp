@@ -192,15 +192,19 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
     }
 }
 
-void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets)
+void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets, bool isEmptyAssets = false)
 {
     int errCode;
     std::vector<uint8_t> assetBlob;
     const string sql = "update " + tableName + " set assets=?;";
     sqlite3_stmt *stmt = nullptr;
     ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
-    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    if (isEmptyAssets) {
+        ASSERT_EQ(sqlite3_bind_null(stmt, 1), SQLITE_OK);
+    } else {
+        assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    }
     EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }

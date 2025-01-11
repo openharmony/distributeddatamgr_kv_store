@@ -217,9 +217,16 @@ public:
         return TryToAddSyncTask(std::move(taskInfo));
     }
 
+    bool CallIsAlreadyHaveCompensatedSyncTask()
+    {
+        return IsAlreadyHaveCompensatedSyncTask();
+    }
+
     void PopTaskQueue()
     {
-        taskQueue_.pop_back();
+        if (!taskQueue_.empty()) {
+            taskQueue_.erase(--taskQueue_.end());
+        }
     }
 
     int CallPrepareSync(TaskId taskId)
@@ -243,7 +250,7 @@ public:
         VBucket &coveredData, VBucket &beCoveredData, bool setNormalStatus = false)
     {
         int ret = E_OK;
-        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus, ret);
+        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus, false, ret);
     }
 
     bool TestIsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)
