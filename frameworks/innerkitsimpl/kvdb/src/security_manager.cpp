@@ -168,6 +168,10 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         return false;
     }
     auto secretKey = Encrypt(key);
+    if (secretKey.empty()) {
+        ZLOGE("Failed! encrypt failed");
+        return false;
+    }
     auto keyPath = path + KEY_DIR;
     StoreUtil::InitPath(keyPath);
     std::vector<char> content;
