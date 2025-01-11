@@ -429,6 +429,8 @@ private:
 
     int BindAssetsToBlobStatement(const Assets &assets, int index, sqlite3_stmt *&stmt);
 
+    int GetAssetInfoOnTable(sqlite3_stmt *&stmt, const std::vector<Field> &assetFields, VBucket &assetInfo);
+
     int GetAssetOnTableInner(sqlite3_stmt *&stmt, Asset &asset);
 
     int GetAssetOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
@@ -438,8 +440,6 @@ private:
 
     int GetAssetsOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
         Assets &assets);
-
-    int GetAssetInfoOnTable(sqlite3_stmt *&stmt, const std::vector<Field> &assetFields, VBucket &assetInfo);
 
     int BindAssetFiledToBlobStatement(const TableSchema &tableSchema, const std::vector<Asset> &assetOfOneRecord,
         const std::vector<Assets> &assetsOfOneRecord, sqlite3_stmt *&stmt);

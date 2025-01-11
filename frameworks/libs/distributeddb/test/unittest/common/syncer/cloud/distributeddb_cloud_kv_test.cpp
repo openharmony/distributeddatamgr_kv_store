@@ -166,8 +166,8 @@ void DistributedDBCloudKvTest::BlockSync(KvStoreNbDelegate *delegate, DBStatus e
             EXPECT_EQ(item.second.errCode, expectDBStatus);
             {
                 std::lock_guard<std::mutex> autoLock(dataMutex);
-                std::set<std::string> userSet(option.users.begin(), option.users.end());
                 notifyCnt++;
+                std::set<std::string> userSet(option.users.begin(), option.users.end());
                 if (notifyCnt == userSet.size()) {
                     finish = true;
                     last = item.second;
@@ -281,7 +281,7 @@ void DistributedDBCloudKvTest::SyncAndGetProcessInfo(KvStoreNbDelegate *delegate
     }
     lastSyncProcess_ = lists.back();
 }
-
+ 
 bool DistributedDBCloudKvTest::CheckUserSyncInfo(const vector<std::string> users, const vector<DBStatus> userStatus,
     const vector<Info> userExpectInfo)
 {
@@ -1392,7 +1392,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
 HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. store1 put (k1,v1) and (k2,v2)
+     * @tc.steps: step1. store1 put (k1,v1) and (k2,v2)
      * @tc.expected: step1. both put ok
      */
     communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
@@ -1461,7 +1461,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level0)
         entries.push_back({key, value});
     }
     EXPECT_EQ(kvDelegatePtrS1_->PutBatch(entries), OK);
-
+ 
     /**
      * @tc.steps: step2. multi users sync and set user1 fail.
      * @tc.expected: step2. user1 sync fail and other user sync success.
@@ -1482,7 +1482,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level0)
     option.users.push_back(USER_ID_2);
     option.devices.push_back("cloud");
     SyncAndGetProcessInfo(kvDelegatePtrS1_, option);
-
+ 
     vector<DBStatus> userStatus = {CLOUD_ERROR, OK};
     vector<Info> userExpectInfo = {{1u, 20u, 15u, 5u, 15u, 0u, 0u}, {1u, 20u, 20u, 0u, 20u, 0u, 0u}};
     EXPECT_TRUE(CheckUserSyncInfo(option.users, userStatus, userExpectInfo));
@@ -1510,7 +1510,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level0)
     ASSERT_EQ(kvDelegatePtrS1_->Put(key1, expectValue1), OK);
     ASSERT_EQ(kvDelegatePtrS1_->Put(key2, expectValue2), OK);
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
-
+ 
     /**
      * @tc.steps: step2. deviceB delete {k1, v1} and sync to cloud
      * @tc.expected: step2. ok.
@@ -1518,7 +1518,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level0)
     communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
     ASSERT_EQ(kvDelegatePtrS1_->Delete(key1), OK);
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
-
+ 
     /**
      * @tc.steps: step3. deviceA sync to cloud
      * @tc.expected: step3. ok.
@@ -1704,7 +1704,7 @@ HWTEST_F(DistributedDBCloudKvTest, SyncOptionCheck005, TestSize.Level0)
 
 /**
  * @tc.name: SyncOptionCheck008
- * @tc.desc: Test kc sync with query .
+ * @tc.desc: Test kv sync with query InKeys.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: luoguo

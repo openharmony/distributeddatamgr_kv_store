@@ -29,7 +29,6 @@
 #include "param_check_utils.h"
 #include "relational_store_instance.h"
 #include "relational_store_changed_data_impl.h"
-#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "semaphore_utils.h"
 #include "sync_able_kvdb_connection.h"
@@ -738,8 +737,7 @@ void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &c
 {
     LOGI("[AutoLaunch] SetAutoLaunchRequestCallback type[%d]", static_cast<int>(type));
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, callback, type] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(extLock_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+        ADAPTER_AUTO_LOCK(lock, extLock_);
         if (callback) {
             autoLaunchRequestCallbackMap_[type] = callback;
         } else {
@@ -797,8 +795,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
         bool isReturn = false;
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
             &autoLaunchItem, &isReturn] () mutable {
-            ConcurrentAdapter::AdapterAutoLock(extLock_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
             if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0) {
                 LOGE("[AutoLaunch] extItemMap has this identifier");
                 isReturn = true;
@@ -814,8 +811,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
     bool abort = ChkAutoLaunchAbort(identifier, autoLaunchItem);
     if (abort) {
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId] () mutable {
-            ConcurrentAdapter::AdapterAutoLock(extLock_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
             extItemMap_[identifier].erase(userId);
             if (extItemMap_[identifier].empty()) {
                 extItemMap_.erase(identifier);
@@ -825,8 +821,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
         return;
     }
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId, &autoLaunchItem] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(extLock_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+        ADAPTER_AUTO_LOCK(autoLock, extLock_);
         extItemMap_[identifier][userId] = autoLaunchItem; // Reassign item to prevent it from being erased
         extItemMap_[identifier][userId].isWriteOpenNotified = false;
         LOGI("[AutoLaunch] AutoLaunchExtTask ok");
@@ -844,8 +839,7 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
         bool isReturn = false;
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
             &autoLaunchItem, &isReturn] () mutable {
-            ConcurrentAdapter::AdapterAutoLock(extLock_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
             if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
                 LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
                 isReturn = true;
@@ -868,8 +862,7 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
         bool isReturn = false;
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId, &autoLaunchItem,
             &notifier, &isReturn] () mutable {
-            ConcurrentAdapter::AdapterAutoLock(extLock_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
             if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0 &&
                 !extItemMap_[identifier][userId].isWriteOpenNotified &&
                 autoLaunchItem.notifier != nullptr) {
@@ -906,8 +899,7 @@ void AutoLaunch::ExtConnectionLifeCycleCallbackTask(const std::string &identifie
         bool isReturn = false;
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
             &autoLaunchItem, &isReturn] () mutable {
-            ConcurrentAdapter::AdapterAutoLock(extLock_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
             if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
                 LOGE("[AutoLaunch] ExtConnectionLifeCycleCallbackTask identifier is not exist!");
                 isReturn = true;
@@ -1067,8 +1059,7 @@ int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, Auto
 {
     std::map<DBTypeInner, AutoLaunchRequestCallback> callbackMap;
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &callbackMap] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(extLock_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+        ADAPTER_AUTO_LOCK(autoLock, extLock_);
         callbackMap = autoLaunchRequestCallbackMap_;
         return E_OK;
     }, &autoLaunchRequestCallbackMap_);
@@ -1315,8 +1306,7 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
             bool isReturn = false;
             TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
                 &notifier, &isWriteOpenNotified, &isReturn] () mutable {
-                ConcurrentAdapter::AdapterAutoLock(extLock_);
-                ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+                ADAPTER_AUTO_LOCK(autoLock, extLock_);
                 if (extItemMap_.find(identifier) == extItemMap_.end() ||
                     extItemMap_[identifier].find(userId) == extItemMap_[identifier].end()) {
                     LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
@@ -1345,8 +1335,7 @@ void AutoLaunch::CloseConnection(DBTypeInner type, const DBProperties &propertie
     int closeId = properties.GetIntProp(DBProperties::AUTO_LAUNCH_ID, 0);
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &properties,
         closeId, type] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(extLock_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+        ADAPTER_AUTO_LOCK(lock, extLock_);
         auto itemMapIter = extItemMap_.find(identifier);
         if (itemMapIter == extItemMap_.end()) {
             std::string dualIdentifier = properties.GetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");

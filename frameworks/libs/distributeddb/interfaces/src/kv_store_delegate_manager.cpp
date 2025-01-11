@@ -573,7 +573,7 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     std::shared_ptr<DBProperties> ptr;
     int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_KV, true, ptr);
     if (errCode != E_OK) {
-        LOGE("[KvStoreManager] Enable auto launch, Get Properties failed:%d", errCode);
+        LOGE("[KvStoreManager] Enable auto launch, get properties failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
 

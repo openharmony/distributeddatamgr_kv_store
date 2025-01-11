@@ -124,12 +124,6 @@ bool JsonCommon::CheckNode(JsonObject &node)
     return true;
 }
 
-bool JsonCommon::ConvertToInt(const std::string &str, int &value)
-{
-    auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
-    return errCode == std::errc{} && ptr == str.data() + str.size();
-}
-
 bool JsonCommon::CheckJsonField(JsonObject &jsonObj)
 {
     return CheckNode(jsonObj);
@@ -174,6 +168,12 @@ bool JsonCommon::CheckProjectionNode(JsonObject &node, bool isFirstLevel, int &e
         }
     }
     return true;
+}
+
+bool JsonCommon::ConvertToInt(const std::string &str, int &value)
+{
+    auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
+    return errCode == std::errc{} && ptr == str.data() + str.size();
 }
 
 bool JsonCommon::CheckProjectionField(JsonObject &jsonObj, int &errCode)

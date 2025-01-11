@@ -1126,7 +1126,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableNa
     const LogInfo &logInfo, const VBucket &uploadExtend, const CloudWaterType &type)
 {
     std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
-    std::string inconsistencyBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
+    std::string inconsistencyBit  = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     bool gidEmpty = logInfo.cloudGid.empty();
     bool isDeleted = logInfo.dataKey == DBConstant::DEFAULT_ROW_ID;
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN ";
@@ -1134,7 +1134,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableNa
     if (isNeedCompensated && !(isDeleted && gidEmpty)) {
         sql += "flag | " + compensatedBit + " ELSE flag | " + compensatedBit;
     } else {
-        sql += "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
+        sql += "flag & ~" + compensatedBit + " & ~" + inconsistencyBit  + " ELSE flag & ~" + compensatedBit;
     }
     sql += " END), status = (CASE WHEN status == 2 THEN 3 WHEN (status == 1 AND timestamp = ?) THEN 0 ELSE status END)";
     if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
@@ -1473,18 +1473,18 @@ std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName)
         DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
 }
 
-std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
-{
-    return "INSERT OR REPLACE INTO " + DBCommon::GetMetaTableName() + "(key,value) VALUES (x'" +
-        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "', (SELECT CASE WHEN MAX(cursor) IS" +
-        " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
-}
-
 std::string CloudStorageUtils::GetCursorIncSqlWhenAllow(const std::string &tableName)
 {
     return "UPDATE " + DBConstant::RELATIONAL_PREFIX + "metadata" + " SET value= case when (select 1 from " +
         DBConstant::RELATIONAL_PREFIX + "metadata" + " where key='cursor_inc_flag' AND value = 'true') then value + 1" +
         " else value end WHERE key=x'" + DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
+}
+
+std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
+{
+    return "INSERT OR REPLACE INTO " + DBCommon::GetMetaTableName() + "(key,value) VALUES (x'" +
+        DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "', (SELECT CASE WHEN MAX(cursor) IS" +
+        " NULL THEN 0 ELSE MAX(cursor) END FROM " + DBCommon::GetLogTableName(tableName) + "));";
 }
 
 int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data, bool isKv,

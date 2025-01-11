@@ -1222,6 +1222,31 @@ void SQLiteSingleVerRelationalStorageExecutor::SetTableSchema(const TableSchema 
     tableSchema_ = tableSchema;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *&stmt,
+    const std::vector<Field> &assetFields, VBucket &assetInfo)
+{
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
+        int index = 0;
+        for (const auto &field: assetFields) {
+            Type cloudValue;
+            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = PutVBucketByType(assetInfo, field, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d.", errCode);
+    }
+    return errCode;
+}
+
 bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
     const VBucket &vBucket, const Field &field, VBucket &assetInfo)
 {
@@ -1283,9 +1308,9 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     int errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Get select assets statement failed, %d.", errCode);
-        return errCode;
+        return true;
     }
-    ResFinalizer finalizer([selectStmt] {
+    ResFinalizer finalizer([selectStmt]() {
         sqlite3_stmt *statementInner = selectStmt;
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
@@ -1298,7 +1323,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetId(const TableSc
     if (errCode != E_OK) {
         return true;
     }
-    for (const auto &field : tableSchema.fields) {
+    for (const auto &field : assetFields) {
         if (IsNeedUpdateAssetIdInner(selectStmt, vBucket, field, assetInfo)) {
             return true;
         }
@@ -1519,31 +1544,6 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
         vBucket.insert_or_assign(field.colName, cloudValue);
     }
     return E_OK;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *&stmt,
-    const std::vector<Field> &assetFields, VBucket &assetInfo)
-{
-    int errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
-        int index = 0;
-        for (const auto &field : assetFields) {
-            Type cloudValue;
-            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, cloudValue);
-            if (errCode != E_OK) {
-                break;
-            }
-            errCode = PutVBucketByType(assetInfo, field, cloudValue);
-            if (errCode != E_OK) {
-                break;
-            }
-        }
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
-        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d.", errCode);
-    }
-    return errCode;
 }
 } // namespace DistributedDB
 #endif

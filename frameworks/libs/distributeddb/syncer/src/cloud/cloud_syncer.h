@@ -349,7 +349,7 @@ protected:
 
     void NotifyUploadFailed(int errCode, InnerProcessInfo &info);
 
-    void UpdateProcessWhenUploadFailed(InnerProcessInfo &info);
+    void UpdateProccessWhenUploadFailed(InnerProcessInfo &info);
 
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 

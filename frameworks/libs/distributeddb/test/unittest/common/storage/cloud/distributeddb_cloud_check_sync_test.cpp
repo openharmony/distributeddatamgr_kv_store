@@ -370,7 +370,7 @@ void DistributedDBCloudCheckSyncTest::DeleteUserTableRecord(int64_t id)
 void DistributedDBCloudCheckSyncTest::DeleteUserTableRecord(int64_t begin, int64_t end)
 {
     ASSERT_NE(db_, nullptr);
-    string sql = "DELETE FROM " + tableName_ + " WHERE id IN (";
+    std::string sql = "DELETE FROM " + tableName_ + " WHERE id IN (";
     for (int64_t i = begin; i <= end; ++i) {
         sql += "'" + std::to_string(i) + "',";
     }
@@ -705,7 +705,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
 
 /**
  * @tc.name: CloudSyncTest006
- * @tc.desc: check redownload when common sync pause.
+ * @tc.desc: check redownload when common sync pasue.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: luoguo
@@ -716,14 +716,14 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
      * @tc.steps:step1. init data and sync
      * @tc.expected: step1. ok.
      */
-    const int localCount = 120; // 120 is count of local
-    const int cloudCount = 100; // 100 is count of cloud
+    const int localCount = 120;  // 120 is count of local
+    const int cloudCount = 100;  // 100 is count of cloud
     InsertUserTableRecord(tableName_, localCount, 0);
     InsertUserTableRecord(tableWithoutPrimaryName_, cloudCount, 0);
     InsertCloudTableRecord(tableWithoutPrimaryName_, 80, cloudCount, 0, false);
 
     /**
-     * @tc.steps:step2. common sync will pause.
+     * @tc.steps:step2. common sync will pasue
      * @tc.expected: step2. ok.
      */
     std::vector<std::string> tableNames = {tableName_, tableWithoutPrimaryName_};
@@ -745,7 +745,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
     bool isFinsh = false;
     bool priorityFinish = false;
     auto normalCallback = [&isFinsh, &priorityFinish](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
+        for (const auto &item : process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 isFinsh = true;
                 ASSERT_EQ(priorityFinish, true);
@@ -755,14 +755,14 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
     ASSERT_EQ(delegate_->Sync(option, normalCallback), OK);
 
     /**
-     * @tc.steps:step3. wait common upload and priority sync.
+     * @tc.steps:step3. wait common upload and make priority sync.
      * @tc.expected: step3. ok.
      */
     while (isUpload == false) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     auto priorityCallback = [&priorityFinish](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
+        for (const auto &item : process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 priorityFinish = true;
             }
@@ -774,7 +774,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
     }
 
     /**
-     * @tc.steps:step4. wait common upload and make priority sync finish, check query Times.
+     * @tc.steps:step4. wait common sync and make priority sync finish, check query Times.
      * @tc.expected: step4. ok.
      */
     uint32_t times = virtualCloudDb_->GetQueryTimes(tableName_);
@@ -784,7 +784,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
 
 /**
  * @tc.name: CloudSyncTest007
- * @tc.desc: check process info when version conflict sync process.
+ * @tc.desc: check proess info when version conflict sync process.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: luoguo
@@ -795,7 +795,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
      * @tc.steps:step1. init data and sync
      * @tc.expected: step1. ok.
      */
-    const int localCount = 60;
+    const int localCount = 60;  // 120 is count of local
     InsertUserTableRecord(tableName_, localCount, 0);
     Query query = Query::Select().FromTable({tableName_});
     BlockSync(query, delegate_, g_actualDBStatus);
@@ -815,7 +815,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
     bool isFinsh = false;
     std::map<std::string, TableProcessInfo> retSyncProcess;
     auto normalCallback = [&isFinsh, &retSyncProcess](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
+        for (const auto &item : process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 isFinsh = true;
                 ASSERT_EQ(process.empty(), false);
@@ -836,7 +836,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
     ASSERT_EQ(delegate_->Sync(option, normalCallback), OK);
 
     /**
-     * @tc.steps:step4. wait upload process and delete 30 record in cloud table.
+     * @tc.steps:step4. wait upload processs and delete 30 record in cloud table.
      * @tc.expected: step4. ok.
      */
     while (isUpload == false) {
@@ -845,7 +845,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
     DeleteCloudTableRecord(30);
 
     /**
-     * @tc.steps:step5. wait sync process end and check data.
+     * @tc.steps:step5. wait sync processs end and check data.
      * @tc.expected: step5. ok.
      */
     while (isFinsh == false) {
@@ -856,6 +856,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
     ASSERT_EQ(taskInfo->second.upLoadInfo.total, 30u);
     virtualCloudDb_->ForkUpload(nullptr);
 }
+
 
 /**
  * @tc.name: CloudSyncObserverTest001
