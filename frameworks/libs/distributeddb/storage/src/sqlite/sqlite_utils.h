@@ -86,7 +86,7 @@ public:
 
     static int RollbackTransaction(sqlite3 *db);
 
-    static int ExecuteRawSQL(sqlite3 *db, const std::string &sql);
+    static int ExecuteRawSQL(sqlite3 *db, const std::string &sql, bool ignoreResetFail = false);
 
     static int SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal,
         uint32_t iterTimes = DBConstant::DEFAULT_ITER_TIMES);
