@@ -267,6 +267,32 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     return SetLogTriggerStatus(true);
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const std::string &tableName)
+{
+    bool onceDropped = false;
+    int errCode = IsTableOnceDropped(tableName, onceDropped);
+    if (!onceDropped) {
+        // do not return error code to make sure main procedure will continue
+        return E_OK;
+    }
+    LOGI("[CompareSchemaTableColumns] table once dropped check schema. table name is %s length is %zu",
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+    TableInfo newTableInfo;
+    errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, newTableInfo);
+    if (errCode != E_OK) {
+        LOGE("[CompareSchemaTableColumns] analysis table schema failed. %d", errCode);
+        return errCode;
+    }
+    // new table should has same or compatible upgrade
+    TableInfo tableInfo = localSchema_.GetTable(tableName);
+    errCode = tableInfo.CompareWithTable(newTableInfo, localSchema_.GetSchemaVersion());
+    if (errCode == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
+        LOGE("[CompareSchemaTableColumns] Not support with incompatible table.");
+        return -E_SCHEMA_MISMATCH;
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
     DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema, TableSyncType syncType)
 {
@@ -1278,33 +1304,22 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const st
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, int execCode,
-    bool &onceDropped)
+int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, bool &onceDropped)
 {
-    if (execCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // The table in schema was dropped
+    std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+
+    int errCode = GetKvData(key, value);
+    if (errCode == E_OK) {
         onceDropped = true;
         return E_OK;
-    } else if (execCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
-        Key key;
-        DBCommon::StringToVector(keyStr, key);
-        Value value;
-
-        int errCode = GetKvData(key, value);
-        if (errCode == E_OK) {
-            // if user drop table first, then create again(but don't create distributed table), will reach this branch
-            onceDropped = true;
-            return E_OK;
-        } else if (errCode == -E_NOT_FOUND) {
-            onceDropped = false;
-            return E_OK;
-        } else {
-            LOGE("[IsTableOnceDropped] query is table dropped failed, %d", errCode);
-            return errCode;
-        }
-    } else {
-        return execCode;
+    } else if (errCode == -E_NOT_FOUND) {
+        onceDropped = false;
+        return E_OK;
     }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanResourceForDroppedTable(const std::string &tableName)
@@ -1334,10 +1349,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
     }
     const std::string checkSql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;";
     sqlite3_stmt *stmt = nullptr;
-    int ret = E_OK;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, checkSql, stmt);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     for (const auto &tableName : tableNames) {
@@ -1348,22 +1362,31 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
         }
 
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
-        bool onceDropped = false;
-        errCode = IsTableOnceDropped(tableName, errCode, onceDropped);
-        if (errCode != E_OK) {
-            LOGE("query is table once dropped failed. %d", errCode);
-            break;
-        }
-        SQLiteUtils::ResetStatement(stmt, false, ret);
-        if (onceDropped) { // The table in schema was once dropped
-            errCode = CleanResourceForDroppedTable(tableName);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // The table in schema was dropped
+            errCode = DeleteDistributedDeviceTable({}, tableName); // Clean the auxiliary tables for the dropped table
             if (errCode != E_OK) {
+                LOGE("Delete device tables for missing distributed table failed. %d", errCode);
+                break;
+            }
+            errCode = DeleteDistributedLogTable(tableName);
+            if (errCode != E_OK) {
+                LOGE("Delete log tables for missing distributed table failed. %d", errCode);
+                break;
+            }
+            errCode = DeleteTableTrigger(tableName);
+            if (errCode != E_OK) {
+                LOGE("Delete trigger for missing distributed table failed. %d", errCode);
                 break;
             }
             missingTables.emplace_back(tableName);
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("Check distributed table failed. %d", errCode);
+            break;
         }
+        errCode = E_OK; // Check result ok for distributed table is still exists
+        SQLiteUtils::ResetStatement(stmt, false, errCode);
     }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
