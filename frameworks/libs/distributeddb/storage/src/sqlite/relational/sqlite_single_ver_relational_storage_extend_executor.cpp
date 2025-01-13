@@ -132,7 +132,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlagByGid(const st
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const TableSchema &tableSchema,
-    VBucket &vBucket, bool isDownloadSuccess)
+    VBucket &vBucket, bool isDownloadSuccess, uint64_t &currCursor)
 {
     std::string cloudGid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
@@ -162,7 +162,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     if (isDownloadSuccess) {
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetAfterDownload, CloudStorageUtils::FillAssetsAfterDownload);
-        errCode = IncreaseCursorOnAssetData(tableSchema.name, cloudGid);
+        errCode = IncreaseCursorOnAssetData(tableSchema.name, cloudGid, currCursor);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -185,7 +185,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const std::string &tableName,
-    const std::string &gid)
+    const std::string &gid, uint64_t &currCursor)
 {
     uint64_t cursor = DBConstant::INVALID_CURSOR;
     int errCode = SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, cursor);
@@ -227,7 +227,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         LOGE("Fill upload asset failed:%d.", errCode);
         return errCode;
     }
-    LOGI("Upgrade cursor to %d after asset download success.", cursor);
+    currCursor = cursor;
     errCode = SetCursor(tableName, cursor);
     if (errCode != E_OK) {
         LOGE("Upgrade cursor failed after asset download success %d.", errCode);
@@ -374,22 +374,17 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
     return SQLiteRelationalUtils::AnalysisTrackerTable(dbHandle_, trackerTable, tableInfo);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable, bool checkData)
+int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable,
+    const TableInfo &table, bool checkData)
 {
-    TableInfo table;
-    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
-    int errCode = AnalysisTrackerTable(trackerTable, table);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<SimpleTrackerLogTableManager>();
     if (trackerTable.IsEmpty()) {
         // drop trigger
         return tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
     }
 
     // create log table
-    errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
+    int errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -398,13 +393,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
     if (errCode != E_OK) {
         return errCode;
     }
-    std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
     errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
     if (errCode != E_OK) {
         LOGE("clean tracker log info for deleted data failed %d.", errCode);
         return errCode;
     }
-    errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
+    errCode = GeneLogInfoForExistedData(dbHandle_, "", table, tableManager);
     if (errCode != E_OK) {
         LOGE("general tracker log info for existed data failed %d.", errCode);
         return errCode;
@@ -520,9 +514,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged)
 {
-    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        return E_OK;
-    }
     std::string logTable = DBCommon::GetLogTableName(tableInfo.GetTableName());
     if (schemaChanged) {
         std::string markAsInconsistent = "UPDATE " + logTable + " SET flag=" +
@@ -1752,15 +1743,21 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
     return static_cast<int64_t>(flag);
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql()
+std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql(const VBucket &data)
 {
+    std::string retentionFlag = "flag = flag & " +
+        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC));
     if (putDataMode_ == PutDataMode::SYNC) {
+        if (CloudStorageUtils::IsAssetsContainDownloadRecord(data)) {
+            return retentionFlag;
+        }
         return UPDATE_FLAG_CLOUD;
     }
     if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
         return UPDATE_FLAG_WAIT_COMPENSATED_SYNC;
     }
-    return UPDATE_FLAG_CLOUD;
+    return retentionFlag;
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetDev()
@@ -1844,11 +1841,11 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsUploadFinished(const std::string &tableName,
-    const Key &hashKey, Timestamp timestamp)
+    const Key &hashKey, Timestamp timestamp, bool isExistAssetsDownload)
 {
     sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, CloudStorageUtils::GetUpdateUploadFinishedSql(tableName),
-        stmt);
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, CloudStorageUtils::GetUpdateUploadFinishedSql(tableName,
+        isExistAssetsDownload), stmt);
     int index = 1;
     errCode = SQLiteUtils::BindInt64ToStatement(stmt, index++, timestamp);
     if (errCode != E_OK) {
@@ -1999,14 +1996,8 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
     return errCode;
 }
 
-void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const TrackerTable &trackerTable)
+void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const TableInfo &table)
 {
-    TableInfo table;
-    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
-    int errCode = AnalysisTrackerTable(trackerTable, table);
-    if (errCode != E_OK) {
-        return;
-    }
     auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
     tableManager->CheckAndCreateTrigger(dbHandle_, table, "");
 }

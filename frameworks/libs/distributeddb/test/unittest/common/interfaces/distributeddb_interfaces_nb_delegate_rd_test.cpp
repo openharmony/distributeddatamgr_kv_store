@@ -2309,6 +2309,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetWaterMarkInfo001, TestSiz
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: RdSync001
   * @tc.desc:Test sync func with rd.
@@ -2428,5 +2429,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetCloudVersion001, TestSize
     EXPECT_EQ(g_mgr.DeleteKvStore("RdGetCloudVersion001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 }
 #endif // USE_RD_KERNEL

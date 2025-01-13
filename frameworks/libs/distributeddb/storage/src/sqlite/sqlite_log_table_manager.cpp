@@ -241,4 +241,26 @@ void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &
         }
     }
 }
+
+std::string SqliteLogTableManager::CalcPkHash(const std::string &references, const std::vector<std::string> &pk)
+{
+    std::string sql;
+    if (pk.size() == 1u) {
+        sql = "calc_hash(" + references + "'" + pk.at(0) + "', 0)";
+    } else {
+        sql = "calc_hash(";
+        for (const auto &it : pk) {
+            sql += "calc_hash(" + references + "'" + it + "', 0)||";
+        }
+        sql.pop_back();
+        sql.pop_back();
+        sql += ", 0)";
+    }
+    return sql;
+}
+
+std::string SqliteLogTableManager::GetConflictPkSql(const TableInfo &table)
+{
+    return "ON CONFLICT(hash_key)";
+}
 }

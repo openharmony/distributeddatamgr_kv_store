@@ -1932,7 +1932,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
      */
     DeleteCloudTableRecordByGid(0, 2);
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
-
+ 
     /**
      * @tc.steps: step6. call Sync with cloud merge strategy.
      * @tc.expected: OK.

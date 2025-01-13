@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest001, TestSize.
      * @tc.steps:step2. sync
      * @tc.expected: step2. assets status is INSERT before download.
      */
-    g_virtualAssetLoader->ForkDownload([](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([](const std::string &tableName, std::map<std::string, Assets> &assets) {
         for (const auto &item: assets) {
             for (const auto &asset: item.second) {
                 EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::INSERT));
@@ -780,7 +780,8 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.
      * @tc.steps:step3. sync
      * @tc.expected: step3. download status is a -> DELETE, b2 -> DELETE, b3 -> INSERT
      */
-    g_virtualAssetLoader->ForkDownload([&b1, &b3](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([&b1, &b3](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         auto it = assets.find(COL_ASSETS);
         ASSERT_EQ(it != assets.end(), true);
         ASSERT_EQ(it->second.size(), 1u); // 1 is download size
@@ -845,7 +846,8 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest003, TestSize.
      * @tc.steps:step3. sync
      * @tc.expected: step3. download status is a -> UPDATE, b2 -> UPDATE
      */
-    g_virtualAssetLoader->ForkDownload([&b1, &b2](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([&b1, &b2](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         auto it = assets.find(COL_ASSET);
         ASSERT_EQ(it != assets.end(), true);
         ASSERT_EQ(it->second.size(), 1u);
@@ -900,7 +902,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level
      * @tc.expected: step2. return ok.
      */
     g_virtualAssetLoader->SetDownloadStatus(DBStatus::OK);
-    g_virtualAssetLoader->ForkDownload([](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([](const std::string &tableName, std::map<std::string, Assets> &assets) {
         EXPECT_EQ(assets.find(COL_ASSET) != assets.end(), true);
     });
     CallSync(option);
@@ -911,6 +913,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level
         ASSERT_EQ(result, true);
     }
     g_cloudStoreHook->SetSyncFinishHook(nullptr);
+    g_virtualAssetLoader->ForkDownload(nullptr);
 }
 
 /**
@@ -1308,7 +1311,8 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RemoveAssetsFailTest001, TestSize.Lev
      * @tc.expected: step3. return ok.
      */
     int downLoadCount = 0;
-    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::string sql = "delete from " + ASSETS_TABLE_NAME + " WHERE id=0";
@@ -1321,6 +1325,74 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RemoveAssetsFailTest001, TestSize.Lev
     }
     g_virtualAssetLoader->SetRemoveStatus(DBStatus::OK);
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
+    g_virtualAssetLoader->ForkDownload(nullptr);
+}
+
+/**
+ * @tc.name: CompensateSyncTest001
+ * @tc.desc: Test only compensates for the sync of deleted data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, CompensateSyncTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert cloud and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 30;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. lock and delete 1-10
+     * @tc.expected: step2. return ok.
+     */
+    std::vector<std::vector<uint8_t>> hashKeys;
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key < 10 ", db, hashKeys);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKeys, db), OK);
+    std::string sql = "delete from " + ASSETS_TABLE_NAME + " where id < 10;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. compensate sync and check query type
+     * @tc.expected: step3. return ok.
+     */
+    g_virtualCloudDb->ForkQuery([](const std::string &, VBucket &extend) {
+        int64_t type;
+        CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::TYPE_FIELD, extend, type);
+        EXPECT_EQ(type, 1u);
+    });
+    CloudSyncOption cOption = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT,
+        true, true);
+    CallSync(cOption);
+    sleep(1);
+
+    /**
+     * @tc.steps:step4. lock and delete id 30
+     * @tc.expected: step4. return ok.
+     */
+    InsertLocalData(cloudCount, 1, ASSETS_TABLE_NAME, true);
+    hashKeys.clear();
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key = 30 ", db, hashKeys);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKeys, db), OK);
+    sql = "delete from " + ASSETS_TABLE_NAME + " where id = 30;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+
+    /**
+     * @tc.steps:step5. compensate sync and check query type
+     * @tc.expected: step5. return ok.
+     */
+    g_virtualCloudDb->ForkQuery([](const std::string &, VBucket &extend) {
+        int64_t type;
+        CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::TYPE_FIELD, extend, type);
+        EXPECT_EQ(type, 0u);
+    });
+    CallSync(cOption);
+    sleep(1);
+    g_virtualCloudDb->ForkQuery(nullptr);
 }
 } // namespace
 #endif // RELATIONAL_STORE

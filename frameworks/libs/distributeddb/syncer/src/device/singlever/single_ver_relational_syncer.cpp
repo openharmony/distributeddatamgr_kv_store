@@ -185,10 +185,19 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
         return errCode;
     }
     const RelationalSchemaObject &schemaObj = static_cast<RelationalDBSyncInterface *>(storage)->GetSchemaInfo();
-    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION &&
-        schemaObj.GetDistributedSchema().tables.empty()) {
-        LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
-        return -E_SCHEMA_MISMATCH;
+    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION) {
+        const std::vector<DistributedTable> &sTable = schemaObj.GetDistributedSchema().tables;
+        if (sTable.empty()) {
+            LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
+            return -E_SCHEMA_MISMATCH;
+        }
+        auto iter = std::find_if(sTable.begin(), sTable.end(), [&param](const DistributedTable &table) {
+            return table.tableName == param.syncQuery.GetTableName();
+        });
+        if (iter == sTable.end()) {
+            LOGE("[SingleVerRelationalSyncer] table name mismatch");
+            return -E_SCHEMA_MISMATCH;
+        }
     }
     if (param.mode == SUBSCRIBE_QUERY) {
         return -E_NOT_SUPPORT;

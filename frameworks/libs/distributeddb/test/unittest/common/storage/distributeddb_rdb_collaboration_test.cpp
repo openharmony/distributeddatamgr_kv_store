@@ -14,6 +14,7 @@
  */
 #include <gtest/gtest.h>
 
+#include "cloud_db_sync_utils_test.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "rdb_data_generator.h"
@@ -38,7 +39,7 @@ public:
     void TearDown() override;
 protected:
     static DataBaseSchema GetSchema();
-    static TableSchema GetTableSchema(bool upgrade = false);
+    static TableSchema GetTableSchema(bool upgrade = false, bool pkInStr = false);
     void InitStore();
     void InitDelegate(DistributedTableMode mode = DistributedTableMode::COLLABORATION);
     void CloseDb();
@@ -51,6 +52,7 @@ protected:
 
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
     static constexpr const char *DEVICE_SYNC_TABLE_UPGRADE = "DEVICE_SYNC_TABLE_UPGRADE";
+    static constexpr const char *DEVICE_SYNC_TABLE_AUTOINCREMENT = "DEVICE_SYNC_TABLE_AUTOINCREMENT";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
 };
 
@@ -113,12 +115,14 @@ DataBaseSchema DistributedDBRDBCollaborationTest::GetSchema()
     return schema;
 }
 
-TableSchema DistributedDBRDBCollaborationTest::GetTableSchema(bool upgrade)
+TableSchema DistributedDBRDBCollaborationTest::GetTableSchema(bool upgrade, bool pkInStr)
 {
     TableSchema tableSchema;
     tableSchema.name = upgrade ? DEVICE_SYNC_TABLE_UPGRADE : DEVICE_SYNC_TABLE;
     Field field;
-    field.primary = true;
+    if (!pkInStr) {
+        field.primary = true;
+    }
     field.type = TYPE_INDEX<int64_t>;
     field.colName = "pk";
     tableSchema.fields.push_back(field);
@@ -129,8 +133,12 @@ TableSchema DistributedDBRDBCollaborationTest::GetTableSchema(bool upgrade)
     tableSchema.fields.push_back(field);
     field.colName = "123";
     field.type = TYPE_INDEX<std::string>;
+    if (pkInStr) {
+        field.primary = true;
+    }
     tableSchema.fields.push_back(field);
     if (upgrade) {
+        field.primary = false;
         field.colName = "int_field_upgrade";
         field.type = TYPE_INDEX<int64_t>;
         tableSchema.fields.push_back(field);
@@ -192,11 +200,17 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level0)
      */
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema)), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
     EXPECT_EQ(delegate_->CreateDistributedTable(CLOUD_SYNC_TABLE, TableSyncType::CLOUD_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", CLOUD_SYNC_TABLE);
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema);
+    for (auto &table : distributedSchema.tables) {
+        for (auto &field : table.fields) {
+            field.isSpecified = false;
+        }
+    }
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     /**
      * @tc.steps: step2. Insert update delete local
      * @tc.expected: step2.ok
@@ -235,8 +249,8 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema002, TestSize.Level0)
      */
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema)), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema)), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
     CloseDb();
 }
@@ -256,9 +270,9 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema003, TestSize.Level0)
      */
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema, true)), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(schema, true)), OK);
     /**
      * @tc.steps: step2. Insert update delete local
      * @tc.expected: step2.ok
@@ -341,6 +355,13 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema005, TestSize.Level0)
     EXPECT_EQ(delegate_->SetDistributedSchema(schema5), OK);
     DistributedSchema schema6 = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk"});
     EXPECT_EQ(delegate_->SetDistributedSchema(schema6), DISTRIBUTED_FIELD_DECREASE);
+
+    /**
+     * @tc.steps: step4. Test set distributed schema with int_field1 but isP2pSync is false
+     * @tc.expected: step4. return DISTRIBUTED_FIELD_DECREASE
+     */
+    DistributedSchema distributedSchema1 = {0, {{DEVICE_SYNC_TABLE, {{"int_field1", false}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema1), DISTRIBUTED_FIELD_DECREASE);
 }
 
 /**
@@ -358,6 +379,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level0)
      */
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     DistributedSchema distributedSchema = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk", "int_field1"});
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     TrackerSchema trackerSchema = {
@@ -377,12 +399,57 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level0)
     EXPECT_EQ(RDBDataGenerator::InsertLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
     std::string sql = "update " + std::string(DEVICE_SYNC_TABLE) + " set int_field1 = int_field1 + 1 where pk = 0";
     EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+
+    /**
+     * @tc.steps: step3. Insert data that pk = 0 and sync to real device
+     * @tc.expected: step3.ok
+     */
+    auto schema = GetSchema();
+    deviceB_->SetDistributedSchema(distributedSchema);
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, 1, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    Query query = Query::Select(tableSchema.name);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+
+    /**
+     * @tc.steps: step4. Check extend_field
+     * @tc.expected: step4.ok
+     */
+    sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + std::string(DEVICE_SYNC_TABLE) + "_log"
+        " where json_extract(extend_field, '$.int_field1')=0";
+    EXPECT_EQ(sqlite3_exec(db_, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
     UnRegisterClientObserver(db_);
+}
+
+std::string GetTriggerSql(const std::string &tableName, const std::string &triggerTypeName, sqlite3 *db)
+{
+    if (db == nullptr) {
+        return "";
+    }
+    std::string sql = "select sql from sqlite_master where type = 'trigger' and tbl_name = '" + tableName +
+        "' and name = 'naturalbase_rdb_" + tableName + "_ON_" + triggerTypeName + "';";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("[GetTriggerSql] prepare statement failed(%d), sys(%d), errmsg(%s)", errCode, errno, sqlite3_errmsg(db));
+        return "";
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("[GetTriggerSql] execute statement failed(%d), sys(%d), errmsg(%s)", errCode, errno, sqlite3_errmsg(db));
+        return "";
+    }
+    const std::string triggerSql = std::string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return triggerSql;
 }
 
 /**
  * @tc.name: SetSchema007
- * @tc.desc: Test register client observer
+ * @tc.desc: Test whether setting the schema multiple times will refresh the trigger
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: liaoyonghuang
@@ -401,6 +468,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema007, TestSize.Level0)
      * @tc.steps:step2. delete triggers
      * @tc.expected: step2. Return OK.
      */
+    std::string oldInsertTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "INSERT", db_);
+    std::string oldUpdateTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "UPDATE", db_);
+    std::string oldDeleteTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "DELETE", db_);
+    EXPECT_FALSE(oldInsertTriggerSql.empty() || oldUpdateTriggerSql.empty() || oldDeleteTriggerSql.empty());
     std::vector<std::string> triggerTypes = {"INSERT", "UPDATE", "DELETE"};
     for (const auto &triggerType : triggerTypes) {
         std::string sql = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + std::string(DEVICE_SYNC_TABLE) + "_ON_" +
@@ -421,6 +492,148 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema007, TestSize.Level0)
         EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
         EXPECT_EQ(count, 1);
     }
+    std::string newInsertTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "INSERT", db_);
+    std::string newUpdateTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "UPDATE", db_);
+    std::string newDeleteTriggerSql = GetTriggerSql(DEVICE_SYNC_TABLE, "DELETE", db_);
+    EXPECT_FALSE(newInsertTriggerSql.empty() || newUpdateTriggerSql.empty() || newDeleteTriggerSql.empty());
+    EXPECT_TRUE(oldInsertTriggerSql == newInsertTriggerSql);
+    EXPECT_TRUE(oldUpdateTriggerSql != newUpdateTriggerSql);
+    EXPECT_TRUE(oldDeleteTriggerSql == newDeleteTriggerSql);
+}
+
+/**
+ * @tc.name: SetSchema008
+ * @tc.desc: Test set distributed schema with pk but pk isP2pSync is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::COLLABORATION));
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Test set distributed schema without pk
+     * @tc.expected: step2. return OK
+     */
+    DistributedSchema distributedSchema = {0, {{DEVICE_SYNC_TABLE, {{"int_field1", true}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    /**
+     * @tc.steps: step3. Test set distributed schema with pk but pk isP2pSync is false
+     * @tc.expected: step3. return SCHEMA_MISMATCH
+     */
+    DistributedSchema distributedSchema1 = {0, {{DEVICE_SYNC_TABLE, {{"pk", false}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema1), SCHEMA_MISMATCH);
+    /**
+     * @tc.steps: step4. Test set same distributed schema
+     * @tc.expected: step4. return OK
+     */
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+}
+
+/**
+ * @tc.name: SetSchema009
+ * @tc.desc: Test tableMode is SPLIT_BY_DEVICE then SetDistributedSchema.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db, tableMode is SPLIT_BY_DEVICE
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::SPLIT_BY_DEVICE));
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Test set distributed schema without pk
+     * @tc.expected: step2. return NOT_SUPPORT
+     */
+    DistributedSchema distributedSchema = {0, {{DEVICE_SYNC_TABLE, {{"int_field1", true}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: SetSchema010
+ * @tc.desc: Test create distributed table without communicator.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema010, TestSize.Level0)
+{
+    if (deviceB_ != nullptr) {
+        delete deviceB_;
+        deviceB_ = nullptr;
+    }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+}
+
+/**
+ * @tc.name: SetSchema011
+ * @tc.desc: Test set schema with not null field but isP2pSync is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema011, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::COLLABORATION));
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Test set distributed schema
+     * @tc.expected: step2. return SCHEMA_MISMATCH
+     */
+    DistributedSchema schema1 = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk"});
+    DistributedField &field1 = schema1.tables.front().fields.front();
+    field1.isP2pSync = false;
+    EXPECT_EQ(delegate_->SetDistributedSchema(schema1), SCHEMA_MISMATCH);
+}
+
+/**
+ * @tc.name: SetSchema012
+ * @tc.desc: Test call SetDistributedSchema with empty tables
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db, tableMode is SPLIT_BY_DEVICE
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::SPLIT_BY_DEVICE));
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Test set schema with empty tables vector
+     * @tc.expected: step2. return SCHEMA_MISMATCH
+     */
+    DistributedSchema distributedSchema = {0, {}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), SCHEMA_MISMATCH);
+    /**
+     * @tc.steps: step3. Test set schema with a list of empty tables
+     * @tc.expected: step3. return SCHEMA_MISMATCH
+     */
+    distributedSchema = {0, {{}, {}, {}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), SCHEMA_MISMATCH);
+    /**
+     * @tc.steps: step4. Test set schema with a mix of empty and non-empty tables
+     * @tc.expected: step4. return SCHEMA_MISMATCH
+     */
+    distributedSchema = {0, {{DEVICE_SYNC_TABLE, {{"int_field1", true}}}, {}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), SCHEMA_MISMATCH);
 }
 
 /**
@@ -440,8 +653,8 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync001, TestSize.Level0)
     auto schema = GetSchema();
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
     deviceB_->SetDistributedSchema(distributedSchema);
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
     /**
      * @tc.steps: step2. Insert one data
@@ -486,9 +699,9 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync002, TestSize.Level0)
      * @tc.steps: step3. Real device set schema [pk, int_field1, int_field2]
      * @tc.expected: step3.ok
      */
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(GetSchema())), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(GetSchema())), OK);
     /**
      * @tc.steps: step4. Insert table info and virtual data into deviceB
      * @tc.expected: step4.ok
@@ -532,9 +745,9 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync003, TestSize.Level0)
      * @tc.steps: step3. Real device set schema [pk, int_field1, int_field2, int_field_upgrade]
      * @tc.expected: step3.ok
      */
-    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(GetSchema())), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE_UPGRADE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    EXPECT_EQ(delegate_->SetDistributedSchema(RDBDataGenerator::ParseSchema(GetSchema())), OK);
     /**
      * @tc.steps: step4. Insert table info and virtual data into deviceB
      * @tc.expected: step4.ok
@@ -591,9 +804,9 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync005, TestSize.Level0)
      */
     ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::COLLABORATION));
     DistributedSchema schema = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk", "int_field1"});
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     deviceB_->SetDistributedSchema(schema);
     EXPECT_EQ(delegate_->SetDistributedSchema(schema), OK);
-    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     /**
      * @tc.steps: step2. Init some data
      * @tc.expected: step2.ok
@@ -648,10 +861,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync006, TestSize.Level0)
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
-    deviceB_->SetDistributedSchema(distributedSchema);
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     /**
      * @tc.steps: step2. Insert one data
      * @tc.expected: step2.ok
@@ -665,6 +878,18 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync006, TestSize.Level0)
      */
     Query query = Query::Select(tableSchema.name);
     DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, OK, {deviceB_->GetDeviceId()});
+    /**
+     * @tc.steps: step4. Change schema to non-existent table name, then sync
+     * @tc.expected: step4.SCHEMA_MISMATCH
+     */
+    tableSchema.name = "not_config_table";
+    ASSERT_EQ(RDBDataGenerator::InitTable(tableSchema, true, *db_), SQLITE_OK);
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableSchema.name), OK);
+    Query query2 = Query::Select(tableSchema.name);
+    std::map<std::string, std::vector<TableStatus>> statusMap;
+    SyncStatusCallback callBack2;
+    DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PUSH_ONLY, query2, callBack2, true);
+    EXPECT_EQ(callStatus, SCHEMA_MISMATCH);
 }
 
 /**
@@ -683,10 +908,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync007, TestSize.Level0)
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
-    deviceB_->SetDistributedSchema(distributedSchema);
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     /**
      * @tc.steps: step2. Insert one data
      * @tc.expected: step2.ok
@@ -737,10 +962,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level0)
     ASSERT_NO_FATAL_FAILURE(InitDelegate());
     auto schema = GetSchema();
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema);
-    deviceB_->SetDistributedSchema(distributedSchema);
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
     /**
      * @tc.steps: step2. Insert one data with diff sort col
      * @tc.expected: step2.ok
@@ -761,10 +986,58 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level0)
     EXPECT_EQ(count, 1);
     sql = std::string("select count(*) from ")
         .append(RelationalStoreManager::GetDistributedLogTableName(DEVICE_SYNC_TABLE))
-        .append(" where data_key=1 and cursor=1;");
+        .append(" where data_key=0 and cursor=1;");
     count = 0;
     EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
     EXPECT_EQ(count, 1);
+}
+
+/**
+ * @tc.name: NormalSync009
+ * @tc.desc: Test if distributed table will be created when sync with COLLABORATION mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    /**
+     * @tc.steps: step2. Insert one data
+     * @tc.expected: step2.ok
+     */
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, 10, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Sync to real device
+     * @tc.expected: step3.ok
+     */
+    std::string checkSql = "select count(*) from sqlite_master where type='table' and name != '" +
+        DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + "' and name like 'naturalbase_rdb_aux_" +
+        std::string(DEVICE_SYNC_TABLE) + "_%'";
+    int count = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, checkSql, count), E_OK);
+    EXPECT_EQ(count, 0);
+    Query query = Query::Select(tableSchema.name);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+    /**
+     * @tc.steps: step4. Check if the distributed table exists
+     * @tc.expected: step4.ok
+     */
+    count = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, checkSql, count), E_OK);
+    EXPECT_EQ(count, 0);
 }
 
 /**
@@ -789,7 +1062,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
     auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
     deviceB_->SetDistributedSchema(distributedSchema);
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), SCHEMA_MISMATCH);
     /**
      * @tc.steps: step2. Insert one data
      * @tc.expected: step2.ok
@@ -801,7 +1074,8 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
      * @tc.expected: step3.ok
      */
     Query query = Query::Select(tableSchema.name);
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, DB_ERROR, {deviceB_->GetDeviceId()});
+    DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PULL_ONLY, query, nullptr, true);
+    EXPECT_EQ(callStatus, SCHEMA_MISMATCH);
     /**
      * @tc.steps: step4. Check if the distributed table exists
      * @tc.expected: step4.ok
@@ -811,5 +1085,141 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
             .append(RelationalStoreManager::GetDistributedLogTableName(DEVICE_SYNC_TABLE));
     EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
     EXPECT_EQ(count, 0);
+}
+
+/**
+ * @tc.name: NormalSync011
+ * @tc.desc: Test set the distributed schema first then sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    LOGI("[DistributedDBCloudAsyncDownloadAssetsTest] CreateDistributedTable %s", DEVICE_SYNC_TABLE);
+    /**
+     * @tc.steps: step2. Insert one data
+     * @tc.expected: step2.ok
+     */
+    auto tableSchema = GetTableSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Sync to real device
+     * @tc.expected: step3.ok
+     */
+    Query query = Query::Select(tableSchema.name);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, OK, {deviceB_->GetDeviceId()});
+}
+
+/**
+ * @tc.name: NormalSync012
+ * @tc.desc: Test sync with autoincrement table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create auto increment table and unique index
+     * @tc.expected: step1.ok
+     */
+    auto tableSchema = GetTableSchema();
+    tableSchema.name = DEVICE_SYNC_TABLE_AUTOINCREMENT;
+    ASSERT_EQ(RDBDataGenerator::InitTable(tableSchema, true, true, *db_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    tableSchema = GetTableSchema(false, true);
+    tableSchema.name = DEVICE_SYNC_TABLE_AUTOINCREMENT;
+    auto schema = GetSchema();
+    schema.tables.push_back(tableSchema);
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    int errCode = SQLiteUtils::ExecuteRawSQL(db_, std::string("CREATE UNIQUE INDEX U_INDEX ON ")
+        .append(tableSchema.name).append("('123')"));
+    ASSERT_EQ(errCode, E_OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(tableSchema.name, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    /**
+     * @tc.steps: step2. Insert one data
+     * @tc.expected: step2.ok
+     */
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, 1, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Sync to real device
+     * @tc.expected: step3.ok
+     */
+    Query query = Query::Select(tableSchema.name);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+    std::string sql = std::string("select count(*) from ").append(tableSchema.name);
+    int count = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
+    EXPECT_EQ(count, 1);
+    /**
+     * @tc.steps: step4. Update date and sync again
+     * @tc.expected: step4.ok
+     */
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, 1, deviceB_, tableSchema), E_OK);
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+    sql = std::string("select count(*) from ").append(tableSchema.name);
+    count = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db_, sql, count), E_OK);
+    EXPECT_EQ(count, 1);
+}
+
+/**
+ * @tc.name: SetSchema013
+ * @tc.desc: Test set tracker table for device table and check if timestamp has changed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    DistributedSchema distributedSchema = GetDistributedSchema(DEVICE_SYNC_TABLE, {"pk", "int_field1"});
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    TrackerSchema trackerSchema = {
+        .tableName = DEVICE_SYNC_TABLE, .extendColNames = {"int_field1"}, .trackerColNames = {"int_field1"}
+    };
+    /**
+     * @tc.steps: step2. Insert one data and query timestamp
+     * @tc.expected: step2.ok
+     */
+    EXPECT_EQ(RDBDataGenerator::InsertLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
+    sqlite3_stmt *stmt = nullptr;
+    std::string sql = "select timestamp from " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) +
+        " where data_key=0";
+    EXPECT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timestamp1 = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    /**
+     * @tc.steps: step3. Set tracker table and query timestamp
+     * @tc.expected: step3.Equal
+     */
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), WITH_INVENTORY_DATA);
+    EXPECT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timestamp2 = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    EXPECT_EQ(timestamp1, timestamp2);
 }
 }

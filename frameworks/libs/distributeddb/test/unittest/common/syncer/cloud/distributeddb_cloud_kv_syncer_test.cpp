@@ -725,6 +725,62 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
 }
 
 /**
+ * @tc.name: SyncWithMultipleUsers003.
+ * @tc.desc: Test sync data with multiple users same key.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put k v by user1.
+     * @tc.expected: step1. return ok.
+     */
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    /**
+     * @tc.steps: step2. put k v2 by user1.
+     * @tc.expected: step2. return ok.
+     */
+    Value value2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value2), OK);
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID_2);
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    /**
+     * @tc.steps: step3. sync by user1.
+     * @tc.expected: step3. return ok.
+     */
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID_2);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    Value actualValue1;
+    /**
+     * @tc.steps: step4. sync by user2.
+     * @tc.expected: step4. return ok.
+     */
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    Value actualValue2;
+    /**
+     * @tc.steps: step5. get k1.
+     * @tc.expected: step5. get v2.
+     */
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue2), OK);
+    EXPECT_EQ(actualValue2, value2);
+}
+
+/**
  * @tc.name: AbnormalCloudKvExecutorTest001
  * @tc.desc: Check SqliteCloudKvExecutorUtils interfaces abnormal scene.
  * @tc.type: FUNC

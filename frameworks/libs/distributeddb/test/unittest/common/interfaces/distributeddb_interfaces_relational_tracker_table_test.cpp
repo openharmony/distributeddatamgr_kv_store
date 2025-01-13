@@ -143,8 +143,8 @@ namespace {
     {
         int index = 0;
         string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
-            std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
-            "_log" + " where data_key <= " + std::to_string(num);
+            std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" + " where data_key <= " +
+            std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -344,7 +344,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
      * @tc.expected: step2. Return OK.
      */
     schema.extendColNames = {EXTEND_COL_NAME1};
-    SetTrackerTableTest(schema, OK);
+    SetTrackerTableTest(schema, SCHEMA_MISMATCH);
 
     /**
      * @tc.steps:step1. param valid but extend name is empty
@@ -385,6 +385,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003,
      * @tc.expected: step3. Return SCHEMA_MISMATCH.
      */
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
+    schema.extendColNames = {EXTEND_COL_NAME1};
+    SetTrackerTableTest(schema, SCHEMA_MISMATCH);
+
+    /**
+     * @tc.steps:step4. extend name is no exist when tracker col name is enpty
+     * @tc.expected: step4. Return SCHEMA_MISMATCH.
+     */
+    schema.trackerColNames.clear();
     schema.extendColNames = {EXTEND_COL_NAME1};
     SetTrackerTableTest(schema, SCHEMA_MISMATCH);
 }
@@ -1725,6 +1733,35 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql008, TestS
 }
 
 /**
+  * @tc.name: ExecuteSql009
+  * @tc.desc: Test ExecuteSql update using the parameter "readOnly"
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql009, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init db data
+     * @tc.expected: step1. Return OK.
+     */
+    uint64_t num = 10;
+    CreateMultiTable();
+    BatchInsertTableName2Data(num);
+    OpenStore();
+    /**
+     * @tc.steps:step2. ExecuteSql update using the parameter "readOnly"
+     * @tc.expected: step2. Return OK.
+     */
+    SqlCondition condition;
+    std::vector<VBucket> records;
+    condition.readOnly = true;
+    condition.sql = "update " + TABLE_NAME2 + " set name = 'new_name' where age = 18";
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    CloseStore();
+}
+
+/**
   * @tc.name: ExecuteSql010
   * @tc.desc: Test ExecuteSql with temp table
   * @tc.type: FUNC
@@ -1762,6 +1799,55 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
     condition.readOnly = true;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
+    CloseStore();
+}
+
+/**
+  * @tc.name: ExecuteSql011
+  * @tc.desc: Test ExecuteSql concurrently
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init db data
+     * @tc.expected: step1. Return OK.
+     */
+    uint64_t num = 10;
+    CreateMultiTable();
+    BatchInsertTableName2Data(num);
+    OpenStore();
+    /**
+     * @tc.steps:step2. ExecuteSql concurrently
+     * @tc.expected: step2. Return OK.
+     */
+    std::thread readThread([&]() {
+        SqlCondition condition;
+        std::vector<VBucket> records;
+        condition.readOnly = true;
+        condition.sql = "select * from " + TABLE_NAME2;
+        for (int i = 0; i < 100; i++) {
+            EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+        }
+    });
+    std::thread transactionThread([&]() {
+        SqlCondition condition;
+        condition.readOnly = true;
+        std::vector<VBucket> records;
+        for (int i = 0; i < 100; i++) {
+            condition.sql = "BEGIN;";
+            EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+            condition.sql = "select * from " + TABLE_NAME2;
+            EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+            condition.sql = "COMMIT;";
+            EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+        }
+    });
+    readThread.join();
+    transactionThread.join();
     CloseStore();
 }
 
@@ -2188,10 +2274,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest035,
     CloseStore();
 }
 
-void SetLowVersionSchema(sqlite3 *db)
+void SetLowVersionSchema(sqlite3 *db, const std::string &extendColName)
 {
     std::string sql = "update naturalbase_rdb_aux_metadata set value = "
-        "json_insert(value,'$.TABLES[0].EXTEND_NAME', 'age')"
+        "json_insert(value,'$.TABLES[0].EXTEND_NAME', '" + extendColName + "')"
         "where json_valid(value)=1 and json_extract(value, '$.TABLES[0].EXTEND_NAMES') is not null";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
     sql = "update naturalbase_rdb_aux_metadata set value = json_remove(value,'$.TABLES[0].EXTEND_NAMES')"
@@ -2224,7 +2310,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036,
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     sql = "update " + DBCommon::GetLogTableName(TABLE_NAME2) + " set extend_field = 'old_age'";
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
-    SetLowVersionSchema(g_db);
+    SetLowVersionSchema(g_db, "age");
     CloseStore();
     OpenStore();
     /**
@@ -2266,13 +2352,13 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036,
 }
 
 /**
-  * @tc.name: TrackerTableTest039
-  * @tc.desc: Test SetTrackerTable repeatedly and delete trigger
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: liaoyonghuang
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039, TestSize.Level0)
+ * @tc.name: TrackerTableTest037
+ * @tc.desc: Test open low version db which extend name is empty
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest037, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Init db
@@ -2282,31 +2368,19 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039,
     OpenStore();
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
     TrackerSchema schema = g_normalSchema1;
+    schema.extendColNames = {EXTEND_COL_NAME3};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     /**
-     * @tc.steps:step2. delete triggers
-     * @tc.expected: step2. Return OK.
+     * @tc.steps:step2. Set schema as low version which extend name is empty
+     * @tc.expected: step2. Return E_OK.
      */
-    std::vector<std::string> triggerTypes = {"INSERT", "UPDATE", "DELETE"};
-    for (const auto &triggerType : triggerTypes) {
-        std::string sql = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType;
-        SQLiteUtils::ExecuteRawSQL(g_db, sql);
-    }
+    SetLowVersionSchema(g_db, "");
     /**
-     * @tc.steps:step3. SetTrackerTable repeatedly
-     * @tc.expected: step3. Return OK.
+     * @tc.steps:step3. close and open DB
+     * @tc.expected: step3. Return E_OK.
      */
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
-    /**
-     * @tc.steps:step4. Check if the trigger exists
-     * @tc.expected: step4. Check OK.
-     */
-    for (const auto &triggerType : triggerTypes) {
-        std::string sql = "select count(*) from sqlite_master where type = 'trigger' and tbl_name = '" + TABLE_NAME2 +
-            "' and name = 'naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType + "';";
-        EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-            reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-    }
+    CloseStore();
+    OpenStore();
     CloseStore();
 }
 
@@ -2364,6 +2438,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038,
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
         EXPECT_EQ(cursorVal, std::to_string(num + (++index)));
     }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     /**
      * @tc.steps:step5. Delete data to table2 then check tracker table data
@@ -2374,6 +2450,124 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038,
         " where cursor='17';";
     ASSERT_EQ(sqlite3_exec(g_db, checkDeleteSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest039
+  * @tc.desc: Test SetTrackerTable repeatedly and delete trigger
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. delete triggers
+     * @tc.expected: step2. Return OK.
+     */
+    std::vector<std::string> triggerTypes = {"INSERT", "UPDATE", "DELETE"};
+    for (const auto &triggerType : triggerTypes) {
+        std::string sql = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType;
+        SQLiteUtils::ExecuteRawSQL(g_db, sql);
+    }
+    /**
+     * @tc.steps:step3. SetTrackerTable repeatedly
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step4. Check if the trigger exists
+     * @tc.expected: step4. Check OK.
+     */
+    for (const auto &triggerType : triggerTypes) {
+        std::string sql = "select count(*) from sqlite_master where type = 'trigger' and tbl_name = '" + TABLE_NAME2 +
+            "' and name = 'naturalbase_rdb_" + TABLE_NAME2 + "_ON_" + triggerType + "';";
+        EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+    }
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest040
+  * @tc.desc: Test set tracker table with invalid col name
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest040, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init db and init extend field to old version data
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
+    /**
+     * @tc.steps:step2. Set tracker table with invalid col name
+     * @tc.expected: step2. Return E_OK.
+     */
+    TrackerSchema schema = g_normalSchema1;
+    schema.extendColNames = {EXTEND_COL_NAME1};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), SCHEMA_MISMATCH);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest042
+  * @tc.desc: tracker table update timestamp
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tankaisheng
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest042, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable
+     * @tc.expected: step1. Return OK.
+     */
+    TrackerSchema schema = g_normalSchema1;
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+
+    /**
+     * @tc.steps:step2. Insert data to table2
+     * @tc.expected: step2. Return E_OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(
+        g_db, "select timestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t beforTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+    /**
+     * @tc.steps:step3. CreateDistributedTable then checkout data
+     * @tc.expected: step3. Return E_OK.
+     */
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), OK);
+    stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(
+        g_db, "select timestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t afterTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_NE(beforTime, afterTime);
     CloseStore();
 }
 
@@ -2443,6 +2637,54 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, Te
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME1, CLOUD_COOPERATION), DBStatus::OK);
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest041
+ * @tc.desc: Test cursor increases when set tracker table after create distributed table by DEVICE_COOPERATION type
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest041, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+
+    /**
+     * @tc.steps:step1. create distributed table by DEVICE_COOPERATION type and insert data
+     * @tc.expected: step1. return OK
+     */
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
+    BatchInsertTableName2Data(10); // insert 10 data
+
+    /**
+     * @tc.steps:step2. set tracker table on table2 and check cursor
+     * @tc.expected: step2. cursor increases
+     */
+    string querySql = "select cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string cursorVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, cursorVal), E_OK);
+        EXPECT_EQ(cursorVal, "0");
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    int index = 0;
+    stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string cursorVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, cursorVal), E_OK);
+        EXPECT_EQ(cursorVal, std::to_string(++index));
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
     CloseStore();
 }
 }

@@ -34,10 +34,14 @@ namespace {
 
     void ReleaseMessageAndPacket(Message *message, ISyncPacket *packet)
     {
-        delete message;
-        message = nullptr;
-        delete packet;
-        packet = nullptr;
+        if (message != nullptr) {
+            delete message;
+            message = nullptr;
+        }
+        if (packet != nullptr) {
+            delete packet;
+            packet = nullptr;
+        }
     }
 }
 

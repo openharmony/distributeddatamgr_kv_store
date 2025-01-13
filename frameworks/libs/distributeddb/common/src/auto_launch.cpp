@@ -1063,6 +1063,7 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     propertiesPtr->SetStringProp(RelationalDBProperties::DATA_DIR, param.path);
     propertiesPtr->SetIdentifier(param.userId, param.appId, param.storeId, param.subUser);
     propertiesPtr->SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
+    propertiesPtr->SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(param.option.tableMode));
     if (param.option.isEncryptedDb) {
         if (!ParamCheckUtils::CheckEncryptedParameter(param.option.cipher, param.option.passwd) ||
             param.option.iterateTimes == 0) {

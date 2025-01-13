@@ -293,6 +293,8 @@ struct DbIdParam {
 struct DistributedField {
     std::string colName;
     bool isP2pSync = false; // device p2p sync with this column when it was true
+    // default generate by local table pk when none field was specified
+    bool isSpecified = false; // local log hashKey will generate by specified field and deal conflict with them
 };
 
 struct DistributedTable {

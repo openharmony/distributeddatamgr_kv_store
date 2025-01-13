@@ -83,6 +83,7 @@ public:
     const FieldInfoMap &GetFields() const; // <colName, colAttr>
     const IndexInfoMap &GetIndexDefine() const;
     const std::map<int, FieldName> &GetPrimaryKey() const;
+    bool IsPrimaryKey(const FieldName &fieldName) const;
     const std::vector<CompositeFields> &GetUniqueDefine() const;
 
     void SetTableName(const std::string &tableName);
@@ -132,6 +133,8 @@ public:
     void SetDistributedTable(const DistributedTable &distributedTable);
 
     std::vector<std::string> GetSyncField() const;
+
+    std::vector<std::string> GetSyncDistributedPk() const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;

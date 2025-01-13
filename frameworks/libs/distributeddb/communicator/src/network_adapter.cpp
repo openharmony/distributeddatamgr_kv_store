@@ -84,9 +84,9 @@ int NetworkAdapter::StartAdapter()
         LOGI("[NAdapt][Start] ROLLBACK: Stop errCode=%d.", static_cast<int>(errCode));
         return -E_PERIPHERAL_INTERFACE_FAIL;
     }
-    processCommunicator_->RegOnSendAble([this](const DeviceInfos &devInfo, int softBusErrCode) {
+    processCommunicator_->RegOnSendAble([this](const DeviceInfos &devInfo, int deviceCommErrCode) {
         if (onSendableHandle_ != nullptr) {
-            onSendableHandle_(devInfo.identifier, softBusErrCode);
+            onSendableHandle_(devInfo.identifier, deviceCommErrCode);
         }
     });
     // These code is compensation for the probable defect of IProcessCommunicator implementation.

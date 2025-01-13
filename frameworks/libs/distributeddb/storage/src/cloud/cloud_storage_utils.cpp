@@ -1102,19 +1102,25 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
     return E_OK;
 }
 
-std::string CloudStorageUtils::GetUpdateRecordFlagSql(const std::string &tableName, bool recordConflict,
-    const LogInfo &logInfo, const VBucket &uploadExtend, const CloudWaterType &type)
+std::string CloudStorageUtils::GetUpdateRecordFlagSql(UpdateRecordFlagStruct updateRecordFlag, const LogInfo &logInfo,
+    const VBucket &uploadExtend, const CloudWaterType &type)
 {
     std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
     std::string inconsistencyBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     bool gidEmpty = logInfo.cloudGid.empty();
     bool isDeleted = logInfo.dataKey == DBConstant::DEFAULT_ROW_ID;
-    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN ";
-    bool isNeedCompensated = recordConflict || DBCommon::IsNeedCompensatedForUpload(uploadExtend, type);
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(updateRecordFlag.tableName) +
+        " SET flag = (CASE WHEN timestamp = ? THEN ";
+    bool isNeedCompensated =
+        updateRecordFlag.isRecordConflict || DBCommon::IsNeedCompensatedForUpload(uploadExtend, type);
     if (isNeedCompensated && !(isDeleted && gidEmpty)) {
         sql += "flag | " + compensatedBit + " ELSE flag | " + compensatedBit;
     } else {
-        sql += "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
+        if (updateRecordFlag.isInconsistency) {
+            sql += "flag & ~" + compensatedBit + " |" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
+        } else {
+            sql += "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
+        }
     }
     sql += " END), status = (CASE WHEN status == 2 THEN 3 WHEN (status == 1 AND timestamp = ?) THEN 0 ELSE status END)";
     if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
@@ -1176,13 +1182,20 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
     return sql;
 }
 
-std::string CloudStorageUtils::GetUpdateUploadFinishedSql(const std::string &tableName)
+std::string CloudStorageUtils::GetUpdateUploadFinishedSql(const std::string &tableName, bool isExistAssetsDownload)
 {
     std::string finishedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_UPLOAD_FINISHED));
     std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
     // When the data flag is not in the compensation state and the local data does not change, the upload is finished.
-    return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? AND flag & " +
-        compensatedBit + " != " + compensatedBit + " THEN flag | " + finishedBit + " ELSE flag END) WHERE hash_key=?";
+    if (isExistAssetsDownload) {
+        return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? AND flag & " +
+            compensatedBit + " != " + compensatedBit + " THEN flag | " + finishedBit +
+            " ELSE flag END) WHERE hash_key=?";
+    }
+    // Clear IsWaitAssetDownload flag when no asset is to be downloaded
+    return "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = ((CASE WHEN timestamp = ? AND flag & " +
+        compensatedBit + " != " + compensatedBit + " THEN flag | " + finishedBit +
+        " ELSE flag END) & ~0x1000) WHERE hash_key=?";
 }
 
 int CloudStorageUtils::BindStepConsistentFlagStmt(sqlite3_stmt *stmt, const VBucket &data,
@@ -1546,18 +1559,16 @@ int CloudStorageUtils::GetSyncQueryByPk(const std::string &tableName, const std:
     return FillQueryByPK(tableName, isKv, dataIndex, syncPkVec, syncQuery);
 }
 
-bool CloudStorageUtils::IsAssetsContainDownloadRecord(VBucket &dbAssets)
+bool CloudStorageUtils::IsAssetsContainDownloadRecord(const VBucket &dbAssets)
 {
-    for (auto &item: dbAssets) {
+    for (const auto &item: dbAssets) {
         if (IsAsset(item.second)) {
-            Asset asset;
-            GetValueFromType(item.second, asset);
+            const auto &asset = std::get<Asset>(item.second);
             if (AssetOperationUtils::IsAssetNeedDownload(asset)) {
                 return true;
             }
         } else if (IsAssets(item.second)) {
-            Assets assets;
-            GetValueFromType(item.second, assets);
+            const auto &assets = std::get<Assets>(item.second);
             if (AssetOperationUtils::IsAssetsNeedDownload(assets)) {
                 return true;
             }
@@ -1581,7 +1592,7 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
             if (DBCommon::IsRecordAssetsMissing(record)) {
                 LOGI("[CloudStorageUtils][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
             }
-            int errCode = handle->UpdateRecordStatus(param.first, CloudDbConstant::TO_LOCAL_CHANGE,
+            int errCode = handle->UpdateRecordStatus(param.tableName, CloudDbConstant::TO_LOCAL_CHANGE,
                 updateData.hashKey[i]);
             if (errCode != E_OK) {
                 LOGE("[CloudStorageUtils] Update record status failed in index %zu", i);
@@ -1598,15 +1609,38 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
         logInfo.dataKey = rowId;
         logInfo.hashKey = updateData.hashKey[i];
         std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
-            param.first, DBCommon::IsRecordIgnored(record), logInfo, record, param.second);
-        int errCode = handle->UpdateRecordFlag(param.first, sql, logInfo);
+            param.tableName, DBCommon::IsRecordIgnored(record), logInfo, record, param.type);
+        int errCode = handle->UpdateRecordFlag(param.tableName, sql, logInfo);
         if (errCode != E_OK) {
             LOGE("[CloudStorageUtils] Update record flag failed in index %zu", i);
             return errCode;
         }
-        handle->MarkFlagAsUploadFinished(param.first, updateData.hashKey[i], updateData.timestamp[i]);
-        recorder.RecordUploadRecord(param.first, logInfo.hashKey, param.second, updateData.timestamp[i]);
+
+        std::vector<VBucket> assets;
+        errCode = handle->GetDownloadAssetRecordsByGid(param.tableSchema, logInfo.cloudGid, assets);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
+            return errCode;
+        }
+        handle->MarkFlagAsUploadFinished(param.tableName, updateData.hashKey[i], updateData.timestamp[i],
+            !assets.empty());
+        recorder.RecordUploadRecord(param.tableName, logInfo.hashKey, param.type, updateData.timestamp[i]);
     }
+    return E_OK;
+}
+
+int CloudStorageUtils::FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &extend)
+{
+    Bytes bytes;
+    bytes.resize(obj.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+    Parcel parcel(bytes.data(), bytes.size());
+    int errCode = obj.SerializeData(parcel, SOFTWARE_VERSION_CURRENT);
+    if (errCode != E_OK) {
+        LOGE("[CloudStorageUtils] Query serialize failed %d", errCode);
+        return errCode;
+    }
+    extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::QUERY_FIELD);
+    extend[CloudDbConstant::QUERY_FIELD] = bytes;
     return E_OK;
 }
 }

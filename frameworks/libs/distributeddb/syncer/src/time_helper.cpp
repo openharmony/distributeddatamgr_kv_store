@@ -89,7 +89,8 @@ int TimeHelper::Initialize(const ISyncInterface *inStorage, const std::shared_pt
     Timestamp virtualSysTime = static_cast<Timestamp>(currentSysTime + localTimeOffset);
     if (virtualSysTime <= maxItemTime || virtualSysTime > BUFFER_VALID_TIME) {
         localTimeOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + MS_TO_100_NS); // 1ms
-        int errCode = SaveLocalTimeOffset(localTimeOffset);
+        // cal timeOffset without time tick, should not be written into db
+        int errCode = metadata_->SaveLocalTimeOffset(localTimeOffset, false);
         if (errCode != E_OK) {
             LOGE("[TimeHelper] save local time offset failed,err=%d", errCode);
             return errCode;
@@ -134,11 +135,6 @@ TimeOffset TimeHelper::GetLocalTimeOffset() const
     return metadata_->GetLocalTimeOffset();
 }
 
-int TimeHelper::SaveLocalTimeOffset(TimeOffset offset)
-{
-    return metadata_->SaveLocalTimeOffset(offset);
-}
-
 void TimeHelper::SetSendConfig(const std::string &dstTarget, bool nonBlock, uint32_t timeout, SendConfig &sendConf)
 {
     SetSendConfigParam(storage_->GetDbProperties(), dstTarget, false, SEND_TIME_OUT, sendConf);
@@ -152,5 +148,12 @@ Timestamp TimeHelper::GetMonotonicTime()
         LOGE("GetMonotonicTime ERR! errCode = %d", errCode);
     }
     return time;
+}
+
+Timestamp TimeHelper::GetCurrentLocalTime(int64_t &curTimeOffset, int64_t &localTimeOffset)
+{
+    Timestamp currentSysTime = GetSysCurrentTime();
+    Timestamp currentLocalTime = currentSysTime + curTimeOffset + localTimeOffset;
+    return currentLocalTime;
 }
 } // namespace DistributedDB

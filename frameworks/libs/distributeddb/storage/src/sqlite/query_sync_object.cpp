@@ -247,10 +247,12 @@ void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
 {
     for (size_t i = 0; i < cloudGid.size(); i+= MAX_VALUE_SIZE) {
         size_t end = std::min(i + MAX_VALUE_SIZE, cloudGid.size());
-        QueryObjNode operateNode;
-        operateNode.operFlag = QueryObjType::OR;
-        operateNode.type = QueryValueType::VALUE_TYPE_NULL;
-        queryObjNodes_.emplace_back(operateNode);
+        if (!queryObjNodes_.empty()) {
+            QueryObjNode operateNode;
+            operateNode.operFlag = QueryObjType::OR;
+            operateNode.type = QueryValueType::VALUE_TYPE_NULL;
+            queryObjNodes_.emplace_back(operateNode);
+        }
 
         QueryObjNode objNode;
         objNode.operFlag = QueryObjType::IN;

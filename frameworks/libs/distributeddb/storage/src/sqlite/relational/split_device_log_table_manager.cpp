@@ -102,6 +102,11 @@ std::string SplitDeviceLogTableManager::GetPrimaryKeySql(const TableInfo &table)
     return "PRIMARY KEY(device, hash_key)";
 }
 
+std::string SplitDeviceLogTableManager::GetConflictPkSql(const TableInfo &table)
+{
+    return "ON CONFLICT(device, hash_key)";
+}
+
 std::vector<std::string> SplitDeviceLogTableManager::GetDropTriggers(const TableInfo &table)
 {
     std::vector<std::string> dropTriggers;

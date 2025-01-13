@@ -180,6 +180,12 @@ public:
         int64_t beginTime);
 
     void BeforeUploadTransaction();
+
+    void PrintCursorChange(const std::string &tableName);
+
+    int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
+
+    bool IsContainAssetsTable();
 protected:
     void Init();
 

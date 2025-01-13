@@ -472,11 +472,12 @@ int RelationalSchemaObject::ParseCheckTrackerExtendName(const JsonObject &inJson
         if (errCode == E_OK) { // LCOV_EXCL_BR_LINE
             if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) { // LCOV_EXCL_BR_LINE
                 LOGE("[RelationalSchema][Parse] Invalid characters in extend name, err=%d.", errCode);
-            } else {
+                return -E_SCHEMA_PARSE_FAIL;
+            } else if (!fieldValue.stringValue.empty()) {
                 resultTable.SetExtendName(fieldValue.stringValue);
                 resultTable.SetExtendNames({fieldValue.stringValue});
-                return E_OK;
             }
+            return E_OK;
         }
         LOGE("[RelationalSchema][Parse] Get extend col names fieldType failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
@@ -1219,6 +1220,12 @@ bool RelationalSchemaObject::CheckDistributedFieldChange(const std::vector<Distr
 void RelationalSchemaObject::SetDistributedSchema(const DistributedSchema &schema)
 {
     dbSchema_ = schema;
+    for (const auto &table : schema.tables) {
+        if (tables_.find(table.tableName) == tables_.end()) {
+            continue;
+        }
+        tables_.at(table.tableName).SetDistributedTable(table);
+    }
     GenerateSchemaString();
 }
 
@@ -1269,6 +1276,14 @@ std::string RelationalSchemaObject::GetOneDistributedTableString(const Distribut
         res += SchemaConstant::KEYWORD_DISTRIBUTED_IS_P2P_SYNC;
         res += R"(":)";
         if (field.isP2pSync) {
+            res += "true";
+        } else {
+            res += "false";
+        }
+        res += R"(, ")";
+        res += SchemaConstant::KEYWORD_DISTRIBUTED_IS_SPECIFIED;
+        res += R"(":)";
+        if (field.isSpecified) {
             res += "true";
         } else {
             res += "false";
@@ -1386,6 +1401,12 @@ int RelationalSchemaObject::ParseDistributedField(const JsonObject &inJsonObject
         return errCode;
     }
     field.isP2pSync = fieldValue.boolValue;
+    errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_IS_SPECIFIED,
+        FieldType::LEAF_FIELD_BOOL, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    field.isSpecified = fieldValue.boolValue;
     return E_OK;
 }
 
@@ -1402,18 +1423,27 @@ bool RelationalSchemaObject::IsNeedSkipSyncField(const FieldInfo &fieldInfo, con
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return false;
     }
-    auto pks = it->second.GetPrimaryKey();
-    for (const auto &pk : pks) {
-        if (DBCommon::CaseInsensitiveCompare(fieldInfo.GetFieldName(), pk.second)) {
-            return false;
-        }
-    }
     auto match = std::find_if(dbSchema_.tables.begin(), dbSchema_.tables.end(),
         [&tableName](const DistributedTable &distributedTable) {
         return DBCommon::CaseInsensitiveCompare(distributedTable.tableName, tableName);
     });
     if (match == dbSchema_.tables.end()) {
         return !ignoreTableNonExist;
+    }
+    bool existDistributedPk = false;
+    for (const auto &item : match->fields) {
+        if (item.isSpecified && item.isP2pSync) {
+            existDistributedPk = true;
+            break;
+        }
+    }
+    if (!existDistributedPk) {
+        auto pks = it->second.GetPrimaryKey();
+        for (const auto &pk : pks) {
+            if (DBCommon::CaseInsensitiveCompare(fieldInfo.GetFieldName(), pk.second)) {
+                return false;
+            }
+        }
     }
     auto matchField = std::find_if(match->fields.begin(), match->fields.end(),
         [&fieldInfo](const DistributedField &distributedField) {

@@ -181,6 +181,10 @@ namespace {
         RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
         communicatorAggregator_ = nullptr;
         RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+        if (g_observer != nullptr) {
+            delete g_observer;
+            g_observer = nullptr;
+        }
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CreateUserDBAndTable()

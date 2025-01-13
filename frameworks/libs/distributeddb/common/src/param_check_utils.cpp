@@ -314,4 +314,17 @@ void ParamCheckUtils::TransferSchemaToLower(DataBaseSchema &schema)
         }
     }
 }
+
+bool ParamCheckUtils::IsSchemaTablesEmpty(const DistributedSchema &schema)
+{
+    if (schema.tables.empty()) {
+        return true;
+    }
+    for (auto &tableSchema : schema.tables) {
+        if (tableSchema.fields.empty()) {
+            return true;
+        }
+    }
+    return false;
+}
 } // namespace DistributedDB

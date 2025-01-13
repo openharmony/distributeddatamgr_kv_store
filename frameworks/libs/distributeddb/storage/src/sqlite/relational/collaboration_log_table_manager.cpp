@@ -26,21 +26,14 @@ std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &
     const std::string &identity)
 {
     std::string sql;
-    if (IsCollaborationWithoutKey(table)) {
+    auto distributedPk = table.GetSyncDistributedPk();
+    if (!distributedPk.empty()) {
+        sql = CalcPkHash(references, distributedPk);
+    } else if (IsCollaborationWithoutKey(table)) {
         sql = "calc_hash('" + identity + "'||calc_hash(" + references + std::string(DBConstant::SQLITE_INNER_ROWID) +
             ", 0), 0)";
     } else {
-        if (table.GetIdentifyKey().size() == 1u) {
-            sql = "calc_hash(" + references + "'" + table.GetIdentifyKey().at(0) + "', 0)";
-        } else {
-            sql = "calc_hash(";
-            for (const auto &it : table.GetIdentifyKey()) {
-                sql += "calc_hash(" + references + "'" + it + "', 0)||";
-            }
-            sql.pop_back();
-            sql.pop_back();
-            sql += ", 0)";
-        }
+        sql = CalcPkHash(references, table.GetIdentifyKey());
     }
     return sql;
 }

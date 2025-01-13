@@ -300,23 +300,23 @@ void SendTaskScheduler::InvalidSendTask(const std::string &target)
         for (auto &sendTask : taskGroupByPrio_[priority][target]) {
             sendTask.isValid = false;
             LOGI("[Scheduler][InvalidSendTask] invalid frameId=%" PRIu32, sendTask.frameId);
-            if ((softBusErrCodeMap_.count(target) == 0) || (softBusErrCodeMap_[target] == E_OK)) {
+            if ((deviceCommErrCodeMap_.count(target) == 0) || (deviceCommErrCodeMap_[target] == E_OK)) {
                 continue;
             }
-            LOGE("[Scheduler][InvalidSendTask] target=%.3s, errCode=%d", target.c_str(), softBusErrCodeMap_[target]);
+            LOGE("[Scheduler][InvalidSendTask] target=%.3s, errCode=%d", target.c_str(), deviceCommErrCodeMap_[target]);
             if (sendTask.onEnd) {
                 LOGI("[Scheduler][InvalidSendTask] On Send End.");
-                sendTask.onEnd(softBusErrCodeMap_[target], false);
+                sendTask.onEnd(deviceCommErrCodeMap_[target], false);
                 sendTask.onEnd = nullptr;
             }
         }
     }
-    softBusErrCodeMap_.erase(target);
+    deviceCommErrCodeMap_.erase(target);
 }
 
-void SendTaskScheduler::SetSoftBusErrCode(const std::string &target, int softBusErrCode)
+void SendTaskScheduler::SetDeviceCommErrCode(const std::string &target, int deviceCommErrCode)
 {
     std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
-    softBusErrCodeMap_[target] = softBusErrCode;
+    deviceCommErrCodeMap_[target] = deviceCommErrCode;
 }
 }

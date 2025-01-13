@@ -449,7 +449,8 @@ int SQLiteSingleRelationalStorageEngine::CreateRelationalMetaTable(sqlite3 *db)
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &schema)
+int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &schema, const TableInfo &tableInfo,
+    bool isFirstCreate)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -464,16 +465,8 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema) && !schema.isForceUpgrade) {
-        handle->CheckAndCreateTrigger(tracker.GetTrackerTable(schema.tableName));
-        handle->Commit();
-        ReleaseExecutor(handle);
-        LOGW("tracker schema is no change.");
-        return E_OK;
-    }
-    bool isFirstCreate = tracker.GetTrackerTable(schema.tableName).GetTableName().empty();
     tracker.InsertTrackerSchema(schema);
-    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isFirstCreate);
+    int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), tableInfo, isFirstCreate);
     if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
@@ -501,40 +494,13 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     return ret;
 }
 
-int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo,
-    bool &isFirstCreate)
+void SQLiteSingleRelationalStorageEngine::CacheTrackerSchema(const TrackerSchema &schema)
 {
-    int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
-        OperatePerm::NORMAL_PERM, errCode));
-    if (handle == nullptr) {
-        return errCode;
-    }
-    RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema) && !schema.isForceUpgrade) { // LCOV_EXCL_BR_LINE
-        handle->CheckAndCreateTrigger(tracker.GetTrackerTable(schema.tableName));
-        ReleaseExecutor(handle);
-        LOGW("tracker schema is no change for distributed table.");
-        return -E_IGNORE_DATA;
-    }
-    isFirstCreate = tracker.GetTrackerTable(schema.tableName).GetTableName().empty();
-    tracker.InsertTrackerSchema(schema);
-    tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
-    errCode = tableInfo.CheckTrackerTable();
-    if (errCode != E_OK) {
-        LOGE("check tracker table schema failed. %d", errCode);
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-
+    trackerSchema_.InsertTrackerSchema(schema);
     if (!schema.isTrackAction && schema.trackerColNames.empty()) {
         // if isTrackAction be false and trackerColNames is empty, will remove the tracker schema.
-        tracker.RemoveTrackerSchema(schema);
+        trackerSchema_.RemoveTrackerSchema(schema);
     }
-
-    trackerSchema_ = tracker;
-    ReleaseExecutor(handle);
-    return errCode;
 }
 
 int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
@@ -1076,12 +1042,6 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
     if (schema.extendColNames.empty()) {
         return E_OK;
     }
-    RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema) && !schema.isForceUpgrade) {
-        LOGI("[%s [%zu]] tracker schema is no change.", DBCommon::StringMiddleMasking(schema.tableName).c_str(),
-            schema.tableName.size());
-        return E_OK;
-    }
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
         OperatePerm::NORMAL_PERM, errCode));
@@ -1103,6 +1063,7 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
         return errCode;
     }
 
+    RelationalSchemaObject tracker = trackerSchema_;
     TrackerTable oldTrackerTable = tracker.GetTrackerTable(schema.tableName);
     const std::set<std::string>& oldExtendColNames = oldTrackerTable.GetExtendNames();
     const std::string lowVersionExtendColName = oldTrackerTable.GetExtendName();
@@ -1125,15 +1086,21 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
     auto schemaObj = GetSchema();
     std::pair<int, bool> res = {E_OK, schemaObj.CheckDistributedSchemaChange(schema)};
     auto &[errCode, isSchemaChange] = res;
-    if (!isSchemaChange) {
-        auto localSchema = schemaObj.GetDistributedSchema();
-        if (localSchema.version != 0 && localSchema.version >= schema.version) {
-            LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
-            errCode = -E_INVALID_ARGS;
-        }
+    if (properties_.GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
+        LOGE("tableMode SPLIT_BY_DEVICE not support set distributed schema");
+        errCode = -E_NOT_SUPPORT;
         return res;
     }
-    errCode = SetDistributedSchemaInner(schemaObj, schema);
+    if (!isSchemaChange) {
+        return res;
+    }
+    auto localSchema = schemaObj.GetDistributedSchema();
+    if (localSchema.version != 0 && localSchema.version >= schema.version) {
+        LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
+        errCode = -E_INVALID_ARGS;
+    } else {
+        errCode = SetDistributedSchemaInner(schemaObj, schema);
+    }
     if (errCode == E_OK) {
         SetSchema(schemaObj);
     }
@@ -1163,22 +1130,20 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSch
         (void)handle->Rollback();
         return errCode;
     }
-    bool isFirstCreate = schemaObj.GetDistributedSchema().tables.empty();
-    if (!isFirstCreate) {
-        for (const auto &table : schema.tables) {
-            TableInfo tableInfo = schemaObj.GetTable(table.tableName);
-            if (tableInfo.Empty()) {
-                continue;
-            }
-            errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType());
-            if (errCode != E_OK) {
-                LOGE("Failed to refresh trigger while setting up distributed schema: %d", errCode);
-                (void)handle->Rollback();
-                return errCode;
-            }
+    schemaObj.SetDistributedSchema(schema);
+    for (const auto &table : schema.tables) {
+        TableInfo tableInfo = schemaObj.GetTable(table.tableName);
+        if (tableInfo.Empty()) {
+            continue;
+        }
+        tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.tableName));
+        errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType());
+        if (errCode != E_OK) {
+            LOGE("Failed to refresh trigger while setting up distributed schema: %d", errCode);
+            (void)handle->Rollback();
+            return errCode;
         }
     }
-    schemaObj.SetDistributedSchema(schema);
     errCode = SaveSchemaToMetaTable(handle, schemaObj);
     if (errCode != E_OK) {
         LOGE("Save schema to meta table for set distributed schema failed. %d", errCode);

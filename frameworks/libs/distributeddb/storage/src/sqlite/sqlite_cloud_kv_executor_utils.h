@@ -90,6 +90,8 @@ private:
     static int OperateCloudData(sqlite3 *db, bool isMemory, int index, OpType opType,
         DownloadData &downloadData);
 
+    static int OperateOtherUserLog(sqlite3 *db, bool isMemory, int index, DownloadData &downloadData);
+
     static std::string GetOperateDataSql(OpType opType);
 
     static std::string GetOperateLogSql(OpType opType);
@@ -105,7 +107,7 @@ private:
         const DataItem &dataItem);
 
     static int BindInsertLogStmt(sqlite3_stmt *logStmt, const std::string &user,
-        const DataItem &dataItem);
+        const DataItem &dataItem, bool isTagLogin = true);
 
     static int BindUpdateStmt(sqlite3_stmt *logStmt, sqlite3_stmt *dataStmt, const std::string &user,
         const DataItem &dataItem);

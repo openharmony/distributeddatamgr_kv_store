@@ -350,6 +350,16 @@ const std::map<int, FieldName> &TableInfo::GetPrimaryKey() const
     return primaryKey_;
 }
 
+bool TableInfo::IsPrimaryKey(const std::string &colName) const
+{
+    for (const auto &item : primaryKey_) {
+        if (colName == item.second) {
+            return true;
+        }
+    }
+    return false;
+}
+
 CompositeFields TableInfo::GetIdentifyKey() const
 {
     if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
@@ -748,36 +758,30 @@ int TableInfo::CheckTrackerTable()
         LOGE("the table name in schema is different from tracker table.");
         return -E_NOT_FOUND;
     }
-    if (trackerTable_.GetTrackerColNames().empty()) {
-        return E_OK;
-    }
-    const char *tableName = DBCommon::StringMiddleMasking(tableName_).c_str();
+    const std::string tableName = DBCommon::StringMiddleMasking(tableName_);
     size_t nameLength = tableName_.size();
     for (const auto &colName: trackerTable_.GetTrackerColNames()) {
         if (colName.empty()) {
-            LOGE("[%s [%zu]] tracker col cannot be empty.", tableName, nameLength);
+            LOGE("[%s [%zu]] tracker col cannot be empty.", tableName.c_str(), nameLength);
             return -E_INVALID_ARGS;
         }
         if (GetFields().find(colName) == GetFields().end()) {
-            LOGE("[%s [%zu]] unable to match the tracker col from table schema.", tableName, nameLength);
+            LOGE("[%s [%zu]] unable to match the tracker col from table schema.", tableName.c_str(), nameLength);
             return -E_SCHEMA_MISMATCH;
         }
     }
-    if (trackerTable_.GetExtendNames().empty()) {
-        return E_OK;
-    }
     for (const auto &colName : trackerTable_.GetExtendNames()) {
         if (colName.empty()) {
-            LOGE("[%s [%zu]] extend col cannot be empty.", tableName, nameLength);
+            LOGE("[%s [%zu]] extend col cannot be empty.", tableName.c_str(), nameLength);
             return -E_INVALID_ARGS;
         }
         auto iter = GetFields().find(colName);
         if (iter == GetFields().end()) {
-            LOGE("[%s [%zu]] unable to match the extend col from table schema.", tableName, nameLength);
+            LOGE("[%s [%zu]] unable to match the extend col from table schema.", tableName.c_str(), nameLength);
             return -E_SCHEMA_MISMATCH;
         } else {
             if (iter->second.IsAssetType() || iter->second.IsAssetsType()) {
-                LOGE("[%s [%zu]] extend col is not allowed to be set as an asset field.", tableName, nameLength);
+                LOGE("[%s [%zu]] extend col is not allowed to be set as asset field.", tableName.c_str(), nameLength);
                 return -E_INVALID_ARGS;
             }
         }
@@ -834,6 +838,17 @@ std::vector<std::string> TableInfo::GetSyncField() const
     std::vector<std::string> res;
     for (const auto &item : distributedTable_.fields) {
         if (item.isP2pSync) {
+            res.push_back(item.colName);
+        }
+    }
+    return res;
+}
+
+std::vector<std::string> TableInfo::GetSyncDistributedPk() const
+{
+    std::vector<std::string> res;
+    for (const auto &item : distributedTable_.fields) {
+        if (item.isP2pSync && item.isSpecified) {
             res.push_back(item.colName);
         }
     }

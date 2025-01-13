@@ -467,17 +467,20 @@ int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, 
 }
 
 void GetFieldsNeedContain(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
-    std::set<std::string> &fieldsNeedContain)
+    std::set<std::string> &fieldsNeedContain, std::set<std::string> &requiredNotNullFields)
 {
+    // should not decrease distributed field
     for (const auto &syncField : syncFields) {
-        fieldsNeedContain.insert(syncField.GetFieldName());
-    }
-    for (const auto &primaryKey : tableInfo.GetPrimaryKey()) {
-        fieldsNeedContain.insert(primaryKey.second);
+        if (!tableInfo.IsPrimaryKey(syncField.GetFieldName())) {
+            fieldsNeedContain.insert(syncField.GetFieldName());
+        }
     }
     const std::vector<CompositeFields> &uniqueDefines = tableInfo.GetUniqueDefine();
     for (const auto &compositeFields : uniqueDefines) {
         for (const auto &fieldName : compositeFields) {
+            if (tableInfo.IsPrimaryKey(fieldName)) {
+                continue;
+            }
             fieldsNeedContain.insert(fieldName);
         }
     }
@@ -485,9 +488,78 @@ void GetFieldsNeedContain(const TableInfo &tableInfo, const std::vector<FieldInf
     for (const auto &entry : fieldInfoMap) {
         const FieldInfo &fieldInfo = entry.second;
         if (fieldInfo.IsNotNull() && fieldInfo.GetDefaultValue().empty()) {
-            fieldsNeedContain.insert(fieldInfo.GetFieldName());
+            requiredNotNullFields.insert(fieldInfo.GetFieldName());
         }
     }
+}
+
+bool CheckRequireFieldsInMap(const std::set<std::string> &fieldsNeedContain,
+    const std::map<std::string, bool> &fieldsMap)
+{
+    for (auto &fieldNeedContain : fieldsNeedContain) {
+        if (fieldsMap.find(fieldNeedContain) == fieldsMap.end()) {
+            LOGE("Required column[%s [%zu]] not found", DBCommon::StringMiddleMasking(fieldNeedContain).c_str(),
+                fieldNeedContain.size());
+            return false;
+        }
+        if (!fieldsMap.at(fieldNeedContain)) {
+            LOGE("The isP2pSync of required column[%s [%zu]] is false",
+                DBCommon::StringMiddleMasking(fieldNeedContain).c_str(), fieldNeedContain.size());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool IsDistributedPkInvalid(const TableInfo &tableInfo,
+    const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
+    const std::vector<DistributedField> &originFields)
+{
+    auto lastDistributedPk = DBCommon::TransformToCaseInsensitive(tableInfo.GetSyncDistributedPk());
+    if (!lastDistributedPk.empty() && distributedPk != lastDistributedPk) {
+        LOGE("distributed pk has change last %zu now %zu", lastDistributedPk.size(), distributedPk.size());
+        return true;
+    }
+    // check pk is same or local pk is auto increase and set pk is unique
+    if (tableInfo.IsNoPkTable()) {
+        return false;
+    }
+    if (tableInfo.GetAutoIncrement()) {
+        if (distributedPk.empty()) {
+            return false;
+        }
+        auto uniqueDefine = tableInfo.GetUniqueDefine();
+        bool isMissMatch = true;
+        for (const auto &item : uniqueDefine) {
+            // unique index field count should be same
+            if (item.size() != distributedPk.size()) {
+                continue;
+            }
+            if (distributedPk == DBCommon::TransformToCaseInsensitive(item)) {
+                isMissMatch = false;
+                break;
+            }
+        }
+        if (isMissMatch) {
+            LOGE("Miss match distributed pk size %zu in auto increment table %s", distributedPk.size(),
+                DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str());
+        }
+        return isMissMatch;
+    }
+    for (const auto &field : originFields) {
+        bool isLocalPk = tableInfo.IsPrimaryKey(field.colName);
+        if (field.isSpecified && !isLocalPk) {
+            LOGE("Column[%s [%zu]] is not primary key but mark specified",
+                DBCommon::StringMiddleMasking(field.colName).c_str(), field.colName.size());
+            return true;
+        }
+        if (isLocalPk && !field.isP2pSync) {
+            LOGE("Column[%s [%zu]] is primary key but set isP2pSync false",
+                DBCommon::StringMiddleMasking(field.colName).c_str(), field.colName.size());
+            return true;
+        }
+    }
+    return false;
 }
 
 int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
@@ -497,25 +569,34 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
         LOGE("fields cannot be empty");
         return -E_SCHEMA_MISMATCH;
     }
+    std::set<std::string, CaseInsensitiveComparator> distributedPk;
     for (const auto &field : fields) {
         if (!tableInfo.IsFieldExist(field.colName)) {
             LOGE("Column[%s [%zu]] not found in table", DBCommon::StringMiddleMasking(field.colName).c_str(),
                  field.colName.size());
             return -E_SCHEMA_MISMATCH;
         }
+        if (field.isSpecified && field.isP2pSync) {
+            distributedPk.insert(field.colName);
+        }
+    }
+    if (IsDistributedPkInvalid(tableInfo, distributedPk, fields)) {
+        return -E_SCHEMA_MISMATCH;
     }
     std::set<std::string> fieldsNeedContain;
-    GetFieldsNeedContain(tableInfo, syncFields, fieldsNeedContain);
-    std::set<std::string> fieldsMap;
+    std::set<std::string> requiredNotNullFields;
+    GetFieldsNeedContain(tableInfo, syncFields, fieldsNeedContain, requiredNotNullFields);
+    std::map<std::string, bool> fieldsMap;
     for (auto &field : fields) {
-        fieldsMap.insert(field.colName);
+        fieldsMap.insert({field.colName, field.isP2pSync});
     }
-    for (auto &fieldNeedContain : fieldsNeedContain) {
-        if (fieldsMap.find(fieldNeedContain) == fieldsMap.end()) {
-            LOGE("Required column[%s [%zu]] not found", DBCommon::StringMiddleMasking(fieldNeedContain).c_str(),
-                fieldNeedContain.size());
-            return -E_DISTRIBUTED_FIELD_DECREASE;
-        }
+    if (!CheckRequireFieldsInMap(fieldsNeedContain, fieldsMap)) {
+        LOGE("The required fields are not found in fieldsMap");
+        return -E_DISTRIBUTED_FIELD_DECREASE;
+    }
+    if (!CheckRequireFieldsInMap(requiredNotNullFields, fieldsMap)) {
+        LOGE("The required not-null fields are not found in fieldsMap");
+        return -E_SCHEMA_MISMATCH;
     }
     return E_OK;
 }
@@ -545,6 +626,7 @@ int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObj
                 DBCommon::StringMiddleMasking(table.tableName).c_str(), errCode);
             return errCode == -E_NOT_FOUND ? -E_SCHEMA_MISMATCH : errCode;
         }
+        tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.tableName));
         errCode = CheckDistributedSchemaFields(tableInfo, schemaObj.GetSyncFieldInfo(table.tableName, false),
             table.fields);
         if (errCode != E_OK) {

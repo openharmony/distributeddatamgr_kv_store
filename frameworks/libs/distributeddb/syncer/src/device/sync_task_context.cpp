@@ -546,7 +546,7 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId, b
         return;
     }
     if (errCode > 0) {
-        SetCommFailErrCode(static_cast<int>(COMM_FAILURE));
+        SetCommFailErrCode(static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
     } else {
         SetCommFailErrCode(errCode);
     }
@@ -865,7 +865,7 @@ void SyncTaskContext::SetCommFailErrCode(int errCode)
 void SyncTaskContext::SetErrCodeWhenWaitTimeOut(int errCode)
 {
     if (errCode > 0) {
-        SetCommFailErrCode(static_cast<int>(TIME_OUT));
+        SetCommFailErrCode(static_cast<int>(SyncOperation::OP_TIMEOUT));
     } else {
         SetCommFailErrCode(errCode);
     }

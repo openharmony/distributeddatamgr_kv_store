@@ -23,16 +23,11 @@ std::string DeviceTrackerLogTableManager::CalcPrimaryKeyHash(const std::string &
 {
     (void)identity;
     std::string sql;
-    if (table.GetPrimaryKey().size() == 1) {
-        sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "', 0)";
-    }  else {
-        sql = "calc_hash(";
-        for (const auto &it : table.GetPrimaryKey()) {
-            sql += "calc_hash(" + references + "'" + it.second + "', 0)||";
-        }
-        sql.pop_back();
-        sql.pop_back();
-        sql += ", 0)";
+    auto distributedPk = table.GetSyncDistributedPk();
+    if (!distributedPk.empty()) {
+        sql = CalcPkHash(references, distributedPk);
+    } else {
+        sql = CalcPkHash(references, table.GetIdentifyKey());
     }
     return sql;
 }
@@ -101,7 +96,7 @@ std::string DeviceTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "BEGIN\n";
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName);
     updateTrigger.pop_back();
-    updateTrigger += " AND " + table.GetTrackerTable().GetDiffTrackerValSql() + ";";
+    updateTrigger += ";";
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=" + GetUpdateTimestamp(table, false) + ", device='', flag=0x22";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();

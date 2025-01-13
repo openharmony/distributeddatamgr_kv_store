@@ -494,8 +494,10 @@ void SyncEngine::MessageReciveCallback(const std::string &targetDev, Message *in
     IncExecTaskCount();
     int errCode = MessageReciveCallbackInner(targetDev, inMsg);
     if (errCode != E_OK) {
-        delete inMsg;
-        inMsg = nullptr;
+        if (inMsg != nullptr) {
+            delete inMsg;
+            inMsg = nullptr;
+        }
         DecExecTaskCount();
         LOGE("[SyncEngine] MessageReciveCallback failed!");
     }

@@ -303,7 +303,8 @@ void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     LOGD("-------------------sync end--------------");
 }
 
-void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatus dbStatus, DBStatus errCode = OK)
+void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatus dbStatus, DBStatus errCode = OK,
+    bool isMerge = false)
 {
     g_syncProcess = {};
     Query query = Query::Select().FromTable(tableNames);
@@ -323,6 +324,7 @@ void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatu
     option.query = query;
     option.waitTime = SYNC_WAIT_TIME;
     option.lockAction = static_cast<LockAction>(0xff); // lock all
+    option.merge = isMerge;
     ASSERT_EQ(g_delegate->Sync(option, callback), dbStatus);
 
     if (dbStatus == DBStatus::OK) {
@@ -632,7 +634,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest003()
         }
     });
     int downLoadCount = 0;
-    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::vector<std::vector<uint8_t>> hashKey;
@@ -643,6 +646,7 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest003()
     InitDataStatusTest(true);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
+    g_virtualAssetLoader->ForkDownload(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
@@ -663,7 +667,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
         }
     });
     int downLoadCount = 0;
-    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::vector<std::vector<uint8_t>> hashKey;
@@ -685,6 +690,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
     InitDataStatusTest(true);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
+    g_virtualAssetLoader->ForkDownload(nullptr);
+    g_virtualCloudDb->ForkQuery(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
@@ -705,7 +712,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
         }
     });
     int downLoadCount = 0;
-    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::vector<std::vector<uint8_t>> hashKey;
@@ -718,6 +726,7 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
     InitDataStatusTest(true);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
+    g_virtualAssetLoader->ForkDownload(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
@@ -739,7 +748,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
         }
     });
     int downLoadCount = 0;
-    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
+    g_virtualAssetLoader->ForkDownload([this, &downLoadCount](const std::string &tableName,
+        std::map<std::string, Assets> &assets) {
         downLoadCount++;
         if (downLoadCount == 1) {
             std::vector<std::vector<uint8_t>> hashKey;
@@ -753,6 +763,7 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
     InitDataStatusTest(true);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
+    g_virtualAssetLoader->ForkDownload(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest007()
@@ -2692,6 +2703,126 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest001, Tes
     EXPECT_EQ(delegateImpl->Close(), DBStatus::OK);
     SyncProcess process3 = g_delegate->GetCloudTaskStatus(1);
     EXPECT_EQ(process3.errCode, DB_ERROR);
+}
+
+/**
+  * @tc.name: CloudTaskStatusTest002
+  * @tc.desc: Test get cloud task status when task merge
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: suyue
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK
+     */
+    int cloudCount = 100; // 100 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step2. sync tasks 2 and 3 that can be merged when synchronizing task 1, get status of the merge task
+     * @tc.expected: step2. the errCode of task 2 and task 3 is OK or NOT_FOUND
+     */
+    g_virtualCloudDb->SetBlockTime(1000);
+    Query query = Query::Select().FromTable({ASSETS_TABLE_NAME});
+    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        if (process.begin()->second.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    CloudSyncOption option = {.devices = {DEVICE_CLOUD}, .mode = SYNC_MODE_CLOUD_MERGE, .query = query,
+        .waitTime = SYNC_WAIT_TIME, .lockAction = static_cast<LockAction>(0xff)};
+
+    std::thread syncThread1([option, callback]() {
+        ASSERT_EQ(g_delegate->Sync(option, callback), DBStatus::OK);
+    });
+    option.merge = true;
+    std::thread syncThread2([option, callback]() {
+        ASSERT_EQ(g_delegate->Sync(option, callback), DBStatus::OK);
+    });
+    std::thread syncThread3([option, callback]() {
+        ASSERT_EQ(g_delegate->Sync(option, callback), DBStatus::OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    SyncProcess process1 = g_delegate->GetCloudTaskStatus(1);
+    SyncProcess process2 = g_delegate->GetCloudTaskStatus(2);
+    SyncProcess process3 = g_delegate->GetCloudTaskStatus(3);
+    syncThread1.join();
+    syncThread2.join();
+    syncThread3.join();
+    // Due to the task execution sequence, task 2 may be combined into 3 or task 3 may be combined into 2.
+    // Therefore, the errCode of task 2 and 3 may be OK or NOT_FOUND.
+    EXPECT_TRUE(process2.errCode == OK  || process2.errCode == NOT_FOUND);
+    EXPECT_TRUE(process3.errCode == OK  || process3.errCode == NOT_FOUND);
+}
+
+/**
+  * @tc.name: CompensatedSyncTest001
+  * @tc.desc: test compensated count more than 100.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tankaisheng
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CompensatedSyncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 120;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. set all data wait compensated.
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "update " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " set flag=flag|0x10;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " where flag&0x10=0x10;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(120u), nullptr), SQLITE_OK);
+    
+    /**
+     * @tc.steps:step3. sync with compensated.
+     * @tc.expected: step3. return ok.
+     */
+    std::mutex processMutex;
+    std::vector<SyncProcess> expectProcess;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&cv, &finish, &processMutex]
+        (const std::map<std::string, SyncProcess> &process) {
+        for (auto &item : process) {
+            if (item.second.process == FINISHED) {
+                EXPECT_EQ(item.second.errCode, DBStatus::OK);
+                std::unique_lock<std::mutex> lock(processMutex);
+                finish = true;
+                cv.notify_one();
+            }
+        }
+    };
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.priorityTask = true;
+    option.compensatedSyncOnly = true;
+    DBStatus syncResult = g_delegate->Sync(option, callback);
+    EXPECT_EQ(syncResult, DBStatus::OK);
+
+    /**
+     * @tc.steps:step4. wait sync finish and check data.
+     * @tc.expected: step4. return ok.
+     */
+    std::unique_lock<std::mutex> lock(processMutex);
+    cv.wait(lock, [&finish]() {
+        return finish;
+    });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
 }
 } // namespace
 #endif // RELATIONAL_STORE

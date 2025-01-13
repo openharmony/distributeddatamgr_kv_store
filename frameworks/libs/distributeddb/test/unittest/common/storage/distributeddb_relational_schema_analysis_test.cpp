@@ -222,9 +222,11 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, SetDistributedSchema001, Tes
     DistributedField field;
     field.colName = "field1";
     field.isP2pSync = true;
+    field.isSpecified = true;
     table.fields.push_back(field);
     field.colName = "field2";
     field.isP2pSync = false;
+    field.isSpecified = false;
     table.fields.push_back(field);
     table.tableName = "table1";
     distributedSchema.tables.push_back(table);

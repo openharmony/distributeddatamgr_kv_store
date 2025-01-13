@@ -354,7 +354,7 @@ uint32_t GenericKvDB::GetMaxValueSize() const
     return DBConstant::MAX_VALUE_SIZE;
 }
 
-int GenericKvDB::CheckDataStatus(const Key &key, const Value &value, bool isDeleted) const
+int GenericKvDB::CheckDataStatus(const Key &key, const Value &value, [[gnu::unused]] bool isDeleted) const
 {
     if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE || value.size() > GetMaxValueSize()) {
         return -E_INVALID_ARGS;

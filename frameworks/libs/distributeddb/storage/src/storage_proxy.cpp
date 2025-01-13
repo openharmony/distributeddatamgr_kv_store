@@ -469,6 +469,15 @@ int StorageProxy::FillCloudAssetForAsyncDownload(const std::string &tableName, V
     return store_->FillCloudAssetForAsyncDownload(tableName, asset, isDownloadSuccess);
 }
 
+void StorageProxy::PrintCursorChange(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return;
+    }
+    store_->PrintCursorChange(tableName);
+}
+
 int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -806,7 +815,7 @@ std::pair<int, std::vector<std::string>> StorageProxy::GetDownloadAssetTable()
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         LOGE("[StorageProxy] no store found when get downloading assets table");
-        return {false, std::vector<std::string>()};
+        return {-E_INVALID_DB, std::vector<std::string>()};
     }
     return store_->GetDownloadAssetTable();
 }
@@ -817,7 +826,7 @@ std::pair<int, std::vector<std::string>> StorageProxy::GetDownloadAssetRecords(c
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         LOGE("[StorageProxy] no store found when get downloading assets");
-        return {false, std::vector<std::string>()};
+        return {-E_INVALID_DB, std::vector<std::string>()};
     }
     return store_->GetDownloadAssetRecords(tableName, beginTime);
 }
@@ -829,5 +838,42 @@ void StorageProxy::BeforeUploadTransaction()
         return;
     }
     store_->DoBeforeUploadTransaction();
+}
+
+int StorageProxy::GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[StorageProxy] no store found when get lock status");
+        return -E_INVALID_DB;
+    }
+    return store_->GetLockStatusByGid(tableName, gid, status);
+}
+
+bool StorageProxy::IsContainAssetsTable()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("store is nullptr when check contain assets table");
+        return false;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema = nullptr;
+    int errCode = store_->GetCloudDbSchema(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("Cannot get cloud schema: %d when check contain assets table", errCode);
+        return false;
+    }
+    if (cloudSchema == nullptr) {
+        LOGE("Not set cloud schema when check contain assets table");
+        return false;
+    }
+    for (const auto &table : cloudSchema->tables) {
+        for (const auto &field : table.fields) {
+            if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 }

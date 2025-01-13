@@ -56,12 +56,11 @@ public:
     // Get local time offset
     TimeOffset GetLocalTimeOffset() const;
 
-    // Get local time
-    int SaveLocalTimeOffset(TimeOffset offset);
-
     void SetSendConfig(const std::string &dstTarget, bool nonBlock, uint32_t timeout, SendConfig &sendConf);
 
     static Timestamp GetMonotonicTime();
+
+    static Timestamp GetCurrentLocalTime(int64_t &curTimeOffset, int64_t &localTimeOffset);
 
 private:
     static std::mutex systemTimeLock_;

@@ -568,10 +568,12 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     // check if the table exists before each synchronization.
     // If the table does not exist, create it.
     // Because it is a fallback scenario, if the table creation fails, no failure will be returned
-    errCode = handle->CreateDistributedDeviceTable(deviceName,
-        storageEngine_->GetSchema().GetTable(query.GetTableName()), info);
-    if (errCode != E_OK) {
-        LOGW("[RelationalSyncAbleStorage::SaveSyncDataItems] Create distributed device table fail %d", errCode);
+    if (localSchema.GetTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
+        errCode = handle->CreateDistributedDeviceTable(deviceName,
+            storageEngine_->GetSchema().GetTable(query.GetTableName()), info);
+        if (errCode != E_OK) {
+            LOGW("[RelationalSyncAbleStorage::SaveSyncDataItems] Create distributed device table fail %d", errCode);
+        }
     }
     DBDfxAdapter::StartTracing();
 
@@ -1376,7 +1378,8 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
         LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
         return errCode;
     }
-    errCode = transactionHandle_->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
+    uint64_t currCursor = DBConstant::INVALID_CURSOR;
+    errCode = transactionHandle_->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess, currCursor);
     if (errCode != E_OK) {
         LOGE("fill cloud asset for download failed.%d", errCode);
     }
@@ -1871,7 +1874,22 @@ int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, bo
         LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
         return -E_INVALID_DB;
     }
-    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(tableName, recordConflict, logInfo);
+    TableSchema tableSchema;
+    GetCloudTableSchema(tableName, tableSchema);
+    std::vector<VBucket> assets;
+    int errCode = transactionHandle_->GetDownloadAssetRecordsByGid(tableSchema, logInfo.cloudGid, assets);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get download asset by gid %s failed %d",
+            DBCommon::StringMiddleMasking(logInfo.cloudGid).c_str(), errCode);
+        return errCode;
+    }
+    bool isInconsistency = !assets.empty();
+    UpdateRecordFlagStruct updateRecordFlag = {
+        .tableName = tableName,
+        .isRecordConflict = recordConflict,
+        .isInconsistency = isInconsistency
+    };
+    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(updateRecordFlag, logInfo);
     return transactionHandle_->UpdateRecordFlag(tableName, sql, logInfo);
 }
 
@@ -1890,16 +1908,16 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
     }
     if (opType == OpType::INSERT) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::INSERT}, data.insData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::INSERT, tableSchema}, data.insData, uploadRecorder_);
     } else if (opType == OpType::UPDATE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::UPDATE}, data.updData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::UPDATE, tableSchema}, data.updData, uploadRecorder_);
     } else if (opType == OpType::DELETE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::DELETE}, data.delData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::DELETE, tableSchema}, data.delData, uploadRecorder_);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::BUTT}, data.lockData, uploadRecorder_, true);
+            handle, {data.tableName, CloudWaterType::BUTT, tableSchema}, data.lockData, uploadRecorder_, true);
     }
     return errCode;
 }

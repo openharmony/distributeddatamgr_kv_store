@@ -44,7 +44,6 @@ config("distrdb_config") {
     "syncer/src/device",
     "syncer/src/device/multiver",
     "syncer/src/device/singlever",
-    "//third_party/openssl/include/",
   ]
 
   defines = [

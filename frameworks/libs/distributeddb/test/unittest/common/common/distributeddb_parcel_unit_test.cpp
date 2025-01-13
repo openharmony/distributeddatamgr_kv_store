@@ -745,12 +745,13 @@ HWTEST_F(DistributedDBParcelTest, ParcelErrTest, TestSize.Level1)
     EXPECT_EQ(parcel.ReadBlob(nullptr, 0), expectedVal);
 
     /**
-     * @tc.steps: step3. WriteDouble when Parcel para is null;
+     * @tc.steps: step3. WriteBlob when Parcel para is null string;
      * @tc.expected: step3. return -E_PARSE_FAIL;
      */
-    ret = parcel.WriteBlob("", 1);
+    char para[] = "";
+    ret = parcel.WriteBlob(para, 1);
     EXPECT_EQ(ret, -E_PARSE_FAIL);
-    EXPECT_EQ(parcel.ReadBlob("", 1), expectedVal);
+    EXPECT_EQ(parcel.ReadBlob(para, 1), expectedVal);
 }
 
 #endif

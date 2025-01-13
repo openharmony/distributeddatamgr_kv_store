@@ -398,6 +398,11 @@ DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSche
         return DB_ERROR;
     }
 
+    if (ParamCheckUtils::IsSchemaTablesEmpty(schema)) {
+        LOGE("[RelationalStore Delegate] Schema tables are empty when setting db schema!");
+        return SCHEMA_MISMATCH;
+    }
+
     std::string userId;
     std::string appId;
     std::string storeId;

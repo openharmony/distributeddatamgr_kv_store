@@ -181,6 +181,9 @@ private:
 
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
+    int CheckTrackerTable(const TrackerSchema &trackerSchema, TableInfo &table, bool &isNoTableInSchema,
+        bool &isFirstCreate);
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);

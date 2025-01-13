@@ -1109,3 +1109,46 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
     th.join();
     delete observer;
 }
+
+/**
+ * @tc.name: AutoLaunchRelational001
+ * @tc.desc: test GetAutoLaunchProperties will give back the correct tableMode
+ * @tc.type: FUNC
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunchRelational001, TestSize.Level3)
+{
+    AutoLaunchOption defaultOption;
+    AutoLaunchOption splitOption;
+    AutoLaunchOption collaborateOption;
+    splitOption.tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
+    collaborateOption.tableMode = DistributedTableMode::COLLABORATION;
+    /**
+     * @tc.steps: step1. call GetAutoLaunchProperties with default param
+     * @tc.expected: step1. property pointer has SPLIT_BY_DEVICE mode
+     */
+    AutoLaunchParam param = {USER_ID, APP_ID, STORE_ID_0, defaultOption, nullptr, "", ""};
+    std::shared_ptr<DBProperties> ptr;
+    int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
+    ASSERT_EQ(errCode, E_OK);
+    DistributedTableMode mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
+    EXPECT_EQ(mode, DistributedTableMode::SPLIT_BY_DEVICE);
+    /**
+     * @tc.steps: step2. call GetAutoLaunchProperties with split param
+     * @tc.expected: step2. property pointer has SPLIT_BY_DEVICE mode
+     */
+    param.option = splitOption;
+    errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
+    ASSERT_EQ(errCode, E_OK);
+    mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
+    EXPECT_EQ(mode, DistributedTableMode::SPLIT_BY_DEVICE);
+    /**
+     * @tc.steps: step3. call GetAutoLaunchProperties with collaboration param
+     * @tc.expected: step3. property pointer has COLLABORATION mode
+     */
+    param.option = collaborateOption;
+    errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
+    ASSERT_EQ(errCode, E_OK);
+    mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
+    EXPECT_EQ(mode, DistributedTableMode::COLLABORATION);
+}

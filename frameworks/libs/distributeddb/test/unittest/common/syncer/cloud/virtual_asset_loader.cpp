@@ -25,9 +25,9 @@ DBStatus VirtualAssetLoader::Download(const std::string &tableName, const std::s
             return downloadStatus_;
         }
     }
-    LOGD("Download GID:%s", gid.c_str());
+    LOGD("Download GID:%s, table %s", gid.c_str(), tableName.c_str());
     if (downloadCallBack_) {
-        downloadCallBack_(assets);
+        downloadCallBack_(tableName, assets);
     }
     for (auto &item: assets) {
         for (auto &asset: item.second) {

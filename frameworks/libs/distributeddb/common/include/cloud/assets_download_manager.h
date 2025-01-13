@@ -39,6 +39,8 @@ public:
     uint32_t GetCurrentDownloadCount();
 
     uint32_t GetMaxDownloadAssetsCount() const;
+
+    bool CanStartNewTask() const;
 private:
     int InitNotificationChain();
 

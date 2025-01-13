@@ -769,13 +769,13 @@ int CommunicatorAggregator::RegCallbackToAdapter()
     }
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
-    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int softBusErrCode) {
-            LOGI("[CommAggr] Send able dev=%.3s, softBusErrCode=%d", target.c_str(), softBusErrCode);
-            if (softBusErrCode == E_OK) {
+    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int deviceCommErrCode) {
+            LOGI("[CommAggr] Send able dev=%.3s, deviceCommErrCode=%d", target.c_str(), deviceCommErrCode);
+            if (deviceCommErrCode == E_OK) {
                 (void)IncreaseSendSequenceId(target);
                 OnSendable(target);
             }
-            scheduler_.SetSoftBusErrCode(target, softBusErrCode);
+            scheduler_.SetDeviceCommErrCode(target, deviceCommErrCode);
         },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
@@ -983,6 +983,10 @@ void CommunicatorAggregator::SendOnceData()
     // <vector, extendHeadSize>
     std::vector<std::pair<std::vector<uint8_t>, uint32_t>> piecePackets;
     uint32_t mtu = adapterHandle_->GetMtuSize(taskToSend.dstTarget);
+    if (taskToSend.buffer == nullptr) {
+        LOGE("[CommAggr] buffer of taskToSend is nullptr.");
+        return;
+    }
     errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer, mtu, piecePackets);
     if (errCode != E_OK) {
         LOGE("[CommAggr] Split frame fail, errCode=%d.", errCode);

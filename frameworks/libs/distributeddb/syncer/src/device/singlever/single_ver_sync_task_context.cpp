@@ -290,7 +290,7 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
     if (GetTaskExecStatus() == SyncTaskContext::RUNNING) {
         // clear syncing task.
         stateMachine_->CommErrAbort();
-        SetCommFailErrCode(static_cast<int>(COMM_FAILURE));
+        SetCommFailErrCode(static_cast<int>(SyncOperation::OP_COMM_ABNORMAL));
     }
     // reset last push status for sync merge
     ResetLastPushTaskStatus();

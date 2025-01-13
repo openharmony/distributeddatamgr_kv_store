@@ -52,7 +52,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin,
     if (!localInfo.isNeedUpdateAsset && IsSameRecord(cloudInfo, localInfo)) {
         return OpType::NOT_HANDLE;
     }
-    return TagUpdateLocal(cloudInfo, localInfo);
+    return TagLoginUserAndUpdate(localInfo, cloudInfo);
 }
 
 bool CloudMergeStrategy::JudgeUpdateCursor()
@@ -79,6 +79,15 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
         return OpType::ONLY_UPDATE_GID;
     }
     return OpType::NOT_HANDLE;
+}
+
+OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo)
+{
+    if (JudgeKvScene() && (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
+        && localInfo.wTimestamp > cloudInfo.wTimestamp) {
+        return OpType::NOT_HANDLE;
+    }
+    return TagUpdateLocal(cloudInfo, localInfo);
 }
 
 OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,

@@ -322,7 +322,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
 {
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     if (timeTickMonitor_ == nullptr) {
-        timeTickMonitor_ = std::make_unique<TimeTickMonitor>();
+        timeTickMonitor_ = std::make_shared<TimeTickMonitor>();
         errCode = timeTickMonitor_->StartTimeTickMonitor();
         if (errCode != E_OK) {
             LOGE("TimeTickMonitor start failed!");
@@ -634,12 +634,16 @@ bool RuntimeContextImpl::IsProcessSystemApiAdapterValid() const
 
 void RuntimeContextImpl::NotifyTimestampChanged(TimeOffset offset) const
 {
-    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
-    if (timeTickMonitor_ == nullptr) {
-        LOGD("NotifyTimestampChanged fail, timeTickMonitor_ is null.");
-        return;
+    std::shared_ptr<TimeTickMonitor> timeTickMonitor = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+        if (timeTickMonitor_ == nullptr) {
+            LOGD("NotifyTimestampChanged fail, timeTickMonitor_ is null.");
+            return;
+        }
+        timeTickMonitor = timeTickMonitor_;
     }
-    timeTickMonitor_->NotifyTimeChange(offset);
+    timeTickMonitor->NotifyTimeChange(offset);
 }
 
 bool RuntimeContextImpl::IsCommunicatorAggregatorValid() const
@@ -1243,7 +1247,7 @@ void RuntimeContextImpl::SetTimeChanged(bool timeChange)
 {
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     if (timeTickMonitor_ == nullptr) {
-        timeTickMonitor_ = std::make_unique<TimeTickMonitor>();
+        timeTickMonitor_ = std::make_shared<TimeTickMonitor>();
         (void)timeTickMonitor_->StartTimeTickMonitor();
         LOGD("[RuntimeContext] TimeTickMonitor start success");
     }

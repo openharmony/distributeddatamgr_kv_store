@@ -1329,7 +1329,7 @@ int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
         LOGE("[SaveDeleteFlagToDB] prepare statement failed, %d", errCode);
         return -E_ERROR;
     }
- 
+
     if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
         SQLITE_TRANSIENT) != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         (void)sqlite3_finalize(statement);

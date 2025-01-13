@@ -492,6 +492,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSiz
 
     PermissionCheckCallbackV4 nullCallback = nullptr;
     EXPECT_EQ(mgr1.SetPermissionCheckCallback(nullCallback), OK);
+    CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
 
 /**
@@ -675,6 +676,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest002, Tes
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: SubUserDelegateCloudSyncTest001
  * @tc.desc: Test subUser kv delegate cloud sync function.
@@ -751,6 +753,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002
     CloseDelegate(rdbDelegatePtr1, mgr1, db1);
     CloseDelegate(rdbDelegatePtr2, mgr2, db2);
 }
+#endif
 
 /**
  * @tc.name: MultiSubUserDelegateSync001
