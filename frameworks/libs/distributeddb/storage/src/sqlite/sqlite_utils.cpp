@@ -410,23 +410,23 @@ int SQLiteUtils::BindPrefixKey(sqlite3_stmt *statement, int index, const Key &ke
 int SQLiteUtils::BeginTransaction(sqlite3 *db, TransactType type)
 {
     if (type == TransactType::IMMEDIATE) {
-        return ExecuteRawSQL(db, BEGIN_IMMEDIATE_SQL);
+        return ExecuteRawSQL(db, BEGIN_IMMEDIATE_SQL, true);
     }
 
-    return ExecuteRawSQL(db, BEGIN_SQL);
+    return ExecuteRawSQL(db, BEGIN_SQL, true);
 }
 
 int SQLiteUtils::CommitTransaction(sqlite3 *db)
 {
-    return ExecuteRawSQL(db, COMMIT_SQL);
+    return ExecuteRawSQL(db, COMMIT_SQL, true);
 }
 
 int SQLiteUtils::RollbackTransaction(sqlite3 *db)
 {
-    return ExecuteRawSQL(db, ROLLBACK_SQL);
+    return ExecuteRawSQL(db, ROLLBACK_SQL, true);
 }
 
-int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
+int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql, bool ignoreResetFail)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
@@ -452,7 +452,10 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
 
     int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    if (!ignoreResetFail && ret != E_OK) {
+        return errCode != E_OK ? errCode : ret;
+    }
+    return errCode;
 }
 
 int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal, uint32_t iterTimes)
