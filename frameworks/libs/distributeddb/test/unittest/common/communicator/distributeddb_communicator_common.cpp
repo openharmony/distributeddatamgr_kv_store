@@ -60,7 +60,7 @@ void TearDownEnv(EnvHandle &inEnv)
 {
     if (inEnv.commAggrHandle != nullptr) {
         inEnv.commAggrHandle->Finalize();
-        inEnv.commAggrHandle->DecObjRef(inEnv.commAggrHandle);
+        RefObject::DecObjRef(inEnv.commAggrHandle);
         inEnv.commAggrHandle = nullptr;
     }
 

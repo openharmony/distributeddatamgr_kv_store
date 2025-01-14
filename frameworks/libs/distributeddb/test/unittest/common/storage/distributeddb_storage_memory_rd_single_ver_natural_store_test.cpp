@@ -65,7 +65,7 @@ void DistributedDBStorageMemoryRdSingleVerNaturalStoreTest::SetUp(void)
     int erroCode = E_OK;
     g_connection = static_cast<RdSingleVerNaturalStoreConnection *>(g_store->GetDBConnection(erroCode));
     ASSERT_NE(g_connection, nullptr);
-    g_store->DecObjRef(g_store);
+    RefObject::DecObjRef(g_store);
     EXPECT_EQ(erroCode, E_OK);
 }
 

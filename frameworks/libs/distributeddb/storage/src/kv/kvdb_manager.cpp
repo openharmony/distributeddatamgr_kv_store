@@ -705,14 +705,14 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
         if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, localKvDBs_, true, errCode);
             if (kvDBTmp != nullptr) {
-                kvDBTmp->IncObjRef(kvDBTmp);
+                RefObject::IncObjRef(kvDBTmp);
                 return kvDBTmp;
             }
             localKvDBs_.insert(std::pair<std::string, IKvDB *>(identifier, kvDB));
         } else if (databaseType == KvDBProperties::MULTI_VER_TYPE_SQLITE) {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, multiVerNaturalStores_, true, errCode);
             if (kvDBTmp != nullptr) {
-                kvDBTmp->IncObjRef(kvDBTmp);
+                RefObject::IncObjRef(kvDBTmp);
                 return kvDBTmp;
             }
             kvDB->WakeUpSyncer();
@@ -720,7 +720,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
         } else {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, singleVerNaturalStores_, true, errCode);
             if (kvDBTmp != nullptr) {
-                kvDBTmp->IncObjRef(kvDBTmp);
+                RefObject::IncObjRef(kvDBTmp);
                 return kvDBTmp;
             }
             kvDB->WakeUpSyncer();
@@ -759,7 +759,7 @@ IKvDB *KvDBManager::FindAndGetKvDBFromCache(const KvDBProperties &properties, in
 
     IKvDB *kvDB = FindKvDBFromCache(properties, localKvDBs_, true, errCode);
     if (kvDB != nullptr) {
-        kvDB->IncObjRef(kvDB);
+        RefObject::IncObjRef(kvDB);
         return kvDB;
     }
     if (errCode != -E_NOT_FOUND) {
@@ -768,7 +768,7 @@ IKvDB *KvDBManager::FindAndGetKvDBFromCache(const KvDBProperties &properties, in
 
     kvDB = FindKvDBFromCache(properties, multiVerNaturalStores_, true, errCode);
     if (kvDB != nullptr) {
-        kvDB->IncObjRef(kvDB);
+        RefObject::IncObjRef(kvDB);
         return kvDB;
     }
     if (errCode != -E_NOT_FOUND) {
@@ -777,7 +777,7 @@ IKvDB *KvDBManager::FindAndGetKvDBFromCache(const KvDBProperties &properties, in
 
     kvDB = FindKvDBFromCache(properties, singleVerNaturalStores_, true, errCode);
     if (kvDB != nullptr) {
-        kvDB->IncObjRef(kvDB);
+        RefObject::IncObjRef(kvDB);
         return kvDB;
     }
     return nullptr;

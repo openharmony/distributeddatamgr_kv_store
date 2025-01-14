@@ -116,7 +116,7 @@ void SingleVerNaturalStore::CommitAndReleaseNotifyData(SingleVerNaturalStoreComm
     }
 
     if (committedData != nullptr) {
-        committedData->DecObjRef(committedData);
+        RefObject::DecObjRef(committedData);
         committedData = nullptr;
     }
 }

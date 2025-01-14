@@ -113,7 +113,7 @@ void DistributedDBInterfacesSingleVersionResultSetTest::SetUp(void)
     int errCode = E_OK;
     g_connection = static_cast<SQLiteSingleVerNaturalStoreConnection *>(g_store->GetDBConnection(errCode));
     ASSERT_NE(g_connection, nullptr);
-    g_store->DecObjRef(g_store);
+    RefObject::DecObjRef(g_store);
     EXPECT_EQ(errCode, E_OK);
 
     /**

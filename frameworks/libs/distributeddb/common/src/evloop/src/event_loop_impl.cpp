@@ -39,7 +39,7 @@ public:
           timeout_(0)
     {
         if (event != nullptr) {
-            event->IncObjRef(event);
+            RefObject::IncObjRef(event);
         }
     }
 
@@ -50,14 +50,14 @@ public:
           timeout_(timeout)
     {
         if (event != nullptr) {
-            event->IncObjRef(event);
+            RefObject::IncObjRef(event);
         }
     }
 
     ~EventRequest()
     {
         if (event_ != nullptr) {
-            event_->DecObjRef(event_);
+            RefObject::DecObjRef(event_);
             event_ = nullptr;
         }
     }
@@ -351,7 +351,7 @@ int EventLoopImpl::AddEventObject(EventImpl *event, EventTime now)
         polling_.insert(event);
         event->SetStartTime(now);
         event->SetRevents(0);
-        event->IncObjRef(event);
+        RefObject::IncObjRef(event);
         pollingSetChanged_ = true;
     } else {
         LOGE("Add event failed. err: '%d'.", errCode);
@@ -376,7 +376,7 @@ int EventLoopImpl::RemoveEventObject(EventImpl *event)
     if (errCode == E_OK) {
         polling_.erase(event);
         event->SetLoop(nullptr);
-        event->DecObjRef(event);
+        RefObject::DecObjRef(event);
         pollingSetChanged_ = true;
     } else {
         LOGE("Remove event failed. err: '%d'.", errCode);
@@ -534,7 +534,7 @@ int EventLoopImpl::DispatchAll()
                 continue;
             }
 
-            event->IncObjRef(event);
+            RefObject::IncObjRef(event);
             event->UpdateElapsedTime(now);
             int errCode = event->Dispatch();
             if (errCode != E_OK) {
@@ -542,7 +542,7 @@ int EventLoopImpl::DispatchAll()
             } else {
                 event->SetRevents(0);
             }
-            event->DecObjRef(event);
+            RefObject::DecObjRef(event);
 
             if (pollingSetChanged_) {
                 break;

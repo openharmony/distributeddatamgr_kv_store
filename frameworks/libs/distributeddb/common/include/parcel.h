@@ -77,7 +77,8 @@ public:
         uint32_t len = data.size();
         uint64_t stepLen = static_cast<uint64_t>(data.size()) * sizeof(T) + sizeof(uint32_t);
         len = HostToNet(len);
-        if (bufPtr_ == nullptr || stepLen > INT32_MAX || parcelLen_ + BYTE_8_ALIGN(stepLen) > totalLen_) {
+        if (bufPtr_ == nullptr || stepLen > INT32_MAX || parcelLen_ + BYTE_8_ALIGN(stepLen) > totalLen_ ||
+            parcelLen_ + sizeof(uint32_t) > totalLen_) {
             LOGE("[WriteVector] bufPtr:%d, stepLen:%llu, totalLen:%llu, parcelLen:%llu",
                 bufPtr_ != nullptr, ULL(stepLen), ULL(totalLen_), ULL(parcelLen_));
             isError_ = true;

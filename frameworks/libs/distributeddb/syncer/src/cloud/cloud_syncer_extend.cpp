@@ -1618,8 +1618,12 @@ void CloudSyncer::AddNotifyDataFromDownloadAssets(const std::set<Key> &dupHashKe
         return;
     }
     if (dupHashKeySet.find(downloadItem.hashKey) == dupHashKeySet.end()) {
-        changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(
-            downloadItem.primaryKeyValList);
+        if (CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy) == OP_BUTT) {
+            LOGW("[CloudSyncer] [AddNotifyDataFromDownloadAssets] strategy is invalid.");
+        } else {
+            changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(
+                downloadItem.primaryKeyValList);
+        }
     } else if (downloadItem.strategy == OpType::INSERT) {
         changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
     }

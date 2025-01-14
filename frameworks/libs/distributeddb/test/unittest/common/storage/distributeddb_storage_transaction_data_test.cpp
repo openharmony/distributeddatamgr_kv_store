@@ -283,7 +283,7 @@ void DistributedDBStorageTransactionDataTest::TearDown(void)
             g_naturalStoreConnection->Close();
             g_naturalStoreConnection = nullptr;
         }
-        g_naturalStore->DecObjRef(g_naturalStore);
+        RefObject::DecObjRef(g_naturalStore);
         g_naturalStore = nullptr;
     }
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/31/" + DBConstant::MULTI_SUB_DIR);
@@ -1579,7 +1579,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, GetBranchTag001, TestSize.Leve
                 g_naturalStoreConnection->Close();
                 g_naturalStoreConnection = nullptr;
             }
-            g_naturalStore->DecObjRef(g_naturalStore);
+            RefObject::DecObjRef(g_naturalStore);
             g_naturalStore = new (std::nothrow) MultiVerNaturalStore;
             ASSERT_NE(g_naturalStore, nullptr);
             EXPECT_EQ(g_naturalStore->Open(g_prop), E_OK);

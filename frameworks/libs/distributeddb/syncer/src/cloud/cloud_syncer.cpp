@@ -2015,18 +2015,15 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
             }
         }
     }
-    if (errorCode != E_OK) {
-        info.downLoadInfo.failCount += 1;
-        if (info.downLoadInfo.successCount == 0) {
-            LOGW("[CloudSyncer] Invalid successCount");
-        } else {
-            info.downLoadInfo.successCount -= 1;
-        }
-    }
+    ModifyDownLoadInfoCount(errorCode, info);
     if (!downloadItem.assets.empty()) {
         if (dupHashKeySet.find(downloadItem.hashKey) == dupHashKeySet.end()) {
-            changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(
-                downloadItem.primaryKeyValList);
+            if (CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy) == OP_BUTT) {
+                LOGW("[CloudSyncer] [DownloadOneAssetRecord] strategy is invalid.");
+            } else {
+                changedAssets.primaryData[CloudSyncUtils::OpTypeToChangeType(downloadItem.strategy)].push_back(
+                    downloadItem.primaryKeyValList);
+            }
         } else if (downloadItem.strategy == OpType::INSERT) {
             changedAssets.primaryData[ChangeType::OP_UPDATE].push_back(downloadItem.primaryKeyValList);
         }
@@ -2150,5 +2147,18 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         abort = true;
     }
     return E_OK;
+}
+
+void CloudSyncer::ModifyDownLoadInfoCount(const int errorCode, InnerProcessInfo &info)
+{
+    if (errorCode == E_OK) {
+        return;
+    }
+    info.downLoadInfo.failCount += 1;
+    if (info.downLoadInfo.successCount == 0) {
+        LOGW("[CloudSyncer] Invalid successCount");
+    } else {
+        info.downLoadInfo.successCount -= 1;
+    }
 }
 } // namespace DistributedDB

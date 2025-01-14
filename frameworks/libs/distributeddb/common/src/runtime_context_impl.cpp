@@ -181,16 +181,16 @@ int RuntimeContextImpl::SetTimer(int milliSeconds, const TimerAction &action,
 
     IEvent *evTimer = IEvent::CreateEvent(milliSeconds, errCode);
     if (evTimer == nullptr) {
-        loop->DecObjRef(loop);
+        RefObject::DecObjRef(loop);
         loop = nullptr;
         return errCode;
     }
 
     errCode = AllocTimerId(evTimer, timerId);
     if (errCode != E_OK) {
-        evTimer->DecObjRef(evTimer);
+        RefObject::DecObjRef(evTimer);
         evTimer = nullptr;
-        loop->DecObjRef(loop);
+        RefObject::DecObjRef(loop);
         loop = nullptr;
         return errCode;
     }
@@ -211,7 +211,7 @@ int RuntimeContextImpl::SetTimer(int milliSeconds, const TimerAction &action,
         timerId = 0;
     }
 
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     loop = nullptr;
     return errCode;
 }
@@ -256,7 +256,7 @@ void RuntimeContextImpl::RemoveTimer(TimerId timerId, bool wait)
 
     if (evTimer != nullptr) {
         evTimer->Detach(wait);
-        evTimer->DecObjRef(evTimer);
+        RefObject::DecObjRef(evTimer);
         evTimer = nullptr;
     }
 }
@@ -339,7 +339,7 @@ int RuntimeContextImpl::PrepareLoop(IEventLoop *&loop)
     std::lock_guard<std::mutex> autoLock(loopLock_);
     if (mainLoop_ != nullptr) {
         loop = mainLoop_;
-        loop->IncObjRef(loop); // ref 1 returned to caller.
+        RefObject::IncObjRef(loop); // ref 1 returned to caller.
         return E_OK;
     }
 
@@ -349,15 +349,15 @@ int RuntimeContextImpl::PrepareLoop(IEventLoop *&loop)
         return errCode;
     }
 
-    loop->IncObjRef(loop); // ref 1 owned by thread.
+    RefObject::IncObjRef(loop); // ref 1 owned by thread.
     std::thread loopThread([loop]() {
             loop->Run();
-            loop->DecObjRef(loop); // ref 1 dropped by thread.
+            RefObject::DecObjRef(loop); // ref 1 dropped by thread.
         });
     loopThread.detach();
 
     mainLoop_ = loop;
-    loop->IncObjRef(loop); // ref 1 returned to caller.
+    RefObject::IncObjRef(loop); // ref 1 returned to caller.
     return E_OK;
 }
 

@@ -689,7 +689,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeErrTest001, TestSiz
     EXPECT_EQ(store->CheckAndInitQueryCondition(queryObj), -E_INVALID_DB);
     EXPECT_EQ(store->AddSubscribe(SUBSCRIBE_ID, queryObj, false), -E_INVALID_DB);
     EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), -E_INVALID_DB);
-    store->DecObjRef(store);
+    RefObject::DecObjRef(store);
 }
 
 namespace {

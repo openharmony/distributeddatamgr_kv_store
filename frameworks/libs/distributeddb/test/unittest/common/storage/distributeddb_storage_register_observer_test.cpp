@@ -320,7 +320,7 @@ void DistributedDBStorageRegisterObserverTest::TearDown(void)
         g_singleVerNaturaStoreConnection->Close();
     }
     std::string identifierName;
-    g_singleVerNaturaStore->DecObjRef(g_singleVerNaturaStore);
+    RefObject::DecObjRef(g_singleVerNaturaStore);
     identifierName = DBCommon::TransferStringToHex("TestGeneralNB");
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/" + identifierName + "/" + DBConstant::SINGLE_SUB_DIR);
 }

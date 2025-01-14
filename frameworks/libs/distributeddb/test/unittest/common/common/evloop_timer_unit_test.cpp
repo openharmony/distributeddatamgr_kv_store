@@ -122,7 +122,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest001, TestSize.Level0
      */
     bool finalized = false;
     loop->OnLastRef([&finalized]() { finalized = true; });
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     loop = nullptr;
     EXPECT_EQ(finalized, true);
 }
@@ -247,7 +247,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1
     EXPECT_EQ(counter > 0, true);
     g_loop->KillObj();
     loopThread.join();
-    timer->DecObjRef(timer);
+    RefObject::DecObjRef(timer);
 }
 
 /**
@@ -361,7 +361,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
     g_loop->KillObj();
     loopThread.join();
-    timer->DecObjRef(timer);
+    RefObject::DecObjRef(timer);
     timer = nullptr;
     EXPECT_EQ(finalize, true);
     EXPECT_EQ(counter > 0, true);
@@ -428,7 +428,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10000));
     g_loop->KillObj();
     loopThread.join();
-    timer->DecObjRef(timer);
+    RefObject::DecObjRef(timer);
 }
 
 /**

@@ -81,7 +81,7 @@ static IRelationalStore *GetFromCache(const RelationalDBProperties &properties, 
         errCode = -E_INTERNAL_ERROR;
         return nullptr;
     }
-    db->IncObjRef(db);
+    RefObject::IncObjRef(db);
     return db;
 }
 

@@ -1133,7 +1133,7 @@ void MultiVerStorageExecutor::CommitNotifiedData(const CommitID &commitId)
     if (committedData != nullptr) {
         static_cast<MultiVerNaturalStore *>(kvDB_)->AddVersionConstraintToList(currentVersion - 1);
         static_cast<MultiVerNaturalStore *>(kvDB_)->CommitNotify(NATURAL_STORE_COMMIT_EVENT, committedData);
-        committedData->DecObjRef(committedData);
+        RefObject::DecObjRef(committedData);
         committedData = nullptr;
     } else {
         LOGE("Failed to do commit notify because of OOM.");

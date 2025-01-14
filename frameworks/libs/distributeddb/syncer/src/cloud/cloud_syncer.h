@@ -537,6 +537,8 @@ protected:
     int UpdateRecordFlagForOneRecord(const std::string &gid, const DownloadItem &downloadItem, InnerProcessInfo &info,
         bool isExistAssetDownloadFail);
 
+    void ModifyDownLoadInfoCount(const int errorCode, InnerProcessInfo &info);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

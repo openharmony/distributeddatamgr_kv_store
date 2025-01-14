@@ -622,7 +622,7 @@ void RdSingleVerNaturalStoreConnection::ReleaseExecutor(RdSingleVerStorageExecut
 void RdSingleVerNaturalStoreConnection::ReleaseCommitData(SingleVerNaturalStoreCommitNotifyData *&committedData)
 {
     if (committedData != nullptr) {
-        committedData->DecObjRef(committedData);
+        RefObject::DecObjRef(committedData);
         committedData = nullptr;
     }
 }
