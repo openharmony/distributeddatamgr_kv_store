@@ -126,3 +126,29 @@ HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_0
 
     EXPECT_EQ(value, valueRet) << "value and valueRet are not equal";
 }
+
+/**
+ * @tc.name: GetEncryptStoreWithKeyFromService
+ * @tc.desc: Get encrypt store, delete key, get store again.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: yanhui
+ */
+HWTEST_F(DistributedKvDataManagerEncryptTest, GetEncryptStoreWithKeyFromService, TestSize.Level1)
+{
+    ZLOGI("GetEncryptStoreWithKeyFromService begin.");
+    std::shared_ptr<SingleKvStore> kvStore;
+    Status status = manager.GetSingleKvStore(createEnc, appId, storeId, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+
+    manager.CloseAllKvStore(appId);
+    std::string keyPath = createEnc.baseDir + "/key/" + storeId.storeId + ".key";
+    auto ret = remove(keyPath.c_str());
+    ASSERT_EQ(ret, 0);
+
+    kvStore = nullptr;
+    status = manager.GetSingleKvStore(createEnc, appId, storeId, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+}

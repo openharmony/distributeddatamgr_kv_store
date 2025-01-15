@@ -136,7 +136,7 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
 }
 
 Status KVDBServiceClient::GetBackupPassword(
-    const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password, int32_t passwordType)
+    const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
 {
     return KVDBServiceClientMock::status;
 }

@@ -31,7 +31,8 @@ public:
     Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
 
 private:
-    Status GetSecretKeyFromService(const AppId &appId, const StoreId &storeId, const std::string &path);
+    std::shared_ptr<SingleKvStore> OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
+        const Options &options, Status &status, bool &isCreate);
 };
 }
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H

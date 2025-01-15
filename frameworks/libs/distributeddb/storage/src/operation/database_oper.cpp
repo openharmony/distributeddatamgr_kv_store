@@ -152,16 +152,16 @@ int DatabaseOper::RekeyRecover(const KvDBProperties &property)
 
 int DatabaseOper::CheckSecurityOption(const std::string &filePath, const KvDBProperties &property) const
 {
+    SecurityOption dbSecOpt;
+    dbSecOpt.securityFlag = property.GetSecFlag();
+    dbSecOpt.securityLabel = property.GetSecLabel();
+    RuntimeContext::GetInstance()->SetSecurityOption(filePath, dbSecOpt);
     SecurityOption secOption;
     int errCode = RuntimeContext::GetInstance()->GetSecurityOption(filePath, secOption);
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         LOGE("Get import package security option fail! errCode = [%d]", errCode);
         return errCode;
     }
-
-    SecurityOption dbSecOpt;
-    dbSecOpt.securityFlag = property.GetSecFlag();
-    dbSecOpt.securityLabel = property.GetSecLabel();
 
     if (dbSecOpt == secOption || secOption.securityLabel == SecurityLabel::NOT_SET) {
         return E_OK;

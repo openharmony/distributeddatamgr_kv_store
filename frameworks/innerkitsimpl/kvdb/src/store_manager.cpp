@@ -15,6 +15,7 @@
 #define LOG_TAG "StoreManager"
 #include "store_manager.h"
 
+#include "backup_manager.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
@@ -52,8 +53,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     }
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
-    if (status == DATA_CORRUPTED && options.encrypt && GetSecretKeyFromService(appId, storeId, path) == SUCCESS) {
-        kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+    if ((status == DATA_CORRUPTED || status == CRYPT_ERROR) && options.encrypt) {
+        kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, isCreate);
     }
     if (status == DATA_CORRUPTED) {
         ZLOGW("Database is corrupt, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -80,32 +81,31 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     return kvStore;
 }
 
-Status StoreManager::GetSecretKeyFromService(const AppId &appId, const StoreId &storeId, const std::string &path)
+std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
+    const Options &options, Status &status, bool &isCreate)
 {
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("Get service failed! appId:%{public}s, storeId:%{public}s",
-            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
-        return Status::SERVER_UNAVAILABLE;
+    std::shared_ptr<SingleKvStore> kvStore;
+    std::vector<std::vector<uint8_t>> keys;
+    if (BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys) != Status::SUCCESS) {
+        for (auto &key : keys) {
+            key.assign(key.size(), 0);
+        }
+        return kvStore;
     }
-    std::vector<uint8_t> key;
-    auto status = service->GetBackupPassword(appId, storeId, key, KVDBService::PasswordType::SECRET_KEY);
-    if (status != Status::SUCCESS) {
+    std::string path = options.GetDatabaseDir();
+    for (auto &key : keys) {
+        SecurityManager::DBPassword dbPassword;
+        dbPassword.SetValue(key.data(), key.size());
+        SecurityManager::GetInstance().SaveDBPassword(storeId.storeId, path, dbPassword.password);
+        kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+        if (status == SUCCESS) {
+            break;
+        }
+    }
+    for (auto &key : keys) {
         key.assign(key.size(), 0);
-        ZLOGE("Get password from service failed! status:%{public}d, appId:%{public}s storeId:%{public}s",
-            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
-        return status;
     }
-    if (key.empty()) {
-        ZLOGE("Service secret key is empty! status:%{public}d, appId:%{public}s storeId:%{public}s",
-            status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
-        return Status::ERROR;
-    }
-    SecurityManager::DBPassword dbPassword;
-    dbPassword.SetValue(key.data(), key.size());
-    key.assign(key.size(), 0);
-    SecurityManager::GetInstance().SaveDBPassword(storeId.storeId, path, dbPassword.password);
-    return Status::SUCCESS;
+    return kvStore;
 }
 
 Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)

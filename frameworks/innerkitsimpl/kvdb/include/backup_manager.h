@@ -33,6 +33,7 @@ public:
         std::string baseDir;
         std::string appId;
         std::string storeId;
+        bool encrypt = false;
     };
     struct ResidueInfo {
         size_t tmpBackupSize;
@@ -56,6 +57,8 @@ public:
     Status Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
     Status DeleteBackup(std::map<std::string, Status> &deleteList,
         const std::string &baseDir, const std::string &storeId);
+    Status GetSecretKeyFromService(const AppId &appId, const StoreId &storeId,
+        std::vector<std::vector<uint8_t>> &keys);
 private:
     BackupManager();
     ~BackupManager();
@@ -79,7 +82,8 @@ private:
         const std::string &baseDir, const std::string &storeId);
     bool IsEndWith(const std::string &fullString, const std::string &end);
     bool IsBeginWith(const std::string &fullString, const std::string &begin);
-
+    Status ImportWithSecretKeyFromService(const BackupInfo &info, std::shared_ptr<DBStore> dbStore,
+        std::string &fullName, bool isCheckIntegrity);
     static constexpr int MAX_BACKUP_NUM = 5;
 };
 } // namespace OHOS::DistributedKv

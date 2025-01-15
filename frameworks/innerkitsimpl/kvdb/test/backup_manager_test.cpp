@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "backup_manager.h"
 #include "dev_manager.h"
 #include "file_ex.h"
 #include "store_manager.h"
@@ -471,5 +472,67 @@ HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: RestoreEncryptWithKeyFromService
+ * @tc.desc: Restore encrypt store with key from service
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: yanhui
+ */
+HWTEST_F(BackupManagerTest, RestoreEncryptWithKeyFromService, TestSize.Level0)
+{
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "SingleKVStoreEncrypt" };
+    std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
+
+    // put and Backup
+    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
+    ASSERT_NE(kvStoreEncrypt, nullptr);
+    auto status = kvStoreEncrypt->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStoreEncrypt->Backup("testbackup", baseDir);
+    ASSERT_EQ(status, SUCCESS);
+
+    // delete backup key
+    auto ret = remove((baseDir + "/key/Prefix_backup_SingleKVStoreEncrypt_testbackup.key").c_str());
+    ASSERT_EQ(ret, 0);
+    status = kvStoreEncrypt->Delete("Put Test");
+    ASSERT_EQ(status, SUCCESS);
+
+    // restore
+    status = kvStoreEncrypt->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, SUCCESS);
+    Value value;
+    status = kvStoreEncrypt->Get({ "Put Test" }, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(std::string("Put Value"), value.ToString());
+
+    status = DeleteBackUpFiles(kvStoreEncrypt, baseDir, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetSecretKeyFromServiceInvalid
+ * @tc.desc: GetSecretKeyFromService with invalid arguments
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: yanhui
+ */
+HWTEST_F(BackupManagerTest, GetSecretKeyFromServiceInvalid, TestSize.Level0)
+{
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "SingleKVStoreEncryptNotFound" };
+    std::vector<std::vector<uint8_t>> keys;
+    auto status = BackupManager::GetInstance().GetSecretKeyFromService({}, {}, keys);
+    ASSERT_NE(status, SUCCESS);
+
+    status = BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys);
+    ASSERT_EQ(keys.size(), 0);
 }
 } // namespace OHOS::Test
