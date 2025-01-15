@@ -147,7 +147,7 @@ void DistributedDBStorageQuerySyncTest::SetUp(void)
     int erroCode = E_OK;
     g_connection = static_cast<SQLiteSingleVerNaturalStoreConnection *>(g_store->GetDBConnection(erroCode));
     ASSERT_NE(g_connection, nullptr);
-    g_store->DecObjRef(g_store);
+    RefObject::DecObjRef(g_store);
     EXPECT_EQ(erroCode, E_OK);
 
     std::string oriIdentifier = USER_ID + "-" + APP_ID + "-" + "QuerySyncSchema";
@@ -170,7 +170,7 @@ void DistributedDBStorageQuerySyncTest::SetUp(void)
     g_schemaConnect->GetEntries(option, Query::Select(), entries);
     ASSERT_FALSE(entries.empty());
 
-    g_schemaStore->DecObjRef(g_schemaStore);
+    RefObject::DecObjRef(g_schemaStore);
 }
 
 void DistributedDBStorageQuerySyncTest::TearDown(void)

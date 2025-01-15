@@ -25,7 +25,7 @@ KvDBCommitNotifyFilterAbleData::KvDBCommitNotifyFilterAbleData()
 KvDBCommitNotifyFilterAbleData::~KvDBCommitNotifyFilterAbleData()
 {
     if (genericKvDB_ != nullptr) {
-        genericKvDB_->DecObjRef(genericKvDB_);
+        RefObject::DecObjRef(genericKvDB_);
         genericKvDB_ = nullptr;
     }
 }
@@ -85,11 +85,11 @@ void KvDBCommitNotifyFilterAbleData::SetMyDb(GenericKvDB *db, uint64_t notifyID)
         return;
     }
     if (genericKvDB_ != nullptr) {
-        genericKvDB_->DecObjRef(genericKvDB_);
+        RefObject::DecObjRef(genericKvDB_);
     }
     genericKvDB_ = db;
     if (genericKvDB_ != nullptr) {
-        genericKvDB_->IncObjRef(genericKvDB_);
+        RefObject::IncObjRef(genericKvDB_);
     }
     notifyID_ = notifyID;
 }

@@ -43,7 +43,7 @@ NotificationChain::Listener *NotificationChain::RegisterListener(
     NotificationChain::Listener *listener = new (std::nothrow)
         NotificationChain::Listener(onEvent, onFinalize);
     if (listener == nullptr) {
-        listenerChain->DecObjRef(listenerChain);
+        RefObject::DecObjRef(listenerChain);
         listenerChain = nullptr;
         errCode = -E_OUT_OF_MEMORY;
         return nullptr;
@@ -52,14 +52,14 @@ NotificationChain::Listener *NotificationChain::RegisterListener(
     errCode = listenerChain->RegisterListener(listener);
     if (errCode != E_OK) {
         LOGE("[NotificationChain] Register listener failed, event type %u has been unregistered!", type);
-        listener->DecObjRef(listener);
+        RefObject::DecObjRef(listener);
         listener = nullptr;
-        listenerChain->DecObjRef(listenerChain);
+        RefObject::DecObjRef(listenerChain);
         listenerChain = nullptr;
         return nullptr;
     }
 
-    listenerChain->DecObjRef(listenerChain);
+    RefObject::DecObjRef(listenerChain);
     listenerChain = nullptr;
     return listener;
 }
@@ -118,7 +118,7 @@ void NotificationChain::NotifyEvent(EventType type, void *arg)
         return;
     }
     listenerChain->NotifyListeners(arg);
-    listenerChain->DecObjRef(listenerChain);
+    RefObject::DecObjRef(listenerChain);
     listenerChain = nullptr;
 }
 
@@ -144,7 +144,7 @@ NotificationChain::ListenerChain *NotificationChain::FindAndGetListenerChainLock
     if (listenerChain == nullptr) {
         return nullptr;
     }
-    listenerChain->IncObjRef(listenerChain);
+    RefObject::IncObjRef(listenerChain);
     return listenerChain;
 }
 
@@ -217,7 +217,7 @@ void NotificationChain::ListenerChain::NotifyListeners(void *arg)
     for (auto listener : tmpSet) {
         if (listener != nullptr) {
             listener->NotifyListener(arg);
-            listener->DecObjRef(listener);
+            RefObject::DecObjRef(listener);
             listener = nullptr;
         }
     }
@@ -308,11 +308,11 @@ void NotificationChain::Listener::KillWait()
 void NotificationChain::Listener::SetOwner(ListenerChain *listenerChain)
 {
     if (listenerChain_ != nullptr) {
-        listenerChain_->DecObjRef(listenerChain_);
+        RefObject::DecObjRef(listenerChain_);
     }
     listenerChain_ = listenerChain;
     if (listenerChain_ != nullptr) {
-        listenerChain_->IncObjRef(listenerChain_);
+        RefObject::IncObjRef(listenerChain_);
     }
 }
 

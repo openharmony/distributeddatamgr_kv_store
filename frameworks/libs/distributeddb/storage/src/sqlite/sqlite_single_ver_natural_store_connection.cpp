@@ -1682,7 +1682,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishOper(SingleVerNaturalStoreCo
 void SQLiteSingleVerNaturalStoreConnection::ReleaseCommitData(SingleVerNaturalStoreCommitNotifyData *&committedData)
 {
     if (committedData != nullptr) {
-        committedData->DecObjRef(committedData);
+        RefObject::DecObjRef(committedData);
         committedData = nullptr;
     }
 }

@@ -76,7 +76,7 @@ EventImpl::EventImpl(const EventFd &fd, EventsMask events, EventTime timeout)
 EventImpl::~EventImpl()
 {
     if (loop_ != nullptr) {
-        loop_->DecObjRef(loop_);
+        RefObject::DecObjRef(loop_);
         loop_ = nullptr;
     }
     if (fd_.IsValid()) {
@@ -118,11 +118,11 @@ int EventImpl::AddEvents(EventsMask events)
             return E_OK;
         }
         loop = loop_;
-        loop->IncObjRef(loop);
+        RefObject::IncObjRef(loop);
     }
 
     int errCode = loop->Modify(this, true, events);
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     if (errCode != E_OK) {
         LOGE("ev add events failed, err: '%d'.", errCode);
     }
@@ -149,11 +149,11 @@ int EventImpl::RemoveEvents(EventsMask events)
             return E_OK;
         }
         loop = loop_;
-        loop->IncObjRef(loop);
+        RefObject::IncObjRef(loop);
     }
 
     int errCode = loop->Modify(this, false, events);
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     if (errCode != E_OK) {
         LOGE("ev remove events failed, err: '%d'.", errCode);
     }
@@ -174,11 +174,11 @@ int EventImpl::SetTimeout(EventTime timeout)
             return E_OK;
         }
         loop = loop_;
-        loop->IncObjRef(loop);
+        RefObject::IncObjRef(loop);
     }
 
     int errCode = loop->Modify(this, timeout);
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     if (errCode != E_OK) {
         LOGE("ev set timeout failed, err: '%d'.", errCode);
     }
@@ -194,7 +194,7 @@ int EventImpl::Detach(bool wait)
             return E_OK;
         }
         loop = loop_;
-        loop->IncObjRef(loop);
+        RefObject::IncObjRef(loop);
     }
 
     int errCode = loop->Remove(this);
@@ -207,11 +207,11 @@ int EventImpl::Detach(bool wait)
         if (!loop->IsInLoopThread(started)) {
             Wait();
         }
-        loop->DecObjRef(loop);
+        RefObject::DecObjRef(loop);
         return E_OK;
     }
 
-    loop->DecObjRef(loop);
+    RefObject::DecObjRef(loop);
     return errCode;
 }
 
@@ -257,14 +257,14 @@ bool EventImpl::SetLoop(EventLoopImpl *loop)
     RefObject::AutoLock lockGuard(this);
     if (loop == nullptr) {
         if (loop_ != nullptr) {
-            loop_->DecObjRef(loop_);
+            RefObject::DecObjRef(loop_);
             loop_ = nullptr;
         }
         detached_.notify_one();
         return true;
     }
     if (loop_ == nullptr) {
-        loop->IncObjRef(loop);
+        RefObject::IncObjRef(loop);
         loop_ = loop;
         return true;
     }

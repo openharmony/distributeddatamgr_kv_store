@@ -809,9 +809,9 @@ int BindExtendValue(const VBucket &vBucket, const TrackerTable &trackerTable, sq
             errCode = SQLiteRelationalUtils::BindStatementByType(stmt, extendValueIndex++, extendValue);
         }
         if (errCode != E_OK) {
-            const char *tableName = DBCommon::StringMiddleMasking(trackerTable.GetTableName()).c_str();
+            const std::string tableName = DBCommon::StringMiddleMasking(trackerTable.GetTableName());
             size_t nameLength = trackerTable.GetTableName().size();
-            LOGE("[%s [%zu]] Bind extend field failed: %d", tableName, nameLength, errCode);
+            LOGE("[%s [%zu]] Bind extend field failed: %d", tableName.c_str(), nameLength, errCode);
             return errCode;
         }
     }
@@ -1989,7 +1989,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadingAssetsCount(
             LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
             return errCode;
         }
-        totalCount += assets.size();
+        totalCount += static_cast<int32_t>(assets.size());
     }
     return E_OK;
 }
