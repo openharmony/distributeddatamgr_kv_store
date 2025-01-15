@@ -266,6 +266,9 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
     isDownloading_ = false;
     if (status != OK) {
         LOGW("[CloudDBProxy] download asset failed %d", static_cast<int>(status));
+        if (status == SKIP_ASSET) {
+            return status;
+        }
     }
     return GetInnerErrorCode(status);
 }

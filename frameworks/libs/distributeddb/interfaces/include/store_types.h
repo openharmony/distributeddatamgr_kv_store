@@ -93,6 +93,7 @@ enum DBStatus {
     ASSET_NOT_FOUND_FOR_DOWN_ONLY, // assets miss for asset only
     CLOUD_DISABLED, // the cloud switch has been turned off
     DISTRIBUTED_FIELD_DECREASE, // sync fewer specified columns than last time
+    SKIP_ASSET, // workaround status for contact app assets download failure, need to ignore these failures
     BUTT_STATUS = 27394048 // end of status
 };
 

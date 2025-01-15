@@ -439,7 +439,7 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
         GetAssetsToDownload(downloadAssets, dbAssets, isSharedTable, tmpAssetsToDownload, tmpFlags);
     }
     auto downloadCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, tmpAssetsToDownload);
-    if (!CheckDownloadOrDeleteCode(errCode, downloadCode, deleteCode, downloadItem)) {
+    if (downloadCode != SKIP_ASSET && !CheckDownloadOrDeleteCode(errCode, downloadCode, deleteCode, downloadItem)) {
         return errCode;
     }
 
@@ -1577,6 +1577,7 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
         // commit download res
         DownloadCommitList commitList;
         // Process result of each asset
+        downloadCode = downloadAssets[index].status == SKIP_ASSET ? E_OK : downloadCode;
         commitList.push_back(std::make_tuple(item.downloadItem.gid, std::move(item.downloadItem.assets),
             deleteCode == E_OK && downloadCode == E_OK));
         errorCode = (errorCode != E_OK) ? errorCode : deleteCode;
@@ -1595,7 +1596,7 @@ int CloudSyncer::BatchDownloadAndCommitRes(const DownloadList &downloadList, con
 void CloudSyncer::StatisticDownloadRes(const IAssetLoader::AssetRecord &downloadRecord,
     const IAssetLoader::AssetRecord &removeRecord, InnerProcessInfo &info, DownloadItem &downloadItem)
 {
-    if ((downloadRecord.status == OK) && (removeRecord.status == OK)) {
+    if ((downloadRecord.status == OK || downloadRecord.status == SKIP_ASSET) && (removeRecord.status == OK)) {
         return;
     }
     if ((downloadRecord.status == CLOUD_RECORD_EXIST_CONFLICT) ||

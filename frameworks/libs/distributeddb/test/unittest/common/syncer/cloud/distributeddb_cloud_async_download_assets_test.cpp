@@ -37,6 +37,14 @@ namespace {
 string g_testDir;
 const std::string QUERY_INCONSISTENT_SQL =
     "select count(*) from naturalbase_rdb_aux_AsyncDownloadAssetsTest_log where flag&0x20!=0;";
+typedef struct SkipAssetTestParam {
+    DBStatus downloadRes;
+    bool useBatch;
+    bool useAsync;
+    int startIndex;
+    int expectInconsistentCount;
+    DBStatus expectSyncRes;
+} SkipAssetTestParamT;
 class DistributedDBCloudAsyncDownloadAssetsTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -50,6 +58,7 @@ protected:
     static int GetAssetFieldCount();
     void InitStore();
     void CloseDb();
+    void DoSkipAssetDownload(SkipAssetTestParamT param);
     std::string storePath_;
     sqlite3 *db_ = nullptr;
     RelationalStoreDelegate *delegate_ = nullptr;
@@ -965,5 +974,142 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload004, Test
     std::this_thread::sleep_for(std::chrono::seconds(5));
     EXPECT_EQ(assetsDownloadTime, 200);
     virtualAssetLoader_->ForkDownload(nullptr);
+}
+
+DBStatus ModifySkippedAsset(int rowIndex, std::map<std::string, Assets> &assets, DBStatus fakeStatus)
+{
+    if (rowIndex != 1) {
+        return OK;
+    }
+    for (auto &asset : assets) {
+        for (auto &item : asset.second) {
+            if (item.name == "asset_1" + std::to_string(rowIndex)) {
+                item.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
+            }
+        }
+    }
+    return fakeStatus;
+}
+
+void DistributedDBCloudAsyncDownloadAssetsTest::DoSkipAssetDownload(SkipAssetTestParamT param)
+{
+    /**
+     * @tc.steps: step1 change max download task
+     * @tc.expected: step1. Ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = CloudDbConstant::MAX_ASYNC_DOWNLOAD_TASK; // maximum of tasks
+    config.maxDownloadAssetsCount = CloudDbConstant::MAX_ASYNC_DOWNLOAD_ASSETS; // maximum of asset counts
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    /**
+     * @tc.steps: step2 Insert cloud data
+     * @tc.expected: step2. Ok
+     */
+    const int cloudCount = 5;
+    auto schema = GetSchema();
+    std::string tableName = "AsyncDownloadAssetsTest";
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(param.startIndex, cloudCount, 0, schema, virtualCloudDb_), OK);
+    CloudDBSyncUtilsTest::CheckLocalRecordNum(db_, tableName, param.startIndex);
+    /**
+     * @tc.steps: step3 Fork download abnormal
+     * @tc.expected: step3. Ok
+     */
+    int count = 0;
+    std::mutex countMutex;
+    std::condition_variable cv;
+    if (param.useBatch) {
+        RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
+        virtualAssetLoader_->ForkBatchDownload([&count, &countMutex, &cv, param](int rowIndex,
+            std::map<std::string, Assets> &assets) {
+            std::lock_guard<std::mutex> autoLock(countMutex);
+            count++;
+            auto ret = ModifySkippedAsset(rowIndex, assets, param.downloadRes);
+            if (count == 1) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+            cv.notify_all();
+            return ret;
+        });
+    } else {
+        RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
+        virtualAssetLoader_->SetDownloadStatus(param.downloadRes);
+    }
+    /**
+     * @tc.steps: step4. sync cloud data
+     * @tc.expected: step4. Ok
+     */
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    option.asyncDownloadAssets = param.useAsync;
+    RelationalTestUtils::CloudBlockSync(option, delegate_, param.expectSyncRes);
+    /**
+     * @tc.steps: step5. wait for sync to finish
+     * @tc.expected: step5. check local record number and inconsistent count
+     */
+    std::unique_lock<std::mutex> uniqueLock(countMutex);
+    auto res = cv.wait_for(uniqueLock, std::chrono::seconds(DBConstant::MAX_SYNC_TIMEOUT),
+        [&count, param, cloudCount] {
+        return count >= cloudCount || !param.useBatch;
+    });
+    EXPECT_TRUE(res);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    CloudDBSyncUtilsTest::CheckLocalRecordNum(db_, tableName, param.startIndex + cloudCount);
+    CheckInconsistentCount(db_, param.expectInconsistentCount);
+    /**
+     * @tc.steps: step6. clear
+     */
+    virtualAssetLoader_->SetDownloadStatus(OK);
+    virtualAssetLoader_->Reset();
+    virtualAssetLoader_->ForkBatchDownload(nullptr);
+}
+
+/**
+ * @tc.name: SkipAssetDownloadTest001
+ * @tc.desc: Test async batch download returns Skip_Assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, SkipAssetDownloadTest001, TestSize.Level1)
+{
+    /**
+     * @tc.expected: step1. sync return OK, and has 0 inconsistent records
+     */
+    SkipAssetTestParamT param = {.downloadRes = SKIP_ASSET, .useBatch = true, .useAsync = true,
+        .startIndex = 0, .expectInconsistentCount = 0, .expectSyncRes = OK};
+    DoSkipAssetDownload(param);
+}
+
+/**
+ * @tc.name: SkipAssetDownloadTest002
+ * @tc.desc: Test sync batch download returns Skip_Assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, SkipAssetDownloadTest002, TestSize.Level1)
+{
+    /**
+     * @tc.expected: step1. sync return OK, and has 1 inconsistent records
+     */
+    SkipAssetTestParamT param = {.downloadRes = SKIP_ASSET, .useBatch = true, .useAsync = false,
+        .startIndex = 0, .expectInconsistentCount = 1, .expectSyncRes = OK};
+    DoSkipAssetDownload(param);
+}
+
+/**
+ * @tc.name: SkipAssetDownloadTest003
+ * @tc.desc: Test sync one-by-one download returns Skip_Assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, SkipAssetDownloadTest003, TestSize.Level1)
+{
+    /**
+     * @tc.expected: step1. sync return OK, and has 5 inconsistent records
+     */
+    SkipAssetTestParamT param = {.downloadRes = SKIP_ASSET, .useBatch = false, .useAsync = false,
+        .startIndex = 0, .expectInconsistentCount = 5, .expectSyncRes = OK};
+    DoSkipAssetDownload(param);
 }
 }
