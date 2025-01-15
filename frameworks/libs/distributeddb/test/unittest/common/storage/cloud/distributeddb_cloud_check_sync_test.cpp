@@ -32,6 +32,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "virtual_communicator_aggregator.h"
 
 namespace {
 using namespace testing::ext;
@@ -195,6 +196,7 @@ protected:
     std::string tableWithoutPrimaryName_ = "NonPrimaryKeyTable";
     std::string tableWithoutPrimaryNameShared_ = "NonPrimaryKeyTable_shared";
     std::string lowerTableName_ = "distributeddbCloudCheckSyncTest";
+    VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
 
 void DistributedDBCloudCheckSyncTest::SetUpTestCase()
@@ -229,6 +231,9 @@ void DistributedDBCloudCheckSyncTest::SetUp()
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
     ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
 }
 
 void DistributedDBCloudCheckSyncTest::TearDown()
@@ -240,6 +245,9 @@ void DistributedDBCloudCheckSyncTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
         LOGE("rm test db files error.");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 void DistributedDBCloudCheckSyncTest::InitTestDir()
@@ -614,6 +622,115 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
     bool deleteStatus = true;
     EXPECT_EQ(virtualCloudDb_->GetDataStatus("0", deleteStatus), OK);
     EXPECT_EQ(deleteStatus, true);
+}
+
+/**
+ * @tc.name: CloudSyncTest009
+ * @tc.desc: reopen database and sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. insert 1 record to user table
+     * @tc.expected: step1. OK.
+     */
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, actualCount);
+    /**
+     * @tc.steps: step2. sync data to cloud
+     * @tc.expected: step2. OK.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 1);
+    /**
+     * @tc.steps: step3. drop data table then close db
+     * @tc.expected: step3. OK.
+     */
+    std::string deleteSql = "DROP TABLE IF EXISTS " + tableName_ + ";";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, deleteSql), DBStatus::OK);
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    /**
+     * @tc.steps: step4. recreate data table and reopen database
+     * @tc.expected: step4. OK.
+     */
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, g_createSQL), DBStatus::OK);
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
+    ASSERT_NE(delegate_, nullptr);
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
+    DataBaseSchema dataBaseSchema = GetSchema();
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
+    /**
+     * @tc.steps: step5. sync and cloud data should be deleted
+     * @tc.expected: step5. OK.
+     */
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 0);
+}
+
+/**
+ * @tc.name: CloudSyncTest010
+ * @tc.desc: reopen database, recreate table with less columns and sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. insert 1 record to user table
+     * @tc.expected: step1. OK.
+     */
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, actualCount);
+    /**
+     * @tc.steps: step2. sync data to cloud
+     * @tc.expected: step2. OK.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 1);
+    /**
+     * @tc.steps: step3. drop data table then close db
+     * @tc.expected: step3. OK.
+     */
+    std::string deleteSql = "DROP TABLE IF EXISTS " + tableName_ + ";";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, deleteSql), DBStatus::OK);
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    /**
+     * @tc.steps: step4. recreate data table and reopen database
+     * @tc.expected: step4. OK.
+     */
+    std::string createSql = "CREATE TABLE IF NOT EXISTS DistributedDBCloudCheckSyncTest(id INT PRIMARY KEY);";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, createSql), DBStatus::OK);
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
+    ASSERT_NE(delegate_, nullptr);
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::SCHEMA_MISMATCH);
+    ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
+    DataBaseSchema dataBaseSchema = GetSchema();
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
+    /**
+     * @tc.steps: step5. sync failed with SCHEMA_MISMATCH
+     * @tc.expected: step5. OK.
+     */
+    BlockPrioritySync(query, delegate_, false, DBStatus::SCHEMA_MISMATCH);
+    CheckCloudTableCount(tableName_, 1);
 }
 
 /**
