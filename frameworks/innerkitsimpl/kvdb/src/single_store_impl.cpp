@@ -759,13 +759,6 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
-        auto dbStatus = dbStore_->CheckIntegrity();
-        if (dbStatus != DistributedDB::DBStatus::OK) {
-            ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
-            return StoreUtil::ConvertStatus(dbStatus);
-        }
-    }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_ };
     auto status = BackupManager::GetInstance().Backup(info, dbStore_, isCheckIntegrity_);
     if (status != SUCCESS) {

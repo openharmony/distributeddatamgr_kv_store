@@ -112,10 +112,9 @@ Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> db
         return ALREADY_CLOSED;
     }
     if (isCheckIntegrity) {
-        auto dbStatus = dbStore->CheckIntegrity();
-        if (dbStatus != DistributedDB::DBStatus::OK) {
-            ZLOGE("CheckIntegrity fail, dbStatus:%{public}d", dbStatus);
-            return StoreUtil::ConvertStatus(dbStatus);
+        auto integrityStatus = dbStore->CheckIntegrity();
+        if (integrityStatus != DistributedDB::DBStatus::OK) {
+            return StoreUtil::ConvertStatus(integrityStatus);
         }
     }
     if (info.name.size() == 0 || info.baseDir.size() == 0 || info.storeId.size() == 0 ||
