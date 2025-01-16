@@ -52,7 +52,7 @@ public:
     static BackupManager &GetInstance();
     void Init(const std::string &baseDir);
     void Prepare(const std::string &path, const std::string &storeId);
-    Status Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore);
+    Status Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
     Status Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
     Status DeleteBackup(std::map<std::string, Status> &deleteList,
         const std::string &baseDir, const std::string &storeId);

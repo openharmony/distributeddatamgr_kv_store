@@ -148,6 +148,7 @@ private:
     int32_t dataType_ = DataType::TYPE_DYNAMICAL;
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
+    bool isCheckIntegrity_ = false;
 
     bool encrypt_ = false;
     int32_t securityLevel_ = -1;
