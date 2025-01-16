@@ -1391,14 +1391,6 @@ HWTEST_F(DocumentDBFindTest, DocumentDBFindTest057, TestSize.Level1)
      */
     EXPECT_EQ(GRD_FreeResultSet(resultSet), GRD_OK);
 }
-/**
-  * @tc.name: DocumentDBFindTest058
-  * @tc.desc: Test findDoc with no _id.
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: mazhao
-  */
-HWTEST_F(DocumentDBFindTest, DocumentDBFindTest058, TestSize.Level1) {}
 
 HWTEST_F(DocumentDBFindTest, DocumentDBFindTest059, TestSize.Level1)
 {
