@@ -69,6 +69,9 @@ static char *CpyStr(const char *pText, int nText)
 int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText,
     XTokenFn xToken)
 {
+    if (nText == 0) {
+        return SQLITE_OK;
+    }
     char *ptr = CpyStr(pText, nText);
     if (ptr == nullptr) {
         sqlite3_log(GRD_FAILED_MEMORY_ALLOCATE, "CpyStr wrong");
