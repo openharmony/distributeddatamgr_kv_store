@@ -31,7 +31,7 @@ declare_args() {
     dms_service_enable = false
   }
 
-  if (product_name != "qemu-arm-linux-min") {
+  if (device_company != "qemu") {
     qemu_disable = true
   } else {
     qemu_disable = false
