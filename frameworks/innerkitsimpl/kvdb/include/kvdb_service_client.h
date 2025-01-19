@@ -49,7 +49,7 @@ public:
     Status RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
-    Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password,
+    Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &passwords,
         int32_t passwordType) override;
     Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) override;

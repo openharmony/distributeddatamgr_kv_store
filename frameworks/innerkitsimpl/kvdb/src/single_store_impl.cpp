@@ -775,7 +775,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (service != nullptr) {
         service->Close({ appId_ }, { storeId_ });
     }
-    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_ };
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_,
+        .encrypt = encrypt_ };
     auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
