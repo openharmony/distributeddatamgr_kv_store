@@ -17,6 +17,7 @@
 #define KV_HIVIEW_REPORTER_H
 
 #include <map>
+#include <set>
 #include <string>
 #include "types.h"
 
@@ -29,11 +30,6 @@ struct Suffix {
 enum BusineseType {
     SQLITE,
     GAUSSPD,
-};
-
-static std::map<BusineseType, std::string> busineseTypeMap = {
-    {BusineseType::SQLITE, "sqlite"},
-    {BusineseType::GAUSSPD, "gausspd"}
 };
 
 enum DFXEvent {
@@ -71,7 +67,7 @@ private:
 
     static std::string GetCurrentMicrosecondTimeFormat();
 
-    static bool HasReportedCorruptedFault(const std::string &dbPath, const std::string &storeId);
+    static bool IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId);
 
     static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 
@@ -81,9 +77,9 @@ private:
 
     static std::string GenerateAppendix(const KVDBFaultEvent &eventInfo);
 
-    static bool HasReportedFault(const std::string &storeId, const std::string &function, const uint32_t &errorCode);
+    static bool IsReportedFault(const KVDBFaultEvent& eventInfo);
     
-    static std::map<std::string, std::map<std::string, std::vector<uint32_t>>> storeFaults_;
+    static std::set<std::string> storeFaults_;
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H

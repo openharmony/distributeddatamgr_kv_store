@@ -42,12 +42,17 @@ constexpr const char* DATABASE_REBUILD = "RestoreType:Rebuild";
 static constexpr const char* FUNCTION = "FunctionName ";
 static constexpr const char* DBPATH = "dbPath";
 static constexpr const char* FILEINFO = "fileInfo";
-std::map<std::string, std::map<std::string, std::vector<uint32_t>>> KVDBFaultHiViewReporter::storeFaults_ = {};
+std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
 
 static constexpr Suffix FILE_SUFFIXES[] = {
     {"", "DB"},
     {"-shm", "SHM"},
     {"-wal", "WAL"},
+};
+
+static std::map<BusineseType, std::string> busineseTypeMap = {
+    {BusineseType::SQLITE, "sqlite"},
+    {BusineseType::GAUSSPD, "gausspd"}
 };
 
 struct KVDBFaultEvent {
@@ -87,7 +92,7 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo, u
     eventInfo.systemErrorNo = reportInfo.systemErrorNo;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
     if (mode & DFXEvent::FAULT) {
-        if (!HasReportedFault(eventInfo.storeName, eventInfo.functionName, eventInfo.errorCode)) {
+        if (!IsReportedFault(eventInfo)) {
             ReportFaultEvent(eventInfo);
         }
     }
@@ -126,7 +131,7 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 
 void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
 {
-    if (HasReportedCorruptedFault(eventInfo.appendix, eventInfo.storeName)) {
+    if (IsReportedCorruptedFault(eventInfo.appendix, eventInfo.storeName)) {
         return;
     }
     CreateCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
@@ -232,24 +237,19 @@ void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBFaultEvent &eventInfo)
         HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
 
-bool KVDBFaultHiViewReporter::HasReportedFault(const std::string &storeId,
-    const std::string &function, const uint32_t &errorCode)
+bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
 {
-    auto storeName = storeFaults_.find(storeId);
-    if (storeName != storeFaults_.end()) {
-        auto functionName = storeName->second.find(function);
-        if (functionName != storeName->second.end()) {
-            if (std::find(functionName->second.begin(),
-                functionName->second.end(), errorCode) != functionName->second.end()) {
-                return true;
-            }
-        }
+    std::stringstream oss;
+    oss << eventInfo.bundleName << eventInfo.storeName << eventInfo.functionName << eventInfo.errorCode;
+    std::string faultFlag = oss.str();
+    if (storeFaults_.find(faultFlag) != storeFaults_.end()) {
+        return true;
     }
-    storeFaults_[storeId][function].push_back(errorCode);
+    storeFaults_.insert(faultFlag);
     return false;
 }
 
-bool KVDBFaultHiViewReporter::HasReportedCorruptedFault(const std::string &dbPath, const std::string &storeId)
+bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId)
 {
     if (dbPath.empty() || storeId.empty()) {
         ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
