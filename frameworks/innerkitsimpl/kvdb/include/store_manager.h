@@ -15,6 +15,7 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 #include "single_kvstore.h"
+#include "kv_hiview_reporter.h"
 namespace OHOS::DistributedKv {
 class StoreManager {
 public:

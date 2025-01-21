@@ -22,7 +22,6 @@
 #include "security_manager.h"
 #include "store_factory.h"
 #include "store_util.h"
-#include "kv_hiview_reporter.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
 {
@@ -46,31 +45,36 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     if (service != nullptr) {
         status = service->BeforeCreate(appId, storeId, options);
     }
+    auto reportDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+    ReportInfo reportInfo = { .options = options, .appendix = reportDir, .appId = appId.appId,
+        .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     if (status == STORE_META_CHANGED) {
+        reportInfo.errorCode = status;
+        reportInfo.systemErrorNo = errno;
+        KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT);
         ZLOGE("appId:%{public}s, storeId:%{public}s type:%{public}d encrypt:%{public}d", appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+    reportInfo.errorCode = status;
+    reportInfo.systemErrorNo = errno;
     if ((status == DATA_CORRUPTED || status == CRYPT_ERROR) && options.encrypt) {
         kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, isCreate);
     }
-    if (status == DATA_CORRUPTED) {
-        ZLOGW("Database is corrupt, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
-        KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::ReportKVDBCorruptedFault(options, status, errno, tuple, repoterDir);
-    }
-    if (kvStore != nullptr && status == SUCCESS && kvStore->IsRebuild()) {
+    if (status != SUCCESS) {
+        if (status == DATA_CORRUPTED) {
+            KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT | DFXEvent::CORRUPTED);
+        } else {
+            KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT);
+        }
+    } else if (kvStore != nullptr && kvStore->IsRebuild()) {
         ZLOGI("Rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
-        KvStoreTuple tuple = { .appId = appId.appId, .storeId = storeId.storeId };
-        auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-        KVDBFaultHiViewReporter::ReportKVDBRebuild(options, status, errno, tuple, repoterDir);
+        KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::REBUILD);
     }
     if (isCreate && options.persistent) {
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
-            path, options.encrypt);
+        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
         if (service != nullptr) {
             // delay notify
@@ -154,9 +158,16 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     if (service != nullptr) {
         service->Delete(appId, storeId);
     }
-    auto repoterDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-    KVDBFaultHiViewReporter::DeleteCorruptedFlag(repoterDir, storeId.storeId); 
-    return StoreFactory::GetInstance().Delete(appId, storeId, path);
+    auto reportDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
+    KVDBFaultHiViewReporter::DeleteCorruptedFlag(reportDir, storeId.storeId);
+    auto status = StoreFactory::GetInstance().Delete(appId, storeId, path);
+    if (status != SUCCESS) {
+        ReportInfo reportInfo = {.errorCode = status, .systemErrorNo = errno,
+            .appendix = reportDir, .appId = appId.appId, .storeId = storeId.storeId,
+            .functionName = std::string(__FUNCTION__) };
+        KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT);
+    }
+    return status;
 }
 
 Status StoreManager::PutSwitch(const AppId &appId, const SwitchData &data)
