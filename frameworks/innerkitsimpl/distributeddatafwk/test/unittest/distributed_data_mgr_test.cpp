@@ -26,7 +26,7 @@ using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS::Security::AccessToken;
 namespace OHOS::Test {
-std::string BUNDLE_NAME = "ohos.distributeddatamgrtest.demo";
+constexpr const char *BUNDLE_NAME = "ohos.distributeddatamgrtest.demo";
 static constexpr int32_t TEST_USERID = 100;
 static constexpr int32_t APP_INDEX = 0;
 class DistributedDataMgrTest : public testing::Test {
