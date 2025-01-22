@@ -53,11 +53,15 @@ public:
     };
 
     Executor()
-        : thread_([this] {
+        : thread_([this]
+                  {
+#if defined(IOS_PLATFORM)
+              pthread_setname_np("OS_TaskExecutor");
+#else
               pthread_setname_np(pthread_self(), "OS_TaskExecutor");
+#endif
               Run();
-              self_ = nullptr;
-          })
+              self_ = nullptr; })
     {
         thread_.detach();
     }
