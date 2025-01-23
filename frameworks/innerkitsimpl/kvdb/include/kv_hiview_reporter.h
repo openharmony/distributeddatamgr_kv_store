@@ -17,6 +17,7 @@
 #define KV_HIVIEW_REPORTER_H
 
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 #include "types.h"
@@ -27,7 +28,7 @@ struct Suffix {
     const char *name_ = nullptr;
 };
 
-enum BusineseType {
+enum BusinessType {
     SQLITE,
     GAUSSPD,
 };
@@ -79,6 +80,8 @@ private:
     static bool IsReportedFault(const KVDBFaultEvent& eventInfo);
     
     static std::set<std::string> storeFaults_;
+
+    static std::mutex mutex_;
 };
 } // namespace OHOS::DistributedKv
 #endif //KV_HIVIEW_REPORTER_H

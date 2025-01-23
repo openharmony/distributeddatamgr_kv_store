@@ -32,7 +32,7 @@ struct KVDBFaultEvent {
     std::string appendix;
     std::string errorOccurTime;
     std::string faultType = "common";
-    std::string busineseType;
+    std::string businessType;
     std::string functionName;
 
     explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
