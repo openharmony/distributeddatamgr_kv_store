@@ -53,10 +53,6 @@ public:
     static void ReportKVFaultEvent(const ReportInfo &reportInfo);
 
     static void ReportKVRebuildEvent(const ReportInfo &reportInfo);
-
-    static std::string GetDBPath(const std::string &path, const std::string &storeId);
-
-    static void DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 private:
     static void ReportFaultEvent(KVDBFaultEvent eventInfo);
 
@@ -69,6 +65,10 @@ private:
     static bool IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId);
 
     static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
+
+    static std::string GetDBPath(const std::string& path, const std::string& storeId);
+
+    static void DeleteCorruptedFlag(const std::string& dbPath, const std::string& storeId);
 
     static std::string GetFileStatInfo(const std::string &dbPath);
 

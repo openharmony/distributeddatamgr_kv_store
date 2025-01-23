@@ -153,14 +153,14 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     if (service != nullptr) {
         service->Delete(appId, storeId);
     }
-    auto reportDir = KVDBFaultHiViewReporter::GetDBPath(path, storeId.storeId);
-    KVDBFaultHiViewReporter::DeleteCorruptedFlag(reportDir, storeId.storeId);
     auto status = StoreFactory::GetInstance().Delete(appId, storeId, path);
-    Options options = {.baseDir = path };
+    Options options = { .baseDir = path };
+    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+        .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     if (status != SUCCESS) {
-        ReportInfo reportInfo = {.options = options, .errorCode = status, .systemErrorNo = errno,
-            .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    } else {
+        KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     }
     return status;
 }

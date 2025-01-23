@@ -103,6 +103,9 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
 void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
 {
     auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
+    if (!IsReportedCorruptedFault(reportDir, reportInfo.storeId)) {
+        return;
+    }
     KVDBFaultEvent eventInfo(reportInfo.options);
     eventInfo.errorCode = reportInfo.errorCode;
     eventInfo.storeName = reportInfo.storeId;
