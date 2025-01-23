@@ -42,7 +42,6 @@ struct ReportInfo {
     Options options;
     uint32_t errorCode;
     int32_t systemErrorNo;
-    std::string appendix;
     std::string appId;
     std::string storeId;
     std::string functionName;
@@ -51,7 +50,9 @@ struct ReportInfo {
 struct KVDBFaultEvent;
 class KVDBFaultHiViewReporter {
 public:
-    static void ReportKVFaultEvent(const ReportInfo &reportInfo, unsigned int mode);
+    static void ReportKVFaultEvent(const ReportInfo &reportInfo);
+
+    static void ReportKVRebuildEvent(const ReportInfo &reportInfo);
 
     static std::string GetDBPath(const std::string &path, const std::string &storeId);
 
@@ -60,8 +61,6 @@ private:
     static void ReportFaultEvent(KVDBFaultEvent eventInfo);
 
     static void ReportCurruptedEvent(KVDBFaultEvent eventInfo);
-
-    static void ReportRebuildEvent(KVDBFaultEvent eventInfo);
 
     static void ReportCommonFault(const KVDBFaultEvent &eventInfo);
 

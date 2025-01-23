@@ -44,7 +44,12 @@ struct KVDBFaultEvent {
     }
 };
 
-void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo, unsigned int mode)
+void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
+{
+    return;
+}
+
+void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
 {
     return;
 }

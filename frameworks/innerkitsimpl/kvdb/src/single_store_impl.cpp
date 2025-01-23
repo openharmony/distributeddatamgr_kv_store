@@ -784,9 +784,11 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    if (status == SUCCESS) {
-        ReportDBFaultEvent(status, std::string(__FUNCTION__));
-    }
+    Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
+        .area = area_, .hapName = hapName_ };
+    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+        .appId = appId_, .storeId = storeId_, .functionName = __FUNCTION__ };
+    KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     return status;
 }
 
@@ -1101,19 +1103,8 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
 {
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
-    auto reportDir = KVDBFaultHiViewReporter::GetDBPath(path_, storeId_);
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
-        .appendix = reportDir, .appId = appId_, .storeId = storeId_, .functionName = functionName };
-    switch (status) {
-        case DATA_CORRUPTED:
-            KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT | DFXEvent::CORRUPTED);
-            break;
-        case SUCCESS:
-            KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::REBUILD);
-            break;
-        default:
-            KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo, DFXEvent::FAULT);
-            break;
-    }
+        .appId = appId_, .storeId = storeId_, .functionName = functionName };
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 } // namespace OHOS::DistributedKv

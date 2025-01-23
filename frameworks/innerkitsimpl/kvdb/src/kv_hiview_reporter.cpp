@@ -50,9 +50,9 @@ static constexpr Suffix FILE_SUFFIXES[] = {
     {"-wal", "WAL"},
 };
 
-static std::map<BusineseType, std::string> busineseTypeMap = {
-    {BusineseType::SQLITE, "sqlite"},
-    {BusineseType::GAUSSPD, "gausspd"}
+static constexpr const char *BUSINESETYPE[] = {
+    "sqlite",
+    "gausspd"
 };
 
 struct KVDBFaultEvent {
@@ -81,32 +81,48 @@ struct KVDBFaultEvent {
     }
 };
 
-void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo, unsigned int mode)
+void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
 {
+    auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
     KVDBFaultEvent eventInfo(reportInfo.options);
     eventInfo.errorCode = reportInfo.errorCode;
-    eventInfo.appendix = reportInfo.appendix;
     eventInfo.storeName = reportInfo.storeId;
     eventInfo.bundleName = reportInfo.appId;
     eventInfo.functionName = reportInfo.functionName;
     eventInfo.systemErrorNo = reportInfo.systemErrorNo;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    if (mode & DFXEvent::FAULT) {
-        if (!IsReportedFault(eventInfo)) {
+    eventInfo.appendix = reportDir;
+    if (!IsReportedFault(eventInfo)) {
             ReportFaultEvent(eventInfo);
         }
-    }
-    if (mode & DFXEvent::CORRUPTED) {
+    if (eventInfo.errorCode == DATA_CORRUPTED) {
         ReportCurruptedEvent(eventInfo);
     }
-    if (mode & DFXEvent::REBUILD) {
-        ReportRebuildEvent(eventInfo);
+}
+
+void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
+{
+    auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
+    KVDBFaultEvent eventInfo(reportInfo.options);
+    eventInfo.errorCode = reportInfo.errorCode;
+    eventInfo.storeName = reportInfo.storeId;
+    eventInfo.bundleName = reportInfo.appId;
+    eventInfo.functionName = reportInfo.functionName;
+    eventInfo.systemErrorNo = reportInfo.systemErrorNo;
+    eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
+    eventInfo.appendix = reportDir;
+    if (eventInfo.errorCode == 0) {
+        ZLOGI("Db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
+        DeleteCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
+        eventInfo.appendix = GenerateAppendix(eventInfo);
+        eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
+        ReportCommonFault(eventInfo);
     }
 }
 
 void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 {
-    eventInfo.busineseType = busineseTypeMap[BusineseType::SQLITE];
+    eventInfo.busineseType = BUSINESETYPE[BusineseType::SQLITE];
     eventInfo.appendix = GenerateAppendix(eventInfo);
     char *faultTime = const_cast<char *>(eventInfo.errorOccurTime.c_str());
     char *faultType = const_cast<char *>(eventInfo.faultType.c_str());
@@ -131,6 +147,11 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 
 void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
 {
+    if (eventInfo.appendix.empty() || eventInfo.storeName.empty()) {
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", eventInfo.appendix.c_str(),
+            StoreUtil::Anonymous(eventInfo.storeName).c_str());
+        return;
+    }
     if (IsReportedCorruptedFault(eventInfo.appendix, eventInfo.storeName)) {
         return;
     }
@@ -138,17 +159,6 @@ void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
     eventInfo.appendix = GenerateAppendix(eventInfo);
     ZLOGI("Db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
     ReportCommonFault(eventInfo);
-}
-
-void KVDBFaultHiViewReporter::ReportRebuildEvent(KVDBFaultEvent eventInfo)
-{
-    if (eventInfo.errorCode == 0) {
-        ZLOGI("Db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
-        DeleteCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
-        eventInfo.appendix = GenerateAppendix(eventInfo);
-        eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
-        ReportCommonFault(eventInfo);
-    }
 }
 
 std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
@@ -251,15 +261,8 @@ bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
 
 bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId)
 {
-    if (dbPath.empty() || storeId.empty()) {
-        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
-            StoreUtil::Anonymous(storeId).c_str());
-        return true;
-    }
-
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
     if (access(flagFilename.c_str(), F_OK) == 0) {
-        ZLOGW("Corrupted flag already exit");
         return true;
     }
     return false;
