@@ -578,7 +578,8 @@ bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const L
     // if local not delete and cloud is different user, insert data to local by timestamp
     if (localInfo.dataKey != -1 && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
         (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0 &&
-        localInfo.wTimestamp > cloudInfo.wTimestamp) {
+        (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE)) ==
+        static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE) && localInfo.wTimestamp > cloudInfo.wTimestamp) {
         return false;
     }
     std::string cloudInfoDev;
