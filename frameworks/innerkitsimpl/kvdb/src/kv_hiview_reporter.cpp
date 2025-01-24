@@ -37,12 +37,13 @@ static constexpr const char *CORRUPTED_EVENT_NAME = "DATABASE_CORRUPTED";
 static constexpr const char *FAULT_EVENT_NAME = "DISTRIBUTED_DATA_KV_FAULT";
 static constexpr const char *DISTRIBUTED_DATAMGR = "DISTDATAMGR";
 constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
-static constexpr const char *DEFAULTPATH = "single_ver/main/gen_natural_store.db";
+static constexpr const char *DEFAULT_PATH = "single_ver/main/gen_natural_store.db";
 constexpr const char* DATABASE_REBUILD = "RestoreType:Rebuild";
 static constexpr const char* FUNCTION = "FunctionName ";
 static constexpr const char* DBPATH = "dbPath";
 static constexpr const char* FILEINFO = "fileInfo";
 std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
+std::mutex KVDBFaultHiViewReporter::mutex_;
 
 static constexpr Suffix FILE_SUFFIXES[] = {
     {"", "DB"},
@@ -50,7 +51,7 @@ static constexpr Suffix FILE_SUFFIXES[] = {
     {"-wal", "WAL"},
 };
 
-static constexpr const char *BUSINESETYPE[] = {
+static constexpr const char *BUSINESS_TYPE[] = {
     "sqlite",
     "gausspd"
 };
@@ -69,7 +70,7 @@ struct KVDBFaultEvent {
     std::string appendix;
     std::string errorOccurTime;
     std::string faultType = "common";
-    std::string busineseType;
+    std::string businessType;
     std::string functionName;
 
     explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
@@ -125,14 +126,14 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
 
 void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 {
-    eventInfo.busineseType = BUSINESETYPE[BusineseType::SQLITE];
+    eventInfo.businessType = BUSINESS_TYPE[BusinessType::SQLITE];
     eventInfo.appendix = GenerateAppendix(eventInfo);
     char *faultTime = const_cast<char *>(eventInfo.errorOccurTime.c_str());
     char *faultType = const_cast<char *>(eventInfo.faultType.c_str());
     char *bundleName = const_cast<char *>(eventInfo.bundleName.c_str());
     char *moduleName = const_cast<char *>(eventInfo.moduleName.c_str());
     char *storeName = const_cast<char *>(eventInfo.storeName.c_str());
-    char *busineseType = const_cast<char *>(eventInfo.busineseType.c_str());
+    char *businessType = const_cast<char *>(eventInfo.businessType.c_str());
     char *appendix = const_cast<char *>(eventInfo.appendix.c_str());
     HiSysEventParam params[] = {
         { .name = "FAULT_TIME", .t = HISYSEVENT_STRING, .v = { .s = faultTime }, .arraySize = 0 },
@@ -140,7 +141,7 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
         { .name = "BUNDLE_NAME", .t = HISYSEVENT_STRING, .v = { .s = bundleName }, .arraySize = 0 },
         { .name = "MODULE_NAME", .t = HISYSEVENT_STRING, .v = { .s = moduleName }, .arraySize = 0 },
         { .name = "STORE_NAME", .t = HISYSEVENT_STRING, .v = { .s = storeName }, .arraySize = 0 },
-        { .name = "BUSINESE_TYPE", .t = HISYSEVENT_STRING, .v = { .s = busineseType }, .arraySize = 0 },
+        { .name = "BUSINESS_TYPE", .t = HISYSEVENT_STRING, .v = { .s = businessType }, .arraySize = 0 },
         { .name = "ERROR_CODE", .t = HISYSEVENT_UINT32, .v = { .ui32 = eventInfo.errorCode }, .arraySize = 0 },
         { .name = "APPENDIX", .t = HISYSEVENT_STRING, .v = { .s = appendix }, .arraySize = 0 },
     };
@@ -195,7 +196,7 @@ std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
         if (suffix.name_ == nullptr) {
             continue;
         }
-        auto file = dbPath + DEFAULTPATH + suffix.suffix_;
+        auto file = dbPath + DEFAULT_PATH + suffix.suffix_;
         struct stat fileStat;
         if (stat(file.c_str(), &fileStat) != 0) {
             continue;
@@ -252,6 +253,7 @@ void KVDBFaultHiViewReporter::ReportCommonFault(const KVDBFaultEvent &eventInfo)
 
 bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::stringstream oss;
     oss << eventInfo.bundleName << eventInfo.storeName << eventInfo.functionName << eventInfo.errorCode;
     std::string faultFlag = oss.str();
