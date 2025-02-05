@@ -339,6 +339,23 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::DoClearCloudLogVersion(const std::vector<std::string> &tableNameList)
+{
+    int errCode = E_OK;
+    for (const auto &tableName: tableNameList) {
+        std::string logTableName = DBCommon::GetLogTableName(tableName);
+        LOGD("[Storage Executor] Start clear version on log table.");
+        errCode = ClearVersionOnLogTable(logTableName);
+        if (errCode != E_OK) {
+            std::string maskedName = DBCommon::StringMiddleMasking(tableName);
+            LOGE("[Storage Executor] failed to clear version of cloud data on log table %s (name length is %u), %d",
+                maskedName.c_str(), maskedName.length(), errCode);
+            return errCode;
+        }
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std::string> &tableNameList,
     const RelationalSchemaObject &localSchema)
 {

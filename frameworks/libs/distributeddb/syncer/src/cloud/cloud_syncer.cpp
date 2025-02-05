@@ -1699,6 +1699,12 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     return errCode;
 }
 
+int CloudSyncer::ClearCloudWatermark(const std::vector<std::string> &tableNameList)
+{
+    std::lock_guard<std::mutex> lock(syncMutex_);
+    return CloudSyncUtils::ClearCloudWatermark(tableNameList, storageProxy_);
+}
+
 int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameList)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);

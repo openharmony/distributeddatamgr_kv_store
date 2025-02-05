@@ -90,11 +90,16 @@ public:
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 
     DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
+
+    DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 #endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    DBStatus ClearWatermark(const ClearMetaDataOption &option);
+#endif
     RelationalStoreConnection *conn_ = nullptr;
     std::string storePath_;
     std::atomic<bool> releaseFlag_ = false;

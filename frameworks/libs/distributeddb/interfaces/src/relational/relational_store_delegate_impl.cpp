@@ -530,6 +530,35 @@ int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
     }
     return count;
 }
+
+DBStatus RelationalStoreDelegateImpl::ClearMetaData(const ClearMetaDataOption &option)
+{
+    if (option.mode >= ClearMetaDataMode::BUTT) {
+        LOGE("[RelationalStore Delegate] Invalid mode for clear meta data.");
+        return INVALID_ARGS;
+    }
+
+    if (option.mode == ClearMetaDataMode::CLOUD_WATERMARK) {
+        return ClearWatermark(option);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &option)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for clear water mark!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->ClearCloudWatermark(option.tableNameList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] clear cloud water mark failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
 #endif
 } // namespace DistributedDB
 #endif

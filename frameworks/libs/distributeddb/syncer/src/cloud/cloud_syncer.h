@@ -60,6 +60,8 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema);
 
+    int ClearCloudWatermark(const std::vector<std::string> &tableNameList);
+
     int CleanKvCloudData(std::function<int(void)> &removeFunc);
 
     int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);

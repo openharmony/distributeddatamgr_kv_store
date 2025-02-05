@@ -1717,6 +1717,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::ClearVersionOnLogTable(const std::string &logTableName)
+{
+    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + VERSION + " = '';";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::CleanUploadFinishedFlag(const std::string &tableName)
 {
     // unset upload finished flag

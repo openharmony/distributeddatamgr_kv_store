@@ -39,6 +39,16 @@ enum ClearMode {
     BUTT = 4,
 };
 
+enum class ClearMetaDataMode : uint64_t {
+    CLOUD_WATERMARK = 0x01,  // clear watermark of device to cloud sync
+    BUTT,
+};
+
+struct ClearMetaDataOption {
+    ClearMetaDataMode mode = ClearMetaDataMode::CLOUD_WATERMARK;
+    std::set<std::string> tableNameList;  // an empty set means clearing meta data on all tables
+};
+
 enum class AssetOpType {
     NO_CHANGE = 0,
     INSERT,
