@@ -231,6 +231,8 @@ public:
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount);
 
+    int GetCloudDataCount(const std::string &tableName, DownloadData &downloadData, int64_t &count);
+
     int UpdateExtendField(const std::string &tableName, const std::set<std::string> &extendColNames);
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,

@@ -551,6 +551,44 @@ END:
     return errCode != E_OK ? errCode : ret;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataCount(const std::string &tableName,
+    DownloadData &downloadData, int64_t &count)
+{
+    if (downloadData.data.empty()) {
+        return E_OK;
+    }
+    int errCode = E_OK;
+    sqlite3_stmt *queryStmt = nullptr;
+    std::string querySql = "SELECT COUNT(*) FROM '" + DBCommon::GetLogTableName(tableName) +
+        "' WHERE FLAG & 0x02 = 0 AND CLOUD_GID IN (";
+    for (const VBucket &vBucket : downloadData.data) {
+        std::string cloudGid;
+        errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+        if (errCode != E_OK) {
+            LOGE("get gid for query log statement failed, %d", errCode);
+            return -E_CLOUD_ERROR;
+        }
+        querySql += "'" + cloudGid + "',";
+    }
+    querySql.pop_back();
+    querySql += ");";
+    errCode = SQLiteUtils::GetStatement(dbHandle_, querySql, queryStmt);
+    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        LOGE("Get query count statement failed, %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(queryStmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) { // LCOV_EXCL_BR_LINE
+        count = static_cast<int64_t>(sqlite3_column_int64(queryStmt, 0));
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(queryStmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &tableName,
     const std::vector<FieldInfo> &fieldInfos, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
 {
@@ -607,13 +645,22 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
 
     std::map<int, int> statisticMap = {};
     errCode = ExecutePutCloudData(tableName, tableSchema, trackerTable, downloadData, statisticMap);
+    if (errCode != E_OK) {
+        LOGE("ExecutePutCloudData failed, %d", errCode);
+    }
     int ret = SetLogTriggerStatus(true);
     if (ret != E_OK) {
         LOGE("Fail to set log trigger on, %d", ret);
     }
-    LOGI("save cloud data:%d, ins:%d, upd:%d, del:%d, only gid:%d, flag zero:%d, flag one:%d, upd timestamp:%d,"
-         "clear gid:%d, not handle:%d, lock:%d",
-         errCode, statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
+    int64_t count = 0;
+    int errCodeCount = GetCloudDataCount(tableName, downloadData, count);
+    if (errCodeCount != E_OK) {
+        LOGW("get cloud data count failed, %d", errCodeCount);
+    }
+    LOGI("save cloud data of table %s [length %zu]:%d, cloud data count:%lld, ins:%d, upd:%d, del:%d, only gid:%d,"
+        "flag zero:%d, flag one:%d, upd timestamp:%d, clear gid:%d, not handle:%d, lock:%d",
+         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode, count,
+         statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
