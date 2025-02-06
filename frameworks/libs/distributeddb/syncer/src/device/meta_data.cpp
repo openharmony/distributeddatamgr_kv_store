@@ -217,13 +217,14 @@ int Metadata::SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &i
     return errCode;
 }
 
-void Metadata::GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash)
+int Metadata::GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash)
 {
     int errCode = GetMetaDataValueFromDB(deviceId, isNeedHash, outValue);
     if (errCode == -E_NOT_FOUND && RuntimeContext::GetInstance()->IsTimeChanged()) {
         outValue = {};
         outValue.syncMark = static_cast<uint64_t>(SyncMark::SYNC_MARK_TIME_CHANGE);
     }
+    return errCode;
 }
 
 int Metadata::SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue)
@@ -449,7 +450,7 @@ void Metadata::GetDbCreateTime(const DeviceID &deviceId, uint64_t &outValue)
 {
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     MetaDataValue metadata;
-    int errCode = GetMetaDataValueFromDB(deviceId, true, metadata);
+    int errCode = GetMetaDataValue(deviceId, metadata, true);
     if (errCode == E_OK) {
         outValue = metadata.dbCreateTime;
         return;
@@ -462,7 +463,7 @@ int Metadata::SetDbCreateTime(const DeviceID &deviceId, uint64_t inValue, bool i
 {
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     MetaDataValue metadata;
-    int errCode = GetMetaDataValueFromDB(deviceId, isNeedHash, metadata);
+    int errCode = GetMetaDataValue(deviceId, metadata, isNeedHash);
     if (errCode == E_OK) {
         if (metadata.dbCreateTime != 0 && metadata.dbCreateTime != inValue) {
             metadata.clearDeviceDataMark = REMOVE_DEVICE_DATA_MARK;
@@ -484,7 +485,7 @@ int Metadata::ResetMetaDataAfterRemoveData(const DeviceID &deviceId)
 {
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     MetaDataValue metadata;
-    int errCode = GetMetaDataValueFromDB(deviceId, true, metadata);
+    int errCode = GetMetaDataValue(deviceId, metadata, true);
     if (errCode == E_OK) {
         metadata.clearDeviceDataMark = 0;
         return SaveMetaDataValue(deviceId, metadata, true);
@@ -496,7 +497,7 @@ void Metadata::GetRemoveDataMark(const DeviceID &deviceId, uint64_t &outValue)
 {
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     MetaDataValue metadata;
-    int errCode = GetMetaDataValueFromDB(deviceId, true, metadata);
+    int errCode = GetMetaDataValue(deviceId, metadata, true);
     if (errCode == E_OK) {
         outValue = metadata.clearDeviceDataMark;
         return;
@@ -605,7 +606,7 @@ int Metadata::GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, Wa
     // read from db avoid watermark update in diff process
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     MetaDataValue metadata;
-    int errCode = GetMetaDataValueFromDB(dev, isNeedHash, metadata);
+    int errCode = GetMetaDataValue(dev, metadata, isNeedHash);
     if (errCode == -E_NOT_FOUND) {
         LOGD("[Metadata] not found meta value");
         return E_OK;

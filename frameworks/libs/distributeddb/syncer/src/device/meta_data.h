@@ -183,7 +183,7 @@ private:
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
 
     // sync module need hash devices id
-    void GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
+    int GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
 
     static int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
 
