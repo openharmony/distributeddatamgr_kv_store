@@ -1492,9 +1492,9 @@ std::string CloudStorageUtils::GetCursorUpgradeSql(const std::string &tableName)
 }
 
 int CloudStorageUtils::FillQueryByPK(const std::string &tableName, bool isKv, std::map<std::string, size_t> dataIndex,
-    std::vector<std::map<std::string, std::vector<Type>>> syncPkVec, std::vector<QuerySyncObject> &syncQuery)
+    std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec, std::vector<QuerySyncObject> &syncQuery)
 {
-    for (const auto syncPk : syncPkVec) {
+    for (const auto &syncPk : syncPkVec) {
         Query query = Query::Select().From(tableName);
         if (isKv) {
             QueryUtils::FillQueryInKeys(syncPk, dataIndex, query);

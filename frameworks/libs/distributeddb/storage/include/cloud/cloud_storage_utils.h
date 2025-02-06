@@ -214,7 +214,7 @@ private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 
     static int FillQueryByPK(const std::string &tableName, bool isKv, std::map<std::string, size_t> dataIndex,
-        std::vector<std::map<std::string, std::vector<Type>>> syncPkVec, std::vector<QuerySyncObject> &syncQuery);
+        std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec, std::vector<QuerySyncObject> &syncQuery);
 
     static void PutSyncPkVec(const std::string &col, std::map<std::string, std::vector<Type>> &syncPk,
         std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec);

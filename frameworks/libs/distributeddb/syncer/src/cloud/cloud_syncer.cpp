@@ -158,8 +158,12 @@ int CloudSyncer::TriggerSync()
 void CloudSyncer::SetProxyUser(const std::string &user)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    storageProxy_->SetUser(user);
-    currentContext_.notifier->SetUser(user);
+    if (storageProxy_ != nullptr) {
+        storageProxy_->SetUser(user);
+    }
+    if (currentContext_.notifier != nullptr) {
+        currentContext_.notifier->SetUser(user);
+    }
     currentContext_.currentUserIndex = currentContext_.currentUserIndex + 1;
     cloudDB_.SwitchCloudDB(user);
 }
@@ -225,7 +229,9 @@ int CloudSyncer::DoSync(TaskId taskId)
     bool isNeedFirstDownload = false;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        needUpload = currentContext_.strategy->JudgeUpload();
+        if (currentContext_.strategy != nullptr) {
+            needUpload = currentContext_.strategy->JudgeUpload();
+        }
         // 1. if the locker is already exist, directly reuse the lock, no need do the first download
         // 2. if the task(resume task) is already be tagged need upload data, no need do the first download
         isNeedFirstDownload = (currentContext_.locker == nullptr) && (!currentContext_.isNeedUpload);
