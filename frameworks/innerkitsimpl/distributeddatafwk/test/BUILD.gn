@@ -19,6 +19,10 @@ module_output_path = "kv_store/distributeddatafwk"
 config("module_private_config") {
   visibility = [ ":*" ]
 
+  cflags = [
+    "-Wno-c99-designator",
+  ]
+
   include_dirs = [
     "../include/",
     "../src/",

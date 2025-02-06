@@ -23,7 +23,10 @@ group("build_module") {
 config("data_mgr_public_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-multichar" ]
+  cflags = [
+    "-Wno-multichar",
+    "-Wno-c99-designator",
+  ]
 
   include_dirs = [
     "include",
