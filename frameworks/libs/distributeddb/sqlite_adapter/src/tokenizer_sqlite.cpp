@@ -60,6 +60,7 @@ static char *CpyStr(const char *pText, int nText)
     }
     errno_t err = memcpy_s(ptr, nText + 1, pText, nText);
     if (err != EOK) {
+        free(ptr);
         return nullptr;
     }
     ptr[nText] = '\0';
@@ -82,6 +83,7 @@ int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int
     int ret = GRD_TokenizerCut(ptr, option, &entryList);
     if (ret != GRD_OK) {
         sqlite3_log(ret, "GRD_TokenizerCut wrong");
+        free(ptr);
         return ret;
     }
     GRD_WordEntryT entry;
@@ -89,7 +91,7 @@ int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int
     int end = 0;
     while ((ret = GRD_TokenizerNext(entryList, &entry)) == GRD_OK) {
         start = entry.word - ptr;
-        end = start + entry.length;
+        end = start + static_cast<int>(entry.length);
         ret = xToken(pCtx, 0, entry.word, entry.length, start, end);
         if (ret != SQLITE_OK) {
             sqlite3_log(ret, "xToken wrong");
