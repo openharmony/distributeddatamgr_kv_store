@@ -47,9 +47,7 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     ]
 
-    cflags = [
-      "-Wno-c99-designator",
-    ]
+    cflags = [ "-Wno-c99-designator" ]
 
     cflags_cc = [ "-std=c++17" ]
     sources = [

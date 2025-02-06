@@ -18,10 +18,7 @@ module_output_path = "kv_store/distributed_test"
 
 ###############################################################################
 config("module_private_config") {
-
-  cflags = [
-    "-Wno-c99-designator",
-  ]
+  cflags = [ "-Wno-c99-designator" ]
 
   include_dirs = [
     "${kv_store_base_path}/test/distributedtest/single_kvstore_client",

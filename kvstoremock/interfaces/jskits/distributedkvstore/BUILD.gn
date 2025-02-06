@@ -51,9 +51,7 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/bundlemanager/bundle_framework/interfaces/inner_api/appexecfwk_base/include",
     ]
 
-    cflags = [
-      "-Wno-c99-designator",
-    ]
+    cflags = [ "-Wno-c99-designator" ]
 
     cflags_cc = [ "-std=c++17" ]
 
