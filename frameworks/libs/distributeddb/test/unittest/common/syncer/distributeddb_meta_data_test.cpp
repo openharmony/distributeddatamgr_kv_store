@@ -361,4 +361,24 @@ HWTEST_F(DistributedDBMetaDataTest, MetadataTest008, TestSize.Level0)
     EXPECT_EQ(res.first, E_OK);
     EXPECT_EQ(res.second, expectLocalMetaData.localSchemaVersion);
 }
+
+/**
+ * @tc.name: MetadataTest009
+ * @tc.desc: Test initially saved metadata after time changed.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBMetaDataTest, MetadataTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Check time changed after metadata is saved initially by SetDbCreateTime.
+     * @tc.expected: step1. B is change because of time change.
+     */
+    RuntimeContext::GetInstance()->SetTimeChanged(true);
+    EXPECT_EQ(metadata_->SetDbCreateTime(DEVICE_B, 10u, true), E_OK);
+    EXPECT_TRUE(metadata_->IsTimeChange(DEVICE_B));
+    RuntimeContext::GetInstance()->SetTimeChanged(false);
+    RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
+}
 }
