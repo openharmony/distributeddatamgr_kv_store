@@ -46,8 +46,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         status = service->BeforeCreate(appId, storeId, options);
     }
     if (status == STORE_META_CHANGED) {
-        ReportInfo reportInfo = { .options = options, .appId = appId.appId, .storeId = storeId.storeId,
-            .errorCode = status, .systemErrorNo = errno, .functionName = std::string(__FUNCTION__) };
+        ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+            .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
         ZLOGE("appId:%{public}s, storeId:%{public}s type:%{public}d encrypt:%{public}d", appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
@@ -59,12 +59,12 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, isCreate);
     }
     if (status != SUCCESS) {
-        ReportInfo reportInfo = { .options = options, .appId = appId.appId, .storeId = storeId.storeId,
-            .errorCode = status, .systemErrorNo = errno, .functionName = std::string(__FUNCTION__) };
+        ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+            .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     } else if (kvStore != nullptr && kvStore->IsRebuild()) {
-        ReportInfo reportInfo = { .options = options, .appId = appId.appId, .storeId = storeId.storeId,
-            .errorCode = status, .systemErrorNo = errno, .functionName = std::string(__FUNCTION__) };
+        ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+            .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         ZLOGI("Rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
         KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     }

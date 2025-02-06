@@ -33,12 +33,6 @@ enum BusinessType {
     GAUSSPD,
 };
 
-enum DFXEvent {
-    FAULT = 0x1,       // 001
-    CORRUPTED = 0x2,   // 010
-    REBUILD = 0x4,     // 100
-};
-
 struct ReportInfo {
     Options options;
     uint32_t errorCode;
