@@ -2164,14 +2164,15 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     }
     std::vector<std::string> userList;
     CloudSyncUtils::GetUserListForCompensatedSync(cloudDB_, users, userList);
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        cloudTaskInfos_[triggerTaskId].users = userList;
-        cloudTaskInfos_[triggerTaskId].table.clear();
-        cloudTaskInfos_[triggerTaskId].queryList.clear();
-        cloudTaskInfos_[triggerTaskId].table.push_back(syncQuery[0].GetRelationTableName());
-        cloudTaskInfos_[triggerTaskId].queryList.push_back(syncQuery[0]);
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (cloudTaskInfos_.find(triggerTaskId) == cloudTaskInfos_.end()) {
+        return false;
     }
+    cloudTaskInfos_[triggerTaskId].users = userList;
+    cloudTaskInfos_[triggerTaskId].table.clear();
+    cloudTaskInfos_[triggerTaskId].queryList.clear();
+    cloudTaskInfos_[triggerTaskId].table.push_back(syncQuery[0].GetRelationTableName());
+    cloudTaskInfos_[triggerTaskId].queryList.push_back(syncQuery[0]);
     return true;
 }
 }
