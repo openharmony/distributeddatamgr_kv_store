@@ -148,6 +148,7 @@ public:
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
         std::vector<std::string> &notifyTableList);
+    int DoClearCloudLogVersion(const std::vector<std::string> &tableNameList);
 
     int FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema, const CloudSyncBatch &data);
     int FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data);
@@ -268,6 +269,8 @@ private:
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
     int CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode);
+
+    int ClearVersionOnLogTable(const std::string &logTableName);
 
     int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName,
         const RelationalSchemaObject &localSchema);

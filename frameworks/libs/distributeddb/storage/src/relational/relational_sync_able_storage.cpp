@@ -1356,6 +1356,15 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
     return errCode;
 }
 
+int RelationalSyncAbleStorage::ClearCloudLogVersion(const std::vector<std::string> &tableNameList)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage][ClearCloudLogVersion] the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    return transactionHandle_->DoClearCloudLogVersion(tableNameList);
+}
+
 int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)
 {
     std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);

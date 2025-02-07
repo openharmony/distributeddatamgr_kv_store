@@ -495,6 +495,43 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 
     return errCode;
 }
+
+int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tableNames)
+{
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfoMap tables = localSchema.GetTables();
+    std::vector<std::string> cloudTableNameList;
+    bool isClearAllTables = tableNames.empty();
+    for (const auto &tableInfo : tables) {
+        if (tableInfo.second.GetSharedTableMark()) {
+            continue;
+        }
+        std::string tableName = tableInfo.first;
+        std::string maskedName = DBCommon::StringMiddleMasking(tableName);
+        bool isTargetTable = tableNames.count(tableName) > 0;
+        if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION && (isClearAllTables || isTargetTable)) {
+            cloudTableNameList.push_back(tableName);
+            LOGI("[RelationalStore] cloud watermark of table %s will be cleared, original name length: %u",
+                maskedName.c_str(), tableName.length());
+        } else if (!isClearAllTables && isTargetTable) {
+            LOGW("[RelationalStore] table %s ignored when clear cloud watermark, original name length: %u",
+                maskedName.c_str(), tableName.length());
+        }
+    }
+    if (cloudTableNameList.empty()) {
+        LOGI("[RelationalStore] no target tables found for clear cloud watermark");
+        return E_OK;
+    }
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when clear cloud watermark");
+        return -E_INVALID_DB;
+    }
+    int errCode = cloudSyncer_->ClearCloudWatermark(cloudTableNameList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] failed to clear cloud watermark, %d.", errCode);
+    }
+    return errCode;
+}
 #endif
 
 int SQLiteRelationalStore::RemoveDeviceData()

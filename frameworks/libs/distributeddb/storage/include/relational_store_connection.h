@@ -83,6 +83,8 @@ public:
 
     virtual int DoClean(ClearMode mode) = 0;
 
+    virtual int ClearCloudWatermark(const std::set<std::string> &tableNames) = 0;
+
     virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
 
     virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;

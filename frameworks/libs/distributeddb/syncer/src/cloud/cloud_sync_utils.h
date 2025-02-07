@@ -137,6 +137,9 @@ public:
         const std::map<std::string, AssetsMap> &gidAssetsMap, const AssetsMap &assetsMap);
 
     static bool IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, bool isDownloading);
+
+    static int ClearCloudWatermark(const std::vector<std::string> &tableNameList,
+        std::shared_ptr<StorageProxy> &storageProxy);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

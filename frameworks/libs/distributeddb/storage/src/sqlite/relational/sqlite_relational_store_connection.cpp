@@ -201,6 +201,21 @@ int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
     }
     return errCode;
 }
+
+int SQLiteRelationalStoreConnection::ClearCloudWatermark(const std::set<std::string> &tableNames)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed when clear watermark!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int errCode = store->ClearCloudWatermark(tableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] failed to clear cloud watermark, %d.", errCode);
+    }
+    return errCode;
+}
 #endif
 
 int SQLiteRelationalStoreConnection::RemoveDeviceData(const std::string &device)

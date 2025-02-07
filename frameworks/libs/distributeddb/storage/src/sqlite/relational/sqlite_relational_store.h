@@ -106,6 +106,8 @@ public:
 
     int CleanCloudData(ClearMode mode);
 
+    int ClearCloudWatermark(const std::set<std::string> &tableNames);
+
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);

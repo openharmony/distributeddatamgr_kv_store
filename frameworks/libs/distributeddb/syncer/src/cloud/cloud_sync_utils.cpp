@@ -966,4 +966,33 @@ bool CloudSyncUtils::IsAssetOnlyData(VBucket &queryData, AssetsMap &assetsMap, b
     }
     return true;
 }
+
+int CloudSyncUtils::ClearCloudWatermark(const std::vector<std::string> &tableNameList,
+    std::shared_ptr<StorageProxy> &storageProxy)
+{
+    for (const auto &tableName: tableNameList) {
+        LOGD("[CloudSyncUtils] Start clear cloud watermark.");
+        int ret = storageProxy->CleanWaterMark(tableName);
+        if (ret != E_OK) {
+            std::string maskedName = DBCommon::StringMiddleMasking(tableName);
+            LOGE("[CloudSyncUtils] failed to clear watermark. err: %d. table: %s, name length: %u",
+                ret, maskedName.c_str(), maskedName.length());
+            return ret;
+        }
+    }
+    int errCode = storageProxy->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncUtils] failed to start Transaction before clear cloud log version, %d", errCode);
+        return errCode;
+    }
+
+    errCode = storageProxy->ClearCloudLogVersion(tableNameList);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncUtils] failed to clear log version, %d.", errCode);
+        storageProxy->Rollback();
+        return errCode;
+    }
+
+    return storageProxy->Commit();
+}
 }
