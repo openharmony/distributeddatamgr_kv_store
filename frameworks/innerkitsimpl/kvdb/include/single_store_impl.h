@@ -132,7 +132,7 @@ private:
     bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();
-    void ReportDBCorruptedFault(Status status) const;
+    void ReportDBFaultEvent(Status status, const std::string& functionName) const;
 
     bool isApplication_ = false;
     bool autoSync_ = false;
