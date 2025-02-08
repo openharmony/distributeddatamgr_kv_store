@@ -16,9 +16,10 @@
 
 #include "log_print.h"
 #include <memory>
-#include "uv_queue.h"
+#include "napi_queue.h"
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
+#include "uv_queue.h"
 
 namespace OHOS::DistributedKVStore {
 UvQueue::UvQueue(napi_env env)
@@ -70,7 +71,7 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
             ZLOGE("Notify data change failed status:%{public}d.", status);
         }
         napi_close_handle_scope(env, scope);
-    }
+    };
     if (napi_ok != napi_send_event(env_, task, napi_eprio_immediate)) {
         ZLOGE("Failed to napi_send_event.");
     }
