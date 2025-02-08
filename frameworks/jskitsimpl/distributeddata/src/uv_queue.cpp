@@ -14,17 +14,16 @@
  */
 #define LOG_TAG "UvQueue"
 
-#include "uv_queue.h"
 #include "log_print.h"
-#include "napi_queue.h"
+#include <memory>
+#include "uv_queue.h"
+#include "napi/native_common.h"
+#include "napi/native_node_api.h"
 
 namespace OHOS::DistributedData {
 UvQueue::UvQueue(napi_env env)
     : env_(env)
 {
-    if (env != nullptr) {
-        napi_get_uv_event_loop(env, &loop_);
-    }
 }
 
 UvQueue::~UvQueue()
@@ -35,67 +34,45 @@ UvQueue::~UvQueue()
 
 void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
 {
-    if (loop_ == nullptr || !getter) {
+    if (!getter) {
         ZLOGE("This loop_ or callback is nullptr");
         return;
     }
-
-    uv_work_t* work = new (std::nothrow) uv_work_t;
-    if (work == nullptr) {
-        ZLOGE("No memory for uv_work_t");
-        return;
-    }
-    work->data = new UvEntry{ env_, getter, std::move(genArgs) };
-    if (work->data == nullptr) {
-        ZLOGE("No memory for UvEntry");
-        delete work;
-        work = nullptr;
-        return;
-    }
-    int retVal = uv_queue_work(
-        loop_, work, [](uv_work_t* work) {
-            ZLOGD("AsyncCall callback");
-        }, UvQueue::Work);
-    if (retVal != 0) {
-        delete (reinterpret_cast<UvEntry*>(work->data));
-        work->data = nullptr;
-        delete work;
-        work = nullptr;
-    }
-}
-
-void UvQueue::Work(uv_work_t* work, int uvStatus)
-{
-    std::shared_ptr<UvEntry> entry(static_cast<UvEntry*>(work->data), [work](UvEntry* data) {
-        delete data;
-        delete work;
-    });
-    napi_handle_scope scope = nullptr;
-    napi_open_handle_scope(entry->env, &scope);
-    napi_value method = entry->callback(entry->env);
-    if (method == nullptr) {
-        ZLOGE("The callback is invalid, maybe is cleared!");
-        if (scope != nullptr) {
-            napi_close_handle_scope(entry->env, scope);
+    auto env = GetEnv();
+    auto task = [env, getter, genArgs]() {
+        napi_handle_scope scope = nullptr;
+        napi_open_handle_scope(env, &scope);
+        if (scope == nullptr) {
+            return;
         }
-        return;
+        napi_value method = getter(env);
+        if (method == nullptr) {
+            ZLOGE("The callback is invalid, maybe is cleared!");
+            napi_close_handle_scope(env, scope);
+            return;
+        }
+        int argc = 0;
+        napi_value argv[ARGC_MAX] = { nullptr };
+        if (genArgs) {
+            argc = ARGC_MAX;
+            genArgs(env, argc, argv);
+        }
+        napi_value global = nullptr;
+        napi_status status = napi_get_global(env, &global);
+        if (status != napi_ok) {
+            ZLOGE("Get napi gloabl failed. status: %{public}d.", status);
+            napi_close_handle_scope(env, scope);
+            return;
+        }
+        napi_value result;
+        status = napi_call_function(env, global, method, argc, argv, &result);
+        if (status != napi_ok) {
+            ZLOGE("Notify data change failed status:%{public}d.", status);
+        }
+        napi_close_handle_scope(env, scope);
     }
-    int argc = 0;
-    napi_value argv[ARGC_MAX] = { nullptr };
-    if (entry->args) {
-        argc = ARGC_MAX;
-        entry->args(entry->env, argc, argv);
-    }
-    ZLOGD("queue uv_after_work_cb");
-    napi_value global = nullptr;
-    napi_get_global(entry->env, &global);
-    napi_value result;
-    napi_status status = napi_call_function(entry->env, global, method, argc, argv, &result);
-    if (status != napi_ok) {
-        ZLOGE("Notify data change failed status:%{public}d.", status);
-    }
-    if (scope != nullptr) {
-        napi_close_handle_scope(entry->env, scope);
+    if (napi_ok != napi_send_event(env_, task, napi_eprio_immediate)) {
+        LOG_ERROR("Failed to napi_send_event.");
     }
 }
 
