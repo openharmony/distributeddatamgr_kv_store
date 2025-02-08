@@ -15,7 +15,6 @@
 #define LOG_TAG "UvQueue"
 
 #include "log_print.h"
-#include <memory>
 #include "napi_queue.h"
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
@@ -36,7 +35,7 @@ UvQueue::~UvQueue()
 void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
 {
     if (!getter) {
-        ZLOGE("This loop_ or callback is nullptr");
+        ZLOGE("This callback is nullptr");
         return;
     }
     auto env = GetEnv();
