@@ -48,6 +48,7 @@ if (use_platform_win || use_platforn_mac) {
     ]
     cflags_cc = [
       "-std=c++17",
+      "-Wno-c99-designator",
       "-Wno-inconsistent-dllimport",
     ]
     sources = [

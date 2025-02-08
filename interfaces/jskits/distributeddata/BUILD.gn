@@ -45,6 +45,9 @@ ohos_shared_library("distributeddata") {
     cfi_cross_dso = true
     debug = false
   }
+
+  cflags = [ "-Wno-c99-designator" ]
+
   include_dirs = [
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/include",
