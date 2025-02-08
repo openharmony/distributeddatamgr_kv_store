@@ -14,9 +14,11 @@
  */
 #define LOG_TAG "UvQueue"
 
-#include "uv_queue.h"
 #include "log_print.h"
-#include "napi_queue.h"
+#include <memory>
+#include "uv_queue.h"
+#include "napi/native_common.h"
+#include "napi/native_node_api.h"
 
 namespace OHOS::DistributedKVStore {
 UvQueue::UvQueue(napi_env env)
