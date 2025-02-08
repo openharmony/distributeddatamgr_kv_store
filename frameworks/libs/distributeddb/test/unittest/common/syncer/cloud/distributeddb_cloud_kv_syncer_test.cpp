@@ -42,6 +42,7 @@ CloudSyncOption g_CloudSyncoption;
 const std::string USER_ID_2 = "user2";
 const std::string USER_ID_3 = "user3";
 const int64_t WAIT_TIME = 5;
+DistributedDBToolsUnitTest g_tool;
 class DistributedDBCloudKvSyncerTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -781,6 +782,53 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Leve
 }
 
 /**
+ * @tc.name: SyncWithMultipleUsers004.
+ * @tc.desc: Test sync data with same users.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put k v by user1 and sync to cloud.
+     * @tc.expected: step1. return ok.
+     */
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    /**
+     * @tc.steps: step2. data p2p to device B.
+     * @tc.expected: step2. return ok.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(deviceB_->GetDeviceId());
+    Query query = Query::Select().PrefixKey(key);
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(kvDelegatePtrS2_, devices, SYNC_MODE_PUSH_ONLY, result, query);
+    ASSERT_TRUE(status == OK);
+    /**
+     * @tc.steps: step3. sync by user1.
+     * @tc.expected: step3. return ok.
+     */
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    /**
+     * @tc.steps: step4. get k1.
+     * @tc.expected: step4. get v2.
+     */
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
  * @tc.name: AbnormalCloudKvExecutorTest001
  * @tc.desc: Check SqliteCloudKvExecutorUtils interfaces abnormal scene.
  * @tc.type: FUNC
@@ -1012,5 +1060,56 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest003, TestSize.Le
     syncThread.join();
     removeThread1.join();
     removeThread2.join();
+}
+
+
+/**
+ * @tc.name: SyncWithKvAndCloud001.
+ * @tc.desc: Test sync data with same key and different sync way.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put k1 v1 by user1 and sync between devices.
+     * @tc.expected: step1. return ok.
+     */
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value), OK);
+    std::vector<std::string> devices;
+    devices.push_back(deviceB_->GetDeviceId());
+    Query query = Query::Select().PrefixKey(key);
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(kvDelegatePtrS2_, devices, SYNC_MODE_PUSH_PULL, result, query);
+    ASSERT_TRUE(status == OK);
+
+    /**
+     * @tc.steps: step2. insert k1 v2 and sync data to cloud.
+     * @tc.expected: step2. return ok.
+     */
+    Value value2 = {'v', '2'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, value2), OK);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(USER_ID);
+    syncOption.devices.push_back("cloud");
+    BlockSync(kvDelegatePtrS1_, OK, syncOption);
+    /**
+     * @tc.steps: step3. sync by device2.
+     * @tc.expected: step3. return ok.
+     */
+    syncOption.users.clear();
+    syncOption.users.push_back(USER_ID);
+    BlockSync(kvDelegatePtrS2_, OK, syncOption);
+    /**
+     * @tc.steps: step4. get k1.
+     * @tc.expected: step4. get v2.
+     */
+    Value actualValue;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, value2);
 }
 }

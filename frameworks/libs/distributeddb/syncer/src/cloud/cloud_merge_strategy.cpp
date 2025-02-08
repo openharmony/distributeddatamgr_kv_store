@@ -83,7 +83,8 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
 
 OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
-    if (JudgeKvScene() && (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
+    if (JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
+        (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
         && localInfo.wTimestamp > cloudInfo.wTimestamp) {
         return OpType::NOT_HANDLE;
     }
