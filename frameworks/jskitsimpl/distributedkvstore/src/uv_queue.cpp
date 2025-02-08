@@ -72,7 +72,7 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         napi_close_handle_scope(env, scope);
     }
     if (napi_ok != napi_send_event(env_, task, napi_eprio_immediate)) {
-        LOG_ERROR("Failed to napi_send_event.");
+        ZLOGE("Failed to napi_send_event.");
     }
 }
 
