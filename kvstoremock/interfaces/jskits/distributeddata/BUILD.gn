@@ -46,11 +46,7 @@ if (use_platform_win || use_platforn_mac) {
       "//commonlibrary/c_utils/base/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     ]
-    cflags_cc = [
-      "-std=c++17",
-      "-Wno-c99-designator",
-      "-Wno-inconsistent-dllimport",
-    ]
+    cflags_cc = [ "-std=c++17" ]
     sources = [
       "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
       "../../../frameworks/jskitsimpl/distributeddata/src/js_util.cpp",
