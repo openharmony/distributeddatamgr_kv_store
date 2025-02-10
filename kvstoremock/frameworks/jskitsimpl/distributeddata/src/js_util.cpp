@@ -21,8 +21,13 @@
 #include "napi_queue.h"
 #include "securec.h"
 #include "types.h"
-#include <arpa/inet.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
