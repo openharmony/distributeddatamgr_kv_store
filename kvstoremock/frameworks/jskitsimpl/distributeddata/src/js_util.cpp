@@ -13,14 +13,15 @@
  * limitations under the License.
  */
 #define LOG_TAG "JSUtil"
-#include "js_util.h"
-#include "napi_base_context.h"
-#include "securec.h"
 #include "js_schema.h"
+#include "js_util.h"
 #include "kv_utils.h"
 #include "log_print.h"
+#include "napi_base_context.h"
 #include "napi_queue.h"
+#include "securec.h"
 #include "types.h"
+#include <arpa/inet.h>
 #include <sys/stat.h>
 
 using namespace OHOS::DistributedKv;
