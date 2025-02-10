@@ -21,6 +21,7 @@
 #include "log_print.h"
 #include "napi_queue.h"
 #include "types.h"
+#include <sys/stat.h>
 
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
