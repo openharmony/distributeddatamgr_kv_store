@@ -1213,6 +1213,9 @@ bool RelationalSchemaObject::CheckDistributedFieldChange(const std::vector<Distr
         if (fields[field.colName].isP2pSync != field.isP2pSync) {
             return true;
         }
+        if (fields[field.colName].isSpecified != field.isSpecified) {
+            return true;
+        }
     }
     return false;
 }
@@ -1309,14 +1312,48 @@ int RelationalSchemaObject::ParseDistributedSchema(const JsonObject &inJsonObjec
         return errCode;
     }
 
-    FieldValue fieldValue;
-    errCode = GetMemberFromJsonObject(schemaObj, SchemaConstant::KEYWORD_DISTRIBUTED_VERSION,
-        FieldType::LEAF_FIELD_INTEGER, true, fieldValue);
+    errCode = ParseDistributedVersion(schemaObj);
     if (errCode != E_OK) {
         return errCode;
     }
-    dbSchema_.version = static_cast<uint32_t>(fieldValue.integerValue);
     return ParseDistributedTables(schemaObj);
+}
+
+int RelationalSchemaObject::ParseDistributedVersion(const JsonObject &inJsonObject)
+{
+    const std::string fieldName = SchemaConstant::KEYWORD_DISTRIBUTED_VERSION;
+    if (!inJsonObject.IsFieldPathExist(FieldPath {fieldName})) {
+        LOGE("[RelationalSchema][ParseDistributedVersion] Distributed schema has no version");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {fieldName}, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][ParseDistributedVersion] Get fieldType of version failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (fieldType != FieldType::LEAF_FIELD_INTEGER && fieldType != FieldType::LEAF_FIELD_LONG) {
+        LOGE("[RelationalSchema][ParseDistributedVersion] Get fieldType of version failed. Found type: %d.", fieldType);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    FieldValue fieldValue;
+    errCode = inJsonObject.GetFieldValueByFieldPath(FieldPath {fieldName}, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][ParseDistributedVersion] Get version value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    int64_t versionValue = fieldType == FieldType::LEAF_FIELD_INTEGER ?
+        static_cast<int64_t>(fieldValue.integerValue) : fieldValue.longValue;
+    if (versionValue < 0 || versionValue > UINT32_MAX) {
+        LOGE("[RelationalSchema][ParseDistributedVersion] Version value out of range, value is: %" PRId64,
+            versionValue);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    dbSchema_.version = static_cast<uint32_t>(versionValue);
+    return E_OK;
 }
 
 int RelationalSchemaObject::ParseDistributedTables(const JsonObject &inJsonObject)

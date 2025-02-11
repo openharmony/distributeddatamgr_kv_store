@@ -280,7 +280,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSiz
 
     cloudSyncer.InitCloudSyncer(0u, SYNC_MODE_CLOUD_FORCE_PUSH);
     int errCode = cloudSyncer.CreateCloudTaskInfoAndCallTryToAddSync(SYNC_MODE_CLOUD_FORCE_PUSH, tables, {}, 5000);
-    errCode = cloudSyncer.CallPrepareSync(1u);
+    errCode = cloudSyncer.CallPrepareSync(UINT64_MAX);
     EXPECT_EQ(errCode, E_OK);
 
     cloudSyncer.InitCloudSyncer(2u, SYNC_MODE_CLOUD_FORCE_PUSH);

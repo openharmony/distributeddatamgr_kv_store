@@ -102,10 +102,10 @@ int SingleVerDataSync::SendControlPacket(ControlRequestPacket *packet, SingleVer
     uint32_t packetLen = packet->CalculateLen();
     int errCode = message->SetExternalObject(packet);
     if (errCode != E_OK) {
-        delete packet;
-        packet = nullptr;
         delete message;
         message = nullptr;
+        delete packet;
+        packet = nullptr;
         LOGE("[DataSync][SendControlPacket] set external object failed errCode=%d", errCode);
         return errCode;
     }

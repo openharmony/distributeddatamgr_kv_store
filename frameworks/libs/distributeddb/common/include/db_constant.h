@@ -182,7 +182,7 @@ public:
 
     static constexpr const int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 
-    static constexpr const char *TABLE_WAS_DROPPED = "table_was_dropped_";
+    static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
     static constexpr const int32_t DEFAULT_ROW_ID = -1;
@@ -198,6 +198,8 @@ public:
 
     static constexpr const char *KV_SYNC_TABLE_NAME = "sync_data";
     static constexpr const char *KV_LOCAL_TABLE_NAME = "local_data";
+
+    static constexpr const char *ROWID = "rowid";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

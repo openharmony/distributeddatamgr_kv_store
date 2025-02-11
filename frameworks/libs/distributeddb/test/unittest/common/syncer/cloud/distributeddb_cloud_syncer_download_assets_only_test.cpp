@@ -988,7 +988,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, 
      * @tc.steps:step2. Download assets which cloud no found
      * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
-    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};;
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).And().AssetsOnly(assets);
@@ -1077,7 +1077,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, 
      * @tc.steps:step2. Download assets which local no found
      * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
-    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};;
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     std::map<std::string, std::set<std::string>> assets1;
@@ -1534,6 +1534,67 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, 
 }
 
 /**
+  * @tc.name: DownloadAssetsOnly020
+  * @tc.desc: Test the consistent flag after syncing without asset
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly020, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 30;
+    InsertLocalData(db, 0, dataCount, ASSETS_TABLE_NAME, true);
+    /**
+     * @tc.steps:step2. sync
+     * @tc.expected: step2. return OK.
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        upIdx++;
+        if (upIdx > 20 && upIdx <= 30) {
+            int64_t err = DBStatus::CLOUD_RECORD_EXIST_CONFLICT;
+            extend.insert_or_assign(CloudDbConstant::ERROR_FIELD, err);
+        }
+    });
+    g_virtualAssetLoader->ForkDownload([](const std::string &tableName, std::map<std::string, Assets> &) {
+        EXPECT_TRUE(false);
+    });
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&queryIdx](const std::string &, VBucket &) {
+        queryIdx++;
+        if (queryIdx == 3) {
+            std::vector<int64_t> inValue = {5, 6, 7, 8, 9};
+            Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+            CloudSyncOption option;
+            option.devices = {DEVICE_CLOUD};
+            option.query = query;
+            option.priorityTask = true;
+            g_delegate->Sync(option, nullptr); // In order to pause compensate sync
+        }
+    });
+    int callCount = 0;
+    g_cloudStoreHook->SetSyncFinishHook([&callCount]() {
+        callCount++;
+        g_processCondition.notify_one();
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    WaitForSync(callCount);
+    /**
+     * @tc.steps:step3. check count
+     * @tc.expected: step3. return OK.
+     */
+    CheckConsistentCount(db, dataCount);
+    g_virtualCloudDb->ForkUpload(nullptr);
+    g_cloudStoreHook->SetSyncFinishHook(nullptr);
+    g_virtualAssetLoader->ForkDownload(nullptr);
+    g_virtualCloudDb->ForkQuery(nullptr);
+}
+
+/**
   * @tc.name: DownloadAssetsOnly021
   * @tc.desc: test force pull mode pull mode can forcibly pull assets.
   * @tc.type: FUNC
@@ -1563,6 +1624,66 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly021, 
     auto data = g_observer->GetSavedChangedData();
     EXPECT_EQ(data.size(), 1u);
     EXPECT_EQ(data[ASSETS_TABLE_NAME].type, ChangedDataType::ASSET);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly022
+  * @tc.desc: test assets only without and.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly022, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    std::map<std::string, std::set<std::string>> assets1;
+    assets1["assets"] = {ASSET_COPY.name + "0_copy"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).
+        EndGroup().Or().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
+    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly023
+  * @tc.desc: test assets only with group and.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: luoguo
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly023, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. assets only sync.
+     * @tc.expected: step2. return Ok.
+     */
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    std::map<std::string, std::set<std::string>> assets1;
+    assets1["assets"] = {ASSET_COPY.name + "0_copy"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
+        EndGroup().And().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
+    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 }
 } // namespace
 #endif // RELATIONAL_STORE

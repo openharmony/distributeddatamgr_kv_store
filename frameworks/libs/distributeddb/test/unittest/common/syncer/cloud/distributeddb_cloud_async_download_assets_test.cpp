@@ -211,6 +211,7 @@ void DistributedDBCloudAsyncDownloadAssetsTest::CloseDb()
     if (delegate_ != nullptr) {
         RelationalStoreManager mgr(APP_ID, USER_ID);
         EXPECT_EQ(mgr.CloseStore(delegate_), OK);
+        delegate_ = nullptr;
     }
 }
 
@@ -973,6 +974,68 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload004, Test
     EXPECT_NO_FATAL_FAILURE(RelationalTestUtils::CloudBlockSync(option, delegate_));
     std::this_thread::sleep_for(std::chrono::seconds(5));
     EXPECT_EQ(assetsDownloadTime, 200);
+    virtualAssetLoader_->ForkDownload(nullptr);
+}
+
+/**
+ * @tc.name: AsyncAbnormalDownload006
+ * @tc.desc: Test abnormal async download.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload006, TestSize.Level4)
+{
+    /**
+     * @tc.steps: step1. Set config and insert 70 cloud data
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 5;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    const int cloudCount = 70;
+    auto schema = GetSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+
+    /**
+     * @tc.steps: step2. Fork download abnormal for 0-10 records
+     * @tc.expected: step2. ok
+     */
+    virtualAssetLoader_->SetDownloadStatus(DB_ERROR);
+    uint32_t failNum = 10;
+    const DownloadFailRange setRange = {.isAllFail = false, .failBeginIndex = 0, .failEndIndex = failNum};
+    virtualAssetLoader_->SetDownloadFailRange(setRange);
+
+    /**
+     * @tc.steps: step3. Async cloud data
+     * @tc.expected: step3. ok
+     */
+    int count = 0;
+    std::mutex countMutex;
+    std::condition_variable cv;
+    virtualAssetLoader_->ForkDownload([&count, &countMutex, &cv](const std::string &tableName,
+        std::map<std::string, Assets> &) {
+        std::lock_guard<std::mutex> autoLock(countMutex);
+        count++;
+        if (count == 1) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        cv.notify_all();
+    });
+
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    RelationalTestUtils::CloudBlockSync(option, delegate_);
+    std::unique_lock<std::mutex> uniqueLock(countMutex);
+    cv.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT), [&count]() {
+        return count >= cloudCount;
+    });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    auto [status, downloadCount] = delegate_->GetDownloadingAssetsCount();
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(downloadCount, static_cast<int32_t>(failNum * 2)); // 1 record has 2 asset
+
+    virtualAssetLoader_->SetDownloadStatus(OK);
+    virtualAssetLoader_->Reset();
     virtualAssetLoader_->ForkDownload(nullptr);
 }
 

@@ -173,6 +173,8 @@ private:
 
     void SetNotSupportIfNeed(QueryObjType type);
 
+    void SetAssetsOnlyValidStatusIfNeed(int status);
+
     std::list<QueryObjNode> queryInfo_;
     bool errFlag_ = true;
     std::vector<uint8_t> prefixKey_;

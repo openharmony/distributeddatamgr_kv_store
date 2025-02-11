@@ -192,7 +192,7 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
             return -E_SCHEMA_MISMATCH;
         }
         auto iter = std::find_if(sTable.begin(), sTable.end(), [&param](const DistributedTable &table) {
-            return table.tableName == param.syncQuery.GetTableName();
+            return DBCommon::ToLowerCase(table.tableName) == DBCommon::ToLowerCase(param.syncQuery.GetTableName());
         });
         if (iter == sTable.end()) {
             LOGE("[SingleVerRelationalSyncer] table name mismatch");

@@ -1365,4 +1365,52 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
+
+
+/**
+  * @tc.name: CheckSecurityLabel001
+  * @tc.desc: Test check label with set label.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel001, TestSize.Level0)
+{
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleFileName = g_exportFileDir + "/CheckSecurityLabel001.$$";
+    std::string singleStoreId = "distributed_CheckSecurityLabel001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.secOption = {SecurityLabel::S1, SecurityFlag::ECE};
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. Specify the path to export the non-encrypted board database.
+     * @tc.expected: step2. Returns OK
+     */
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleFileName, passwd), OK);
+    /**
+     * @tc.steps: step3. Clear label before import and import again.
+     * @tc.expected: step3. Import will set label
+     */
+    SecurityOption before;
+    adapter->GetSecurityOption(singleFileName, before);
+    adapter->ResetSecOptDic();
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
+    SecurityOption after;
+    adapter->GetSecurityOption(singleFileName, before);
+    EXPECT_NE(before, after);
+    /**
+     * @tc.steps: step4. Release resource.
+     * @tc.expected: step4. OK
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
 #endif // OMIT_ENCRYPT

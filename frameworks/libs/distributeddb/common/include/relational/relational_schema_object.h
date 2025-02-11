@@ -105,6 +105,7 @@ private:
     int ParseCheckReferenceColumns(const JsonObject &inJsonObject, TableReferenceProperty &tableReferenceProperty);
     // parse one reference column pair
     int ParseCheckReferenceColumn(const JsonObject &inJsonObject, TableReferenceProperty &tableReferenceProperty);
+    int ParseDistributedVersion(const JsonObject &inJsonObject); // parse distributed version if need
     int ParseDistributedSchema(const JsonObject &inJsonObject); // parse distributed schema if need
     int ParseDistributedTables(const JsonObject &inJsonObject); // parse distributed tables if need
     int ParseDistributedTable(const JsonObject &inJsonObject); // parse distributed table if need

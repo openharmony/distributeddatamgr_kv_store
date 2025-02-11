@@ -154,6 +154,8 @@ private:
 
     int CheckBeforeSync(const CloudSyncOption &option);
 
+    int CheckAssetsOnlyValid(const QuerySyncObject &querySyncObject, const CloudSyncOption &option);
+
     int CheckQueryValid(const CloudSyncOption &option);
 
     int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object, bool isFromTable);

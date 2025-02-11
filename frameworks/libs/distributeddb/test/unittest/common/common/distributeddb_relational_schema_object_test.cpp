@@ -179,6 +179,10 @@ namespace {
     const std::string SCHEMA_TABLE_MODE_COLLABORATION = R"("TABLE_MODE": "COLLABORATION",)";
     const std::string SCHEMA_TABLE_MODE_SPLIT_BY_DEVICE = R"("TABLE_MODE": "SPLIT_BY_DEVICE",)";
     const std::string SCHEMA_TABLE_MODE_INVALID = R"("TABLE_MODE": "SPLIT_BY_USER",)";
+    const std::string DISTRIBUTED_VALID_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 1 })";
+    const std::string DISTRIBUTED_INVALID_SMALL_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": -1 })";
+    const std::string DISTRIBUTED_INVALID_LARGE_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 5000000000 })";
+    const std::string DISTRIBUTED_INVALID_NAN_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": "not a number" })";
 
     const std::string SCHEMA_TABLE_STR = R""("TABLES": [{
             "NAME": "FIRST",
@@ -304,7 +308,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, 
     EXPECT_EQ(schemaObj2.GetTable("FIRST").GetUniqueDefine().size(), 2u);
 
     RelationalSyncOpinion op = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, schemaObj2.ToSchemaString(),
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
 
     EXPECT_EQ(op.size(), 2u);
     EXPECT_EQ(op.at("FIRST").permitSync, true);
@@ -484,6 +488,47 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest006, 
     EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 }
 
+/**
+ * @tc.name: RelationalSchemaParseTest007
+ * @tc.desc: test parse for distributed version in schema
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liuhongyang
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest007, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    std::string schemaOtherField = SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_COLLABORATION + SCHEMA_TYPE_STR_RELATIVE +
+        SCHEMA_TABLE_STR + ",";
+    /**
+     * @tc.steps: step1. call ParseFromSchemaString with a version less than the min of uint32_t
+     * @tc.expected: step1. return -E_SCHEMA_PARSE_FAIL.
+     */
+    std::string schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_SMALL_VERSION + "}";
+    int errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step2. call ParseFromSchemaString with a version greater than the max of uint32_t
+     * @tc.expected: step2. return -E_SCHEMA_PARSE_FAIL.
+     */
+    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_LARGE_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step3. call ParseFromSchemaString with a version that is not a number
+     * @tc.expected: step3. return -E_SCHEMA_PARSE_FAIL.
+     */
+    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_NAN_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step4. call ParseFromSchemaString with a normal version
+     * @tc.expected: step4. return E_OK.
+     */
+    schema = "{" + schemaOtherField + DISTRIBUTED_VALID_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, E_OK);
+}
 
 /**
  * @tc.name: RelationalSchemaCompareTest001
@@ -499,7 +544,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001
     EXPECT_EQ(errCode, E_OK);
 
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
     EXPECT_EQ(opinion.at("FIRST").permitSync, true);
     EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
     EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
@@ -519,7 +564,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002
     EXPECT_EQ(errCode, E_OK);
 
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
     EXPECT_EQ(opinion.at("FIRST").permitSync, true);
     EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
     EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
@@ -539,7 +584,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003
     EXPECT_EQ(errCode, E_OK);
 
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
     EXPECT_TRUE(opinion.empty());
 }
 
@@ -557,7 +602,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004
     EXPECT_EQ(errCode, E_OK);
 
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
     EXPECT_TRUE(opinion.empty());
 }
 
@@ -576,7 +621,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005
     schemaObj.SetTableMode(DistributedTableMode::COLLABORATION);
 
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE));
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
     EXPECT_TRUE(opinion.empty());
 }
 

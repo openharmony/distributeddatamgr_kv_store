@@ -2276,8 +2276,8 @@ int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, co
 
     if (IsPrintTimestamp()) {
         LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
-            PRIu64, dataItem.writeTimestamp, dataItem.timestamp, dataItem.flag, dataItem.modifyTime,
-            dataItem.createTime);
+            PRIu64 ", key size:%" PRIu32 ", value size:%" PRIu32, dataItem.writeTimestamp, dataItem.timestamp,
+            dataItem.flag, dataItem.modifyTime, dataItem.createTime, dataItem.key.size(), dataItem.value.size());
     }
     return errCode;
 }

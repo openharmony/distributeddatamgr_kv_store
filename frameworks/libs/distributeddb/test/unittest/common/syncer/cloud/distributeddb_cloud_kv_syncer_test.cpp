@@ -1062,7 +1062,6 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest003, TestSize.Le
     removeThread2.join();
 }
 
-
 /**
  * @tc.name: SyncWithKvAndCloud001.
  * @tc.desc: Test sync data with same key and different sync way.

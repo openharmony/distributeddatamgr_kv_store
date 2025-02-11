@@ -1273,7 +1273,7 @@ int CloudStorageUtils::IdentifyCloudType(const CloudUploadRecorder &recorder, Cl
 
 int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
 {
-    int64_t *rowid = std::get_if<int64_t>(&flags[CloudDbConstant::ROWID]);
+    int64_t *rowid = std::get_if<int64_t>(&flags[DBConstant::ROWID]);
     int64_t *flag = std::get_if<int64_t>(&flags[CloudDbConstant::FLAG]);
     int64_t *timeStamp = std::get_if<int64_t>(&flags[CloudDbConstant::TIMESTAMP]);
     Bytes *hashKey = std::get_if<Bytes>(&flags[CloudDbConstant::HASH_KEY]);
@@ -1642,5 +1642,55 @@ int CloudStorageUtils::FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &ext
     extend[CloudDbConstant::TYPE_FIELD] = static_cast<int64_t>(CloudQueryType::QUERY_FIELD);
     extend[CloudDbConstant::QUERY_FIELD] = bytes;
     return E_OK;
+}
+
+void CloudStorageUtils::SaveChangedDataByType(const DataValue &dataValue, Type &value)
+{
+    int ret = E_OK;
+    switch (dataValue.GetType()) {
+        case StorageType::STORAGE_TYPE_TEXT:
+            {
+                std::string sValue;
+                ret = dataValue.GetText(sValue);
+                if (ret != E_OK) {
+                    LOGE("[CloudStorageUtils] save changed string data failed %d", ret);
+                    return;
+                }
+                value = sValue;
+            } break;
+        case StorageType::STORAGE_TYPE_BLOB:
+            {
+                Blob blob;
+                (void)dataValue.GetBlob(blob);
+                if (blob.GetSize() == 0u) {
+                    LOGE("[CloudStorageUtils] save changed Blob data failed");
+                    return;
+                }
+                value = std::vector<uint8_t>(blob.GetData(), blob.GetData() + blob.GetSize());
+            } break;
+        case StorageType::STORAGE_TYPE_INTEGER:
+            {
+                int64_t iValue;
+                ret = dataValue.GetInt64(iValue);
+                if (ret != E_OK) {
+                    LOGE("[CloudStorageUtils] save changed int64 data failed %d", ret);
+                    return;
+                }
+                value = iValue;
+            } break;
+        case StorageType::STORAGE_TYPE_REAL:
+            {
+                double dValue;
+                ret = dataValue.GetDouble(dValue);
+                if (ret != E_OK) {
+                    LOGE("[CloudStorageUtils] save changed double data failed %d", ret);
+                    return;
+                }
+                value = dValue;
+            } break;
+        default:
+            LOGE("[CloudStorageUtils] save changed failed, wrong storage type :%" PRIu32, dataValue.GetType());
+            return;
+    }
 }
 }

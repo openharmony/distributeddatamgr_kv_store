@@ -467,12 +467,13 @@ int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, 
 }
 
 void GetFieldsNeedContain(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
-    std::set<std::string> &fieldsNeedContain, std::set<std::string> &requiredNotNullFields)
+    std::set<std::string> &fieldsNeedContain, std::set<std::string> &fieldsNotDecrease,
+    std::set<std::string> &requiredNotNullFields)
 {
     // should not decrease distributed field
     for (const auto &syncField : syncFields) {
         if (!tableInfo.IsPrimaryKey(syncField.GetFieldName())) {
-            fieldsNeedContain.insert(syncField.GetFieldName());
+            fieldsNotDecrease.insert(syncField.GetFieldName());
         }
     }
     const std::vector<CompositeFields> &uniqueDefines = tableInfo.GetUniqueDefine();
@@ -511,6 +512,20 @@ bool CheckRequireFieldsInMap(const std::set<std::string> &fieldsNeedContain,
     return true;
 }
 
+bool IsMarkUniqueColumnInvalid(const TableInfo &tableInfo, const std::vector<DistributedField> &originFields)
+{
+    int count = 0;
+    for (const auto &field : originFields) {
+        if (field.isSpecified && tableInfo.IsUniqueField(field.colName)) {
+            count++;
+            if (count > 1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
     const std::vector<DistributedField> &originFields)
@@ -524,22 +539,24 @@ bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     if (tableInfo.IsNoPkTable()) {
         return false;
     }
+    if (!distributedPk.empty() && distributedPk.size() != tableInfo.GetPrimaryKey().size()) {
+        return true;
+    }
     if (tableInfo.GetAutoIncrement()) {
         if (distributedPk.empty()) {
             return false;
         }
-        auto uniqueDefine = tableInfo.GetUniqueDefine();
-        bool isMissMatch = true;
-        for (const auto &item : uniqueDefine) {
-            // unique index field count should be same
-            if (item.size() != distributedPk.size()) {
-                continue;
-            }
-            if (distributedPk == DBCommon::TransformToCaseInsensitive(item)) {
-                isMissMatch = false;
-                break;
-            }
+        auto uniqueAndPkDefine = tableInfo.GetUniqueAndPkDefine();
+        if (IsMarkUniqueColumnInvalid(tableInfo, originFields)) {
+            LOGE("Mark more than one unique column specified in auto increment table: %s, tableName len: %zu",
+                DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str(), tableInfo.GetTableName().length());
+            return true;
         }
+        auto find = std::any_of(uniqueAndPkDefine.begin(), uniqueAndPkDefine.end(), [&distributedPk](const auto &item) {
+            // unique index field count should be same
+            return item.size() == distributedPk.size() && distributedPk == DBCommon::TransformToCaseInsensitive(item);
+        });
+        bool isMissMatch = !find;
         if (isMissMatch) {
             LOGE("Miss match distributed pk size %zu in auto increment table %s", distributedPk.size(),
                 DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str());
@@ -562,6 +579,27 @@ bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     return false;
 }
 
+bool IsDistributedSchemaSupport(const TableInfo &tableInfo, const std::vector<DistributedField> &fields)
+{
+    if (!tableInfo.GetAutoIncrement()) {
+        return true;
+    }
+    bool isSyncPk = false;
+    bool isSyncOtherSpecified = false;
+    for (const auto &item : fields) {
+        if (tableInfo.IsPrimaryKey(item.colName) && item.isP2pSync) {
+            isSyncPk = true;
+        } else if (item.isSpecified && item.isP2pSync) {
+            isSyncOtherSpecified = true;
+        }
+    }
+    if (isSyncPk && isSyncOtherSpecified) {
+        LOGE("Not support sync with auto increment pk and other specified col");
+        return false;
+    }
+    return true;
+}
+
 int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
     const std::vector<DistributedField> &fields)
 {
@@ -569,11 +607,18 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
         LOGE("fields cannot be empty");
         return -E_SCHEMA_MISMATCH;
     }
+    if (!IsDistributedSchemaSupport(tableInfo, fields)) {
+        return -E_NOT_SUPPORT;
+    }
     std::set<std::string, CaseInsensitiveComparator> distributedPk;
+    bool isNoPrimaryKeyTable = tableInfo.IsNoPkTable();
     for (const auto &field : fields) {
         if (!tableInfo.IsFieldExist(field.colName)) {
             LOGE("Column[%s [%zu]] not found in table", DBCommon::StringMiddleMasking(field.colName).c_str(),
                  field.colName.size());
+            return -E_SCHEMA_MISMATCH;
+        }
+        if (isNoPrimaryKeyTable && field.isSpecified) {
             return -E_SCHEMA_MISMATCH;
         }
         if (field.isSpecified && field.isP2pSync) {
@@ -584,14 +629,19 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
         return -E_SCHEMA_MISMATCH;
     }
     std::set<std::string> fieldsNeedContain;
+    std::set<std::string> fieldsNotDecrease;
     std::set<std::string> requiredNotNullFields;
-    GetFieldsNeedContain(tableInfo, syncFields, fieldsNeedContain, requiredNotNullFields);
+    GetFieldsNeedContain(tableInfo, syncFields, fieldsNeedContain, fieldsNotDecrease, requiredNotNullFields);
     std::map<std::string, bool> fieldsMap;
     for (auto &field : fields) {
         fieldsMap.insert({field.colName, field.isP2pSync});
     }
     if (!CheckRequireFieldsInMap(fieldsNeedContain, fieldsMap)) {
         LOGE("The required fields are not found in fieldsMap");
+        return -E_SCHEMA_MISMATCH;
+    }
+    if (!CheckRequireFieldsInMap(fieldsNotDecrease, fieldsMap)) {
+        LOGE("The fields should not decrease");
         return -E_DISTRIBUTED_FIELD_DECREASE;
     }
     if (!CheckRequireFieldsInMap(requiredNotNullFields, fieldsMap)) {

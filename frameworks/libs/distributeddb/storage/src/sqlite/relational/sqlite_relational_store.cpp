@@ -536,6 +536,13 @@ int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tabl
 
 int SQLiteRelationalStore::RemoveDeviceData()
 {
+    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE)));
+    if (mode == DistributedTableMode::COLLABORATION) {
+        LOGE("Not support remove all device data in collaboration mode.");
+        return -E_NOT_SUPPORT;
+    }
+
     std::vector<std::string> tableNameList = GetAllDistributedTableName();
     if (tableNameList.empty()) {
         return E_OK;
@@ -580,6 +587,13 @@ int SQLiteRelationalStore::RemoveDeviceData()
 
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
 {
+    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE)));
+    if (mode == DistributedTableMode::COLLABORATION) {
+        LOGE("Not support remove device data in collaboration mode.");
+        return -E_NOT_SUPPORT;
+    }
+
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     auto iter = tables.find(tableName);
     if (tables.empty() || (!tableName.empty() && iter == tables.end())) {
@@ -1081,24 +1095,29 @@ int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &
 
 int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
 {
-    // check schema is ok
-    int errCode = E_OK;
+    // check schema first then compare columns to avoid change the origin return error code
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    int errCode = storageEngine_->ChkSchema(tableName);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore][ChkSchema] ChkSchema failed %d.", errCode);
+        return errCode;
+    }
     auto *handle = GetHandle(false, errCode);
     if (handle == nullptr) {
         LOGE("[SQLiteRelationalStore][ChkSchema] handle is nullptr");
         return errCode;
     }
+    RelationalSchemaObject localSchema = storageEngine_->GetSchemaInfo();
+    handle->SetLocalSchema(localSchema);
     errCode = handle->CompareSchemaTableColumns(tableName);
-    ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[SQLiteRelationalStore][ChkSchema] local schema info incompatible %d.", errCode);
-        return errCode;
     }
-    if (storageEngine_ == nullptr) {
-        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
-        return -E_INVALID_DB;
-    }
-    return storageEngine_->ChkSchema(tableName);
+    ReleaseHandle(handle);
+    return errCode;
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -1166,6 +1185,27 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     return E_OK;
 }
 
+int SQLiteRelationalStore::CheckAssetsOnlyValid(const QuerySyncObject &querySyncObject, const CloudSyncOption &option)
+{
+    if (!querySyncObject.IsAssetsOnly()) {
+        return E_OK;
+    }
+    if (option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
+        LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
+        return -E_NOT_SUPPORT;
+    }
+    if (option.priorityLevel != CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
+        LOGE("[RelationalStore] priorityLevel must be 2 when sync with assets only, now is %d",
+            option.priorityLevel);
+        return -E_INVALID_ARGS;
+    }
+    if (querySyncObject.AssetsOnlyErrFlag() == -E_INVALID_ARGS) {
+        LOGE("[RelationalStore] the query statement of assets only is incorrect.");
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
 int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
 {
     if (option.compensatedSyncOnly) {
@@ -1198,16 +1238,9 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
                 DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
             return -E_NOT_SUPPORT;
         }
-        if (item.IsAssetsOnly()) {
-            if (option.mode != SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
-                LOGE("[RelationalStore] not support mode %d when sync with assets only", option.mode);
-                return -E_NOT_SUPPORT;
-            }
-            if (option.priorityLevel != CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
-                LOGE("[RelationalStore] priorityLevel must be 2 when sync with assets only, now is %d",
-                    option.priorityLevel);
-                return -E_INVALID_ARGS;
-            }
+        errCode = CheckAssetsOnlyValid(item, option);
+        if (errCode != E_OK) {
+            return errCode;
         }
     }
     errCode = CheckTableName(syncTableNames);

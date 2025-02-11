@@ -48,8 +48,10 @@ static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(
 static constexpr const char *SET_FLAG_CLEAN_WAIT_COMPENSATED_SYNC = "(CASE WHEN data_key = -1 and "
     "FLAG & 0x02 = 0x02 THEN FLAG & (~0x10) & (~0x20) ELSE (FLAG | 0x20) & (~0x10) END)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
+// set data logic delete, exist passport, delete, not compensated, cloud and consistency
+static constexpr const char *SET_FLAG_WHEN_LOGOUT = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x12) & (~0x20)";
 // set data logic delete, exist passport, delete, not compensated and cloud
-static constexpr const char *SET_FLAG_WHEN_LOGOUT = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x12)";
+static constexpr const char *SET_FLAG_WHEN_LOGOUT_FOR_SHARE_TABLE = "(FLAG | 0x08 | 0x800 | 0x01) & (~0x12)";
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const char *UPDATE_CURSOR_SQL = "cursor=update_cursor()";
 static constexpr const int SET_FLAG_ZERO_MASK = ~0x04; // clear 2th bit of flag
@@ -195,13 +197,10 @@ std::string GetExtendValue(const TrackerTable &trackerTable)
     return extendValue;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity,
-    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr)
+int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedDataInner(sqlite3 *db, const std::string &identity,
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
 {
     std::string tableName = tableInfo.GetTableName();
-    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        return UpdateTrackerTableTimeStamp(db, identity, tableInfo, logMgrPtr, false);
-    }
     int64_t timeOffset = 0;
     int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
     if (errCode != E_OK) {
@@ -223,7 +222,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
         ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
         timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
     sql += GetExtendValue(tableInfo.GetTrackerTable());
-    sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+    sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a ";
+    if (isTrackerTable) {
+        sql += " WHERE 1 = 1;";
+    } else {
+        sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_);";
+    }
     errCode = trackerTable.ReBuildTempTrigger(db, TriggerMode::TriggerModeEnum::INSERT, [db, &sql]() {
         int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (ret != E_OK) {
@@ -232,6 +236,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
         return ret;
     });
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity,
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
+{
+    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        return UpdateTrackerTableTimeStamp(db, identity, tableInfo, logMgrPtr, false);
+    }
+    return GeneLogInfoForExistedDataInner(db, identity, tableInfo, logMgrPtr, isTrackerTable);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableName)
@@ -310,8 +323,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
     std::string tableName = table.GetTableName();
     if (!isUpgraded) {
         if (table.GetTrackerTable().GetTableName().empty()) {
-            // user table -> distributed table
-            errCode = GeneLogInfoForExistedData(dbHandle_, identity, table, tableManager);
+            errCode = GeneLogInfoForExistedData(dbHandle_, identity, table, tableManager, false);
         } else if (table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
             // tracker table -> distributed device table
             errCode = UpdateTrackerTableTimeStamp(dbHandle_, tableName, table, tableManager, true);
@@ -319,9 +331,14 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
             // tracker table -> distributed cloud table
             errCode = ResetLogStatus(tableName);
         }
-        if (errCode != E_OK) {
-            return errCode;
+    } else {
+        if (table.GetTrackerTable().GetTableName().empty()) {
+            errCode = GeneLogInfoForExistedDataInner(dbHandle_, identity, table, tableManager, false);
         }
+    }
+    if (errCode != E_OK) {
+        LOGE("[CreateDistributedTable] generate log isUpgraded %d failed %d.", static_cast<int>(isUpgraded), errCode);
+        return errCode;
     }
 
     // add trigger
@@ -713,7 +730,7 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
 
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
 {
-    flags.insert_or_assign(CloudDbConstant::ROWID,
+    flags.insert_or_assign(DBConstant::ROWID,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, DATA_KEY_INDEX)));
     flags.insert_or_assign(CloudDbConstant::TIMESTAMP,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
@@ -900,7 +917,11 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncDataItem(const DataItem 
 int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &dataItem, bool isUpdate,
     SaveSyncDataStmt &saveStmt, RelationalSyncDataInserter &inserter, int64_t &rowid)
 {
+    auto &data = inserter.GetChangedData();
     if ((dataItem.flag & DataItem::DELETE_FLAG) != 0) {
+        std::vector<Type> primaryValues;
+        primaryValues.push_back(rowid);
+        data.primaryData[ChangeType::OP_DELETE].push_back(primaryValues);
         rowid = -1;
         return DeleteSyncDataItem(dataItem, inserter, saveStmt.rmDataStmt);
     }
@@ -913,12 +934,29 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &d
             LOGE("Delete no pk data before insert failed, errCode=%d.", errCode);
             return errCode;
         }
+        std::vector<Type> primaryValues;
+        primaryValues.push_back(rowid);
+        data.primaryData[ChangeType::OP_DELETE].push_back(primaryValues);
     }
-    int errCode = inserter.SaveData(isUpdate, dataItem, saveStmt);
+    std::map<std::string, Type> pkVals;
+    int errCode = inserter.SaveData(isUpdate, dataItem, saveStmt, pkVals);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         if (!isUpdate) {
             rowid = SQLiteUtils::GetLastRowId(dbHandle_);
         }
+        std::vector<Type> primaryValues;
+        std::vector<std::string> primaryKeys;
+        if (inserter.GetLocalTable().IsMultiPkTable() || inserter.GetLocalTable().IsNoPkTable()) {
+            primaryKeys.push_back(DBConstant::ROWID);
+            primaryValues.push_back(rowid);
+        }
+        for (const auto &pkVal : pkVals) {
+            primaryKeys.push_back(pkVal.first);
+            primaryValues.push_back(pkVal.second);
+        }
+        ChangeType type = isUpdate ? ChangeType::OP_UPDATE : ChangeType::OP_INSERT;
+        data.primaryData[type].push_back(primaryValues);
+        data.field = primaryKeys;
         errCode = E_OK;
     }
     return errCode;
@@ -975,7 +1013,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
         isDefeated = false; // no need to solve conflict except miss query data
         return E_OK;
     }
-    if (dataItem.dev != logInfoGet.device) {
+    if (!isExist || dataItem.dev != logInfoGet.device) {
         // defeated if item timestamp is earlier than raw data
         isDefeated = (dataItem.timestamp <= logInfoGet.timestamp);
     }
@@ -1311,7 +1349,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const st
 
 int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::string &tableName, bool &onceDropped)
 {
-    std::string keyStr = DBConstant::TABLE_WAS_DROPPED + tableName;
+    std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
     Key key;
     DBCommon::StringToVector(keyStr, key);
     Value value;
@@ -1830,10 +1868,10 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnShareTableWithLogicDelete
         LOGE("Failed to create updateCursor func on shareTable errCode=%d.", errCode);
         return errCode;
     }
-    std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " + SET_FLAG_WHEN_LOGOUT +
-                      ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
-                      SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL + " WHERE (NOT (" + DATA_IS_DELETE + ") " +
-                      " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
+    std::string sql = "UPDATE '" + logTableName + "' SET " + CloudDbConstant::FLAG + " = " +
+                      SET_FLAG_WHEN_LOGOUT_FOR_SHARE_TABLE + ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " +
+                      CLOUD_GID_FIELD + " = '', " + SHARING_RESOURCE + " = '', " + UPDATE_CURSOR_SQL +
+                      " WHERE (NOT (" + DATA_IS_DELETE + ") " + " AND NOT (" + FLAG_IS_LOGIC_DELETE + "));";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     // here just clear updateCursor func, fail will not influence other function
     (void)CreateFuncUpdateCursor(context, nullptr);
@@ -1963,6 +2001,16 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::stri
     int resetRet;
     SQLiteUtils::ResetStatement(stmt, true, resetRet);
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo,
+    TableSyncType syncType)
+{
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableInfo.GetTableName()) +
+        " as log set hash_key = (select " + tableManager->CalcPrimaryKeyHash("data.", tableInfo, "") +
+        " from " + tableInfo.GetTableName() + " as data where log.data_key = data._rowid_);";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
 }
 } // namespace DistributedDB
 #endif

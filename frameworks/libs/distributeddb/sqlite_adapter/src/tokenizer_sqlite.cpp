@@ -34,7 +34,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
     (void)sqlite3;
     std::lock_guard<std::mutex> lock(g_mtx);
     g_refCount++;
-    if (g_refCount != 1) {
+    if (g_refCount != 1) {  // 说明已经初始化过了，直接返回
         *ppOut = (Fts5Tokenizer *)&g_magicCode;
         return SQLITE_OK;
     }
@@ -45,7 +45,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
         sqlite3_log(ret, "GRD_TokenizerInit wrong");
         return ret;
     }
-    *ppOut = (Fts5Tokenizer *)&g_magicCode;
+    *ppOut = (Fts5Tokenizer *)&g_magicCode;  // 需要保证*ppOut不为NULL，否则会使用默认分词器而不是自定的
     return SQLITE_OK;
 }
 
@@ -67,8 +67,8 @@ static char *CpyStr(const char *pText, int nText)
     return ptr;
 }
 
-int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText,
-    XTokenFn xToken)
+int fts5_customtokenizer_xTokenize(
+    Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText, XTokenFn xToken)
 {
     if (nText == 0) {
         return SQLITE_OK;
@@ -87,8 +87,8 @@ int fts5_customtokenizer_xTokenize(Fts5Tokenizer *tokenizer_ptr, void *pCtx, int
         return ret;
     }
     GRD_WordEntryT entry;
-    int start = 0;
-    int end = 0;
+    int start = 0;  // 词在句子中的起始位置
+    int end = 0;    // 词在句子中的结束位置
     while ((ret = GRD_TokenizerNext(entryList, &entry)) == GRD_OK) {
         start = entry.word - ptr;
         end = start + static_cast<int>(entry.length);
@@ -110,7 +110,7 @@ void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr)
 {
     std::lock_guard<std::mutex> lock(g_mtx);
     g_refCount--;
-    if (g_refCount != 0) {
+    if (g_refCount != 0) {  // 说明还有其他的地方在使用，不能释放资源
         return;
     }
     (void)GRD_TokenizerDestroy(tokenizer_ptr);
@@ -144,10 +144,7 @@ int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api
     SQLITE_EXTENSION_INIT2(pApi)
 
     fts5_tokenizer tokenizer = {
-        fts5_customtokenizer_xCreate,
-        fts5_customtokenizer_xDelete,
-        fts5_customtokenizer_xTokenize
-    };
+        fts5_customtokenizer_xCreate, fts5_customtokenizer_xDelete, fts5_customtokenizer_xTokenize};
     fts5_api *fts5api;
     rc = fts5_api_from_db(db, &fts5api);
     if (rc != SQLITE_OK) {

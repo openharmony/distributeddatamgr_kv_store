@@ -72,7 +72,6 @@ protected:
 
     // export begin
     int ExecuteExport(const std::string &filePath, const CipherPassword &passwd, const KvDBProperties &property) const;
-
 private:
     int CreateStatusCtrlFile(const KvDBProperties &property, std::string &orgCtrlFile, std::string &newCtrlFile);
 
@@ -98,9 +97,9 @@ private:
     int PackExportedDatabase(const std::string &fileDir, const std::string &packedFile,
         const KvDBProperties &property) const;
 
-    int CheckSecurityOption(const std::string &filePath, const KvDBProperties &property) const;
-
     int CreateBackupDirForExport(const KvDBProperties &property, std::string &currentDir, std::string &backupDir) const;
+
+    static int CheckSecurityOption(const std::string &filePath, const KvDBProperties &property);
 
     std::string deviceId_;
 };

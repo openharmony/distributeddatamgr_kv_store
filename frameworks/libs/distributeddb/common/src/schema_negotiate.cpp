@@ -17,6 +17,7 @@
 #include "db_common.h"
 #include "log_print.h"
 #include "schema_utils.h"
+#include "version.h"
 
 namespace DistributedDB {
 // Some principle in current version describe below. (Relative-type will be introduced in future but not involved now)
@@ -124,7 +125,7 @@ RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSche
 }
 
 RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSchemaObject &localSchema,
-    const std::string &remoteSchema, uint8_t remoteSchemaType)
+    const std::string &remoteSchema, uint8_t remoteSchemaType, uint32_t remoteSoftwareVersion)
 {
     SchemaType localType = localSchema.GetSchemaType();
     SchemaType remoteType = ReadSchemaType(remoteSchemaType);
@@ -165,6 +166,16 @@ RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSche
         return {};
     }
 
+    if ((remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_11_0) &&
+        (localSchema.GetTableMode() == DistributedTableMode::COLLABORATION) &&
+        (remoteSchemaObj.GetDistributedSchema().tables.empty() || localSchema.GetDistributedSchema().tables.empty())) {
+        LOGW("[RelationalSchema][opinion] Distributed schema is empty, local %zu, remote %zu",
+            localSchema.GetDistributedSchema().tables.size(), remoteSchemaObj.GetDistributedSchema().tables.size());
+        return {};
+    }
+    if (IsDistributedSchemaInvalid(localSchema, remoteSchemaObj)) {
+        return {};
+    }
     return MakeOpinionEachTable(localSchema, remoteSchemaObj);
 }
 
@@ -262,5 +273,49 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
         opinion[tableName] = tableOpinion;
     }
     return parcel.IsError() ? -E_INVALID_ARGS : E_OK;
+}
+
+bool SchemaNegotiate::IsDistributedSchemaInvalid(const RelationalSchemaObject &localSchema,
+    const RelationalSchemaObject &remoteSchema)
+{
+    auto localTables = localSchema.GetTableNames();
+    for (const auto &localTable : localTables) {
+        auto localDistributedTable = localSchema.GetDistributedTable(localTable);
+        if (localDistributedTable.tableName.empty()) {
+            continue;
+        }
+        auto remoteDistributedTable = remoteSchema.GetDistributedTable(localTable);
+        if (remoteDistributedTable.tableName.empty()) {
+            continue;
+        }
+        if (IsDistributedTableInvalid(localDistributedTable, remoteDistributedTable,
+            localSchema.GetTable(localTable), remoteSchema.GetTable(localTable))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SchemaNegotiate::IsDistributedTableInvalid(const DistributedTable &local, const DistributedTable &remote,
+    const TableInfo &localTable, const TableInfo &remoteTable)
+{
+    std::set<std::string> localSpecified;
+    for (const auto &item : local.fields) {
+        if (item.isP2pSync && item.isSpecified && !localTable.IsPrimaryKey(item.colName)) {
+            localSpecified.insert(item.colName);
+        }
+    }
+    std::set<std::string> remoteSpecified;
+    for (const auto &item : remote.fields) {
+        if (item.isP2pSync && item.isSpecified && !remoteTable.IsPrimaryKey(item.colName)) {
+            remoteSpecified.insert(item.colName);
+        }
+    }
+    if (localSpecified != remoteSpecified) {
+        LOGE("[SchemaNegotiate] specified field is diff local size %zu remote size %zu",
+            localSpecified.size(), remoteSpecified.size());
+        return true;
+    }
+    return false;
 }
 }

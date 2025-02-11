@@ -319,12 +319,18 @@ int SQLiteSingleVerStorageExecutor::PrepareForUnSyncTotalByTime(Timestamp begin,
 
     errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_BEGIN_STAMP_INDEX, begin);
     if (errCode != E_OK) {
-        LOGE("Bind the timestamp for getting sync num error:%d", errCode);
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        LOGE("Bind the begin timestamp for getting sync num error:%d", errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return CheckCorruptedStatus(errCode);
     }
 
     errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_END_STAMP_INDEX, end);
+    if (errCode != E_OK) {
+        LOGE("Bind the end timestamp for getting sync num error:%d", errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+    }
     return CheckCorruptedStatus(errCode);
 }
 

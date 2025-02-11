@@ -1050,12 +1050,15 @@ namespace {
 
     void CloseDb()
     {
-        delete g_observer;
-        g_virtualCloudDb = nullptr;
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;
         }
+        if (g_observer != nullptr) {
+            delete g_observer;
+            g_observer = nullptr;
+        }
+        g_virtualCloudDb = nullptr;
     }
 
     void InitMockAssetLoader(DBStatus &status, int &index)

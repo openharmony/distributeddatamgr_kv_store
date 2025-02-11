@@ -93,12 +93,15 @@ void GetCloudDbSchema(DataBaseSchema &dataBaseSchema)
 
 void CloseDb()
 {
-    delete g_observer;
-    g_virtualCloudDb = nullptr;
     if (g_delegate != nullptr) {
         EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
         g_delegate = nullptr;
     }
+    if (g_observer != nullptr) {
+        delete g_observer;
+        g_observer = nullptr;
+    }
+    g_virtualCloudDb = nullptr;
 }
 
 class DistributedDBCloudSyncerLockTest : public testing::Test {
@@ -1392,6 +1395,101 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, CompensateSyncTest001, TestSize.Level
     });
     CallSync(cOption);
     sleep(1);
+    g_virtualCloudDb->ForkQuery(nullptr);
+}
+
+/**
+ * @tc.name: UnLockSyncTest001
+ * @tc.desc: Test sync after unlock data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, UnLockSyncTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. insert data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int localCount = 100;
+    InsertLocalData(0, localCount, ASSETS_TABLE_NAME, true);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps: step2. lock 0-70, update all data and unlock
+     * @tc.expected: step2. unlock return WAIT_COMPENSATED_SYNC.
+     */
+    std::vector<std::vector<uint8_t>> hashKeys;
+    CloudDBSyncUtilsTest::GetHashKey(ASSETS_TABLE_NAME, " data_key < 70 ", db, hashKeys);
+    EXPECT_EQ(Lock(ASSETS_TABLE_NAME, hashKeys, db), OK);
+    std::string sql = "update " + ASSETS_TABLE_NAME + " set name = 'xxx';";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql.c_str()), SQLITE_OK);
+
+    /**
+     * @tc.steps: step3. non-compensated sync for condition query and isPriorityTask is true.
+     * @tc.expected: step3. sync data that is not in the UNLOCKING state.
+     */
+    EXPECT_EQ(UnLock(ASSETS_TABLE_NAME, hashKeys, db), WAIT_COMPENSATED_SYNC);
+    std::vector<int> values;
+    for (int i = 50; i < 100; i++) {
+        values.push_back(i);
+    }
+    option = PrepareOption(Query::Select().From(ASSETS_TABLE_NAME).In("id", values), LockAction::INSERT, true, false);
+    CallSync(option);
+    for (const auto &table : g_syncProcess.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 30u);
+    }
+
+    /**
+     * @tc.steps: step4. compensate sync and check upLoadInfo
+     * @tc.expected: step4. synch all data to be compensated in the UNLOCKING state.
+     */
+    option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT, true, true);
+    CallSync(option);
+    for (const auto &table : g_syncProcess.tableProcess) {
+        EXPECT_EQ(table.second.upLoadInfo.total, 70u);
+    }
+}
+
+/**
+ * @tc.name: TaskIdTest001
+ * @tc.desc: Test sync with specific task id
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, TaskIdTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert cloud and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    /**
+     * @tc.steps:step2. sync with specific task id(1) when query
+     * @tc.expected: step2. return ok.
+     */
+    int queryTime = 0;
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &extend) {
+        if (queryTime == 0) {
+            queryTime++;
+            EXPECT_EQ(g_delegate->Sync(option, nullptr, 1u), OK);
+        }
+    });
+    CallSync(option);
+    /**
+     * @tc.steps:step3. sync without task id
+     * @tc.expected: step3. return ok.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &extend) {
+        SyncProcess syncProcess = g_delegate->GetCloudTaskStatus(UINT64_MAX - 1);
+        EXPECT_EQ(syncProcess.errCode, OK);
+    });
+    CallSync(option);
     g_virtualCloudDb->ForkQuery(nullptr);
 }
 } // namespace

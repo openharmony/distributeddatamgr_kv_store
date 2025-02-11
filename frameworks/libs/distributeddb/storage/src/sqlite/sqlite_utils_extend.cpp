@@ -714,4 +714,13 @@ int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int &count)
     }
     return errCode != E_OK ? errCode : ret;
 }
+
+bool SQLiteUtils::IsStmtReadOnly(sqlite3_stmt *statement)
+{
+    if (statement == nullptr) {
+        return false;
+    }
+    int isReadOnly = sqlite3_stmt_readonly(statement);
+    return static_cast<bool>(isReadOnly);
+}
 } // namespace DistributedDB

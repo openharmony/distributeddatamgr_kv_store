@@ -187,7 +187,7 @@ public:
 
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 
-    bool IsContainAssetsTable();
+    bool IsExistTableContainAssets();
 protected:
     void Init();
 

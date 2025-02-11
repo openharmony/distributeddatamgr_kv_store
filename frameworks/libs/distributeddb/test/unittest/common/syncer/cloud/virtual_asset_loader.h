@@ -24,6 +24,13 @@ using DownloadCallBack = std::function<void (const std::string &tableName, std::
 using RemoveAssetsCallBack = std::function<DBStatus (const std::vector<Asset> &assets)>;
 using RemoveLocalAssetsCallBack = std::function<DBStatus (std::map<std::string, Assets> &assets)>;
 using BatchDownloadCallback = std::function<DBStatus (int rowIndex, std::map<std::string, Assets> &assets)>;
+
+struct DownloadFailRange {
+    bool isAllFail = true;
+    uint32_t failBeginIndex = 0;
+    uint32_t failEndIndex = 0;
+};
+
 class VirtualAssetLoader : public IAssetLoader {
 public:
     VirtualAssetLoader() = default;
@@ -64,6 +71,8 @@ public:
     DBStatus CancelDownload() override;
 
     uint32_t GetCancelCount() const;
+
+    void SetDownloadFailRange(const DownloadFailRange &setRange);
 private:
     DBStatus RemoveLocalAssetsInner(const std::string &tableName, const std::string &gid, const Type &prefix,
         std::map<std::string, Assets> &assets);
@@ -72,13 +81,15 @@ private:
     DBStatus downloadStatus_ = OK;
     DBStatus removeStatus_ = OK;
     DBStatus batchRemoveStatus_ = OK;
-    std::atomic<uint32_t> downloadCount_ = 0;
+    std::atomic<uint32_t> batchDownloadCount_ = 0;
     std::atomic<uint32_t> removeCount_ = 0;
     std::atomic<uint32_t> cancelCount_ = 0;
     DownloadCallBack downloadCallBack_;
     RemoveAssetsCallBack removeAssetsCallBack_;
     RemoveLocalAssetsCallBack removeLocalAssetsCallBack_;
     BatchDownloadCallback batchDownloadCallback_;
+    DownloadFailRange downloadFailRange_;
+    std::atomic<uint32_t> downloadCount_ = 0;
 };
 }
 #endif // VIRTUAL_ASSETLOADER_H

@@ -143,8 +143,8 @@ namespace {
     {
         int index = 0;
         string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
-            std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" + " where data_key <= " +
-            std::to_string(num);
+                          std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" +
+                          " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -2550,9 +2550,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest042,
     BatchInsertTableName2Data(num);
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(
-        g_db, "select timestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
+        g_db, "select timestamp,wtimestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
     ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
     int64_t beforTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int64_t beforWTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 1));
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 
@@ -2563,11 +2564,13 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest042,
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), OK);
     stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(
-        g_db, "select timestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
+        g_db, "select timestamp,wtimestamp from naturalbase_rdb_aux_worKer2_log where data_key = 1", stmt), E_OK);
     ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
     int64_t afterTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int64_t afterWTime = static_cast<int64_t>(sqlite3_column_int64(stmt, 1));
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     EXPECT_NE(beforTime, afterTime);
+    EXPECT_NE(beforWTime, afterWTime);
     CloseStore();
 }
 

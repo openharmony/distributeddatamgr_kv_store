@@ -83,7 +83,7 @@ bool SingleVerNaturalStoreConnection::CheckAndGetKeyLen(const std::vector<Key> &
     return true;
 }
 
-int SingleVerNaturalStoreConnection::CheckSyncEntriesValid([[gnu::unused]] const std::vector<Entry> &entries) const
+int SingleVerNaturalStoreConnection::CheckSyncEntriesValid(const std::vector<Entry> &entries) const
 {
     return E_OK;
 }

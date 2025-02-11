@@ -1611,12 +1611,23 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     WaterMark localMark = 0;
     GetLocalWaterMark(curType, packet->GetQueryId(), context, localMark);
     ackPacket.SetRecvCode(recvCode);
+    UpdateWaterMark isUpdateWaterMark;
+    SyncTimeRange dataTime = SingleVerDataSyncUtils::GetRecvDataTimeRange(
+        SyncOperation::GetSyncType(packet->GetMode()), packet->GetData(), isUpdateWaterMark);
+    bool isPacketWaterLower = false;
     // send ack packet
     if ((recvCode == E_OK) && (maxSendDataTime != 0)) {
         ackPacket.SetData(maxSendDataTime + 1); // + 1 to next start
     } else if (recvCode != WATER_MARK_INVALID) {
         WaterMark mark = 0;
         GetPeerWaterMark(curType, packet->GetQueryId(), context->GetDeviceId(), mark);
+        if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetLocalWaterMark() < mark) {
+            LOGI("[DataSync][SetAckPacket] packetLocalMark=%" PRIu64 ",lockMark=%" PRIu64, packet->GetLocalWaterMark(),
+                mark);
+            isPacketWaterLower = true;
+            dataTime.endTime = packet->GetLocalWaterMark();
+            mark = packet->GetLocalWaterMark();
+        }
         ackPacket.SetData(mark);
     }
     std::vector<uint64_t> reserved {localMark};
@@ -1632,10 +1643,20 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     if (curType == SyncType::QUERY_SYNC_TYPE && recvCode != WATER_MARK_INVALID) {
         WaterMark deletedPeerMark;
         GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), deletedPeerMark);
+        if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetDeletedWaterMark() < deletedPeerMark) {
+            LOGI("[DataSync][SetAckPacket] packetDeletedMark=%" PRIu64 ",deletedMark=%" PRIu64,
+                packet->GetDeletedWaterMark(), deletedPeerMark);
+            isPacketWaterLower = true;
+            dataTime.deleteEndTime = packet->GetDeletedWaterMark();
+            deletedPeerMark = packet->GetDeletedWaterMark();
+        }
         reserved.push_back(deletedPeerMark); // query sync mode, reserve[2] store deletedPeerMark value
     }
     ackPacket.SetReserved(reserved);
     ackPacket.SetVersion(version);
+    if (isPacketWaterLower) {
+        UpdatePeerWaterMarkInner(*packet, dataTime, isUpdateWaterMark, context);
+    }
 }
 
 int SingleVerDataSync::GetReSendData(SyncEntry &syncData, SingleVerSyncTaskContext *context,

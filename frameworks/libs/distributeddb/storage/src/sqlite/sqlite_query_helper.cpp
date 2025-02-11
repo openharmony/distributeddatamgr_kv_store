@@ -1195,7 +1195,7 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
             sql += "0 ";
             return;
         }
-        if (queryObjNodes_.empty()) {
+        if (!isCompensatedTask) {
             sql += "(b.status != 1) AND ";
         }
     }

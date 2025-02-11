@@ -35,6 +35,7 @@ using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
+    RelationalStoreObserverUnitTest *g_observer = nullptr;
     std::shared_ptr<std::string> g_testDir = nullptr;
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     const std::string DEVICE_A = "real_device";
@@ -144,8 +145,8 @@ namespace {
         db = RelationalTestUtils::CreateDataBase(dbPath);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_SINGLE_PRIMARY_KEY_TABLE), SQLITE_OK);
-        RelationalStoreObserverUnitTest *observer = new (std::nothrow) RelationalStoreObserverUnitTest();
-        RelationalStoreDelegate::Option option = { .observer = observer };
+        g_observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+        RelationalStoreDelegate::Option option = { .observer = g_observer };
         return mgr.OpenStore(dbPath, STORE_ID_1, option, rdbDelegatePtr);
     }
 
@@ -186,6 +187,11 @@ namespace {
         }
         EXPECT_EQ(mgr.CloseStore(delegatePtr), OK);
         delegatePtr = nullptr;
+        if (g_observer == nullptr) {
+            return;
+        }
+        delete g_observer;
+        g_observer = nullptr;
     }
 
 class DistributedDBSingleVerMultiSubUserTest : public testing::Test {
@@ -510,6 +516,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, RDBDelegateInvalidParamTest001,
     sqlite3 *db1;
     EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr1, nullptr);
+    CloseDelegate(rdbDelegatePtr1, mgr1, db1);
 
     std::string subUser2 = "subUser-1";
     RelationalStoreManager mgr2(APP_ID, USER_ID, subUser2, INSTANCE_ID_1);
@@ -517,6 +524,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, RDBDelegateInvalidParamTest001,
     sqlite3 *db2;
     EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr2, mgr2, db2), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr2, nullptr);
+    CloseDelegate(rdbDelegatePtr2, mgr2, db2);
 
     std::string subUser3 = std::string(128, 'a');
     RelationalStoreManager mgr3(APP_ID, USER_ID, subUser3, INSTANCE_ID_1);

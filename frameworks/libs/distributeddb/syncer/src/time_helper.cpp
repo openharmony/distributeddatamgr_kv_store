@@ -149,11 +149,4 @@ Timestamp TimeHelper::GetMonotonicTime()
     }
     return time;
 }
-
-Timestamp TimeHelper::GetCurrentLocalTime(int64_t &curTimeOffset, int64_t &localTimeOffset)
-{
-    Timestamp currentSysTime = GetSysCurrentTime();
-    Timestamp currentLocalTime = currentSysTime + curTimeOffset + localTimeOffset;
-    return currentLocalTime;
-}
 } // namespace DistributedDB

@@ -206,6 +206,8 @@ public:
     static int StepNext(sqlite3_stmt *stmt, bool isMemDb = false);
 
     static int GetCountBySql(sqlite3 *db, const std::string &sql, int &count);
+
+    static bool IsStmtReadOnly(sqlite3_stmt *statement);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);
