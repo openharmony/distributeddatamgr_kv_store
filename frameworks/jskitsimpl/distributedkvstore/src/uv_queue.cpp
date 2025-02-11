@@ -38,7 +38,7 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         ZLOGE("This callback is nullptr");
         return;
     }
-    auto env = GetEnv();
+    auto env = env_;
     auto task = [env, getter, genArgs]() {
         napi_handle_scope scope = nullptr;
         napi_open_handle_scope(env, &scope);
