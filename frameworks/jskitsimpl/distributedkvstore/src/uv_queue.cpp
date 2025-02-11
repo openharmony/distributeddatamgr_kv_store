@@ -73,7 +73,7 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
     };
     napi_status status = napi_send_event(env_, task, napi_eprio_immediate);
     if (status != napi_ok) {
-        ZLOGE("Failed to napi_send_event. Status: %{public}s", status);
+        ZLOGE("Failed to napi_send_event. Status:%{public}d", status);
     }
 }
 
