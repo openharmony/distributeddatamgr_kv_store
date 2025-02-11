@@ -473,14 +473,14 @@ namespace {
         SetAndGetWaterMark(TABLE_NAME_2, "cloudMark2");
         /**
          * @tc.steps: step4. Call ClearMetaData with one table
-         * @tc.expected: step4. Only meta data of the specified table is cleared
+         * @tc.expected: step4. Return NOT_SUPPORT and meta is not cleared
          */
         option.tableNameList.insert(TABLE_NAME_1);
-        EXPECT_EQ(g_delegate->ClearMetaData(option), OK);
+        EXPECT_EQ(g_delegate->ClearMetaData(option), NOT_SUPPORT);
         g_storageProxy = GetStorageProxy((ICloudSyncStorageInterface *) GetRelationalStore());
         EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_1, retMark1), E_OK);
         EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_2, retMark2), E_OK);
-        EXPECT_EQ(retMark1, "");
+        EXPECT_EQ(retMark1, "cloudMark1");
         EXPECT_EQ(retMark2, "cloudMark2");
     }
 }

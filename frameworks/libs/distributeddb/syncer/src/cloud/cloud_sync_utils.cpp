@@ -975,7 +975,7 @@ int CloudSyncUtils::ClearCloudWatermark(const std::vector<std::string> &tableNam
         int ret = storageProxy->CleanWaterMark(tableName);
         if (ret != E_OK) {
             std::string maskedName = DBCommon::StringMiddleMasking(tableName);
-            LOGE("[CloudSyncUtils] failed to clear watermark. err: %d. table: %s, name length: %u",
+            LOGE("[CloudSyncUtils] failed to clear watermark. err: %d. table: %s, name length: %zu",
                 ret, maskedName.c_str(), maskedName.length());
             return ret;
         }

@@ -546,6 +546,11 @@ DBStatus RelationalStoreDelegateImpl::ClearMetaData(const ClearMetaDataOption &o
 
 DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &option)
 {
+    if (!option.tableNameList.empty()) {
+        LOGE("[RelationalStore Delegate] Clearing watermark of specific tables is not supported yet!");
+        return NOT_SUPPORT;
+    }
+
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for clear water mark!");
         return DB_ERROR;
