@@ -39,11 +39,6 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         return;
     }
     auto env = env_;
-    if (env == nullptr)
-    {
-        ZLOGE("Get napi env failed.")
-        return;
-    }
     auto task = [env, getter, genArgs]() {
         napi_handle_scope scope = nullptr;
         napi_open_handle_scope(env, &scope);
