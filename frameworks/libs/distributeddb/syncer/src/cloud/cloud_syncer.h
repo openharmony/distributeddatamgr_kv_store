@@ -248,7 +248,7 @@ protected:
 
     int DoDownloadAssets(SyncParam &param);
 
-    int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
+    int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param, bool downloadAssetOnly);
 
     void NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo, bool lastBatch);
 
@@ -336,7 +336,7 @@ protected:
 
     bool IsCurrentTableResume(TaskId taskId, bool upload);
 
-    int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort, bool isFirstDownload);
+    int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isFirstDownload);
 
     size_t GetDownloadAssetIndex(TaskId taskId);
 
@@ -414,7 +414,7 @@ protected:
 
     void SetProxyUser(const std::string &user);
 
-    bool MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
+    void MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
 
     void RemoveTaskFromQueue(int32_t priorityLevel, TaskId taskId);
 

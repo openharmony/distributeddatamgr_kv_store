@@ -220,39 +220,47 @@ void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, cons
     endKey_ = keyEnd;
 }
 
+void QueryExpression::SetAssetsOnlyValidStatusIfNeed(int status)
+{
+    if (validStatusForAssetsOnly_ != E_OK && validStatusForAssetsOnly_ == -E_INVALID_ARGS) {
+        return;
+    }
+    validStatusForAssetsOnly_ = status;
+}
+
 void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
 {
     isAssetsOnly_ = true;
     if (useFromTable_) {
         expressions_[fromTable_].QueryAssetsOnly(assets);
-        validStatusForAssetsOnly_ = expressions_[fromTable_].GetExpressionStatusForAssetsOnly();
+        SetAssetsOnlyValidStatusIfNeed(expressions_[fromTable_].GetExpressionStatusForAssetsOnly());
         return;
     }
     if (queryInfo_.empty()) {
         LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
-        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        SetAssetsOnlyValidStatusIfNeed(-E_INVALID_ARGS);
         return;
     } else if (queryInfo_.back().operFlag != QueryObjType::AND) {
         LOGE("[QueryExpression] the QueryAssetsOnly option must be connected with And.");
-        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        SetAssetsOnlyValidStatusIfNeed(-E_INVALID_ARGS);
         return;
     } else {
         queryInfo_.pop_back();
     }
     if (assetsGroupMap_.find(groupNum_) != assetsGroupMap_.end()) {
         LOGE("[QueryExpression]assets only already set!");
-        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        SetAssetsOnlyValidStatusIfNeed(-E_NOT_SUPPORT);
         return;
     }
     if (assets.empty()) {
         LOGE("[QueryExpression]assets map can not be empty!");
-        validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+        SetAssetsOnlyValidStatusIfNeed(-E_NOT_SUPPORT);
         return;
     }
     for (const auto &item : assets) {
         if (item.second.empty() && item.first.empty()) {
             LOGE("[QueryExpression]assets filed or asset name can not be empty!");
-            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            SetAssetsOnlyValidStatusIfNeed(-E_NOT_SUPPORT);
             return;
         }
     }
@@ -260,7 +268,7 @@ void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
     for (uint32_t i = 0; i <= groupNum_; i++) {
         if (assetsGroupMap_.find(i) == assetsGroupMap_.end()) {
             LOGE("[QueryExpression]asset group " PRIu32 " not found, may be AssetsOnly interface use in wrong way.", i);
-            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            SetAssetsOnlyValidStatusIfNeed(-E_NOT_SUPPORT);
             return;
         }
     }
@@ -352,7 +360,7 @@ void QueryExpression::BeginGroup()
     if (isAssetsOnly_) {
         auto iter = queryInfo_.rbegin();
         if (iter != queryInfo_.rend() && (*iter).operFlag != QueryObjType::OR) {
-            validStatusForAssetsOnly_ = -E_INVALID_ARGS;
+            validStatusForAssetsOnly_ = -E_NOT_SUPPORT;
         }
     }
     SetNotSupportIfFromTables();

@@ -54,6 +54,7 @@ RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std:
     inserter.SetRemoteFields(remoteFields);
     inserter.SetQuery(query);
     TableInfo localTable = localSchema.GetTable(query.GetTableName());
+    localTable.SetDistributedTable(localSchema.GetDistributedTable(query.GetTableName()));
     inserter.SetLocalTable(localTable);
     inserter.SetTableMode(localSchema.GetTableMode());
     if (localSchema.GetTableMode() == DistributedTableMode::COLLABORATION) {
@@ -133,7 +134,7 @@ int RelationalSyncDataInserter::GetInsertStatement(sqlite3 *db, sqlite3_stmt *&s
 }
 
 int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem,
-    SaveSyncDataStmt &saveSyncDataStmt)
+    SaveSyncDataStmt &saveSyncDataStmt, std::map<std::string, Type> &pkVals)
 {
     sqlite3_stmt *&stmt = isUpdate ? saveSyncDataStmt.updateDataStmt : saveSyncDataStmt.insertDataStmt;
     std::set<std::string> filterSet;
@@ -141,13 +142,17 @@ int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem
         for (const auto &primaryKey : localTable_.GetIdentifyKey()) {
             filterSet.insert(primaryKey);
         }
+        auto distributedPk = localTable_.GetSyncDistributedPk();
+        if (!distributedPk.empty()) {
+            filterSet.insert(distributedPk.begin(), distributedPk.end());
+        }
     }
     if (stmt == nullptr) {
         LOGW("skip save data %s", DBCommon::StringMiddleMasking(DBCommon::VectorToHexString(dataItem.hashKey)).c_str());
         return E_OK;
     }
 
-    int errCode = BindSaveDataStatement(isUpdate, dataItem, filterSet, stmt);
+    int errCode = BindSaveDataStatement(isUpdate, dataItem, filterSet, stmt, pkVals);
     if (errCode != E_OK) {
         LOGE("Bind data failed, errCode=%d.", errCode);
         int ret = E_OK;
@@ -162,7 +167,7 @@ int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem
 }
 
 int RelationalSyncDataInserter::BindSaveDataStatement(bool isExist, const DataItem &dataItem,
-    const std::set<std::string> &filterSet, sqlite3_stmt *stmt)
+    const std::set<std::string> &filterSet, sqlite3_stmt *stmt, std::map<std::string, Type> &pkVals)
 {
     OptRowDataWithLog data;
     // deserialize by remote field info
@@ -181,6 +186,11 @@ int RelationalSyncDataInserter::BindSaveDataStatement(bool isExist, const DataIt
                 it.GetFieldName().size());
             dataIdx++;
             continue; // skip fields which is orphaned in remote
+        }
+        if (localTable_.IsPrimaryKey(it.GetFieldName())) {
+            Type pkVal;
+            CloudStorageUtils::SaveChangedDataByType(data.optionalData[dataIdx], pkVal);
+            pkVals[it.GetFieldName()] = pkVal;
         }
         if (filterSet.find(it.GetFieldName()) != filterSet.end()) {
             dataIdx++;
@@ -310,6 +320,10 @@ int RelationalSyncDataInserter::GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&s
     for (const auto &primaryKey : localTable_.GetIdentifyKey()) {
         identifyKeySet.insert(primaryKey);
     }
+    auto distributedPk = localTable_.GetSyncDistributedPk();
+    if (!distributedPk.empty()) {
+        identifyKeySet.insert(distributedPk.begin(), distributedPk.end());
+    }
     std::string updateValue;
     const auto &localTableFields = localTable_.GetFields();
     for (const auto &it : remoteFields_) {
@@ -396,5 +410,10 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement
         return E_OK;
     }
     return errCode;
+}
+
+ChangedData &RelationalSyncDataInserter::GetChangedData()
+{
+    return data_;
 }
 } // namespace DistributedDB

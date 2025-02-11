@@ -316,6 +316,11 @@ public:
     {
         return E_OK;
     }
+
+    virtual bool IsExistTableContainAssets()
+    {
+        return false;
+    }
 };
 }
 

@@ -121,7 +121,7 @@ void DistributedDBTimeSyncTest::TearDown(void)
         g_timeSyncB = nullptr;
     }
     if (g_virtualCommunicator != nullptr) {
-        delete g_virtualCommunicator;
+        RefObject::DecObjRef(g_virtualCommunicator);
         g_virtualCommunicator = nullptr;
     }
 }

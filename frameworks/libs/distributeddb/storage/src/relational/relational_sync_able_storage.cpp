@@ -555,8 +555,6 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     StoreInfo info = GetStoreInfo();
     auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
         filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
-    ChangedData data;
-    data.properties.isP2pSyncDataChange = !dataItems.empty();
     inserter.SetEntries(dataItems);
 
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
@@ -578,9 +576,13 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     DBDfxAdapter::StartTracing();
 
     errCode = handle->SaveSyncItems(inserter);
+    ChangedData data = inserter.GetChangedData();
+    data.properties.isP2pSyncDataChange = !dataItems.empty();
+    bool emptyChangedData = data.field.empty() && data.primaryData[OP_INSERT].empty() &&
+        data.primaryData[OP_UPDATE].empty() && data.primaryData[OP_DELETE].empty();
 
     DBDfxAdapter::FinishTracing();
-    if (errCode == E_OK) {
+    if (errCode == E_OK && !emptyChangedData) {
         // dataItems size > 0 now because already check before
         // all dataItems will write into db now, so need to observer notify here
         // if some dataItems will not write into db in the future, observer notify here need change

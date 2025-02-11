@@ -283,8 +283,8 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo),
-            expectCode);
+        EXPECT_EQ(
+            storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo), expectCode);
         if (expectCode == E_OK) {
             if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
                 int64_t val = -1;
@@ -849,7 +849,7 @@ namespace {
         if (expectCode == E_OK) {
             for (size_t i = 0; i < downloadData.opType.size(); i++) {
                 if (downloadData.opType[i] == OpType::INSERT) {
-                    EXPECT_TRUE(downloadData.data[i].find(CloudDbConstant::ROW_ID_FIELD_NAME) !=
+                    EXPECT_TRUE(downloadData.data[i].find(DBConstant::ROWID) !=
                         downloadData.data[i].end());
                 }
             }

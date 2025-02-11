@@ -35,6 +35,8 @@ extern "C" {
 #endif
 #endif  // GRD_API
 
+#define GRD_TOKENIZER_POS_LEN 4
+
 typedef enum GRD_CutMode {
     CUT_MMSEG = 0,
     CUT_BUTT  // INVALID TokenizeMode
@@ -63,6 +65,8 @@ typedef struct GRD_WordEntryList GRD_WordEntryListT;
 typedef struct GRD_WordEntry {
     const char *word;
     uint32_t length;
+    char partOfSpeech[GRD_TOKENIZER_POS_LEN + 1];
+    double idf;
 } GRD_WordEntryT;
 
 #ifdef __cplusplus

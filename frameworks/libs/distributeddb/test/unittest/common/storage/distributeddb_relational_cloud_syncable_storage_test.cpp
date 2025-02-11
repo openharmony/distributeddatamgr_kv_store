@@ -1626,8 +1626,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     gid = "11";
     pk = "1";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, false, gid, hashKey, assets).first,
-        -E_CLOUD_GID_MISMATCH);
+    EXPECT_EQ(
+        g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, false, gid, hashKey, assets).first, -E_CLOUD_GID_MISMATCH);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::NORMAL));
 
     /**
@@ -1687,12 +1687,16 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ContainAssetsTable001, TestSize.Level0)
 {
     ASSERT_NE(g_storageProxy, nullptr);
-    EXPECT_FALSE(g_storageProxy->IsContainAssetsTable());
+    EXPECT_FALSE(g_storageProxy->IsExistTableContainAssets());
     ASSERT_NE(g_cloudStore, nullptr);
     DataBaseSchema dataBaseSchema;
     dataBaseSchema.tables.push_back(g_tableSchema);
     EXPECT_EQ(g_cloudStore->SetCloudDbSchema(dataBaseSchema), E_OK);
-    EXPECT_TRUE(g_storageProxy->IsContainAssetsTable());
+    EXPECT_FALSE(g_storageProxy->IsExistTableContainAssets());
+    int64_t insCount = 100;
+    int64_t photoSize = 10;
+    InitUserDataForAssetTest(insCount, photoSize, g_localAsset);
+    EXPECT_TRUE(g_storageProxy->IsExistTableContainAssets());
 }
 }
 #endif // RELATIONAL_STORE

@@ -180,7 +180,7 @@ void SqliteCloudKvExecutorUtils::GetCloudLog(sqlite3_stmt *stmt, VBucket &logInf
 
 void SqliteCloudKvExecutorUtils::GetCloudExtraLog(sqlite3_stmt *stmt, VBucket &flags)
 {
-    flags.insert_or_assign(CloudDbConstant::ROWID,
+    flags.insert_or_assign(DBConstant::ROWID,
         static_cast<int64_t>(sqlite3_column_int64(stmt, CLOUD_QUERY_ROW_ID_INDEX)));
     flags.insert_or_assign(CloudDbConstant::TIMESTAMP,
         static_cast<int64_t>(sqlite3_column_int64(stmt, CLOUD_QUERY_MODIFY_TIME_INDEX)));

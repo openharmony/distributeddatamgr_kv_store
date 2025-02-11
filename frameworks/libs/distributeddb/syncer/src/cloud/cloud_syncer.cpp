@@ -497,7 +497,7 @@ int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloa
         VBucket &datum = param.downloadData.data[j];
         std::vector<Type> primaryValues;
         ret = CloudSyncUtils::GetCloudPkVals(datum, param.changedData.field,
-            std::get<int64_t>(datum[CloudDbConstant::ROW_ID_FIELD_NAME]), primaryValues);
+            std::get<int64_t>(datum[DBConstant::ROWID]), primaryValues);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] updateChangedData cannot get primaryValues");
             return ret;
@@ -509,7 +509,7 @@ int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloa
         VBucket &datum = param.downloadData.data[downloadIndex];
         size_t insertIdx = std::get<1>(tuple);
         std::vector<Type> &pkVal = std::get<5>(assetsDownloadList[insertIdx]); // 5 means primary key list
-        pkVal[0] = datum[CloudDbConstant::ROW_ID_FIELD_NAME];
+        pkVal[0] = datum[DBConstant::ROWID];
     }
     for (const auto &tuple : param.withoutRowIdData.updateData) {
         size_t downloadIndex = std::get<0>(tuple);
@@ -526,7 +526,7 @@ int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloa
         }
         // no primary key or composite primary key, the first element is rowid
         param.changedData.primaryData[ChangeType::OP_UPDATE][updateIndex][0] =
-            datum[CloudDbConstant::ROW_ID_FIELD_NAME];
+            datum[DBConstant::ROWID];
     }
     return ret;
 }
@@ -848,8 +848,6 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     param.info.downLoadInfo.total += param.downloadData.data.size();
     param.info.retryInfo.downloadBatchOpCount = 0;
     int ret = E_OK;
-    DownloadList assetsDownloadList;
-    param.assetsDownloadList = assetsDownloadList;
     param.deletePrimaryKeySet.clear();
     param.dupHashKeySet.clear();
     CloudSyncUtils::ClearWithoutData(param);
@@ -1041,29 +1039,33 @@ int CloudSyncer::DoDownloadAssets(SyncParam &param)
     }
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot notify downloadAssets due to error %d", ret);
+    } else {
+        param.assetsDownloadList.clear();
     }
     return ret;
 }
 
-int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param)
+int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param, bool downloadAssetOnly)
 {
-    ChangedData changedData;
     InnerProcessInfo tmpInfo = param.info;
-    param.changedData = changedData;
-    param.downloadData.opType.resize(param.downloadData.data.size());
-    param.downloadData.existDataKey.resize(param.downloadData.data.size());
-    param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
-    int ret = SaveDataInTransaction(taskId, param);
-    if (ret != E_OK) {
-        return ret;
+    int ret = E_OK;
+    if (!downloadAssetOnly) {
+        ChangedData changedData;
+        param.changedData = changedData;
+        param.downloadData.opType.resize(param.downloadData.data.size());
+        param.downloadData.existDataKey.resize(param.downloadData.data.size());
+        param.downloadData.existDataHashKey.resize(param.downloadData.data.size());
+        ret = SaveDataInTransaction(taskId, param);
+        if (ret != E_OK) {
+            return ret;
+        }
+        // call OnChange to notify changedData object first time (without Assets)
+        ret = NotifyChangedDataInCurrentTask(std::move(param.changedData));
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Cannot notify changed data due to error %d", ret);
+            return ret;
+        }
     }
-    // call OnChange to notify changedData object first time (without Assets)
-    ret = NotifyChangedDataInCurrentTask(std::move(param.changedData));
-    if (ret != E_OK) {
-        LOGE("[CloudSyncer] Cannot notify changed data due to error %d", ret);
-        return ret;
-    }
-
     ret = DoDownloadAssets(param);
     if (ret == -E_TASK_PAUSED) {
         param.info = tmpInfo;
@@ -1102,6 +1104,13 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;
+    }
+    for (auto it = param.assetsDownloadList.begin(); it != param.assetsDownloadList.end();) {
+        if (std::get<CloudSyncUtils::STRATEGY_INDEX>(*it) != OpType::DELETE) {
+            it = param.assetsDownloadList.erase(it);
+        } else {
+            it++;
+        }
     }
     (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param, isFirstDownload);
@@ -1981,13 +1990,20 @@ int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param, bool isFirstD
     if (ret != E_OK) {
         return ret;
     }
-    bool abort = false;
-    ret = DownloadDataFromCloud(taskId, param, abort, isFirstDownload);
-    if (abort) {
+    ret = DownloadDataFromCloud(taskId, param, isFirstDownload);
+    if (ret != E_OK) {
         return ret;
     }
+    bool downloadAssetOnly = false;
+    if (param.downloadData.data.empty()) {
+        if (param.assetsDownloadList.empty()) {
+            return E_OK;
+        }
+        LOGI("[CloudSyncer] Resume task need download assets");
+        downloadAssetOnly = true;
+    }
     // Save data in transaction, update cloud water mark, notify process and changed data
-    ret = SaveDataNotifyProcess(taskId, param);
+    ret = SaveDataNotifyProcess(taskId, param, downloadAssetOnly);
     if (ret == -E_TASK_PAUSED) {
         return ret;
     }
@@ -2091,7 +2107,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     param.isAssetsOnly = queryObject.IsAssetsOnly();
     param.groupNum = queryObject.GetGroupNum();
     param.assetsGroupMap = queryObject.GetAssetsOnlyGroupMap();
-    param.isVaildForAssetsOnly = queryObject.IsValidForAssetsOnly();
+    param.isVaildForAssetsOnly = queryObject.AssetsOnlyErrFlag() == E_OK;
     param.isForcePullAseets = IsModeForcePull(taskId) && queryObject.IsContainQueryNodes();
     return ret;
 }
@@ -2114,8 +2130,7 @@ bool CloudSyncer::IsCurrentTableResume(TaskId taskId, bool upload)
     return upload == resumeTaskInfos_[taskId].upload;
 }
 
-int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort,
-    bool isFirstDownload)
+int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isFirstDownload)
 {
     // Get cloud data after cloud water mark
     param.info.tableStatus = ProcessStatus::PROCESSING;
@@ -2132,7 +2147,6 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         std::lock_guard<std::mutex> autoLock(dataLock_);
         param.info.tableStatus = ProcessStatus::FINISHED;
         currentContext_.notifier->UpdateProcess(param.info);
-        abort = true;
         return ret;
     }
 
@@ -2142,7 +2156,6 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         std::lock_guard<std::mutex> autoLock(dataLock_);
         param.info.tableStatus = ProcessStatus::FINISHED;
         currentContext_.notifier->UpdateProcess(param.info);
-        abort = true;
         return ret;
     }
 
@@ -2156,7 +2169,6 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         if (isFirstDownload) {
             NotifyInEmptyDownload(taskId, param.info);
         }
-        abort = true;
     }
     return E_OK;
 }

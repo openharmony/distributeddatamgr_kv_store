@@ -63,9 +63,10 @@ public:
 
     int Iterate(const std::function<int (DataItem &)> &);
 
-    int SaveData(bool isUpdate, const DataItem &dataItem, SaveSyncDataStmt &saveSyncDataStmt);
+    int SaveData(bool isUpdate, const DataItem &dataItem, SaveSyncDataStmt &saveSyncDataStmt,
+        std::map<std::string, Type> &pkVals);
     int BindSaveDataStatement(bool isExist, const DataItem &dataItem, const std::set<std::string> &filterSet,
-        sqlite3_stmt *stmt);
+        sqlite3_stmt *stmt, std::map<std::string, Type> &pkVals);
 
     int PrepareStatement(sqlite3 *db, SaveSyncDataStmt &stmt);
     int GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -75,6 +76,8 @@ public:
 
     int SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem,
         int64_t rowid);
+
+    ChangedData &GetChangedData();
 private:
 
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -90,6 +93,7 @@ private:
     QueryObject query_;
     std::string insertTableName_; // table name to save sync data
     DistributedTableMode mode_ = DistributedTableMode::SPLIT_BY_DEVICE;
+    ChangedData data_;
 };
 }
 #endif // RELATIONAL_SYNC_DATA_INSERTER_H

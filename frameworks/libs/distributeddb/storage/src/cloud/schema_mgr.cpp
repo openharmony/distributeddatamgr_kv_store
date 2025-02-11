@@ -84,7 +84,7 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
         }
         cloudColNames.emplace(cloudField.colName);
     }
-    if (!primaryKeys.empty() && !(primaryKeys.size() == 1 && primaryKeys[0] == CloudDbConstant::ROW_ID_FIELD_NAME)) {
+    if (!primaryKeys.empty() && !(primaryKeys.size() == 1 && primaryKeys[0] == DBConstant::ROWID)) {
         LOGE("Local schema contain extra primary key:%d", -E_SCHEMA_MISMATCH);
         return -E_SCHEMA_MISMATCH;
     }
@@ -165,7 +165,8 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
         // remove the fields that are not found in local schema from cloud schema
         for (auto it = table.fields.begin(); it != table.fields.end();) {
             if (localFields.find((*it).colName) == localFields.end()) {
-                LOGW("Column mismatch, colName: %s", (*it).colName.c_str());
+                LOGW("Column mismatch, colName: %s, length: %zu", DBCommon::StringMiddleMasking((*it).colName).c_str(),
+                    (*it).colName.length());
                 it = table.fields.erase(it);
             } else {
                 ++it;

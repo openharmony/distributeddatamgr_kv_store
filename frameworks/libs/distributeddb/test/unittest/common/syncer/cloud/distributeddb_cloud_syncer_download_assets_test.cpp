@@ -2485,6 +2485,79 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestS
 }
 
 /**
+ * @tc.name: DownloadAssetTest003
+ * @tc.desc: Test asset download after sync task recovery
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    DeleteCloudDBData(0, cloudCount, ASSETS_TABLE_NAME);
+    InsertCloudDBData(0, cloudCount, 0, NO_PRIMARY_TABLE);
+    /**
+     * @tc.steps:step2. Set task interrupted before asset download
+     * @tc.expected: step2. return OK.
+     */
+    int queryTime = 0;
+    g_virtualCloudDb->ForkQuery([&](const std::string &, VBucket &) {
+        queryTime++;
+        if (queryTime != 1) {
+            return;
+        }
+        Query query = Query::Select().FromTable({NO_PRIMARY_TABLE});
+        CloudSyncOption option;
+        option.priorityTask = true;
+        option.devices = {DEVICE_CLOUD};
+        option.mode = SYNC_MODE_CLOUD_MERGE;
+        option.query = query;
+        ASSERT_EQ(g_delegate->Sync(option, nullptr), OK);
+    });
+    /**
+     * @tc.steps:step3. Sync
+     * @tc.expected: step3. return OK.
+     */
+    int removeTime = 0;
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&](std::map<std::string, Assets> &assets) {
+        removeTime++;
+        return OK;
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    /**
+     * @tc.steps:step4. Check fork asset download time and observer
+     * @tc.expected: step4. return OK.
+     */
+    EXPECT_EQ(removeTime, cloudCount);
+    ChangedData expectedChangeData1;
+    ChangedData expectedChangeData2;
+    expectedChangeData1.tableName = NO_PRIMARY_TABLE;
+    expectedChangeData2.tableName = ASSETS_TABLE_NAME;
+    expectedChangeData1.type = ChangedDataType::ASSET;
+    expectedChangeData2.type = ChangedDataType::ASSET;
+    expectedChangeData1.field.push_back(std::string("rowid"));
+    expectedChangeData2.field.push_back(std::string("id"));
+    for (int i = 0; i < cloudCount; i++) {
+        expectedChangeData1.primaryData[ChangeType::OP_INSERT].push_back({(int64_t)i + 1});
+        expectedChangeData2.primaryData[ChangeType::OP_DELETE].push_back({(int64_t)i});
+    }
+    g_observer->SetExpectedResult(expectedChangeData1);
+    g_observer->SetExpectedResult(expectedChangeData2);
+    EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+    g_observer->ClearChangedData();
+
+    g_virtualCloudDb->ForkInsertConflict(nullptr);
+    g_virtualCloudDb->ForkQuery(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
  * @tc.name: RecordLockFuncTest001
  * @tc.desc: UNLOCKING->UNLOCKING Synchronous download failure wholly.
  * @tc.type: FUNC
@@ -2685,7 +2758,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest001, Tes
         CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    SyncProcess process1 = g_delegate->GetCloudTaskStatus(1);
+    SyncProcess process1 = g_delegate->GetCloudTaskStatus(UINT64_MAX);
     EXPECT_EQ(process1.errCode, OK);
     syncThread.join();
     /**

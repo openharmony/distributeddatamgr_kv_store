@@ -261,12 +261,15 @@ namespace DistributedDB {
     void CloudDBSyncUtilsTest::CloseDb(RelationalStoreObserverUnitTest *&observer,
         std::shared_ptr<VirtualCloudDb> &virtualCloudDb, RelationalStoreDelegate *&delegate)
     {
-        delete observer;
-        virtualCloudDb = nullptr;
         if (delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(delegate), DBStatus::OK);
             delegate = nullptr;
         }
+        if (observer != nullptr) {
+            delete observer;
+            observer = nullptr;
+        }
+        virtualCloudDb = nullptr;
     }
 
     int CloudDBSyncUtilsTest::QueryCountCallback(void *data, int count, char **colValue, char **colName)

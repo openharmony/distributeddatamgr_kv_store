@@ -1252,7 +1252,8 @@ RelationalSyncOpinion AbilitySync::MakeRelationSyncOpinion(const AbilitySyncRequ
 {
     uint8_t remoteSchemaType = packet->GetSchemaType();
     RelationalSchemaObject localSchema = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
-    return SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
+    return SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType,
+        packet->GetSoftwareVersion());
 }
 
 int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
@@ -1288,7 +1289,8 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
     auto localSchema = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
-    auto localOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
+    auto localOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType,
+        recvPacket->GetSoftwareVersion());
     auto localStrategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion,
         recvPacket->GetRelationalSyncOpinion());
     (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy, true);

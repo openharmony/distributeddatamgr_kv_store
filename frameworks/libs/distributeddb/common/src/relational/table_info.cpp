@@ -360,6 +360,18 @@ bool TableInfo::IsPrimaryKey(const std::string &colName) const
     return false;
 }
 
+bool TableInfo::IsUniqueField(const std::string &colName) const
+{
+    for (const auto &unique : uniqueDefines_) {
+        for (const auto &it : unique) {
+            if (colName == it) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 CompositeFields TableInfo::GetIdentifyKey() const
 {
     if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
@@ -817,6 +829,11 @@ bool TableInfo::IsNoPkTable() const
     return false;
 }
 
+bool TableInfo::IsMultiPkTable() const
+{
+    return primaryKey_.size() > 1;
+}
+
 bool TableInfo::IsFieldExist(const std::string &fieldName) const
 {
     if (fields_.find(fieldName) != fields_.end()) {
@@ -852,6 +869,13 @@ std::vector<std::string> TableInfo::GetSyncDistributedPk() const
             res.push_back(item.colName);
         }
     }
+    return res;
+}
+
+const std::vector<CompositeFields> TableInfo::GetUniqueAndPkDefine() const
+{
+    std::vector<CompositeFields> res = uniqueDefines_;
+    res.push_back(GetIdentifyKey());
     return res;
 }
 } // namespace DistributeDB

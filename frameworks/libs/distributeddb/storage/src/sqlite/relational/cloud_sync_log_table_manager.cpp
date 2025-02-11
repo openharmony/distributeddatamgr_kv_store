@@ -81,7 +81,7 @@ void CloudSyncLogTableManager::GetIndexSql(const TableInfo &table, std::vector<s
 std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 {
     auto primaryKey = table.GetPrimaryKey();
-    if (primaryKey[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
+    if (primaryKey[0] == DBConstant::ROWID) {
         return "PRIMARY KEY(hash_key, cloud_gid)";
     }
     return "PRIMARY KEY(hash_key)";
@@ -90,7 +90,7 @@ std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 std::string CloudSyncLogTableManager::GetConflictPkSql(const TableInfo &table)
 {
     auto primaryKey = table.GetPrimaryKey();
-    if (primaryKey[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
+    if (primaryKey[0] == DBConstant::ROWID) {
         return "ON CONFLICT(hash_key, cloud_gid)";
     }
     return "ON CONFLICT(hash_key)";

@@ -60,8 +60,6 @@ public:
 
     static Timestamp GetMonotonicTime();
 
-    static Timestamp GetCurrentLocalTime(int64_t &curTimeOffset, int64_t &localTimeOffset);
-
 private:
     static std::mutex systemTimeLock_;
     static Timestamp lastSystemTimeUs_;

@@ -21,7 +21,10 @@ DBStatus VirtualAssetLoader::Download(const std::string &tableName, const std::s
 {
     {
         std::lock_guard<std::mutex> autoLock(dataMutex_);
-        if (downloadStatus_ != OK) {
+        downloadCount_++;
+        bool isNeedSetStatus = downloadFailRange_.isAllFail || (downloadCount_ >= downloadFailRange_.failBeginIndex
+            && downloadCount_ <= downloadFailRange_.failEndIndex);
+        if (downloadStatus_ != OK && isNeedSetStatus) {
             return downloadStatus_;
         }
     }
@@ -91,6 +94,14 @@ void VirtualAssetLoader::SetDownloadStatus(DBStatus status)
     downloadStatus_ = status;
 }
 
+void VirtualAssetLoader::SetDownloadFailRange(const DownloadFailRange &setRange)
+{
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
+    LOGD("[VirtualAssetLoader] set download fail range :isAllFail=%d, from %u to %u",
+        setRange.isAllFail, setRange.failBeginIndex, setRange.failEndIndex);
+    downloadFailRange_ = setRange;
+}
+
 void VirtualAssetLoader::SetRemoveStatus(DBStatus status)
 {
     std::lock_guard<std::mutex> autoLock(dataMutex_);
@@ -122,7 +133,7 @@ void VirtualAssetLoader::SetRemoveLocalAssetsCallback(const RemoveLocalAssetsCal
 
 void VirtualAssetLoader::BatchDownload(const std::string &tableName, std::vector<AssetRecord> &downloadAssets)
 {
-    downloadCount_++;
+    batchDownloadCount_++;
     int index = 0;
     for (auto &[gid, prefix, assets, status] : downloadAssets) {
         if (batchDownloadCallback_) {
@@ -149,7 +160,7 @@ void VirtualAssetLoader::BatchRemoveLocalAssets(const std::string &tableName,
 
 uint32_t VirtualAssetLoader::GetBatchDownloadCount()
 {
-    return downloadCount_;
+    return batchDownloadCount_;
 }
 
 uint32_t VirtualAssetLoader::GetBatchRemoveCount()
@@ -160,7 +171,9 @@ uint32_t VirtualAssetLoader::GetBatchRemoveCount()
 void VirtualAssetLoader::Reset()
 {
     removeCount_ = 0;
+    batchDownloadCount_ = 0;
     downloadCount_ = 0;
+    downloadFailRange_.isAllFail = true;
 }
 
 void VirtualAssetLoader::ForkBatchDownload(const BatchDownloadCallback &callback)

@@ -81,6 +81,7 @@ private:
     int minThreads_;
     int curThreads_;
     int idleThreads_;
+    int exitingThreads_;
 };
 } // namespace DistributedDB
 

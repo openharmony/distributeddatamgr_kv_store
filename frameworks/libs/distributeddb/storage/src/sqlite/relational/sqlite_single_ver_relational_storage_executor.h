@@ -144,7 +144,7 @@ public:
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess,
         uint64_t &currCursor);
-    int FillCloudAssetForAsyncDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
+
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
         std::vector<std::string> &notifyTableList);
@@ -238,9 +238,6 @@ public:
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
-
-    void CheckAndCreateTrigger(const TrackerTable &trackerTable);
-
     int GetDownloadingAssetsCount(const TableSchema &tableSchema, int32_t &totalCount);
 
     int GetDownloadingCount(const std::string &tableName, int32_t &count);
@@ -257,11 +254,13 @@ public:
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 
-    int CompareSchemaTableColumns(const std::string &tableName);
-
     void CheckAndCreateTrigger(const TableInfo &table);
 
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
+
+    int CompareSchemaTableColumns(const std::string &tableName);
+
+    int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -325,7 +324,10 @@ private:
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr);
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable);
+
+    int GeneLogInfoForExistedDataInner(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable);
 
     int CleanExtendAndCursorForDeleteData(const std::string &tableName);
 

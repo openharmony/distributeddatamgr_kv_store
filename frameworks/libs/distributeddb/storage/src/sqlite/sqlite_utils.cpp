@@ -1068,17 +1068,18 @@ int SQLiteUtils::GetVersion(sqlite3 *db, int &version)
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
         return errCode;
     }
-
-    if (sqlite3_step(statement) == SQLITE_ROW) {
+    int ret = E_OK;
+    errCode = sqlite3_step(statement);
+    if (errCode == SQLITE_ROW) {
         // Get pragma user_version at first column
         version = sqlite3_column_int(statement, 0);
     } else {
         LOGE("[SqlUtil][GetVer] Get db user_version failed.");
-        errCode = SQLiteUtils::MapSQLiteErrno(SQLITE_ERROR);
+        ret = SQLiteUtils::MapSQLiteErrno(errCode);
     }
-
+    errCode = E_OK;
     SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    return ret != E_OK ? ret : errCode;
 }
 
 int SQLiteUtils::GetJournalMode(sqlite3 *db, std::string &mode)

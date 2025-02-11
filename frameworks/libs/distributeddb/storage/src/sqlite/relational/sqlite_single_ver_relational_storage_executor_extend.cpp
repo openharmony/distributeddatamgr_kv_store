@@ -979,7 +979,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
         return errCode;
     }
 
-    vBucket[CloudDbConstant::ROW_ID_FIELD_NAME] = rowid; // fill rowid to cloud data to notify user
+    vBucket[DBConstant::ROWID] = rowid; // fill rowid to cloud data to notify user
     return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt, bindIndex);
 }
 

@@ -914,41 +914,28 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     }
     auto taskId = taskInfo.taskId;
     cloudTaskInfos_[taskId] = std::move(taskInfo);
-    if (cloudTaskInfos_[taskId].priorityTask) {
-        taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
-        LOGI("[CloudSyncer] Add priority task ok, storeId %.3s, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
-            cloudTaskInfos_[taskId].storeId.c_str(),
-            cloudTaskInfos_[taskId].priorityLevel,
-            cloudTaskInfos_[taskId].taskId,
-            static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
-        MarkCurrentTaskPausedIfNeed(taskInfo);
-        return E_OK;
-    }
-    if (!MergeTaskInfo(cloudSchema, taskId)) {
-        taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
-        LOGI("[CloudSyncer] Add task ok, storeId %.3s, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
-            cloudTaskInfos_[taskId].storeId.c_str(),
-            cloudTaskInfos_[taskId].priorityLevel,
-            cloudTaskInfos_[taskId].taskId,
-            static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
-        MarkCurrentTaskPausedIfNeed(taskInfo);
+    taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
+    LOGI("[CloudSyncer]Add task ok, storeId %.3s, priority %d, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
+        cloudTaskInfos_[taskId].storeId.c_str(), cloudTaskInfos_[taskId].priorityTask,
+        cloudTaskInfos_[taskId].priorityLevel, cloudTaskInfos_[taskId].taskId,
+        static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
+    MarkCurrentTaskPausedIfNeed(taskInfo);
+    if (!cloudTaskInfos_[taskId].priorityTask) {
+        MergeTaskInfo(cloudSchema, taskId);
     }
     return E_OK;
 }
 
-bool CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId)
+void CloudSyncer::MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId)
 {
     if (!cloudTaskInfos_[taskId].merge) { // LCOV_EXCL_BR_LINE
-        return false;
+        return;
     }
     bool isMerge = false;
-    bool mergeHappen = false;
     TaskId checkTaskId = taskId;
     do {
         std::tie(isMerge, checkTaskId) = TryMergeTask(cloudSchema, checkTaskId);
-        mergeHappen = mergeHappen || isMerge;
     } while (isMerge);
-    return mergeHappen;
 }
 
 void CloudSyncer::RemoveTaskFromQueue(int32_t priorityLevel, TaskId taskId)
@@ -992,7 +979,7 @@ std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBase
     if (!merge) { // LCOV_EXCL_BR_LINE
         return res;
     }
-    if (beMergeTask < nextTryTask) { // LCOV_EXCL_BR_LINE
+    if (beMergeTask > nextTryTask) { // LCOV_EXCL_BR_LINE
         std::tie(beMergeTask, nextTryTask) = SwapTwoTaskAndCopyTable(beMergeTask, nextTryTask);
     }
     AdjustTableBasedOnSchema(cloudSchema, cloudTaskInfos_[nextTryTask]);
@@ -1372,13 +1359,12 @@ int CloudSyncer::GenerateTaskIdIfNeed(CloudTaskInfo &taskInfo)
                 taskInfo.storeId.c_str());
             return -E_INVALID_ARGS;
         }
-        lastTaskId_ = std::max(lastTaskId_, taskInfo.taskId);
         LOGI("[CloudSyncer] Sync with taskId %" PRIu64 " storeId %.3s", taskInfo.taskId, taskInfo.storeId.c_str());
         return E_OK;
     }
-    lastTaskId_++;
-    if (lastTaskId_ == UINT64_MAX) {
-        lastTaskId_ = 1u;
+    lastTaskId_--;
+    if (lastTaskId_ == INVALID_TASK_ID) {
+        lastTaskId_ = UINT64_MAX;
     }
     taskInfo.taskId = lastTaskId_;
     return E_OK;
@@ -1681,7 +1667,7 @@ void CloudSyncer::TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload)
 
 void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
 {
-    if (!storageProxy_->IsContainAssetsTable()) {
+    if (!storageProxy_->IsExistTableContainAssets()) {
         LOGD("[CloudSyncer] No exist table contain assets, skip async download asset check");
         return;
     }
@@ -1693,7 +1679,10 @@ void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
                 static_cast<int>(asyncTaskId_), static_cast<int>(closed_));
             return;
         }
-        lastTaskId_++;
+        lastTaskId_--;
+        if (lastTaskId_ == INVALID_TASK_ID) {
+            lastTaskId_ = UINT64_MAX;
+        }
         asyncTaskId_ = lastTaskId_;
         taskId = asyncTaskId_;
         IncObjRef(this);
@@ -1789,7 +1778,7 @@ void CloudSyncer::DoBackgroundDownloadAssets()
             } else {
                 LOGW("[CloudSyncer] BackgroundDownloadAssetsByTable table %s failed %d",
                     DBCommon::StringMiddleMasking(tableQueue.front()).c_str(), errCode);
-                tableQueue.pop_front();
+                allDownloadFinish = false;
             }
         }
     } while (!allDownloadFinish);

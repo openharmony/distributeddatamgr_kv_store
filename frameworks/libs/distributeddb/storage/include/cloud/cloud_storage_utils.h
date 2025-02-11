@@ -210,6 +210,8 @@ public:
 
     static int FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &extend);
 
+    static void SaveChangedDataByType(const DataValue &dataValue, Type &value);
+
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 

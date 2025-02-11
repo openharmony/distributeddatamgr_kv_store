@@ -33,7 +33,7 @@ int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::
     for (const auto &pkColName : pkColNames) {
         // If data is primary key or is a composite primary key, then use rowID as value
         // The single primary key table, does not contain rowid.
-        if (pkColName == CloudDbConstant::ROW_ID_FIELD_NAME) {
+        if (pkColName == DBConstant::ROWID) {
             cloudPkVals.emplace_back(dataKey);
             continue;
         }
@@ -64,7 +64,7 @@ ChangeType CloudSyncUtils::OpTypeToChangeType(OpType strategy)
 
 bool CloudSyncUtils::IsSinglePrimaryKey(const std::vector<std::string> &pkColNames)
 {
-    return pkColNames.size() == 1 && pkColNames[0] != CloudDbConstant::ROW_ID_FIELD_NAME;
+    return pkColNames.size() == 1 && pkColNames[0] != DBConstant::ROWID;
 }
 
 void CloudSyncUtils::RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &pkColNames)

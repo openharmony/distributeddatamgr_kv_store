@@ -398,7 +398,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
         LOGE("clean tracker log info for deleted data failed %d.", errCode);
         return errCode;
     }
-    errCode = GeneLogInfoForExistedData(dbHandle_, "", table, tableManager);
+    errCode = GeneLogInfoForExistedData(dbHandle_, "", table, tableManager, true);
     if (errCode != E_OK) {
         LOGE("general tracker log info for existed data failed %d.", errCode);
         return errCode;
@@ -448,6 +448,9 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
     if (errCode != E_OK) {
         LOGE("Execute sql failed when prepare stmt.");
         return errCode;
+    }
+    if (condition.readOnly && !SQLiteUtils::IsStmtReadOnly(statement)) {
+        LOGW("[ExecuteSql] The condition is read-only, but SQL is not read-only");
     }
     size_t bindCount = static_cast<size_t>(sqlite3_bind_parameter_count(statement));
     if (bindCount > condition.bindArgs.size() || bindCount < condition.bindArgs.size()) {

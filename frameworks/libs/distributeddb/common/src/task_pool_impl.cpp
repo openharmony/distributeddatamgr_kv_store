@@ -28,7 +28,8 @@ TaskPoolImpl::TaskPoolImpl(int maxThreads, int minThreads)
       maxThreads_(maxThreads),
       minThreads_(minThreads),
       curThreads_(0),
-      idleThreads_(0)
+      idleThreads_(0),
+      exitingThreads_(0)
 {}
 
 TaskPoolImpl::~TaskPoolImpl()
@@ -70,7 +71,7 @@ void TaskPoolImpl::Stop()
     isStopping_ = true;
     hasTasks_.notify_all();
     allThreadsExited_.wait(lock, [this]() {
-        return this->curThreads_ <= 0;
+        return this->curThreads_ <= 0 && this->exitingThreads_ <= 0;
     });
     isStarted_ = false;
 }
@@ -204,6 +205,7 @@ void TaskPoolImpl::GetTask(Task &task, TaskQueue *&queue)
             genericThread_ = std::thread::id();
         }
         --curThreads_;
+        ++exitingThreads_;
     }
 }
 
@@ -247,6 +249,7 @@ void TaskPoolImpl::ExitWorker()
 {
     std::lock_guard<std::mutex> guard(tasksMutex_);
     allThreadsExited_.notify_all();
+    --exitingThreads_;
     LOGI("Task pool thread exit, cur:%d idle:%d, genericTaskCount:%d, queuedTaskCount:%d.",
         curThreads_, idleThreads_, genericTaskCount_, queuedTaskCount_);
 }

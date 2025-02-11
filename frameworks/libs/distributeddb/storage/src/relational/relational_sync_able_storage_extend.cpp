@@ -282,5 +282,32 @@ int RelationalSyncAbleStorage::GetLockStatusByGid(const std::string &tableName, 
     ReleaseHandle(handle);
     return errCode;
 }
+
+bool RelationalSyncAbleStorage::IsExistTableContainAssets()
+{
+    std::shared_ptr<DataBaseSchema> cloudSchema = nullptr;
+    int errCode = GetCloudDbSchema(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("Cannot get cloud schema: %d when check contain assets table", errCode);
+        return false;
+    }
+    if (cloudSchema == nullptr) {
+        LOGE("Not set cloud schema when check contain assets table");
+        return false;
+    }
+    auto schema = GetSchemaInfo();
+    for (const auto &table : cloudSchema->tables) {
+        auto tableInfo = schema.GetTable(table.name);
+        if (tableInfo.GetTableName().empty()) {
+            continue; // ignore not distributed table
+        }
+        for (const auto &field : table.fields) {
+            if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 }
 #endif
