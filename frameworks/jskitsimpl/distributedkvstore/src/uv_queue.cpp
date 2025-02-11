@@ -39,6 +39,11 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         return;
     }
     auto env = env_;
+    if (env == nullptr)
+    {
+        ZLOGE("Get napi env failed.")
+        return;
+    }
     auto task = [env, getter, genArgs]() {
         napi_handle_scope scope = nullptr;
         napi_open_handle_scope(env, &scope);
@@ -71,8 +76,9 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         }
         napi_close_handle_scope(env, scope);
     };
-    if (napi_ok != napi_send_event(env_, task, napi_eprio_immediate)) {
-        ZLOGE("Failed to napi_send_event.");
+    napi_status status = napi_send_event(env_, task, napi_eprio_immediate);
+    if (status != napi_ok) {
+        ZLOGE("Failed to napi_send_event. Status: %{public}s", status);
     }
 }
 
