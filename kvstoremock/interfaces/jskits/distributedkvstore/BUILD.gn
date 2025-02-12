@@ -50,12 +50,6 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/ability/ability_runtime/interfaces/kits/native/ability/native",
       "//foundation/bundlemanager/bundle_framework/interfaces/inner_api/appexecfwk_base/include",
     ]
-
-    cflags = [
-      "-Wno-c99-designator",
-      "-Wno-inconsistent-dllimport",
-    ]
-
     cflags_cc = [ "-std=c++17" ]
 
     sources = [

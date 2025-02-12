@@ -14,7 +14,6 @@
  */
 #include "js_util.h"
 #include "securec.h"
-#include <sys/stat.h>
 
 #define OHOS_ABILITY_RUNTIME_ABILITY_H
 #define ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H

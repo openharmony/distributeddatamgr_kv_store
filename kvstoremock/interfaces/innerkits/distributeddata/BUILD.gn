@@ -96,11 +96,6 @@ ohos_shared_library("distributeddata_inner_mock") {
 
   public_configs = [ ":distributeddatafwk_public_config" ]
 
-  cflags = [
-    "-Wno-c99-designator",
-    "-Wno-inconsistent-dllimport",
-  ]
-
   cflags_cc = [ "-std=c++17" ]
   ldflags = [ "-v" ]
   sources = [
