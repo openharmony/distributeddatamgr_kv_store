@@ -831,6 +831,12 @@ void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, con
     }
 }
 
+void CloudSyncer::SetNeedUpload(bool isNeedUpload)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.isNeedUpload = isNeedUpload;
+}
+
 int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     std::vector<std::string> needNotifyTables;
@@ -838,6 +844,10 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
         std::string table;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
+            if (currentContext_.processRecorder == nullptr) {
+                LOGE("[CloudSyncer] process recorder of current context is nullptr.");
+                return -E_INTERNAL_ERROR;
+            }
             if (currentContext_.processRecorder->IsDownloadFinish(currentContext_.currentUserIndex,
                 taskInfo.table[i])) {
                 continue;
@@ -863,10 +873,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             }
             // count > 0 means current table need upload actually
             if (count > 0) {
-                {
-                    std::lock_guard<std::mutex> autoLock(dataLock_);
-                    currentContext_.isNeedUpload = true;
-                }
+                SetNeedUpload(true);
                 continue;
             }
             needNotifyTables.emplace_back(table);
@@ -1720,10 +1727,10 @@ void CloudSyncer::BackgroundDownloadAssetsTask()
     });
     if (errCode == E_OK) {
         // increase download count success
-        DecObjRef(this);
         CancelDownloadListener();
         DoBackgroundDownloadAssets();
         RuntimeContext::GetInstance()->GetAssetsDownloadManager()->FinishDownload();
+        DecObjRef(this);
         return;
     }
     if (listener != nullptr) {
@@ -2096,6 +2103,9 @@ uint32_t CloudSyncer::GetCurrentTableUploadBatchIndex()
 void CloudSyncer::ResetCurrentTableUploadBatchIndex()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (currentContext_.notifier == nullptr) {
+        return;
+    }
     currentContext_.notifier->ResetUploadBatchIndex(currentContext_.tableName);
 }
 

@@ -1611,7 +1611,8 @@ void TestGrdDbApGrdGetItem002Fuzz()
     }
     GRD_FlushInner(g_db, 1);
 
-    uint32_t begin = 0, end = MAX_SIZE_NUM;
+    uint32_t begin = 0;
+    uint32_t end = MAX_SIZE_NUM;
     GRD_FilterOptionT option = {};
     option.mode = KV_SCAN_RANGE;
     option.begin = { &begin, sizeof(uint32_t) };
@@ -1619,7 +1620,8 @@ void TestGrdDbApGrdGetItem002Fuzz()
     GRD_ResultSet *resultSet = nullptr;
     GRD_KVFilterInner(g_db, COLLECTION_NAME, &option, &resultSet);
 
-    uint32_t keySize, valueSize;
+    uint32_t keySize;
+    uint32_t valueSize;
     GRD_KVGetSizeInner(resultSet, &keySize, &valueSize);
 
     resultSet = nullptr;

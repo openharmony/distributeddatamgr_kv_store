@@ -173,6 +173,11 @@ int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        if (timeOffset < 0) {
+            LOGE("TimeOffset %" PRId64 "is invalid.", timeOffset);
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            return -E_INTERNAL_ERROR;
+        }
         errCode = E_OK;
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -282,7 +287,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTableTimeStamp(sqlite
     std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
     static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-    Timestamp currentLocalTime = currentSysTime + localTimeOffset;
+    Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
     std::string currentLocalTimeStr = std::to_string(currentLocalTime);
     std::string insertPrefix = isRowReplace ? "INSERT OR REPLACE INTO " : "INSERT INTO ";
     std::string insertSuffix = isRowReplace ? ";" : " " + logMgrPtr->GetConflictPkSql(tableInfo) + " DO UPDATE SET "
