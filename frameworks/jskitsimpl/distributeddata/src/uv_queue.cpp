@@ -16,8 +16,6 @@
 
 #include "log_print.h"
 #include "napi_queue.h"
-#include "napi/native_common.h"
-#include "napi/native_node_api.h"
 #include "uv_queue.h"
 
 namespace OHOS::DistributedData {
