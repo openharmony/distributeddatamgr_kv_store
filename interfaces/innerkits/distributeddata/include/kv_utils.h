@@ -112,7 +112,7 @@ private:
         [DataShare::BETWEEN] = &KvUtils::NoSupport,
         [DataShare::NOTBETWEEN] = &KvUtils::NoSupport,
         [DataShare::KEY_PREFIX] = &KvUtils::KeyPrefix,
-    };
+        };
 #pragma GCC diagnostic pop
 };
 } // namespace DistributedKv
