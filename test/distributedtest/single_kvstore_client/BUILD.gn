@@ -53,6 +53,8 @@ common_external_deps = [
 ohos_distributedtest("DistributedTest") {
   module_out_path = module_output_path
 
+  cflags = [ "-Wno-c99-designator" ]
+
   sources = [ "distributed_test.cpp" ]
 
   configs = [ ":module_private_config" ]
@@ -64,6 +66,8 @@ ohos_distributedtest("DistributedTest") {
 
 ohos_distributedtest("DistributedTestAgent") {
   module_out_path = module_output_path
+
+  cflags = [ "-Wno-c99-designator" ]
 
   sources = [ "distributed_test_agent.cpp" ]
 

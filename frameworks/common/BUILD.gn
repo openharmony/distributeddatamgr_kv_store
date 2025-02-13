@@ -30,7 +30,7 @@ ohos_static_library("datamgr_common") {
     cfi_cross_dso = true
     debug = false
   }
-
+  cflags = [ "-Wno-c99-designator" ]
   public_configs = [ ":datamgr_common_config" ]
 
   subsystem_name = "distributeddatamgr"

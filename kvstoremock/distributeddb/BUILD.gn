@@ -139,7 +139,7 @@ ohos_shared_library("distributeddb_mock") {
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
-
+  cflags = [ "-Wno-c99-designator" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }

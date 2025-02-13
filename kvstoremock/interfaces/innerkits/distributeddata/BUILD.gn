@@ -92,6 +92,8 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
 
+  cflags = [ "-Wno-c99-designator" ]
+
   configs = [ ":distributeddatafwk_config" ]
 
   public_configs = [ ":distributeddatafwk_public_config" ]

@@ -27,6 +27,8 @@ mul_sources = [
 config("module_private_config") {
   visibility = [ ":*" ]
 
+  cflags = [ "-Wno-c99-designator" ]
+
   include_dirs = [
     "../../../common/include/cloud",
     "../../../interfaces/include/cloud",

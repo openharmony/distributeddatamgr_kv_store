@@ -89,7 +89,7 @@ ohos_shared_library("distributedkvstore") {
     "data_share:datashare_common",
     "data_share:datashare_provider",
   ]
-
+  cflags = [ "-Wno-c99-designator" ]
   subsystem_name = "distributeddatamgr"
   relative_install_dir = "module/data"
   part_name = "kv_store"

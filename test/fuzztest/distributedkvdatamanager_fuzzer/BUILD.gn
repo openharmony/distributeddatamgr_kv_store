@@ -33,6 +33,7 @@ ohos_fuzztest("DistributedKvDataManagerFuzzTest") {
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
+    "-Wno-c99-designator",
   ]
   sources = [ "distributedkvdatamanager_fuzzer.cpp" ]
 
