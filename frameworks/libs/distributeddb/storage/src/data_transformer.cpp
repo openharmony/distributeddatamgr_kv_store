@@ -198,7 +198,7 @@ int DeSerializeBlobByType(DataValue &dataValue, Parcel &parcel, StorageType type
 {
     uint32_t blobLength = 0;
     (void)parcel.ReadUInt32(blobLength);
-    if (blobLength >= DBConstant::MAX_VALUE_SIZE || parcel.IsError()) { // One blob cannot be over one value size.
+    if (blobLength > DBConstant::MAX_SET_VALUE_SIZE || parcel.IsError()) { // One blob cannot be over one value size.
         return -E_PARSE_FAIL;
     }
     char *array = nullptr;

@@ -62,6 +62,10 @@ public:
 
     int UpgradeLocalMetaData();
 
+    void SetMaxValueSize(uint32_t maxValueSize);
+
+    uint32_t GetMaxValueSize();
+
 protected:
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
 
@@ -130,6 +134,7 @@ private:
 
     std::mutex subscribeMutex_;
     std::map<std::string, QueryObject> subscribeQuery_;
+    uint32_t maxValueSize_;
 };
 } // namespace DistributedDB
 
