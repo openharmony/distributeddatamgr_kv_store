@@ -24,6 +24,13 @@
 #include "result_set_bridge.h"
 #include "visibility.h"
 
+#define KV_UTILS_PUSH_WARNING _Pragma("GCC diagnostic push")
+#define KV_UTILS_POP_WARNING _Pragma("GCC diagnostic pop")
+#define KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(warningName) #warningName
+#define KV_UTILS_GNU_DISABLE_WARNING(warningName) \
+    _Pragma(                                     \
+      KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(GCC diagnostic ignored warningName))
+
 namespace OHOS {
 namespace DistributedKv {
 class KvUtils {
@@ -77,6 +84,8 @@ private:
     static const std::string KEY;
     static const std::string VALUE;
     using QueryHandler = void (*)(const DataShare::OperationItem &, DataQuery &);
+    KV_UTILS_PUSH_WARNING
+    KV_UTILS_GNU_DISABLE_WARNING("-Wc99-designator")
     static constexpr QueryHandler HANDLERS[DataShare::LAST_TYPE] = {
         [DataShare::INVALID_OPERATION] = &KvUtils::NoSupport,
         [DataShare::EQUAL_TO] = &KvUtils::EqualTo,
@@ -111,6 +120,7 @@ private:
         [DataShare::NOTBETWEEN] = &KvUtils::NoSupport,
         [DataShare::KEY_PREFIX] = &KvUtils::KeyPrefix,
         };
+    KV_UTILS_POP_WARNING
 };
 } // namespace DistributedKv
 } // namespace OHOS
