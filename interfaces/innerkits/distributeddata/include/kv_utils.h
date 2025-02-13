@@ -52,7 +52,6 @@ public:
     API_EXPORT static std::vector<Entry> ToEntries(const std::vector<DataShare::DataShareValuesBucket> &valueBuckets);
     API_EXPORT static Status GetKeys(const DataShare::DataShareAbsPredicates &predicates, std::vector<Key> &keys)
         __attribute__((no_sanitize("cfi")));
-
 private:
     static void NoSupport(const DataShare::OperationItem &oper, DataQuery &query);
     static void EqualTo(const DataShare::OperationItem &oper, DataQuery &query);
