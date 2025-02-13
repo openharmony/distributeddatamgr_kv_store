@@ -28,7 +28,7 @@
 #define KV_UTILS_POP_WARNING _Pragma("GCC diagnostic pop")
 #define KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(warningName) #warningName
 #define KV_UTILS_GNU_DISABLE_WARNING(warningName) \
-  _Pragma(                                     \
+    _Pragma(                                     \
       KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(GCC diagnostic ignored warningName))
 
 namespace OHOS {
