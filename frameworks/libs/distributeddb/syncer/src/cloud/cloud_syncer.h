@@ -168,6 +168,8 @@ protected:
 
     virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
+    void SetNeedUpload(bool isNeedUpload);
+
     void DoFinished(TaskId taskId, int errCode);
 
     virtual int DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload);

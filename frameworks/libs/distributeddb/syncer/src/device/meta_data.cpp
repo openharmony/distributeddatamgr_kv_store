@@ -532,7 +532,7 @@ uint64_t Metadata::GetQueryLastTimestamp(const DeviceID &deviceId, const std::st
     if (errCode == E_OK && iter != queryIdMap_.end()) {
         iter->second.erase(hashqueryId);
     }
-    return StringToLong(value);
+    return static_cast<uint64_t>(StringToLong(value));
 }
 
 void Metadata::RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::string &queryId)
