@@ -31,14 +31,7 @@ public:
     napi_env GetEnv();
     void AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs = NapiArgsGenerator());
 private:
-    static void Work(uv_work_t* work, int uvStatus);
-    struct UvEntry {
-        napi_env env;
-        NapiCallbackGetter callback;
-        NapiArgsGenerator args;
-    };
     napi_env env_ = nullptr;
-    uv_loop_s* loop_ = nullptr;
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_UV_QUEUE_H
