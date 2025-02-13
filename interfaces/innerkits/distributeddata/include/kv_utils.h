@@ -78,7 +78,7 @@ private:
     static const std::string VALUE;
     using QueryHandler = void (*)(const DataShare::OperationItem &, DataQuery &);
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wno-c99-designator"
+#pragma GCC diagnostic ignored "-Wc99-designator"
     static constexpr QueryHandler HANDLERS[DataShare::LAST_TYPE] = {
         [DataShare::INVALID_OPERATION] = &KvUtils::NoSupport,
         [DataShare::EQUAL_TO] = &KvUtils::EqualTo,
