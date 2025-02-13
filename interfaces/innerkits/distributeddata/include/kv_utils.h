@@ -77,6 +77,8 @@ private:
     static const std::string KEY;
     static const std::string VALUE;
     using QueryHandler = void (*)(const DataShare::OperationItem &, DataQuery &);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wno-c99-designator"
     static constexpr QueryHandler HANDLERS[DataShare::LAST_TYPE] = {
         [DataShare::INVALID_OPERATION] = &KvUtils::NoSupport,
         [DataShare::EQUAL_TO] = &KvUtils::EqualTo,
@@ -110,7 +112,8 @@ private:
         [DataShare::BETWEEN] = &KvUtils::NoSupport,
         [DataShare::NOTBETWEEN] = &KvUtils::NoSupport,
         [DataShare::KEY_PREFIX] = &KvUtils::KeyPrefix,
-        };
+    };
+#pragma GCC diagnostic pop
 };
 } // namespace DistributedKv
 } // namespace OHOS
