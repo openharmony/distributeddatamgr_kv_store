@@ -24,12 +24,12 @@
 #include "result_set_bridge.h"
 #include "visibility.h"
 
-#define KV_UTILS_H_BEGIN                           \
-    _Pragma ("GCC diagnostic push")                                     \
-    _Pragma ("GCC diagnostic ignored \"-Wc99-designator\"")
-
-#define KV_UTILS_H_END      \
-    _Pragma ("GCC diagnostic pop")
+#define KV_UTILS_PUSH_WARNING _Pragma("GCC diagnostic push")
+#define KV_UTILS_POP_WARNING _Pragma("GCC diagnostic pop")
+#define KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(warningName) #warningName
+#define KV_UTILS_GNU_DISABLE_WARNING(warningName) \
+  _Pragma(                                     \
+      KV_UTILS_GNU_DISABLE_WARNING_INTERNAL2(GCC diagnostic ignored warningName))
 
 namespace OHOS {
 namespace DistributedKv {
@@ -52,6 +52,7 @@ public:
     API_EXPORT static std::vector<Entry> ToEntries(const std::vector<DataShare::DataShareValuesBucket> &valueBuckets);
     API_EXPORT static Status GetKeys(const DataShare::DataShareAbsPredicates &predicates, std::vector<Key> &keys)
         __attribute__((no_sanitize("cfi")));
+
 private:
     static void NoSupport(const DataShare::OperationItem &oper, DataQuery &query);
     static void EqualTo(const DataShare::OperationItem &oper, DataQuery &query);
@@ -84,7 +85,8 @@ private:
     static const std::string KEY;
     static const std::string VALUE;
     using QueryHandler = void (*)(const DataShare::OperationItem &, DataQuery &);
-    KV_UTILS_H_BEGIN
+    KV_UTILS_PUSH_WARNING
+    KV_UTILS_GNU_DISABLE_WARNING("-Wc99-designator")
     static constexpr QueryHandler HANDLERS[DataShare::LAST_TYPE] = {
         [DataShare::INVALID_OPERATION] = &KvUtils::NoSupport,
         [DataShare::EQUAL_TO] = &KvUtils::EqualTo,
@@ -119,7 +121,7 @@ private:
         [DataShare::NOTBETWEEN] = &KvUtils::NoSupport,
         [DataShare::KEY_PREFIX] = &KvUtils::KeyPrefix,
         };
-    KV_UTILS_H_END
+    KV_UTILS_POP_WARNING
 };
 } // namespace DistributedKv
 } // namespace OHOS
