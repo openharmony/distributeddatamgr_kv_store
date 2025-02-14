@@ -558,7 +558,23 @@ DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &
     }
     return OK;
 }
-
 #endif
+
+DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
+{
+    if (!config.tableMode.has_value()) {
+        return OK;
+    }
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for set store config.");
+        return DB_ERROR;
+    }
+    int errCode = conn_->SetTableMode(config.tableMode.value());
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] set store config failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
 } // namespace DistributedDB
 #endif

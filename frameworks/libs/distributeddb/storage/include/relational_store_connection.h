@@ -78,6 +78,8 @@ public:
 
     virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
 
+    virtual int SetTableMode(DistributedTableMode tableMode) = 0;
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual int32_t GetCloudSyncTaskCount() = 0;
 

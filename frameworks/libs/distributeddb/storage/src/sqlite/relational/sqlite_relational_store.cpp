@@ -1773,5 +1773,28 @@ int SQLiteRelationalStore::GetDownloadingAssetsCount(int32_t &count)
     ReleaseHandle(handle);
     return errCode;
 }
+
+int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGE("[RelationalStore][SetTableMode] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE &&
+        tableMode == DistributedTableMode::COLLABORATION) {
+        for (const auto &tableMap : sqliteStorageEngine_->GetSchema().GetTables()) {
+            if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+                LOGW("[RelationalStore][SetTableMode] Can not set table mode for table %s[%zu]",
+                    DBCommon::StringMiddleMasking(tableMap.first).c_str(), tableMap.first.size());
+                return -E_NOT_SUPPORT;
+            }
+        }
+    }
+    RelationalDBProperties properties = sqliteStorageEngine_->GetProperties();
+    properties.SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(tableMode));
+    sqliteStorageEngine_->SetProperties(properties);
+    LOGI("[RelationalStore][SetTableMode] Set table mode to %d successful", static_cast<int>(tableMode));
+    return E_OK;
+}
 } // namespace DistributedDB
 #endif

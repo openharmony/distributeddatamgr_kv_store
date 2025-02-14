@@ -261,6 +261,8 @@ public:
     int CompareSchemaTableColumns(const std::string &tableName);
 
     int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
+
+    void SetTableMode(DistributedTableMode mode);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
