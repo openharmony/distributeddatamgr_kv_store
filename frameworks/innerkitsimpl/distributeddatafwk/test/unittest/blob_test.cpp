@@ -42,7 +42,7 @@ void BlobTest::TearDown(void) { }
  * @tc.name: Size001
  * @tc.desc: construct a Blob and check its size.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Size001, TestSize.Level0)
@@ -72,7 +72,7 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
  * @tc.name: Empty001
  * @tc.desc: construct a Blob and check its empty.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Empty001, TestSize.Level0)
@@ -98,7 +98,7 @@ HWTEST_F(BlobTest, Empty001, TestSize.Level0)
  * @tc.name: Clear001
  * @tc.desc: construct a Blob and check it clear function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Clear001, TestSize.Level0)
@@ -124,7 +124,7 @@ HWTEST_F(BlobTest, Clear001, TestSize.Level0)
  * @tc.name: StartsWith001
  * @tc.desc: construct a Blob and check it StartsWith function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, StartsWith001, TestSize.Level0)
@@ -142,7 +142,7 @@ HWTEST_F(BlobTest, StartsWith001, TestSize.Level0)
  * @tc.name: Compare001
  * @tc.desc: construct a Blob and check it compare function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Compare001, TestSize.Level0)
@@ -159,7 +159,7 @@ HWTEST_F(BlobTest, Compare001, TestSize.Level0)
  * @tc.name: Data001
  * @tc.desc: construct a Blob and check it Data function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Data001, TestSize.Level0)
@@ -176,7 +176,7 @@ HWTEST_F(BlobTest, Data001, TestSize.Level0)
  * @tc.name: ToString001
  * @tc.desc: construct a Blob and check it ToString function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, ToString001, TestSize.Level0)
@@ -190,7 +190,7 @@ HWTEST_F(BlobTest, ToString001, TestSize.Level0)
  * @tc.name: OperatorEqual001
  * @tc.desc: construct a Blob and check it operator== function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, OperatorEqual001, TestSize.Level0)
@@ -206,7 +206,7 @@ HWTEST_F(BlobTest, OperatorEqual001, TestSize.Level0)
  * @tc.name: Operator001
  * @tc.desc: construct a Blob and check it operator[] function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Operator001, TestSize.Level0)
@@ -223,7 +223,7 @@ HWTEST_F(BlobTest, Operator001, TestSize.Level0)
  * @tc.name: Operator002
  * @tc.desc: construct a Blob and check it operator= function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Operator002, TestSize.Level0)
@@ -238,7 +238,7 @@ HWTEST_F(BlobTest, Operator002, TestSize.Level0)
  * @tc.name: Operator003
  * @tc.desc: construct a Blob and check it operator= function.
  * @tc.type: FUNC
- * @tc.require: AR000C6GBG
+ * @tc.require:
  * @tc.author: liqiao
  */
 HWTEST_F(BlobTest, Operator003, TestSize.Level0)

@@ -136,7 +136,7 @@ void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Stat
 * @tc.name: GetStoreId001
 * @tc.desc: Get a single KvStore instance.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, GetStoreId001, TestSize.Level1)
@@ -151,7 +151,7 @@ HWTEST_F(SingleKvStoreClientTest, GetStoreId001, TestSize.Level1)
 * @tc.name: PutGetDelete001
 * @tc.desc: put value and delete value
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, PutGetDelete001, TestSize.Level1)
@@ -188,7 +188,7 @@ HWTEST_F(SingleKvStoreClientTest, PutGetDelete001, TestSize.Level1)
 * @tc.name: GetEntriesAndResultSet001
 * @tc.desc: Batch put values and get values.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
@@ -303,7 +303,7 @@ HWTEST_F(SingleKvStoreClientTest, GetEmptyEntries, TestSize.Level1)
 * @tc.name: Subscribe001
 * @tc.desc: Put data and get callback.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, Subscribe001, TestSize.Level1)
@@ -323,7 +323,7 @@ HWTEST_F(SingleKvStoreClientTest, Subscribe001, TestSize.Level1)
 * @tc.name: SyncCallback001
 * @tc.desc: Register sync callback.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, SyncCallback001, TestSize.Level1)
@@ -351,7 +351,7 @@ HWTEST_F(SingleKvStoreClientTest, SyncCallback001, TestSize.Level1)
 * @tc.name: RemoveDeviceData001
 * @tc.desc: Remove device data.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, RemoveDeviceData001, TestSize.Level1)
@@ -376,7 +376,7 @@ HWTEST_F(SingleKvStoreClientTest, RemoveDeviceData001, TestSize.Level1)
 * @tc.name: SyncData001
 * @tc.desc: Synchronize device data.
 * @tc.type: FUNC
-* @tc.require: SR000DORPS AR000DPRQ7 AR000DDPRPL
+* @tc.require:
 * @tc.author: hongbo
 */
 HWTEST_F(SingleKvStoreClientTest, SyncData001, TestSize.Level1)
@@ -392,7 +392,7 @@ HWTEST_F(SingleKvStoreClientTest, SyncData001, TestSize.Level1)
 * @tc.name: TestSchemaStoreC001
 * @tc.desc: Test schema single store.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF1
+@tc.require:
 * @tc.author: zuojiangjiang
 */
 HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
@@ -427,7 +427,7 @@ HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
 * @tc.name: SyncData001
 * @tc.desc: Synchronize device data.
 * @tc.type: FUNC
-* @tc.require: SR000DOGQE AR000DPUAN
+* @tc.require:
 * @tc.author: wangtao
 */
 HWTEST_F(SingleKvStoreClientTest, SyncData002, TestSize.Level1)
@@ -444,7 +444,7 @@ HWTEST_F(SingleKvStoreClientTest, SyncData002, TestSize.Level1)
 * @tc.name: SyncData002
 * @tc.desc: Set sync parameters - success.
 * @tc.type: FUNC
-* @tc.require: SR000DOGQE AR000DPUAO
+* @tc.require:
 * @tc.author: wangtao
 */
 HWTEST_F(SingleKvStoreClientTest, SetSync001, TestSize.Level1)
@@ -463,7 +463,7 @@ HWTEST_F(SingleKvStoreClientTest, SetSync001, TestSize.Level1)
 * @tc.name: SyncData002
 * @tc.desc: Set sync parameters - failed.
 * @tc.type: FUNC
-* @tc.require: SR000DOGQE AR000DPUAO
+* @tc.require:
 * @tc.author: wangtao
 */
 HWTEST_F(SingleKvStoreClientTest, SetSync002, TestSize.Level1)
@@ -482,7 +482,7 @@ HWTEST_F(SingleKvStoreClientTest, SetSync002, TestSize.Level1)
 * @tc.name: SingleKvStoreDdmPutBatch001
 * @tc.desc: Batch put data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch001, TestSize.Level2)
@@ -525,7 +525,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch001, TestSize.Level2)
 * @tc.name: SingleKvStoreDdmPutBatch002
 * @tc.desc: Batch update data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
@@ -585,7 +585,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
 * @tc.name: DdmPutBatch003
 * @tc.desc: Batch put data that contains invalid data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch003, TestSize.Level2)
@@ -612,7 +612,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch003, TestSize.Level2)
 * @tc.name: DdmPutBatch004
 * @tc.desc: Batch put data that contains invalid data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch004, TestSize.Level2)
@@ -649,7 +649,7 @@ static std::string SingleGenerate1025KeyLen()
 * @tc.name: DdmPutBatch005
 * @tc.desc: Batch put data that contains invalid data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
@@ -676,7 +676,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
 * @tc.name: DdmPutBatch006
 * @tc.desc: Batch put large data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
@@ -724,7 +724,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
 * @tc.name: DdmDeleteBatch001
 * @tc.desc: Batch delete data.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch001, TestSize.Level2)
@@ -764,7 +764,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch001, TestSize.Level2)
 * @tc.name: DdmDeleteBatch002
 * @tc.desc: Batch delete data when some keys are not in KvStore.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch002, TestSize.Level2)
@@ -805,7 +805,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch002, TestSize.Level2)
 * @tc.name: DdmDeleteBatch003
 * @tc.desc: Batch delete data when some keys are invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch003, TestSize.Level2)
@@ -845,7 +845,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch003, TestSize.Level2)
 * @tc.name: DdmDeleteBatch004
 * @tc.desc: Batch delete data when some keys are invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch004, TestSize.Level2)
@@ -890,7 +890,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch004, TestSize.Level2)
 * @tc.name: DdmDeleteBatch005
 * @tc.desc: Batch delete data when some keys are invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch005, TestSize.Level2)
@@ -936,7 +936,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch005, TestSize.Level2)
 * @tc.name: Transaction001
 * @tc.desc: Batch delete data when some keys are invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, Transaction001, TestSize.Level2)
@@ -993,7 +993,7 @@ HWTEST_F(SingleKvStoreClientTest, Transaction001, TestSize.Level2)
 * @tc.name: Transaction002
 * @tc.desc: Batch delete data when some keys are invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSEA
+* @tc.require:
 * @tc.author: shanshuangshuang
 */
 HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
@@ -1054,7 +1054,7 @@ HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
 * @tc.name: DeviceSync001
 * @tc.desc: Test sync enable.
 * @tc.type: FUNC
-* @tc.require:AR000EPAM8 AR000EPAMD
+* @tc.require:
 * @tc.author: HongBo
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
@@ -1083,7 +1083,7 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
 * @tc.name: DeviceSync002
 * @tc.desc: Test sync enable.
 * @tc.type: FUNC
-* @tc.require:SR000EPA22 AR000EPAM9
+* @tc.require:
 * @tc.author: HongBo
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
@@ -1144,7 +1144,7 @@ HWTEST_F(SingleKvStoreClientTest, DisableCapability, TestSize.Level1)
 * @tc.name: SyncWithCondition001
 * @tc.desc: sync device data with condition;
 * @tc.type: FUNC
-* @tc.require: AR000GH097
+* @tc.require:
 * @tc.author: liuwenhui
 */
 HWTEST_F(SingleKvStoreClientTest, SyncWithCondition001, TestSize.Level1)
@@ -1161,7 +1161,7 @@ HWTEST_F(SingleKvStoreClientTest, SyncWithCondition001, TestSize.Level1)
  * @tc.name: SubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
- * require: AR000GH096
+ * require:
  * author:taoyuxin
  */
 HWTEST_F(SingleKvStoreClientTest, SubscribeWithQuery001, TestSize.Level1)
@@ -1178,7 +1178,7 @@ HWTEST_F(SingleKvStoreClientTest, SubscribeWithQuery001, TestSize.Level1)
  * @tc.name: UnSubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC
- * require: SR000GH095
+ * require:
  * author:taoyuxin
  */
 HWTEST_F(SingleKvStoreClientTest, UnSubscribeWithQuery001, TestSize.Level1)

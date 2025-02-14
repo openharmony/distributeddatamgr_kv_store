@@ -107,7 +107,7 @@ void DistributedKvDataManagerEncryptTest::TearDown(void)
 * @tc.name: kvstore_ddm_createEncryptedStore_001
 * @tc.desc: Create an encrypted KvStore.
 * @tc.type: FUNC
-* @tc.require: SR000D08K4 AR000D08KQ
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_001, TestSize.Level1)
