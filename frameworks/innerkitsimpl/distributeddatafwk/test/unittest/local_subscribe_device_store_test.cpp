@@ -172,7 +172,7 @@ HWTEST_F(LocalSubscribeDeviceStoreTest, KvStoreDdmSubscribeKvStore001, TestSize.
 * @tc.name: KvStoreDdmSubscribeKvStore002
 * @tc.desc: Subscribe fail, observer is null
 * @tc.type: FUNC
-* @tc.require: AR000CQDU9 AR000CQS37
+* @tc.require:
 * @tc.author: liuyuhui
 */
 HWTEST_F(LocalSubscribeDeviceStoreTest, KvStoreDdmSubscribeKvStore002, TestSize.Level1)

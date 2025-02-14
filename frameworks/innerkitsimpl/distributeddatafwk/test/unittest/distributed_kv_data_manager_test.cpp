@@ -153,7 +153,7 @@ void DistributedKvDataManagerTest::TearDown(void)
 * @tc.name: GetKvStore001
 * @tc.desc: Get an exist SingleKvStore
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore001, TestSize.Level1)
@@ -174,7 +174,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore001, TestSize.Level1)
 * @tc.name: GetKvStore002
 * @tc.desc: Create and get a new SingleKvStore
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore002, TestSize.Level1)
@@ -193,7 +193,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore002, TestSize.Level1)
 * @tc.desc: Get a non-existing SingleKvStore, and the callback function should receive STORE_NOT_FOUND and
 * get a nullptr.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore003, TestSize.Level1)
@@ -208,7 +208,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore003, TestSize.Level1)
 * @tc.name: GetKvStore004
 * @tc.desc: Create a SingleKvStore with an empty storeId, and the callback function should receive
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore004, TestSize.Level1)
@@ -224,7 +224,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore004, TestSize.Level1)
 * @tc.name: GetKvStore005
 * @tc.desc: Get a SingleKvStore with an empty storeId, and the callback function should receive INVALID_ARGUMENT
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore005, TestSize.Level1)
@@ -240,7 +240,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore005, TestSize.Level1)
 * @tc.name: GetKvStore006
 * @tc.desc: Create a SingleKvStore with a 65-byte storeId, and the callback function should receive INVALID_ARGUMENT
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore006, TestSize.Level1)
@@ -256,7 +256,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore006, TestSize.Level1)
 * @tc.name: GetKvStore007
 * @tc.desc: Get a SingleKvStore with a 65-byte storeId, the callback function should receive INVALID_ARGUMENT
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStore007, TestSize.Level1)
@@ -350,7 +350,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore010, TestSize.Level1)
 * @tc.desc: Get a SingleKvStore with a 64
  * -byte storeId, the callback function should receive INVALID_ARGUMENT
 * @tc.type: FUNC
-* @tc.require: SR000IIM2J AR000IIMLL
+* @tc.require:
 * @tc.author: wangkai
 */
 HWTEST_F(DistributedKvDataManagerTest, GetKvStoreInvalidSecurityLevel, TestSize.Level1)
@@ -368,7 +368,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStoreInvalidSecurityLevel, TestSize.
 * @tc.name: GetAllKvStore001
 * @tc.desc: Get all KvStore IDs when no KvStore exists, and the callback function should receive a 0-length vector.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetAllKvStore001, TestSize.Level1)
@@ -384,7 +384,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetAllKvStore001, TestSize.Level1)
 * @tc.name: GetAllKvStore002
 * @tc.desc: Get all SingleKvStore IDs when no KvStore exists, and the callback function should receive a empty vector.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, GetAllKvStore002, TestSize.Level1)
@@ -434,7 +434,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetAllKvStore002, TestSize.Level1)
 * @tc.name: CloseKvStore001
 * @tc.desc: Close an opened KVStore, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStore001, TestSize.Level1)
@@ -453,7 +453,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore001, TestSize.Level1)
 * @tc.name: CloseKvStore002
 * @tc.desc: Close a closed SingleKvStore, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStore002, TestSize.Level1)
@@ -473,7 +473,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore002, TestSize.Level1)
 * @tc.name: CloseKvStore003
 * @tc.desc: Close a SingleKvStore with an empty storeId, and the callback function should return INVALID_ARGUMENT.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStore003, TestSize.Level1)
@@ -487,7 +487,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore003, TestSize.Level1)
 * @tc.name: CloseKvStore004
 * @tc.desc: Close a SingleKvStore with a 65-byte storeId, and the callback function should return INVALID_ARGUMENT.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStore004, TestSize.Level1)
@@ -501,7 +501,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore004, TestSize.Level1)
 * @tc.name: CloseKvStore005
 * @tc.desc: Close a non-existing SingleKvStore, and the callback function should return STORE_NOT_OPEN.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStore005, TestSize.Level1)
@@ -515,7 +515,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore005, TestSize.Level1)
 * @tc.name: CloseKvStoreMulti001
 * @tc.desc: Open a SingleKvStore several times and close them one by one.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000CSKRU
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStoreMulti001, TestSize.Level1)
@@ -542,7 +542,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStoreMulti001, TestSize.Level1)
 * @tc.name: CloseKvStoreMulti002
 * @tc.desc: Open a SingleKvStore several times and close them one by one.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000CSKRU
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseKvStoreMulti002, TestSize.Level1)
@@ -580,7 +580,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStoreMulti002, TestSize.Level1)
 * @tc.name: CloseAllKvStore001
 * @tc.desc: Close all opened KvStores, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseAllKvStore001, TestSize.Level1)
@@ -604,7 +604,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseAllKvStore001, TestSize.Level1)
 * @tc.name: CloseAllKvStore002
 * @tc.desc: Close all KvStores which exist but are not opened, and the callback function should return STORE_NOT_OPEN.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, CloseAllKvStore002, TestSize.Level1)
@@ -631,7 +631,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseAllKvStore002, TestSize.Level1)
 * @tc.name: DeleteKvStore001
 * @tc.desc: Delete a closed KvStore, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore001, TestSize.Level1)
@@ -653,7 +653,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore001, TestSize.Level1)
 * @tc.name: DeleteKvStore002
 * @tc.desc: Delete an opened SingleKvStore, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore002, TestSize.Level1)
@@ -673,7 +673,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore002, TestSize.Level1)
 * @tc.name: DeleteKvStore003
 * @tc.desc: Delete a non-existing KvStore, and the callback function should return DB_ERROR.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore003, TestSize.Level1)
@@ -687,7 +687,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore003, TestSize.Level1)
 * @tc.name: DeleteKvStore004
 * @tc.desc: Delete a KvStore with an empty storeId, and the callback function should return INVALID_ARGUMENT.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore004, TestSize.Level1)
@@ -702,7 +702,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore004, TestSize.Level1)
 * @tc.desc: Delete a KvStore with 65 bytes long storeId (which exceed storeId length limit). Should
 * return INVALID_ARGUMENT.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore005, TestSize.Level1)
@@ -716,7 +716,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore005, TestSize.Level1)
 * @tc.name: DeleteAllKvStore001
 * @tc.desc: Delete all KvStores after closing all of them, and the callback function should return SUCCESS.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore001, TestSize.Level1)
@@ -748,7 +748,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore001, TestSize.Level1)
 * @tc.name: DeleteAllKvStore002
 * @tc.desc: Delete all kvstore fail when any kvstore in the appId is not closed
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore002, TestSize.Level1)
@@ -773,7 +773,7 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore002, TestSize.Level1)
 * @tc.name: DeleteAllKvStore003
 * @tc.desc: Delete all KvStores even if no KvStore exists in the appId.
 * @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000BVTDM
+* @tc.require:
 * @tc.author: liqiao
 */
 HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore003, TestSize.Level1)
