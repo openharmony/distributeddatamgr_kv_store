@@ -61,6 +61,8 @@ public:
     int SetDistributedDbSchema(const DistributedSchema &schema) override;
 
     int GetDownloadingAssetsCount(int32_t &count) override;
+
+    int SetTableMode(DistributedTableMode tableMode) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DoClean(ClearMode mode) override;
 

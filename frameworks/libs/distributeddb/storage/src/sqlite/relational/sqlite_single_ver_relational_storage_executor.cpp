@@ -2017,5 +2017,10 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode
         " from " + tableInfo.GetTableName() + " as data where log.data_key = data._rowid_);";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
 }
+
+void SQLiteSingleVerRelationalStorageExecutor::SetTableMode(DistributedTableMode mode)
+{
+    mode_ = mode;
+}
 } // namespace DistributedDB
 #endif

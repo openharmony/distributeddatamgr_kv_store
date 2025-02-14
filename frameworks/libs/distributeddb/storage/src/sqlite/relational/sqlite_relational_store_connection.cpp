@@ -518,5 +518,15 @@ int SQLiteRelationalStoreConnection::GetDownloadingAssetsCount(int32_t &count)
     }
     return store->GetDownloadingAssetsCount(count);
 }
+
+int SQLiteRelationalStoreConnection::SetTableMode(DistributedTableMode tableMode)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set distributed table mode.");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetTableMode(tableMode);
+}
 }
 #endif

@@ -18,6 +18,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include "distributeddb/result_set.h"
 #include "cloud/cloud_store_types.h"
 #include "cloud/icloud_db.h"
@@ -42,6 +43,15 @@ public:
         uint32_t iterateTimes = 0;
         DistributedTableMode tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
     };
+
+    struct StoreConfig {
+        std::optional<DistributedTableMode> tableMode;
+    };
+
+    DB_API virtual DBStatus SetStoreConfig(const StoreConfig &config)
+    {
+        return OK;
+    }
 
     DB_API DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType type = DEVICE_COOPERATION)
     {

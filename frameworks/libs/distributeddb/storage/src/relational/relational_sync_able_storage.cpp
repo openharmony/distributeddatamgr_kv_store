@@ -575,6 +575,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     }
     DBDfxAdapter::StartTracing();
 
+    handle->SetTableMode(localSchema.GetTableMode());
     errCode = handle->SaveSyncItems(inserter);
     ChangedData data = inserter.GetChangedData();
     data.properties.isP2pSyncDataChange = !dataItems.empty();

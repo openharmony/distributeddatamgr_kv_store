@@ -29,6 +29,8 @@ public:
 
     DISABLE_COPY_ASSIGN_MOVE(RelationalStoreDelegateImpl);
 
+    DBStatus SetStoreConfig(const StoreConfig &config) override;
+
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 

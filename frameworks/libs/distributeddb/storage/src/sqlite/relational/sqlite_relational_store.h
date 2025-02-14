@@ -99,6 +99,8 @@ public:
 
     int GetDownloadingAssetsCount(int32_t &count);
 
+    int SetTableMode(DistributedTableMode tableMode);
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
 
