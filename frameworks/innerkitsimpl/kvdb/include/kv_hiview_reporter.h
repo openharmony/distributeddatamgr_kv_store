@@ -22,6 +22,7 @@
 #include <string>
 #include "types.h"
 
+
 namespace OHOS::DistributedKv {
 struct Suffix {
     const char *suffix_ = nullptr;
@@ -57,7 +58,8 @@ private:
 
     static std::string GetCurrentMicrosecondTimeFormat();
 
-    static bool IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId);
+    static bool IsReportedCorruptedFault(const std::string &appId, const std::string &storeId,
+        const std::string &dbPath);
 
     static void CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId);
 
