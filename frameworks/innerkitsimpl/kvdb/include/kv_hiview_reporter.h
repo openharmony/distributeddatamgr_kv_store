@@ -22,7 +22,6 @@
 #include <string>
 #include "types.h"
 
-
 namespace OHOS::DistributedKv {
 struct Suffix {
     const char *suffix_ = nullptr;
