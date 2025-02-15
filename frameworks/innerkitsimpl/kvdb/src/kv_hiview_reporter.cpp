@@ -176,7 +176,6 @@ void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
         value.insert(storeName);
         return true;
     });
-
 }
 
 std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
