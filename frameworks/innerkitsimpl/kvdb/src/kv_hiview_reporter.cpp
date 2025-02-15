@@ -124,8 +124,9 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
         eventInfo.appendix = GenerateAppendix(eventInfo);
         eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
         ReportCommonFault(eventInfo);
-        stores_.ComputeIfPresent(eventInfo.bundleName, [&eventInfo](auto &key, auto &value) {
-            value.erase(eventInfo.storeName);
+        auto storeName = eventInfo.storeName;
+        stores_.ComputeIfPresent(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+            value.erase(storeName);
             return true;
         });
     }
@@ -170,8 +171,9 @@ void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
     eventInfo.appendix = GenerateAppendix(eventInfo);
     ZLOGI("Db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
     ReportCommonFault(eventInfo);
-    stores_.ComputeIfPresent(eventInfo.bundleName, [&eventInfo](auto &key, auto &value) {
-        value.insert(eventInfo.storeName);
+    auto storeName = eventInfo.storeName;
+    stores_.ComputeIfPresent(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+        value.insert(storeName);
         return true;
     });
 

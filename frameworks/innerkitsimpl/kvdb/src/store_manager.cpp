@@ -62,7 +62,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
             .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
-    } else if (kvStore != nullptr) {
+    } else if (kvStore != nullptr && kvStore->IsRebuild()) {
         ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
             .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
         ZLOGI("Rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
