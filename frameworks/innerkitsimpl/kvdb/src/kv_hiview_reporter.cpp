@@ -280,9 +280,8 @@ bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
 bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &appId, const std::string &storeId,
     const std::string &dbPath)
 {
-    if (stores_.ContainIf(appId, [&storeId](const std::set<std::string> &storeIds) {
-            return find(storeIds.begin(), storeIds.end(), storeId) != storeIds.end();
-        })) {
+    if (stores_.ContainIf(appId, [&storeId](
+        const std::set<std::string> &stores) -> bool { return stores.count(storeId) != 0; })) {
         return true;
     }
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
