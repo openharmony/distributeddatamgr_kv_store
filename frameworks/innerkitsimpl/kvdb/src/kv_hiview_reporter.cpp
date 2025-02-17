@@ -125,7 +125,7 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
         eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
         ReportCommonFault(eventInfo);
         auto storeName = eventInfo.storeName;
-        stores_.ComputeIfPresent(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+        stores_.Compute(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
             value.erase(storeName);
             return true;
         });
@@ -172,7 +172,7 @@ void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
     ZLOGI("Db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
     ReportCommonFault(eventInfo);
     auto storeName = eventInfo.storeName;
-    stores_.ComputeIfPresent(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+    stores_.Compute(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
         value.insert(storeName);
         return true;
     });
@@ -280,13 +280,13 @@ bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
 bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &appId, const std::string &storeId,
     const std::string &dbPath)
 {
-    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
-    if (access(flagFilename.c_str(), F_OK) == 0) {
+    if (stores_.ContainIf(appId, [&storeId](const std::set<std::string> &storeIds) {
+            return find(storeIds.begin(), storeIds.end(), storeId) != storeIds.end();
+        })) {
         return true;
     }
-    return stores_.ContainIf(appId, [&storeId](const std::set<std::string> &storeIds) {
-        return find(storeIds.begin(), storeIds.end(), storeId) != storeIds.end();
-    });
+    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
+    return access(flagFilename.c_str(), F_OK) == 0;
 }
 
 void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
