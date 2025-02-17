@@ -634,6 +634,20 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest009,
      */
     BatchDeleteTableName2Data(num);
     CheckExtendAndCursor(num, 0);
+
+    /**
+     * @tc.steps:step3. Set tracker, where extendColNames changed, then check the extend_field of deleted data
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema2), OK);
+    CheckExtendAndCursor(num, 0);
+
+    /**
+     * @tc.steps:step4. Set tracker, where extendColNames no changed, then check the extend_field of deleted data
+     * @tc.expected: step4. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema3), OK);
+    CheckExtendAndCursor(num, 0);
     CloseStore();
 }
 
@@ -821,6 +835,13 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest013,
     BatchDeleteTableName2Data(num);
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
     BatchInsertTableName2Data(num);
+
+    /**
+     * @tc.steps:step4. Set tracker, where extendColNames changed, then check the extend_field of deleted data
+     * @tc.expected: step4. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema2), OK);
+    CheckExtendAndCursor(num, 0);
     CloseStore();
 }
 

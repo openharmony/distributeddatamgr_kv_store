@@ -393,11 +393,6 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = CleanExtendAndCursorForDeleteData(table.GetTableName());
-    if (errCode != E_OK) {
-        LOGE("clean tracker log info for deleted data failed %d.", errCode);
-        return errCode;
-    }
     errCode = GeneLogInfoForExistedData(dbHandle_, "", table, tableManager, true);
     if (errCode != E_OK) {
         LOGE("general tracker log info for existed data failed %d.", errCode);
