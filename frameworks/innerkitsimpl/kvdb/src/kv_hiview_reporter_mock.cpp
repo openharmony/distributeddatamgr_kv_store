@@ -65,8 +65,8 @@ void KVDBFaultHiViewReporter::ReportCommonFault(__attribute__((unused))
     return;
 }
 
-bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId,
-    const std::string &appId)
+bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &appId, const std::string &storeId,
+    const std::string &dbPath)
 {
     return false;
 }
