@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include "concurrent_map.h"
 #include "hisysevent_c.h"
 #include "log_print.h"
 #include "types.h"
@@ -55,6 +56,8 @@ static constexpr const char *BUSINESS_TYPE[] = {
     "sqlite",
     "gausspd"
 };
+
+static ConcurrentMap<std::string, std::set<std::string>> stores_;
 
 struct KVDBFaultEvent {
     std::string bundleName;
@@ -104,7 +107,7 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
 void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
 {
     auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
-    if (!IsReportedCorruptedFault(reportDir, reportInfo.storeId)) {
+    if (!IsReportedCorruptedFault(reportInfo.appId, reportInfo.storeId, reportDir)) {
         return;
     }
     KVDBFaultEvent eventInfo(reportInfo.options);
@@ -121,6 +124,11 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
         eventInfo.appendix = GenerateAppendix(eventInfo);
         eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
         ReportCommonFault(eventInfo);
+        auto storeName = eventInfo.storeName;
+        stores_.Compute(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+            value.erase(storeName);
+            return true;
+        });
     }
 }
 
@@ -156,13 +164,18 @@ void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
             StoreUtil::Anonymous(eventInfo.storeName).c_str());
         return;
     }
-    if (IsReportedCorruptedFault(eventInfo.appendix, eventInfo.storeName)) {
+    if (IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName, eventInfo.appendix)) {
         return;
     }
     CreateCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
     eventInfo.appendix = GenerateAppendix(eventInfo);
     ZLOGI("Db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
     ReportCommonFault(eventInfo);
+    auto storeName = eventInfo.storeName;
+    stores_.Compute(eventInfo.bundleName, [&storeName](auto &key, auto &value) {
+        value.insert(storeName);
+        return true;
+    });
 }
 
 std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
@@ -264,13 +277,15 @@ bool KVDBFaultHiViewReporter::IsReportedFault(const KVDBFaultEvent& eventInfo)
     return false;
 }
 
-bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &dbPath, const std::string &storeId)
+bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &appId, const std::string &storeId,
+    const std::string &dbPath)
 {
-    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
-    if (access(flagFilename.c_str(), F_OK) == 0) {
+    if (stores_.ContainIf(appId, [&storeId](
+        const std::set<std::string> &stores) -> bool { return stores.count(storeId) != 0; })) {
         return true;
     }
-    return false;
+    std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
+    return access(flagFilename.c_str(), F_OK) == 0;
 }
 
 void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
