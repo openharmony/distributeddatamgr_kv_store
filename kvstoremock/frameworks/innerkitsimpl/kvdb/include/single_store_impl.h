@@ -84,6 +84,7 @@ public:
     Status SetIdentifier(const std::string &accountId, const std::string &appId,
         const std::string &storeId, const std::vector<std::string> &tagretDev) override;
     bool IsRebuild() override;
+    int32_t GetSubUser() override;
 private:
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
