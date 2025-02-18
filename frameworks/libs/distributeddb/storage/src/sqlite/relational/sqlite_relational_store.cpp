@@ -511,10 +511,10 @@ int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tabl
         bool isTargetTable = tableNames.count(tableName) > 0;
         if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION && (isClearAllTables || isTargetTable)) {
             cloudTableNameList.push_back(tableName);
-            LOGI("[RelationalStore] cloud watermark of table %s will be cleared, original name length: %u",
+            LOGI("[RelationalStore] cloud watermark of table %s will be cleared, original name length: %zu",
                 maskedName.c_str(), tableName.length());
         } else if (!isClearAllTables && isTargetTable) {
-            LOGW("[RelationalStore] table %s ignored when clear cloud watermark, original name length: %u",
+            LOGW("[RelationalStore] table %s ignored when clear cloud watermark, original name length: %zu",
                 maskedName.c_str(), tableName.length());
         }
     }

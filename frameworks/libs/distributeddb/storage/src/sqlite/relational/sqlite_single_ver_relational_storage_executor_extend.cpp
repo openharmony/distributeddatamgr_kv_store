@@ -348,7 +348,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoClearCloudLogVersion(const std::
         errCode = ClearVersionOnLogTable(logTableName);
         if (errCode != E_OK) {
             std::string maskedName = DBCommon::StringMiddleMasking(tableName);
-            LOGE("[Storage Executor] failed to clear version of cloud data on log table %s (name length is %u), %d",
+            LOGE("[Storage Executor] failed to clear version of cloud data on log table %s (name length is %zu), %d",
                 maskedName.c_str(), maskedName.length(), errCode);
             return errCode;
         }
