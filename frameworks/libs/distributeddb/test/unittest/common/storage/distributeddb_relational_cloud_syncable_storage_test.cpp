@@ -1673,7 +1673,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
     ContinueToken token = nullptr;
     CloudSyncData cloudSyncData;
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_UNFINISHED);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 }
 

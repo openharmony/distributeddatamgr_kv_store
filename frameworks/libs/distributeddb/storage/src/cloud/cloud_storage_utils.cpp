@@ -1318,14 +1318,14 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
     return E_OK;
 }
 
-int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, const VBucket &data, bool isInsert)
+int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert)
 {
     if (data.empty()) {
         LOGE("The cloud data is empty, isInsert:%d", static_cast<int>(isInsert));
         return -E_INVALID_DATA;
     }
     bool isDataAbnormal = false;
-    for (const auto &item : data) {
+    for (auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
             if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
@@ -1335,25 +1335,27 @@ int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, const VBu
             }
             continue;
         }
-        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        auto *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
         if (assets == nullptr) {
             continue;
         }
-        for (const auto &oneAsset : *assets) {
+        for (auto it = assets->begin(); it != assets->end();) {
+            const auto &oneAsset = *it;
             if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                oneAsset.status == static_cast<uint32_t>(AssetStatus::DOWNLOADING) ||
                 (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
                 isDataAbnormal = true;
-                break;
+                it = assets->erase(it);
+            } else {
+                ++it;
             }
         }
     }
     if (isDataAbnormal) {
         std::string gid;
         (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
-        LOGW("This data is abnormal, ignore it when upload, isInsert:%d, gid:%s", static_cast<int>(isInsert),
+        LOGW("This data is abnormal, upload it, isInsert:%d, gid:%s", static_cast<int>(isInsert),
             gid.c_str());
-        cloudSyncData.ignoredCount++;
-        return -E_IGNORE_DATA;
     }
     return E_OK;
 }

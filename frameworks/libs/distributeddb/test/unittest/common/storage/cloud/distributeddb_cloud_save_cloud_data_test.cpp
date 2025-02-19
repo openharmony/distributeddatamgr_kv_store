@@ -1397,7 +1397,7 @@ namespace {
         CloudSyncData data(g_assetTableName);
         errCode = storageProxy->GetCloudData(g_assetTableName, 0u, token, data);
         EXPECT_EQ(errCode, E_OK);
-        EXPECT_EQ(data.ignoredCount, 1);
+        EXPECT_EQ(data.ignoredCount, 0);
 
         EXPECT_EQ(storageProxy->Commit(), E_OK);
         EXPECT_EQ(token, nullptr);
