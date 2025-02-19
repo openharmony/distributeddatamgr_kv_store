@@ -59,6 +59,7 @@ protected:
     void InitStore();
     void CloseDb();
     void DoSkipAssetDownload(SkipAssetTestParamT param);
+    void UpdateLocalData(sqlite3 *&db, const std::string &tableName, int32_t begin, int32_t end);
     std::string storePath_;
     sqlite3 *db_ = nullptr;
     RelationalStoreDelegate *delegate_ = nullptr;
@@ -1037,6 +1038,88 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload006, Te
     virtualAssetLoader_->SetDownloadStatus(OK);
     virtualAssetLoader_->Reset();
     virtualAssetLoader_->ForkDownload(nullptr);
+}
+
+void DistributedDBCloudAsyncDownloadAssetsTest::UpdateLocalData(sqlite3 *&db,
+    const std::string &tableName, int32_t begin, int32_t end)
+{
+    const string sql = "update " + tableName + " set int_field = int_field+1 " + "where pk>=" + std::to_string(begin) +
+        " and pk<=" + std::to_string(end) + ";";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    LOGW("update local data finished");
+}
+
+/**
+ * @tc.name: AsyncAbnormalDownload007
+ * @tc.desc: Test assets is downloading then update local data can upload
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set async config
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    /**
+     * @tc.steps: step2. Init data and sync
+     * @tc.expected: step2. ok
+     */
+    const int cloudCount = 10;
+    auto schema = GetSchema();
+    ASSERT_TRUE(!schema.tables.empty());
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    option.asyncDownloadAssets = false;
+    RelationalTestUtils::CloudBlockSync(option, delegate_, OK, OK);
+    /**
+     * @tc.steps: step3. update cloud data
+     * @tc.expected: step3. ok
+     */
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    VBucket data;
+    data.insert_or_assign("pk", 10L);
+    data.insert_or_assign("int_field", 11L);
+    Assets assets = {{.name = "new_asset_1", .hash = "new_hash"}};
+    data.insert_or_assign("assets_1", assets);
+    record.push_back(data);
+    VBucket log;
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    extend.push_back(log);
+    std::string table = schema.tables.front().name;
+    EXPECT_EQ(virtualCloudDb_->BatchInsert(table, std::move(record), extend), OK);
+
+    /**
+     * @tc.steps: step4. Sync and update local data then check upload count
+     * @tc.expected: step4. ok
+     */
+    option.asyncDownloadAssets = true;
+    std::atomic<bool> syncInProgress(true);
+    std::thread syncThread([&]() {
+        RelationalTestUtils::CloudBlockSync(option, delegate_);
+        syncInProgress.store(false);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    UpdateLocalData(db_, "AsyncDownloadAssetsTest", 0, cloudCount);
+
+    int count = 10;
+    virtualCloudDb_->ForkUpload([&count, delegate = delegate_](const std::string&, VBucket&) {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+        auto [ret, count] = delegate->GetDownloadingAssetsCount();
+        EXPECT_EQ(ret, OK);
+        EXPECT_EQ(count, 0);
+    });
+    syncThread.join();
 }
 
 DBStatus ModifySkippedAsset(int rowIndex, std::map<std::string, Assets> &assets, DBStatus fakeStatus)
