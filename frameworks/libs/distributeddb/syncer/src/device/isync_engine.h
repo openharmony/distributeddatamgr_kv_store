@@ -101,6 +101,8 @@ public:
 
     virtual void TimeChange() = 0;
 
+    virtual void ClearAllSyncTaskByDevice(const std::string &deviceId) = 0;
+
     virtual int32_t GetResponseTaskCount() = 0;
 protected:
     ~ISyncEngine() override {};

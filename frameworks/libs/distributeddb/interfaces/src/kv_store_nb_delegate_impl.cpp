@@ -602,6 +602,76 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     return OK;
 }
 
+void KvStoreNbDelegateImpl::OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
+    const DeviceSyncProcessCallback &onProcess) const
+{
+    std::map<std::string, DeviceSyncProcess> result;
+    for (const auto &pair : processMap) {
+        DeviceSyncProcess info = pair.second;
+        int status = info.errCode;
+        info.errCode = SyncOperation::DBStatusTrans(status);
+        info.process = SyncOperation::DBStatusTransProcess(status);
+        result.insert(std::pair<std::string, DeviceSyncProcess>(pair.first, info));
+    }
+    if (onProcess) {
+        onProcess(result);
+    }
+}
+
+DBStatus KvStoreNbDelegateImpl::Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (option.mode != SYNC_MODE_PULL_ONLY) {
+        LOGE("Not support other mode");
+        return NOT_SUPPORT;
+    }
+    DeviceSyncProcessCallback onSyncProcess = [this, onProcess](const std::map<std::string, DeviceSyncProcess> &map) {
+        OnDeviceSyncProcess(map, onProcess);
+    };
+    int errCode = E_OK;
+    if (option.isQuery) {
+        QuerySyncObject querySyncObj(option.query);
+        if (!DBCommon::CheckQueryWithoutMultiTable(option.query)) {
+            LOGE("Not support for invalid query");
+            return NOT_SUPPORT;
+        }
+
+        if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
+            LOGE("Not support order by timestamp and query by range");
+            return NOT_SUPPORT;
+        }
+        PragmaSync pragmaData(option, querySyncObj, onSyncProcess);
+        errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
+    } else {
+        PragmaSync pragmaData(option, onSyncProcess);
+        errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
+    }
+
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] DeviceSync data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::CancelSync(uint32_t syncId)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    uint32_t tempSyncId = syncId;
+    int errCode = conn_->Pragma(PRAGMA_CANCEL_SYNC_DEVICES, &tempSyncId);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] CancelSync failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
 DBStatus KvStoreNbDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 {
     if (conn_ == nullptr) {

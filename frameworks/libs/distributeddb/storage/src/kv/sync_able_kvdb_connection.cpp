@@ -56,6 +56,8 @@ void SyncAbleKvDBConnection::InitPragmaFunc()
     pragmaFunc_ = {
         {PRAGMA_SYNC_DEVICES, [this](void *parameter, int &errCode) {
             errCode = PragmaSyncAction(static_cast<PragmaSync *>(parameter)); }},
+        {PRAGMA_CANCEL_SYNC_DEVICES, [this](void *parameter, int &errCode) {
+            errCode = CancelDeviceSync(*(static_cast<uint32_t *>(parameter))); }},
         {PRAGMA_AUTO_SYNC, [this](void *parameter, int &errCode) {
             errCode = EnableAutoSync(*(static_cast<bool *>(parameter))); }},
         {PRAGMA_PERFORMANCE_ANALYSIS_GET_REPORT, [](void *parameter, int &errCode) {
@@ -150,12 +152,50 @@ int SyncAbleKvDBConnection::PragmaSyncAction(const PragmaSync *syncParameter)
     syncParam.isQuerySync = syncParameter->isQuerySync_;
     syncParam.syncQuery = syncParameter->query_;
     syncParam.onFinalize =  [this]() { DecObjRef(this); };
-    syncParam.onComplete = std::bind(&SyncAbleKvDBConnection::OnSyncComplete, this, std::placeholders::_1,
-        syncParameter->onComplete_, syncParameter->wait_);
+    if (syncParameter->onComplete_) {
+        syncParam.onComplete = [this, onComplete = syncParameter->onComplete_, wait = syncParameter->wait_](
+            const std::map<std::string, int> &statuses
+        ) {
+            OnSyncComplete(statuses, onComplete, wait);
+        };
+    }
+    if (syncParameter->onSyncProcess_) {
+        syncParam.onSyncProcess = [this, onSyncProcess = syncParameter->onSyncProcess_](
+            const std::map<std::string, DeviceSyncProcess> &syncRecordMap
+        ) {
+            OnDeviceSyncProcess(syncRecordMap, onSyncProcess);
+        };
+    }
+
     int errCode = kvDB->Sync(syncParam, GetConnectionId());
     if (errCode != E_OK) {
         DecObjRef(this);
     }
+    return errCode;
+}
+
+int SyncAbleKvDBConnection::CancelDeviceSync(uint32_t syncId)
+{
+    SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+
+    if (isExclusive_.load()) {
+        return -E_BUSY;
+    }
+    {
+        AutoLock lockGuard(this);
+        if (IsKilled()) {
+            // if this happens, users are using a closed connection.
+            LOGE("CancelDeviceSync on a closed connection.");
+            return -E_STALE;
+        }
+        IncObjRef(this);
+    }
+
+    int errCode = kvDB->CancelSync(syncId);
+    DecObjRef(this);
     return errCode;
 }
 
@@ -181,6 +221,23 @@ void SyncAbleKvDBConnection::OnSyncComplete(const std::map<std::string, int> &st
         // RACE: 'KillObj()' against 'onComplete()'.
         if (!IsKilled()) {
             onComplete(statuses);
+        }
+        LockObj();
+    }
+}
+
+void SyncAbleKvDBConnection::OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &syncRecordMap,
+    const DeviceSyncProcessCallback &onProcess)
+{
+    AutoLock lockGuard(this);
+    if (!IsKilled() && onProcess) {
+        // Drop the lock before invoking the callback.
+        // Do pragma-sync again in the prev sync callback is supported.
+        UnlockObj();
+        // The connection may be closed after UnlockObj().
+        // RACE: 'KillObj()' against 'onComplete()'.
+        if (!IsKilled()) {
+            onProcess(syncRecordMap);
         }
         LockObj();
     }

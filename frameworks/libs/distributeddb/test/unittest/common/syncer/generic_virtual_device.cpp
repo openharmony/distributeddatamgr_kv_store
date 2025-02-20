@@ -218,6 +218,50 @@ TimeOffset GenericVirtualDevice::GetLocalTimeOffset() const
     return metadata_->GetLocalTimeOffset();
 }
 
+void GenericVirtualDevice::OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
+    const DeviceSyncProcessCallback &onProcess) const
+{
+    std::map<std::string, DeviceSyncProcess> result;
+    for (const auto &pair : processMap) {
+        DeviceSyncProcess info = pair.second;
+        int status = info.errCode;
+        info.errCode = SyncOperation::DBStatusTrans(status);
+        info.process = SyncOperation::DBStatusTransProcess(status);
+        result.insert(std::pair<std::string, DeviceSyncProcess>(pair.first, info));
+    }
+    if (onProcess) {
+        onProcess(result);
+    }
+}
+
+int GenericVirtualDevice::Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
+{
+    auto operation = new (std::nothrow) SyncOperation(1, {remoteDeviceId_}, option.mode, nullptr, option.isWait);
+    if (operation == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    DeviceSyncProcessCallback onSyncProcess = std::bind(&GenericVirtualDevice::OnDeviceSyncProcess, this,
+        std::placeholders::_1, onProcess);
+    operation->SetSyncProcessCallFun(onSyncProcess);
+    operation->Initialize();
+    operation->SetOnSyncFinished([operation](int id) {
+        operation->NotifyIfNeed();
+    });
+    int errCode = E_OK;
+    if (option.isQuery) {
+        QuerySyncObject querySyncObject(option.query);
+        errCode = querySyncObject.Init();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        operation->SetQuery(querySyncObject);
+    }
+    errCode = context_->AddSyncOperation(operation);
+    operation->WaitIfNeed();
+    RefObject::KillAndDecObjRef(operation);
+    return errCode;
+}
+
 int GenericVirtualDevice::Sync(SyncMode mode, bool wait)
 {
     auto operation = new (std::nothrow) SyncOperation(1, {remoteDeviceId_}, mode, nullptr, wait);

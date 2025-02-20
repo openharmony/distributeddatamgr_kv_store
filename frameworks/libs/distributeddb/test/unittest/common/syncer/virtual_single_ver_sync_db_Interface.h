@@ -85,6 +85,10 @@ public:
 
     int GetSyncData(QueryObject &query, const SyncTimeRange &timeRange, const DataSizeSpecInfo &dataSizeInfo,
         ContinueToken &continueStmtToken, std::vector<SingleVerKvEntry *> &entries) const override;
+    
+    int GetUnSyncTotal(Timestamp begin, Timestamp end, uint32_t &total) const override;
+
+    int GetUnSyncTotal(QueryObject &query, const SyncTimeRange &timeRange, uint32_t &total) const override;
 
     int GetSyncDataNext(std::vector<SingleVerKvEntry *> &entries, ContinueToken &continueStmtToken,
         const DataSizeSpecInfo &dataSizeInfo) const override;

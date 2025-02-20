@@ -64,6 +64,16 @@ public:
         return -E_NOT_SUPPORT;
     }
 
+    virtual int GetUnSyncTotal(Timestamp begin, Timestamp end, uint32_t &total) const
+    {
+        return -E_NOT_SUPPORT;
+    }
+
+    virtual int GetUnSyncTotal(QueryObject &query, const SyncTimeRange &timeRange, uint32_t &total) const
+    {
+        return -E_NOT_SUPPORT;
+    }
+
     virtual int GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const
     {
         return -E_NOT_SUPPORT;

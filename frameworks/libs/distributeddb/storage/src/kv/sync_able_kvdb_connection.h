@@ -57,6 +57,7 @@ private:
     // Do pragma-sync action.
     int PragmaParamCheck(int cmd, const void *parameter);
     int PragmaSyncAction(const PragmaSync *syncParameter);
+    int CancelDeviceSync(uint32_t syncId);
     void InitPragmaFunc();
 
     // If enable is true, it will enable auto sync
@@ -64,6 +65,9 @@ private:
 
     void OnSyncComplete(const std::map<std::string, int> &statuses,
         const std::function<void(const std::map<std::string, int> &devicesMap)> &onComplete, bool wait);
+
+    void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &syncRecordMap,
+        const DeviceSyncProcessCallback &onProcess);
 
     int GetQueuedSyncSize(int *queuedSyncSize) const;
 

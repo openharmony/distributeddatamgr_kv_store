@@ -55,6 +55,9 @@ public:
 
     int Sync(const SyncParma &param, uint64_t connectionId) override;
 
+    // Cancel sync function.
+    int CancelSync(uint32_t syncId) override;
+
     // Remove the operation, with the given syncId, used to clean resource if sync finished or failed.
     int RemoveSyncOperation(int syncId) override;
 

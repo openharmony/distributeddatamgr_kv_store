@@ -14,13 +14,15 @@
  */
 
 #include "single_ver_data_packet.h"
-#include "icommunicator.h"
-#include "single_ver_kvdb_sync_interface.h"
-#include "query_sync_object.h"
+
 #include "generic_single_ver_kv_entry.h"
+#include "icommunicator.h"
+#include "parcel.h"
+#include "query_sync_object.h"
+#include "single_ver_data_sync_utils.h"
+#include "single_ver_kvdb_sync_interface.h"
 #include "sync_types.h"
 #include "version.h"
-#include "parcel.h"
 
 namespace DistributedDB {
 DataRequestPacket::~DataRequestPacket()
@@ -197,10 +199,12 @@ uint32_t DataRequestPacket::CalculateLen(uint32_t messageId) const
         totalLen += Parcel::GetIntLen();   // security label
         totalLen += Parcel::GetIntLen();   // security flag
     }
-    if (totalLen > INT32_MAX) {
-        return 0;
+    if (SingleVerDataSyncUtils::IsSupportRequestTotal(version_)) {
+        totalLen += Parcel::GetUInt32Len(); // totalDataCount
+        totalLen = Parcel::GetEightByteAlign(totalLen);
     }
-    return totalLen;
+    
+    return totalLen > INT32_MAX ? 0 : totalLen;
 }
 
 void DataRequestPacket::SetFlag(uint32_t flag)
@@ -351,6 +355,16 @@ void DataRequestPacket::SetSecurityOption(const SecurityOption &option)
 SecurityOption DataRequestPacket::GetSecurityOption() const
 {
     return securityOption_;
+}
+
+void DataRequestPacket::SetTotalDataCount(uint32_t total)
+{
+    totalDataCount_ = total;
+}
+
+uint32_t DataRequestPacket::GetTotalDataCount() const
+{
+    return totalDataCount_;
 }
 
 void DataAckPacket::SetData(uint64_t data)

@@ -136,6 +136,14 @@ namespace DistributedDB {
     constexpr const char *SELECT_SYNC_DELETED_ENTRIES_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) AND (flag&0x200=0) "
         "ORDER BY timestamp ASC;";
+    
+    constexpr const char *COUNT_SYNC_ENTRIES_SQL =
+        "SELECT count(key) FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x02=0x02) "
+        "AND (flag&0x200=0);";
+    
+    constexpr const char *COUNT_SYNC_DELETED_ENTRIES_SQL =
+        "SELECT count(key) FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x03) "
+        "AND (flag&0x200=0);";
 
     constexpr const char *SELECT_SYNC_MODIFY_SQL =
         "SELECT * FROM sync_data WHERE timestamp >= ? AND timestamp < ? AND (flag&0x03=0x02) AND (flag&0x200=0) "

@@ -94,6 +94,15 @@ int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
     return syncer_.Sync(parma, connectionId);
 }
 
+// Cancel a sync action
+int SyncAbleKvDB::CancelSync(uint32_t syncId)
+{
+    if (!started_) {
+        return -E_NOT_INIT;
+    }
+    return syncer_.CancelSync(syncId);
+}
+
 void SyncAbleKvDB::EnableAutoSync(bool enable)
 {
     if (NeedStartSyncer()) {
