@@ -34,6 +34,7 @@
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
+#include "get_query_info.h"
 #include "platform_specific.h"
 #include "res_finalizer.h"
 #include "runtime_config.h"
@@ -714,9 +715,18 @@ void DistributedDBToolsUnitTest::BlockSync(RelationalStoreDelegate &delegate, co
     };
     DBStatus callStatus = delegate.Sync(devices, syncMode, query, callBack, true);
     EXPECT_EQ(callStatus, OK);
+    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
+    std::vector<std::string> syncTables;
+    if (queryExpression.IsUseFromTables()) {
+        syncTables = queryExpression.GetTables();
+    } else {
+        syncTables = {queryExpression.GetTableName()};
+    }
     for (const auto &tablesRes : statusMap) {
-        for (const auto &tableStatus : tablesRes.second) {
-            EXPECT_EQ(tableStatus.status, exceptStatus);
+        ASSERT_EQ(tablesRes.second.size(), syncTables.size());
+        for (uint32_t i = 0; i < syncTables.size(); i++) {
+            EXPECT_EQ(tablesRes.second[i].status, exceptStatus);
+            EXPECT_EQ(tablesRes.second[i].tableName, syncTables[i]);
         }
     }
 }

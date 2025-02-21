@@ -877,7 +877,8 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_NOT_REGISTER,                    SyncOperation::OP_NOT_SUPPORT },
         { -E_DENIED_SQL,                      SyncOperation::OP_DENIED_SQL },
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
-        { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED }
+        { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
+        { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_SCHEMA_INCOMPATIBLE }
     };
     const auto &result = std::find_if(std::begin(stateNodes), std::end(stateNodes), [errCode](const auto &node) {
         return node.errCode == errCode;

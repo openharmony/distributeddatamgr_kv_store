@@ -124,6 +124,8 @@ public:
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 
     void SetDistributedSchema(const DistributedSchema &schema);
+
+    void SetGetSyncDataResult(int errCode);
 private:
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::map<std::string, std::map<std::string, VirtualRowData>, CaseInsensitiveComparator> syncData_;
@@ -138,6 +140,7 @@ private:
     uint64_t dbCreateTime_;
     mutable std::mutex remoteSchemaMutex_;
     std::map<std::string, std::string> remoteSchema_;
+    int getSyncDataResult_ = E_OK;
 };
 }
 #endif

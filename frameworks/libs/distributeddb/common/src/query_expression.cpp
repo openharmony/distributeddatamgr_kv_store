@@ -434,6 +434,7 @@ void QueryExpression::SetTables(const std::vector<std::string> &tableNames)
         }
     }
     tables_ = syncTable;
+    isUseFromTables_ = true;
     if (useFromTable_) {
         validStatus_ = validStatus_ != E_OK ? validStatus_ : -E_NOT_SUPPORT;
     }
@@ -554,5 +555,10 @@ AssetsGroupMap QueryExpression::GetAssetsOnlyGroupMap() const
 uint32_t QueryExpression::GetGroupNum() const
 {
     return groupNum_;
+}
+
+bool QueryExpression::IsUseFromTables() const
+{
+    return isUseFromTables_;
 }
 } // namespace DistributedDB

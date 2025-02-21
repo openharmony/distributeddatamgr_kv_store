@@ -125,6 +125,9 @@ int VirtualRelationalVerSyncDBInterface::GetSyncData(QueryObject &query,
     const SyncTimeRange &timeRange, const DataSizeSpecInfo &dataSizeInfo,
     ContinueToken &continueStmtToken, std::vector<SingleVerKvEntry *> &entries) const
 {
+    if (getSyncDataResult_ != E_OK) {
+        return getSyncDataResult_;
+    }
     if (localData_.find(query.GetTableName()) == localData_.end()) {
         LOGD("[GetSyncData] No Data Return");
         return E_OK;
@@ -401,6 +404,11 @@ void VirtualRelationalVerSyncDBInterface::SetDistributedSchema(const Distributed
 {
     schemaObj_.SetTableMode(DistributedTableMode::COLLABORATION);
     schemaObj_.SetDistributedSchema(schema);
+}
+
+void VirtualRelationalVerSyncDBInterface::SetGetSyncDataResult(int errCode)
+{
+    getSyncDataResult_ = errCode;
 }
 }
 #endif

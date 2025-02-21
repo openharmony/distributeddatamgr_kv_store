@@ -253,15 +253,6 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
         return -E_INVALID_CONNECTION;
     }
 
-    {
-        AutoLock lockGuard(this);
-        if (IsKilled()) {
-            // If this happens, users are using a closed connection.
-            LOGE("Sync on a closed connection.");
-            return -E_STALE;
-        }
-        IncObjRef(this);
-    }
     ISyncer::SyncParma syncParam;
     syncParam.devices = info.devices;
     syncParam.mode = info.mode;
@@ -269,20 +260,15 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
     syncParam.isQuerySync = true;
     syncParam.relationOnComplete = info.onComplete;
     syncParam.syncQuery = QuerySyncObject(info.query);
-    syncParam.onFinalize =  [this]() {
-        DecObjRef(this);
-    };
     if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
-        LOGE("not support order by timestamp");
-        DecObjRef(this);
+        LOGE("not support order by timestamp, type: %d", static_cast<int>(syncParam.syncQuery.GetSortType()));
         return -E_NOT_SUPPORT;
     }
-    int errCode = store->Sync(syncParam, GetConnectionId());
-    if (errCode != E_OK) {
-        DecObjRef(this);
-        return errCode;
+    if (syncParam.syncQuery.GetValidStatus() != E_OK) {
+        LOGE("invalid sync query origin valid status %d", syncParam.syncQuery.GetValidStatus());
+        return syncParam.syncQuery.GetValidStatus();
     }
-    return E_OK;
+    return store->Sync(syncParam, GetConnectionId());
 }
 
 int SQLiteRelationalStoreConnection::RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier)

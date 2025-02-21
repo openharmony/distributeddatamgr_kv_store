@@ -492,11 +492,6 @@ bool DBCommon::CheckIsAlnumOrUnderscore(const std::string &text)
 
 bool DBCommon::CheckQueryWithoutMultiTable(const Query &query)
 {
-    QuerySyncObject syncObject(query);
-    if (!syncObject.GetRelationTableNames().empty()) {
-        LOGE("check query table names from tables failed!");
-        return false;
-    }
     if (!QuerySyncObject::GetQuerySyncObject(query).empty()) {
         LOGE("check query object from table failed!");
         return false;
