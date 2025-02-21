@@ -312,6 +312,11 @@ int SQLiteUtils::BindBlobToStatement(sqlite3_stmt *statement, int index, const s
 
 void SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, int &errCode)
 {
+    ResetStatement(statement, isNeedFinalize, false, errCode);
+}
+
+void SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, bool isIgnoreResetRet, int &errCode)
+{
     if (statement == nullptr) {
         return;
     }
@@ -321,7 +326,7 @@ void SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, 
     if (!isNeedFinalize) {
         // reset the statement firstly.
         innerCode = sqlite3_reset(statement);
-        if (innerCode != SQLITE_OK) {
+        if (innerCode != SQLITE_OK && !isIgnoreResetRet) {
             LOGE("[SQLiteUtils] reset statement error:%d, sys:%d", innerCode, errno);
             isNeedFinalize = true;
         } else {

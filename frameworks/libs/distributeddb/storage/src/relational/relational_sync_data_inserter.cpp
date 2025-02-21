@@ -123,8 +123,11 @@ int RelationalSyncDataInserter::GetInsertStatement(sqlite3 *db, sqlite3_stmt *&s
     }
     colName.pop_back();
     dataFormat.pop_back();
-
-    std::string sql = "INSERT OR REPLACE INTO '" + insertTableName_ + "'" +
+    std::string sql = "INSERT ";
+    if (mode_ == DistributedTableMode::SPLIT_BY_DEVICE) {
+        sql += "OR REPLACE ";
+    }
+    sql += "INTO '" + insertTableName_ + "'" +
         "(" + colName + ") VALUES(" + dataFormat + ");";
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -162,7 +165,7 @@ int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem
 
     errCode = SQLiteUtils::StepWithRetry(stmt, false);
     int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, false, ret);
+    SQLiteUtils::ResetStatement(stmt, false, true, ret);
     return errCode;
 }
 
@@ -301,11 +304,8 @@ int RelationalSyncDataInserter::Iterate(const std::function<int (DataItem &)> &s
     int errCode = E_OK;
     for (auto &it : entries_) {
         it.dev = hashDevId_;
-        errCode = saveSyncDataItem(it);
-        if (errCode != E_OK) {
-            LOGE("Save sync data item failed. err=%d", errCode);
-            break;
-        }
+        int ret = saveSyncDataItem(it);
+        errCode = errCode == E_OK ? ret : errCode;
     }
     return errCode;
 }
