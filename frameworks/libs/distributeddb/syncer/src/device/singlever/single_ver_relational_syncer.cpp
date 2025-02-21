@@ -32,8 +32,9 @@ int SingleVerRelationalSyncer::Initialize(ISyncInterface *syncInterface, bool is
 
 int SingleVerRelationalSyncer::Sync(const SyncParma &param, uint64_t connectionId)
 {
-    if (QuerySyncPreCheck(param) != E_OK) {
-        return -E_NOT_SUPPORT;
+    int errCode = QuerySyncPreCheck(param);
+    if (errCode != E_OK) {
+        return errCode;
     }
     return GenericSyncer::Sync(param, connectionId);
 }
@@ -43,7 +44,7 @@ int SingleVerRelationalSyncer::PrepareSync(const SyncParma &param, uint32_t sync
     const auto &syncInterface = static_cast<RelationalDBSyncInterface *>(syncInterface_);
     std::vector<QuerySyncObject> tablesQuery;
     if (param.isQuerySync) {
-        tablesQuery.push_back(param.syncQuery);
+        tablesQuery = GetQuerySyncObject(param);
     } else {
         tablesQuery = syncInterface->GetTablesQuery();
     }
@@ -78,8 +79,8 @@ int SingleVerRelationalSyncer::GenerateEachSyncTask(const SyncParma &param, uint
         LOGI("[SingleVerRelationalSyncer] SubSyncId %" PRIu32 " create by SyncId %" PRIu32 ", hashTableName = %s",
             subSyncId, syncId, STR_MASK(DBCommon::TransferStringToHex(hashTableName)));
         subParam.syncQuery = table;
-        subParam.onComplete = [this, subSyncId, syncId, param](const std::map<std::string, int> &devicesMap) {
-            DoOnSubSyncComplete(subSyncId, syncId, param, devicesMap);
+        subParam.onComplete = [this, subSyncId, syncId, subParam](const std::map<std::string, int> &devicesMap) {
+            DoOnSubSyncComplete(subSyncId, syncId, subParam, devicesMap);
         };
         {
             std::lock_guard<std::mutex> lockGuard(syncMapLock_);
@@ -105,8 +106,11 @@ void SingleVerRelationalSyncer::DoOnSubSyncComplete(const uint32_t subSyncId, co
         std::lock_guard<std::mutex> lockGuard(syncMapLock_);
         fullSyncIdMap_[syncId].erase(subSyncId);
         allFinish = fullSyncIdMap_[syncId].empty();
+        TableStatus tableStatus;
+        tableStatus.tableName = param.syncQuery.GetRelationTableName();
         for (const auto &item : devicesMap) {
-            resMap_[syncId][item.first][param.syncQuery.GetRelationTableName()] = static_cast<int>(item.second);
+            tableStatus.status = static_cast<DBStatus>(item.second);
+            resMap_[syncId][item.first].push_back(tableStatus);
         }
     }
     // block sync do callback in sync function
@@ -131,7 +135,7 @@ void SingleVerRelationalSyncer::DoOnComplete(const SyncParma &param, uint32_t sy
         return;
     }
     std::map<std::string, std::vector<TableStatus>> syncRes;
-    std::map<std::string, std::map<std::string, int>> tmpMap;
+    std::map<std::string, std::vector<TableStatus>> tmpMap;
     {
         std::lock_guard<std::mutex> lockGuard(syncMapLock_);
         tmpMap = resMap_[syncId];
@@ -139,7 +143,7 @@ void SingleVerRelationalSyncer::DoOnComplete(const SyncParma &param, uint32_t sy
     for (const auto &devicesRes : tmpMap) {
         for (const auto &tableRes : devicesRes.second) {
             syncRes[devicesRes.first].push_back(
-                {tableRes.first, static_cast<DBStatus>(tableRes.second)});
+                {tableRes.tableName, static_cast<DBStatus>(tableRes.status)});
         }
     }
     param.relationOnComplete(syncRes);
@@ -178,25 +182,29 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
     if (!param.isQuerySync) {
         return E_OK;
     }
-    QuerySyncObject query = param.syncQuery;
-    int errCode = static_cast<RelationalDBSyncInterface *>(storage)->CheckAndInitQueryCondition(query);
-    if (errCode != E_OK) {
-        LOGE("[SingleVerRelationalSyncer] QuerySyncObject check failed");
-        return errCode;
+    auto queryList = GetQuerySyncObject(param);
+    const RelationalSchemaObject schemaObj = static_cast<RelationalDBSyncInterface *>(storage)->GetSchemaInfo();
+    const std::vector<DistributedTable> &sTable = schemaObj.GetDistributedSchema().tables;
+    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION && sTable.empty()) {
+        LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
+        return -E_SCHEMA_MISMATCH;
     }
-    const RelationalSchemaObject &schemaObj = static_cast<RelationalDBSyncInterface *>(storage)->GetSchemaInfo();
-    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION) {
-        const std::vector<DistributedTable> &sTable = schemaObj.GetDistributedSchema().tables;
-        if (sTable.empty()) {
-            LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
-            return -E_SCHEMA_MISMATCH;
+    for (auto &item : queryList) {
+        int errCode = static_cast<RelationalDBSyncInterface *>(storage)->CheckAndInitQueryCondition(item);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerRelationalSyncer] table %s[length: %zu] query check failed %d",
+                DBCommon::StringMiddleMasking(item.GetTableName()).c_str(), item.GetTableName().size(), errCode);
+            return errCode;
         }
-        auto iter = std::find_if(sTable.begin(), sTable.end(), [&param](const DistributedTable &table) {
-            return DBCommon::ToLowerCase(table.tableName) == DBCommon::ToLowerCase(param.syncQuery.GetTableName());
-        });
-        if (iter == sTable.end()) {
-            LOGE("[SingleVerRelationalSyncer] table name mismatch");
-            return -E_SCHEMA_MISMATCH;
+        if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION) {
+            auto iter = std::find_if(sTable.begin(), sTable.end(), [&item](const DistributedTable &table) {
+                return DBCommon::ToLowerCase(table.tableName) == DBCommon::ToLowerCase(item.GetTableName());
+            });
+            if (iter == sTable.end()) {
+                LOGE("[SingleVerRelationalSyncer] table %s[length: %zu] mismatch distributed schema",
+                    DBCommon::StringMiddleMasking(item.GetTableName()).c_str(), item.GetTableName().size());
+                return -E_SCHEMA_MISMATCH;
+            }
         }
     }
     if (param.mode == SUBSCRIBE_QUERY) {
@@ -207,10 +215,6 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
 
 int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
 {
-    if (!param.syncQuery.GetRelationTableNames().empty()) {
-        LOGE("[SingleVerRelationalSyncer] sync with not support query");
-        return -E_NOT_SUPPORT;
-    }
     if (!param.isQuerySync) {
         return E_OK;
     }
@@ -218,11 +222,29 @@ int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
         LOGE("[SingleVerRelationalSyncer] sync with not support push_pull mode");
         return -E_NOT_SUPPORT;
     }
-    if (param.syncQuery.GetRelationTableName().empty()) {
+    if (param.syncQuery.IsUseFromTables() && param.syncQuery.GetRelationTableNames().empty()) {
+        LOGE("[SingleVerRelationalSyncer] sync with from table but no table found");
+        return -E_INVALID_ARGS;
+    }
+    if (!param.syncQuery.IsUseFromTables() && param.syncQuery.GetRelationTableName().empty()) {
         LOGE("[SingleVerRelationalSyncer] sync with empty table");
         return -E_NOT_SUPPORT;
     }
     return E_OK;
+}
+
+std::vector<QuerySyncObject> SingleVerRelationalSyncer::GetQuerySyncObject(const SyncParma &param)
+{
+    std::vector<QuerySyncObject> res;
+    auto tables = param.syncQuery.GetRelationTableNames();
+    if (!tables.empty()) {
+        for (const auto &it : tables) {
+            res.emplace_back(Query::Select(it));
+        }
+    } else {
+        res.push_back(param.syncQuery);
+    }
+    return res;
 }
 }
 #endif

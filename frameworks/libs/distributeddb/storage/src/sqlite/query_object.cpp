@@ -92,6 +92,7 @@ QueryObject::QueryObject(const QueryExpression &queryExpression)
     groupNum_ = queryExpressions.GetGroupNum();
     assetsGroupMap_ = queryExpressions.GetAssetsOnlyGroupMap();
     assetsOnlyErrFlag_ = queryExpressions.GetExpressionStatusForAssetsOnly();
+    isUseFromTables_ = queryExpressions.IsUseFromTables();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -602,6 +603,11 @@ std::string QueryObject::GetRemoteDev() const
 void QueryObject::SetRemoteDev(const std::string &dev)
 {
     remoteDev_ = dev;
+}
+
+bool QueryObject::IsUseFromTables() const
+{
+    return isUseFromTables_;
 }
 }
 

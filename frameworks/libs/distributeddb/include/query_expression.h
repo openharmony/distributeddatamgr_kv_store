@@ -163,6 +163,8 @@ public:
     uint32_t GetGroupNum() const;
     int GetExpressionStatusForAssetsOnly() const;
 
+    bool IsUseFromTables() const;
+
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
@@ -188,6 +190,7 @@ private:
     std::vector<std::string> tables_;
 
     bool useFromTable_ = false;
+    bool isUseFromTables_ = false;
     std::string fromTable_;
     std::list<std::string> tableSequence_;
     std::map<std::string, QueryExpression> expressions_;

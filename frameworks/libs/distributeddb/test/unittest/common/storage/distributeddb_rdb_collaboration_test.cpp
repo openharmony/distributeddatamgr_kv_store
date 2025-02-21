@@ -1467,7 +1467,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level0)
      * @tc.steps: step3. Sync to real device
      * @tc.expected: step3.ok
      */
-    Query query = Query::Select(tableSchema.name);
+    Query query = Query::Select().FromTable({tableSchema.name});
     DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, OK, {deviceB_->GetDeviceId()});
 }
 
@@ -1883,6 +1883,60 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync019, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSync021
+ * @tc.desc: Test sync multi table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync021, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE_UPGRADE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Insert 10 data
+     * @tc.expected: step2.ok
+     */
+    int dataCount = 10;
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, dataCount, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    tableSchema = GetTableSchema(true);
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, dataCount, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Sync to real device and check data
+     * @tc.expected: step3.ok
+     */
+    Query query = Query::Select().FromTable({DEVICE_SYNC_TABLE, DEVICE_SYNC_TABLE_UPGRADE});
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+    std::string sql = std::string("select count(*) from ").append(DEVICE_SYNC_TABLE);
+    int actualCount = 0;
+    SQLiteUtils::GetCountBySql(db_, sql, actualCount);
+    EXPECT_EQ(actualCount, dataCount);
+    sql = std::string("select count(*) from ").append(DEVICE_SYNC_TABLE_UPGRADE);
+    actualCount = 0;
+    SQLiteUtils::GetCountBySql(db_, sql, actualCount);
+    EXPECT_EQ(actualCount, dataCount);
+    /**
+     * @tc.steps: step4. Sync with invalid args
+     * @tc.expected: step4.invalid args
+     */
+    query.And();
+    DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PUSH_ONLY, query, nullptr, true);
+    EXPECT_EQ(callStatus, NOT_SUPPORT);
+}
+
+/**
  * @tc.name: SetStoreConfig001
  * @tc.desc: Test set store config.
  * @tc.type: FUNC
@@ -1981,5 +2035,121 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync001, TestSize.Level0)
     EXPECT_EQ(delegate_->RemoveDeviceData("dev", DEVICE_SYNC_TABLE), NOT_SUPPORT);
     EXPECT_EQ(delegate_->RemoveDeviceData(), NOT_SUPPORT);
     EXPECT_EQ(delegate_->RemoveDeviceData("dev", ClearMode::DEFAULT), NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: InvalidSync004
+ * @tc.desc: Test sync with empty tables
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync004, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    Query query = Query::Select().FromTable({});
+    DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PUSH_ONLY, query, nullptr, true);
+    EXPECT_EQ(callStatus, INVALID_ARGS);
+}
+
+/**
+ * @tc.name: InvalidSync005
+ * @tc.desc: Test error returned by the other end during sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Prepare device B
+     * @tc.expected: step2.ok
+     */
+    int dataCount = 10;
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, dataCount, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Set return E_DISTRIBUTED_SCHEMA_NOT_FOUND when get sync data in device B
+     * @tc.expected: step3.ok
+     */
+    deviceB_->SetGetSyncDataResult(-E_DISTRIBUTED_SCHEMA_NOT_FOUND);
+    /**
+     * @tc.steps: step4. Sync
+     * @tc.expected: step4. return SCHEMA_MISMATCH
+     */
+    Query query = Query::Select().FromTable({DEVICE_SYNC_TABLE});
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, SCHEMA_MISMATCH,
+        {deviceB_->GetDeviceId()});
+}
+
+/**
+ * @tc.name: InvalidSync006
+ * @tc.desc: Test FromTable and other predicates are combined when sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Prepare device B
+     * @tc.expected: step2.ok
+     */
+    int dataCount = 10;
+    auto tableSchema = GetTableSchema();
+    ASSERT_EQ(RDBDataGenerator::InsertVirtualLocalDBData(0, dataCount, deviceB_, tableSchema), E_OK);
+    ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
+    /**
+     * @tc.steps: step3. Prepare query list
+     * @tc.expected: step3.ok
+     */
+    std::set<Key> keys = {{1}, {2}, {3}};
+    std::vector<int> values = {1, 2, 3};
+    std::vector<Query> queryList = {
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).BeginGroup().EqualTo("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).EqualTo("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).GreaterThan("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).GreaterThanOrEqualTo("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).In("pk", values),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).NotIn("pk", values),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).IsNotNull("pk"),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).LessThan("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).LessThanOrEqualTo("pk", 1),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).Like("pk", "abc"),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).NotLike("pk", "abc"),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).OrderByWriteTime(false),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).SuggestIndex("pk"),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).PrefixKey({1, 2, 3}),
+        Query::Select().FromTable({DEVICE_SYNC_TABLE}).InKeys(keys)
+    };
+    /**
+     * @tc.steps: step4. Sync
+     * @tc.expected: step4. return NOT_SUPPORT
+     */
+    for (const auto &query : queryList) {
+        DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PUSH_ONLY, query, nullptr, true);
+        EXPECT_EQ(callStatus, NOT_SUPPORT);
+    }
 }
 }

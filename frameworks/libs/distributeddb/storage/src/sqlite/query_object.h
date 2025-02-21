@@ -86,6 +86,8 @@ public:
 
     void SetRemoteDev(const std::string &dev);
     std::string GetRemoteDev() const;
+
+    bool IsUseFromTables() const;
 protected:
     explicit QueryObject(const QueryExpression &queryExpression);
     static std::vector<QueryExpression> GetQueryExpressions(const Query &query);
@@ -105,6 +107,7 @@ protected:
     bool isAssetsOnly_ = false;
     AssetsGroupMap assetsGroupMap_;
     int assetsOnlyErrFlag_ = E_OK;
+    bool isUseFromTables_ = false;
 
 private:
     int Parse();

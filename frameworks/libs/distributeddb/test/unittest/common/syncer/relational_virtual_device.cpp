@@ -64,5 +64,10 @@ void RelationalVirtualDevice::SetDistributedSchema(const DistributedDB::Distribu
 {
     static_cast<VirtualRelationalVerSyncDBInterface *>(storage_)->SetDistributedSchema(schema);
 }
+
+void RelationalVirtualDevice::SetGetSyncDataResult(int errCode)
+{
+    static_cast<VirtualRelationalVerSyncDBInterface *>(storage_)->SetGetSyncDataResult(errCode);
+}
 } // DistributedDB
 #endif
