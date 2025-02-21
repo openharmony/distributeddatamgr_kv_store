@@ -1883,13 +1883,13 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync019, TestSize.Level0)
 }
 
 /**
- * @tc.name: NormalSync022
+ * @tc.name: SetStoreConfig001
  * @tc.desc: Test set store config.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync022, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig001, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in SPLIT_BY_DEVICE
@@ -1915,6 +1915,28 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync022, TestSize.Level0)
     ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
     Query query = Query::Select(tableSchema.name);
     DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, OK, {deviceB_->GetDeviceId()});
+}
+
+/**
+ * @tc.name: SetStoreConfig002
+ * @tc.desc: Test set store config after create distributed table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in SPLIT_BY_DEVICE
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::SPLIT_BY_DEVICE));
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Set store config.
+     * @tc.expected: step2. return not support
+     */
+    EXPECT_EQ(delegate_->SetStoreConfig({DistributedTableMode::COLLABORATION}), NOT_SUPPORT);
 }
 
 /**

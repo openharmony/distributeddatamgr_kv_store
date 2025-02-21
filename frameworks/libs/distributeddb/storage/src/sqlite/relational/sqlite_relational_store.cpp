@@ -1782,7 +1782,8 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
     }
     if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE &&
         tableMode == DistributedTableMode::COLLABORATION) {
-        for (const auto &tableMap : sqliteStorageEngine_->GetSchema().GetTables()) {
+        auto schema = sqliteStorageEngine_->GetSchema();
+        for (const auto &tableMap : schema.GetTables()) {
             if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
                 LOGW("[RelationalStore][SetTableMode] Can not set table mode for table %s[%zu]",
                     DBCommon::StringMiddleMasking(tableMap.first).c_str(), tableMap.first.size());
