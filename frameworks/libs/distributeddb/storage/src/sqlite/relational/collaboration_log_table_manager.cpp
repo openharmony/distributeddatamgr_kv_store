@@ -18,8 +18,7 @@
 namespace DistributedDB {
 bool CollaborationLogTableManager::IsCollaborationWithoutKey(const TableInfo &table)
 {
-    return ((table.GetIdentifyKey().size() == 1u && table.GetIdentifyKey().at(0) == "rowid") ||
-        table.GetAutoIncrement());
+    return (table.GetIdentifyKey().size() == 1u && table.GetIdentifyKey().at(0) == "rowid");
 }
 
 std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,

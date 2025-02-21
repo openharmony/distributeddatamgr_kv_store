@@ -2012,9 +2012,16 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode
     TableSyncType syncType)
 {
     auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
-    std::string sql = "update " + DBCommon::GetLogTableName(tableInfo.GetTableName()) +
-        " as log set hash_key = (select " + tableManager->CalcPrimaryKeyHash("data.", tableInfo, "") +
-        " from " + tableInfo.GetTableName() + " as data where log.data_key = data._rowid_);";
+    auto logName = DBCommon::GetLogTableName(tableInfo.GetTableName());
+    std::string sql = "UPDATE " + logName + " SET hash_key = hash_key || '_old' where data_key in " +
+        "(select _rowid_ from '" + tableInfo.GetTableName() + "');";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    sql = "UPDATE " + logName + " SET hash_key = data.hash_value FROM (SELECT _rowid_, " +
+        tableManager->CalcPrimaryKeyHash("dataTable.", tableInfo, "") + " AS hash_value " +
+        "FROM '" + tableInfo.GetTableName() + "' AS dataTable) AS data WHERE data._rowid_ = " + logName + ".data_key;";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
 }
 

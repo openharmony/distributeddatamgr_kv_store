@@ -73,6 +73,7 @@ public:
 
     // Reset the statement
     static void ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, int &errCode);
+    static void ResetStatement(sqlite3_stmt *&statement, bool isNeedFinalize, bool isIgnoreResetRet, int &errCode);
 
     // Step the statement
     static int StepWithRetry(sqlite3_stmt *statement, bool isMemDb = false);
