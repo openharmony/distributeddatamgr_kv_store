@@ -27,8 +27,8 @@ public:
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
         Status &status, bool &isCreate);
-    Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
-    Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
+    Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
+    Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false, int32_t subUser = 0);
 
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
@@ -42,7 +42,7 @@ private:
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
 
     StoreFactory();
-    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
+    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, int32_t subUser = 0);
     DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
     void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         std::shared_ptr<DBManager> dbManager, const Options &options);
@@ -52,6 +52,7 @@ private:
     Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager, const Options &options,
         DBPassword &dbPassword);
     Status SetDbConfig(std::shared_ptr<DBStore> dbStore);
+    std::string GenerateKey(const std::string &userId, const std::string &storeId) const;
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
