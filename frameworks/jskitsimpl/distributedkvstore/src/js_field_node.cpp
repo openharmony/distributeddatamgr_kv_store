@@ -43,6 +43,14 @@ JsFieldNode::JsFieldNode(const std::string& fName)
 {
 }
 
+JsFieldNode::~JsFieldNode()
+{
+    ZLOGD("no memory leak for JsFieldNode");
+    if (ref_ != nullptr) {
+        napi_delete_reference(env_, ref_);
+    }
+}
+
 std::string JsFieldNode::GetFieldName()
 {
     return fieldName_;
@@ -109,25 +117,27 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     return ctxt->self;
 }
 
-napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
-{
+napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info) {
     ZLOGD("FieldNode::AppendChild");
-    JsFieldNode* child = nullptr;
     auto ctxt = std::make_shared<ContextBase>();
-    auto input = [env, ctxt, &child](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <child>
+    auto input = [env, ctxt](size_t argc, napi_value *argv) {
+        // required 1 arguments ::
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
-            "Parameter error:Mandatory parameters are left unspecified");
-        ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&child), JsFieldNode::Constructor(env));
-        ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)),
-            Status::INVALID_ARGUMENT, "Parameter error:child is nullptr");
+                            "Parameter error:Mandatory parameters are left unspecified");
+        JsFieldNode *child = nullptr;
+        ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void **>(&child), JsFieldNode::Constructor(env));
+        ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)), Status::INVALID_ARGUMENT,
+            "Parameter error:child is nullptr");
+        auto fieldNode = reinterpret_cast<JsFieldNode *>(ctxt->native);
+        if (fieldNode->ref_ != nullptr) {
+            napi_delete_reference(env, fieldNode->ref_);
+        }
+        ctxt->status = napi_create_reference(env, argv[0], 1, &fieldNode->ref_);
+        ASSERT_STATUS(ctxt, "napi_create_reference to FieldNode failed");
+        fieldNode->fields_.push_back(child);
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "AppendChild exit");
-
-    auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->fields_.push_back(child);
-
     napi_get_boolean(env, true, &ctxt->output);
     return ctxt->output;
 }

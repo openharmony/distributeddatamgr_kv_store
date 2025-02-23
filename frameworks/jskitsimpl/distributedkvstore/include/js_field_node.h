@@ -24,7 +24,7 @@ class JsFieldNode {
 public:
     using json = nlohmann::json;
     explicit JsFieldNode(const std::string& fName);
-    ~JsFieldNode() = default;
+    ~JsFieldNode();
 
     std::string GetFieldName();
     std::string Dump();
@@ -57,6 +57,8 @@ private:
     JSUtil::KvStoreVariant defaultValue_;
     bool isWithDefaultValue_ = false;
     bool isNullable_ = false;
+    napi_env env_ = nullptr;     // manage the root. set/get.
+    napi_ref ref_ = nullptr;     // manage the root. set/get.
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_FIELD_NODE_H
