@@ -121,9 +121,8 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info) {
     ZLOGD("FieldNode::AppendChild");
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value *argv) {
-        // required 1 arguments ::
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
-                            "Parameter error:Mandatory parameters are left unspecified");
+            "Parameter error:Mandatory parameters are left unspecified");
         JsFieldNode *child = nullptr;
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void **>(&child), JsFieldNode::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)), Status::INVALID_ARGUMENT,
