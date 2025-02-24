@@ -490,8 +490,4 @@ bool SingleStoreImpl::IsRebuild()
 {
     return false;
 }
-int32_t SingleStoreImpl::GetSubUser()
-{
-    return 0;
-}
 } // namespace OHOS::DistributedKv
