@@ -38,8 +38,8 @@ std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::DOUBLE, std::string("DOUBLE") }
 };
 
-JsFieldNode::JsFieldNode(const std::string& fName)
-    : fieldName_(fName)
+JsFieldNode::JsFieldNode(const std::string& fName, napi_env env)
+    : fieldName_(fName), env_(env)
 {
 }
 
