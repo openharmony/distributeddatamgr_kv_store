@@ -117,7 +117,8 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     return ctxt->self;
 }
 
-napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info) {
+napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
+{
     ZLOGD("FieldNode::AppendChild");
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value *argv) {
