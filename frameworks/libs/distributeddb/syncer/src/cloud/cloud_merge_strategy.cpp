@@ -85,7 +85,7 @@ OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const
 {
     if (JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
         (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
-        && localInfo.wTimestamp > cloudInfo.wTimestamp) {
+        && localInfo.timestamp > cloudInfo.timestamp) {
         return OpType::NOT_HANDLE;
     }
     return TagUpdateLocal(cloudInfo, localInfo);

@@ -417,6 +417,6 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest007, TestSize.Level0)
      * @tc.expected: step5. need UPDATE this record
      */
     localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE);
-    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
 }
 }
