@@ -401,6 +401,8 @@ std::map<std::string, std::vector<ChangedData>> g_storeChangedDataMap;
 std::mutex g_clientCreateTableMutex;
 std::set<std::string> g_clientCreateTable;
 
+std::mutex g_registerSqliteHookMutex;
+
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -1057,8 +1059,6 @@ int RegisterDataChangeObserver(sqlite3 *db)
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
     sqlite3_set_authorizer(db, AuthorizerCallback, nullptr);
-    sqlite3_wal_hook(db, LogCommitHookCallback, db);
-    sqlite3_rollback_hook(db, RollbackHookCallback, db);
 }
 
 int ResetStatement(sqlite3_stmt *&stmt)
@@ -1613,8 +1613,15 @@ DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientO
         return DistributedDB::DB_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
-    g_clientObserverMap[hashFileName] = clientObserver;
+    {
+        std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+        g_clientObserverMap[hashFileName] = clientObserver;
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
+        sqlite3_wal_hook(db, LogCommitHookCallback, db);
+        sqlite3_rollback_hook(db, RollbackHookCallback, db);
+    }
     return DistributedDB::OK;
 }
 
@@ -1665,13 +1672,21 @@ DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::sha
         return DistributedDB::DB_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(g_storeObserverMutex);
-    if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(), storeObserver) !=
-        g_storeObserverMap[hashFileName].end()) {
-        LOGE("[RegisterStoreObserver] Duplicate observer.");
-        return DistributedDB::INVALID_ARGS;
+    {
+        std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+        if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(),
+            storeObserver) !=
+            g_storeObserverMap[hashFileName].end()) {
+            LOGE("[RegisterStoreObserver] Duplicate observer.");
+            return DistributedDB::INVALID_ARGS;
+        }
+        g_storeObserverMap[hashFileName].push_back(storeObserver);
     }
-    g_storeObserverMap[hashFileName].push_back(storeObserver);
+    {
+        std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
+        sqlite3_wal_hook(db, LogCommitHookCallback, db);
+        sqlite3_rollback_hook(db, RollbackHookCallback, db);
+    }
     return DistributedDB::OK;
 }
 
