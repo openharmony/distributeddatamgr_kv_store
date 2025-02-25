@@ -48,7 +48,7 @@ JsFieldNode::~JsFieldNode()
     ZLOGD("no memory leak for JsFieldNode");
     for (auto ref : refs_) {
         if (ref != nullptr) {
-            napi_delete_reference(env_, *ref);
+            napi_delete_reference(env_, ref);
         }
     }
 }
@@ -137,7 +137,7 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
         ctxt->status = napi_create_reference(env, argv[0], 1, &ref);
         ASSERT_STATUS(ctxt, "napi_create_reference to FieldNode failed");
         fieldNode->fields_.push_back(child);
-        fieldNode->refs_.push_back(&ref);
+        fieldNode->refs_.push_back(ref);
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "AppendChild exit");

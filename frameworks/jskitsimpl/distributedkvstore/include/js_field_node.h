@@ -58,7 +58,7 @@ private:
     bool isWithDefaultValue_ = false;
     bool isNullable_ = false;
     napi_env env_ = nullptr;     // manage the root. set/get.
-    std::list<napi_ref*> refs_;
+    std::list<napi_ref> refs_;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_FIELD_NODE_H
