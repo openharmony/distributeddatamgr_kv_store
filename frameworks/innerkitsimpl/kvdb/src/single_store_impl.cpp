@@ -51,7 +51,6 @@ SingleStoreImpl::SingleStoreImpl(
     securityLevel_ = options.securityLevel;
     area_ = options.area;
     hapName_ = options.hapName;
-    subUser_ = options.subUser;
     if (options.backup) {
         BackupManager::GetInstance().Prepare(path, storeId_);
     }
@@ -75,11 +74,6 @@ SingleStoreImpl::~SingleStoreImpl()
 StoreId SingleStoreImpl::GetStoreId() const
 {
     return { storeId_ };
-}
-
-int32_t SingleStoreImpl::GetSubUser()
-{
-    return subUser_;
 }
 
 Status SingleStoreImpl::RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda)
@@ -578,7 +572,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
         return SERVER_UNAVAILABLE;
     }
 
-    Status status = service->RemoveDeviceData({ appId_ }, { storeId_ }, subUser_, device);
+    Status status = service->RemoveDeviceData({ appId_ }, { storeId_ }, device);
     if (status != SUCCESS) {
         ReportDBFaultEvent(status, std::string(__FUNCTION__));
         ZLOGE("status:%{public}d device:%{public}s", status, StoreUtil::Anonymous(device).c_str());
@@ -781,7 +775,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
-        service->Close({ appId_ }, { storeId_ }, subUser_);
+        service->Close({ appId_ }, { storeId_ });
     }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_,
         .encrypt = encrypt_ };
@@ -855,7 +849,7 @@ std::shared_ptr<ObserverBridge> SingleStoreImpl::PutIn(uint32_t &realType, std::
                 auto release = BridgeReleaser();
                 StoreId storeId{ storeId_ };
                 AppId appId{ appId_ };
-                pair.second = { new ObserverBridge(appId, storeId, subUser_, observer, convertor_), release };
+                pair.second = { new ObserverBridge(appId, storeId, observer, convertor_), release };
             }
             bridge = pair.second;
             realType = (realType & (~pair.first));
@@ -978,7 +972,7 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
     }
 
     serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
-    auto status = service->Sync({ appId_ }, { storeId_ }, subUser_, syncInfo);
+    auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
         serviceAgent->DeleteSyncCallback(syncInfo.seqId);
     }
