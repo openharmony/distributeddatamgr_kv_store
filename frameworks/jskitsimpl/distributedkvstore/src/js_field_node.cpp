@@ -45,7 +45,7 @@ JsFieldNode::JsFieldNode(const std::string& fName, napi_env env)
 
 JsFieldNode::~JsFieldNode()
 {
-    ZLOGD("no memory leak for JsFieldNode");
+    ZLOGI("no memory leak for JsFieldNode");
     for (auto ref : refs_) {
         if (ref != nullptr) {
             napi_delete_reference(env_, ref);
@@ -126,11 +126,11 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <child>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
-                            "Parameter error:Mandatory parameters are left unspecified");
+            "Parameter error:Mandatory parameters are left unspecified");
         JsFieldNode* child = nullptr;
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&child), JsFieldNode::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ((ctxt->status == napi_ok) && (child != nullptr)),
-                            Status::INVALID_ARGUMENT, "Parameter error:child is nullptr");
+            Status::INVALID_ARGUMENT, "Parameter error:child is nullptr");
 
         auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
         napi_ref ref = nullptr;
