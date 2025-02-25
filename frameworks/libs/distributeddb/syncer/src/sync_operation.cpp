@@ -46,23 +46,34 @@ SyncOperation::~SyncOperation()
 int SyncOperation::Initialize()
 {
     LOGD("[SyncOperation] Init SyncOperation id:%d.", syncId_);
-    AutoLock lockGuard(this);
-    for (const std::string &deviceId : devices_) {
-        statuses_.insert(std::pair<std::string, int>(deviceId, OP_WAITING));
-    }
+    std::map<std::string, DeviceSyncProcess> tempSyncProcessMap;
+    {
+        AutoLock lockGuard(this);
+        for (const std::string &deviceId : devices_) {
+            statuses_.insert(std::pair<std::string, int>(deviceId, OP_WAITING));
+            DeviceSyncProcess processInfo;
+            processInfo.errCode = static_cast<DBStatus>(OP_WAITING);
+            processInfo.syncId = syncId_;
+            syncProcessMap_.insert(std::pair<std::string, DeviceSyncProcess>(deviceId, processInfo));
+        }
 
-    if (mode_ == AUTO_PUSH) {
-        mode_ = PUSH;
-        isAutoSync_ = true;
-    } else if (mode_ == AUTO_PULL) {
-        mode_ = PULL;
-        isAutoSync_ = true;
-    } else if (mode_ == AUTO_SUBSCRIBE_QUERY) {
-        mode_ = SUBSCRIBE_QUERY;
-        isAutoSubscribe_ = true;
+        if (mode_ == AUTO_PUSH) {
+            mode_ = PUSH;
+            isAutoSync_ = true;
+        } else if (mode_ == AUTO_PULL) {
+            mode_ = PULL;
+            isAutoSync_ = true;
+        } else if (mode_ == AUTO_SUBSCRIBE_QUERY) {
+            mode_ = SUBSCRIBE_QUERY;
+            isAutoSubscribe_ = true;
+        }
+        if (isBlockSync_) {
+            semaphore_ = std::make_unique<SemaphoreUtils>(0);
+        }
+        tempSyncProcessMap = syncProcessMap_;
     }
-    if (isBlockSync_) {
-        semaphore_ = std::make_unique<SemaphoreUtils>(0);
+    if (userSyncProcessCallback_) {
+        ExeSyncProcessCallFun(tempSyncProcessMap);
     }
 
     return E_OK;
@@ -89,6 +100,12 @@ void SyncOperation::SetStatus(const std::string &deviceId, int status, int commE
     if (isFinished_) {
         LOGI("[SyncOperation] SetStatus already finished");
         return;
+    }
+
+    if (userSyncProcessCallback_) {
+        if (syncProcessMap_[deviceId].errCode < static_cast<DBStatus>(OP_FINISHED_ALL)) {
+            syncProcessMap_[deviceId].errCode = static_cast<DBStatus>(status);
+        }
     }
 
     auto iter = statuses_.find(deviceId);
@@ -161,6 +178,7 @@ void SyncOperation::ReplaceCommErrCode(std::map<std::string, int> &finishStatus)
 void SyncOperation::Finished()
 {
     std::map<std::string, int> tmpStatus;
+    std::map<std::string, DeviceSyncProcess> tmpProcessMap;
     {
         AutoLock lockGuard(this);
         if (IsKilled() || isFinished_) {
@@ -168,6 +186,7 @@ void SyncOperation::Finished()
         }
         isFinished_ = true;
         tmpStatus = statuses_;
+        tmpProcessMap = syncProcessMap_;
         ReplaceCommErrCode(tmpStatus);
     }
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
@@ -191,6 +210,11 @@ void SyncOperation::Finished()
             }
         }
     }
+
+    if (userSyncProcessCallback_) {
+        ExeSyncProcessCallFun(tmpProcessMap);
+    }
+
     if (onFinished_) {
         LOGD("[SyncOperation] Sync %d finished call onFinished.", syncId_);
         onFinished_(syncId_);
@@ -238,6 +262,67 @@ void SyncOperation::SetSyncContext(RefObject *context)
     RefObject::DecObjRef(context_);
     context_ = context;
     RefObject::IncObjRef(context);
+}
+
+bool SyncOperation::CanCancel()
+{
+    return canCancel_;
+}
+
+void SyncOperation::SetSyncProcessCallFun(DeviceSyncProcessCallback callBack)
+{
+    if (callBack) {
+        canCancel_ = true;
+        this->userSyncProcessCallback_ = callBack;
+    }
+}
+
+void SyncOperation::ExeSyncProcessCallFun(const std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+{
+    if (IsBlockSync()) {
+        userSyncProcessCallback_(syncProcessMap);
+    } else {
+        RefObject::IncObjRef(this);
+        int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(identifier_, [this, syncProcessMap] {
+            userSyncProcessCallback_(syncProcessMap);
+            RefObject::DecObjRef(this);
+        });
+        if (errCode != E_OK) {
+            LOGE("[SyncOperation] ExeSyncProcessCallFun retCode:%d", errCode);
+            RefObject::DecObjRef(this);
+        }
+    }
+}
+
+void SyncOperation::UpdateFinishedCount(const std::string &deviceId, uint32_t count)
+{
+    if (this->userSyncProcessCallback_) {
+        std::map<std::string, DeviceSyncProcess> tmpMap;
+        {
+            AutoLock lockGuard(this);
+            if (IsKilled()) {
+                return;
+            }
+            LOGD("[UpdateFinishedCount] deviceId %s{private} count %u", deviceId.c_str(), count);
+            this->syncProcessMap_[deviceId].pullInfo.finishedCount += count;
+            tmpMap = this->syncProcessMap_;
+        }
+        ExeSyncProcessCallFun(tmpMap);
+    }
+}
+
+void SyncOperation::SetSyncProcessTotal(const std::string &deviceId, uint32_t total)
+{
+    if (this->userSyncProcessCallback_) {
+        {
+            AutoLock lockGuard(this);
+            if (IsKilled()) {
+                return;
+            }
+            LOGD("[SetSyncProcessTotal] total=%u, syncId=%u, deviceId=%s{private}", total, syncId_, deviceId.c_str());
+            this->syncProcessMap_[deviceId].pullInfo.total = total;
+        }
+    }
 }
 
 bool SyncOperation::CheckIsAllFinished() const
@@ -294,6 +379,10 @@ struct SyncOperationStatusNode {
     int operationStatus = 0;
     DBStatus status = DBStatus::DB_ERROR;
 };
+struct SyncOperationProcessStatus {
+    int operationStatus;
+    ProcessStatus proStatus;
+};
 }
 
 SyncType SyncOperation::GetSyncType(int mode)
@@ -335,6 +424,10 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
 {
     static const SyncOperationStatusNode syncOperationStatusNodes[] = {
         { static_cast<int>(OP_FINISHED_ALL),                  OK },
+        { static_cast<int>(OP_WAITING),                       OK },
+        { static_cast<int>(OP_SYNCING),                       OK },
+        { static_cast<int>(OP_SEND_FINISHED),                 OK },
+        { static_cast<int>(OP_RECV_FINISHED),                 OK },
         { static_cast<int>(OP_TIMEOUT),                       TIME_OUT },
         { static_cast<int>(OP_PERMISSION_CHECK_FAILED),       PERMISSION_CHECK_FORBID_SYNC },
         { static_cast<int>(OP_COMM_ABNORMAL),                 COMM_FAILURE },
@@ -359,6 +452,23 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
             return node.operationStatus == operationStatus;
         });
     return result == std::end(syncOperationStatusNodes) ? static_cast<DBStatus>(operationStatus) : result->status;
+}
+
+ProcessStatus SyncOperation::DBStatusTransProcess(int operationStatus)
+{
+    static const SyncOperationProcessStatus syncOperationProcessStatus[] = {
+        { static_cast<int>(OP_WAITING),              PREPARED },
+        { static_cast<int>(OP_SYNCING),              PROCESSING },
+        { static_cast<int>(OP_SEND_FINISHED),        PROCESSING },
+        { static_cast<int>(OP_RECV_FINISHED),        PROCESSING },
+        { static_cast<int>(OP_FINISHED_ALL),         FINISHED },
+        { static_cast<int>(OP_COMM_ABNORMAL),        FINISHED },
+    };
+    const auto &result = std::find_if(std::begin(syncOperationProcessStatus), std::end(syncOperationProcessStatus),
+    [operationStatus](const auto &node) {
+        return node.operationStatus == operationStatus;
+    });
+    return result == std::end(syncOperationProcessStatus) ? FINISHED : result->proStatus;
 }
 
 std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &finishStatus)

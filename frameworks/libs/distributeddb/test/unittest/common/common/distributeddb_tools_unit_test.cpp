@@ -990,6 +990,38 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
     return callStatus;
 }
 
+DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, DeviceSyncOption option,
+    std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+{
+    syncProcessMap.clear();
+    DeviceSyncProcessCallback onProcess =
+        [&syncProcessMap, this](const std::map<std::string, DeviceSyncProcess> &processMap) {
+            syncProcessMap = processMap;
+            std::unique_lock<std::mutex> innerLock(this->syncLock_);
+            this->syncCondVar_.notify_one();
+        };
+    DBStatus status = delegate->Sync(option, onProcess);
+    if (option.isWait) {
+        return status;
+    }
+    std::unique_lock<std::mutex> lock(this->syncLock_);
+    this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
+        if (status != OK) {
+            return true;
+        }
+        if (syncProcessMap.empty()) {
+            return false;
+        }
+        for (const auto &entry : syncProcessMap) {
+            if (entry.second.process < ProcessStatus::FINISHED) {
+                return false;
+            }
+        }
+        return true;
+    });
+    return status;
+}
+
 void KvStoreCorruptInfo::CorruptCallBack(const std::string &appId, const std::string &userId,
     const std::string &storeId)
 {

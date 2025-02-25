@@ -44,6 +44,7 @@ public:
         bool wait = false;
         bool isQuerySync = false;
         QuerySyncObject syncQuery;
+        DeviceSyncProcessCallback onSyncProcess;
     };
 
     virtual ~ISyncer() {};
@@ -66,6 +67,9 @@ public:
 
     // Sync function. use SyncParma to reduce parameter.
     virtual int Sync(const SyncParma &param, uint64_t connectionId) = 0;
+
+    // Cancel sync function.
+    virtual int CancelSync(uint32_t syncId) = 0;
 
     // Remove the operation, with the given syncId, used to clean resource if sync finished or failed.
     virtual int RemoveSyncOperation(int syncId) = 0;

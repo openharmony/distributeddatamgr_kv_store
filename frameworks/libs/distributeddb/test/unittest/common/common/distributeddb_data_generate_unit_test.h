@@ -113,6 +113,8 @@ void GenerateEntryVector(int entryVectorCount, int entryCount, std::vector<Distr
 
 void GenerateRecords(int recordNum, std::vector<DistributedDB::Entry> &entries, std::vector<DistributedDB::Key> &keys,
     int keySize = DEFAULT_NB_KEY_VALUE_SIZE, int valSize = DEFAULT_NB_KEY_VALUE_SIZE);
+
+void GenerateNumberEntryVector(int entryNum, std::vector<DistributedDB::Entry> &entries);
 } // namespace DistributedDBUnitTest
 
 #endif // DISTRIBUTEDDB_DATA_GENERATE_UNIT_H

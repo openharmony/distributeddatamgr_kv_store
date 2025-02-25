@@ -123,6 +123,9 @@ public:
 
     void SetSecurityOption(const SecurityOption &option);
     SecurityOption GetSecurityOption() const;
+
+    void SetTotalDataCount(uint32_t total);
+    uint32_t GetTotalDataCount() const;
 protected:
     std::vector<SendDataItem> data_;
     WaterMark endWaterMark_ = 0;
@@ -145,6 +148,7 @@ protected:
     int64_t systemTimeOffset_ = 0; // sender device time offset with receiver, add in 109
     int64_t senderTimeOffset_ = 0; // sender local time offset, add in 109
     SecurityOption securityOption_;
+    uint32_t totalDataCount_ = 0;
     static const uint32_t IS_LAST_SEQUENCE = 0x1; // bit 0 used for isLastSequence, 1: is last, 0: not last
     static const uint32_t IS_UPDATE_WATER = 0x2; // bit 1 used for update watermark, 0: update, 1: not update
     static const uint32_t IS_COMPRESS_DATA = 0x4; // bit 3 used for compress data, 0: raw data, 1: compress data

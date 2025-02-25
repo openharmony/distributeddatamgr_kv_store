@@ -72,6 +72,8 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+    void CancelTestInit(DeviceSyncOption &option, std::vector<Entry> &entries, const uint32_t mtuSize);
+    void CancelTestEnd(std::vector<Entry> &entries, const uint32_t mtuSize);
 };
 
 void DistributedDBSingleVerP2PSyncCheckTest::SetUpTestCase(void)
@@ -511,6 +513,194 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck008, TestSize.Lev
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(std::make_shared<ProcessSystemApiAdapterImpl>());
     g_syncInterfaceB->ForkGetSecurityOption(nullptr);
     g_syncInterfaceB->SetCompressSync(false);
+}
+
+/**
+ * @tc.name: SyncProcess001
+ * @tc.desc: sync process pull mode.
+ * @tc.type: FUNC
+ * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess001, TestSize.Level1)
+{
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(g_deviceC->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceB deviceC put bigData
+     */
+    std::vector<Entry> entries;
+    const uint32_t dataCount = 10;
+    DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
+
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        if (i % 2 == 0) {
+            g_deviceB->PutData(entries[i].key, entries[i].value, 0, 0);
+        } else {
+            g_deviceC->PutData(entries[i].key, entries[i].value, 0, 0);
+        }
+    }
+
+    /**
+     * @tc.steps: step2. deviceA call pull sync
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::map<std::string, DeviceSyncProcess> syncProcessMap;
+    DeviceSyncOption option;
+    option.devices = devices;
+    option.mode = SYNC_MODE_PULL_ONLY;
+    option.isQuery = false;
+    option.isWait = false;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, option, syncProcessMap);
+    EXPECT_EQ(status, DBStatus::OK);
+
+    /**
+     * @tc.expected: step3. onProcess should be called, DeviceA have all bigData
+     */
+    for (const auto &entry : entries) {
+        Value value;
+        EXPECT_EQ(g_kvDelegatePtr->Get(entry.key, value), DBStatus::OK);
+        EXPECT_EQ(value, entry.value);
+    }
+
+    for (const auto &entry : syncProcessMap) {
+        LOGD("[SyncProcess001] dev %s, status %d, totalCount %u, finishedCount %u", entry.first.c_str(),
+            entry.second.errCode, entry.second.pullInfo.total, entry.second.pullInfo.finishedCount);
+        EXPECT_EQ(entry.second.errCode, OK);
+        EXPECT_EQ(entry.second.process, ProcessStatus::FINISHED);
+        EXPECT_EQ(entry.second.pullInfo.total, dataCount/2);
+        EXPECT_EQ(entry.second.pullInfo.finishedCount, dataCount/2);
+        ASSERT_TRUE(entry.second.syncId > 0);
+    }
+}
+
+/**
+ * @tc.name: SyncProcess002
+ * @tc.desc: sync process pull mode.
+ * @tc.type: FUNC
+ * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. deviceA put bigData
+     */
+    std::vector<Entry> entries;
+    const uint32_t dataCount = 10;
+    DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
+
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        g_kvDelegatePtr->Put(entries[i].key, entries[i].value);
+    }
+
+    /**
+     * @tc.steps: step2. virtual deviceB call pull sync
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::map<std::string, DeviceSyncProcess> syncProcessMap;
+    DeviceSyncOption option;
+    option.mode = SYNC_MODE_PULL_ONLY;
+    option.isQuery = false;
+    option.isWait = true;
+    uint32_t processCount = 0;
+    std::vector<ProcessStatus> statuses = {ProcessStatus::PREPARED, ProcessStatus::PROCESSING, ProcessStatus::FINISHED};
+    DeviceSyncProcessCallback onProcess =
+        [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
+            syncProcessMap = processMap;
+            for (const auto &entry : processMap) {
+                LOGD("[SyncProcess002-onProcess] dev %s, status %d, process %d", entry.first.c_str(),
+                    entry.second.errCode, entry.second.process);
+                EXPECT_EQ(entry.second.errCode, DBStatus::OK);
+                EXPECT_EQ(entry.second.process, statuses[processCount]);
+                // total and finishedCount must be greater than 0 when processing
+                if (entry.second.process == ProcessStatus::PROCESSING) {
+                    EXPECT_TRUE(entry.second.pullInfo.total > 0);
+                    EXPECT_TRUE(entry.second.pullInfo.finishedCount > 0);
+                }
+            }
+            processCount++;
+        };
+    int status = g_deviceB->Sync(option, onProcess);
+    EXPECT_EQ(status, E_OK);
+
+    /**
+     * @tc.expected: step3. onProcess should be called, DeviceB have all bigData
+     */
+    for (const auto &entry : entries) {
+        VirtualDataItem item;
+        EXPECT_EQ(g_deviceB->GetData(entry.key, item), E_OK);
+        EXPECT_EQ(item.value, entry.value);
+    }
+
+    for (const auto &entry : syncProcessMap) {
+        LOGD("[SyncProcess002] dev %s, status %d, totalCount %u, finishedCount %u", entry.first.c_str(),
+            entry.second.errCode, entry.second.pullInfo.total, entry.second.pullInfo.finishedCount);
+        EXPECT_EQ(entry.second.errCode, DBStatus::OK);
+        EXPECT_EQ(entry.second.process, ProcessStatus::FINISHED);
+        EXPECT_EQ(entry.second.pullInfo.total, dataCount);
+        EXPECT_EQ(entry.second.pullInfo.finishedCount, dataCount);
+        ASSERT_TRUE(entry.second.syncId > 0);
+    }
+}
+
+/**
+ * @tc.name: SyncProcess003
+ * @tc.desc: sync process pull mode with QUERY.
+ * @tc.type: FUNC
+ * @tc.require: AR.SR.IR-20075207.007.001
+ * @tc.author: chenghuitao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. deviceA put bigData
+     */
+    std::vector<Entry> entries;
+    const uint32_t dataCount = 10;
+    DistributedDBUnitTest::GenerateNumberEntryVector(dataCount, entries);
+
+    for (uint32_t i = 0; i < entries.size(); i++) {
+        g_kvDelegatePtr->Put(entries[i].key, entries[i].value);
+    }
+
+    /**
+     * @tc.steps: step2. virtual deviceB call pull sync
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::map<std::string, DeviceSyncProcess> syncProcessMap;
+    DeviceSyncOption option;
+    option.mode = SYNC_MODE_PULL_ONLY;
+    option.isQuery = true;
+    option.isWait = true;
+    option.query = Query::Select().Limit(5);
+    DeviceSyncProcessCallback onProcess =
+        [&syncProcessMap, this](const std::map<std::string, DeviceSyncProcess> &processMap) {
+            syncProcessMap = processMap;
+        };
+    int status = g_deviceB->Sync(option, onProcess);
+    EXPECT_EQ(status, E_OK);
+
+    /**
+     * @tc.expected: step3. onProcess should be called, DeviceB have all bigData
+     */
+    for (const auto &entry : std::vector<Entry>(entries.begin(), entries.begin() + 5)) {
+        VirtualDataItem item;
+        EXPECT_EQ(g_deviceB->GetData(entry.key, item), E_OK);
+        EXPECT_EQ(item.value, entry.value);
+    }
+
+    for (const auto &entry : syncProcessMap) {
+        LOGD("[SyncProcess003] dev %s, status %d, totalCount %u, finishedCount %u", entry.first.c_str(),
+            entry.second.errCode, entry.second.pullInfo.total, entry.second.pullInfo.finishedCount);
+        EXPECT_EQ(entry.second.errCode, DBStatus::OK);
+        EXPECT_EQ(entry.second.process, ProcessStatus::FINISHED);
+        EXPECT_EQ(entry.second.pullInfo.total, 5u);
+        EXPECT_EQ(entry.second.pullInfo.finishedCount, 5u);
+        ASSERT_TRUE(entry.second.syncId > 0);
+    }
 }
 
 #ifndef LOW_LEVEL_MEM_DEV

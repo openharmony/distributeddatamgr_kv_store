@@ -46,8 +46,10 @@ constexpr uint32_t SOFTWARE_VERSION_RELEASE_8_0 = SOFTWARE_VERSION_BASE + 8; // 
 // add schema version in ability request
 // add schema version, system time offset, sender local time offset in data request
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 9; // 9 for ninth released version
+// 110 version add totalDataCount field in DataRequestPkt
+constexpr uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE + 10;
 constexpr uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_9_0;
+constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_10_0;
 constexpr int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version

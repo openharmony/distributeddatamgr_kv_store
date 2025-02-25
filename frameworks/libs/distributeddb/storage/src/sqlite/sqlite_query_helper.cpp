@@ -31,6 +31,7 @@ using namespace TriggerMode;
 namespace {
 const std::string PRE_QUERY_KV_SQL = "SELECT key, value FROM sync_data ";
 const std::string PRE_QUERY_ITEM_SQL = "SELECT * FROM ";
+const std::string PRE_QUERY_COUNT_ITEM_SQL = "SELECT count(*) FROM ";
 const std::string PRE_QUERY_ROWID_SQL = "SELECT rowid FROM sync_data ";
 const std::string PRE_GET_COUNT_SQL = "SELECT count(*) FROM sync_data ";
 const std::string FILTER_NATIVE_DATA_SQL = "WHERE (flag&0x01=0) ";
@@ -514,7 +515,7 @@ int SqliteQueryHelper::GetCountSqlStatement(sqlite3 *dbHandle, sqlite3_stmt *&co
     return errCode;
 }
 
-int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery)
+int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery, bool isCount)
 {
     if (!isValid_) {
         return -E_INVALID_QUERY_FORMAT;
@@ -526,7 +527,8 @@ int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery)
         isNeedOrderbyKey_ = false; // Need order by timestamp.
     }
 
-    sql = AssembleSqlForSuggestIndex(PRE_QUERY_ITEM_SQL + tableName_ + " ", FILTER_REMOTE_QUERY);
+    sql = AssembleSqlForSuggestIndex(((isCount && !hasSubQuery) ?
+        PRE_QUERY_COUNT_ITEM_SQL : PRE_QUERY_ITEM_SQL) + tableName_ + " ", FILTER_REMOTE_QUERY);
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
     sql = hasSubQuery ? sql : (sql + " AND (timestamp>=? AND timestamp<?) ");
@@ -543,7 +545,8 @@ int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery)
         // The last timestamp in one query will be stored in continue token and used for next query.
         // Therefore all query data must be ordered by timestamp.
         // When there is limit in SQL, data should be ordered by key in sub query, and timestamp is ordered by outside.
-        sql = "SELECT * FROM ( " + sql + " ) WHERE (timestamp >= ? AND timestamp < ?) ORDER BY timestamp;";
+        std::string sqlHead = isCount ? PRE_QUERY_COUNT_ITEM_SQL : PRE_QUERY_ITEM_SQL;
+        sql = sqlHead + "( " + sql + " ) WHERE (timestamp >= ? AND timestamp < ?) ORDER BY timestamp;";
     }
     return errCode;
 }
@@ -578,7 +581,7 @@ int SqliteQueryHelper::BindObjNodes(sqlite3_stmt *&statement, int &index) const
 }
 
 int SqliteQueryHelper::GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
-    sqlite3_stmt *&statement)
+    sqlite3_stmt *&statement, bool isCount)
 {
     bool hasSubQuery = false;
     if (hasLimit_) {
@@ -587,7 +590,7 @@ int SqliteQueryHelper::GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTi
         isNeedOrderbyKey_ = false; // Need order by timestamp.
     }
     std::string sql;
-    int errCode = GetSyncDataQuerySql(sql, hasSubQuery);
+    int errCode = GetSyncDataQuerySql(sql, hasSubQuery, isCount);
     if (errCode != E_OK) {
         LOGE("[Query] Get SQL fail!");
         return -E_INVALID_QUERY_FORMAT;

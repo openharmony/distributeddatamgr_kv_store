@@ -86,6 +86,8 @@ public:
 
     void OfflineHandleByDevice(const std::string &deviceId, ISyncInterface *storage);
 
+    void ClearAllSyncTaskByDevice(const std::string &deviceId) override;
+
     void GetLocalSubscribeQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries);
 
     // subscribeQueries item is queryId
