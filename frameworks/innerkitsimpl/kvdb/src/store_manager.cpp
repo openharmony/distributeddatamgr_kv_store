@@ -107,24 +107,24 @@ std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const 
     return kvStore;
 }
 
-Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId, int32_t subUser)
+Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }
 
-    return StoreFactory::GetInstance().Close(appId, storeId, subUser);
+    return StoreFactory::GetInstance().Close(appId, storeId);
 }
 
-Status StoreManager::CloseAllKVStore(const AppId &appId, int32_t subUser)
+Status StoreManager::CloseAllKVStore(const AppId &appId)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
     if (!appId.IsValid()) {
         return INVALID_ARGUMENT;
     }
 
-    return StoreFactory::GetInstance().Close(appId, { "" }, true, subUser);
+    return StoreFactory::GetInstance().Close(appId, { "" }, true);
 }
 
 Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds)
@@ -141,7 +141,7 @@ Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &store
     return service->GetStoreIds(appId, storeIds);
 }
 
-Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
@@ -151,7 +151,7 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
 
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
-        service->Delete(appId, storeId, subUser);
+        service->Delete(appId, storeId);
     }
     auto status = StoreFactory::GetInstance().Delete(appId, storeId, path);
     Options options = { .baseDir = path };
