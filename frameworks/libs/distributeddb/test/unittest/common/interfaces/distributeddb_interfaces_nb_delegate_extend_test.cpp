@@ -895,7 +895,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, InvalidQueryTest002, TestS
   * @tc.name: SyncRangeQuery001
   * @tc.desc: test sync query with range
   * @tc.type: FUNC
-  * @tc.require: DTS2023112110763
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, SyncRangeQuery001, TestSize.Level3)

@@ -217,7 +217,7 @@ void DistributedDBInterfacesRelationalSyncTest::TearDown()
   * @tc.name: RelationalSyncTest001
   * @tc.desc: Test with sync interface, table is not a distributed table
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest001, TestSize.Level1)
@@ -236,7 +236,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest001, TestS
   * @tc.name: RelationalSyncTest002
   * @tc.desc: Test with sync interface, query is not support
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest002, TestSize.Level1)
@@ -255,7 +255,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest002, TestS
   * @tc.name: RelationalSyncTest003
   * @tc.desc: Test with sync interface, query is invalid format
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest003, TestSize.Level1)
@@ -274,7 +274,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest003, TestS
   * @tc.name: RelationalSyncTest004
   * @tc.desc: Test with sync interface, query use invalid field
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest004, TestSize.Level1)
@@ -293,7 +293,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest004, TestS
   * @tc.name: RelationalSyncTest005
   * @tc.desc: Test with sync interface, query table has been modified
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest005, TestSize.Level1)
@@ -315,7 +315,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest005, TestS
   * @tc.name: RelationalSyncTest006
   * @tc.desc: Test with sync interface, query is not set table name
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest006, TestSize.Level1)
@@ -334,7 +334,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest006, TestS
   * @tc.name: RelationalSyncTest007
   * @tc.desc: Test with sync interface, distributed table has empty column type
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest007, TestSize.Level1)
@@ -359,7 +359,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest007, TestS
   * @tc.name: RelationalSyncTest008
   * @tc.desc: Test sync with rebuilt table
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest008, TestSize.Level1)
@@ -416,7 +416,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest008, TestS
   * @tc.name: RelationalSyncTest009
   * @tc.desc: Test sync with invalid query
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest009, TestSize.Level1)
@@ -455,7 +455,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest009, TestS
   * @tc.name: RelationalSyncTest010
   * @tc.desc: Test sync with shcema changed
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest010, TestSize.Level1)
@@ -488,7 +488,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest010, TestS
   * @tc.name: UpdatePrimaryKeyTest001
   * @tc.desc: Test update data's primary key
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpdatePrimaryKeyTest001, TestSize.Level1)
@@ -514,7 +514,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpdatePrimaryKeyTest001, Tes
   * @tc.name: UpgradeTriggerTest001
   * @tc.desc: Test upgrade from old version
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpgradeTriggerTest001, TestSize.Level1)
@@ -1078,7 +1078,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RuntimeConfig001, TestSize.L
   * @tc.name: RelationalSyncRangeTest001
   * @tc.desc: Test with sync interface, range query is not support
   * @tc.type: FUNC
-  * @tc.require: DTS2023112110763
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, TestSize.Level1)

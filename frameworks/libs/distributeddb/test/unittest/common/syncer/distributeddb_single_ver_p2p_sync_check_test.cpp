@@ -173,7 +173,7 @@ void DistributedDBSingleVerP2PSyncCheckTest::TearDown(void)
  * @tc.name: sec option check Sync 001
  * @tc.desc: if sec option not equal, forbid sync
  * @tc.type: FUNC
- * @tc.require: AR000EV1G6
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck001, TestSize.Level1)
@@ -221,7 +221,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck001, TestSize.Lev
  * @tc.name: sec option check Sync 002
  * @tc.desc: if sec option not equal, forbid sync
  * @tc.type: FUNC
- * @tc.require: AR000EV1G6
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck002, TestSize.Level1)
@@ -274,7 +274,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck002, TestSize.Lev
  * @tc.name: sec option check Sync 003
  * @tc.desc: if sec option equal, check not pass, forbid sync
  * @tc.type: FUNC
- * @tc.require: AR000EV1G6
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck003, TestSize.Level1)
@@ -708,7 +708,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcess003, TestSize.Level1
  * @tc.name: BigDataSync001
  * @tc.desc: big data sync push mode.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOU
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync001, TestSize.Level1)
@@ -760,7 +760,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync001, TestSize.Level1
  * @tc.name: BigDataSync002
  * @tc.desc: big data sync pull mode.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOU
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync002, TestSize.Level1)
@@ -812,7 +812,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync002, TestSize.Level1
  * @tc.name: BigDataSync003
  * @tc.desc: big data sync pushAndPull mode.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, BigDataSync003, TestSize.Level1)
@@ -1005,7 +1005,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.
  * @tc.name: PushFinishedNotify 001
  * @tc.desc: Test remote device push finished notify function.
  * @tc.type: FUNC
- * @tc.require: AR000CQS3S
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, PushFinishedNotify001, TestSize.Level1)
@@ -1254,7 +1254,7 @@ void ReOpenDB()
  * @tc.name: AckSessionCheck 001
  * @tc.desc: Test ack session check function.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Level3)
@@ -1303,7 +1303,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
  * @tc.name: AckSafeCheck001
  * @tc.desc: Test ack session check filter all bad ack in device offline scene.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level3)
@@ -1354,7 +1354,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
  * @tc.name: WaterMarkCheck001
  * @tc.desc: Test waterMark work correct in lost package scene.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, WaterMarkCheck001, TestSize.Level1)
@@ -1374,7 +1374,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, WaterMarkCheck001, TestSize.Lev
  * @tc.name: WaterMarkCheck002
  * @tc.desc: Test pull work correct in error waterMark scene.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, WaterMarkCheck002, TestSize.Level1)
@@ -1462,7 +1462,7 @@ void TestDifferentSyncMode(SyncMode mode)
  * @tc.desc: Test push sync task merge, task can not be merged when the two sync task is not in the queue
  * at the same time.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck001, TestSize.Level1)
@@ -1475,7 +1475,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck001, TestSize.Lev
  * @tc.desc: Test push_pull sync task merge, task can not be merged when the two sync task is not in the queue
  * at the same time.
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck002, TestSize.Level1)
@@ -1521,7 +1521,7 @@ void PrepareForSyncMergeTest(std::vector<std::string> &devices, int &sendRequest
  * @tc.name: PushSyncMergeCheck003
  * @tc.desc: Test push sync task merge, task can not be merged when there is change in db since last push sync
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck003, TestSize.Level3)
@@ -1573,7 +1573,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck003, TestSize.Lev
  * @tc.name: PushSyncMergeCheck004
  * @tc.desc: Test push sync task merge, task can be merged when there is no change in db since last push sync
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck004, TestSize.Level3)
@@ -1625,7 +1625,7 @@ void RegOnDispatchWithInvalidMsgAndCnt(int &sendRequestCount, int sleepMs, bool 
  * @tc.name: PushSyncMergeCheck005
  * @tc.desc: Test push sync task merge, task cannot be merged when the last push sync is failed
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck005, TestSize.Level3)
@@ -1746,7 +1746,7 @@ void PrePareForQuerySyncMergeTest(bool isQuerySync, std::vector<std::string> &de
  * @tc.name: QuerySyncMergeCheck001
  * @tc.desc: Test query push sync task merge, task can be merged when there is no change in db since last query sync
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck001, TestSize.Level3)
@@ -1785,7 +1785,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck001, TestSiz
  * @tc.name: QuerySyncMergeCheck002
  * @tc.desc: Test query push sync task merge, task can not be merged when there is change in db since last sync
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck002, TestSize.Level3)
@@ -1839,7 +1839,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck002, TestSiz
  * @tc.name: QuerySyncMergeCheck003
  * @tc.desc: Test query push sync task merge, task can not be merged when then query id is different
  * @tc.type: FUNC
- * @tc.require: AR000F3OOV
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck003, TestSize.Level3)
@@ -1885,7 +1885,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck003, TestSiz
 * @tc.name: QuerySyncMergeCheck004
 * @tc.desc: Test query push sync task merge, task can be merged when there is no change in db since last push sync
 * @tc.type: FUNC
-* @tc.require: AR000F3OOV
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck004, TestSize.Level3)
@@ -1925,7 +1925,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck004, TestSiz
   * @tc.name: GetDataNotify001
   * @tc.desc: Test GetDataNotify function, delay < 30s should sync ok, > 36 should timeout
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Level3)
@@ -1985,7 +1985,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Leve
   * @tc.name: GetDataNotify002
   * @tc.desc: Test GetDataNotify function, two device sync each other at same time
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Level3)

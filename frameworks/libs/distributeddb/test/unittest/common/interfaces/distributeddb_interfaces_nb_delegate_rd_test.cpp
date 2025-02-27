@@ -257,7 +257,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
   * @tc.name: SingleVerGetLocalEntries001
   * @tc.desc: Test GetEntries interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetLocalEntries001, TestSize.Level1)
@@ -326,7 +326,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetLocalEntries001, T
   * @tc.name: ResultSetTest001
   * @tc.desc: Test the NbDelegate for result set function.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetTest001, TestSize.Level1)
@@ -415,7 +415,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetTest001, TestSize.Lev
   * @tc.name: PutBatchVerify001
   * @tc.desc: This test case use to verify the putBatch interface function
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, PutBatchVerify001, TestSize.Level1)
@@ -458,7 +458,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, PutBatchVerify001, TestSize.Le
   * @tc.name: SingleVerPutBatch001
   * @tc.desc: Check for illegal parameters
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch001, TestSize.Level1)
@@ -498,7 +498,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch001, TestSize
   * @tc.name: SingleVerPutBatch002
   * @tc.desc: PutBatch normal insert function test.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch002, TestSize.Level1)
@@ -563,7 +563,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch002, TestSize
   * @tc.name: SingleVerPutBatch003
   * @tc.desc: Check interface atomicity
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch003, TestSize.Level1)
@@ -633,7 +633,7 @@ static void PreparePutBatch004(vector<Entry> &entrys1, vector<Entry> &entrys2, v
   * @tc.name: SingleVerPutBatch004
   * @tc.desc: Check interface data insertion and update functions.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatch004, TestSize.Level1)
@@ -745,7 +745,7 @@ static void CreatEntrys(int recordSize, vector<Key> &keys, vector<Value> &values
   * @tc.name: SingleVerDeleteBatch001
   * @tc.desc: Check for illegal parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatch001, TestSize.Level1)
@@ -848,7 +848,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatch001, TestS
   * @tc.name: SingleVerDeleteBatch002
   * @tc.desc: Check normal delete batch ability.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatch002, TestSize.Level1)
@@ -918,7 +918,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatch002, TestS
   * @tc.name: SingleVerPutBatchObserver001
   * @tc.desc: Test the observer function of PutBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver001, TestSize.Level1)
@@ -985,7 +985,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver001, 
   * @tc.name: SingleVerPutBatchObserver002
   * @tc.desc: Test the observer function of PutBatch() for invalid input.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver002, TestSize.Level4)
@@ -1071,7 +1071,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver002, 
   * @tc.name: SingleVerPutBatchObserver003
   * @tc.desc: Test the observer function of PutBatch() update function.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver003, TestSize.Level1)
@@ -1137,7 +1137,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver003, 
   * @tc.name: SingleVerPutBatchObserver004
   * @tc.desc: Test the observer function of PutBatch(), same keys handle.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver004, TestSize.Level1)
@@ -1211,7 +1211,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver004, 
   * @tc.name: SingleVerDeleteBatchObserver001
   * @tc.desc: Test the observer function of DeleteBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatchObserver001, TestSize.Level1)
@@ -1271,7 +1271,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerDeleteBatchObserver00
   * @tc.name: SingleVerGetSecurityOption001
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetSecurityOption001, TestSize.Level1)
@@ -1318,7 +1318,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetSecurityOption001,
   * @tc.name: SingleVerGetSecurityOption002
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetSecurityOption002, TestSize.Level1)
@@ -1514,7 +1514,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, MaxLogCheckPoint001, TestSize.
   * @tc.name: OpenStorePathCheckTest001
   * @tc.desc: Test open store with same label but different path.
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, OpenStorePathCheckTest001, TestSize.Level1)
@@ -2236,7 +2236,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Leve
   * @tc.name: RdRangeQuery006
   * @tc.desc: Test GetEntries with rd kernel and the query filter is not Range.
   * @tc.type: FUNC
-  * @tc.require: DTS2024022106199
+  * @tc.require:
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery006, TestSize.Level1)
