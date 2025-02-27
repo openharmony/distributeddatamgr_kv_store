@@ -82,18 +82,18 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     aCtx->complete = std::move(complete);
     napi_value promise = nullptr;
     if (aCtx->ctx->callbackRef == nullptr) {
-        auto ret = napi_create_promise(env, &aCtx->deferred, &promise);
-        CHECK_RETURN(ret == napi_ok, "napi_create_promise fail", nullptr);
-        ZLOGD("Create deferred promise");
+        if (napi_create_promise(env, &aCtx->deferred, &promise) != napi_ok) {
+            ZLOGE("Create deferred promise fail");
+            delete aCtx;
+            return nullptr;
+        }
     } else {
         napi_get_undefined(env, &promise);
     }
 
     napi_value resource = nullptr;
     napi_create_string_utf8(env, name.c_str(), NAPI_AUTO_LENGTH, &resource);
-    napi_create_async_work(
-        env, nullptr, resource,
-        [](napi_env env, void* data) {
+    napi_create_async_work(env, nullptr, resource, [](napi_env env, void* data) {
             CHECK_RETURN_VOID(data != nullptr, "napi_async_execute_callback nullptr");
             auto actx = reinterpret_cast<AsyncContext*>(data);
             ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", actx->ctx->status);
