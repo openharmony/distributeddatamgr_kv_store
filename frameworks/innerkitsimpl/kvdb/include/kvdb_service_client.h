@@ -34,9 +34,9 @@ public:
     Status BeforeCreate(const AppId &appId, const StoreId &storeId, const Options &options) override;
     Status AfterCreate(const AppId &appId, const StoreId &storeId, const Options &options,
         const std::vector<uint8_t> &password) override;
-    Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser) override;
-    Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser) override;
-    Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) override;
+    Status Delete(const AppId &appId, const StoreId &storeId) override;
+    Status Close(const AppId &appId, const StoreId &storeId) override;
+    Status Sync(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo) override;
     Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) override;
     Status UnregServiceNotifier(const AppId &appIdd) override;
     Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) override;
@@ -47,10 +47,8 @@ public:
         const std::vector<std::string> &remote) override;
     Status AddSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
-    Status Subscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
-        sptr<IKvStoreObserver> observer) override;
-    Status Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
-        sptr<IKvStoreObserver> observer) override;
+    Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
+    Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &passwords,
         int32_t passwordType) override;
     Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
@@ -60,8 +58,7 @@ public:
     Status SubscribeSwitchData(const AppId &appId) override;
     Status UnsubscribeSwitchData(const AppId &appId) override;
     Status SetConfig(const AppId &appId, const StoreId &storeId, const StoreConfig &storeConfig) override;
-    Status RemoveDeviceData(const AppId &appId, const StoreId &storeId, int32_t subUser,
-        const std::string &device) override;
+    Status RemoveDeviceData(const AppId &appId, const StoreId &storeId, const std::string &device) override;
 
     sptr<KVDBNotifierClient> GetServiceAgent(const AppId &appId);
 

@@ -54,17 +54,17 @@ Status KVDBServiceClient::AfterCreate(
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser)
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Close(const AppId &appId, const StoreId &storeId, int32_t subUser)
+Status KVDBServiceClient::Close(const AppId &appId, const StoreId &storeId)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo)
+Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, SyncInfo &syncInfo)
 {
     return KVDBServiceClientMock::status;
 }
@@ -125,14 +125,12 @@ Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &st
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
-    sptr<IKvStoreObserver> observer)
+Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
-    sptr<IKvStoreObserver> observer)
+Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer)
 {
     return KVDBServiceClientMock::status;
 }
@@ -168,8 +166,7 @@ Status KVDBServiceClient::SetConfig(const AppId &appId, const StoreId &storeId, 
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::RemoveDeviceData(const AppId &appId, const StoreId &storeId, int32_t subUser,
-    const std::string &device)
+Status KVDBServiceClient::RemoveDeviceData(const AppId &appId, const StoreId &storeId, const std::string &device)
 {
     return KVDBServiceClientMock::status;
 }

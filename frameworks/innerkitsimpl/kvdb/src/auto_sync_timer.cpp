@@ -110,7 +110,7 @@ std::function<void()> AutoSyncTimer::ProcessTask()
             syncInfo.devices.push_back(res.second);
             ZLOGD("DoSync appId:%{public}s store size:%{public}zu", id.first.c_str(), id.second.size());
             for (const auto &storeId : id.second) {
-                service->Sync({ id.first }, storeId, DEFAULT_USER_ID, syncInfo);
+                service->Sync({ id.first }, storeId, syncInfo);
             }
         }
         if (HasSyncStores()) {

@@ -17,9 +17,8 @@
 #include "kvstore_observer_client.h"
 namespace OHOS::DistributedKv {
 constexpr uint32_t INVALID_SUBSCRIBE_TYPE = 0;
-ObserverBridge::ObserverBridge(AppId appId, StoreId storeId, int32_t subUser, std::shared_ptr<Observer> observer,
-    const Convertor &cvt) : appId_(std::move(appId)), storeId_(std::move(storeId)), subUser_(subUser),
-    observer_(std::move(observer)), convert_(cvt)
+ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Observer> observer, const Convertor &cvt)
+    : appId_(std::move(appId)), storeId_(std::move(store)), observer_(std::move(observer)), convert_(cvt)
 {
 }
 
@@ -32,7 +31,7 @@ ObserverBridge::~ObserverBridge()
     if (service == nullptr) {
         return;
     }
-    service->Unsubscribe(appId_, storeId_, subUser_, remote_);
+    service->Unsubscribe(appId_, storeId_, remote_);
 }
 
 Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
@@ -49,7 +48,7 @@ Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
     }
 
     remote_ = new (std::nothrow) ObserverClient(observer_, convert_);
-    auto status = service->Subscribe(appId_, storeId_, subUser_, remote_);
+    auto status = service->Subscribe(appId_, storeId_, remote_);
     if (status != SUCCESS) {
         remote_ = nullptr;
     } else {
@@ -74,7 +73,7 @@ Status ObserverBridge::UnregisterRemoteObserver(uint32_t realType)
     remote_->realType_ &= ~SUBSCRIBE_TYPE_LOCAL;
     remote_->realType_ &= ~realType;
     if (remote_->realType_ == 0) {
-        status = service->Unsubscribe(appId_, storeId_, subUser_, remote_);
+        status = service->Unsubscribe(appId_, storeId_, remote_);
         remote_ = nullptr;
     }
     return status;
