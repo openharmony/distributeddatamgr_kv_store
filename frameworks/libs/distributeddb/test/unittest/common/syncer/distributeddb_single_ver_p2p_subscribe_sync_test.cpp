@@ -262,7 +262,7 @@ void InitLocalSubscribeMap(QuerySyncObject &queryCommonObj, std::map<std::string
  * @tc.name: SubscribeRequestTest001
  * @tc.desc: test Serialize/DoSerialize SubscribeRequest
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeRequestTest001, TestSize.Level1)
@@ -319,7 +319,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeRequestTest001, Te
  * @tc.name: ControlAckTest001
  * @tc.desc: test Serialize/DoSerialize ControlAckPacket
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, ControlAckTest001, TestSize.Level1)
@@ -373,7 +373,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, ControlAckTest001, TestSize
  * @tc.name: subscribeManager001
  * @tc.desc: test subscribe class subscribe local function with one device
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager001, TestSize.Level1)
@@ -444,7 +444,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager001, TestSi
  * @tc.name: subscribeManager002
  * @tc.desc: test subscribe class subscribe remote function with one device
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager002, TestSize.Level1)
@@ -500,7 +500,7 @@ ASSERT_TRUE(subscribeQueryId.size() == 4);
  * @tc.name: subscribeManager003
  * @tc.desc: test subscribe class subscribe remote function with multi device
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager003, TestSize.Level1)
@@ -550,7 +550,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager003, TestSi
  * @tc.name: subscribeManager004
  * @tc.desc: test subscribe class subscribe remote function with multi device
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager004, TestSize.Level1)
@@ -601,7 +601,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager004, TestSi
  * @tc.name: subscribeManager005
  * @tc.desc: test subscribe class subscribe remote function with put into unfinished map
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager005, TestSize.Level1)
@@ -735,7 +735,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager006, TestSi
  * @tc.name: subscribeSync001
  * @tc.desc: test subscribe normal sync
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync001, TestSize.Level1)
@@ -800,7 +800,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync001, TestSize.
  * @tc.name: subscribeSync002
  * @tc.desc: test subscribe sync over 32 devices,limit,orderBy
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync002, TestSize.Level1)
@@ -844,7 +844,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync002, TestSize.
  * @tc.name: subscribeSync003
  * @tc.desc: test subscribe sync with inkeys query
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync003, TestSize.Level1)
@@ -896,7 +896,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync003, TestSize.
  * @tc.name: subscribeSync004
  * @tc.desc: test subscribe sync with inkeys query
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync004, TestSize.Level1)
@@ -942,7 +942,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync004, TestSize.
  * @tc.name: subscribeSync005
  * @tc.desc: test subscribe sync with inkeys query
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync005, TestSize.Level1)
@@ -988,7 +988,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync005, TestSize.
  * @tc.name: subscribeSync006
  * @tc.desc: test one device unsubscribe no effect other device
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync006, TestSize.Level1)
@@ -1043,7 +1043,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync006, TestSize.
  * @tc.name: subscribeSync007
  * @tc.desc: test subscribe query with order by write time
  * @tc.type: FUNC
- * @tc.require: AR000H5VLO
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync007, TestSize.Level1)
@@ -1068,7 +1068,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync007, TestSize.
  * @tc.name: SubscribeSync008
  * @tc.desc: test subscribe with reopen db
  * @tc.type: FUNC
- * @tc.require: AR000HGD0B
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync008, TestSize.Level1)
@@ -1144,7 +1144,7 @@ KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
  * @tc.name: SubscribeSync009
  * @tc.desc: test subscribe query with 33 device
  * @tc.type: FUNC
- * @tc.require: AR000H5VLO
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.Level3)
@@ -1194,7 +1194,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.
  * @tc.name: SubscribeSync010
  * @tc.desc: test subscribe query cache
  * @tc.type: FUNC
- * @tc.require: AR000H5VLO
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync010, TestSize.Level1)
@@ -1255,7 +1255,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync010, TestSize.
  * @tc.name: SubscribeSync011
  * @tc.desc: test subscribe query cache
  * @tc.type: FUNC
- * @tc.require: AR000H5VLO
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync011, TestSize.Level1)
@@ -1300,7 +1300,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync011, TestSize.
  * @tc.name: subscribeSync012
  * @tc.desc: test one device unsubscribe no effect other device
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.Level1)
@@ -1358,7 +1358,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.
  * @tc.name: SubscribeSync013
  * @tc.desc: test subscribe query cache with remote support false
  * @tc.type: FUNC
- * @tc.require: AR000H5VLO
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync013, TestSize.Level1)
@@ -1416,7 +1416,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync013, TestSize.
  * @tc.name: SubscribeSync014
  * @tc.desc: test device subscribe with put a lot of times
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync014, TestSize.Level3)
@@ -1462,7 +1462,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync014, TestSize.
  * @tc.name: subscribeSync015
  * @tc.desc: test subscribe query with range
  * @tc.type: FUNC
- * @tc.require: DTS2023112110763
+ * @tc.require:
  * @tc.author: mazhao
  */
 HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync015, TestSize.Level1)
