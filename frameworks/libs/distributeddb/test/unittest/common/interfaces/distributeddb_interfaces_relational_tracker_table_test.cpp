@@ -2596,6 +2596,65 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest042,
 }
 
 /**
+  * @tc.name: TrackerTableTest044
+  * @tc.desc: Test SetTrackerTable and CreateDistributedTable when there is data in the table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest044, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable on table2
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step2. CreateDistributedTable on table2 and insert data
+     * @tc.expected: step2. Return OK.
+     */
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
+    /**
+     * @tc.steps:step3. Check log table
+     * @tc.expected: step3. Return OK.
+     */
+    string querySql = "select json_extract(extend_field, '$.name') from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " order by data_key;";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    int count = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string extendVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
+        EXPECT_EQ(extendVal, "Local" + std::to_string(count));
+        count++;
+    }
+    EXPECT_EQ(count, 10);
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+    querySql = "select cursor from " + DBCommon::GetLogTableName(TABLE_NAME2) + " order by data_key;";
+    stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    int64_t cursor = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        cursor++;
+        std::string extendVal;
+        int64_t actualCursor = sqlite3_column_int64(stmt, 0);
+        EXPECT_EQ(actualCursor, cursor);
+    }
+    EXPECT_EQ(cursor, 10);
+    errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    CloseStore();
+}
+
+/**
   * @tc.name: SchemaStrTest001
   * @tc.desc: Test open reOpen stroe when schemaStr is empty
   * @tc.type: FUNC

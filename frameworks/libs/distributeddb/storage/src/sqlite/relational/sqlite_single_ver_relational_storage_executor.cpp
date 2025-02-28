@@ -247,7 +247,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
 {
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        return UpdateTrackerTableTimeStamp(db, identity, tableInfo, logMgrPtr, false);
+        return UpdateTrackerTable(db, identity, tableInfo, logMgrPtr, false);
     }
     return GeneLogInfoForExistedDataInner(db, identity, tableInfo, logMgrPtr, isTrackerTable);
 }
@@ -268,8 +268,8 @@ int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableN
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &identity,
-    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isRowReplace)
+int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, const std::string &identity,
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly)
 {
     int64_t errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
@@ -283,22 +283,25 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTableTimeStamp(sqlite
     }
     std::string tableName = tableInfo.GetTableName();
     std::string logTable = DBCommon::GetLogTableName(tableName);
-    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
-    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
-    static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
     Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
     std::string currentLocalTimeStr = std::to_string(currentLocalTime);
-    std::string insertPrefix = isRowReplace ? "INSERT OR REPLACE INTO " : "INSERT INTO ";
-    std::string insertSuffix = isRowReplace ? ";" : " " + logMgrPtr->GetConflictPkSql(tableInfo) + " DO UPDATE SET "
-        "data_key=excluded.data_key, device=excluded.device, ori_device=excluded.ori_device, "
-        "flag=excluded.flag, cloud_gid=excluded.cloud_gid, extend_field=excluded.extend_field, "
-        "cursor=excluded.cursor, version=excluded.version, sharing_resource=excluded.sharing_resource, "
-        "status=excluded.status;";
+    if (isTimestampOnly) {
+        std::string sql = "update " + logTable + " set timestamp = " + currentLocalTimeStr +
+            " + data_key, wtimestamp = " + currentLocalTimeStr + " + data_key where data_key != -1;";
+        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGE("Failed to initialize device type log data.%d", errCode);
+        }
+        return errCode;
+    }
+    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
+    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash("a.", tableInfo, identity);
-    std::string sql = insertPrefix + logTable + " SELECT " + rowid + ", '', '', " +
-        currentLocalTimeStr + " + " + rowid + ", " + currentLocalTimeStr + " + " + rowid + ", " + flag + ", " +
-        calPrimaryKeyHash + ", '', " + "'', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1" + insertSuffix;
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " + currentLocalTimeStr +
+        " + " + rowid + ", " + currentLocalTimeStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash +
+        ", '', '', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
     errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     if (errCode != E_OK) {
         LOGE("Failed to initialize device type log data.%d", errCode);
@@ -331,7 +334,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
             errCode = GeneLogInfoForExistedData(dbHandle_, identity, table, tableManager, false);
         } else if (table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
             // tracker table -> distributed device table
-            errCode = UpdateTrackerTableTimeStamp(dbHandle_, tableName, table, tableManager, true);
+            errCode = UpdateTrackerTable(dbHandle_, tableName, table, tableManager, true);
         } else {
             // tracker table -> distributed cloud table
             errCode = ResetLogStatus(tableName);

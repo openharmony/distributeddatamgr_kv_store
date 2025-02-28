@@ -411,8 +411,8 @@ private:
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
 
-    int UpdateTrackerTableTimeStamp(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isRowReplace);
+    int UpdateTrackerTable(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
