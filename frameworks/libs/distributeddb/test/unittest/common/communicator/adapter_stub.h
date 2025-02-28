@@ -51,8 +51,9 @@ public:
 
     std::shared_ptr<ExtendHeaderHandle> GetExtendHeaderHandle(const ExtendInfo &paramInfo) override;
 
-    void CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength,
-        std::string &userId);
+    void GetDataHeadInfo(const uint8_t *data, uint32_t &headLength);
+
+    void GetDataUserInfo(const uint8_t *data, std::vector<UserInfo> &userInfos);
 
     /*
      * Extended Part

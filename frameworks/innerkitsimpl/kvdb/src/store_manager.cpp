@@ -107,27 +107,27 @@ std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const 
     return kvStore;
 }
 
-Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
+Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }
 
-    return StoreFactory::GetInstance().Close(appId, storeId);
+    return StoreFactory::GetInstance().Close(appId, storeId, subUser);
 }
 
-Status StoreManager::CloseAllKVStore(const AppId &appId)
+Status StoreManager::CloseAllKVStore(const AppId &appId, int32_t subUser)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
     if (!appId.IsValid()) {
         return INVALID_ARGUMENT;
     }
 
-    return StoreFactory::GetInstance().Close(appId, { "" }, true);
+    return StoreFactory::GetInstance().Close(appId, { "" }, subUser, true);
 }
 
-Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds)
+Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
     if (!appId.IsValid()) {
@@ -138,10 +138,10 @@ Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &store
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    return service->GetStoreIds(appId, storeIds);
+    return service->GetStoreIds(appId, subUser, storeIds);
 }
 
-Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
@@ -151,9 +151,9 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
 
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
-        service->Delete(appId, storeId);
+        service->Delete(appId, storeId, subUser);
     }
-    auto status = StoreFactory::GetInstance().Delete(appId, storeId, path);
+    auto status = StoreFactory::GetInstance().Delete(appId, storeId, path, subUser);
     Options options = { .baseDir = path };
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
         .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };

@@ -31,6 +31,7 @@ public:
 private:
     static constexpr size_t TIME_TASK_NUM = 5;
     static constexpr size_t SYNC_STORE_NUM = 10;
+    static constexpr int32_t DEFAULT_USER_ID = 0;
     AutoSyncTimer() = default;
     ~AutoSyncTimer() = default;
     std::map<std::string, std::vector<StoreId>> GetStoreIds();

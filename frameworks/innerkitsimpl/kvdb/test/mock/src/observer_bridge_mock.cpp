@@ -15,8 +15,9 @@
 #include "include/observer_bridge_mock.h"
 
 namespace OHOS::DistributedKv {
-ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Observer> observer, const Convertor &cvt)
-    : appId_(std::move(appId)), storeId_(std::move(store)), observer_(std::move(observer)), convert_(cvt)
+ObserverBridge::ObserverBridge(AppId appId, StoreId storeId, int32_t subUser, std::shared_ptr<Observer> observer,
+    const Convertor &cvt) : appId_(std::move(appId)), storeId_(std::move(storeId)), subUser_(subUser),
+    observer_(std::move(observer)), convert_(cvt)
 {
 }
 

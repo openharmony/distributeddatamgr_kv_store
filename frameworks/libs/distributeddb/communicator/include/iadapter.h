@@ -24,9 +24,14 @@
 #include "iprocess_communicator.h"
 
 namespace DistributedDB {
+struct DataUserInfoProc {
+    const uint8_t *data = nullptr;
+    uint32_t length = 0;
+    std::shared_ptr<IProcessCommunicator> processCommunicator = nullptr;
+};
 // SendableCallback only notify when status changed from unsendable to sendable
 using BytesReceiveCallback = std::function<void(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-    const std::string &userId)>;
+    const DataUserInfoProc &userInfoProc)>;
 using TargetChangeCallback = std::function<void(const std::string &target, bool isConnect)>;
 using SendableCallback = std::function<void(const std::string &target, int deviceCommErrCode)>;
 

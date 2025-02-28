@@ -71,15 +71,15 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
     return status;
 }
 
-Status DistributedKvDataManager::GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds)
+Status DistributedKvDataManager::GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
 
     KvStoreServiceDeathNotifier::SetAppId(appId);
-    return StoreManager::GetInstance().GetStoreIds(appId, storeIds);
+    return StoreManager::GetInstance().GetStoreIds(appId, storeIds, subUser);
 }
 
-Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId)
+Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
@@ -90,7 +90,7 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
         return Status::INVALID_ARGUMENT;
     }
 
-    return StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    return StoreManager::GetInstance().CloseKVStore(appId, storeId, subUser);
 }
 
 Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStorePtr)
@@ -104,21 +104,23 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_pt
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
     StoreId storeId = kvStorePtr->GetStoreId();
+    int32_t subUser = kvStorePtr->GetSubUser();
     kvStorePtr = nullptr;
 
-    return StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    return StoreManager::GetInstance().CloseKVStore(appId, storeId, subUser);
 }
 
-Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId)
+Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId, int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     KvStoreServiceDeathNotifier::SetAppId(appId);
-    return StoreManager::GetInstance().CloseAllKVStore(appId);
+    return StoreManager::GetInstance().CloseAllKVStore(appId, subUser);
 }
 
-Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path)
+Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId,
+    const std::string &path, int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
@@ -132,10 +134,10 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
 
-    return StoreManager::GetInstance().Delete(appId, storeId, path);
+    return StoreManager::GetInstance().Delete(appId, storeId, path, subUser);
 }
 
-Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path)
+Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path, int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
@@ -146,12 +148,12 @@ Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std:
     KvStoreServiceDeathNotifier::SetAppId(appId);
 
     std::vector<StoreId> storeIds;
-    Status status = GetAllKvStoreId(appId, storeIds);
+    Status status = GetAllKvStoreId(appId, storeIds, subUser);
     if (status != SUCCESS) {
         return status;
     }
     for (auto &storeId : storeIds) {
-        status = StoreManager::GetInstance().Delete(appId, storeId, path);
+        status = StoreManager::GetInstance().Delete(appId, storeId, path, subUser);
         if (status != SUCCESS) {
             return status;
         }

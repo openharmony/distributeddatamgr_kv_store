@@ -26,8 +26,8 @@ public:
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
         Status &status, bool &isCreate);
-    Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
-    Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
+    Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
+    Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser = 0, bool isForce = false);
 
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
@@ -36,7 +36,7 @@ private:
     using DBPassword = DistributedDB::CipherPassword;
 
     StoreFactory();
-    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
+    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, int32_t subUser = 0);
     DBOption GetDBOption(const Options &options, const DBPassword &password) const;
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;

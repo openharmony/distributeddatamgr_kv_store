@@ -268,13 +268,11 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
         return;
     }
     uint32_t headLength = 0;
-    std::vector<std::string> userId;
-    DBStatus errCode = processCommunicator_->CheckAndGetDataHeadInfo(data, length, headLength, userId);
+    DBStatus errCode = processCommunicator_->GetDataHeadInfo(data, length, headLength);
     LOGI("[NAdapt][OnDataRecv] Enter, from=%s{private}, extendHeadLength=%u, totalLength=%u",
         srcDevInfo.identifier.c_str(), headLength, length);
-    if (errCode == NO_PERMISSION) {
-        LOGI("[NAdapt][OnDataRecv] userId dismatched, drop packet");
-        return;
+    if (errCode != OK) {
+        LOGW("[NAdapt][OnDataRecv] get data head info err, drop packet, errCode=%d", errCode);
     }
     if (headLength >= length) {
         LOGW("[NAdapt][OnDataRecv] head len is too big, drop packet");
@@ -286,11 +284,8 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
             LOGE("[NAdapt][OnDataRecv] onReceiveHandle invalid.");
             return;
         }
-        std::string currentUserId;
-        if (userId.size() >= 1) {
-            currentUserId = userId[0];
-        }
-        onReceiveHandle_(srcDevInfo.identifier, data + headLength, length - headLength, currentUserId);
+        DataUserInfoProc userInfoProc = {data, length, processCommunicator_};
+        onReceiveHandle_(srcDevInfo.identifier, data + headLength, length - headLength, userInfoProc);
     }
     // These code is compensation for the probable defect of IProcessCommunicator implementation.
     // As described in the agreement, for the missed online situation, we check the source dev when received.
