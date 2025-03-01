@@ -491,7 +491,7 @@ int SqliteCloudKvExecutorUtils::OperateOtherUserLog(sqlite3 *db, bool isMemory, 
         return errCode;
     }
     sqlite3_stmt *logStmt = nullptr;
-    std::string sql = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_flag  = cloud_flag & ~0x2000"
+    std::string sql = "UPDATE naturalbase_kv_aux_sync_data_log SET cloud_flag  = cloud_flag & ~0x2000 "
                         "WHERE userid != ? AND hash_key = ?";
     errCode = SQLiteUtils::GetStatement(db, sql, logStmt);
     if (errCode != E_OK) {
