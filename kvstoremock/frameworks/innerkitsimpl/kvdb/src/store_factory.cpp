@@ -75,16 +75,16 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
     return kvStore;
 }
 
-Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)
+Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
-    Close(appId, storeId, true);
+    Close(appId, storeId, subUser, true);
     auto dbManager = GetDBManager(path, appId);
     auto status = dbManager->DeleteKvStore(storeId);
     SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
     return StoreUtil::ConvertStatus(status);
 }
 
-Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isForce)
+Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, int32_t subUser, bool isForce)
 {
     Status status = STORE_NOT_OPEN;
     stores_.ComputeIfPresent(appId, [&storeId, &status, isForce](auto &, auto &values) {
@@ -107,7 +107,8 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
     return status;
 }
 
-std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId)
+std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId,
+    int32_t subUser)
 {
     std::shared_ptr<DBManager> dbManager;
     dbManagers_.Compute(path, [&dbManager, &appId](const auto &path, std::shared_ptr<DBManager> &manager) {

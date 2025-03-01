@@ -107,7 +107,7 @@ std::function<void()> AutoSyncTimer::ProcessTask()
             ZLOGD("DoSync appId:%{public}s store size:%{public}zu", id.first.c_str(), id.second.size());
             for (const auto &storeId : id.second) {
                 KVDBService::SyncInfo syncInfo;
-                service->Sync({ id.first }, storeId, syncInfo);
+                service->Sync({ id.first }, storeId, DEFAULT_USER_ID, syncInfo);
             }
         }
         if (HasSyncStores()) {

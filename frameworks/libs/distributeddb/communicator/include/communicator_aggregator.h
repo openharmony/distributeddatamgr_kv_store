@@ -104,18 +104,18 @@ private:
 
     // Call from Adapter by register these function
     void OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-        const std::string &userId);
+        const DataUserInfoProc &userInfoProc);
     void OnTargetChange(const std::string &target, bool isConnect);
     void OnSendable(const std::string &target);
 
     void OnFragmentReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-        const ParseResult &inResult, const std::string &userId);
+        const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
 
     int OnCommLayerFrameReceive(const std::string &srcTarget, const ParseResult &inResult);
     int OnAppLayerFrameReceive(const std::string &srcTarget, const uint8_t *bytes,
-        uint32_t length, const ParseResult &inResult, const std::string &userId);
+        uint32_t length, const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
     int OnAppLayerFrameReceive(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-        const ParseResult &inResult, const std::string &userId);
+        const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
 
     // Function with suffix NoMutex should be called with mutex in the caller
     int TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
@@ -161,6 +161,9 @@ private:
     uint64_t GetSendSequenceId(const std::string &target);
 
     uint64_t IncreaseSendSequenceId(const std::string &target);
+
+    int GetDataUserId(const ParseResult &inResult, const LabelType &toLabel, const DataUserInfoProc &userInfoProc,
+        std::string &userId);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 

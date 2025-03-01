@@ -214,8 +214,8 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
         shared_ptr<Observer> observer1 = make_shared<Observer>();
         Convertor cvt;
         Convertor cvt1;
-        shared_ptr<ObserverBridge> obsBridge = make_shared<ObserverBridge>(appId, storeId, observer, cvt);
-        shared_ptr<ObserverBridge> obsBridge1 = make_shared<ObserverBridge>(appId, storeId, observer1, cvt1);
+        shared_ptr<ObserverBridge> obsBridge = make_shared<ObserverBridge>(appId, storeId, 0, observer, cvt);
+        shared_ptr<ObserverBridge> obsBridge1 = make_shared<ObserverBridge>(appId, storeId, 0, observer1, cvt1);
 
         uint32_t firs = 0;
         firs |= SUBSCRIBE_TYPE_REMOTE;
@@ -260,8 +260,8 @@ HWTEST_F(SingleStoreImplMockTest, Register, testing::ext::TestSize.Level1)
         shared_ptr<Observer> observer1 = make_shared<Observer>();
         Convertor cvt;
         Convertor cvt1;
-        shared_ptr<ObserverBridge> obsBridge = make_shared<ObserverBridge>(appId, storeId, observer, cvt);
-        shared_ptr<ObserverBridge> obsBridge1 = make_shared<ObserverBridge>(appId, storeId, observer1, cvt1);
+        shared_ptr<ObserverBridge> obsBridge = make_shared<ObserverBridge>(appId, storeId, 0, observer, cvt);
+        shared_ptr<ObserverBridge> obsBridge1 = make_shared<ObserverBridge>(appId, storeId, 0, observer1, cvt1);
 
         uint32_t firs = 0;
         firs |= SUBSCRIBE_TYPE_CLOUD;

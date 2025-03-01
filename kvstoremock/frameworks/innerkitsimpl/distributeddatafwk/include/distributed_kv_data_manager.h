@@ -50,7 +50,7 @@ public:
                                        std::shared_ptr<SingleKvStore> &singleKvStore);
 
     // get all existed kvstore names.
-    API_EXPORT Status GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds);
+    API_EXPORT Status GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser = 0);
 
     // WARNING: try to close a KvStore while other thread(s) still using it may cause process crash.
     // Disconnect kvstore instance from kvstoreimpl with the given storeId,
@@ -62,7 +62,7 @@ public:
     // Parameters:
     // appId: the name of the application.
     // storeId: the name of the kvstore.
-    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId);
+    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId, int32_t subUser = 0);
 
     // WARNING: try to close a KvStore while other thread(s) still using it may cause process crash.
     //
@@ -79,7 +79,7 @@ public:
 
     // WARNING: try to close a KvStore while other thread(s) still using it may cause process crash.
     // close all opened kvstores for this appId.
-    API_EXPORT Status CloseAllKvStore(const AppId &appId);
+    API_EXPORT Status CloseAllKvStore(const AppId &appId, int32_t subUser = 0);
 
     // delete kvstore file with the given storeId.
     // client should first close all connections to it and then delete it,
@@ -89,10 +89,11 @@ public:
     // Parameters:
     // appId: the name of the application.
     // storeId: the name of the kvstore.
-    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path = "");
+    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path = "",
+        int32_t subUser = 0);
 
     // delete all kvstore.
-    API_EXPORT Status DeleteAllKvStore(const AppId &appId, const std::string &path = "");
+    API_EXPORT Status DeleteAllKvStore(const AppId &appId, const std::string &path = "", int32_t subUser = 0);
 
     API_EXPORT void RegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
 

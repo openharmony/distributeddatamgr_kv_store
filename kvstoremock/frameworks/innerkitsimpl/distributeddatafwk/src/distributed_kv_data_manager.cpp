@@ -41,7 +41,7 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
     return SUCCESS;
 }
 
-Status DistributedKvDataManager::GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds)
+Status DistributedKvDataManager::GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser)
 {
     auto status = StoreManager::GetInstance().GetStoreIds(appId, storeIds);
     if (status == Status::SUCCESS) {
@@ -50,7 +50,7 @@ Status DistributedKvDataManager::GetAllKvStoreId(const AppId &appId, std::vector
     return SUCCESS;
 }
 
-Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId)
+Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     if (status == SUCCESS) {
@@ -77,14 +77,15 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_pt
     return SUCCESS;
 }
 
-Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId)
+Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId, int32_t subUser)
 {
     auto status = StoreManager::GetInstance().CloseAllKVStore(appId);
 
     return status;
 }
 
-Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path)
+Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path,
+    int32_t subUser)
 {
     if (!path.empty()) {
         return StoreManager::GetInstance().Delete(appId, storeId, path);
@@ -93,7 +94,7 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     return SUCCESS;
 }
 
-Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path)
+Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path, int32_t subUser)
 {
     if (!path.empty()) {
         std::vector<StoreId> storeIds;

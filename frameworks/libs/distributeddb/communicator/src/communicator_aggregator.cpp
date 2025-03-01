@@ -484,7 +484,7 @@ void CommunicatorAggregator::NotifySendableToAllCommunicator()
 }
 
 void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-    const std::string &userId)
+    const DataUserInfoProc &userInfoProc)
 {
     ProtocolProto::DisplayPacketInformation(bytes, length);
     ParseResult packetResult;
@@ -508,14 +508,14 @@ void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const 
     }
 
     if (packetResult.IsFragment()) {
-        OnFragmentReceive(srcTarget, bytes, length, packetResult, userId);
+        OnFragmentReceive(srcTarget, bytes, length, packetResult, userInfoProc);
     } else if (packetResult.GetFrameTypeInfo() != FrameType::APPLICATION_MESSAGE) {
         errCode = OnCommLayerFrameReceive(srcTarget, packetResult);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] CommLayer receive fail, errCode=%d.", errCode);
         }
     } else {
-        errCode = OnAppLayerFrameReceive(srcTarget, bytes, length, packetResult, userId);
+        errCode = OnAppLayerFrameReceive(srcTarget, bytes, length, packetResult, userInfoProc);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] AppLayer receive fail, errCode=%d.", errCode);
         }
@@ -571,7 +571,7 @@ void CommunicatorAggregator::OnSendable(const std::string &target)
 }
 
 void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-    const ParseResult &inResult, const std::string &userId)
+    const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     int errorNo = E_OK;
     ParseResult frameResult;
@@ -604,7 +604,7 @@ void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, con
         delete frameBuffer;
         frameBuffer = nullptr;
     } else {
-        errCode = OnAppLayerFrameReceive(srcTarget, frameBuffer, frameResult, userId);
+        errCode = OnAppLayerFrameReceive(srcTarget, frameBuffer, frameResult, userInfoProc);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] AppLayer receive fail after combination, errCode=%d.", errCode);
         }
@@ -634,7 +634,7 @@ int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget
 }
 
 int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget, const uint8_t *bytes,
-    uint32_t length, const ParseResult &inResult, const std::string &userId)
+    uint32_t length, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     SerialBuffer *buffer = new (std::nothrow) SerialBuffer();
     if (buffer == nullptr) {
@@ -649,7 +649,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
         buffer = nullptr;
         return -E_INTERNAL_ERROR;
     }
-    return OnAppLayerFrameReceive(srcTarget, buffer, inResult, userId);
+    return OnAppLayerFrameReceive(srcTarget, buffer, inResult, userInfoProc);
 }
 
 // In early time, we cover "OnAppLayerFrameReceive" totally by commMapMutex_, then search communicator, if not found,
@@ -671,9 +671,17 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
 // 3:Search communicator under commMapMutex_ again, if found then deliver frame to that communicator and end.
 // 4:If still not found, retain this frame if need or otherwise send CommunicatorNotFound feedback.
 int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-    const ParseResult &inResult, const std::string &userId)
+    const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     LabelType toLabel = inResult.GetCommLabel();
+    std::string userId;
+    int ret = GetDataUserId(inResult, toLabel, userInfoProc, userId);
+    if (ret != E_OK) {
+        LOGE("[CommAggr][AppReceive] get data user id err, ret=%d", ret);
+        delete inFrameBuffer;
+        inFrameBuffer = nullptr;
+        return ret;
+    }
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
         int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel, userId);
@@ -709,6 +717,30 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
     // Do Retention, the retainer is responsible to deal with the frame
     retainer_.RetainFrame(FrameInfo{inFrameBuffer, srcTarget, toLabel, inResult.GetFrameId()});
     inFrameBuffer = nullptr;
+    return E_OK;
+}
+
+int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const LabelType &toLabel,
+    const DataUserInfoProc &userInfoProc, std::string &userId)
+{
+    if (userInfoProc.processCommunicator == nullptr) {
+        LOGE("[CommAggr][GetDataUserId] processCommunicator is nullptr");
+        return E_INVALID_ARGS;
+    }
+    std::string label(toLabel.begin(), toLabel.end());
+    std::vector<UserInfo> userInfos;
+    DBStatus ret = userInfoProc.processCommunicator->GetDataUserInfo(userInfoProc.data, userInfoProc.length, label,
+        userInfos);
+    LOGI("[CommAggr][GetDataUserId] get data user info, ret=%d", ret);
+    if (ret == NO_PERMISSION) {
+        LOGE("[CommAggr][GetDataUserId] userId dismatched, drop packet");
+        return ret;
+    }
+    if (userInfos.size() >= 1) {
+        userId = userInfos[0].receiveUser;
+    } else {
+        LOGW("[CommAggr][GetDataUserId] userInfos is empty");
+    }
     return E_OK;
 }
 
@@ -751,8 +783,9 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 {
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     int errCode = adapterHandle_->RegBytesReceiveCallback(
-        [this](const std::string &srcTarget, const uint8_t *bytes, uint32_t length, const std::string &userId) {
-            OnBytesReceive(srcTarget, bytes, length, userId);
+        [this](const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
+            const DataUserInfoProc &userInfoProc) {
+            OnBytesReceive(srcTarget, bytes, length, userInfoProc);
         }, [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed

@@ -340,6 +340,15 @@ public:
     {
         return false;
     }
+
+    /**
+     * @brief Get kvstore subUser of this kvstore instance.
+     * @return The kvstore subUser.
+    */
+    virtual int32_t GetSubUser()
+    {
+        return 0;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

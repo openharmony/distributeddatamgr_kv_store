@@ -28,7 +28,8 @@ public:
     using DBKey = DistributedDB::Key;
     using DBChangedData = DistributedDB::KvStoreChangedData;
 
-    ObserverBridge(AppId appId, StoreId storeId, std::shared_ptr<Observer> observer, const Convertor &cvt);
+    ObserverBridge(AppId appId, StoreId storeId, int32_t subUser, std::shared_ptr<Observer> observer,
+        const Convertor &cvt);
     ~ObserverBridge();
     Status RegisterRemoteObserver(uint32_t realType);
     Status UnregisterRemoteObserver(uint32_t realType);
@@ -52,6 +53,7 @@ private:
     static std::vector<Entry> ConvertDB(const T &dbEntries, std::string &deviceId, const Convertor &convert);
     AppId appId_;
     StoreId storeId_;
+    int32_t subUser_;
     std::shared_ptr<DistributedKv::KvStoreObserver> observer_;
     sptr<ObserverClient> remote_;
     const Convertor &convert_;

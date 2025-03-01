@@ -28,6 +28,7 @@
 #include "runtime_config.h"
 namespace OHOS::DistributedKv {
 using namespace DistributedDB;
+static constexpr const char *KEY_SPLIT = "###";
 StoreFactory &StoreFactory::GetInstance()
 {
     static StoreFactory instance;
@@ -57,20 +58,30 @@ Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
     return StoreUtil::ConvertStatus(status);
 }
 
+std::string StoreFactory::GenerateKey(const std::string &userId, const std::string &storeId) const
+{
+    std::string key = "";
+    if (storeId.empty() || userId.empty()) {
+        return key;
+    }
+    return key.append(userId).append(KEY_SPLIT).append(storeId);
+}
+
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
     const Options &options, Status &status, bool &isCreate)
 {
     std::shared_ptr<SingleStoreImpl> kvStore;
     isCreate = false;
+    auto key = GenerateKey(std::to_string(options.subUser), storeId.storeId);
     stores_.Compute(appId, [&](auto &, auto &stores) {
-        if (stores.find(storeId) != stores.end()) {
-            kvStore = stores[storeId];
+        if (stores.find(key) != stores.end()) {
+            kvStore = stores[key];
             kvStore->AddRef();
             status = SUCCESS;
             return !stores.empty();
         }
         std::string path = options.GetDatabaseDir();
-        auto dbManager = GetDBManager(path, appId);
+        auto dbManager = GetDBManager(path, appId, options.subUser);
         auto dbPassword =
             SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
@@ -110,28 +121,29 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             return !stores.empty();
         }
         isCreate = true;
-        stores[storeId] = kvStore;
+        stores[key] = kvStore;
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         return !stores.empty();
     });
     return kvStore;
 }
 
-Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)
+Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
-    Close(appId, storeId, true);
-    auto dbManager = GetDBManager(path, appId);
+    Close(appId, storeId, subUser, true);
+    auto dbManager = GetDBManager(path, appId, subUser);
     auto status = dbManager->DeleteKvStore(storeId);
     SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
     return StoreUtil::ConvertStatus(status);
 }
 
-Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isForce)
+Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, int32_t subUser, bool isForce)
 {
     Status status = STORE_NOT_OPEN;
-    stores_.ComputeIfPresent(appId, [&storeId, &status, isForce](auto &, auto &values) {
+    auto key = GenerateKey(std::to_string(subUser), storeId.storeId);
+    stores_.ComputeIfPresent(appId, [&key, &status, isForce](auto &, auto &values) {
         for (auto it = values.begin(); it != values.end();) {
-            if (!storeId.storeId.empty() && (it->first != storeId.storeId)) {
+            if (!key.empty() && (it->first != key)) {
                 ++it;
                 continue;
             }
@@ -150,17 +162,18 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
     return status;
 }
 
-std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId)
+std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId,
+    int32_t subUser)
 {
     std::shared_ptr<DBManager> dbManager;
-    dbManagers_.Compute(path, [&dbManager, &appId](const auto &path, std::shared_ptr<DBManager> &manager) {
+    dbManagers_.Compute(path, [&dbManager, &appId, &subUser](const auto &path, std::shared_ptr<DBManager> &manager) {
         std::string fullPath = path + "/kvdb";
         auto result = StoreUtil::InitPath(fullPath);
         if (manager != nullptr && result) {
             dbManager = manager;
             return true;
         }
-        dbManager = std::make_shared<DBManager>(appId.appId, "default");
+        dbManager = std::make_shared<DBManager>(appId.appId, std::to_string(subUser));
         dbManager->SetKvStoreConfig({ fullPath });
         manager = dbManager;
         BackupManager::GetInstance().Init(path);

@@ -49,6 +49,7 @@ public:
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
     ~SingleStoreImpl();
     StoreId GetStoreId() const override;
+    int32_t GetSubUser() override;
     Status Put(const Key &key, const Value &value) override;
     Status PutBatch(const std::vector<Entry> &entries) override;
     Status Delete(const Key &key) override;
@@ -135,6 +136,7 @@ private:
     void Register();
     void ReportDBFaultEvent(Status status, const std::string &functionName) const;
 
+    int32_t subUser_ = 0;
     int32_t apiVersion_ = -1;
     bool isApplication_ = false;
     bool autoSync_ = false;

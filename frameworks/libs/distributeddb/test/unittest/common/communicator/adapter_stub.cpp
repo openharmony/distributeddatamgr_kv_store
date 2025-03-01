@@ -21,6 +21,7 @@
 #include "iprocess_communicator.h"
 #include "log_print.h"
 #include "distributeddb_communicator_common.h"
+#include "process_communicator_test_stub.h"
 
 using namespace DistributedDB;
 
@@ -206,14 +207,18 @@ void AdapterStub::DeliverBytes(const std::string &srcTarget, const uint8_t *byte
     std::lock_guard<std::mutex> onReceiveLockGuard(onReceiveMutex_);
     if (onReceiveHandle_) {
         uint32_t headLength = 0;
-        std::string userId;
-        CheckAndGetDataHeadInfo(bytes, length, headLength, userId);
-        onReceiveHandle_(srcTarget, bytes + headLength, length - headLength, userId);
+        GetDataHeadInfo(bytes, headLength);
+        std::vector<UserInfo> userInfos;
+        GetDataUserInfo(bytes, userInfos);
+        std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator =
+            std::make_shared<ProcessCommunicatorTestStub>();
+        processCommunicator->SetDataUserInfo(userInfos);
+        DataUserInfoProc userInfoProc = {bytes, length, processCommunicator};
+        onReceiveHandle_(srcTarget, bytes + headLength, length - headLength, userInfoProc);
     }
 }
 
-void AdapterStub::CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength,
-    std::string &userId)
+void AdapterStub::GetDataHeadInfo(const uint8_t *data, uint32_t &headLength)
 {
     auto info = reinterpret_cast<const ExtendHeadInfo *>(data);
     NetToHost(info->magic);
@@ -221,15 +226,24 @@ void AdapterStub::CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen
         NetToHost(info->length);
         NetToHost(info->version);
         headLength = info->length;
-        userId = "";
-        for (uint8_t i = 0; i < BUFF_LEN; i++) {
-            if (info->userId[i] == 0) {
-                return;
-            }
-            userId.push_back(info->userId[i]);
-        }
     } else {
         headLength = 0;
+    }
+}
+
+void AdapterStub::GetDataUserInfo(const uint8_t *data, std::vector<UserInfo> &userInfos)
+{
+    auto info = reinterpret_cast<const ExtendHeadInfo *>(data);
+    NetToHost(info->magic);
+    if (info->magic == ExtendHeaderHandleTest::MAGIC_NUM) {
+        UserInfo userInfo;
+        for (uint8_t i = 0; i < BUFF_LEN; i++) {
+            if (info->userId[i] == 0) {
+                break;
+            }
+            userInfo.receiveUser.push_back(info->userId[i]);
+        }
+        userInfos.push_back(userInfo);
     }
 }
 

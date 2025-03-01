@@ -66,11 +66,12 @@ public:
      * @brief Get all existed kvstore names.
      * @param appId    The name of the application.
      * @param storeIds Output param, all existed kvstore names.
+     * @param subUser The user of the kvstore.
      * @return Will return:
      *         if appId is invalid, PERMISSION_DENIED and empty vector,
      *         otherwise, SUCCESS and the vector of kvstore names, will be returned.
     */
-    API_EXPORT Status GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds);
+    API_EXPORT Status GetAllKvStoreId(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser = 0);
 
     /**
      * @brief Disconnect kvstore instance from kvstoreimpl with the given storeId.
@@ -84,9 +85,10 @@ public:
      * @warning Try to close a KvStore while other thread(s) still using it may cause process crash.
      * @param appId   The name of the application.
      * @param storeId The name of the kvstore.
+     * @param subUser The user of the kvstore.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId);
+    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId, int32_t subUser = 0);
 
     /**
      * @brief Disconnect kvstore instance from kvstoreimpl.
@@ -108,9 +110,10 @@ public:
      * @brief Close all opened kvstores for this appId.
      * @warning Try to close a KvStore while other thread(s) still using it may cause process crash.
      * @param appId  The name of the application.
+     * @param subUser The user of the kvstore.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status CloseAllKvStore(const AppId &appId);
+    API_EXPORT Status CloseAllKvStore(const AppId &appId, int32_t subUser = 0);
 
     /**
      * @brief Delete kvstore file with the given storeId.
@@ -123,9 +126,11 @@ public:
      * @param appId   The name of the application.
      * @param storeId The name of the kvstore.
      * @param path    The base directory of the kvstore, it must be available.
+     * @param subUser The user of the kvstore.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path = "");
+    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path = "",
+        int32_t subUser = 0);
 
     /**
      * @brief Delete all kvstore for this appId.
@@ -134,9 +139,10 @@ public:
      *
      * @param appId The name of the application.
      * @param path  The base directory of the application, it must be available.
+     * @param subUser The user of the kvstore.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status DeleteAllKvStore(const AppId &appId, const std::string &path = "");
+    API_EXPORT Status DeleteAllKvStore(const AppId &appId, const std::string &path = "", int32_t subUser = 0);
 
     /**
      * @brief Observer the kvstore service death.

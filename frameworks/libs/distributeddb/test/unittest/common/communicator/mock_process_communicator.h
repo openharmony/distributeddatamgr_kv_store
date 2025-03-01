@@ -30,8 +30,8 @@ public:
     MOCK_METHOD0(GetLocalDeviceInfos, DeviceInfos());
     MOCK_METHOD0(GetRemoteOnlineDeviceInfosList, std::vector<DeviceInfos>());
     MOCK_METHOD1(IsSameProcessLabelStartedOnPeerDevice, bool(const DeviceInfos &));
-    MOCK_METHOD4(CheckAndGetDataHeadInfo, DBStatus(const uint8_t *, uint32_t, uint32_t &,
-        std::vector<std::string> &));
+    MOCK_METHOD3(GetDataHeadInfo, DBStatus(const uint8_t *, uint32_t, uint32_t &));
+    MOCK_METHOD4(GetDataUserInfo, DBStatus(const uint8_t *, uint32_t, const std::string &, std::vector<UserInfo> &));
 };
 }
 #endif // MOCK_PROCESS_COMMUNICATOR_H

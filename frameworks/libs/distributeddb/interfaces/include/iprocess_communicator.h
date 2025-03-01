@@ -37,6 +37,10 @@ struct ExtendInfo {
     std::string subUserId;
 };
 
+struct UserInfo {
+    std::string receiveUser;
+};
+
 class ExtendHeaderHandle {
 public:
     ExtendHeaderHandle() {};
@@ -157,13 +161,23 @@ public:
         return nullptr;
     }
     // called after OnDataReceive
-    // return NO_PERMISSION while no need to handle the dataBuff if remote device userId is not mate with local userId
     // return INVALID_FORMAT and headLength = 0 if data service can not deSerialize the buff
     // return OK if deSerialize ok and get HeadLength/localUserId successfully
     virtual DBStatus CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength,
         std::vector<std::string> &userId)
     {
         headLength = 0;
+        return OK;
+    }
+    virtual DBStatus GetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength)
+    {
+        headLength = 0;
+        return OK;
+    }
+    // return NO_PERMISSION while no need to handle the dataBuff if remote device userId is not mate with local userId
+    virtual DBStatus GetDataUserInfo(const uint8_t *data, uint32_t totalLen, const std::string &label,
+        std::vector<UserInfo> &userInfos)
+    {
         return OK;
     }
 
