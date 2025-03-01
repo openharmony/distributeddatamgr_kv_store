@@ -85,7 +85,8 @@ std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const 
 {
     std::shared_ptr<SingleKvStore> kvStore;
     std::vector<std::vector<uint8_t>> keys;
-    if (BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys) != Status::SUCCESS) {
+    if (BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys, options.subUser) !=
+        Status::SUCCESS) {
         for (auto &key : keys) {
             key.assign(key.size(), 0);
         }

@@ -223,11 +223,12 @@ Status KVDBServiceClient::UnregServiceNotifier(const AppId &appId)
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam)
+Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const KvSyncParam &syncParam)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SET_SYNC_PARAM), reply,
-                              appId, storeId, syncParam.allowedDelayMs);
+                              appId, storeId, syncParam.allowedDelayMs, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -235,11 +236,12 @@ Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeI
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeId, KvSyncParam &syncParam)
+Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    KvSyncParam &syncParam)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_GET_SYNC_PARAM),
-                              reply, appId, storeId);
+                              reply, appId, storeId, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -249,11 +251,11 @@ Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeI
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &storeId)
+Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_ENABLE_CAP),
-                              reply, appId, storeId);
+                              reply, appId, storeId, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -261,11 +263,11 @@ Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &st
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &storeId)
+Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_DISABLE_CAP),
-                              reply, appId, storeId);
+                              reply, appId, storeId, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -273,12 +275,12 @@ Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &s
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &storeId,
+Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &storeId, int32_t subUser,
     const std::vector<std::string> &local, const std::vector<std::string> &remote)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SET_CAP),
-                              reply, appId, storeId, local, remote);
+                              reply, appId, storeId, local, remote, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -286,11 +288,12 @@ Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &store
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const SyncInfo &syncInfo)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_ADD_SUB),
-                              reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
+                              reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
@@ -299,11 +302,12 @@ Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &st
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const SyncInfo &syncInfo)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_RMV_SUB),
-                              reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
+                              reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
@@ -340,12 +344,12 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetBackupPassword(
-    const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
+Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_GET_PASSWORD),
-                              reply, appId, storeId, passwordType);
+                              reply, appId, storeId, passwordType, subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());

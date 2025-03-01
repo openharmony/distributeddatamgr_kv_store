@@ -106,12 +106,12 @@ void BackupManager::CleanTmpData(const std::string &name)
     StoreUtil::Remove(tmpName);
 }
 
-Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity)
+Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
     }
-    if (isCheckIntegrity) {
+    if (info.isCheckIntegrity) {
         auto integrityStatus = dbStore->CheckIntegrity();
         if (integrityStatus != DistributedDB::DBStatus::OK) {
             return StoreUtil::ConvertStatus(integrityStatus);
@@ -179,7 +179,7 @@ StoreUtil::FileInfo BackupManager::GetBackupFileInfo(
     return backupFile;
 }
 
-Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity)
+Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
@@ -192,21 +192,20 @@ Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> d
         return INVALID_ARGUMENT;
     }
     auto fullName = info.baseDir + BACKUP_TOP_PATH + "/" + info.storeId + "/" + backupFile.name;
-    auto password = GetRestorePassword(backupFile.name, info.baseDir, info.appId, info.storeId).password;
-    auto dbStatus = dbStore->Import(fullName, password, isCheckIntegrity);
+    auto password = GetRestorePassword(backupFile.name, info).password;
+    auto dbStatus = dbStore->Import(fullName, password, info.isCheckIntegrity);
     if (dbStatus == DistributedDB::DBStatus::INVALID_FILE && info.encrypt) {
         ZLOGI("Use the key from server to restore");
-        auto retryStatus = ImportWithSecretKeyFromService(info, dbStore, fullName, isCheckIntegrity);
+        auto retryStatus = ImportWithSecretKeyFromService(info, dbStore, fullName, info.isCheckIntegrity);
         return retryStatus == SUCCESS ? SUCCESS : CRYPT_ERROR;
     }
     return StoreUtil::ConvertStatus(dbStatus);
 }
 
-BackupManager::DBPassword BackupManager::GetRestorePassword(
-    const std::string &name, const std::string &baseDir, const std::string &appId, const std::string &storeId)
+BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &name, const BackupInfo &info)
 {
     auto backupName = name.substr(0, name.length() - BACKUP_POSTFIX_SIZE);
-    auto keyName = BACKUP_KEY_PREFIX + storeId + "_" + backupName;
+    auto keyName = BACKUP_KEY_PREFIX + info.storeId + "_" + backupName;
     DBPassword dbPassword;
     if (backupName == AUTO_BACKUP_NAME) {
         auto service = KVDBServiceClient::GetInstance();
@@ -214,7 +213,8 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(
             return dbPassword;
         }
         std::vector<std::vector<uint8_t>> pwds;
-        service->GetBackupPassword({ appId }, { storeId }, pwds, KVDBService::PasswordType::BACKUP_SECRET_KEY);
+        service->GetBackupPassword({ info.appId }, { info.storeId }, info.subUser, pwds,
+            KVDBService::PasswordType::BACKUP_SECRET_KEY);
         if (pwds.size() != 0) {
             // When obtaining the key for automatic backup, there is only one element in the list
             dbPassword.SetValue(pwds[0].data(), pwds[0].size());
@@ -223,13 +223,13 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(
             pwd.assign(pwd.size(), 0);
         }
     } else {
-        dbPassword = SecurityManager::GetInstance().GetDBPassword(keyName, baseDir);
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(keyName, info.baseDir);
     }
     return dbPassword;
 }
 
 Status BackupManager::GetSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-    std::vector<std::vector<uint8_t>> &keys)
+    std::vector<std::vector<uint8_t>> &keys, int32_t subUser)
 {
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
@@ -237,7 +237,7 @@ Status BackupManager::GetSecretKeyFromService(const AppId &appId, const StoreId 
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
         return Status::SERVER_UNAVAILABLE;
     }
-    auto status = service->GetBackupPassword(appId, storeId, keys, KVDBService::PasswordType::SECRET_KEY);
+    auto status = service->GetBackupPassword(appId, storeId, subUser, keys, KVDBService::PasswordType::SECRET_KEY);
     if (status != Status::SUCCESS) {
         ZLOGE("Get password from service failed! status:%{public}d, appId:%{public}s storeId:%{public}s",
             status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -256,7 +256,7 @@ Status BackupManager::ImportWithSecretKeyFromService(const BackupInfo &info, std
 {
     Status status = NOT_FOUND;
     std::vector<std::vector<uint8_t>> keys;
-    if (GetSecretKeyFromService({ info.appId }, { info.storeId }, keys) != Status::SUCCESS) {
+    if (GetSecretKeyFromService({ info.appId }, { info.storeId }, keys, info.subUser) != Status::SUCCESS) {
         for (auto &key : keys) {
             key.assign(key.size(), 0);
         }

@@ -55,19 +55,23 @@ public:
     virtual Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) = 0;
     virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;
     virtual Status UnregServiceNotifier(const AppId &appId) = 0;
-    virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam) = 0;
-    virtual Status GetSyncParam(const AppId &appId, const StoreId &storeId, KvSyncParam &syncParam) = 0;
-    virtual Status EnableCapability(const AppId &appId, const StoreId &storeId) = 0;
-    virtual Status DisableCapability(const AppId &appId, const StoreId &storeId) = 0;
-    virtual Status SetCapability(const AppId &appId, const StoreId &storeId, const std::vector<std::string> &local,
-        const std::vector<std::string> &remote) = 0;
-    virtual Status AddSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
-    virtual Status RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
+    virtual Status SetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+        const KvSyncParam &syncParam) = 0;
+    virtual Status GetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+        KvSyncParam &syncParam) = 0;
+    virtual Status EnableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
+    virtual Status DisableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
+    virtual Status SetCapability(const AppId &appId, const StoreId &storeId, int32_t subUser,
+        const std::vector<std::string> &local, const std::vector<std::string> &remote) = 0;
+    virtual Status AddSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+        const SyncInfo &syncInfo) = 0;
+    virtual Status RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+        const SyncInfo &syncInfo) = 0;
     virtual Status Subscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
         sptr<IKvStoreObserver> observer) = 0;
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
         sptr<IKvStoreObserver> observer) = 0;
-    virtual Status GetBackupPassword(const AppId &appId, const StoreId &storeId,
+    virtual Status GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
         std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType) = 0;
     virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) = 0;
