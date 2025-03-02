@@ -34,6 +34,8 @@ public:
         std::string appId;
         std::string storeId;
         bool encrypt = false;
+        bool isCheckIntegrity = false;
+        int32_t subUser = 0;
     };
     struct ResidueInfo {
         size_t tmpBackupSize;
@@ -53,12 +55,12 @@ public:
     static BackupManager &GetInstance();
     void Init(const std::string &baseDir);
     void Prepare(const std::string &path, const std::string &storeId);
-    Status Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
-    Status Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore, bool isCheckIntegrity);
+    Status Backup(const BackupInfo &info, std::shared_ptr<DBStore> dbStore);
+    Status Restore(const BackupInfo &info, std::shared_ptr<DBStore> dbStore);
     Status DeleteBackup(std::map<std::string, Status> &deleteList,
         const std::string &baseDir, const std::string &storeId);
-    Status GetSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-        std::vector<std::vector<uint8_t>> &keys);
+    Status GetSecretKeyFromService(const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &keys,
+        int32_t subUser = 0);
 private:
     BackupManager();
     ~BackupManager();
@@ -68,8 +70,7 @@ private:
     void CleanTmpData(const std::string &name);
     StoreUtil::FileInfo GetBackupFileInfo(const std::string &name,
         const std::string &baseDir, const std::string &storeId);
-    DBPassword GetRestorePassword(const std::string &name, const std::string &baseDir,
-        const std::string &appId, const std::string &storeId);
+    DBPassword GetRestorePassword(const std::string &name, const BackupInfo &info);
     bool HaveResidueFile(const std::vector<StoreUtil::FileInfo> &files);
     bool HaveResidueKey(const std::vector<StoreUtil::FileInfo> &files, std::string storeId);
     std::string GetBackupName(const std::string &fileName);

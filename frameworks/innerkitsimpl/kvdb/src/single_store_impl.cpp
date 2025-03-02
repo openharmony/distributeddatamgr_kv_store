@@ -659,7 +659,7 @@ Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    return service->SetSyncParam({ appId_ }, { storeId_ }, syncParam);
+    return service->SetSyncParam({ appId_ }, { storeId_ }, subUser_, syncParam);
 }
 
 Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
@@ -669,7 +669,7 @@ Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    return service->GetSyncParam({ appId_ }, { storeId_ }, syncParam);
+    return service->GetSyncParam({ appId_ }, { storeId_ }, subUser_, syncParam);
 }
 
 Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
@@ -680,9 +680,9 @@ Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
         return SERVER_UNAVAILABLE;
     }
     if (enabled) {
-        return service->EnableCapability({ appId_ }, { storeId_ });
+        return service->EnableCapability({ appId_ }, { storeId_ }, subUser_);
     }
-    return service->DisableCapability({ appId_ }, { storeId_ });
+    return service->DisableCapability({ appId_ }, { storeId_ }, subUser_);
 }
 
 Status SingleStoreImpl::SetCapabilityRange(
@@ -693,7 +693,7 @@ Status SingleStoreImpl::SetCapabilityRange(
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
     }
-    return service->SetCapability({ appId_ }, { storeId_ }, localLabels, remoteLabels);
+    return service->SetCapability({ appId_ }, { storeId_ }, subUser_, localLabels, remoteLabels);
 }
 
 Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
@@ -715,7 +715,7 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
     }
 
     serviceAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
-    return service->AddSubscribeInfo({ appId_ }, { storeId_ }, syncInfo);
+    return service->AddSubscribeInfo({ appId_ }, { storeId_ }, subUser_, syncInfo);
 }
 
 Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
@@ -737,7 +737,7 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
     }
 
     serviceAgent->AddSyncCallback(syncObserver_, syncInfo.seqId);
-    return service->RmvSubscribeInfo({ appId_ }, { storeId_ }, syncInfo);
+    return service->RmvSubscribeInfo({ appId_ }, { storeId_ }, subUser_, syncInfo);
 }
 
 int32_t SingleStoreImpl::AddRef()
@@ -767,8 +767,9 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_ };
-    auto status = BackupManager::GetInstance().Backup(info, dbStore_, isCheckIntegrity_);
+    BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_,
+        .isCheckIntegrity = isCheckIntegrity_  };
+    auto status = BackupManager::GetInstance().Backup(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
@@ -784,8 +785,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         service->Close({ appId_ }, { storeId_ }, subUser_);
     }
     BackupManager::BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_,
-        .encrypt = encrypt_ };
-    auto status = BackupManager::GetInstance().Restore(info, dbStore_, isCheckIntegrity_);
+        .encrypt = encrypt_, .isCheckIntegrity = isCheckIntegrity_, .subUser = subUser_ };
+    auto status = BackupManager::GetInstance().Restore(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());

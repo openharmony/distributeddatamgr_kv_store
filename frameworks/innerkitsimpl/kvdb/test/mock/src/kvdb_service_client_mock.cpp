@@ -89,38 +89,42 @@ Status KVDBServiceClient::UnregServiceNotifier(const AppId &appId)
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeId, const KvSyncParam &syncParam)
+Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const KvSyncParam &syncParam)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeId, KvSyncParam &syncParam)
+Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    KvSyncParam &syncParam)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &storeId)
+Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &storeId)
+Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &storeId,
+Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &storeId, int32_t subUser,
     const std::vector<std::string> &local, const std::vector<std::string> &remote)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const SyncInfo &syncInfo)
 {
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo)
+Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    const SyncInfo &syncInfo)
 {
     return KVDBServiceClientMock::status;
 }
@@ -137,8 +141,8 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::GetBackupPassword(
-    const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
+Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
 {
     return KVDBServiceClientMock::status;
 }
