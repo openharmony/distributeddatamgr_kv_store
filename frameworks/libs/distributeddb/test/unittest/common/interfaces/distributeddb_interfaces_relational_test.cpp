@@ -1938,7 +1938,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest004, T
 }
 
 /**
-  * @tc.name: CloudRelationalStoreTest006
+  * @tc.name: CreateDistributedTableTest006
   * @tc.desc: Test create distributed table and execute transaction concurrently
   * @tc.type: FUNC
   * @tc.require:
@@ -1976,6 +1976,66 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest006, T
     sqlCondition.sql = "COMMIT;";
     EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
     status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+}
+
+/**
+  * @tc.name: CreateDistributedTableTest007
+  * @tc.desc: Test create distributed table after insert data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db and table
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string t1 = "t1";
+    std::string sql = "create table " + t1 + "(id integer);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    int64_t dataCount = 10;
+    for (int64_t i = 0; i < dataCount; i++) {
+        sql = "insert into " + t1 + " values(" + std::to_string(i) + ")";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    }
+    /**
+     * @tc.steps:step2. open relational store, create distributed table
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable(t1), OK);
+    /**
+     * @tc.steps:step3. check log table
+     * @tc.expected: step3. Return OK.
+     */
+    sql = "select flag, extend_field, cursor, status from " + DBCommon::GetLogTableName(t1) + " order by data_key;";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int64_t actualCount = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int64_t actualFlag = sqlite3_column_int64(stmt, 0); // index 0 is flag
+        std::string actualExtendVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, actualExtendVal), E_OK); // index 1 is extend_field
+        int64_t actualCursor = sqlite3_column_int64(stmt, 2); // index 2 is cursor
+        int64_t actualStatus = sqlite3_column_int64(stmt, 3); // index 3 is status
+        EXPECT_EQ(actualFlag, static_cast<int64_t>(LogInfoFlag::FLAG_LOCAL) |
+            static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
+        EXPECT_EQ(actualExtendVal, "");
+        EXPECT_EQ(actualCursor, 0);
+        EXPECT_EQ(actualStatus, 0);
+        actualCount++;
+    }
+    EXPECT_EQ(actualCount, dataCount);
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    DBStatus status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
 }
