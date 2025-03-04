@@ -1613,15 +1613,8 @@ DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientO
         return DistributedDB::DB_ERROR;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(g_clientObserverMutex);
-        g_clientObserverMap[hashFileName] = clientObserver;
-    }
-    {
-        std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
-        sqlite3_wal_hook(db, LogCommitHookCallback, db);
-        sqlite3_rollback_hook(db, RollbackHookCallback, db);
-    }
+    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+    g_clientObserverMap[hashFileName] = clientObserver;
     return DistributedDB::OK;
 }
 
@@ -1672,21 +1665,13 @@ DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::sha
         return DistributedDB::DB_ERROR;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(g_storeObserverMutex);
-        if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(),
-            storeObserver) !=
-            g_storeObserverMap[hashFileName].end()) {
-            LOGE("[RegisterStoreObserver] Duplicate observer.");
-            return DistributedDB::INVALID_ARGS;
-        }
-        g_storeObserverMap[hashFileName].push_back(storeObserver);
+    std::lock_guard<std::mutex> lock(g_storeObserverMutex);
+    if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(), storeObserver) !=
+        g_storeObserverMap[hashFileName].end()) {
+        LOGW("[RegisterStoreObserver] Duplicate observer.");
+        return DistributedDB::OK;
     }
-    {
-        std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
-        sqlite3_wal_hook(db, LogCommitHookCallback, db);
-        sqlite3_rollback_hook(db, RollbackHookCallback, db);
-    }
+    g_storeObserverMap[hashFileName].push_back(storeObserver);
     return DistributedDB::OK;
 }
 
@@ -1788,6 +1773,24 @@ DB_API DistributedDB::DBStatus UnLock(const std::string &tableName, const std::v
     return HandleDataLock(tableName, hashKey, db, false);
 }
 
+DB_API void RegisterDbHook(sqlite3 *db)
+{
+    std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
+    sqlite3_wal_hook(db, LogCommitHookCallback, db);
+    sqlite3_rollback_hook(db, RollbackHookCallback, db);
+}
+
+DB_API void UnregisterDbHook(sqlite3 *db)
+{
+    std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
+    sqlite3_wal_hook(db, nullptr, db);
+    sqlite3_rollback_hook(db, nullptr, db);
+}
+
+DB_API DistributedDB::DBStatus CreateDataChangeTempTrigger(sqlite3 *db)
+{
+    return DistributedDB::TransferDBErrno(CreateTempTrigger(db));
+}
 // hw export the symbols
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
 #if defined(__GNUC__)

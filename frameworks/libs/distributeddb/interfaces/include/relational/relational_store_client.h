@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <set>
 
@@ -51,4 +52,10 @@ DB_API DistributedDB::DBStatus Lock(const std::string &tableName, const std::vec
 
 DB_API DistributedDB::DBStatus UnLock(const std::string &tableName, const std::vector<std::vector<uint8_t>> &hashKey,
     sqlite3 *db);
+
+DB_API void RegisterDbHook(sqlite3 *db);
+
+DB_API void UnregisterDbHook(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus CreateDataChangeTempTrigger(sqlite3 *db);
 #endif // RELATIONAL_STORE_CLIENT_H
