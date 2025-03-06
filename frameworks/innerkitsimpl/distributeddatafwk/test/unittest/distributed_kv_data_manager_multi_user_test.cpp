@@ -74,7 +74,7 @@ void DistributedKvDataManagerMultiUserTest::SetUpTestCase(void)
 
 void DistributedKvDataManagerMultiUserTest::TearDownTestCase(void)
 {
-    remove(normalOptions.baseDir.c_str());
+    (void)remove(normalOptions.baseDir.c_str());
 }
 
 void DistributedKvDataManagerMultiUserTest::SetUp()
