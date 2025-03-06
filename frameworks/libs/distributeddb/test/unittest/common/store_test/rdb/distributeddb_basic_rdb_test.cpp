@@ -54,7 +54,7 @@ HWTEST_F(DistributedDBBasicRDBTest, InitDelegateExample001, TestSize.Level0)
      * @tc.expected: step1. Ok
      */
     StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
-    EXPECT_EQ(RDBGeneralUt::InitDelegate(info1), E_OK);
+    EXPECT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     DataBaseSchema actualSchemaInfo = RDBGeneralUt::GetSchema(info1);
     ASSERT_EQ(actualSchemaInfo.tables.size(), 2u);
     EXPECT_EQ(actualSchemaInfo.tables[0].name, g_defaultTable1);
@@ -70,11 +70,11 @@ HWTEST_F(DistributedDBBasicRDBTest, InitDelegateExample001, TestSize.Level0)
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {{.name = DEVICE_SYNC_TABLE, .fieldInfo = filedInfo}}
     };
-    RDBGeneralUt::AddSchemaInfo(info1, schemaInfo);
+    RDBGeneralUt::SetSchemaInfo(info1, schemaInfo);
     RelationalStoreDelegate::Option option;
     option.tableMode = DistributedTableMode::COLLABORATION;
     SetOption(option);
-    EXPECT_EQ(RDBGeneralUt::InitDelegate(info1), E_OK);
+    EXPECT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
 
     StoreInfo info2 = {USER_ID, APP_ID, STORE_ID_2};
     schemaInfo = {
@@ -83,12 +83,111 @@ HWTEST_F(DistributedDBBasicRDBTest, InitDelegateExample001, TestSize.Level0)
             {.name = CLOUD_SYNC_TABLE, .fieldInfo = filedInfo},
         }
     };
-    RDBGeneralUt::AddSchemaInfo(info2, schemaInfo);
-    EXPECT_EQ(RDBGeneralUt::InitDelegate(info2), E_OK);
+    RDBGeneralUt::SetSchemaInfo(info2, schemaInfo);
+    EXPECT_EQ(BasicUnitTest::InitDelegate(info2, "dev2"), E_OK);
     actualSchemaInfo = RDBGeneralUt::GetSchema(info2);
     ASSERT_EQ(actualSchemaInfo.tables.size(), schemaInfo.tablesInfo.size());
     EXPECT_EQ(actualSchemaInfo.tables[1].name, CLOUD_SYNC_TABLE);
     TableSchema actualTableInfo = RDBGeneralUt::GetTableSchema(info2, CLOUD_SYNC_TABLE);
     EXPECT_EQ(actualTableInfo.fields.size(), filedInfo.size());
 }
+
+/**
+ * @tc.name: RdbSyncExample001
+ * @tc.desc: Test insert data and sync from dev1 to dev2.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbSyncExample001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 insert data.
+     * @tc.expected: step1. Ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    auto info2 = GetStoreInfo2();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info2, "dev2"), E_OK);
+    InsertLocalDBData(0, 2, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), 0);
+
+    /**
+     * @tc.steps: step2. create distributed tables and sync to dev1.
+     * @tc.expected: step2. Ok
+     */
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
+    BlockPush(info1, info2, g_defaultTable1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), 2);
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+/**
+ * @tc.name: RdbCloudSyncExample001
+ * @tc.desc: Test cloud sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. sync dev1 data to cloud.
+     * @tc.expected: step1. Ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    InsertLocalDBData(0, 2, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
+
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query);
+    EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 2);
+}
+
+/**
+ * @tc.name: RdbCloudSyncExample002
+ * @tc.desc: Test cloud insert data and cloud sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. cloud insert data.
+     * @tc.expected: step1. Ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, 20, 0, RDBGeneralUt::GetSchema(info1), virtualCloudDb), OK);
+    EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 20);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 0);
+
+    /**
+     * @tc.steps: step2. cloud sync data to dev1.
+     * @tc.expected: step2. Ok
+     */
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
+}
+#endif // USE_DISTRIBUTEDDB_CLOUD
 }

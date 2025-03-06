@@ -14,6 +14,8 @@
  */
 #include "rdb_general_ut.h"
 #include "rdb_data_generator.h"
+#include "runtime_config.h"
+#include "virtual_cloud_data_translate.h"
 
 using namespace DistributedDBUnitTest;
 
@@ -23,11 +25,12 @@ const Field stringField = {"name", TYPE_INDEX<std::string>, false, false};
 const Field boolField = {"gender", TYPE_INDEX<bool>, false, true};
 const Field doubleField = {"height", TYPE_INDEX<double>, false, true};
 const Field bytesField = {"photo", TYPE_INDEX<Bytes>, false, true};
-const Field assetsField = {"assert", TYPE_INDEX<Asset>, false, true};
+const Field assetField = {"assert", TYPE_INDEX<Asset>, false, true};
+const Field assetsField = {"asserts", TYPE_INDEX<Assets>, false, true};
 
 const std::vector<UtFieldInfo> g_defaultFiledInfo = {
     {intField, true}, {stringField, false}, {boolField, false},
-    {doubleField, false}, {bytesField, false}, {assetsField, false},
+    {doubleField, false}, {bytesField, false}, {assetField, false}, {assetsField, false},
 };
 
 UtDateBaseSchemaInfo g_defaultSchemaInfo = {
@@ -53,33 +56,43 @@ int RDBGeneralUt::InitDelegate(const StoreInfo &info)
     }
     RelationalStoreManager mgr(info.appId, info.userId);
     RelationalStoreDelegate *delegate = nullptr;
-    errCode = mgr.OpenStore(storePath, info.storeId, option_, delegate);
+    RelationalStoreDelegate::Option option = GetOption();
+    errCode = mgr.OpenStore(storePath, info.storeId, option, delegate);
     if ((errCode != E_OK )|| (delegate == nullptr)) {
         LOGE("[RDBGeneralUt] Open store failed %d", errCode);
         return errCode;
     }
     {
-        std::lock_guard<std::mutex> lock(storeMutex_);
+        std::lock_guard<std::mutex> autoLock(storeMutex_);
         stores_[info] = delegate;
         sqliteDb_[info] = db;
     }
+    LOGI("[RDBGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
     return E_OK;
 }
 
 void RDBGeneralUt::SetOption(const RelationalStoreDelegate::Option& option)
 {
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     option_ = option;
 }
 
-void RDBGeneralUt::AddSchemaInfo(const StoreInfo &info, const DistributedDBUnitTest::UtDateBaseSchemaInfo &schemaInfo)
+RelationalStoreDelegate::Option RDBGeneralUt::GetOption() const
 {
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    return option_;
+}
+
+void RDBGeneralUt::SetSchemaInfo(const StoreInfo &info, const DistributedDBUnitTest::UtDateBaseSchemaInfo &schemaInfo)
+{
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     schemaInfoMap_[info] = schemaInfo;
 }
 
-UtDateBaseSchemaInfo RDBGeneralUt::GetTableSchemaInfo(const StoreInfo &info)
+UtDateBaseSchemaInfo RDBGeneralUt::GetTableSchemaInfo(const StoreInfo &info) const
 {
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     auto iter = schemaInfoMap_.find(info);
     if (iter != schemaInfoMap_.end()) {
         return iter->second;
@@ -87,7 +100,7 @@ UtDateBaseSchemaInfo RDBGeneralUt::GetTableSchemaInfo(const StoreInfo &info)
     return g_defaultSchemaInfo;
 }
 
-DataBaseSchema RDBGeneralUt::GetSchema(const StoreInfo &info)
+DataBaseSchema RDBGeneralUt::GetSchema(const StoreInfo &info) const
 {
     UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
     DataBaseSchema schema;
@@ -103,7 +116,7 @@ DataBaseSchema RDBGeneralUt::GetSchema(const StoreInfo &info)
     return schema;
 }
 
-TableSchema RDBGeneralUt::GetTableSchema(const StoreInfo &info, const std::string &tableName)
+TableSchema RDBGeneralUt::GetTableSchema(const StoreInfo &info, const std::string &tableName) const
 {
     UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
     for (auto &item : schemaInfo.tablesInfo) {
@@ -123,7 +136,7 @@ TableSchema RDBGeneralUt::GetTableSchema(const StoreInfo &info, const std::strin
 }
 
 std::vector<TrackerSchema> RDBGeneralUt::GetAllTrackerSchema(const StoreInfo &info,
-    const std::vector<std::string> &tables)
+    const std::vector<std::string> &tables) const
 {
     UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
     std::vector<TrackerSchema> res;
@@ -145,7 +158,7 @@ std::vector<TrackerSchema> RDBGeneralUt::GetAllTrackerSchema(const StoreInfo &in
 
 int RDBGeneralUt::CloseDelegate(const StoreInfo &info)
 {
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     auto storeIter = stores_.find(info);
     if (storeIter != stores_.end()) {
         RelationalStoreManager mgr(info.appId, info.userId);
@@ -163,12 +176,14 @@ int RDBGeneralUt::CloseDelegate(const StoreInfo &info)
     if (schemaIter != schemaInfoMap_.end()) {
         schemaInfoMap_.erase(schemaIter);
     }
+    LOGI("[RDBGeneralUt] Close delegate app %s store %s user %s success", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
     return E_OK;
 }
 
 void RDBGeneralUt::CloseAllDelegate()
 {
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     for (auto &iter : sqliteDb_) {
         sqlite3_close_v2(iter.second);
         iter.second = nullptr;
@@ -181,16 +196,28 @@ void RDBGeneralUt::CloseAllDelegate()
     }
     stores_.clear();
     schemaInfoMap_.clear();
+    LOGI("[RDBGeneralUt] Close all delegate success");
 }
 
 void RDBGeneralUt::SetUp()
 {
     BasicUnitTest::SetUp();
+    RuntimeConfig::SetCloudTranslate(std::make_shared<VirtualCloudDataTranslate>());
+    {
+        std::lock_guard<std::mutex> autoLock(storeMutex_);
+        virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
+        virtualAssetLoader_ = std::make_shared<VirtualAssetLoader>();
+    }
 }
 
 void RDBGeneralUt::TearDown()
 {
     CloseAllDelegate();
+    {
+        std::lock_guard<std::mutex> autoLock(storeMutex_);
+        virtualCloudDb_ = nullptr;
+        virtualAssetLoader_ = nullptr;
+    }
     BasicUnitTest::TearDown();
 }
 
@@ -210,7 +237,7 @@ int RDBGeneralUt::InitDatabase(const StoreInfo &info)
     return errCode;
 }
 
-sqlite3 *RDBGeneralUt::GetSqliteHandle(const StoreInfo &info)
+sqlite3 *RDBGeneralUt::GetSqliteHandle(const StoreInfo &info) const
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);
     auto db = sqliteDb_.find(info);
@@ -253,6 +280,8 @@ int RDBGeneralUt::CreateDistributedTable(const StoreInfo &info, const std::strin
         LOGE("[RDBGeneralUt] Create distributed table failed %d app %s store %s user %s", errCode, info.appId.c_str(),
             info.storeId.c_str(), info.userId.c_str());
     }
+    LOGI("[RDBGeneralUt] Create distributed table success, app %s store %s user %s", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
     return errCode;
 }
 
@@ -266,7 +295,8 @@ int RDBGeneralUt::SetDistributedTables(const StoreInfo &info, const std::vector<
             return errCode;
         }
     }
-    if (option_.tableMode != DistributedTableMode::COLLABORATION) {
+    RelationalStoreDelegate::Option option = GetOption();
+    if (option.tableMode != DistributedTableMode::COLLABORATION) {
         return E_OK;
     }
     auto store = GetDelegate(info);
@@ -280,16 +310,18 @@ int RDBGeneralUt::SetDistributedTables(const StoreInfo &info, const std::vector<
         LOGE("[RDBGeneralUt] Set distributed schema failed %d app %s store %s user %s", errCode, info.appId.c_str(),
             info.storeId.c_str(), info.userId.c_str());
     }
+    LOGI("[RDBGeneralUt] Set distributed table success, app %s store %s user %s", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
     return errCode;
 }
 
-RelationalStoreDelegate *RDBGeneralUt::GetDelegate(const StoreInfo &info)
+RelationalStoreDelegate *RDBGeneralUt::GetDelegate(const StoreInfo &info) const
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);
     auto db = stores_.find(info);
     if (db == stores_.end()) {
         LOGE("[RDBGeneralUt] Not exist delegate app %s store %s user %s", info.appId.c_str(),
-             info.storeId.c_str(), info.userId.c_str());
+            info.storeId.c_str(), info.userId.c_str());
         return nullptr;
     }
     return db->second;
@@ -373,5 +405,65 @@ int RDBGeneralUt::SetTrackerTables(const StoreInfo &info, const std::vector<std:
     LOGI("[RDBGeneralUt] Set tracker %zu table success app %s store %s user %s",
         trackerSchema.size(), info.appId.c_str(), info.storeId.c_str(), info.userId.c_str());
     return E_OK;
+}
+
+std::shared_ptr<VirtualCloudDb> RDBGeneralUt::GetVirtualCloudDb() const
+{
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    return virtualCloudDb_;
+}
+
+std::shared_ptr<VirtualAssetLoader> RDBGeneralUt::GetVirtualAssetLoader() const
+{
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    return virtualAssetLoader_;
+}
+
+void RDBGeneralUt::SetCloudDbConfig(const StoreInfo &info) const
+{
+    auto delegate = GetDelegate(info);
+    ASSERT_NE(delegate, nullptr);
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = GetVirtualCloudDb();
+    std::shared_ptr<VirtualAssetLoader> virtualAssetLoader = GetVirtualAssetLoader();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    ASSERT_NE(virtualAssetLoader, nullptr);
+    ASSERT_EQ(delegate->SetCloudDB(virtualCloudDb), DBStatus::OK);
+    ASSERT_EQ(delegate->SetIAssetLoader(virtualAssetLoader), DBStatus::OK);
+    ASSERT_EQ(delegate->SetCloudDbSchema(GetSchema(info)), DBStatus::OK);
+    LOGI("[RDBGeneralUt] Set cloud db config success, app %s store %s user %s", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
+}
+
+void RDBGeneralUt::CloudBlockSync(const StoreInfo &info, const Query &query, DBStatus exceptStatus,
+    DBStatus callbackExpect)
+{
+    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
+    auto delegate = GetDelegate(info);
+    ASSERT_NE(delegate, nullptr);
+    RelationalTestUtils::CloudBlockSync(query, delegate, exceptStatus, callbackExpect);
+}
+
+int RDBGeneralUt::GetCloudDataCount(const std::string &tableName) const
+{
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+    int realCount = 0;
+    std::vector<VBucket> data;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = GetVirtualCloudDb();
+    if (virtualCloudDb == nullptr) {
+        LOGE("[RDBGeneralUt] virtual cloud db is nullptr");
+        return -1;
+    }
+    virtualCloudDb->Query(tableName, extend, data);
+    for (size_t j = 0; j < data.size(); ++j) {
+        auto entry = data[j].find(CloudDbConstant::DELETE_FIELD);
+        if (entry != data[j].end() && std::get<bool>(entry->second)) {
+            continue;
+        }
+        realCount++;
+    }
+    LOGI("[RDBGeneralUt] Count cloud table %s success, count %d", tableName.c_str(), realCount);
+    return realCount;
 }
 }

@@ -37,6 +37,8 @@ protected:
     std::string GetDevice(const StoreInfo &info) const;
     void SetDevice(const StoreInfo &info, const std::string &device);
     static std::string GetTestDir();
+    static StoreInfo GetStoreInfo1();
+    static StoreInfo GetStoreInfo2();
     struct StoreComparator {
         bool operator() (const StoreInfo &source, const StoreInfo &target) const
         {

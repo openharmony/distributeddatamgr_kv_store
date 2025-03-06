@@ -105,24 +105,6 @@ KvStoreConfig KVGeneralUt::GetKvStoreConfig()
     return config;
 }
 
-StoreInfo KVGeneralUt::GetStoreInfo1()
-{
-    StoreInfo info;
-    info.userId = DistributedDBUnitTest::USER_ID;
-    info.storeId = DistributedDBUnitTest::STORE_ID_1;
-    info.appId = DistributedDBUnitTest::APP_ID;
-    return info;
-}
-
-StoreInfo KVGeneralUt::GetStoreInfo2()
-{
-    StoreInfo info;
-    info.userId = DistributedDBUnitTest::USER_ID;
-    info.storeId = DistributedDBUnitTest::STORE_ID_2;
-    info.appId = DistributedDBUnitTest::APP_ID;
-    return info;
-}
-
 KvStoreNbDelegate *KVGeneralUt::GetDelegate(const DistributedDB::StoreInfo &info) const
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);

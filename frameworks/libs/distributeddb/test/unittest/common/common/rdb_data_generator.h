@@ -104,6 +104,7 @@ private:
 
     static void FillTypeIntoDataValue(const DistributedDB::Field &field, const DistributedDB::Type &type,
         DistributedDB::VirtualRowData &virtualRow);
+    static DistributedDB::Bytes GenerateBytes(int64_t index);
 };
 }
 #endif // RDB_DATA_GENERATE_H

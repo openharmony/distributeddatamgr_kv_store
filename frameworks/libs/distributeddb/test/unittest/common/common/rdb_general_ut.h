@@ -19,6 +19,7 @@
 #include "basic_unit_test.h"
 #include "rdb_data_generator.h"
 #include "relational_store_manager.h"
+#include "virtual_asset_loader.h"
 
 namespace DistributedDB {
 const std::string g_defaultTable1 = "defaultTable1";
@@ -35,11 +36,16 @@ protected:
 
     // If SetOption is not invoked before InitDelegate is invoked, the default data of Option is used to open store.
     void SetOption(const RelationalStoreDelegate::Option& option);
-    // If AddSchemaInfo is not invoked before InitDelegate is invoked, g_defaultSchemaInfo is used to create table.
-    void AddSchemaInfo(const StoreInfo &info, const DistributedDBUnitTest::UtDateBaseSchemaInfo& schemaInfo);
-    DataBaseSchema GetSchema(const StoreInfo &info);
-    TableSchema GetTableSchema(const StoreInfo &info, const std::string &tableName = g_defaultTable1);
-    std::vector<TrackerSchema> GetAllTrackerSchema(const StoreInfo &info, const std::vector<std::string> &tables);
+    // If SetSchemaInfo is not invoked before InitDelegate is invoked, g_defaultSchemaInfo is used to create table.
+    void SetSchemaInfo(const StoreInfo &info, const DistributedDBUnitTest::UtDateBaseSchemaInfo& schemaInfo);
+
+    DistributedDBUnitTest::UtDateBaseSchemaInfo GetTableSchemaInfo(const StoreInfo &info) const;
+    DataBaseSchema GetSchema(const StoreInfo &info) const;
+    TableSchema GetTableSchema(const StoreInfo &info, const std::string &tableName = g_defaultTable1) const;
+    std::vector<TrackerSchema> GetAllTrackerSchema(const StoreInfo &info, const std::vector<std::string> &tables) const;
+    sqlite3 *GetSqliteHandle(const StoreInfo &info) const;
+    RelationalStoreDelegate *GetDelegate(const StoreInfo &info)  const;
+    RelationalStoreDelegate::Option GetOption() const;
 
     int InitDatabase(const StoreInfo &info);
 
@@ -51,12 +57,9 @@ protected:
     int SetDistributedTables(const StoreInfo &info, const std::vector<std::string> &tables,
         TableSyncType type = TableSyncType::DEVICE_COOPERATION);
 
+    // use for device to device sync
     void BlockPush(const StoreInfo &from, const StoreInfo &to, const std::string &table,
         DBStatus expectRet = DBStatus::OK);
-
-    DistributedDBUnitTest::UtDateBaseSchemaInfo GetTableSchemaInfo(const StoreInfo &info);
-    sqlite3 *GetSqliteHandle(const StoreInfo &info);
-    RelationalStoreDelegate *GetDelegate(const StoreInfo &info);
 
     int CountTableData(const StoreInfo &info, const std::string &table);
 
@@ -64,11 +67,25 @@ protected:
 
     int SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables);
 
-    RelationalStoreDelegate::Option option_;
+    // use for cloud sync
+    std::shared_ptr<VirtualCloudDb> GetVirtualCloudDb() const;
+
+    std::shared_ptr<VirtualAssetLoader> GetVirtualAssetLoader() const;
+
+    void CloudBlockSync(const StoreInfo &from, const Query &query, DBStatus exceptStatus = OK,
+        DBStatus callbackExpect = OK);
+
+    void SetCloudDbConfig(const StoreInfo &info) const;
+
+    int GetCloudDataCount(const std::string &tableName) const;
+
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *, StoreComparator> stores_;
     std::map<StoreInfo, sqlite3 *, StoreComparator> sqliteDb_;
     std::map<StoreInfo, DistributedDBUnitTest::UtDateBaseSchemaInfo, StoreComparator> schemaInfoMap_;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
+    std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_ = nullptr;
+    RelationalStoreDelegate::Option option_;
 };
 }
 #endif // RDB_GENERAL_UT_H

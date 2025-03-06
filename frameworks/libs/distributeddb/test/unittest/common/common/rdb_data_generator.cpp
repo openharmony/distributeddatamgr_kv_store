@@ -76,6 +76,10 @@ std::string RDBDataGenerator::GetTypeText(int type)
             return "ASSETS";
         case DistributedDB::TYPE_INDEX<DistributedDB::Asset>:
             return "ASSET";
+        case DistributedDB::TYPE_INDEX<double>:
+            return "DOUBLE";
+        case DistributedDB::TYPE_INDEX<Bytes>:
+            return "BLOB";
         default:
             return "";
     }
@@ -140,6 +144,15 @@ DistributedDB::Type RDBDataGenerator::GetColValueByType(int64_t index, const Dis
             break;
         case DistributedDB::TYPE_INDEX<DistributedDB::Asset>:
             value = GenerateAsset(index, field);
+            break;
+        case DistributedDB::TYPE_INDEX<double>:
+            value = static_cast<double>(index);
+            break;
+        case DistributedDB::TYPE_INDEX<bool>:
+            value = static_cast<bool>(index);
+            break;
+        case DistributedDB::TYPE_INDEX<Bytes>:
+            value = GenerateBytes(index);
             break;
     }
     return value;
@@ -508,7 +521,7 @@ int RDBDataGenerator::InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo
                 sql += " AUTOINCREMENT";
             }
         }
-        if (!fieldInfo.field.nullable && fieldInfo.field.type == TYPE_INDEX<std::string>) {
+        if (!fieldInfo.field.nullable) {
             sql += " NOT NULL ON CONFLICT IGNORE";
         }
         sql += ",";
@@ -520,5 +533,11 @@ int RDBDataGenerator::InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo
         LOGE("[RDBDataGenerator] Execute sql failed %d, sql is %s", errCode, sql.c_str());
     }
     return errCode;
+}
+
+Bytes RDBDataGenerator::GenerateBytes(int64_t index)
+{
+    std::string str = std::to_string(index);
+    return std::vector<uint8_t>(str.begin(), str.end());
 }
 }
