@@ -58,13 +58,17 @@ public:
     bool IsChanging(const TrackerSchema &schema);
     int ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum mode, const AfterBuildAction &action);
     void SetTrackerAction(bool isTrackerAction);
-
+    void SetTriggerObserver(bool isTriggerObserver);
+    void SetKnowledgeTable(bool isKnowledgeTable);
+    std::string GetOnChangeType() const;
 private:
     std::string tableName_;
     std::string extendColName_;
     std::set<std::string> extendColNames_;
     std::set<std::string> trackerColNames_;
     bool isTrackerAction_ = false;
+    bool isTriggerObserver_ = true;
+    bool isKnowledgeTable_ = false;
 };
 
 } // namespace DistributedDB

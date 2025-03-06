@@ -38,8 +38,8 @@ protected:
 void DistributedDBRDBDataStatusTest::SetUp()
 {
     RDBGeneralUt::SetUp();
-    AddSchemaInfo(info1_, GetDefaultSchema());
-    AddSchemaInfo(info2_, GetDefaultSchema());
+    SetSchemaInfo(info1_, GetDefaultSchema());
+    SetSchemaInfo(info2_, GetDefaultSchema());
 }
  
 UtDateBaseSchemaInfo DistributedDBRDBDataStatusTest::GetDefaultSchema()

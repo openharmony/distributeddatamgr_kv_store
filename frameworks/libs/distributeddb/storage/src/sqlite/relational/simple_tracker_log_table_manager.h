@@ -27,7 +27,6 @@ public:
     // The parameter "references" is "", "NEW." or "OLD.". "identity" is a hash string that identifies a device.
     std::string CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,
         const std::string &identity) override;
-
 private:
     void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema) override;
     std::string GetPrimaryKeySql(const TableInfo &table) override;

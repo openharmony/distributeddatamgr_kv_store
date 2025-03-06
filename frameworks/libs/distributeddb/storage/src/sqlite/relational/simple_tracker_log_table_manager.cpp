@@ -76,7 +76,8 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
     insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", '', '', 0);\n";
-    insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, 1";
+    insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, ";
+    insertTrigger += table.GetTrackerTable().GetOnChangeType();
     insertTrigger += ");\n";
     insertTrigger += "END;";
     return insertTrigger;
@@ -103,7 +104,8 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     updateTrigger += table.GetTrackerTable().GetDiffIncCursorSql(tableName);
     updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    updateTrigger += "SELECT client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += "SELECT client_observer('" + tableName + "', OLD." +
+        std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ", 1, ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
     updateTrigger += ");";
@@ -131,7 +133,7 @@ std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
-    deleteTrigger += table.GetTrackerTable().IsEmpty() ? "0" : "1";
+    deleteTrigger += table.GetTrackerTable().IsEmpty() ? "0" : table.GetTrackerTable().GetOnChangeType();
     deleteTrigger += ");\n";
     deleteTrigger += "END;";
     return deleteTrigger;

@@ -142,93 +142,14 @@ int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, Tabl
     return E_OK;
 }
 
-namespace {
-int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isMem, int64_t &timeOffset)
-{
-    std::string sql = "SELECT get_sys_time(0) - max(" + std::string(DBConstant::SQLITE_INNER_ROWID) + ") - 1 FROM '" +
-        tableName + "';";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMem);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        errCode = E_OK;
-    }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
-}
-
-std::string GetExtendValue(const TrackerTable &trackerTable)
-{
-    std::string extendValue;
-    const std::set<std::string> &extendNames = trackerTable.GetExtendNames();
-    if (!extendNames.empty()) {
-        extendValue += "json_object(";
-        for (const auto &extendName : extendNames) {
-            extendValue += "'" + extendName + "'," + extendName + ",";
-        }
-        extendValue.pop_back();
-        extendValue += ")";
-    } else {
-        extendValue = "''";
-    }
-    return extendValue;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedDataInner(sqlite3 *db, const std::string &identity,
-    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
-{
-    std::string tableName = tableInfo.GetTableName();
-    int64_t timeOffset = 0;
-    int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = SetLogTriggerStatus(false);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    std::string timeOffsetStr = std::to_string(timeOffset);
-    std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
-    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
-        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
-    TrackerTable trackerTable = tableInfo.GetTrackerTable();
-    trackerTable.SetTableName(tableName);
-    const std::string prefix = "a.";
-    std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash(prefix, tableInfo, identity);
-    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
-        ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
-        timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
-    sql += GetExtendValue(tableInfo.GetTrackerTable());
-    sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a ";
-    if (isTrackerTable) {
-        sql += " WHERE 1 = 1;";
-    } else {
-        sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_);";
-    }
-    errCode = trackerTable.ReBuildTempTrigger(db, TriggerMode::TriggerModeEnum::INSERT, [db, &sql]() {
-        int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
-        if (ret != E_OK) {
-            LOGE("Failed to initialize cloud type log data.%d", ret);
-        }
-        return ret;
-    });
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity,
     const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
 {
     if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         return UpdateTrackerTable(db, identity, tableInfo, logMgrPtr, false);
     }
-    return GeneLogInfoForExistedDataInner(db, identity, tableInfo, logMgrPtr, isTrackerTable);
+    SQLiteRelationalUtils::GenLogParam param = {db, isMemDb_, isTrackerTable};
+    return SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr, param);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableName)
@@ -326,7 +247,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         }
     } else {
         if (table.GetTrackerTable().GetTableName().empty()) {
-            errCode = GeneLogInfoForExistedDataInner(dbHandle_, identity, table, tableManager, false);
+            SQLiteRelationalUtils::GenLogParam param = {dbHandle_, isMemDb_, false};
+            errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, table, tableManager, param);
         }
     }
     if (errCode != E_OK) {
@@ -776,63 +698,12 @@ static size_t GetDataItemSerialSize(DataItem &item, size_t appendLen)
 
 int SQLiteSingleVerRelationalStorageExecutor::GetKvData(const Key &key, Value &value) const
 {
-    static const std::string SELECT_META_VALUE_SQL = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) +
-        "metadata WHERE key=?;";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, SELECT_META_VALUE_SQL, statement);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, false); // first arg.
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_NOT_FOUND;
-        goto END;
-    } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value); // only one result.
-END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    return SQLiteRelationalUtils::GetKvData(dbHandle_, isMemDb_, key, value);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::PutKvData(const Key &key, const Value &value) const
 {
-    static const std::string INSERT_META_SQL = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) +
-        "metadata VALUES(?,?);";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, INSERT_META_SQL, statement);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, false);  // 1 means key index
-    if (errCode != E_OK) {
-        LOGE("[SingleVerExe][BindPutKv]Bind key error:%d", errCode);
-        goto ERROR;
-    }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 2, value, true);  // 2 means value index
-    if (errCode != E_OK) {
-        LOGE("[SingleVerExe][BindPutKv]Bind value error:%d", errCode);
-        goto ERROR;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    }
-ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    return SQLiteRelationalUtils::PutKvData(dbHandle_, isMemDb_, key, value);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaData(const std::vector<Key> &keys) const
@@ -1556,15 +1427,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetMaxTimestamp(const std::vector<
 
 int SQLiteSingleVerRelationalStorageExecutor::SetLogTriggerStatus(bool status)
 {
-    const std::string key = "log_trigger_switch";
-    std::string val = status ? "true" : "false";
-    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
-        " VALUES ('" + key + "', '" + val + "')";
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
-    if (errCode != E_OK) {
-        LOGE("Set log trigger to %s failed. errCode=%d", val.c_str(), errCode);
-    }
-    return errCode;
+    return SQLiteRelationalUtils::SetLogTriggerStatus(dbHandle_, status);
 }
 
 namespace {

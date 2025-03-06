@@ -86,6 +86,7 @@ public:
     static constexpr const char *SCHEMA_KEY = "schemaKey";
     static const std::string RELATIONAL_SCHEMA_KEY;
     static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
+    static constexpr const char *RDB_KNOWLEDGE_SCHEMA_KEY = "rdbKnowledgeSchemaKey";
 
     static constexpr const char *RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";
     static constexpr const char *RD_KV_HASH_COLLECTION_MODE = "{\"mode\" : \"kv\",\"indextype\" : \"hash\"}";
