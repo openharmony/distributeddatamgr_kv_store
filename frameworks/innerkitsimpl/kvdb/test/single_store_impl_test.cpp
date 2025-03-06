@@ -180,6 +180,18 @@ HWTEST_F(SingleStoreImplTest, GetStoreId, TestSize.Level0)
 }
 
 /**
+ * @tc.name: GetSubUser
+ * @tc.desc: get the subUser of the kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetSubUser, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto subUser = kvStore_->GetSubUser();
+    ASSERT_EQ(subUser, 0);
+}
+
+/**
  * @tc.name: Put
  * @tc.desc: put key-value data to the kv store
  * @tc.type: FUNC

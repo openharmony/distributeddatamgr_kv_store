@@ -32,10 +32,7 @@ config("module_private_config") {
     "../../../../interfaces/innerkits/distributeddatamgr/include/",
 
     # for ipc_core interfaces.
-    "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
   ]
 }
 
@@ -96,12 +93,12 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../../../databaseutils:database_utils",
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]
   external_deps = [
     "access_token:libaccesstoken_sdk",
     "access_token:libtokenid_sdk",
     "c_utils:utils",
+    "device_manager:devicemanagersdk",
     "file_api:securitylabel",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
@@ -121,6 +118,27 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
 
   part_name = "kv_store"
+}
+
+ohos_unittest("DistributedKvDataManagerMultiUserTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/distributed_kv_data_manager_multi_user_test.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("DistributedKvDataManagerTest") {
@@ -455,6 +473,7 @@ group("unittest") {
     ":DeviceKvStoreTest",
     ":DistributedDataMgrTest",
     ":DistributedKvDataManagerEncryptTest",
+    ":DistributedKvDataManagerMultiUserTest",
     ":DistributedKvDataManagerTest",
     ":EndPointTest",
     ":KvUtilTest",
