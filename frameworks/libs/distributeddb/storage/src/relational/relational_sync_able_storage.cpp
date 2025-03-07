@@ -747,30 +747,24 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
 int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
     const RelationalObserverAction &action)
 {
-    int errCode = E_OK;
-    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, action, &errCode] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
-        auto it = dataChangeCallbackMap_.find(connectionId);
-        if (it != dataChangeCallbackMap_.end()) {
-            if (it->second.find(observer) != it->second.end()) {
-                LOGE("obsever already registered");
-                errCode = -E_ALREADY_SET;
-                return;
-            }
-            if (it->second.size() >= DBConstant::MAX_OBSERVER_COUNT) {
-                LOGE("The number of relational observers has been over limit");
-                errCode = -E_MAX_LIMITS;
-                return;
-            }
-            it->second[observer] = action;
-        } else {
-            dataChangeCallbackMap_[connectionId][observer] = action;
+    ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+    ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        if (it->second.find(observer) != it->second.end()) {
+            LOGE("obsever already registered");
+            return -E_ALREADY_SET;
         }
-        LOGI("register relational observer ok");
-    }, nullptr, &dataChangeCallbackMap_);
-    ADAPTER_WAIT(handle);
-    return errCode;
+        if (it->second.size() >= DBConstant::MAX_OBSERVER_COUNT) {
+            LOGE("The number of relational observers has been over limit");
+            return -E_MAX_LIMITS;
+        }
+        it->second[observer] = action;
+    } else {
+        dataChangeCallbackMap_[connectionId][observer] = action;
+    }
+    LOGI("register relational observer ok");
+    return E_OK;
 }
 
 int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer)
@@ -779,28 +773,22 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
         EraseDataChangeCallback(connectionId);
         return E_OK;
     }
-    int errCode = -E_NOT_FOUND;
-    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, &errCode] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
-        auto it = dataChangeCallbackMap_.find(connectionId);
-        if (it == dataChangeCallbackMap_.end()) {
-            return;
-        }
+    ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
+    ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
         auto action = it->second.find(observer);
-        if (action == it->second.end()) {
-            return;
+        if (action != it->second.end()) {
+            it->second.erase(action);
+            LOGI("unregister relational observer.");
+            if (it->second.empty()) {
+                dataChangeCallbackMap_.erase(it);
+                LOGI("observer for this delegate is zero now");
+            }
+            return E_OK;
         }
-        it->second.erase(action);
-        LOGI("unregister relational observer.");
-        if (it->second.empty()) {
-            dataChangeCallbackMap_.erase(it);
-            LOGI("observer for this delegate is zero now");
-        }
-        errCode = E_OK;
-    }, nullptr, &dataChangeCallbackMap_);
-    ADAPTER_WAIT(handle);
-    return errCode;
+    }
+    return -E_NOT_FOUND;
 }
 
 void RelationalSyncAbleStorage::ExecuteDataChangeCallback(
