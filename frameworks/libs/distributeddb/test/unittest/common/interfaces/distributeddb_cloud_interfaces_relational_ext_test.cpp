@@ -600,6 +600,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
     ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
 
     /**
      * @tc.steps:step3. insert data into sync_data, check observer.
@@ -637,6 +638,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
     ClientObserver clientObserver2 = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc2,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver2), OK);
+    RegisterDbHook(db);
     sql = "update " + tableName + " set name = 'lisi2' where id = 2;";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     WaitAndResetNotify();
@@ -715,6 +717,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
     ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
 
     /**
      * @tc.steps:step3. insert data into sync_data, check observer.
@@ -778,6 +781,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, 
     ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
 
     /**
      * @tc.steps:step3. begin transaction and commit.
@@ -853,6 +857,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
     ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
 
     /**
      * @tc.steps:step3. begin transaction and commit.
@@ -882,6 +887,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
      * @tc.expected: step5. check observer ok.
      */
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
     sql = "insert into " + tableName1 + " VALUES(7, 'zhangjiu');";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     WaitAndResetNotify();
@@ -918,6 +924,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
     ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
         this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    RegisterDbHook(db);
 
     /**
      * @tc.steps:step3. insert data into sync_data, check observer.
@@ -1576,6 +1583,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     */
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
     EXPECT_TRUE(g_changedData.empty());
     int dataCounts = 10; // 10 is count of insert options.
     int begin = 0;
@@ -1623,6 +1631,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     EXPECT_NE(db, nullptr);
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     std::string tableName = "primary_test";
     CreateTableForStoreObserver(db, tableName);
@@ -1674,6 +1683,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     auto storeObserver2 = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver1), OK);
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver2), OK);
+    RegisterDbHook(db);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     std::string tableName = "primary_test";
     CreateTableForStoreObserver(db, tableName);
@@ -1734,7 +1744,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     EXPECT_NE(db, nullptr);
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
-    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), INVALID_ARGS);
+    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
