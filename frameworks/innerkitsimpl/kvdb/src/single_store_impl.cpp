@@ -961,14 +961,8 @@ Status SingleStoreImpl::DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCal
 
 Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
-    Status cStatus = Status::SUCCESS;
     if (isClientSync_) {
-        cStatus = DoClientSync(syncInfo, observer);
-        if (cStatus != SUCCESS) {
-            ZLOGE("Client sync failed!: %{public}d", cStatus);
-            return ERROR;
-        }
-        return SUCCESS;
+        return DoClientSync(syncInfo, observer);
     }
 
     auto service = KVDBServiceClient::GetInstance();
@@ -986,7 +980,8 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
     serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
     auto status = service->Sync({ appId_ }, { storeId_ }, subUser_, syncInfo);
     if (status != Status::SUCCESS) {
-        ZLOGE("Service sync failed!: %{public}d", status);
+        ZLOGE("Service sync failed! app:%{public}s store:%{public}s status:%{public}d", appId_.c_str(),
+            StoreUtil::Anonymous(storeId_).c_str(), status);
         serviceAgent->DeleteSyncCallback(syncInfo.seqId);
     }
     return status;
