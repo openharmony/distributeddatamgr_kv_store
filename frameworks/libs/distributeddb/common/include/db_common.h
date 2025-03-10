@@ -159,6 +159,9 @@ public:
 
     static std::set<std::string, CaseInsensitiveComparator> TransformToCaseInsensitive(
         const std::vector<std::string> &origin);
+
+    static std::string GetStoreIdentifier(const StoreInfo &info, const std::string &subUser, bool syncDualTupleMode,
+        bool allowStoreIdWithDot);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

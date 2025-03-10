@@ -2038,4 +2038,23 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, T
     DBStatus status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
+
+/**
+  * @tc.name: StoreId001
+  * @tc.desc: Test storeId support with dot
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, StoreId001, TestSize.Level0)
+{
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1, false), "");
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1, true), "");
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1, true), "");
+    const std::string storeIdWithDot = STORE_ID_1 + ".";
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, storeIdWithDot, true), "");
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, USER_ID, APP_ID, STORE_ID_1, false), "");
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, USER_ID, APP_ID, STORE_ID_1, true), "");
+    EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, USER_ID, APP_ID, storeIdWithDot, true), "");
+}
 }

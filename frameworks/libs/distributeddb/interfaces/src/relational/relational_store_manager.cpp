@@ -238,13 +238,17 @@ void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchReques
 std::string RelationalStoreManager::GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,
     const std::string &storeId, bool syncDualTupleMode)
 {
-    return RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
+    return RelationalStoreManager::GetRelationalStoreIdentifier(userId, "", appId, storeId, syncDualTupleMode);
 }
 
 std::string RelationalStoreManager::GetRelationalStoreIdentifier(const std::string &userId,
     const std::string &subUserId, const std::string &appId, const std::string &storeId, bool syncDualTupleMode)
 {
-    return RuntimeConfig::GetStoreIdentifier(userId, subUserId, appId, storeId, syncDualTupleMode);
+    StoreInfo info;
+    info.storeId = storeId;
+    info.appId = appId;
+    info.userId = userId;
+    return DBCommon::GetStoreIdentifier(info, subUserId, syncDualTupleMode, true);
 }
 
 std::vector<QueryNode> RelationalStoreManager::ParserQueryNodes(const Bytes &queryBytes,

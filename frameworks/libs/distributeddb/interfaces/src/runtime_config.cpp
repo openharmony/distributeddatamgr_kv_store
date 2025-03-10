@@ -166,16 +166,11 @@ std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const s
 std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const std::string &subUserId,
     const std::string &appId, const std::string &storeId, bool syncDualTupleMode)
 {
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode, subUserId)) {
-        return "";
-    }
-    if (syncDualTupleMode) {
-        return DBCommon::TransferHashString(appId + "-" + storeId);
-    }
-    if (subUserId.empty()) {
-        return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
-    }
-    return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId + "-" + subUserId);
+    StoreInfo info;
+    info.storeId = storeId;
+    info.appId = appId;
+    info.userId = userId;
+    return DBCommon::GetStoreIdentifier(info, subUserId, syncDualTupleMode, false);
 }
 
 void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &appId, const std::string &storeId,
