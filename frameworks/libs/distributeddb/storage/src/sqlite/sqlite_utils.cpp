@@ -22,6 +22,7 @@
 #include <mutex>
 #include <map>
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "sqlite_import.h"
 #include "securec.h"
@@ -128,8 +129,7 @@ void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
         if (verboseLog) {
             LOGD("[SQLite] Error[%d] sys[%d] %s ", err, errno, sqlite3_errstr(err));
         }
-    } else if (errType == SQLITE_WARNING || errType == SQLITE_IOERR ||
-        errType == SQLITE_CORRUPT || errType == SQLITE_CANTOPEN) {
+    } else if (errType == SQLITE_WARNING || errType == SQLITE_IOERR || errType == SQLITE_CANTOPEN) {
         LOGI("[SQLite] Error[%d], sys[%d], %s, msg: %s ", err, errno,
             sqlite3_errstr(err), SQLiteUtils::Anonymous(logMsg).c_str());
     } else {
@@ -179,6 +179,9 @@ END:
         (void)sqlite3_close_v2(dbTemp);
         dbTemp = nullptr;
     }
+    struct stat curStat;
+    stat(fileUrl.c_str(), &curStat);
+    LOGI("[SQLite] open database result: %d, inode: %llu", errCode, curStat.st_ino);
 
     return errCode;
 }
