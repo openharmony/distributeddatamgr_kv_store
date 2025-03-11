@@ -283,8 +283,7 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(
-            storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo), expectCode);
         if (expectCode == E_OK) {
             if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
                 int64_t val = -1;
@@ -1397,7 +1396,7 @@ namespace {
         CloudSyncData data(g_assetTableName);
         errCode = storageProxy->GetCloudData(g_assetTableName, 0u, token, data);
         EXPECT_EQ(errCode, E_OK);
-        EXPECT_EQ(data.ignoredCount, 0);
+        EXPECT_EQ(data.ignoredCount, 1);
 
         EXPECT_EQ(storageProxy->Commit(), E_OK);
         EXPECT_EQ(token, nullptr);

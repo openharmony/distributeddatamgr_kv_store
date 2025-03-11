@@ -285,7 +285,9 @@ void TestSyncWithUserChange(bool wait)
     EXPECT_EQ(result.size(), devices.size());
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
-        EXPECT_EQ(pair.second, USER_CHANGED);
+        // If the ClearSyncOperations interface is scheduled to be executed first, syncer has been closed
+        // when AddSyncOperation is triggered and the returned status is OP_FAILED(DB_ERROR).
+        EXPECT_TRUE((pair.second == USER_CHANGED) || (pair.second == DB_ERROR));
     }
     CloseStore();
 }

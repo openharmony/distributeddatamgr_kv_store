@@ -702,6 +702,7 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
 
 int SyncEngine::GetQueueCacheSize() const
 {
+    std::lock_guard<std::mutex> lock(queueLock_);
     return queueCacheSize_;
 }
 
@@ -713,6 +714,7 @@ void SyncEngine::SetQueueCacheSize(int size)
 
 unsigned int SyncEngine::GetDiscardMsgNum() const
 {
+    std::lock_guard<std::mutex> lock(queueLock_);
     return discardMsgNum_;
 }
 

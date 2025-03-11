@@ -160,6 +160,11 @@ public:
     {
         return {OK, 0};
     }
+
+    DB_API virtual DBStatus OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
+    {
+        return OK;
+    }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

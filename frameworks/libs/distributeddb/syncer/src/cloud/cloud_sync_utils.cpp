@@ -153,7 +153,8 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
         localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
         localLogInfo.sharingResource == cloudLogInfo.sharingResource &&
         localLogInfo.version == cloudLogInfo.version &&
-        (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
+        (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0 &&
+        !localLogInfo.isNeedUpdateAsset;
     return !isSame;
 }
 
@@ -729,7 +730,16 @@ std::tuple<int, DownloadList, ChangedData> CloudSyncUtils::GetDownloadListByGid(
         }
         Type prefix;
         std::vector<Type> pkVal;
-        OpType strategy = OpType::UPDATE;
+        OpType strategy;
+        if ((dataInfo.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) ==
+            static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) {
+            strategy = OpType::UPDATE;
+        } else if ((dataInfo.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
+                   static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) {
+            strategy = OpType::DELETE;
+        } else {
+            strategy = OpType::INSERT;
+        }
         errCode = CloudSyncUtils::GetCloudPkVals(dataInfo.primaryKeys, pkColNames, dataInfo.logInfo.dataKey, pkVal);
         if (errCode != E_OK) {
             LOGE("[CloudSyncUtils] HandleTagAssets cannot get primary key value list. %d", errCode);

@@ -175,7 +175,7 @@ public:
     static int IdentifyCloudType(const CloudUploadRecorder &recorder, CloudSyncData &cloudSyncData, VBucket &data,
         VBucket &log, VBucket &flags);
 
-    static int CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert);
+    static int CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert, bool isAsyncDownloading);
 
     static std::pair<int, DataItem> GetDataItemFromCloudData(VBucket &data);
 
@@ -220,6 +220,11 @@ private:
 
     static void PutSyncPkVec(const std::string &col, std::map<std::string, std::vector<Type>> &syncPk,
         std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec);
+
+    static bool IsAssetNotDownload(const uint32_t &status);
+
+    static void CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data, bool &isSyncAssetAbnormal,
+        bool &isAsyncAssetAbnormal);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

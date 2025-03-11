@@ -496,5 +496,14 @@ bool CommunicatorLinker::TriggerLabelExchangeEvent(bool checkAdapter)
     }
     return everFail;
 }
+
+void CommunicatorLinker::ClearOnlineLabel()
+{
+    std::lock_guard<std::mutex> autoLock(entireInfoMutex_);
+    for (const auto &[dev, labels] : targetMapOnlineLabels_) {
+        LOGD("[Linker] clear remote %s online label %zu", DBCommon::StringMiddleMasking(dev).c_str(), labels.size());
+    }
+    targetMapOnlineLabels_.clear();
+}
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorLinker)
 } // namespace DistributedDB

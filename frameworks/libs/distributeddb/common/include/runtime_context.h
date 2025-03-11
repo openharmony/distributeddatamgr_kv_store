@@ -208,6 +208,8 @@ public:
     virtual void SetBatchDownloadAssets(bool isBatchDownload) = 0;
 
     virtual std::shared_ptr<AssetsDownloadManager> GetAssetsDownloadManager() = 0;
+
+    virtual void ClearOnlineLabel() = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

@@ -149,6 +149,7 @@ int RelationalSyncAbleStorage::UpdateAssetStatusForAssetOnly(const std::string &
 
 void RelationalSyncAbleStorage::PrintCursorChange(const std::string &tableName)
 {
+    std::lock_guard lock(cursorChangeMutex_);
     auto iter = cursorChangeMap_.find(tableName);
     if (iter == cursorChangeMap_.end()) {
         return;
@@ -160,6 +161,7 @@ void RelationalSyncAbleStorage::PrintCursorChange(const std::string &tableName)
 
 void RelationalSyncAbleStorage::SaveCursorChange(const std::string &tableName, uint64_t currCursor)
 {
+    std::lock_guard lock(cursorChangeMutex_);
     auto iter = cursorChangeMap_.find(tableName);
     if (iter == cursorChangeMap_.end()) {
         std::pair<uint64_t, uint64_t> initCursors = {currCursor, currCursor};
@@ -308,6 +310,25 @@ bool RelationalSyncAbleStorage::IsExistTableContainAssets()
         }
     }
     return false;
+}
+
+bool RelationalSyncAbleStorage::IsSetDistributedSchema(const std::string &tableName, RelationalSchemaObject &schemaObj)
+{
+    if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION) {
+        const std::vector<DistributedTable> &tables = schemaObj.GetDistributedSchema().tables;
+        if (tables.empty()) {
+            LOGE("[RelationalSyncAbleStorage] Distributed schema not set in COLLABORATION mode");
+            return false;
+        }
+        auto iter = std::find_if(tables.begin(), tables.end(), [tableName](const DistributedTable &table) {
+            return DBCommon::CaseInsensitiveCompare(table.tableName, tableName);
+        });
+        if (iter == tables.end()) {
+            LOGE("[RelationalSyncAbleStorage] table name mismatch");
+            return false;
+        }
+    }
+    return true;
 }
 }
 #endif

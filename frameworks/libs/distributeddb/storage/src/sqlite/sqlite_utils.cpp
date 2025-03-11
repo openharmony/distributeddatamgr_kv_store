@@ -634,8 +634,9 @@ int SQLiteUtils::AttachNewDatabaseInner(sqlite3 *db, CipherType type, const Ciph
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
@@ -705,8 +706,9 @@ int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
     } else {
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 #ifdef RELATIONAL_STORE
 
@@ -724,9 +726,10 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
         return errCode;
     }
     errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableName);
+    int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("[AnalysisSchema] Bind table name failed:%d", errCode);
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
@@ -750,8 +753,8 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
             break;
         }
     } while (true);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int GetSchemaIndexList(sqlite3 *db, const std::string &tableName, std::vector<std::string> &indexList,
@@ -784,8 +787,9 @@ int GetSchemaIndexList(sqlite3 *db, const std::string &tableName, std::vector<st
             break;
         }
     } while (true);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int AnalysisSchemaIndexDefine(sqlite3 *db, const std::string &indexName, CompositeFields &indexDefine)
@@ -813,8 +817,9 @@ int AnalysisSchemaIndexDefine(sqlite3 *db, const std::string &indexName, Composi
         }
     } while (true);
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int AnalysisSchemaIndex(sqlite3 *db, const std::string &tableName, TableInfo &table)
@@ -926,8 +931,9 @@ int SQLiteUtils::AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &table
         table.SetPrimaryKey("rowid", 1);
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
@@ -1107,8 +1113,9 @@ int SQLiteUtils::GetJournalMode(sqlite3 *db, std::string &mode)
         LOGE("[SqlUtil][GetJournal] Get db journal_mode failed.");
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::SetUserVer(const OpenDbProperties &properties, int version)

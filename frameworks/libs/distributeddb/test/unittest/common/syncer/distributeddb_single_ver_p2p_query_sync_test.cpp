@@ -1182,7 +1182,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp002, TestS
     ASSERT_EQ(errCode, E_OK);
     for (auto &pair : idValueMap) {
         auto &queryId = pair.first;
-        auto &expectVal = pair.second.second;
+        auto &expectVal = pair.second.second; 
         EXPECT_EQ(meta.GetQueryLastTimestamp("any", queryId), static_cast<uint64_t>(expectVal));
     }
 }

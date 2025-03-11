@@ -345,20 +345,16 @@ bool SingleVerDataSyncUtils::IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyn
     if (inMsg == nullptr) {
         return false;
     }
-    if (inMsg->GetMessageId() != CONTROL_SYNC_MESSAGE) {
+    if (inMsg->GetMessageId() != CONTROL_SYNC_MESSAGE || inMsg->GetMessageType() != TYPE_REQUEST) {
         return false;
     }
-    const ControlRequestPacket *packet = inMsg->GetObject<ControlRequestPacket>();
+    auto packet = inMsg->GetObject<SubscribeRequest>();
     if (packet == nullptr) {
         return false;
     }
     uint32_t controlCmdType = packet->GetcontrolCmdType();
-    if (controlCmdType == ControlCmdType::SUBSCRIBE_QUERY_CMD && inMsg->GetMessageType() == TYPE_REQUEST) {
-        const SubscribeRequest *subPacket = inMsg->GetObject<SubscribeRequest>();
-        if (subPacket == nullptr) {
-            return false;
-        }
-        query = subPacket->GetQuery();
+    if (controlCmdType == ControlCmdType::SUBSCRIBE_QUERY_CMD) {
+        query = packet->GetQuery();
         LOGI("[SingleVerDataSync] receive sub scribe query cmd,begin to trigger query auto sync");
         return true;
     }

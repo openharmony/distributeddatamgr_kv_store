@@ -1413,4 +1413,76 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel001, Test
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
+
+/**
+  * @tc.name: CheckSecurityLabel002
+  * @tc.desc: Test import after changing the security level
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liuhongyang
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel002, TestSize.Level0)
+{
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    /**
+     * @tc.steps: step1. Pre-create folder dir
+     */
+    std::string singleFileName = g_exportFileDir + "/CheckSecurityLabel002.$$";
+    std::string singleStoreId = "distributed_CheckSecurityLabel002";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.secOption = {SecurityLabel::S2, SecurityFlag::ECE};
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. Specify the path to export the encrypted database.
+     * @tc.expected: step2. Returns OK.
+     */
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleFileName, passwd), OK);
+    /**
+     * @tc.steps: step3. Close and reopen the store with a lower secOpt
+     * @tc.expected: step3. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    KvStoreNbDelegate::Option option2 = {true, false, false};
+    option2.secOption = {SecurityLabel::S1, SecurityFlag::ECE};
+    g_mgr.GetKvStore(singleStoreId, option2, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step4. Make systemApi mock file system and try to import
+     * @tc.expected: step4. Import will fail with SECURITY_OPTION_CHECK_ERROR
+     */
+    adapter->SetNeedValidateBeforeSet(true);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), SECURITY_OPTION_CHECK_ERROR);
+    /**
+     * @tc.steps: step5. Close and reopen the store with a higher secOpt
+     * @tc.expected: step5. Returns OK.
+     */
+    adapter->SetNeedValidateBeforeSet(false);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    KvStoreNbDelegate::Option option3 = {true, false, false};
+    option3.secOption = {SecurityLabel::S3, SecurityFlag::SECE};
+    g_mgr.GetKvStore(singleStoreId, option3, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step6. Make systemApi mock file system and try to import
+     * @tc.expected: step6. Import will success with OK
+     */
+    adapter->SetNeedValidateBeforeSet(true);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
+    /**
+     * @tc.steps: step7. Release resource.
+     * @tc.expected: step7. OK
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+    g_junkFilesList.push_back(singleFileName);
+}
 #endif // OMIT_ENCRYPT

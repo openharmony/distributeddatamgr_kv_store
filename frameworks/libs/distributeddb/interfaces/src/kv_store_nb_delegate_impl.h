@@ -213,6 +213,10 @@ private:
 
     DBStatus UnRegisterCloudObserver(const KvStoreObserver *observer);
 
+    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+
+    DBStatus CheckCloudObserver(KvStoreObserver *observer);
+
     IKvDBConnection *conn_;
     std::string storeId_;
     bool releaseFlag_;

@@ -961,11 +961,11 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.
 
     std::mutex cancelMtx;
     std::condition_variable cancelCv;
-    bool cancalFinished = false;
+    bool cancelFinished = false;
 
     DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
         bool isAllCancel = true;
-        for (auto &process: processMap) {
+        for (auto &process : processMap) {
             syncId = process.second.syncId;
             if (process.second.errCode != COMM_FAILURE) {
                 isAllCancel = false;
@@ -973,7 +973,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.
         }
         if (isAllCancel) {
             std::unique_lock<std::mutex> lock(cancelMtx);
-            cancalFinished = true;
+            cancelFinished = true;
             cancelCv.notify_all();
         }
     };
@@ -986,7 +986,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.
     // Wait onProcess complete.
     {
         std::unique_lock<std::mutex> lock2(cancelMtx);
-        cancelCv.wait(lock2, [&cancalFinished]() {return cancalFinished;});
+        cancelCv.wait(lock2, [&cancelFinished]() {return cancelFinished;});
     }
     // Wait until all the packets arrive.
     std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -2544,5 +2544,50 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange002, TestSize.Level
     ASSERT_EQ(g_mgr.CloseKvStore(delegate2), OK);
     delegate2 = nullptr;
     ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID_3) == OK);
+}
+
+/**
+ * @tc.name: InvalidSync001
+ * @tc.desc: Test sync with empty tables
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, InvalidSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. sync with empty tables
+     * @tc.expected: step1. NOT_SUPPORT
+     */
+    Query query = Query::Select().FromTable({""});
+    DBStatus callStatus = g_kvDelegatePtr->Sync({g_deviceB->GetDeviceId()}, SYNC_MODE_PUSH_ONLY, nullptr, query, true);
+    EXPECT_EQ(callStatus, NOT_SUPPORT);
+
+    /**
+     * @tc.steps: step2. sync option with empty tables
+     * @tc.expected: step2. NOT_SUPPORT
+     */
+    DeviceSyncOption option;
+    option.devices = {g_deviceB->GetDeviceId()};
+    option.isQuery = true;
+    option.isWait = true;
+    option.query = query;
+    std::mutex cancelMtx;
+    bool cancelFinished = false;
+    DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
+        bool isAllCancel = true;
+        for (auto &process : processMap) {
+            if (process.second.errCode != COMM_FAILURE) {
+                isAllCancel = false;
+            }
+        }
+        if (isAllCancel) {
+            std::unique_lock<std::mutex> lock(cancelMtx);
+            cancelFinished = true;
+        }
+    };
+    callStatus = OK;
+    callStatus = g_kvDelegatePtr->Sync(option, onProcess);
+    EXPECT_EQ(callStatus, NOT_SUPPORT);
 }
 }

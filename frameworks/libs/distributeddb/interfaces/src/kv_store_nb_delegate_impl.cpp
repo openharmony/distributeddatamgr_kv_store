@@ -371,6 +371,15 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return INVALID_ARGS;
     }
+    if (observer == nullptr) {
+        LOGE("[KvStoreNbDelegate][RegisterObserver] Observer is null");
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
+        LOGE("[RegisterObserver]%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+
     uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
     if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
         return RegisterCloudObserver(key, mode, observer);
@@ -378,34 +387,36 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     return RegisterDeviceObserver(key, static_cast<unsigned int>(rawMode), observer);
 }
 
-DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
+DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
 {
     if (!ParamCheckUtils::CheckObserver(key, mode)) {
-        LOGE("Register nb observer by illegal mode or key size!");
-        return INVALID_ARGS;
-    }
-
-    if (observer == nullptr) {
+        LOGE("[KvStoreNbDelegate][CheckDeviceObserver] Register nb observer by illegal mode or key size!");
         return INVALID_ARGS;
     }
 
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (observerMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
-        LOGE("[KvStoreNbDelegate] The number of kv observers has been over limit, storeId[%.3s]", storeId_.c_str());
+        LOGE("[KvStoreNbDelegate][CheckDeviceObserver] The number of kv observers has been over limit, storeId[%.3s]",
+            storeId_.c_str());
         return OVER_MAX_LIMITS;
     }
     if (observerMap_.find(observer) != observerMap_.end()) {
-        LOGE("[KvStoreNbDelegate] Observer has been already registered!");
+        LOGE("[KvStoreNbDelegate][CheckDeviceObserver] Observer has been already registered!");
         return ALREADY_SET;
     }
+    return OK;
+}
 
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-
+DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
+{
     if (conn_->IsTransactionStarted()) {
+        LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Transaction unfinished");
         return BUSY;
+    }
+    DBStatus status = CheckDeviceObserver(key, mode, observer);
+    if (status != OK) {
+        LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Observer map cannot be registered, status:%d", status);
+        return status;
     }
 
     int errCode = E_OK;
@@ -414,55 +425,59 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
         mode, key,
         [observer, storeId](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
-            LOGD("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate][RegisterDeviceObserver] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(data);
         },
         errCode);
 
     if (errCode != E_OK || observerHandle == nullptr) {
-        LOGE("[KvStoreNbDelegate] RegisterListener failed:%d!", errCode);
+        LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Register device observer failed:%d!", errCode);
         return DB_ERROR;
     }
 
     observerMap_.insert(std::pair<const KvStoreObserver *, const KvDBObserverHandle *>(observer, observerHandle));
-    LOGI("[KvStoreNbDelegate] RegisterDeviceObserver ok mode:%u", mode);
+    LOGI("[KvStoreNbDelegate][RegisterDeviceObserver] Register device observer ok mode:%u", mode);
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode,
-    KvStoreObserver *observer)
+DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(KvStoreObserver *observer)
 {
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (cloudObserverMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
-        LOGE("[KvStoreNbDelegate] The number of kv cloud observers has been over limit, storeId[%.3s]",
+        LOGE("[KvStoreNbDelegate][CheckCloudObserver] The number of kv cloud observers over limit, storeId[%.3s]",
             storeId_.c_str());
         return OVER_MAX_LIMITS;
     }
-    if (cloudObserverMap_.find(observer) != cloudObserverMap_.end() && cloudObserverMap_[observer] == mode) {
-        LOGE("[KvStoreNbDelegate] Cloud observer has been already registered!");
+    if (cloudObserverMap_.find(observer) != cloudObserverMap_.end()) {
+        LOGE("[KvStoreNbDelegate][CheckCloudObserver] Cloud observer has been already registered!");
         return ALREADY_SET;
+    }
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
+{
+    DBStatus status = CheckCloudObserver(observer);
+    if (status != OK) {
+        LOGE("[KvStoreNbDelegate][RegisterCloudObserver] Cloud observer map cannot be registered, status:%d", status);
+        return status;
     }
 
     auto storeId = storeId_;
     ObserverAction action = [observer, storeId](
                                 const std::string &device, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData) {
-            LOGD("[KvStoreNbDelegate] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate][RegisterCloudObserver] Trigger [%s] on change", storeId.c_str());
             observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
         }
     };
     int errCode = conn_->RegisterObserverAction(observer, action);
     if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] RegisterCloudObserver failed:%d!", errCode);
+        LOGE("[KvStoreNbDelegate][RegisterCloudObserver] Register cloud observer failed:%d!", errCode);
         return DB_ERROR;
     }
     cloudObserverMap_[observer] = mode;
-    LOGI("[KvStoreNbDelegate] RegisterCloudObserver ok mode:%u", mode);
+    LOGI("[KvStoreNbDelegate][RegisterCloudObserver] Register cloud observer ok mode:%u", mode);
     return OK;
 }
 
@@ -583,11 +598,16 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         return NOT_SUPPORT;
     }
 
+    QuerySyncObject querySyncObj(query);
+    if (!querySyncObj.GetRelationTableNames().empty()) {
+        LOGE("check query table names from tables failed!");
+        return NOT_SUPPORT;
+    }
+
     if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
         LOGE("not support for invalid query");
         return NOT_SUPPORT;
     }
-    QuerySyncObject querySyncObj(query);
     if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
         LOGE("not support order by timestamp and query by range");
         return NOT_SUPPORT;
@@ -636,6 +656,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const DeviceSyncOption &option, const Devic
     int errCode = E_OK;
     if (option.isQuery) {
         QuerySyncObject querySyncObj(option.query);
+        if (!querySyncObj.GetRelationTableNames().empty()) {
+            LOGE("Sync with option and check query table names from tables failed!");
+            return NOT_SUPPORT;
+        }
         if (!DBCommon::CheckQueryWithoutMultiTable(option.query)) {
             LOGE("Not support for invalid query");
             return NOT_SUPPORT;

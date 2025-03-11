@@ -44,16 +44,17 @@ int SqliteMetaExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre, sqlite
 
     Key keyPrefix;
     DBCommon::StringToVector(keyPre + '%', keyPrefix);
+    int ret = E_OK;
     errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyPrefix); // 1: bind index for prefix key
     if (errCode != E_OK) {
         LOGE("[SqliteMetaExecutor] Bind statement failed:%d", errCode);
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
     std::vector<Key> keys;
     errCode = GetAllKeys(statement, isMemDb, keys);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    SQLiteUtils::ResetStatement(statement, true, ret);
     for (const auto &it : keys) {
         if (it.size() >= keyPre.size() + DBConstant::HASH_KEY_SIZE) {
             outKeys.insert({it.begin() + keyPre.size(), it.begin() + keyPre.size() + DBConstant::HASH_KEY_SIZE});
@@ -61,7 +62,7 @@ int SqliteMetaExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre, sqlite
             LOGW("[SqliteMetaExecutor] Get invalid key, size=%zu", it.size());
         }
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SqliteMetaExecutor::GetAllKeys(sqlite3_stmt *statement, bool isMemDb, std::vector<Key> &keys)

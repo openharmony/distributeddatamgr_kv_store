@@ -114,6 +114,7 @@ ohos_shared_library("distributeddb") {
   cflags_cc = [
     "-fvisibility=hidden",
     "-Os",
+    "-D_FORTIFY_SOURCE=2",
   ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 

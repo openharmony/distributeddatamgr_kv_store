@@ -443,8 +443,16 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
 
+    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
+    std::string localIdentity; // collaboration mode need local identify
+    if (mode == DistributedTableMode::COLLABORATION) {
+        int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
+        if (errCode != E_OK || localIdentity.empty()) {
+            LOGW("Get local identity failed: %d", errCode);
+        }
+    }
     bool schemaChanged = false;
-    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(""),
+    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
         schemaChanged, syncType, trackerSchemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
@@ -1732,7 +1740,15 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
         LOGE("[RelationalStore] engine was not initialized");
         return -E_INVALID_DB;
     }
-    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema);
+    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
+    std::string localIdentity; // collaboration mode need local identify
+    if (mode == DistributedTableMode::COLLABORATION) {
+        int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
+        if (errCode != E_OK || localIdentity.empty()) {
+            LOGW("Get local identity failed: %d", errCode);
+        }
+    }
+    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema, localIdentity);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1780,8 +1796,7 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
         LOGE("[RelationalStore][SetTableMode] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE &&
-        tableMode == DistributedTableMode::COLLABORATION) {
+    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() != tableMode) {
         auto schema = sqliteStorageEngine_->GetSchema();
         for (const auto &tableMap : schema.GetTables()) {
             if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {

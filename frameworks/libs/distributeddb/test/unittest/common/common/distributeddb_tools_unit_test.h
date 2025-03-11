@@ -271,12 +271,14 @@ public:
     const std::list<DistributedDB::Entry> &GetEntriesUpdated() const;
     const std::list<DistributedDB::Entry> &GetEntriesDeleted() const;
     bool IsCleared() const;
+    std::unordered_map<std::string, DistributedDB::ChangedData> GetChangedData() const;
 private:
     unsigned long callCount_;
     bool isCleared_;
     std::list<DistributedDB::Entry> inserted_;
     std::list<DistributedDB::Entry> updated_;
     std::list<DistributedDB::Entry> deleted_;
+    std::unordered_map<std::string, DistributedDB::ChangedData> changedData_;
 };
 
 class RelationalStoreObserverUnitTest : public DistributedDB::StoreObserver {

@@ -240,7 +240,7 @@ protected:
 
     int ControlCmdStartCheck(SingleVerSyncTaskContext *context);
 
-    int SendControlPacket(ControlRequestPacket *packet, SingleVerSyncTaskContext *context);
+    int SendControlPacket(SubscribeRequest *packet, SingleVerSyncTaskContext *context);
 
     int ControlCmdRequestRecvPre(SingleVerSyncTaskContext *context, const Message *message);
     int SubscribeRequestRecvPre(SingleVerSyncTaskContext *context, const SubscribeRequest *packet,

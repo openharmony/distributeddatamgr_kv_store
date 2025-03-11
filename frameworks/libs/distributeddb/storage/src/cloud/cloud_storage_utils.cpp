@@ -1298,7 +1298,9 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
         cloudSyncData.delData.timestamp.push_back(*timeStamp);
         cloudSyncData.delData.rowid.push_back(*rowid);
     } else {
-        int errCode = CheckAbnormalData(cloudSyncData, data, isInsert);
+        bool isAsyncDownloading = ((static_cast<uint64_t>(*flag) &
+            static_cast<uint64_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC)) != 0);
+        int errCode = CheckAbnormalData(cloudSyncData, data, isInsert, isAsyncDownloading);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1318,21 +1320,30 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
     return E_OK;
 }
 
-int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert)
+bool CloudStorageUtils::IsAssetNotDownload(const uint32_t &status)
 {
-    if (data.empty()) {
-        LOGE("The cloud data is empty, isInsert:%d", static_cast<int>(isInsert));
-        return -E_INVALID_DATA;
-    }
-    bool isDataAbnormal = false;
+    return status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+        status == static_cast<uint32_t>(AssetStatus::DOWNLOADING) ||
+        (status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0;
+}
+
+void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data,
+    bool &isSyncAssetAbnormal, bool &isAsyncAssetAbnormal)
+{
+    std::vector<std::string> abnormalAssetFields;
     for (auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
-            if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                (asset->status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                isDataAbnormal = true;
-                break;
+            bool isAssetNotDownload = IsAssetNotDownload(asset->status);
+            if (!isAssetNotDownload) {
+                continue;
             }
+            if (!isAsyncDownloading) {
+                isSyncAssetAbnormal = true;
+                return;
+            }
+            isAsyncAssetAbnormal = true;
+            abnormalAssetFields.push_back(item.first);
             continue;
         }
         auto *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
@@ -1341,21 +1352,46 @@ int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &
         }
         for (auto it = assets->begin(); it != assets->end();) {
             const auto &oneAsset = *it;
-            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                oneAsset.status == static_cast<uint32_t>(AssetStatus::DOWNLOADING) ||
-                (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
-                isDataAbnormal = true;
-                it = assets->erase(it);
-            } else {
+            bool isOneAssetNotDownload = IsAssetNotDownload(oneAsset.status);
+            if (!isOneAssetNotDownload) {
                 ++it;
+                continue;
             }
+            if (!isAsyncDownloading) {
+                isSyncAssetAbnormal = true;
+                return;
+            }
+            isAsyncAssetAbnormal = true;
+            it = assets->erase(it);
         }
     }
-    if (isDataAbnormal) {
+    for (const auto &item : abnormalAssetFields) {
+        data.erase(item);
+    }
+}
+
+int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert,
+    bool isAsyncDownloading)
+{
+    if (data.empty()) {
+        LOGE("The cloud data is empty, isInsert:%d", static_cast<int>(isInsert));
+        return -E_INVALID_DATA;
+    }
+    bool isSyncAssetAbnormal = false;
+    bool isAsyncAssetAbnormal = false;
+    CheckAbnormalDataInner(isAsyncDownloading, data, isSyncAssetAbnormal, isAsyncAssetAbnormal);
+    if (isSyncAssetAbnormal) {
         std::string gid;
         (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
-        LOGW("This data is abnormal, upload it, isInsert:%d, gid:%s", static_cast<int>(isInsert),
-            gid.c_str());
+        LOGW("This data is abnormal, ignore it when upload, isInsert:%d, gid:%s",
+            static_cast<int>(isInsert), gid.c_str());
+        cloudSyncData.ignoredCount++;
+        return -E_IGNORE_DATA;
+    }
+    if (isAsyncAssetAbnormal) {
+        std::string gid;
+        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        LOGW("This data has assets that are not downloaded, upload data only, gid:%s", gid.c_str());
     }
     return E_OK;
 }

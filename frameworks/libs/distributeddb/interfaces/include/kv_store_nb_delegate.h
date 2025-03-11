@@ -307,6 +307,11 @@ public:
     DB_API virtual DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
 
     DB_API virtual DatabaseStatus GetDatabaseStatus() const = 0;
+
+    DB_API virtual DBStatus OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
+    {
+        return OK;
+    }
 };
 } // namespace DistributedDB
 

@@ -39,14 +39,18 @@ struct SaveSyncDataStmt {
     int ResetStatements(bool isNeedFinalize);
 };
 
+struct SchemaInfo {
+    const RelationalSchemaObject &localSchema;
+    const RelationalSchemaObject &trackerSchema;
+};
+
 class RelationalSyncDataInserter {
 public:
     RelationalSyncDataInserter() = default;
     ~RelationalSyncDataInserter() = default;
 
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
-        const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-        const StoreInfo &info);
+        const SchemaInfo &schemaInfo, const std::vector<FieldInfo> &remoteFields, const StoreInfo &info);
 
     void SetHashDevId(const std::string &hashDevId);
     // Set remote fields in cid order
@@ -63,10 +67,12 @@ public:
 
     int Iterate(const std::function<int (DataItem &)> &);
 
+    int GetObserverDataByRowId(sqlite3 *db, int64_t rowid, ChangeType type);
+
     int SaveData(bool isUpdate, const DataItem &dataItem, SaveSyncDataStmt &saveSyncDataStmt,
-        std::map<std::string, Type> &pkVals);
+        std::map<std::string, Type> &saveVals);
     int BindSaveDataStatement(bool isExist, const DataItem &dataItem, const std::set<std::string> &filterSet,
-        sqlite3_stmt *stmt, std::map<std::string, Type> &pkVals);
+        sqlite3_stmt *stmt, std::map<std::string, Type> &saveVals);
 
     int PrepareStatement(sqlite3 *db, SaveSyncDataStmt &stmt);
     int GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -75,7 +81,7 @@ public:
     int BindHashKeyAndDev(const DataItem &dataItem, sqlite3_stmt *stmt, int beginIndex);
 
     int SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem,
-        int64_t rowid);
+        std::map<std::string, Type> &saveVals);
 
     ChangedData &GetChangedData();
 private:
@@ -85,6 +91,11 @@ private:
     int GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt);
 
     int GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&stmt);
+
+    void GetPrimaryKeys(std::vector<std::string> &primaryKeys);
+    int GetDbValueByRowId(sqlite3 *db, const std::vector<std::string> &fieldList,
+        const int64_t rowid, std::vector<Type> &values);
+    void BindExtendFieldOrRowid(sqlite3_stmt *&stmt, std::map<std::string, Type> &saveVals, int bindIndex);
 
     std::string hashDevId_;
     std::vector<FieldInfo> remoteFields_;

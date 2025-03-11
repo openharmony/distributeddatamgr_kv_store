@@ -253,8 +253,9 @@ int SQLiteMultiVerTransaction::Get(const Key &key, Value &value) const
     }
     errCode = GetKeyAndValueByHashKey(statement, hashKey, readKey, value, false);
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetValueForTrimSlice(const Key &hashKey, const Version version, Value &value) const
@@ -294,8 +295,9 @@ int SQLiteMultiVerTransaction::GetValueForTrimSlice(const Key &hashKey, const Ve
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetEntries(const Key &keyPrefix, std::vector<Entry> &entries) const
@@ -318,7 +320,7 @@ int SQLiteMultiVerTransaction::GetEntries(const Key &keyPrefix, std::vector<Entr
         errCode = SQLiteUtils::StepWithRetry(statements.getEntriesStatement);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             stepResult = GetOneEntry(statements, lastKey, entry, errCode);
-            SQLiteUtils::ResetStatement(statements.hashFilterStatement, false, errCode);
+            SQLiteUtils::ResetStatement(statements.hashFilterStatement, false, innerCode);
             if (stepResult == STEP_SUCCESS) {
                 lastKey = entry.key;
                 entries.push_back(std::move(entry));
@@ -494,8 +496,9 @@ ERROR:
         data.Reset();
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetMaxVersion(MultiVerDataType type, Version &maxVersion) const
@@ -525,8 +528,9 @@ int SQLiteMultiVerTransaction::GetMaxVersion(MultiVerDataType type, Version &max
         errCode = E_OK;
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::ClearEntriesByVersion(const Version &versionInfo)
@@ -556,8 +560,9 @@ int SQLiteMultiVerTransaction::ClearEntriesByVersion(const Version &versionInfo)
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetPrePutValues(const Version &versionInfo, Timestamp timestamp,
@@ -604,8 +609,9 @@ int SQLiteMultiVerTransaction::GetPrePutValues(const Version &versionInfo, Times
     } while (true);
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::RemovePrePutEntries(const Version &versionInfo, Timestamp timestamp)
@@ -642,8 +648,9 @@ int SQLiteMultiVerTransaction::RemovePrePutEntries(const Version &versionInfo, T
     }
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::StartTransaction()
@@ -690,8 +697,9 @@ int SQLiteMultiVerTransaction::GetEntriesByVersion(Version version, std::list<Mu
     }
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetEntriesByVersion(const Version &versionInfo,
@@ -736,8 +744,9 @@ ERROR:
         entries.shrink_to_fit();
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 Timestamp SQLiteMultiVerTransaction::GetCurrentMaxTimestamp() const
@@ -804,8 +813,9 @@ int SQLiteMultiVerTransaction::UpdateTimestampByVersion(const Version &version,
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 bool SQLiteMultiVerTransaction::IsDataChanged() const
@@ -894,8 +904,9 @@ int SQLiteMultiVerTransaction::GetOverwrittenClearTypeEntries(Version clearVersi
         }
     } while (true);
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetOverwrittenNonClearTypeEntries(Version version, const Key &hashKey,
@@ -941,8 +952,9 @@ int SQLiteMultiVerTransaction::GetOverwrittenNonClearTypeEntries(Version version
     } while (true);
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::DeleteEntriesByHashKey(Version version, const Key &hashKey)
@@ -977,8 +989,9 @@ int SQLiteMultiVerTransaction::DeleteEntriesByHashKey(Version version, const Key
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetRawMultiVerEntry(sqlite3_stmt *statement, MultiVerEntryData &keyEntry)
@@ -1042,8 +1055,9 @@ int SQLiteMultiVerTransaction::GetRawDataByVersion(sqlite3_stmt *&statement,
         }
     } while (true);
 
-    SQLiteUtils::ResetStatement(statement, false, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, false, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::GetDiffOperator(int errCode, uint64_t flag)
@@ -1106,8 +1120,9 @@ int SQLiteMultiVerTransaction::AddRecord(const Key &key, const Value &value,
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 void SQLiteMultiVerTransaction::ClassifyDiffEntries(int errCode, uint64_t flag,
@@ -1442,8 +1457,9 @@ int SQLiteMultiVerTransaction::CheckIfNeedSaveRecord(const MultiVerKvEntry *mult
     }
 
     errCode = CheckIfNeedSaveRecord(statement, entry, isNeedSave, value);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteMultiVerTransaction::PrepareForGetEntries(const Key &keyPrefix, GetEntriesStatements &statements) const
@@ -1523,8 +1539,9 @@ int SQLiteMultiVerTransaction::GetOriginKeyValueByHash(MultiVerEntryData &item, 
     }
     item.key = origKey;
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 } // namespace DistributedDB
 #endif

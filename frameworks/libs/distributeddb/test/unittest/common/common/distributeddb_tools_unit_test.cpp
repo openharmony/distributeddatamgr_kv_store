@@ -760,10 +760,9 @@ void KvStoreObserverUnitTest::OnChange(DistributedDB::StoreObserver::StoreChange
 void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::string &originalId,
     DistributedDB::ChangedData &&data)
 {
-    (void)origin;
-    (void)originalId;
-    (void)data;
-    KvStoreObserver::OnChange(origin, originalId, std::move(data));
+    callCount_++;
+    changedData_[data.tableName] = data;
+    LOGD("data change when cloud sync, origin = %d, tableName = %s", origin, data.tableName.c_str());
 }
 
 void KvStoreObserverUnitTest::ResetToZero()
@@ -773,6 +772,7 @@ void KvStoreObserverUnitTest::ResetToZero()
     inserted_.clear();
     updated_.clear();
     deleted_.clear();
+    changedData_.clear();
 }
 
 unsigned long KvStoreObserverUnitTest::GetCallCount() const
@@ -798,6 +798,11 @@ const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesDeleted() const
 bool KvStoreObserverUnitTest::IsCleared() const
 {
     return isCleared_;
+}
+
+std::unordered_map<std::string, DistributedDB::ChangedData> KvStoreObserverUnitTest::GetChangedData() const
+{
+    return changedData_;
 }
 
 RelationalStoreObserverUnitTest::RelationalStoreObserverUnitTest() : callCount_(0)
@@ -1651,6 +1656,7 @@ DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(con
         return nullptr;
     }
     auto engine = static_cast<SQLiteRelationalStore *>(store)->GetStorageEngine();
+    RefObject::DecObjRef(store);
     return static_cast<ICloudSyncStorageHook *>(engine);
 }
 

@@ -119,7 +119,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInCacheMode(const std::strin
     }
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -147,7 +148,8 @@ int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
         LOGE("Failed to get all the data items by the min version:[%d]", errCode);
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -187,7 +189,8 @@ int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) c
         errCode = E_OK;
     }
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -250,7 +253,8 @@ int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion)
         maxVersion = 0;
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -303,6 +307,7 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(std::vector<DataItem> &da
 {
     int errCode = E_OK;
     sqlite3_stmt *stmt = nullptr;
+    int ret = E_OK;
     for (auto &item : dataItems) {
         if ((item.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) == 0) {
             continue;
@@ -328,9 +333,9 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(std::vector<DataItem> &da
             LOGE("Check miss query data item failed. %d", errCode);
             break;
         }
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -453,7 +458,8 @@ int SQLiteSingleVerStorageExecutor::DelCacheDbDataByVersion(uint64_t version) co
     }
 
 END:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -622,8 +628,9 @@ int SQLiteSingleVerStorageExecutor::GetExpandedCheckSql(QueryObject query, DataI
     }
     DBCommon::StringToVector(expandedSql, dataItem.value);
 END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::SaveSyncDataItemInCacheMode(DataItem &dataItem, const DeviceInfo &deviceInfo,
@@ -701,7 +708,8 @@ int SQLiteSingleVerStorageExecutor::PutLocalDataToCacheDB(const LocalDataItem &d
     }
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -801,8 +809,9 @@ int SQLiteSingleVerStorageExecutor::GetMinTimestampInCacheDB(Timestamp &minStamp
     }
 
 ERROR:
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::InitMigrateTimestampOffset()
@@ -946,6 +955,7 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaData(const std::vector<Key> &keys)
         return errCode;
     }
 
+    int ret = E_OK;
     for (const auto &key : keys) {
         errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, false); // first arg.
         if (errCode != E_OK) {
@@ -957,10 +967,10 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaData(const std::vector<Key> &keys)
             break;
         }
         errCode = E_OK;
-        SQLiteUtils::ResetStatement(statement, false, errCode);
+        SQLiteUtils::ResetStatement(statement, false, ret);
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -983,7 +993,8 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPref
         }
     }
 
-    SQLiteUtils::ResetStatement(statement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 } // namespace DistributedDB
