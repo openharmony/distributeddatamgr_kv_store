@@ -292,11 +292,14 @@ int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::v
     DBCommon::StringToVector(hashDev, blobDev);
     errCode = SQLiteUtils::BindBlobToStatement(stmt, BIND_GET_ENTRIES_DEVICE_INDEX, blobDev);
     if (errCode != E_OK) {
-        LOGE("[SQLiteSingleVerStorageExecutor] Bind hash device to statement failed:%d", errCode);
+        LOGE("[SQLiteSingleVerStorageExecutor] Bind hash device[%s] to statement failed:%d",
+            DBCommon::TransferStringToHex(hashDev).c_str(), errCode);
         return errCode;
     }
     errCode = StepForResultEntries(true, stmt, entries);
     if (errCode != E_OK) {
+        LOGE("[SQLiteSingleVerStorageExecutor] Get device[%s] entries failed:%d",
+            DBCommon::TransferStringToHex(hashDev).c_str(), errCode);
         return errCode;
     }
     LOGD("[SQLiteSingleVerStorageExecutor] Get %zu entries by device", entries.size());
