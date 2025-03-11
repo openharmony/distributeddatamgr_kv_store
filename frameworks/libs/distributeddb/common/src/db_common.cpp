@@ -28,6 +28,7 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
 #include "db_errno.h"
+#include "param_check_utils.h"
 #include "platform_specific.h"
 #include "query_sync_object.h"
 #include "hash.h"
@@ -879,5 +880,20 @@ std::set<std::string, CaseInsensitiveComparator> DBCommon::TransformToCaseInsens
         res.insert(item);
     }
     return res;
+}
+
+std::string DBCommon::GetStoreIdentifier(const StoreInfo &info, const std::string &subUser, bool syncDualTupleMode,
+    bool allowStoreIdWithDot)
+{
+    if (!ParamCheckUtils::CheckStoreParameter(info, syncDualTupleMode, subUser, allowStoreIdWithDot)) {
+        return "";
+    }
+    if (syncDualTupleMode) {
+        return DBCommon::TransferHashString(info.appId + "-" + info.storeId);
+    }
+    if (subUser.empty()) {
+        return DBCommon::TransferHashString(info.userId + "-" + info.appId + "-" + info.storeId);
+    }
+    return DBCommon::TransferHashString(info.userId + "-" + info.appId + "-" + info.storeId + "-" + subUser);
 }
 } // namespace DistributedDB
