@@ -1628,7 +1628,7 @@ namespace {
   * @tc.require:
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.Level0)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -2020,6 +2020,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, T
     EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     int64_t actualCount = 0;
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        actualCount++;
         int64_t actualFlag = sqlite3_column_int64(stmt, 0); // index 0 is flag
         std::string actualExtendVal;
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, actualExtendVal), E_OK); // index 1 is extend_field
@@ -2028,13 +2029,13 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, T
         EXPECT_EQ(actualFlag, static_cast<int64_t>(LogInfoFlag::FLAG_LOCAL) |
             static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
         EXPECT_EQ(actualExtendVal, "");
-        EXPECT_EQ(actualCursor, 0);
+        EXPECT_EQ(actualCursor, actualCount);
         EXPECT_EQ(actualStatus, 0);
-        actualCount++;
     }
     EXPECT_EQ(actualCount, dataCount);
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     DBStatus status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }

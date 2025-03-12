@@ -49,6 +49,8 @@ public:
     virtual int RegCommunicatorLackCallback(const CommunicatorLackCallback &onCommLack, const Finalizer &inOper) = 0;
     virtual int RegOnConnectCallback(const OnConnectCallback &onConnect, const Finalizer &inOper) = 0;
     virtual int GetLocalIdentity(std::string &outTarget) const = 0;
+    virtual void ClearOnlineLabel() = 0;
+
     virtual ~ICommunicatorAggregator() {};
 };
 } // namespace DistributedDB

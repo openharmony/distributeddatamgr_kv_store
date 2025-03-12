@@ -538,7 +538,7 @@ int SingleVerSerializeManager::AckPacketSyncerPartDeSerializationV1(Parcel &parc
 
 int SingleVerSerializeManager::ControlPacketCalculateLen(const Message *inMsg, uint32_t &len)
 {
-    auto packet = inMsg->GetObject<ControlRequestPacket>();
+    auto packet = inMsg->GetObject<SubscribeRequest>();
     if (packet == nullptr || packet->GetcontrolCmdType() >= INVALID_CONTROL_CMD) {
         LOGE("[ControlPacketSerialization] invalid control cmd");
         return -E_INVALID_ARGS;
@@ -551,7 +551,7 @@ int SingleVerSerializeManager::ControlPacketCalculateLen(const Message *inMsg, u
 
 int SingleVerSerializeManager::ControlPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
-    auto packet = inMsg->GetObject<ControlRequestPacket>();
+    auto packet = inMsg->GetObject<SubscribeRequest>();
     if (packet == nullptr || packet->GetcontrolCmdType() >= INVALID_CONTROL_CMD) {
         LOGE("[ControlPacketSerialization] invalid control cmd");
         return -E_INVALID_ARGS;
@@ -641,7 +641,7 @@ ERROR:
 
 int SingleVerSerializeManager::ControlRequestSerialization(Parcel &parcel, const Message *inMsg)
 {
-    auto packet = inMsg->GetObject<ControlRequestPacket>();
+    auto packet = inMsg->GetObject<SubscribeRequest>();
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }

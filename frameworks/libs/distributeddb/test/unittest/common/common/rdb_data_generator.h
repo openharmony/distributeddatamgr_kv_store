@@ -20,6 +20,20 @@
 #include "sqlite_utils.h"
 #include "virtual_cloud_db.h"
 namespace DistributedDBUnitTest {
+struct UtFieldInfo {
+    DistributedDB::Field field;
+    bool isAutoIncrement = false;
+};
+
+struct UtTableSchemaInfo {
+    std::string name;
+    std::string sharedTableName;
+    std::vector<UtFieldInfo> fieldInfo;
+};
+
+struct UtDateBaseSchemaInfo {
+    std::vector<UtTableSchemaInfo> tablesInfo;
+};
 class RDBDataGenerator {
 public:
     static int InitDatabase(const DistributedDB::DataBaseSchema &schema, sqlite3 &db);
@@ -49,7 +63,7 @@ public:
         const DistributedDB::TableSchema &schema);
 
     static int InsertVirtualLocalDBData(int64_t begin, int64_t count, DistributedDB::RelationalVirtualDevice *device,
-        const DistributedDB::TableSchema &schema);
+        const DistributedDB::TableSchema &schema, const bool isDelete = false);
 
     static DistributedDB::DistributedSchema ParseSchema(const DistributedDB::DataBaseSchema &schema,
         bool syncOnlyPk = false);
@@ -61,6 +75,10 @@ public:
         DistributedDB::RelationalVirtualDevice *device);
 
     static DistributedDB::TableSchema FlipTableSchema(const DistributedDB::TableSchema &origin);
+
+    static int InitDatabaseWithSchemaInfo(const UtDateBaseSchemaInfo &schemaInfo, sqlite3 &db);
+
+    static int InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo, sqlite3 &db);
 private:
     static std::string GetTypeText(int type);
 

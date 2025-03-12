@@ -77,6 +77,8 @@ public:
     void UpdateOnlineLabels(const std::string &device, const std::map<LabelType, bool> &labels);
 
     bool TriggerLabelExchangeEvent(bool checkAdapter = true);
+
+    void ClearOnlineLabel();
 private:
     DECLARE_OBJECT_TAG(CommunicatorLinker);
 

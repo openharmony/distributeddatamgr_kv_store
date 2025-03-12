@@ -806,6 +806,51 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableNameCaseInsensitiveTest
     });
 }
 
+/**
+  * @tc.name: TableNameCaseInsensitiveTest003
+  * @tc.desc: Test distributed tables sync with table names in different case
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liuhongyang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableNameCaseInsensitiveTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Close the delegate, and open in Collaboration mode
+     * @tc.expected: step1. ok
+     */
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, option, delegate), OK);
+    ASSERT_NE(delegate, nullptr);
+    /**
+     * @tc.steps:step2. Create student_1 table in distributed mode, and insert one fake data
+     * @tc.expected: step2. ok
+     */
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+    EXPECT_EQ(delegate->CreateDistributedTable("StUDent_1"), OK);
+    DistributedDB::DistributedSchema distributedSchema;
+    distributedSchema.tables.push_back({"sTudeNt_1", {{"id", true, true}, {"name"}, {"level"}, {"score"}}});
+    EXPECT_EQ(delegate->SetDistributedSchema(distributedSchema), OK);
+    g_deviceB->SetDistributedSchema(distributedSchema);
+    g_deviceB->PutDeviceData("student_1", std::vector<StudentInOrder> {{1001, "xue", 4, 91}}); // 4, 91 fake data
+    /**
+     * @tc.steps:step3. Sync with table name in different case
+     * @tc.expected: step3. ok
+     */
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sTudENT_1");
+    DBStatus status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+}
+
 HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableFieldsOrderTest001, TestSize.Level1)
 {
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT_IN_ORDER), SQLITE_OK);

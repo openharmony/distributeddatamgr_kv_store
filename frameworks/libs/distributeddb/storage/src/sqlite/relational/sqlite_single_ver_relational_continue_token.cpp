@@ -51,7 +51,8 @@ int SQLiteSingleVerRelationalContinueToken::GetStatement(sqlite3 *db, sqlite3_st
         errCode = GetMissQueryStatement(db, fullStmt);
     }
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(queryStmt, true, errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(queryStmt, true, ret);
     }
     return errCode;
 }
@@ -133,7 +134,8 @@ int SQLiteSingleVerRelationalContinueToken::GetDeletedDataStmt(sqlite3 *db, sqli
     return errCode;
 
 ERROR:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode;
 }
 

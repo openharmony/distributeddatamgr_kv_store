@@ -35,6 +35,7 @@ public:
     bool CheckDeviceSecurityAbility(const std::string &devId, const SecurityOption &option) const override;
     void SetLockStatus(bool isLock);
     void SetNeedCreateDb(bool isCreate);
+    void SetNeedValidateBeforeSet(bool needValid);
     void ResetSecOptDic();
     void ResetAdapter();
 
@@ -43,11 +44,13 @@ public:
 
     std::map<const std::string, SecurityOption> GetExistSecOpt() const;
 private:
+    bool SetSecurityOptionInner(const std::string &filePath, const SecurityOption &option);
     mutable std::mutex adapterlock_;
     OnAccessControlledEvent callback_;
     std::map<const std::string, SecurityOption> pathSecOptDic_;
     bool isLocked_;
     bool createDb_;
+    bool needValidateBeforeSet_;
     std::function<DBStatus (const std::string &, SecurityOption &)> getSecurityOptionCallBack_;
     std::function<bool (const std::string &, const SecurityOption &)> checkDeviceCallBack_;
 };

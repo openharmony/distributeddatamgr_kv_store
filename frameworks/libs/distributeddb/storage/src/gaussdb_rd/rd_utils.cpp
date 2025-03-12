@@ -193,9 +193,16 @@ int RdKVRangeScan(GRD_DB *db, const char *collectionName, const Key &beginKey, c
         LOGE("[rdUtils][RdKVScan] invalid db");
         return -E_INVALID_DB;
     }
-    GRD_KVItemT beginInnerKey{(void *)&beginKey[0], (uint32_t)beginKey.size()};
-    GRD_KVItemT endInnerKey{(void *)&endKey[0], (uint32_t)endKey.size()};
-    GRD_FilterOption filterOpt{KV_SCAN_RANGE, beginInnerKey, endInnerKey};
+
+    GRD_FilterOptionT filterOpt = {};
+    filterOpt.mode = KV_SCAN_RANGE;
+    if (!beginKey.empty()) {
+        filterOpt.begin = {(void *)&beginKey[0], (uint32_t)beginKey.size()};
+    }
+    if (!endKey.empty()) {
+        filterOpt.end = {(void *)&endKey[0], (uint32_t)endKey.size()};
+    }
+
     return TransferGrdErrno(GRD_KVFilter(db, collectionName, &filterOpt, resultSet));
 }
 
@@ -235,7 +242,13 @@ int RdKVBatchPrepare(uint16_t itemNum, GRD_KVBatchT **batch)
 int RdKVBatchPushback(GRD_KVBatchT *batch, const Key &key, const Value &value)
 {
     GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
-    GRD_KVItemT innerVal{(void *)&value[0], (uint32_t)value.size()};
+    GRD_KVItemT innerVal{nullptr, 0};
+
+    if (!value.empty()) {
+        innerVal.data = (void *)&value[0];
+        innerVal.dataLen = (uint32_t)value.size();
+    }
+
     int ret = TransferGrdErrno(
         GRD_KVBatchPushback(innerKey.data, innerKey.dataLen, innerVal.data, innerVal.dataLen, batch));
     if (ret != E_OK) {

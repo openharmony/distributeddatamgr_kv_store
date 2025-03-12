@@ -467,6 +467,9 @@ bool JsonNodeReplace(const JsonObject &src, const JsonFieldPath &itemPath, const
 {
     int errCode = E_OK;
     JsonFieldPath fatherPath = itemPath;
+    if (fatherPath.empty()) {
+        return false;
+    }
     fatherPath.pop_back();
     if (!fatherPath.empty()) {
         JsonObject fatherItem = src.FindItem(fatherPath, errCode);

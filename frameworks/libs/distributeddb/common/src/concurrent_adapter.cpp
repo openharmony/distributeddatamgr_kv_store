@@ -65,11 +65,12 @@ void ConcurrentAdapter::AdapterAutoUnLock(ffrt::mutex &mutex)
 #else
 void ConcurrentAdapter::AdapterAutoLock(std::mutex &mutex)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    mutex.lock();
 }
 
-void ConcurrentAdapter::AdapterAutoUnLock([[gnu::unused]] std::mutex &mutex)
+void ConcurrentAdapter::AdapterAutoUnLock(std::mutex &mutex)
 {
+    mutex.unlock();
 }
 #endif
 }

@@ -90,7 +90,7 @@ int SingleVerDataSync::ControlCmdStartCheck(SingleVerSyncTaskContext *context)
     return E_OK;
 }
 
-int SingleVerDataSync::SendControlPacket(ControlRequestPacket *packet, SingleVerSyncTaskContext *context)
+int SingleVerDataSync::SendControlPacket(SubscribeRequest *packet, SingleVerSyncTaskContext *context)
 {
     Message *message = new (std::nothrow) Message(CONTROL_SYNC_MESSAGE);
     if (message == nullptr) {
@@ -155,7 +155,7 @@ int SingleVerDataSync::ControlCmdRequestRecvPre(SingleVerSyncTaskContext *contex
     if (context == nullptr || message == nullptr) {
         return -E_INVALID_ARGS;
     }
-    const ControlRequestPacket *packet = message->GetObject<ControlRequestPacket>();
+    const SubscribeRequest *packet = message->GetObject<SubscribeRequest>();
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }

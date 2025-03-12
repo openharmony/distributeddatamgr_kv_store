@@ -365,7 +365,8 @@ int SqliteQueryHelper::BindSyncDataCheckStmt(sqlite3_stmt *statement, const Key 
 
     errCode = BindKeysToStmt(keys_, statement, index);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
@@ -405,11 +406,12 @@ int SqliteQueryHelper::GetQuerySqlStatement(sqlite3 *dbHandle, const std::string
         return -E_INVALID_QUERY_FORMAT;
     }
     int index = 1;
+    int ret = E_OK;
     if (hasPrefixKey_) {
         // bind the prefix key for the first and second args.
         errCode = SQLiteUtils::BindPrefixKey(statement, 1, prefixKey_);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             LOGE("[Query] Get statement when bind prefix key, errCode = %d", errCode);
             return errCode;
         }
@@ -418,14 +420,14 @@ int SqliteQueryHelper::GetQuerySqlStatement(sqlite3 *dbHandle, const std::string
 
     errCode = BindKeysToStmt(keys_, statement, index);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
     for (const QueryObjNode &objNode : queryObjNodes_) {
         errCode = BindFieldValue(statement, objNode, index);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             LOGE("[Query] Get statement fail when bind field value, errCode = %d", errCode);
             return errCode;
         }
@@ -553,15 +555,16 @@ int SqliteQueryHelper::GetSyncDataQuerySql(std::string &sql, bool hasSubQuery, b
 
 int SqliteQueryHelper::BindTimeRange(sqlite3_stmt *&statement, int &index, uint64_t beginTime, uint64_t endTime) const
 {
+    int ret = E_OK;
     int errCode = SQLiteUtils::BindInt64ToStatement(statement, index++, beginTime);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
     errCode = SQLiteUtils::BindInt64ToStatement(statement, index++, endTime);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
     }
     return errCode;
 }
@@ -569,10 +572,11 @@ int SqliteQueryHelper::BindTimeRange(sqlite3_stmt *&statement, int &index, uint6
 int SqliteQueryHelper::BindObjNodes(sqlite3_stmt *&statement, int &index) const
 {
     int errCode = E_OK;
+    int ret = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         errCode = BindFieldValue(statement, objNode, index);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             LOGE("[Query] Get statement fail when bind field value, errCode = %d", errCode);
             break;
         }
@@ -603,11 +607,12 @@ int SqliteQueryHelper::GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTi
     }
 
     int index = 1; // begin with 1.
+    int ret = E_OK;
     if (hasPrefixKey_) {
         // bind the prefix key for the first and second args.
         errCode = SQLiteUtils::BindPrefixKey(statement, index, prefixKey_);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
+            SQLiteUtils::ResetStatement(statement, true, ret);
             LOGE("[Query] Get statement when bind prefix key, errCode = %d", errCode);
             return errCode;
         }
@@ -616,7 +621,7 @@ int SqliteQueryHelper::GetQuerySyncStatement(sqlite3 *dbHandle, uint64_t beginTi
 
     errCode = BindKeysToStmt(keys_, statement, index);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
         return errCode;
     }
 
@@ -1268,7 +1273,7 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
     if (errCode != E_OK) {
         LOGE("[Query] BindObjNodes failed %d", errCode);
         int resetRet = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+        SQLiteUtils::ResetStatement(statement, true, resetRet);
         if (resetRet != E_OK) {
             LOGW("[Query] reset statement failed %d", resetRet);
         }

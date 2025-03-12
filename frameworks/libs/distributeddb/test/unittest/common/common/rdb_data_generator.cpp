@@ -381,7 +381,7 @@ std::string RDBDataGenerator::GetUpdateSQL(const TableSchema &schema)
 }
 
 int RDBDataGenerator::InsertVirtualLocalDBData(int64_t begin, int64_t count,
-    DistributedDB::RelationalVirtualDevice *device, const DistributedDB::TableSchema &schema)
+    DistributedDB::RelationalVirtualDevice *device, const DistributedDB::TableSchema &schema, const bool isDelete)
 {
     if (device == nullptr) {
         return -E_INVALID_ARGS;
@@ -394,6 +394,9 @@ int RDBDataGenerator::InsertVirtualLocalDBData(int64_t begin, int64_t count,
             FillTypeIntoDataValue(field, type, virtualRowData);
         }
         virtualRowData.logInfo.timestamp = TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET;
+        if (isDelete) {
+            virtualRowData.logInfo.flag = virtualRowData.logInfo.flag | DataItem::DELETE_FLAG;
+        }
         rows.push_back(virtualRowData);
     }
     return device->PutData(schema.name, rows);
@@ -475,5 +478,47 @@ DistributedDB::TableSchema RDBDataGenerator::FlipTableSchema(const DistributedDB
         res.fields.insert(res.fields.begin(), item);
     }
     return res;
+}
+
+int RDBDataGenerator::InitDatabaseWithSchemaInfo(const UtDateBaseSchemaInfo &schemaInfo, sqlite3 &db)
+{
+    int errCode = RelationalTestUtils::ExecSql(&db, "PRAGMA journal_mode=WAL;");
+    if (errCode != SQLITE_OK) {
+        LOGE("[RDBDataGenerator] Execute sql failed %d", errCode);
+        return errCode;
+    }
+    for (const auto &tableInfo : schemaInfo.tablesInfo) {
+        errCode = InitTableWithSchemaInfo(tableInfo, db);
+        if (errCode != SQLITE_OK) {
+            LOGE("[RDBDataGenerator] Init table failed %d, %s", errCode, tableInfo.name.c_str());
+            break;
+        }
+    }
+    return errCode;
+}
+
+int RDBDataGenerator::InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo, sqlite3 &db)
+{
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + tableInfo.name + "(";
+    for (const auto &fieldInfo : tableInfo.fieldInfo) {
+        sql += "'" + fieldInfo.field.colName + "' " + GetTypeText(fieldInfo.field.type);
+        if (fieldInfo.field.primary) {
+            sql += " PRIMARY KEY";
+            if (fieldInfo.isAutoIncrement) {
+                sql += " AUTOINCREMENT";
+            }
+        }
+        if (!fieldInfo.field.nullable && fieldInfo.field.type == TYPE_INDEX<std::string>) {
+            sql += " NOT NULL ON CONFLICT IGNORE";
+        }
+        sql += ",";
+    }
+    sql.pop_back();
+    sql += ");";
+    int errCode = RelationalTestUtils::ExecSql(&db, sql);
+    if (errCode != SQLITE_OK) {
+        LOGE("[RDBDataGenerator] Execute sql failed %d, sql is %s", errCode, sql.c_str());
+    }
+    return errCode;
 }
 }

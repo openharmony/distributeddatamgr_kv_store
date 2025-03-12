@@ -425,8 +425,9 @@ int SQLiteRelationalUtils::QueryCount(sqlite3 *db, const std::string &tableName,
     } else {
         LOGE("Failed to get the count. %d", errCode);
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor)
@@ -651,6 +652,27 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
     return E_OK;
 }
 
+int CheckDistributedSchemaTables(const RelationalSchemaObject &schemaObj, const DistributedSchema &schema)
+{
+    auto localSchema = schemaObj.GetDistributedSchema();
+    if (schema.tables.size() < localSchema.tables.size()) {
+        LOGE("[RDBUtils][CheckDistributedSchemaTables] the number of tables should not decrease");
+        return -E_DISTRIBUTED_FIELD_DECREASE;
+    }
+    std::map<std::string, std::vector<DistributedField>, CaseInsensitiveComparator> tableSchemaMap;
+    for (const auto &table : schema.tables) {
+        tableSchemaMap[table.tableName] = table.fields;
+    }
+    for (const auto &table : localSchema.tables) {
+        if (tableSchemaMap.find(table.tableName) == tableSchemaMap.end()) {
+            LOGE("[RDBUtils][CheckDistributedSchemaTables] table [%s [%zu]] missing",
+                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size());
+            return -E_DISTRIBUTED_FIELD_DECREASE;
+        }
+    }
+    return E_OK;
+}
+
 int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj,
     const DistributedSchema &schema, SQLiteSingleVerRelationalStorageExecutor *executor)
 {
@@ -662,6 +684,11 @@ int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObj
     int errCode = executor->GetDbHandle(db);
     if (errCode != E_OK) {
         LOGE("[RDBUtils][CheckDistributedSchemaValid] sqlite handle failed %d", errCode);
+        return errCode;
+    }
+    errCode = CheckDistributedSchemaTables(schemaObj, schema);
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils][CheckDistributedSchemaValid] Check tables fail %d", errCode);
         return errCode;
     }
     for (const auto &table : schema.tables) {

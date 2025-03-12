@@ -466,7 +466,7 @@ void CloudSyncer::SeparateNormalAndFailAssets(const std::map<std::string, Assets
                 LOGW("[CloudSyncer] download err, statue %d count %d", asset.status, otherStatusCnt);
             }
         }
-        LOGI("[CloudSyncer] download asset times, normalCount %d, abnormalCount %d, otherStatusCnt %d",
+        LOGI("[CloudSyncer] download asset times, normalCount %zu, abnormalCount %zu, otherStatusCnt %d",
             tempNormalAssets.size(), tempFailedAssets.size(), otherStatusCnt);
         if (tempFailedAssets.size() > 0) {
             failedAssets[key] = std::move(tempFailedAssets);
@@ -852,7 +852,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
                 taskInfo.table[i])) {
                 continue;
             }
-            LOGD("[CloudSyncer] try download table, index: %zu, table name: %s, length: %u",
+            LOGD("[CloudSyncer] try download table, index: %zu, table name: %s, length: %zu",
                 i, DBCommon::StringMiddleMasking(taskInfo.table[i]).c_str(), taskInfo.table[i].length());
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
@@ -1112,7 +1112,7 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
             break;
         }
         SetUploadDataFlag(uploadParam.taskId, uploadData);
-        LOGI("[CloudSyncer] Write local water after upload one batch, table[%s length[%u]], water[%llu]",
+        LOGI("[CloudSyncer] Write local water after upload one batch, table[%s length[%zu]], water[%llu]",
             DBCommon::StringMiddleMasking(uploadData.tableName).c_str(), uploadData.tableName.length(),
             uploadParam.localMark);
         RecordWaterMark(uploadParam.taskId, uploadParam.localMark);
@@ -1284,7 +1284,7 @@ int CloudSyncer::DoUploadByMode(const std::string &tableName, UploadParam &uploa
     CloudSyncData uploadData(tableName, uploadParam.mode);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
     auto [err, localWater] = GetLocalWater(tableName, uploadParam);
-    LOGI("[CloudSyncer] Get local water before upload result: %d, table[%s length[%u]], water[%llu]", err,
+    LOGI("[CloudSyncer] Get local water before upload result: %d, table[%s length[%zu]], water[%llu]", err,
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), localWater);
     if (err != E_OK) {
         return err;
@@ -1629,7 +1629,7 @@ void CloudSyncer::CheckDataAfterDownload(const std::string &tableName)
     int logicDeleteDataCount = 0;
     int errCode = storageProxy_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
     if (errCode == E_OK) {
-        LOGI("[CloudSyncer] Check local data after download[%s[%u]], data count: %d, logic delete data count: %d",
+        LOGI("[CloudSyncer] Check local data after download[%s[%zu]], data count: %d, logic delete data count: %d",
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), dataCount, logicDeleteDataCount);
     } else {
         LOGW("[CloudSyncer] Get local data after download fail: %d", errCode);

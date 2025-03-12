@@ -36,6 +36,51 @@ namespace {
 constexpr const char *HWM_HEAD = "naturalbase_cloud_meta_sync_data_";
 }
 
+int SQLiteSingleVerStorageExecutor::BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate)
+{
+    int errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_SYNC_STAMP_INDEX, dataItem.timestamp);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data stamp failed:%d", errCode);
+        return errCode;
+    }
+
+    const int writeTimeIndex = isUpdate ? BIND_SYNC_UPDATE_W_TIME_INDEX : BIND_SYNC_W_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, writeTimeIndex, dataItem.writeTimestamp);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data write stamp failed:%d", errCode);
+        return errCode;
+    }
+
+    const int modifyTimeIndex = isUpdate ? BIND_SYNC_UPDATE_MODIFY_TIME_INDEX : BIND_SYNC_MODIFY_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, modifyTimeIndex, dataItem.modifyTime);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data modify time failed:%d", errCode);
+        return errCode;
+    }
+
+    const int createTimeIndex = isUpdate ? BIND_SYNC_UPDATE_CREATE_TIME_INDEX : BIND_SYNC_CREATE_TIME_INDEX;
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, createTimeIndex, dataItem.createTime);
+    if (errCode != E_OK) {
+        LOGE("Bind saved sync data create time failed:%d", errCode);
+        return errCode;
+    }
+
+    if (IsPrintTimestamp()) {
+        LOGI("Write timestamp:%" PRIu64 " timestamp:%" PRIu64 ", flag:%" PRIu64 " modifyTime:%" PRIu64 " createTime:%"
+            PRIu64 ", key size:%" PRIu32 ", value size:%" PRIu32, dataItem.writeTimestamp, dataItem.timestamp,
+            dataItem.flag, dataItem.modifyTime, dataItem.createTime, dataItem.key.size(), dataItem.value.size());
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerStorageExecutor::CreateCloudLogTable()
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return SqliteLogTableManager::CreateKvSyncLogTable(dbHandle_);
+}
+
 int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName,
     const std::string &user, bool isUserBlobType)
 {
@@ -354,7 +399,8 @@ int SQLiteSingleVerStorageExecutor::GetCountValue(sqlite3_stmt *&countStatement,
     } else {
         errCode = -E_UNEXPECTED_DATA;
     }
-    SQLiteUtils::ResetStatement(countStatement, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(countStatement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 

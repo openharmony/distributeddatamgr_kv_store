@@ -75,6 +75,7 @@ int SQLiteSingleVerStorageExecutor::CheckMissQueryDataItems(sqlite3_stmt *&stmt,
     const DeviceInfo &deviceInfo, std::vector<DataItem> &dataItems)
 {
     int errCode = E_OK;
+    int ret = E_OK;
     for (auto &item : dataItems) {
         if ((item.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != 0 && !item.key.empty()) {
             errCode = helper.BindSyncDataCheckStmt(stmt, item.key);
@@ -87,10 +88,10 @@ int SQLiteSingleVerStorageExecutor::CheckMissQueryDataItems(sqlite3_stmt *&stmt,
                 LOGE("Check miss query data item failed. %d", errCode);
                 return errCode;
             }
-            SQLiteUtils::ResetStatement(stmt, false, errCode);
+            SQLiteUtils::ResetStatement(stmt, false, ret);
         }
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(QueryObject query, std::vector<DataItem> &dataItems,
@@ -122,7 +123,8 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(QueryObject query, std::v
     if (errCode != E_OK) {
         LOGE("check data with query failed. %d", errCode);
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -228,6 +230,7 @@ int SQLiteSingleVerStorageExecutor::RemoveSubscribeTriggerWaterMark(const std::v
         LOGE("Get remove trigger water mark statement failed. %d", errCode);
         return errCode;
     }
+    int ret = E_OK;
     for (const auto &id : subscribeIds) {
         errCode = SQLiteUtils::BindTextToStatement(statement, 1, DBConstant::SUBSCRIBE_QUERY_PREFIX + id);
         if (errCode != E_OK) {
@@ -241,10 +244,10 @@ int SQLiteSingleVerStorageExecutor::RemoveSubscribeTriggerWaterMark(const std::v
             LOGE("Remove trigger water mark failed. %d", errCode);
             break;
         }
-        SQLiteUtils::ResetStatement(statement, false, errCode);
+        SQLiteUtils::ResetStatement(statement, false, ret);
     }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerStorageExecutor::GetTriggers(const std::string &namePreFix, std::vector<std::string> &triggerNames)
@@ -256,9 +259,10 @@ int SQLiteSingleVerStorageExecutor::GetTriggers(const std::string &namePreFix, s
         return errCode;
     }
 
+    int ret = E_OK;
     errCode = SQLiteUtils::BindTextToStatement(stmt, 1, namePreFix + "%");
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
         LOGE("Bind trigger name prefix to statement failed. %d", errCode);
         return errCode;
     }
@@ -278,7 +282,7 @@ int SQLiteSingleVerStorageExecutor::GetTriggers(const std::string &namePreFix, s
         }
     } while (true);
 
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 } // namespace DistributedDB

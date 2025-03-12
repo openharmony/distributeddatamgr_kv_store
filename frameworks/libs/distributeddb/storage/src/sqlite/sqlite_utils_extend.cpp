@@ -499,8 +499,9 @@ int SQLiteUtils::CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool
         errCode = E_OK;
     }
 
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return SQLiteUtils::MapSQLiteErrno(errCode);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return SQLiteUtils::MapSQLiteErrno(errCode != E_OK ? errCode : ret);
 }
 
 int SQLiteUtils::SetPersistWalMode(sqlite3 *db)
@@ -674,8 +675,9 @@ int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, boo
     errCode = E_OK;
     isCreated = (sqlite3_column_int(stmt, 0) == 1);
 END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)

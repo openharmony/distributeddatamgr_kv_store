@@ -547,14 +547,18 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         LOGE("Find remote schema failed. err=%d", errCode);
         return errCode;
     }
+    if (!IsSetDistributedSchema(query.GetTableName(), localSchema)) {
+        return -E_SCHEMA_MISMATCH;
+    }
     if (query.IsUseLocalSchema()) {
         // remote send always with its table col sort
         filterSchema.SetDistributedSchema(localSchema.GetDistributedSchema());
     }
 
     StoreInfo info = GetStoreInfo();
-    auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
-        filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
+    SchemaInfo schemaInfo = {storageEngine_->GetSchema(), storageEngine_->GetTrackerSchema()};
+    auto inserter = RelationalSyncDataInserter::CreateInserter(
+        deviceName, query, schemaInfo, filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
     inserter.SetEntries(dataItems);
 
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
@@ -579,11 +583,11 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     errCode = handle->SaveSyncItems(inserter);
     ChangedData data = inserter.GetChangedData();
     data.properties.isP2pSyncDataChange = !dataItems.empty();
-    bool emptyChangedData = data.field.empty() && data.primaryData[OP_INSERT].empty() &&
-        data.primaryData[OP_UPDATE].empty() && data.primaryData[OP_DELETE].empty();
 
     DBDfxAdapter::FinishTracing();
-    if (errCode == E_OK && !emptyChangedData) {
+    bool isEmptyChangedData = data.field.empty() && data.primaryData[OP_INSERT].empty() &&
+        data.primaryData[OP_UPDATE].empty() && data.primaryData[OP_DELETE].empty();
+    if (errCode == E_OK && !isEmptyChangedData) {
         // dataItems size > 0 now because already check before
         // all dataItems will write into db now, so need to observer notify here
         // if some dataItems will not write into db in the future, observer notify here need change

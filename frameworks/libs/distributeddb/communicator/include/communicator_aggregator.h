@@ -92,6 +92,7 @@ public:
 
     std::shared_ptr<ExtendHeaderHandle> GetExtendHeaderHandle(const ExtendInfo &paramInfo);
 
+    void ClearOnlineLabel() override;
 private:
     // Working in a dedicated thread
     void SendDataRoutine();

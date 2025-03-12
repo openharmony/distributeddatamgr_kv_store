@@ -182,7 +182,8 @@ public:
     int CheckIfExistUserTable(const std::string &tableName);
 
     void SetLogicDelete(bool isLogicDelete);
-    int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
+    int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
+        const std::string &localIdentity = "");
 
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets);
@@ -198,7 +199,7 @@ public:
 
     void SetMarkFlagOption(MarkFlagOption option);
 
-    int UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged);
+    int UpgradedLogForExistedData(const TableInfo &tableInfo, bool schemaChanged);
 
     int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
@@ -309,7 +310,7 @@ private:
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
     int SaveSyncDataItem(const DataItem &dataItem, bool isUpdate, SaveSyncDataStmt &saveStmt,
-        RelationalSyncDataInserter &inserter, int64_t &rowid);
+        RelationalSyncDataInserter &inserter, std::map<std::string, Type> &saveVals);
 
     int DeleteSyncDataItem(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt);
 
