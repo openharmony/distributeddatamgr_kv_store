@@ -1968,7 +1968,7 @@ HWTEST_F(SingleStoreImplTest, DoSync001, TestSize.Level1)
     kvStore->isClientSync_ = true;
     kvStore->syncObserver_ = nullptr;
     syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
-    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should return error";
 }
 
 /**
