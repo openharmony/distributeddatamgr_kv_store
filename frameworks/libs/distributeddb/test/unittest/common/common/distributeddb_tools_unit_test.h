@@ -235,6 +235,9 @@ public:
     static void BlockSync(DistributedDB::RelationalStoreDelegate &delegate, const DistributedDB::Query &query,
         DistributedDB::SyncMode syncMode, DistributedDB::DBStatus exceptStatus,
         const std::vector<std::string> &devices);
+
+    static void BlockSync(DistributedDB::KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
+        DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult = DistributedDB::DBStatus::OK);
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 

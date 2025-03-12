@@ -23,6 +23,7 @@
 #include "log_print.h"
 #include "db_types.h"
 #include "sqlite_log_table_manager.h"
+#include "sqlite_relational_utils.h"
 #include "sqlite_relational_store_connection.h"
 #include "storage_engine_manager.h"
 #include "cloud_sync_utils.h"
@@ -1811,6 +1812,64 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
     sqliteStorageEngine_->SetProperties(properties);
     LOGI("[RelationalStore][SetTableMode] Set table mode to %d successful", static_cast<int>(tableMode));
     return E_OK;
+}
+
+int SQLiteRelationalStore::OperateDataStatus(uint32_t dataOperator)
+{
+    LOGI("[RelationalStore] OperateDataStatus %" PRIu32, dataOperator);
+    if ((dataOperator & static_cast<uint32_t>(DataOperator::UPDATE_TIME)) == 0) {
+        return E_OK;
+    }
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGE("[RelationalStore] sqliteStorageEngine was not initialized when operate data status");
+        return -E_INVALID_DB;
+    }
+    auto schema = sqliteStorageEngine_->GetSchema();
+    std::vector<std::string> operateTables;
+    for (const auto &tableMap : schema.GetTables()) {
+        if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+            operateTables.push_back(tableMap.second.GetTableName());
+        }
+    }
+    return OperateDataStatusInner(operateTables);
+}
+
+int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string> &tables) const
+{
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[RelationalStore][OperateDataStatus] Get handle failed %d when operate data status", errCode);
+        return errCode;
+    }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore][OperateDataStatus] Start transaction failed %d when operate data status", errCode);
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    errCode = handle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore][OperateDataStatus] Get db failed %d when operate data status", errCode);
+        (void)handle->Rollback();
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    errCode = SQLiteRelationalUtils::OperateDataStatus(db, tables);
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[RelationalStore][OperateDataStatus] Commit failed %d when operate data status", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGE("[RelationalStore][OperateDataStatus] Rollback failed %d when operate data status", ret);
+        }
+    }
+    ReleaseHandle(handle);
+    return errCode;
 }
 } // namespace DistributedDB
 #endif

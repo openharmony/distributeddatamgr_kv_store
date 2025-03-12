@@ -121,6 +121,8 @@ public:
 
     std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
         int64_t beginTime) override;
+
+    int OperateDataStatus(uint32_t dataOperator);
 private:
     std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
 
@@ -131,6 +133,9 @@ private:
     bool CheckSchema(std::map<std::string, DataBaseSchema> schema);
 
     int ReviseOneLocalModTime(sqlite3_stmt *stmt, const ReviseModTimeInfo &data, bool isMemory);
+
+    int OperateDataStatusInner(SQLiteSingleVerStorageExecutor *handle, const std::string &currentVirtualTime,
+        const std::string &currentTime, uint32_t dataOperator);
 
     KvStorageHandle *storageHandle_;
 

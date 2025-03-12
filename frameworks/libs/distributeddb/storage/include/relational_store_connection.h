@@ -99,6 +99,7 @@ public:
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 #endif
+    virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

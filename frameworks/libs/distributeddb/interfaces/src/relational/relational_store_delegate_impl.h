@@ -102,6 +102,7 @@ private:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     DBStatus ClearWatermark(const ClearMetaDataOption &option);
 #endif
+    DBStatus OperateDataStatus(uint32_t dataOperator) override;
     RelationalStoreConnection *conn_ = nullptr;
     std::string storePath_;
     std::atomic<bool> releaseFlag_ = false;

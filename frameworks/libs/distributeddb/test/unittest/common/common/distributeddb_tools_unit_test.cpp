@@ -1673,4 +1673,45 @@ DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
 {
     return lastOrigin_;
 }
+
+void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
+    DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult)
+{
+    if (delegate == nullptr) {
+        return;
+    }
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    SyncProcess last;
+    auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish, &option](const std::map<std::string,
+        SyncProcess> &process) {
+        size_t notifyCnt = 0;
+        for (const auto &item: process) {
+            LOGD("user = %s, status = %d, errCode = %d", item.first.c_str(), item.second.process, item.second.errCode);
+            if (item.second.process != DistributedDB::FINISHED) {
+                continue;
+            }
+            EXPECT_EQ(item.second.errCode, expectDBStatus);
+            {
+                std::lock_guard<std::mutex> autoLock(dataMutex);
+                notifyCnt++;
+                std::set<std::string> userSet(option.users.begin(), option.users.end());
+                if (notifyCnt == userSet.size()) {
+                    finish = true;
+                    last = item.second;
+                    cv.notify_one();
+                }
+            }
+        }
+    };
+    auto actualRet = delegate->Sync(option, callback);
+    EXPECT_EQ(actualRet, expectSyncResult);
+    if (actualRet == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&finish]() {
+            return finish;
+        });
+    }
+}
 } // namespace DistributedDBUnitTest

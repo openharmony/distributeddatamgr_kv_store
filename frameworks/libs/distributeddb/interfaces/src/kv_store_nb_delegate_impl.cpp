@@ -1373,4 +1373,19 @@ std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::G
     return res;
 }
 #endif
+
+DBStatus KvStoreNbDelegateImpl::OperateDataStatus(uint32_t dataOperator)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->OperateDataStatus(dataOperator);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Operate data status errCode:%d", errCode);
+    } else {
+        LOGI("[KvStoreNbDelegate] Operate data status success");
+    }
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

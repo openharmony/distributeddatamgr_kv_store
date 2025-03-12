@@ -118,6 +118,8 @@ public:
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId);
 #endif
+
+    int OperateDataStatus(uint32_t dataOperator);
 private:
     void ReleaseResources();
 
@@ -196,6 +198,8 @@ private:
 
     int CheckCloudSchema(const DataBaseSchema &schema);
 #endif
+
+    int OperateDataStatusInner(const std::vector<std::string> &tables) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

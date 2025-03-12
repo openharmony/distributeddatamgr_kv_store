@@ -456,4 +456,9 @@ bool GenericKvDBConnection::IsRebuild() const
 {
     return isRebuild_;
 }
+
+int GenericKvDBConnection::OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
+{
+    return -E_NOT_SUPPORT;
+}
 }

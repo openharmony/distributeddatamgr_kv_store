@@ -581,5 +581,19 @@ DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
     }
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::OperateDataStatus(uint32_t dataOperator)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operate data status.");
+        return DB_ERROR;
+    }
+    int errCode = conn_->OperateDataStatus(dataOperator);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] operate data failed:%d op:%" PRIu32, errCode, dataOperator);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
 } // namespace DistributedDB
 #endif

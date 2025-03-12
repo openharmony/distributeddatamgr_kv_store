@@ -686,4 +686,14 @@ int SQLiteSingleVerNaturalStore::SetCloudSyncConfig(const CloudSyncConfig &confi
     sqliteCloudKvStore_->SetCloudSyncConfig(config);
     return E_OK;
 }
+
+int SQLiteSingleVerNaturalStore::OperateDataStatus(uint32_t dataOperator)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        LOGE("[SingleVerNStore] DB is null when operate data status");
+        return -E_INTERNAL_ERROR;
+    }
+    return sqliteCloudKvStore_->OperateDataStatus(dataOperator);
+}
 }

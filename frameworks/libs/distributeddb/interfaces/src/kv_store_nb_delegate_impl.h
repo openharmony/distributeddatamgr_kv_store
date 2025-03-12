@@ -193,6 +193,8 @@ public:
 
     std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
 #endif
+
+    DBStatus OperateDataStatus(uint32_t dataOperator) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

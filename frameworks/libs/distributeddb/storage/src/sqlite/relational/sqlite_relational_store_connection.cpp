@@ -514,5 +514,15 @@ int SQLiteRelationalStoreConnection::SetTableMode(DistributedTableMode tableMode
     }
     return store->SetTableMode(tableMode);
 }
+
+int SQLiteRelationalStoreConnection::OperateDataStatus(uint32_t dataOperator)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when operate data status.");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->OperateDataStatus(dataOperator);
+}
 }
 #endif
