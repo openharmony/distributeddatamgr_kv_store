@@ -170,6 +170,8 @@ public:
     virtual void MarkRebuild() = 0;
 
     virtual bool IsRebuild() const = 0;
+
+    virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 };
 } // namespace DistributedDB
 

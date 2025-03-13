@@ -161,30 +161,6 @@ int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isM
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode != E_OK ? errCode : ret;
 }
-
-int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
-{
-    std::string sql = "SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
-        DBCommon::TransferStringToHex(std::string(DBConstant::LOCALTIME_OFFSET_KEY)) + "';";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        if (timeOffset < 0) {
-            LOGE("TimeOffset %" PRId64 "is invalid.", timeOffset);
-            SQLiteUtils::ResetStatement(stmt, true, ret);
-            return -E_INTERNAL_ERROR;
-        }
-        errCode = E_OK;
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
 }
 
 std::string GetExtendValue(const TrackerTable &trackerTable)
@@ -277,17 +253,14 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, co
     if (errCode != E_OK) {
         return errCode;
     }
-    int64_t localTimeOffset = 0;
-    errCode = GetMetaLocalTimeOffset(db, localTimeOffset);
+    std::string currentLocalTimeStr;
+    std::tie(errCode, currentLocalTimeStr) = SQLiteRelationalUtils::GetCurrentVirtualTime(db);
     if (errCode != E_OK) {
         LOGE("Failed to get local timeOffset.%d", errCode);
         return errCode;
     }
     std::string tableName = tableInfo.GetTableName();
     std::string logTable = DBCommon::GetLogTableName(tableName);
-    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-    Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
-    std::string currentLocalTimeStr = std::to_string(currentLocalTime);
     TrackerTable trackerTable = tableInfo.GetTrackerTable();
     trackerTable.SetTableName(tableName);
     if (isTimestampOnly) {

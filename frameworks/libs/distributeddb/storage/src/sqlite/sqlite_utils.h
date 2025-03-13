@@ -209,6 +209,10 @@ public:
     static int GetCountBySql(sqlite3 *db, const std::string &sql, int &count);
 
     static bool IsStmtReadOnly(sqlite3_stmt *statement);
+
+    static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime);
+
+    static int UpdateLocalDataCloudFlag(sqlite3 *db);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

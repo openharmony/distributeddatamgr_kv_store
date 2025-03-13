@@ -62,11 +62,19 @@ public:
 
     static int GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode, const DataItem &dataItem,
         LogInfo &logInfoGet);
+
+    static int OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables);
+
+    static int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset);
+
+    static std::pair<int, std::string> GetCurrentVirtualTime(sqlite3 *db);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
     static int GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
     static int GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
+
+    static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
 };
 } // namespace DistributedDB
 #endif // SQLITE_RELATIONAL_UTILS_H

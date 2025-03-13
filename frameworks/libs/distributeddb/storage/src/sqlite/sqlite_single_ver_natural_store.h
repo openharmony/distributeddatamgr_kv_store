@@ -236,6 +236,8 @@ public:
     {
         return sqliteCloudKvStore_;
     }
+
+    int OperateDataStatus(uint32_t dataOperator);
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 

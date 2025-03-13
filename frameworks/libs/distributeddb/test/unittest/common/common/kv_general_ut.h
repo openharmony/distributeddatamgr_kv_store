@@ -31,6 +31,11 @@ protected:
     void SetOption(const KvStoreNbDelegate::Option &option);
     KvStoreNbDelegate *GetDelegate(const StoreInfo &info) const;
     void BlockPush(const StoreInfo &from, const StoreInfo &to, DBStatus expectRet = DBStatus::OK);
+    DBStatus SetCloud(KvStoreNbDelegate *&delegate, bool invalidSchema = false);
+    static DataBaseSchema GetDataBaseSchema(bool invalidSchema);
+    DBStatus GetDeviceEntries(KvStoreNbDelegate *delegate, const std::string &deviceId, bool isSelfDevice,
+        std::vector<Entry> &entries);
+    void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectRet = DBStatus::OK);
     static KvStoreConfig GetKvStoreConfig();
     static StoreInfo GetStoreInfo1();
     static StoreInfo GetStoreInfo2();
@@ -38,6 +43,7 @@ protected:
     std::optional<KvStoreNbDelegate::Option> option_;
     std::map<StoreInfo, KvStoreNbDelegate *, StoreComparator> stores_;
     DistributedDBUnitTest::DistributedDBToolsUnitTest tool_;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
 };
 }
 #endif // KV_GENERAL_UT_H

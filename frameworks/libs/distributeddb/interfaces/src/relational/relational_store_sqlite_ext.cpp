@@ -1749,6 +1749,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
         LOGD("[UnregisterAllStoreObserver] StoreObserver is invalid.");
+        
         return DistributedDB::INVALID_ARGS;
     }
 

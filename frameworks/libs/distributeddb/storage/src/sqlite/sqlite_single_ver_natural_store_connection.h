@@ -124,6 +124,7 @@ public:
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
 #endif
 
+    int OperateDataStatus(uint32_t dataOperator) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

@@ -82,6 +82,8 @@ public:
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 #endif
+
+    int OperateDataStatus(uint32_t dataOperator) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

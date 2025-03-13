@@ -14,16 +14,19 @@
  */
 
 #include "kv_general_ut.h"
+#include "virtual_cloud_db.h"
 
 namespace DistributedDB {
 void KVGeneralUt::SetUp()
 {
+    virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
     BasicUnitTest::SetUp();
 }
 
 void KVGeneralUt::TearDown()
 {
     CloseAllDelegate();
+    virtualCloudDb_ = nullptr;
     BasicUnitTest::TearDown();
 }
 
@@ -143,5 +146,64 @@ void KVGeneralUt::BlockPush(const StoreInfo &from, const StoreInfo &to, DBStatus
     for (const auto &item : syncRet) {
         EXPECT_EQ(item.second, expectRet);
     }
+}
+
+DataBaseSchema KVGeneralUt::GetDataBaseSchema(bool invalidSchema)
+{
+    DataBaseSchema schema;
+    TableSchema tableSchema;
+    tableSchema.name = invalidSchema ? "invalid_schema_name" : CloudDbConstant::CLOUD_KV_TABLE_NAME;
+    Field field;
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
+    field.type = TYPE_INDEX<std::string>;
+    field.primary = true;
+    tableSchema.fields.push_back(field);
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE;
+    field.primary = false;
+    tableSchema.fields.push_back(field);
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE;
+    tableSchema.fields.push_back(field);
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_VALUE;
+    tableSchema.fields.push_back(field);
+    field.colName = CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME;
+    field.type = TYPE_INDEX<int64_t>;
+    tableSchema.fields.push_back(field);
+    schema.tables.push_back(tableSchema);
+    return schema;
+}
+
+DBStatus KVGeneralUt::SetCloud(KvStoreNbDelegate *&delegate, bool invalidSchema)
+{
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs;
+    cloudDbs[DistributedDBUnitTest::USER_ID] = virtualCloudDb_;
+    delegate->SetCloudDB(cloudDbs);
+    std::map<std::string, DataBaseSchema> schemas;
+    schemas[DistributedDBUnitTest::USER_ID] = GetDataBaseSchema(invalidSchema);
+    return delegate->SetCloudDbSchema(schemas);
+}
+
+DBStatus KVGeneralUt::GetDeviceEntries(KvStoreNbDelegate *delegate, const std::string &deviceId, bool isSelfDevice,
+    std::vector<Entry> &entries)
+{
+    if (isSelfDevice) {
+        communicatorAggregator_->SetLocalDeviceId(deviceId);
+    } else {
+        communicatorAggregator_->SetLocalDeviceId(deviceId + "_");
+    }
+    return delegate->GetDeviceEntries(deviceId, entries);
+}
+
+void KVGeneralUt::BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectRet)
+{
+    auto fromStore = GetDelegate(from);
+    ASSERT_NE(fromStore, nullptr);
+
+    communicatorAggregator_->SetLocalDeviceId(deviceId);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(DistributedDBUnitTest::USER_ID);
+    syncOption.devices.push_back("cloud");
+    tool_.BlockSync(fromStore, DBStatus::OK, syncOption, expectRet);
 }
 }

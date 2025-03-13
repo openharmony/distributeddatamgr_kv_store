@@ -38,10 +38,31 @@ protected:
     // If AddSchemaInfo is not invoked before InitDelegate is invoked, g_defaultSchemaInfo is used to create table.
     void AddSchemaInfo(const StoreInfo &info, const DistributedDBUnitTest::UtDateBaseSchemaInfo& schemaInfo);
     DataBaseSchema GetSchema(const StoreInfo &info);
-    TableSchema GetTableSchema(const StoreInfo &info, const std::string tableName = g_defaultTable1);
+    TableSchema GetTableSchema(const StoreInfo &info, const std::string &tableName = g_defaultTable1);
+    std::vector<TrackerSchema> GetAllTrackerSchema(const StoreInfo &info, const std::vector<std::string> &tables);
 
-private:
+    int InitDatabase(const StoreInfo &info);
+
+    int InsertLocalDBData(int64_t begin, int64_t count, const StoreInfo &info);
+
+    int CreateDistributedTable(const StoreInfo &info, const std::string &table,
+        TableSyncType type = TableSyncType::DEVICE_COOPERATION);
+
+    int SetDistributedTables(const StoreInfo &info, const std::vector<std::string> &tables,
+        TableSyncType type = TableSyncType::DEVICE_COOPERATION);
+
+    void BlockPush(const StoreInfo &from, const StoreInfo &to, const std::string &table,
+        DBStatus expectRet = DBStatus::OK);
+
     DistributedDBUnitTest::UtDateBaseSchemaInfo GetTableSchemaInfo(const StoreInfo &info);
+    sqlite3 *GetSqliteHandle(const StoreInfo &info);
+    RelationalStoreDelegate *GetDelegate(const StoreInfo &info);
+
+    int CountTableData(const StoreInfo &info, const std::string &table);
+
+    int CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev);
+
+    int SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables);
 
     RelationalStoreDelegate::Option option_;
     mutable std::mutex storeMutex_;
