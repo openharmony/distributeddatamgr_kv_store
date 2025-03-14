@@ -564,6 +564,7 @@ void JsKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* argv, std
                 proxy->syncObservers_.erase(it);
                 break;
             }
+            ++it;
         }
         ctxt->status = napi_ok;
     }
