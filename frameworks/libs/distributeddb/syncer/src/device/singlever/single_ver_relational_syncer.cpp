@@ -41,6 +41,10 @@ int SingleVerRelationalSyncer::Sync(const SyncParma &param, uint64_t connectionI
 
 int SingleVerRelationalSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId)
 {
+    if (syncInterface_ == nullptr) {
+        LOGE("[SingleVerRelationalSyncer] [PrepareSync] syncInterface_ is nullptr.");
+        return -E_INTERNAL_ERROR;
+    }
     const auto &syncInterface = static_cast<RelationalDBSyncInterface *>(syncInterface_);
     std::vector<QuerySyncObject> tablesQuery;
     if (param.isQuerySync) {

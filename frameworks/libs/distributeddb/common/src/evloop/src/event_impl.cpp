@@ -199,6 +199,7 @@ int EventImpl::Detach(bool wait)
 
     int errCode = loop->Remove(this);
     if (errCode == -E_OBJ_IS_KILLED) {
+        LOGW("[EventImpl] [Detach] obj is killed.");
         errCode = E_OK;
     }
 

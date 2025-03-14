@@ -151,6 +151,10 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
 
     std::vector<DataItem> dataItems;
     uint64_t minVerIncurCacheDb = 0;
+    if (handle == nullptr) {
+        LOGE("[MigrateSyncDataByVersion] handle is nullptr.");
+        return -E_INVALID_DB;
+    }
     int errCode = handle->GetMinVersionCacheData(dataItems, minVerIncurCacheDb);
     if (errCode != E_OK) {
         LOGE("[MigrateSyncDataByVersion]Fail to get cur data in cache! err[%d]", errCode);
@@ -295,6 +299,10 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(SQLiteSingleVerStorageE
     // Judge the file corresponding to db by the engine status and attach it to another file
     int errCode = E_OK;
     std::string attachAbsPath;
+    if (handle == nullptr) {
+        LOGE("[AttachMainDbAndCacheDb] handle is nullptr.");
+        return -E_INVALID_DB;
+    }
     if (stateBeforeMigrate == EngineState::MAINDB) {
         attachAbsPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
             DBConstant::DB_EXTENSION;

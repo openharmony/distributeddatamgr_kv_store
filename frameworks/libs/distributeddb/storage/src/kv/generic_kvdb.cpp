@@ -93,6 +93,9 @@ std::string GenericKvDB::GetStoreId() const
 
 void GenericKvDB::DelConnection(GenericKvDBConnection *connection)
 {
+    if (connection == nullptr) {
+        return;
+    }
     delete connection;
     connection = nullptr;
 }

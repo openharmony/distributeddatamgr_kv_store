@@ -200,7 +200,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedDataInner(sql
         static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
     TrackerTable trackerTable = tableInfo.GetTrackerTable();
     trackerTable.SetTableName(tableName);
-    std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash("a.", tableInfo, identity);
+    const std::string prefix = "a.";
+    std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash(prefix, tableInfo, identity);
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
         ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
         timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";

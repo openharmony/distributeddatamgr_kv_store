@@ -905,6 +905,10 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 
 void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)
 {
+    if (syncInterface_ == nullptr) {
+        LOGE("[GenericSyncer] [InitSyncOperation] syncInterface_ is nullptr.");
+        return;
+    }
     operation->SetIdentifier(syncInterface_->GetIdentifier());
     operation->SetSyncProcessCallFun(param.onSyncProcess);
     operation->Initialize();

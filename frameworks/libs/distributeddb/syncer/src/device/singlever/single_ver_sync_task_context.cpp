@@ -44,10 +44,12 @@ int SingleVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInter
 {
     if (deviceId.empty() || syncInterface == nullptr || metadata == nullptr ||
         communicator == nullptr) {
+        LOGE("[SingleVerSyncTaskContext] [Initialize] parameter is invalid.");
         return -E_INVALID_ARGS;
     }
     stateMachine_ = new (std::nothrow) SingleVerSyncStateMachine;
     if (stateMachine_ == nullptr) {
+        LOGE("[SingleVerSyncTaskContext] [Initialize] stateMachine_ is nullptr.");
         return -E_OUT_OF_MEMORY;
     }
     deviceId_ = deviceId;
@@ -92,6 +94,7 @@ ERROR_OUT:
 int SingleVerSyncTaskContext::AddSyncOperation(SyncOperation *operation)
 {
     if (operation == nullptr) {
+        LOGE("[SingleVerSyncTaskContext] [AddSyncOperation] operation is nullptr.");
         return -E_INVALID_ARGS;
     }
 
@@ -121,6 +124,7 @@ int SingleVerSyncTaskContext::AddSyncOperation(SyncOperation *operation)
 
     auto *newTarget = new (std::nothrow) SingleVerSyncTarget;
     if (newTarget == nullptr) {
+        LOGE("[SingleVerSyncTaskContext] [AddSyncOperation] newTarget is nullptr.");
         return -E_OUT_OF_MEMORY;
     }
     newTarget->SetSyncOperation(operation);

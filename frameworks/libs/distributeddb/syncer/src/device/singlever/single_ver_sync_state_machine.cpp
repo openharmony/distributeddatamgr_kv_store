@@ -537,6 +537,10 @@ Event SingleVerSyncStateMachine::GetEventAfterTimeSync(int mode) const
 Event SingleVerSyncStateMachine::DoSyncTaskFinished()
 {
     StopWatchDog();
+    if (dataSync_ == nullptr || communicator_ == nullptr || syncContext_ == nullptr) {
+        LOGE("[SingleVerSyncStateMachine] [DoSyncTaskFinished] dataSync_ or communicator_ or syncContext_ is nullptr.");
+        return TransformErrCodeToEvent(-E_OUT_OF_MEMORY);
+    }
     dataSync_->ClearSyncStatus();
     auto timeout = communicator_->GetTimeout(syncContext_->GetDeviceId());
     RefObject::AutoLock lock(syncContext_);

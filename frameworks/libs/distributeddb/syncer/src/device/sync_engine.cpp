@@ -70,6 +70,7 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
     const InitCallbackParam &callbackParam)
 {
     if ((syncInterface == nullptr) || (metadata == nullptr)) {
+        LOGE("[SyncEngine] [Initialize] syncInterface or metadata is nullptr.");
         return -E_INVALID_ARGS;
     }
     int errCode = StartAutoSubscribeTimer(*syncInterface);

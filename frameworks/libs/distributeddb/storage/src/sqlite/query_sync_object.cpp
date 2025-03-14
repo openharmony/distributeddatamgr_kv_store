@@ -216,6 +216,7 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
     (void)parcel.WriteUInt32(context.queryObjNodes.size());
     parcel.EightByteAlign();
     if (parcel.IsError()) {
+        LOGE("[QuerySyncObject] [SerializeData] parcel is error.");
         return -E_INVALID_ARGS;
     }
     for (const QueryObjNode &node : context.queryObjNodes) {
@@ -238,6 +239,7 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
     }  // QUERY_SYNC_OBJECT_VERSION_1 end.
     parcel.EightByteAlign();
     if (parcel.IsError()) { // parcel almost success
+        LOGE("[QuerySyncObject] [SerializeData] After version 1, parcel is error.");
         return -E_INVALID_ARGS;
     }
     return E_OK;
@@ -245,6 +247,7 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
 
 void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
 {
+    int emptyGidCount = 0;
     for (size_t i = 0; i < cloudGid.size(); i+= MAX_VALUE_SIZE) {
         size_t end = std::min(i + MAX_VALUE_SIZE, cloudGid.size());
         if (!queryObjNodes_.empty()) {
@@ -261,6 +264,7 @@ void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
         std::vector<std::string> subCloudGid(cloudGid.begin() + i, cloudGid.begin() + end);
         for (const auto &gid : subCloudGid) {
             if (gid.empty()) {
+                emptyGidCount++;
                 continue;
             }
             FieldValue fieldValue;
@@ -269,6 +273,7 @@ void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
         }
         queryObjNodes_.emplace_back(objNode);
     }
+    LOGI("[QuerySyncObject] [SetCloudGid] gid empty count is %d", emptyGidCount);
 }
 
 namespace {
@@ -283,6 +288,7 @@ int DeSerializeVersion1Data(uint32_t version, Parcel &parcel, std::string &table
         uint32_t keysSize = 0;
         (void)parcel.ReadUInt32(keysSize);
         if (keysSize > DBConstant::MAX_INKEYS_SIZE) {
+            LOGE("[DeSerializeVersion1Data] keys size %" PRIu32 " is too large", keysSize);
             return -E_PARSE_FAIL;
         }
         for (uint32_t i = 0; i < keysSize; ++i) {
@@ -318,6 +324,7 @@ int QuerySyncObject::DeSerializeData(Parcel &parcel, QuerySyncObject &queryObj)
     parcel.EightByteAlign();
     // Due to historical reasons, the limit of query node size was incorrectly set to MAX_QUERY_NODE_SIZE + 1
     if (parcel.IsError() || nodesSize > MAX_QUERY_NODE_SIZE + 1) { // almost success
+        LOGE("[QuerySyncObject] [DeSerializeData] parcel is error or nodes size is too large.");
         return -E_INVALID_ARGS;
     }
     for (size_t i = 0; i < nodesSize; i++) {
@@ -338,6 +345,7 @@ int QuerySyncObject::DeSerializeData(Parcel &parcel, QuerySyncObject &queryObj)
     }  // QUERY_SYNC_OBJECT_VERSION_1 end.
 
     if (parcel.IsError()) { // almost success
+        LOGE("[QuerySyncObject] [DeSerializeData] After version 1, parcel is error.");
         return -E_INVALID_ARGS;
     }
     queryObj = QuerySyncObject(context.queryObjNodes, context.prefixKey, keys);
