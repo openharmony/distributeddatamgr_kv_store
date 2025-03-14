@@ -13,7 +13,7 @@
 import("//build/test.gni")
 import("../distributeddb.gni")
 
-module_output_path = "kv_store/distributeddb"
+module_output_path = "kv_store/kv_store/distributeddb"
 
 ###############################################################################
 config("gaussdb_rd_config") {
