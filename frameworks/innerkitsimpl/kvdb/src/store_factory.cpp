@@ -120,7 +120,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
             return !stores.empty();
         }
-        isCreate = true;
+        stores[key] = kvStore;
+        KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         storeParams.isCreate = true;
         storeParams.password = dbPassword;
         return !stores.empty();
