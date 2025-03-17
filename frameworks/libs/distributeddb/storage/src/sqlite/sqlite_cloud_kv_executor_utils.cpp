@@ -61,6 +61,10 @@ int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, cons
 Timestamp SqliteCloudKvExecutorUtils::GetMaxTimeStamp(const std::vector<VBucket> &dataExtend)
 {
     Timestamp maxTimeStamp = 0;
+    if (dataExtend.empty()) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetMaxTimeStamp] data extend is empty.");
+        return maxTimeStamp;
+    }
     VBucket lastRecord = dataExtend.back();
     auto it = lastRecord.find(CloudDbConstant::MODIFY_FIELD);
     if (it != lastRecord.end() && maxTimeStamp < static_cast<Timestamp>(std::get<int64_t>(it->second))) {
@@ -197,19 +201,23 @@ int SqliteCloudKvExecutorUtils::GetCloudKvData(sqlite3_stmt *stmt, VBucket &data
 {
     int errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_KEY, CLOUD_QUERY_KEY_INDEX, stmt, data, totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudKvData] Get key failed:%d", errCode);
         return errCode;
     }
     errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, CLOUD_QUERY_VALUE_INDEX, stmt, data, totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudKvData] Get value failed:%d", errCode);
         return errCode;
     }
     errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, CLOUD_QUERY_DEV_INDEX, stmt, data, totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudKvData] Get device failed:%d", errCode);
         return errCode;
     }
     errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_ORI_DEVICE, CLOUD_QUERY_ORI_DEV_INDEX, stmt, data,
         totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudKvData] Get ori device failed:%d", errCode);
         return errCode;
     }
     data.insert_or_assign(CloudDbConstant::CLOUD_KV_FIELD_DEVICE_CREATE_TIME,
@@ -233,6 +241,7 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
         if (tmp.empty()) {
             errCode = RuntimeContext::GetInstance()->GetLocalIdentity(tmp);
             if (errCode != E_OK) {
+                LOGE("[SqliteCloudKvExecutorUtils] Get local identity failed %d", errCode);
                 return errCode;
             }
             tmp = DBCommon::TransferHashString(tmp);
@@ -252,6 +261,7 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
     std::string keyStr;
     errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::CLOUD_KV_FIELD_KEY, cloudData, keyStr);
     if (errCode == -E_NOT_FOUND) {
+        LOGW("[SqliteCloudKvExecutorUtils] Get key not found.");
         errCode = E_OK;
     }
     if (errCode != E_OK) {
@@ -1342,10 +1352,12 @@ int SqliteCloudKvExecutorUtils::GetCloudVersionRecordData(sqlite3_stmt *stmt, VB
 {
     int errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_KEY, CLOUD_QUERY_KEY_INDEX, stmt, data, totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudVersionRecordData] Get key failed:%d", errCode);
         return errCode;
     }
     errCode = GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_VALUE, CLOUD_QUERY_VALUE_INDEX, stmt, data, totalSize);
     if (errCode != E_OK) {
+        LOGE("[SqliteCloudKvExecutorUtils] [GetCloudVersionRecordData] Get value failed:%d", errCode);
         return errCode;
     }
     return GetCloudKvBlobData(CloudDbConstant::CLOUD_KV_FIELD_DEVICE, CLOUD_QUERY_DEV_INDEX, stmt, data, totalSize);

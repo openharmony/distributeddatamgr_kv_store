@@ -155,6 +155,10 @@ uint32_t NetworkAdapter::GetMtuSize()
 {
     std::lock_guard<std::mutex> mtuSizeLockGuard(mtuSizeMutex_);
     if (!isMtuSizeValid_) {
+        if (processCommunicator_ == nullptr) {
+            LOGE("[NAdapt][GetMtu] processCommunicator_ is nullptr.");
+            return DBConstant::MAX_MTU_SIZE;
+        }
         mtuSize_ = processCommunicator_->GetMtuSize();
         LOGD("[NAdapt][GetMtu] mtuSize=%" PRIu32 ".", mtuSize_);
         mtuSize_ = CheckAndAdjustMtuSize(mtuSize_);
@@ -165,6 +169,10 @@ uint32_t NetworkAdapter::GetMtuSize()
 
 uint32_t NetworkAdapter::GetMtuSize(const std::string &target)
 {
+    if (processCommunicator_ == nullptr) {
+        LOGE("[NAdapt][GetMtu] processCommunicator_ is nullptr and target is %s{private}.", target.c_str());
+        return DBConstant::MAX_MTU_SIZE;
+    }
 #ifndef OMIT_MTU_CACHE
     DeviceInfos devInfo;
     devInfo.identifier = target;
@@ -185,6 +193,10 @@ uint32_t NetworkAdapter::GetMtuSize(const std::string &target)
 
 uint32_t NetworkAdapter::GetTimeout()
 {
+    if (processCommunicator_ == nullptr) {
+        LOGE("[NAdapt][GetTimeout] processCommunicator_ is nullptr.");
+        return DBConstant::MAX_TIMEOUT;
+    }
     uint32_t timeout = processCommunicator_->GetTimeout();
     LOGD("[NAdapt][GetTimeout] timeout_=%" PRIu32 " ms.", timeout);
     return CheckAndAdjustTimeout(timeout);
@@ -192,6 +204,10 @@ uint32_t NetworkAdapter::GetTimeout()
 
 uint32_t NetworkAdapter::GetTimeout(const std::string &target)
 {
+    if (processCommunicator_ == nullptr) {
+        LOGE("[NAdapt][GetTimeout] processCommunicator_ is nullptr and target is %s{private}.", target.c_str());
+        return DBConstant::MAX_TIMEOUT;
+    }
     DeviceInfos devInfos;
     devInfos.identifier = target;
     uint32_t timeout = processCommunicator_->GetTimeout(devInfos);

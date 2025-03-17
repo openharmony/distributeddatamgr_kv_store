@@ -453,6 +453,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     if (collateType == DistributedDB::CollateType::COLLATE_NOCASE) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
         if (colChar == nullptr) {
+            sqlite3_result_error(ctx, "Parameters is invalid while collateType is NOCASE.", -1);
             return;
         }
         std::string colStr(colChar);
@@ -463,6 +464,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
         if (colChar == nullptr) {
+            sqlite3_result_error(ctx, "Parameters is invalid while collateType is RTRIM.", -1);
             return;
         }
         std::string colStr(colChar);

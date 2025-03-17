@@ -41,6 +41,10 @@ SQLiteRelationalStore::~SQLiteRelationalStore()
 // Called when a new connection created.
 void SQLiteRelationalStore::IncreaseConnectionCounter()
 {
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGE("[SQLiteRelationalStore] [IncreaseConnectionCounter] sqliteStorageEngine_ is nullptr.");
+        return;
+    }
     connectionCount_.fetch_add(1, std::memory_order_seq_cst);
     if (connectionCount_.load() > 0) {
         sqliteStorageEngine_->SetConnectionFlag(true);

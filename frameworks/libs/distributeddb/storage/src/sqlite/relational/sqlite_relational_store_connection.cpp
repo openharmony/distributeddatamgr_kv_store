@@ -17,6 +17,7 @@
 #include "db_errno.h"
 #include "log_print.h"
 #include "sqlite_relational_utils.h"
+#include "res_finalizer.h"
 
 namespace DistributedDB {
 SQLiteRelationalStoreConnection::SQLiteRelationalStoreConnection(SQLiteRelationalStore *store)
@@ -28,8 +29,8 @@ SQLiteRelationalStoreConnection::SQLiteRelationalStoreConnection(SQLiteRelationa
             return;
         }
         UnlockObj();
+        ResFinalizer finalizer([this]() { LockObj(); });
         store->StopSync(GetConnectionId());
-        LockObj();
     });
 }
 // Close and release the connection.

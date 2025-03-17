@@ -447,7 +447,7 @@ void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersi
 
 int SyncAbleKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
 {
-    auto kvDB = GetDB<SyncAbleKvDB>();
+    auto *kvDB = GetDB<SyncAbleKvDB>();
     if (kvDB == nullptr) {
         return -E_INVALID_CONNECTION;
     }
