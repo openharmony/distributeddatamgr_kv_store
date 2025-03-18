@@ -258,6 +258,7 @@ static constexpr const char *SQLITE = "sqlite";
 struct ChangeProperties {
     bool isTrackedDataChange = false;
     bool isP2pSyncDataChange = false;
+    bool isKnowledgeDataChange = false;
 };
 
 enum IndexType : uint32_t {

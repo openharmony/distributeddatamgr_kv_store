@@ -892,6 +892,11 @@ distributeddb_unittest("DistributedDBRDBDataStatusTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBRDBKnowledgeTest") {
+  sources =
+      [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -977,6 +982,7 @@ group("unittest") {
     ":DistributedDBParcelTest",
     ":DistributedDBRDBCollaborationTest",
     ":DistributedDBRDBDataStatusTest",
+    ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",

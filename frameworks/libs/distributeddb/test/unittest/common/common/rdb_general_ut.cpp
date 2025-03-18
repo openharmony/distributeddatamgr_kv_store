@@ -46,29 +46,18 @@ UtDateBaseSchemaInfo g_defaultSchemaInfo = {
 
 int RDBGeneralUt::InitDelegate(const StoreInfo &info)
 {
-    std::string storePath = GetTestDir() + "/" + info.storeId + ".db";
-    sqlite3 *db = RelationalTestUtils::CreateDataBase(storePath);
-    if (db == nullptr) {
-        LOGE("[RDBGeneralUt] Create database failed %s", storePath.c_str());
-        return -E_INVALID_DB;
-    }
-    int errCode = E_OK;
-    if (GetIsDbEncrypted()) {
-        errCode = EncryptedDb(db);
-        if (errCode != E_OK) {
-            return errCode;
+    InitDatabase(info);
+    {
+        std::lock_guard<std::mutex> autoLock(storeMutex_);
+        if (stores_.find(info) != stores_.end()) {
+            return E_OK;
         }
     }
-    UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
-    errCode = RDBDataGenerator::InitDatabaseWithSchemaInfo(schemaInfo, *db);
-    if (errCode != SQLITE_OK) {
-        LOGE("[RDBGeneralUt] Init database failed %d", errCode);
-        return errCode;
-    }
+    std::string storePath = GetTestDir() + "/" + info.storeId + ".db";
     RelationalStoreManager mgr(info.appId, info.userId);
     RelationalStoreDelegate *delegate = nullptr;
     RelationalStoreDelegate::Option option = GetOption();
-    errCode = mgr.OpenStore(storePath, info.storeId, option, delegate);
+    int errCode = mgr.OpenStore(storePath, info.storeId, option, delegate);
     if ((errCode != E_OK )|| (delegate == nullptr)) {
         LOGE("[RDBGeneralUt] Open store failed %d", errCode);
         return errCode;
@@ -76,7 +65,6 @@ int RDBGeneralUt::InitDelegate(const StoreInfo &info)
     {
         std::lock_guard<std::mutex> autoLock(storeMutex_);
         stores_[info] = delegate;
-        sqliteDb_[info] = db;
     }
     LOGI("[RDBGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
         info.storeId.c_str(), info.userId.c_str());
@@ -235,18 +223,34 @@ void RDBGeneralUt::TearDown()
 
 int RDBGeneralUt::InitDatabase(const StoreInfo &info)
 {
-    auto schema = GetSchema(info);
-    auto db = GetSqliteHandle(info);
+    std::string storePath = GetTestDir() + "/" + info.storeId + ".db";
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(storePath);
     if (db == nullptr) {
-        LOGE("[RDBGeneralUt] Get null sqlite when init database");
+        LOGE("[RDBGeneralUt] Create database failed %s", storePath.c_str());
         return -E_INVALID_DB;
     }
-    auto errCode = RDBDataGenerator::InitDatabase(schema, *db);
-    if (errCode != E_OK) {
-        LOGE("[RDBGeneralUt] Init db failed %d app %s store %s user %s", errCode, info.appId.c_str(),
-            info.storeId.c_str(), info.userId.c_str());
+    int errCode = E_OK;
+    if (GetIsDbEncrypted()) {
+        errCode = EncryptedDb(db);
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
-    return errCode;
+    UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
+    errCode = RDBDataGenerator::InitDatabaseWithSchemaInfo(schemaInfo, *db);
+    if (errCode != SQLITE_OK) {
+        LOGE("[RDBGeneralUt] Init database failed %d", errCode);
+        return errCode;
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(storeMutex_);
+        if (sqliteDb_.find(info) != sqliteDb_.end()) {
+            sqlite3_close_v2(db);
+            return E_OK;
+        }
+        sqliteDb_[info] = db;
+    }
+    return E_OK;
 }
 
 sqlite3 *RDBGeneralUt::GetSqliteHandle(const StoreInfo &info) const
