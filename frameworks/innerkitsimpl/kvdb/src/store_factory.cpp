@@ -124,6 +124,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         storeParams.isCreate = true;
         storeParams.password = dbPassword;
+        dbPassword.Clear();
         return !stores.empty();
     });
     return kvStore;

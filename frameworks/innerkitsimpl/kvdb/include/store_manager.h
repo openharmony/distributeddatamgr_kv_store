@@ -20,7 +20,6 @@
 namespace OHOS::DistributedKv {
 class StoreManager {
 public:
-    using StoreParams = StoreFactory::StoreParams;
     static StoreManager &GetInstance();
     std::shared_ptr<SingleKvStore> GetKVStore(const AppId &appId, const StoreId &storeId, const Options &options,
         Status &status);
