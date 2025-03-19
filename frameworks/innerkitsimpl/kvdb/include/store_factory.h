@@ -31,7 +31,7 @@ public:
     };
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
-        Status &status, StoreParams &storeParams);
+        Status &status, StoreFactory::StoreParams &storeParams);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser = 0, bool isForce = false);
 
@@ -47,7 +47,7 @@ private:
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, int32_t subUser = 0);
-    DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
+    DBOption StoreParams(const Options &options, const DBPassword &dbPassword) const;
     void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         std::shared_ptr<DBManager> dbManager, const Options &options);
     Status RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
