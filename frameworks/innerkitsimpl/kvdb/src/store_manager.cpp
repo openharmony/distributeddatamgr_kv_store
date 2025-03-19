@@ -69,8 +69,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     }
     if (storeParams.isCreate && options.persistent) {
-        auto password = storeParams.password;
-        std::vector<uint8_t> pwd(password.GetData(), password.GetData() + password.GetSize());
+        std::vector<uint8_t> pwd(storeParams.password.GetData(), storeParams.password.GetData() +
+            storeParams.password.GetSize());
         if (service != nullptr) {
             // delay notify
             service->AfterCreate(appId, storeId, options, pwd);
@@ -82,7 +82,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
 }
 
 std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-    const Options &options, Status &status, StoreFactory::StoreParams &storeParams)
+    const Options &options, Status &status, StoreParams &storeParams)
 {
     std::shared_ptr<SingleKvStore> kvStore;
     std::vector<std::vector<uint8_t>> keys;

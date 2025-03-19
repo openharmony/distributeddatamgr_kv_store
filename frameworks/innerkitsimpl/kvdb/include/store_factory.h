@@ -22,13 +22,13 @@
 #include "security_manager.h"
 #include "single_store_impl.h"
 namespace OHOS::DistributedKv {
+struct StoreParams {
+    bool isCreate = false;
+    DBPassword password;
+};
 class StoreFactory {
 public:
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
-    struct StoreParams {
-        bool isCreate = false;
-        DBPassword password;
-    };
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
         Status &status, StoreParams &storeParams);
