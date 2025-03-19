@@ -101,7 +101,9 @@ DistributedKvDataManagerEncryptTest::~DistributedKvDataManagerEncryptTest(void)
 {}
 
 void DistributedKvDataManagerEncryptTest::TearDown(void)
-{}
+{
+    RemoveAllStore(manager);
+}
 
 /**
 * @tc.name: kvstore_ddm_createEncryptedStore_001
@@ -129,4 +131,39 @@ HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_0
     EXPECT_EQ(Status::SUCCESS, statusRet) << "get data return wrong status";
 
     EXPECT_EQ(value, valueRet) << "value and valueRet are not equal";
+}
+
+/**
+ * @tc.name: DeleteEncryptedStoreFail
+ * @tc.desc: Failed to delete encrypted store, then open again.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: yanhui
+ */
+HWTEST_F(DistributedKvDataManagerEncryptTest, DeleteEncryptedStore_001, TestSize.Level1)
+{
+    ZLOGI("DeleteEncryptedStore_001 begin.");
+    std::shared_ptr<SingleKvStore> kvStore;
+    Status status = manager.GetSingleKvStore(createEnc, appId, storeId, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::shared_ptr<KvStoreResultSet> resultSet = nullptr;
+    kvStore->GetResultSet("^", resultSet);
+
+    // Database busy, delete failed
+    status = manager.DeleteKvStore(appId, storeId, createEnc.baseDir);
+    ASSERT_NE(status, Status::SUCCESS);
+
+    kvStore->CloseResultSet(resultSet);
+    manager.CloseAllKvStore(appId);
+    kvStore = nullptr;
+    // GetSingleKvStore success
+    status = manager.GetSingleKvStore(createEnc, appId, storeId, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+
+    // Delete successfully
+    status = manager.DeleteKvStore(appId, storeId, createEnc.baseDir);
+    ASSERT_EQ(status, Status::SUCCESS);
 }
