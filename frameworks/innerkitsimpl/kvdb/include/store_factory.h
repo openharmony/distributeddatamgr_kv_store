@@ -31,7 +31,7 @@ public:
     };
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
-        Status &status, StoreFactory::StoreParams &storeParams);
+        Status &status, StoreParams &storeParams);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser = 0, bool isForce = false);
 

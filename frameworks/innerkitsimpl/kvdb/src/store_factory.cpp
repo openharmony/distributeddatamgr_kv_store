@@ -68,7 +68,7 @@ std::string StoreFactory::GenerateKey(const std::string &userId, const std::stri
 }
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
-    const Options &options, Status &status, StoreFactory::StoreParams &storeParams)
+    const Options &options, Status &status, StoreParams &storeParams)
 {
     std::shared_ptr<SingleStoreImpl> kvStore;
     storeParams.isCreate = false;

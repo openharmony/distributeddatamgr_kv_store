@@ -34,7 +34,7 @@ public:
 
 private:
     std::shared_ptr<SingleKvStore> OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-        const Options &options, Status &status, StoreParams &storeParams);
+        const Options &options, Status &status, StoreFactory::StoreParams &storeParams);
 };
 }
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H

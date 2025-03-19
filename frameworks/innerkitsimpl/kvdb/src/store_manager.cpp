@@ -20,6 +20,7 @@
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "security_manager.h"
+
 #include "store_util.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
@@ -52,7 +53,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
-    StoreParams storeParams;
+    StoreFactory::StoreParams storeParams;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, storeParams);
     if ((status == DATA_CORRUPTED || status == CRYPT_ERROR) && options.encrypt) {
         kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, storeParams);
@@ -81,7 +82,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
 }
 
 std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-    const Options &options, Status &status, StoreParams &storeParams)
+    const Options &options, Status &status, StoreFactory::StoreParams &storeParams)
 {
     std::shared_ptr<SingleKvStore> kvStore;
     std::vector<std::vector<uint8_t>> keys;
