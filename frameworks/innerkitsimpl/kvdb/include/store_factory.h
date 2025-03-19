@@ -47,7 +47,7 @@ private:
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, int32_t subUser = 0);
-    DBOption StoreParams(const Options &options, const DBPassword &dbPassword) const;
+    DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
     void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         std::shared_ptr<DBManager> dbManager, const Options &options);
     Status RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
