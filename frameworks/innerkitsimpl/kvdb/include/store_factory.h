@@ -24,7 +24,7 @@
 namespace OHOS::DistributedKv {
 struct StoreParams {
     bool isCreate = false;
-    DBPassword password;
+    SecurityManager::DBPassword password;
 };
 class StoreFactory {
 public:

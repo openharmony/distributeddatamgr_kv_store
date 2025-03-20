@@ -53,7 +53,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
-    StoreFactory::StoreParams storeParams;
+    StoreParams storeParams;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, storeParams);
     if ((status == DATA_CORRUPTED || status == CRYPT_ERROR) && options.encrypt) {
         kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, storeParams);
