@@ -1942,8 +1942,8 @@ HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
     status = kvStore->GetDeviceEntries(device, output);
     ASSERT_EQ(status, SUCCESS);
     DevInfo devinfo;
-    std::string pkgName  = std::to_string(getpid()) + pkgNameEx;
-    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(pkgName , devinfo);
+    std::string pkgName = std::to_string(getpid()) + pkgNameEx;
+    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(pkgName, devinfo);
     ASSERT_NE(std::string(devinfo.deviceId), "");
     status = kvStore->GetDeviceEntries(std::string(devinfo.deviceId), output);
     ASSERT_EQ(status, SUCCESS);

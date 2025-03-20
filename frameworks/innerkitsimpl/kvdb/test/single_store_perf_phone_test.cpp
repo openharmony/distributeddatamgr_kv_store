@@ -203,7 +203,8 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store,
         readResultSet = nullptr;
     }
     if (config.dataConfig.batch != 0) {
-        avrTime = (totalTime / config.dataConfig.batch) / 100000.0; // 100000.0 is to convert ms
+        // 100 is for unit conversion
+        avrTime = (((totalTime / config.dataConfig.batch) / 100) / 1000); // 1000 is to convert ms
         cout << "Scan Range ResultSet avg cost = " << avrTime << " ms." << endl;
         cout << "failCount: " << failCount << endl;
         EXPECT_LT(avrTime, 3.0); // 3.0 ms is upper bound on performance
