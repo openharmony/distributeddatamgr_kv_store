@@ -71,7 +71,6 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
     const Options &options, Status &status, StoreParams &storeParams)
 {
     std::shared_ptr<SingleStoreImpl> kvStore;
-    storeParams.isCreate = false;
     auto key = GenerateKey(std::to_string(options.subUser), storeId.storeId);
     stores_.Compute(appId, [&](auto &, auto &stores) {
         if (stores.find(key) != stores.end()) {
