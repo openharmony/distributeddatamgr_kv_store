@@ -763,6 +763,7 @@ void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::
     callCount_++;
     changedData_[data.tableName] = data;
     LOGD("data change when cloud sync, origin = %d, tableName = %s", origin, data.tableName.c_str());
+    KvStoreObserver::OnChange(origin, originalId, std::move(data));
 }
 
 void KvStoreObserverUnitTest::ResetToZero()
