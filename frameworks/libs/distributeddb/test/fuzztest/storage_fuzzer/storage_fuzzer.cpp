@@ -62,6 +62,7 @@ static std::condition_variable g_cv;
 static bool g_alreadyNotify = false;
 DistributedDB::StoreObserver::StoreChangedInfo g_changedData;
 static constexpr const int MOD = 1000; // 1000 is mod
+static constexpr const int MODNUM = 10;
 
 class StorageFuzzer {
 public:
@@ -281,7 +282,7 @@ void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t nu
 void InitDataStatus(const std::string &tableName, int count, sqlite3 *db)
 {
     int type = 4; // the num of different status
-    for (int i = 1; i <= type * count; i++) {
+    for (int i = 1; i <= (type * count) % MODNUM; i++) {
         std::string sql = "INSERT INTO " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" +
             std::to_string(i) + "');";
         RdbTestUtils::ExecSql(db, sql);
