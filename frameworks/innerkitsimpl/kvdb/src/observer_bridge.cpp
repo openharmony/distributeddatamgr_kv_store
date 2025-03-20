@@ -12,9 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define LOG_TAG "ObserverBridge"
 #include "observer_bridge.h"
 #include "kvdb_service_client.h"
 #include "kvstore_observer_client.h"
+#include "log_print.h"
 namespace OHOS::DistributedKv {
 constexpr uint32_t INVALID_SUBSCRIBE_TYPE = 0;
 ObserverBridge::ObserverBridge(AppId appId, StoreId store, std::shared_ptr<Observer> observer, const Convertor &cvt)
@@ -48,6 +50,10 @@ Status ObserverBridge::RegisterRemoteObserver(uint32_t realType)
     }
 
     remote_ = new (std::nothrow) ObserverClient(observer_, convert_);
+    if (remote_ == nullptr) {
+        ZLOGE("New ObserverClient failed, appId:%{public}s", appId_.appId.c_str());
+        return ERROR;
+    }
     auto status = service->Subscribe(appId_, storeId_, remote_);
     if (status != SUCCESS) {
         remote_ = nullptr;

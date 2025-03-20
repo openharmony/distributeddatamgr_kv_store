@@ -158,7 +158,7 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
         KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
         auto service = KVDBServiceClient::GetInstance();
         if (service != nullptr) {
-            service->Delete(appId, storeId, subUser);
+            service->Delete(appId, storeId);
         }
     }
     return status;
