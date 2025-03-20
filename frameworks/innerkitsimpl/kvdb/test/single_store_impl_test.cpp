@@ -1930,7 +1930,7 @@ HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
 {
-    std::string PKG_NAME_EX = "_distributed_data";
+    std::string pkgNameEx = "_distributed_data";
     std::shared_ptr<SingleStoreImpl> kvStore;
     kvStore = CreateKVStore();
     ASSERT_NE(kvStore, nullptr);
@@ -1942,8 +1942,8 @@ HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
     status = kvStore->GetDeviceEntries(device, output);
     ASSERT_EQ(status, SUCCESS);
     DevInfo devinfo;
-    std::string PKG_NAME = std::to_string(getpid()) + PKG_NAME_EX;
-    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, devinfo);
+    std::string pkgName  = std::to_string(getpid()) + pkgNameEx;
+    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(pkgName , devinfo);
     ASSERT_NE(std::string(devinfo.deviceId), "");
     status = kvStore->GetDeviceEntries(std::string(devinfo.deviceId), output);
     ASSERT_EQ(status, SUCCESS);
