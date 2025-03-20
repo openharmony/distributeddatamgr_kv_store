@@ -20,7 +20,7 @@
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "security_manager.h"
-#include "store_factory.h"
+
 #include "store_util.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
@@ -53,10 +53,10 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
-    bool isCreate = false;
-    auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+    StoreParams storeParams;
+    auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, storeParams);
     if ((status == DATA_CORRUPTED || status == CRYPT_ERROR) && options.encrypt) {
-        kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, isCreate);
+        kvStore = OpenWithSecretKeyFromService(appId, storeId, options, status, storeParams);
     }
     if (status != SUCCESS) {
         ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
@@ -68,20 +68,21 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         ZLOGI("Rebuild store success, storeId:%{public}s", StoreUtil::Anonymous(storeId.storeId).c_str());
         KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     }
-    if (isCreate && options.persistent) {
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
-        std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
+    if (storeParams.isCreate && options.persistent) {
+        std::vector<uint8_t> pwd(storeParams.password.GetData(), storeParams.password.GetData() +
+            storeParams.password.GetSize());
         if (service != nullptr) {
             // delay notify
             service->AfterCreate(appId, storeId, options, pwd);
         }
         pwd.assign(pwd.size(), 0);
+        storeParams.password.Clear();
     }
     return kvStore;
 }
 
 std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-    const Options &options, Status &status, bool &isCreate)
+    const Options &options, Status &status, StoreParams &storeParams)
 {
     std::shared_ptr<SingleKvStore> kvStore;
     std::vector<std::vector<uint8_t>> keys;
@@ -97,7 +98,7 @@ std::shared_ptr<SingleKvStore> StoreManager::OpenWithSecretKeyFromService(const 
         SecurityManager::DBPassword dbPassword;
         dbPassword.SetValue(key.data(), key.size());
         SecurityManager::GetInstance().SaveDBPassword(storeId.storeId, path, dbPassword.password);
-        kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
+        kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, storeParams);
         if (status == SUCCESS) {
             break;
         }
