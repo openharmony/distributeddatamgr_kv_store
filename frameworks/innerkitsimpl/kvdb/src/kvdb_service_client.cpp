@@ -366,6 +366,10 @@ sptr<KVDBNotifierClient> KVDBServiceClient::GetServiceAgent(const AppId &appId)
     }
 
     sptr<KVDBNotifierClient> serviceAgent = new (std::nothrow) KVDBNotifierClient();
+    if (serviceAgent == nullptr) {
+        ZLOGE("New KVDBNotifierClient failed, appId:%{public}s", appId.appId.c_str());
+        return nullptr;
+    }
     auto status = RegServiceNotifier(appId, serviceAgent);
     if (status == SUCCESS) {
         serviceAgent_ = std::move(serviceAgent);
