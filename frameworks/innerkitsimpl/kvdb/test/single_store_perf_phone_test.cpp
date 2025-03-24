@@ -309,7 +309,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
         .ratio = 1
     };
     SingleStorePerfPhoneTest::PresetResult result1;
-    EXPECT_TRUE(!result1.firstKey.empty());
+    PresetData(store1, monthlyConfig, result1);
     cout << "first key: " << result1.firstKey << ", last key: " << result1.lastKey << endl;
     SingleStorePerfPhoneTest::TestConfig testconfig1 = {
         .dataConfig = monthlyConfig,
@@ -326,7 +326,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
         .ratio = 1
     };
     SingleStorePerfPhoneTest::PresetResult result2;
-    EXPECT_TRUE(!result2.firstKey.empty());
+    PresetData(store2, annuallyConfig, result2);
     cout << "first key: " << result2.firstKey << ", last key: " << result2.lastKey << endl;
     SingleStorePerfPhoneTest::TestConfig testconfig2 = {
         .dataConfig = annuallyConfig,
