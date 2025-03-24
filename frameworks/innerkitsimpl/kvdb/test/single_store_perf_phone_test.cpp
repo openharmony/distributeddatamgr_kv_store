@@ -41,6 +41,17 @@ std::shared_ptr<SingleKvStore> store3;
 
 class SingleStorePerfPhoneTest : public testing::Test {
 public:
+    struct DataConfig {
+        int batch;
+        int count;
+        int size;
+        int ratio;
+    };
+
+    struct PresetResult {
+        std::string firstKey;
+        std::string lastKey;
+    };
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -76,7 +87,7 @@ string GetDate(char *cType, int iDay)
     char cTimePARTNUMBER[256] = "";
     time_t rawtime;
     struct tm timeinfo{};
-    rawtime = time(NULL) + iDay * 24 * 3600; // 24 hours a day, 3600 seconds per hour
+    rawtime = time(nullptr) + iDay * 24 * 3600; // 24 hours a day, 3600 seconds per hour
     localtime_r(&rawtime, &timeinfo);
     char buffer1[256];
     size_t n = strftime(cTimePARTNUMBER, sizeof(buffer1), cType, &timeinfo); //20180623
@@ -100,39 +111,40 @@ string GetDate(char *cType, int iDay)
  * @details This function is responsible for writing a preset set of data to a specified
  *      single-key value store based on a given batch, quantity, size, and ratio.
  */
-void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int size, int ratio,
-    std::string &firstKey, std::string &lastKey)
+void PresetData(std::shared_ptr<SingleKvStore> &store,
+    SingleStorePerfPhoneTest::DataConfig &config, SingleStorePerfPhoneTest::PresetResult &result)
 {
     std::ostringstream s;
     s << std::setw(16) << std::setfill('0') << 0; // 16 bytes
     string strDate;
-    string ss = to_string(size) + "K"; // The batches are iterated backward to generate data for different dates
-    for (int i = batch; i >= 1; i--) {
-        strDate = GetDate((char*)"%Y%m%d", -i);
-        for (int index = 1; index <= count; index++) {
+    // The batches are iterated backward to generate data for different dates
+    string ss = to_string(config.size) + "K";
+    for (int i = config.batch; i >= 1; i--) {
+        strDate = GetDate(const_cast<char*>("%Y%m%d"), -i);
+        for (int index = 1; index <= config.count; index++) {
             // Produces a unique key string containing date, size, and index information
             string tmp =
             s.str() + "_" + ss + "_" + strDate + string(3 - to_string(index).length(), '0') + to_string(index);
             string val;
             // Generate random value string based on ratio If the ratio is 0, an empty string is generated
-            if (ratio != 0) {
-                val = GenerateRandomString((long)(size * 1024) / ratio); // 1024 bytes per 1K
+            if (config.ratio != 0) {
+                val = GenerateRandomString(static_cast<long>(config.size * 1024) / config.ratio); // 1024 bytes per 1K
             } else {
                 val = GenerateRandomString(0);
             }
             const DistributedDB::Key key = GenerateBytes(tmp);
             const DistributedDB::Value value = GenerateBytes(val);
             ASSERT_EQ(store->Put(key, value), SUCCESS);
-            if (i == batch && index == 1) {
+            if (i == config.batch && index == 1) {
                 // Convert the contents of the key to std::string and assign it to the firstKey
-                firstKey = std::string(key.begin(), key.end());
+                result.firstKey = std::string(key.begin(), key.end());
             }
-            if (i == 1 && index == count) {
-                lastKey = std::string(key.begin(), key.end());
+            if (i == 1 && index == config.count) {
+                result.lastKey = std::string(key.begin(), key.end());
             }
         }
     }
-    printf("put success! \n");
+    cout << "put success!" << endl;
 }
 
 /**
@@ -146,8 +158,8 @@ void PresetData(std::shared_ptr<SingleKvStore> &store, int batch, int count, int
  * @details This function is used to calculate the duration for obtaining data on a screen.
  *      Data is obtained through multiple cycles and the average time is calculated.
  */
-void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch, int size, int count,
-    std::string firstKey, std::string lastKey)
+void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store,
+    SingleStorePerfPhoneTest::DataConfig &config, SingleStorePerfPhoneTest::PresetResult &result)
 {
     // batch = totolCnt / (448/ 112) size(4 8) count (448 112)
     double dur = 0.0;
@@ -158,22 +170,22 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch
     for (int n = 0; n < 100; ++n) { // 100 times
         DataQuery query;
         // The sequential query is carried out according to the actual business scenario
-        query.Between("", lastKey);
+        query.Between("", result.lastKey);
         std::shared_ptr<KvStoreResultSet> readResultSet;
         ASSERT_EQ(store->GetResultSet(query, readResultSet), SUCCESS);
         ASSERT_TRUE(readResultSet != nullptr);
-        for (int ind = batch; ind >= 1; ind--) {
+        for (int ind = config.batch; ind >= 1; ind--) {
             struct timeval startTime{};
             struct timeval endTime{};
             (void) gettimeofday(&startTime, nullptr);
-            for (int i = 0; i < count; ++i) { // Loop through a screen of data
+            for (int i = 0; i < config.count; ++i) { // Loop through a screen of data
                 readResultSet->MoveToNext(); // Move the read position to the next row.
                 Entry entry; // Data is organized by entry definition.
                 readResultSet->GetEntry(entry);
             }
             (void) gettimeofday(&endTime, nullptr);
-            double startUsec = (double) (startTime.tv_sec * 1000 * 1000) + (double) startTime.tv_usec;
-            double endUsec = (double) (endTime.tv_sec * 1000 * 1000) + (double) endTime.tv_usec;
+            double startUsec = static_cast<double>((startTime.tv_sec * 1000 * 1000) + startTime.tv_usec);
+            double endUsec = static_cast<double>((endTime.tv_sec * 1000 * 1000) + endTime.tv_usec);
             dur = endUsec - startUsec;
             totalTime += dur;
             avrTime = (dur / 1000); // 1000 is to convert ms
@@ -184,9 +196,9 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store, int batch
         EXPECT_EQ(store->CloseResultSet(readResultSet), SUCCESS);
         readResultSet = nullptr;
     }
-    if (batch != 0) {
+    if (config.batch != 0) {
         // 100 is for unit conversion
-        avrTime = (((totalTime / batch) / 100) / 1000); // 1000 is to convert ms
+        avrTime = (((totalTime / config.batch) / 100) / 1000); // 1000 is to convert ms
         cout << "Scan Range ResultSet avg cost = " << avrTime << " ms." << endl;
         cout << "failCount: " << failCount << endl;
         EXPECT_LT(avrTime, 3.0); // 3.0 ms is upper bound on performance
@@ -283,23 +295,29 @@ std::shared_ptr<SingleKvStore> SingleStorePerfPhoneTest::CreateKVStore(std::stri
  */
 HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSize.Level0)
 {
-    int monthlyBatch = (int) (10000 / 112);
-    int annuallyBatch = (int) (10000 / 448);
-    int ratio = 1;
+    cout << "monthly start" << endl;
+    SingleStorePerfPhoneTest::DataConfig monthlyConfig = {
+        .batch = static_cast<int>(10000 / 112),
+        .count = 112,
+        .size = 8,
+        .ratio = 1
+    };
+    SingleStorePerfPhoneTest::PresetResult result1;
+    PresetData(store1, monthlyConfig, result1);
+    cout << "first key: " << result1.firstKey << ", last key: " << result1.lastKey << endl;
+    CalcRangeResultSetDuration(store1, monthlyConfig, result1);
 
-    printf("monthly start \n");
-    std::string firstKey1;
-    std::string lastKey1;
-    PresetData(store1, monthlyBatch, 112, 8, ratio, firstKey1, lastKey1);
-    cout << "first key: " << firstKey1 << ", last key: " << lastKey1 << endl;
-    CalcRangeResultSetDuration(store1, monthlyBatch, 8, 112, firstKey1, lastKey1);
-
-    printf("annually start \n");
-    std::string firstKey2;
-    std::string lastKey2;
-    PresetData(store2, annuallyBatch, 448, 4, ratio, firstKey2, lastKey2);
-    cout << "first key: " << firstKey2 << ", last key: " << lastKey2 << endl;
-    CalcRangeResultSetDuration(store2, annuallyBatch, 4, 448, firstKey2, lastKey2);
+    cout << "annually start" << endl;
+    SingleStorePerfPhoneTest::DataConfig annuallyConfig = {
+        .batch = static_cast<int>(10000 / 448),
+        .count = 448,
+        .size = 4,
+        .ratio = 1
+    };
+    SingleStorePerfPhoneTest::PresetResult result2;
+    PresetData(store2, annuallyConfig, result2);
+    cout << "first key: " << result2.firstKey << ", last key: " << result2.lastKey << endl;
+    CalcRangeResultSetDuration(store2, annuallyConfig, result2);
 }
 
 /**
@@ -312,22 +330,28 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
  */
 HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSize.Level0)
 {
-    int monthlyBatch = (int) (50000 / 112);
-    int annuallyBatch = (int) (50000 / 448);
-    int ratio = 1;
+    cout << "monthly start" << endl;
+    SingleStorePerfPhoneTest::DataConfig monthlyConfig = {
+        .batch = static_cast<int>(50000 / 112),
+        .count = 112,
+        .size = 8,
+        .ratio = 1
+    };
+    SingleStorePerfPhoneTest::PresetResult result1;
+    PresetData(store1, monthlyConfig, result1);
+    cout << "first key: " << result1.firstKey << ", last key: " << result1.lastKey << endl;
+    CalcRangeResultSetDuration(store1, monthlyConfig, result1);
 
-    printf("monthly start \n");
-    std::string firstKey1;
-    std::string lastKey1;
-    PresetData(store1, monthlyBatch, 112, 8, ratio, firstKey1, lastKey1);
-    cout << "first key: " << firstKey1 << ", last key: " << lastKey1 << endl;
-    CalcRangeResultSetDuration(store1, monthlyBatch, 8, 112, firstKey1, lastKey1);
-
-    printf("annually start \n");
-    std::string firstKey2;
-    std::string lastKey2;
-    PresetData(store2, annuallyBatch, 448, 4, ratio, firstKey2, lastKey2);
-    cout << "first key: " << firstKey2 << ", last key: " << lastKey2 << endl;
-    CalcRangeResultSetDuration(store2, annuallyBatch, 4, 448, firstKey2, lastKey2);
+    cout << "annually start" << endl;
+    SingleStorePerfPhoneTest::DataConfig annuallyConfig = {
+        .batch = static_cast<int>(50000 / 448),
+        .count = 448,
+        .size = 4,
+        .ratio = 1
+    };
+    SingleStorePerfPhoneTest::PresetResult result2;
+    PresetData(store2, annuallyConfig, result2);
+    cout << "first key: " << result2.firstKey << ", last key: " << result2.lastKey << endl;
+    CalcRangeResultSetDuration(store2, annuallyConfig, result2);
 }
 } // namespace OHOS::Test
