@@ -52,12 +52,6 @@ public:
         std::string firstKey;
         std::string lastKey;
     };
-
-    struct TestConfig {
-        DataConfig dataConfig;
-        std::string firstKey;
-        std::string lastKey;
-    };
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     static void SetUpTestCase();
     static void TearDownTestCase();
@@ -165,7 +159,7 @@ void PresetData(std::shared_ptr<SingleKvStore> &store,
  *      Data is obtained through multiple cycles and the average time is calculated.
  */
 void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store,
-    SingleStorePerfPhoneTest::TestConfig &config)
+    SingleStorePerfPhoneTest::DataConfig &config, SingleStorePerfPhoneTest::PresetResult &result)
 {
     // batch = totolCnt / (448/ 112) size(4 8) count (448 112)
     double dur = 0.0;
@@ -176,15 +170,15 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store,
     for (int n = 0; n < 100; ++n) { // 100 times
         DataQuery query;
         // The sequential query is carried out according to the actual business scenario
-        query.Between("", config.lastKey);
+        query.Between("", result.lastKey);
         std::shared_ptr<KvStoreResultSet> readResultSet;
         ASSERT_EQ(store->GetResultSet(query, readResultSet), SUCCESS);
         ASSERT_TRUE(readResultSet != nullptr);
-        for (int ind = config.dataConfig.batch; ind >= 1; ind--) {
+        for (int ind = config.batch; ind >= 1; ind--) {
             struct timeval startTime{};
             struct timeval endTime{};
             (void) gettimeofday(&startTime, nullptr);
-            for (int i = 0; i < config.dataConfig.count; ++i) { // Loop through a screen of data
+            for (int i = 0; i < config.count; ++i) { // Loop through a screen of data
                 readResultSet->MoveToNext(); // Move the read position to the next row.
                 Entry entry; // Data is organized by entry definition.
                 readResultSet->GetEntry(entry);
@@ -202,9 +196,9 @@ void CalcRangeResultSetDuration(std::shared_ptr<SingleKvStore> &store,
         EXPECT_EQ(store->CloseResultSet(readResultSet), SUCCESS);
         readResultSet = nullptr;
     }
-    if (config.dataConfig.batch != 0) {
+    if (config.batch != 0) {
         // 100 is for unit conversion
-        avrTime = (((totalTime / config.dataConfig.batch) / 100) / 1000); // 1000 is to convert ms
+        avrTime = (((totalTime / config.batch) / 100) / 1000); // 1000 is to convert ms
         cout << "Scan Range ResultSet avg cost = " << avrTime << " ms." << endl;
         cout << "failCount: " << failCount << endl;
         EXPECT_LT(avrTime, 3.0); // 3.0 ms is upper bound on performance
@@ -311,12 +305,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
     SingleStorePerfPhoneTest::PresetResult result1;
     PresetData(store1, monthlyConfig, result1);
     cout << "first key: " << result1.firstKey << ", last key: " << result1.lastKey << endl;
-    SingleStorePerfPhoneTest::TestConfig testconfig1 = {
-        .dataConfig = monthlyConfig,
-        .firstKey = result1.firstKey,
-        .lastKey = result1.lastKey,
-    };
-    CalcRangeResultSetDuration(store1, testconfig1);
+    CalcRangeResultSetDuration(store1, monthlyConfig, result1);
 
     cout << "annually start" << endl;
     SingleStorePerfPhoneTest::DataConfig annuallyConfig = {
@@ -328,12 +317,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
     SingleStorePerfPhoneTest::PresetResult result2;
     PresetData(store2, annuallyConfig, result2);
     cout << "first key: " << result2.firstKey << ", last key: " << result2.lastKey << endl;
-    SingleStorePerfPhoneTest::TestConfig testconfig2 = {
-        .dataConfig = annuallyConfig,
-        .firstKey = result2.firstKey,
-        .lastKey = result2.lastKey,
-    };
-    CalcRangeResultSetDuration(store2, testconfig2);
+    CalcRangeResultSetDuration(store2, annuallyConfig, result2);
 }
 
 /**
@@ -356,12 +340,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSi
     SingleStorePerfPhoneTest::PresetResult result1;
     PresetData(store1, monthlyConfig, result1);
     cout << "first key: " << result1.firstKey << ", last key: " << result1.lastKey << endl;
-    SingleStorePerfPhoneTest::TestConfig testconfig1 = {
-        .dataConfig = monthlyConfig,
-        .firstKey = result1.firstKey,
-        .lastKey = result1.lastKey,
-    };
-    CalcRangeResultSetDuration(store1, testconfig1);
+    CalcRangeResultSetDuration(store1, monthlyConfig, result1);
 
     cout << "annually start" << endl;
     SingleStorePerfPhoneTest::DataConfig annuallyConfig = {
@@ -373,11 +352,6 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSi
     SingleStorePerfPhoneTest::PresetResult result2;
     PresetData(store2, annuallyConfig, result2);
     cout << "first key: " << result2.firstKey << ", last key: " << result2.lastKey << endl;
-    SingleStorePerfPhoneTest::TestConfig testconfig2 = {
-        .dataConfig = annuallyConfig,
-        .firstKey = result2.firstKey,
-        .lastKey = result2.lastKey,
-    };
-    CalcRangeResultSetDuration(store2, testconfig2);
+    CalcRangeResultSetDuration(store2, annuallyConfig, result2);
 }
 } // namespace OHOS::Test
