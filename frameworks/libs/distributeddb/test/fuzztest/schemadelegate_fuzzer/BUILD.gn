@@ -65,6 +65,7 @@ ohos_fuzztest("SchemaDelegateFuzzTest") {
     "//third_party/jsoncpp/include/json",
     "//third_party/grpc/src/core/lib/json",
   ]
+  use_exceptions = true
   cflags = [
     "-g",
     "-O0",

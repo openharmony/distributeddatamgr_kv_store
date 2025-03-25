@@ -58,6 +58,7 @@ ohos_fuzztest("StorageFuzzTest") {
     "../../../syncer/src/device/singlever",
   ]
 
+  use_exceptions = true
   cflags = [
     "-g",
     "-O0",

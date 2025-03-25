@@ -123,6 +123,7 @@ config("module_private_config") {
 ###############################################################################
 ohos_source_set("src_file") {
   testonly = true
+  use_exceptions = true
 
   sources = distributeddb_src
   sources += distributeddb_cloud_src
