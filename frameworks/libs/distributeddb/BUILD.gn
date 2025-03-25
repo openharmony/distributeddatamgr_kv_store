@@ -111,6 +111,7 @@ ohos_shared_library("distributeddb") {
   configs = [ ":distrdb_config" ]
   public_configs = [ ":distrdb_public_config" ]
 
+  use_exceptions = true
   cflags_cc = [
     "-fvisibility=hidden",
     "-Os",

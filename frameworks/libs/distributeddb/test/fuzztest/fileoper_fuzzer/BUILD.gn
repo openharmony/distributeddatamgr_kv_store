@@ -66,6 +66,7 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//third_party/googletest/googletest/include/gtest",
   ]
 
+  use_exceptions = true
   cflags = [
     "-g",
     "-O0",

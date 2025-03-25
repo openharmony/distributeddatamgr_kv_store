@@ -66,6 +66,7 @@ ohos_fuzztest("ImportFileFuzzTest") {
     "//third_party/grpc/src/core/lib/json",
   ]
 
+  use_exceptions = true
   cflags = [
     "-g",
     "-O0",
