@@ -24,6 +24,7 @@
 namespace DistributedDB {
 const std::string g_defaultTable1 = "defaultTable1";
 const std::string g_defaultTable2 = "defaultTable2";
+const std::vector<uint8_t> PASSWD_VECTOR = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1'};
 
 class RDBGeneralUt : public BasicUnitTest {
 public:
@@ -79,6 +80,10 @@ protected:
 
     int GetCloudDataCount(const std::string &tableName) const;
 
+    void SetIsDbEncrypted(bool isdbEncrypted);
+    bool GetIsDbEncrypted() const;
+    int EncryptedDb(sqlite3 *db);
+
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *, StoreComparator> stores_;
     std::map<StoreInfo, sqlite3 *, StoreComparator> sqliteDb_;
@@ -86,6 +91,7 @@ protected:
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_ = nullptr;
     RelationalStoreDelegate::Option option_;
+    bool isDbEncrypted_ = false;
 };
 }
 #endif // RDB_GENERAL_UT_H

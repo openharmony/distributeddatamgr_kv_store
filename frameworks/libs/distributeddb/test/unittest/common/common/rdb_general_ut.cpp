@@ -20,6 +20,10 @@
 using namespace DistributedDBUnitTest;
 
 namespace DistributedDB {
+const std::string CIPHER_CONFIG_SQL = "PRAGMA codec_cipher='aes-256-gcm';";
+const std::string KDF_ITER_CONFIG_SQL = "PRAGMA codec_kdf_iter=5000;";
+const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256;";
+
 const Field intField = {"id", TYPE_INDEX<int64_t>, true, false};
 const Field stringField = {"name", TYPE_INDEX<std::string>, false, false};
 const Field boolField = {"gender", TYPE_INDEX<bool>, false, true};
@@ -48,8 +52,15 @@ int RDBGeneralUt::InitDelegate(const StoreInfo &info)
         LOGE("[RDBGeneralUt] Create database failed %s", storePath.c_str());
         return -E_INVALID_DB;
     }
+    int errCode = E_OK;
+    if (GetIsDbEncrypted()) {
+        errCode = EncryptedDb(db);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
     UtDateBaseSchemaInfo schemaInfo = GetTableSchemaInfo(info);
-    int errCode = RDBDataGenerator::InitDatabaseWithSchemaInfo(schemaInfo, *db);
+    errCode = RDBDataGenerator::InitDatabaseWithSchemaInfo(schemaInfo, *db);
     if (errCode != SQLITE_OK) {
         LOGE("[RDBGeneralUt] Init database failed %d", errCode);
         return errCode;
@@ -196,6 +207,7 @@ void RDBGeneralUt::CloseAllDelegate()
     }
     stores_.clear();
     schemaInfoMap_.clear();
+    isDbEncrypted_ = false;
     LOGI("[RDBGeneralUt] Close all delegate success");
 }
 
@@ -465,5 +477,50 @@ int RDBGeneralUt::GetCloudDataCount(const std::string &tableName) const
     }
     LOGI("[RDBGeneralUt] Count cloud table %s success, count %d", tableName.c_str(), realCount);
     return realCount;
+}
+
+void RDBGeneralUt::SetIsDbEncrypted(bool isdbEncrypted)
+{
+    isDbEncrypted_ = isdbEncrypted;
+}
+
+bool RDBGeneralUt::GetIsDbEncrypted() const
+{
+    return isDbEncrypted_;
+}
+
+int RDBGeneralUt::EncryptedDb(sqlite3 *db)
+{
+    std::string passwd(PASSWD_VECTOR.begin(), PASSWD_VECTOR.end());
+    int rc = sqlite3_key(db, passwd.c_str(), passwd.size());
+    if (rc != SQLITE_OK) {
+        sqlite3_close(db);
+        LOGE("sqlite3_key failed, %d, passwd is %s.", rc, passwd.c_str());
+        return -E_INVALID_DB;
+    }
+    char *errMsg = nullptr;
+    int errCode = sqlite3_exec(db, CIPHER_CONFIG_SQL.c_str(), nullptr, nullptr, &errMsg);
+    if (errCode != SQLITE_OK || errMsg != nullptr) {
+        LOGE("set cipher failed: %d, cipher is %s.", errCode, CIPHER_CONFIG_SQL.c_str());
+        sqlite3_close(db);
+        sqlite3_free(errMsg);
+        return -E_INVALID_DB;
+    }
+    errMsg = nullptr;
+    errCode = sqlite3_exec(db, KDF_ITER_CONFIG_SQL.c_str(), nullptr, nullptr, &errMsg);
+    if (errCode != SQLITE_OK || errMsg != nullptr) {
+        LOGE("set iterTimes failed: %d, iterTimes is %s.", errCode, KDF_ITER_CONFIG_SQL.c_str());
+        sqlite3_close(db);
+        sqlite3_free(errMsg);
+        return -E_INVALID_DB;
+    }
+    errCode = sqlite3_exec(db, SHA256_ALGO_SQL.c_str(), nullptr, nullptr, &errMsg);
+    if (errCode != SQLITE_OK || errMsg != nullptr) {
+        LOGE("set codec_hmac_algo failed: %d, codec_hmac_algo is %s.", errCode, SHA256_ALGO_SQL.c_str());
+        sqlite3_close(db);
+        sqlite3_free(errMsg);
+        return -E_INVALID_DB;
+    }
+    return E_OK;
 }
 }
