@@ -63,7 +63,6 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
     std::shared_ptr<ContextParam> param_;
     static constexpr int MAX_APP_ID_LEN = 256;
-    static constexpr int API_20_VERSION = 20;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_KV_MANAGER_H
