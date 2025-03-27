@@ -2072,7 +2072,6 @@ HWTEST_F(SingleStoreImplTest, ReportDBFaultEvent, TestSize.Level0)
     kvStore = CreateKVStore();
     ASSERT_NE(kvStore, nullptr);
     Status status = DATA_CORRUPTED;
-    kvStore->ReportDBFaultEvent(status, std::string(__FUNCTION__));
-    EXPECT_TRUE(status == DATA_CORRUPTED);
+    EXPECT_NO_FATAL_FAILURE(kvStore->ReportDBFaultEvent(status, std::string(__FUNCTION__)));
 }
 } // namespace OHOS::Test
