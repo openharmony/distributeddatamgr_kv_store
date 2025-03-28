@@ -490,17 +490,19 @@ describe('KVManagerPromiseTest', function () {
      */
     it('KVManagerDeleteKVStorePromiseSucTest', 0, async function (done) {
         console.info('KVManagerDeleteKVStorePromiseSucTest');
-        await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
-            console.info('KVManagerDeleteKVStorePromiseSucTest getKVStore success');
-            kvStore = store;
+        try {
+            kvStore = await kvManager.getKVStore(TEST_STORE_ID, options);
             await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID);
-        });
-        await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
-            console.info('KVManagerDeleteKVStorePromiseSucTest deleteKVStore success');
-        }).catch((err) => {
+            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                expect(true).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerDeleteKVStorePromiseSucTest deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('KVManagerGetKVStorePromiseSucTest getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
             expect(null).assertFail();
-            console.error('KVManagerDeleteKVStorePromiseSucTest deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
+        }
         done();
     })
 
