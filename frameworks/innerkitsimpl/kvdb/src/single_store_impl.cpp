@@ -60,7 +60,7 @@ SingleStoreImpl::SingleStoreImpl(
         isApplication_ = true;
         apiVersion_ = options.apiVersion;
     }
-    if (!isApplication_ || (isApplication_ && (apiVersion_ >= INTEGRITY_CHECK_API_VERSION))) {
+    if (!isApplication_) {
         isCheckIntegrity_ = true;
     }
 }
