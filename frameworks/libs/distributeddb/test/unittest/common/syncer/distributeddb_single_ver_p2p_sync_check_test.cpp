@@ -399,7 +399,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck005, TestSize.Lev
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Level1)
 {
     ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     ASSERT_EQ(g_mgr.DeleteKvStore(STORE_ID), OK);
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck006, TestSize.Lev
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck007, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. fork check device security ability
@@ -483,7 +483,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck007, TestSize.Lev
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck008, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck008, TestSize.Level1)
 {
     auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
@@ -928,7 +928,7 @@ void DistributedDBSingleVerP2PSyncCheckTest::CancelTestEnd(std::vector<Entry> &e
  * @tc.require:
  * @tc.author: lijun
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncProcessCancel001, TestSize.Level1)
 {
     DeviceSyncOption option;
     std::vector<Entry> entries;
@@ -2082,7 +2082,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, DelaySync001, TestSize.Level3)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVAbilitySyncOpt001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet
@@ -2181,7 +2181,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt002, TestSize.Level1)
 {
 /**
      * @tc.steps: step1. record packet which send to B
@@ -2232,7 +2232,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt003, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2269,7 +2269,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt003, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt004, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. deviceA call sync and wait
@@ -2305,7 +2305,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt004, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt005, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2340,7 +2340,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt005, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2385,7 +2385,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt006, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2423,7 +2423,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level0)
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt008, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2460,7 +2460,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt008, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -2505,7 +2505,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
  * @tc.require:
  * @tc.author: liuhongyang
  */
-HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open a new store with STORE_ID_3

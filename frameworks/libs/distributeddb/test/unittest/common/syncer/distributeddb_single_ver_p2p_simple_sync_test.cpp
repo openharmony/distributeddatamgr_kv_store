@@ -795,7 +795,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync010, TestSize.Level1
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level1)
 {
     DBStatus status = OK;
     std::vector<std::string> devices;
@@ -845,7 +845,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level0
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync012, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync012, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. prepare env

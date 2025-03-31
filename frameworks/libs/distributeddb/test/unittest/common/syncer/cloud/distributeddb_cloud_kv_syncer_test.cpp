@@ -315,7 +315,7 @@ void DistributedDBCloudKvSyncerTest::CheckUploadAbnormal(OpType opType, int64_t 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync001, TestSize.Level1)
 {
     auto cloudHook = (ICloudSyncStorageHook *) singleStore_->GetCloudKvStore();
     ASSERT_NE(cloudHook, nullptr);
@@ -365,7 +365,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync001, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync002, TestSize.Level1)
 {
     auto cloudHook = (ICloudSyncStorageHook *) singleStore_->GetCloudKvStore();
     ASSERT_NE(cloudHook, nullptr);
@@ -423,7 +423,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync002, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync003, TestSize.Level1)
 {
     auto cloudHook = (ICloudSyncStorageHook *) singleStore_->GetCloudKvStore();
     ASSERT_NE(cloudHook, nullptr);
@@ -480,7 +480,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync003, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenghuitao
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Device A inserts data and synchronizes
@@ -502,7 +502,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync004, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Put 1 record to cloud
@@ -571,7 +571,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, QueryParsingProcessTest001, TestSize.Le
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, UploadFinished001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadFinished001, TestSize.Level1)
 {
     Key key = {'k'};
     Value value = {'v'};
@@ -602,7 +602,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadFinished001, TestSize.Level0)
  * @tc.require:
  * @tc.author: liufuchenxing
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers001, TestSize.Level1)
 {
     Key key = {'k'};
     Value value = {'v'};
@@ -649,7 +649,7 @@ void DistributedDBCloudKvSyncerTest::PutKvBatchDataAndSyncCloud(CloudSyncOption 
  * @tc.require:
  * @tc.author: luoguo
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. kvDelegatePtrS1_ put 200 data and sync to cloud.
@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers002, TestSize.Leve
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. put k v by user1.
@@ -788,7 +788,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Leve
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. put k v by user1 and sync to cloud.
@@ -835,7 +835,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers004, TestSize.Leve
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Call PutCloudData interface with different opType when para is invalid.
@@ -922,7 +922,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest002, TestSiz
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open db with DEVICE_COLLABORATION.
@@ -973,7 +973,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest001, TestSize.Le
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open db with DEVICE_COLLABORATION.
@@ -1069,7 +1069,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest003, TestSize.Le
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. put k1 v1 by user1 and sync between devices.

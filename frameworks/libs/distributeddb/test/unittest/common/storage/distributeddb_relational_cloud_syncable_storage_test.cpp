@@ -614,7 +614,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest004, Te
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, TestSize.Level1)
 {
     /**
      * @tc.steps: Table does not exist
@@ -648,7 +648,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
  * @tc.require:
  * @tc.author: bty
   */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 100;
@@ -687,7 +687,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 100;
@@ -761,7 +761,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount004, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 100;
@@ -847,7 +847,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 1024;
@@ -879,7 +879,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 10;
@@ -915,7 +915,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestSize.Level1)
 {
     CreateLogTable(g_tableName);
     int64_t insCount = 1024;
@@ -945,7 +945,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Init data and set asset status to invalid num
@@ -979,7 +979,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData008, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. table1
@@ -1036,7 +1036,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData008, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level1)
 {
     int64_t insCount = 100;
     int64_t photoSize = 10;
@@ -1094,7 +1094,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrG
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level1)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1113,7 +1113,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, T
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, TestSize.Level1)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1127,7 +1127,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, Tes
     fillCloudAssetTest(insCount, AssetStatus::ABNORMAL, true);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, TestSize.Level1)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1188,7 +1188,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, TestSize.Level1)
 {
     int64_t insCount = 2;
     int64_t photoSize = 10;
@@ -1240,7 +1240,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset004, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset004, TestSize.Level1)
 {
     int64_t insCount = 2;
     int64_t photoSize = 10;
@@ -1395,7 +1395,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash002, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. init data
@@ -1464,7 +1464,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, T
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
@@ -1506,7 +1506,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
@@ -1536,7 +1536,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion002
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. both gid and hashKey are empty
@@ -1596,7 +1596,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset001, TestSize.
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. hashKey is 2, or gid is 4
@@ -1648,7 +1648,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Init data and set asset status to abnormal
@@ -1684,7 +1684,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ContainAssetsTable001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ContainAssetsTable001, TestSize.Level1)
 {
     ASSERT_NE(g_storageProxy, nullptr);
     EXPECT_FALSE(g_storageProxy->IsExistTableContainAssets());

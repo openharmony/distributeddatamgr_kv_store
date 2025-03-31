@@ -665,7 +665,7 @@ void DistributedDBCloudCheckSyncTest::CheckDownloadInfo(const Info &actualDownlo
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest001, TestSize.Level1)
 {
     // prepare data
     const int actualCount = 10;
@@ -693,7 +693,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest002, TestSize.Level1)
 {
     // prepare data
     const int actualCount = 1;
@@ -719,7 +719,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level1)
 {
     // prepare data
     const int actualCount = 1;
@@ -748,7 +748,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level1)
 {
     // prepare data
     const int actualCount = 1;
@@ -775,7 +775,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest004, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -815,7 +815,7 @@ void DistributedDBCloudCheckSyncTest::InitDataAndSync()
  * @tc.require:
  * @tc.author: luoguo
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -890,7 +890,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest006, TestSize.Level0)
  * @tc.require:
  * @tc.author: luoguo
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -965,7 +965,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest007, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyuchen
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. insert 35 records to user table
@@ -1048,7 +1048,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. insert 1 record to user table
@@ -1102,7 +1102,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level0)
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. insert 1 record to user table
@@ -1157,7 +1157,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level0)
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest011, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. insert 1 record to user table
@@ -1208,7 +1208,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest011, TestSize.Level0)
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest012, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. insert 1 record to user table
@@ -1268,7 +1268,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest012, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Level1)
 {
     // prepare data
     const int actualCount = 10;
@@ -1341,7 +1341,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record and query in 3 records, then priority sync.
@@ -1403,7 +1403,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest001, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1487,7 +1487,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1518,7 +1518,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest003, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user non-primarykey table record.
@@ -1553,7 +1553,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest004, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user non-primarykey table record.
@@ -1580,7 +1580,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest005, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1644,7 +1644,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest006, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1707,7 +1707,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest007, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1769,7 +1769,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest008, TestSize.Lev
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest009, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record and query in 3 records, then priority sync.
@@ -1803,7 +1803,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest009, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest010, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -1844,7 +1844,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest010, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest011, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud table record.
@@ -1909,7 +1909,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest011, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest012, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud table record.
@@ -1947,7 +1947,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest012, TestSize.Lev
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest013, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -2063,7 +2063,7 @@ void DistributedDBCloudCheckSyncTest::CheckUploadInfoAfterSync(int recordCount, 
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest014, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert data and sync pause.
@@ -2134,7 +2134,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest014, TestSize.Lev
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest015, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert data and sync pause.
@@ -2206,7 +2206,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest015, TestSize.Lev
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest016, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud table record.
@@ -2248,7 +2248,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest016, TestSize.Lev
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level1)
 {
     bool logicDelete = true;
     auto data = static_cast<PragmaData>(&logicDelete);
@@ -2268,7 +2268,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level1)
 {
     bool logicDelete = false;
     auto data = static_cast<PragmaData>(&logicDelete);
@@ -2285,7 +2285,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. register observer.
@@ -2357,7 +2357,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set logic delete
@@ -2405,7 +2405,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest005, TestSize.Level
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set logic delete
@@ -2452,7 +2452,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest006, TestSize.Level
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert user table record with flag 0x800. Insert cloud table record.
@@ -2534,7 +2534,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, T
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud records
@@ -2564,7 +2564,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud records
@@ -2603,7 +2603,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert local records
@@ -2642,7 +2642,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, RangeQuerySyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, RangeQuerySyncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -2691,7 +2691,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RangeQuerySyncTest002, TestSize.Level1
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud records, cloud has two batch id:0-4
@@ -2779,7 +2779,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SameDataSync002, TestSize.Level1)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudCheckSyncTest, CreateDistributedTable001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudCheckSyncTest, CreateDistributedTable001, TestSize.Level1)
 {
     const std::string table = "CreateDistributedTable001";
     const std::string createSQL =

@@ -361,7 +361,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. tracker col name is no exist
@@ -403,7 +403,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable twice in same delegate
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest006, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable
@@ -698,7 +698,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest010,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
@@ -756,7 +756,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest012, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest012, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
@@ -851,7 +851,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest013,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest014, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest014, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. CreateDistributedTable on table2
@@ -894,7 +894,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest014,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. CreateDistributedTable on table2
@@ -944,7 +944,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest016, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest016, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
@@ -979,7 +979,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest016,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
@@ -1038,7 +1038,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest018, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest018, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create DEVICE_COOPERATION DistributedTable
@@ -1192,7 +1192,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest021,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest022, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest022, TestSize.Level1)
 {
     CheckDropTableAndReopenDb(true);
 }
@@ -1878,7 +1878,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestS
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest026, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest026, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. SetTrackerTable on table2
@@ -1916,7 +1916,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest026,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. create distributed table on table2 with case different
@@ -1971,7 +1971,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027,
   * @tc.require:
   * @tc.author: zqq
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest028, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest028, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. trackerColNames is empty
@@ -2312,7 +2312,7 @@ void SetLowVersionSchema(sqlite3 *db, const std::string &extendColName)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest036, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Init db and init extend field to old version data
@@ -2739,7 +2739,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest045,
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set empty for relational schema str, reopen store

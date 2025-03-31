@@ -785,7 +785,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly001, 
   * @tc.require:
   * @tc.author: liaoyonghuang
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -824,7 +824,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly002, 
   * @tc.require:
   * @tc.author: liaoyonghuang
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -883,7 +883,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly003, 
   * @tc.require:
   * @tc.author: liaoyonghuang
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -946,7 +946,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly004, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -974,7 +974,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly005, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1002,7 +1002,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1063,7 +1063,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly007, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1094,7 +1094,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly009, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1124,7 +1124,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly009, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1178,7 +1178,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly010, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly011, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1264,7 +1264,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly012, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly013, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1295,7 +1295,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly013, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly014, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1323,7 +1323,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly014, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly015, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1388,7 +1388,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly015, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1437,7 +1437,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1472,7 +1472,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1512,7 +1512,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1540,7 +1540,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly019, 
   * @tc.require:
   * @tc.author: bty
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly020, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly020, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1601,7 +1601,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly020, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly021, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly021, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1633,7 +1633,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly021, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly022, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly022, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -1663,7 +1663,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly022, 
   * @tc.require:
   * @tc.author: luoguo
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly023, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly023, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data

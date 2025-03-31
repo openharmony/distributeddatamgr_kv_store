@@ -802,7 +802,7 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest007()
  * @tc.require:
  * @tc.author: liufuchenxing
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Mock asset download interface.
@@ -844,7 +844,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -872,7 +872,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -899,7 +899,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -926,7 +926,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -953,7 +953,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -980,7 +980,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1007,7 +1007,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Level1)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
@@ -1062,7 +1062,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1096,7 +1096,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId009, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1122,7 +1122,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId009, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1149,7 +1149,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1173,7 +1173,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set extend size missing then sync, check the asseid.
@@ -1211,7 +1211,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId013, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert data and sync, then delete local data and insert new data
@@ -1241,7 +1241,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId013, TestSize.Le
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId014, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1299,7 +1299,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId014, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert data and fork batchinsert return CLOUD_NETWORK_ERROR, then sync
@@ -1349,7 +1349,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert data and sync, then delete last local data
@@ -1377,7 +1377,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Le
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert data and sync,check cursor.
@@ -1403,7 +1403,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Le
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId018, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId018, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
@@ -1429,7 +1429,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId018, TestSize.Le
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
@@ -1466,7 +1466,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
@@ -1508,7 +1508,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
@@ -1548,7 +1548,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -1591,7 +1591,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId019, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId019, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local insert assets and sync.
@@ -1618,7 +1618,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId019, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Level1)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
@@ -1695,7 +1695,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId020, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Level1)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
@@ -1741,7 +1741,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Level1)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
@@ -1787,7 +1787,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId023, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId023, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set extend size missing then sync, check the asseid.
@@ -1827,7 +1827,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId023, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. set extend size missing then sync, check the asseid.
@@ -1867,7 +1867,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Le
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId025, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId025, TestSize.Level1)
 {
     CloudSyncConfig config;
     config.maxUploadCount = 200; // max upload 200
@@ -1945,7 +1945,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId025, TestSize.Le
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data for the different asset, sync and check flag
@@ -1977,7 +1977,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest001, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data for the same asset, sync and check flag
@@ -2008,7 +2008,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest002, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2083,7 +2083,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2147,7 +2147,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest004, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2205,7 +2205,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest005, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2265,7 +2265,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest006, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest001, TestSize.Level1)
 {
     DataStatusTest001(false);
 }
@@ -2277,7 +2277,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest001, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest002, TestSize.Level1)
 {
     DataStatusTest001(true);
 }
@@ -2289,7 +2289,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest002, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest003, TestSize.Level1)
 {
     DataStatusTest003();
 }
@@ -2301,7 +2301,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest003, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest004, TestSize.Level1)
 {
     DataStatusTest004();
 }
@@ -2313,7 +2313,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest004, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest005, TestSize.Level1)
 {
     DataStatusTest005();
 }
@@ -2325,7 +2325,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest005, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest006, TestSize.Level1)
 {
     DataStatusTest006();
 }
@@ -2337,7 +2337,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest006, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, TestSize.Level1)
 {
     DataStatusTest007();
 }
@@ -2349,7 +2349,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest007, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init local data
@@ -2402,7 +2402,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, SyncDataStatusTest008, Test
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     /**
@@ -2440,7 +2440,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest001, TestS
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2491,7 +2491,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest002, TestS
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2563,7 +2563,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestS
  * @tc.type: FUNC
  * @tc.author: lijun
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init local data
@@ -2638,7 +2638,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest001, Test
  * @tc.type: FUNC
  * @tc.author: lijun
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, RecordLockFuncTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init local data, modify data Status and initiate synchronization
@@ -2839,7 +2839,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudTaskStatusTest002, Tes
   * @tc.require:
   * @tc.author: tankaisheng
   */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CompensatedSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CompensatedSyncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data

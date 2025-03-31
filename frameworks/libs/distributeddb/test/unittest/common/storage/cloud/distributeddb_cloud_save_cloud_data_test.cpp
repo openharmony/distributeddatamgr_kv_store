@@ -488,7 +488,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest013, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest013, TestSize.Level1)
     {
         VbucketWithoutPrimaryDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
     }
@@ -618,7 +618,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest018, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest018, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(name text primary key, age TEXT COLLATE NOCASE);";
         std::string insertSql = "insert into " + g_tableName + " values('abcd', '10');";
@@ -633,7 +633,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest019, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest019, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text," +
             "primary key(name, age));";
@@ -649,7 +649,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest020, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest020, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text," +
             "primary key(name, age));";
@@ -665,7 +665,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest021, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest021, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text collate nocase," +
             "primary key(name, age));";
@@ -681,7 +681,7 @@ namespace {
     * @tc.require:
     * @tc.author: zhangshijie
     */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest022, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest022, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE RTRIM, age text);";
         std::string insertSql = "insert into " + g_tableName + " values('abcd ', '10');";
@@ -696,7 +696,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest023, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest023, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE RTRIM, age text);";
         std::string insertSql = "insert into " + g_tableName + " values('abcd_', '10');";
@@ -711,7 +711,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest024, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest024, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE rtrim);";
         std::string insertSql = "insert into " + g_tableName + " values('abcd ');";
@@ -726,7 +726,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest025, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest025, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(name text primary key, age TEXT COLLATE rtrim);";
         std::string insertSql = "insert into " + g_tableName + " values('abcd ', '10');";
@@ -741,7 +741,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest026, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest026, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate RTRIM, age text," +
             "primary key(name, age));";
@@ -757,7 +757,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest027, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest027, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate rtrim, age text," +
             "primary key(name, age));";
@@ -773,7 +773,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest028, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest028, TestSize.Level1)
     {
         std::string createSql = "create table " + g_tableName + "(NAME text collate rtrim, age text collate rtrim," +
             "primary key(name, age));";
@@ -863,7 +863,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest001, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY);
         // there is one log record with cloud_gid = abcd3(id = 7 will delete first, then insert again)
@@ -886,7 +886,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest002, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest002, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY, GidType::GID_MISMATCH);
     }
@@ -898,7 +898,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest003, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest003, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY, GidType::GID_EMPTY, true, true, -E_CLOUD_ERROR);
     }
@@ -910,7 +910,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest004, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest004, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY);
     }
@@ -922,7 +922,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest005, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest005, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_MISMATCH);
     }
@@ -934,7 +934,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest006, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest006, TestSize.Level1)
     {
         SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY, true, true, -E_CLOUD_ERROR);
     }

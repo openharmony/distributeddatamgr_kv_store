@@ -460,7 +460,7 @@ Assets DistributedDBCloudAssetsOperationSyncTest::GenerateAssets(const Asset &te
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation001, TestSize.Level1)
 {
     const int actualCount = 10;
     const int deleteDataCount = 5;
@@ -493,7 +493,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation001, T
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, TestSize.Level1)
 {
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, 0, actualCount);
@@ -520,7 +520,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, T
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation003, TestSize.Level1)
 {
     InsertUserTableRecord(tableName_, 0, 1); // 1 is count
     int uploadCount = 0;
@@ -585,7 +585,7 @@ void DistributedDBCloudAssetsOperationSyncTest::LocalAssetRemoveTest()
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, TestSize.Level1)
 {
     LocalAssetRemoveTest();
 }
@@ -614,7 +614,7 @@ void DistributedDBCloudAssetsOperationSyncTest::UpdateAssetWhenSyncUpload()
  * @tc.require:
  * @tc.author: luoguo
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 60 records.
@@ -691,7 +691,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation005, T
  * @tc.require:
  * @tc.author: lijun
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation006, TestSize.Level1)
 {
     const int actualCount = 5;
     InsertUserTableRecord(tableName_, 0, actualCount);
@@ -719,7 +719,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation006, T
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -757,7 +757,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation007, T
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -802,7 +802,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation008, T
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation009, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -914,7 +914,7 @@ void DistributedDBCloudAssetsOperationSyncTest::PrepareForAssetOperation010()
  * @tc.require:
  * @tc.author: liufuchenxing
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation010, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. prepare local and cloud asset data.
@@ -988,7 +988,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, TestOpenDatabaseBusy001, Tes
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation011, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -1048,7 +1048,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation011, T
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation012, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     LocalAssetRemoveTest();
@@ -1087,7 +1087,7 @@ void DistributedDBCloudAssetsOperationSyncTest::UpdateLocalAssetRecord(const std
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation013, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert local and cloud asset data and sync.
@@ -1122,7 +1122,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation013, T
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -1158,7 +1158,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, T
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Level1)
 {
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, 0, actualCount);
@@ -1191,7 +1191,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Le
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord002, TestSize.Level1)
 {
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, 0, actualCount);
@@ -1214,7 +1214,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord002, TestSize.Le
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Level1)
 {
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, 0, actualCount);
@@ -1234,7 +1234,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Le
  * @tc.require:
  * @tc.author: luoguo
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord004, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     const int actualCount = 10;
@@ -1259,7 +1259,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord004, TestSize.Le
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Level1)
 {
     // insert id 0 to local
     const int actualCount = 1;
@@ -1286,7 +1286,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Leve
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.
@@ -1345,7 +1345,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData002, TestSize.Leve
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetConflict001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetConflict001, TestSize.Level1)
 {
     // cloud and local insert same data
     const int actualCount = 1;
@@ -1416,7 +1416,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid001, TestSi
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSize.Level1)
 {
     VBucket record;
     record["id"] = std::to_string(0);
@@ -1474,7 +1474,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSi
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, DownloadAssetStatusTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, DownloadAssetStatusTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. cloud assets {0, 1}
@@ -1645,7 +1645,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest002, TestSiz
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 100 records.
@@ -1684,7 +1684,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest003, TestSiz
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 100 records and sync to cloud.
@@ -1732,7 +1732,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UploadAssetsTest004, TestSiz
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchNormalDownloadAsset001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchNormalDownloadAsset001, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     PrepareDataInCloud();
@@ -1752,7 +1752,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchNormalDownloadAsset001,
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchAbnormalDownloadAsset001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchAbnormalDownloadAsset001, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     PrepareDataInCloud();
@@ -1788,7 +1788,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchAbnormalDownloadAsset00
  * @tc.require:
  * @tc.author: lg
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Insert 5 records and sync.

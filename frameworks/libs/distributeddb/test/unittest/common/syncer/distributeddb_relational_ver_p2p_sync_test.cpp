@@ -929,7 +929,7 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
 * @tc.require: AR000GK58N
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareEnvironment(dataMap, {g_deviceB});
@@ -946,7 +946,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level0)
 * @tc.require: AR000GK58N
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync002, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareEnvironment(dataMap, {g_deviceB});
@@ -1017,7 +1017,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync004, TestSize.Level1)
 * @tc.require: AR000GK58N
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync005, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync005, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareVirtualEnvironment(dataMap, {g_deviceB});
@@ -1091,7 +1091,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync007, TestSize.Level1)
 * @tc.require: AR000GK58N
 * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open rdb store, create distribute table, insert data and sync to deviceB
@@ -1126,7 +1126,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
 * @tc.require: AR000GK58N
 * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareEnvironment(dataMap, {g_deviceB});
@@ -1613,7 +1613,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, PressureSync001, TestSize.Level1
 * @tc.require:
 * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
@@ -1704,7 +1704,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer002, TestSize.Level3)
 * @tc.require:
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
@@ -1754,7 +1754,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level0)
 * @tc.require:
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer004, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
@@ -1789,7 +1789,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer004, TestSize.Level0)
 * @tc.require:
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer005, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
@@ -2400,7 +2400,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery012, TestSize.Level1)
 * @tc.require:
 * @tc.author: zhangqiquan
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery013, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery013, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareEnvironment(dataMap, {g_deviceB});
@@ -2419,7 +2419,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery013, TestSize.Level0)
 * @tc.require: AR000GK58N
 * @tc.author: zhangshijie
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. SetPermissionCheckCallback
@@ -2464,7 +2464,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest001, Test
 * @tc.require: AR000GK58N
 * @tc.author: zhangshijie
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. SetPermissionCheckCallback
@@ -2509,7 +2509,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest002, Test
 * @tc.require: AR000GK58N
 * @tc.author: zhangshijie
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. SetPermissionCheckCallback
@@ -2554,7 +2554,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest003, Test
 * @tc.require: AR000GK58N
 * @tc.author: zhangshijie
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. SetPermissionCheckCallback
@@ -2681,7 +2681,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck002, TestSize
 * @tc.require: AR000H5VLO
 * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level1)
 {
     std::map<std::string, DataValue> dataMap;
     PrepareEnvironment(dataMap, {g_deviceB});
@@ -2721,7 +2721,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestS
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Level1)
 {
     if (g_rdbDelegatePtr != nullptr) {
         LOGD("CloseStore Start");

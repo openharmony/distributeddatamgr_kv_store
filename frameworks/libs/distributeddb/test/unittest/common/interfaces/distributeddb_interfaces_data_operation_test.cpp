@@ -2031,7 +2031,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther002, TestSize.L
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data
@@ -2106,7 +2106,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Le
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data
@@ -2171,7 +2171,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Le
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data
@@ -2246,7 +2246,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Le
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data
@@ -2323,7 +2323,7 @@ void CheckResultSize(KvStoreResultSet *resultSet, const std::vector<Key> &expect
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data
@@ -2396,7 +2396,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
   * @tc.require: SR000H5U55
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create a database And Preset Data

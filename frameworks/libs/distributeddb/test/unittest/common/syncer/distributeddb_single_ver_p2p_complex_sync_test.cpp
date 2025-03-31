@@ -2025,7 +2025,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
   * @tc.require:
   * @tc.author: zhangqiquan
   */
-HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail002, TestSize.Level1)
 {
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     /**

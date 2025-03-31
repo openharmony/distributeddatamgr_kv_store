@@ -273,7 +273,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig001,
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set valid param twice
@@ -338,7 +338,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig002,
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncDownloadAssetConfig003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Insert cloud data
@@ -401,7 +401,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, FinishListener001, TestSize.
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncComplexDownload001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncComplexDownload001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set max download task 1
@@ -439,7 +439,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncComplexDownload001, Tes
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncComplexDownload002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncComplexDownload002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set max download task 1
@@ -545,7 +545,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload001, Te
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Insert cloud data
@@ -633,7 +633,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload003, Te
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set async config
@@ -736,7 +736,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload005, Te
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Register observer

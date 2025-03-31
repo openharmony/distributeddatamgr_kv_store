@@ -167,7 +167,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId001, TestSize.Le
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId002, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Get DB of user1

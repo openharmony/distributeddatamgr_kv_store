@@ -634,7 +634,7 @@ namespace {
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest001, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 10;
@@ -667,7 +667,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest002, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 10;
@@ -696,7 +696,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local and 20 records on cloud
@@ -776,7 +776,7 @@ static CloudSyncOption GetSyncOption()
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyncTaskCountTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyncTaskCountTest001, TestSize.Level1)
 {
     InitGetCloudSyncTaskCountTest001(db);
     Query query = Query::Select().FromTable(g_tables);
@@ -849,7 +849,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyn
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest004, TestSize.Level1)
 {
     DataBaseSchema dataBaseSchema;
     TableSchema tableSchema1 = {
@@ -872,7 +872,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. cloud and device data is same
@@ -909,7 +909,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -945,7 +945,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -996,7 +996,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -1051,7 +1051,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest009, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -1083,7 +1083,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest010, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -1118,7 +1118,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest011, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local
@@ -1158,7 +1158,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest012, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on local
@@ -1204,7 +1204,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest013, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1258,7 +1258,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest014, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on local
@@ -1296,7 +1296,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest015, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1333,7 +1333,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest016, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1380,7 +1380,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest017, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest017, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1421,7 +1421,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest018, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest018, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1464,7 +1464,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest019, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest019, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on local
@@ -1496,7 +1496,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest020, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest020, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1544,7 +1544,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest021, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest021, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1598,7 +1598,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest022, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest022, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on local
@@ -1638,7 +1638,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest023, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest023, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1714,7 +1714,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest024, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest024, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1767,7 +1767,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: suyuchen
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest025, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest025, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set logicDelete
@@ -1819,7 +1819,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest026, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest026, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1860,7 +1860,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest027, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest027, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on cloud
@@ -1895,7 +1895,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest028, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest028, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -1954,7 +1954,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest029, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest029, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete
@@ -2012,7 +2012,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest030, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest030, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set data is logicDelete

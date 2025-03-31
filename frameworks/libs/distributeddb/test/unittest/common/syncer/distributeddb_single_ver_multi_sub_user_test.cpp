@@ -697,7 +697,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest002, Tes
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest001, TestSize.Level1)
 {
     KvStoreDelegateManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     KvStoreNbDelegate *delegatePtr1 = nullptr;
@@ -737,7 +737,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest001
  * @tc.require:
  * @tc.author: zhaoliang
  */
-HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002, TestSize.Level1)
 {
     RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;

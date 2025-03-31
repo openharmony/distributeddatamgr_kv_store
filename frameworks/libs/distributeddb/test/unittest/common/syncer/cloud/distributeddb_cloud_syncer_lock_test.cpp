@@ -461,7 +461,7 @@ void DistributedDBCloudSyncerLockTest::CheckUploadAbnormal(OpType opType, int64_
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync with none lock
@@ -527,7 +527,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBLockSyncTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and set hook before upload, update cloud data which gid is 1
@@ -563,7 +563,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync001, TestSize.Lev
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync002, TestSize.Level1)
 {
     TestConflictSync001(true);
 }
@@ -575,7 +575,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync002, TestSize.Lev
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync003, TestSize.Level1)
 {
     TestConflictSync001(false);
 }
@@ -587,7 +587,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync003, TestSize.Lev
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBConflictCloudSync004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -687,7 +687,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -723,7 +723,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init cloud assert {a, b1, b2}
@@ -755,7 +755,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest001, TestSize.
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init cloud assert {a, b1, b2} and sync to local
@@ -821,7 +821,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest002, TestSize.
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init cloud assert {a, b1, b2} and sync to local
@@ -877,7 +877,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, DownloadAssetStatusTest003, TestSize.
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and sync
@@ -926,7 +926,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RecordConflictTest001, TestSize.Level
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init cloud data and sync
@@ -969,7 +969,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest003, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init cloud data
@@ -1009,7 +1009,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest004, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level1)
 {
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(true);
     /**
@@ -1067,7 +1067,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest006, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert local data and sync
@@ -1121,7 +1121,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert a and sync
@@ -1177,7 +1177,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync002, TestSize.Level
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert local data and sync
@@ -1234,7 +1234,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync003, TestSize.Level
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, ReviseLocalModTimeTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, ReviseLocalModTimeTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert local data
@@ -1272,7 +1272,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, ReviseLocalModTimeTest001, TestSize.L
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, RemoveAssetsFailTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, RemoveAssetsFailTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert local and sync
@@ -1459,7 +1459,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UnLockSyncTest001, TestSize.Level1)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudSyncerLockTest, TaskIdTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerLockTest, TaskIdTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud and sync
