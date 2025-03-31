@@ -293,7 +293,7 @@ std::shared_ptr<SingleKvStore> SingleStorePerfPhoneTest::CreateKVStore(std::stri
  * @tc.require:
  * @tc.author: Gang Wang
  */
-HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSize.Level0)
+HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSize.Level1)
 {
     cout << "monthly start" << endl;
     SingleStorePerfPhoneTest::DataConfig monthlyConfig = {
@@ -328,7 +328,7 @@ HWTEST_F(SingleStorePerfPhoneTest, Gallery1WThumbnailsKVStoreBetweenTest, TestSi
  * @tc.require:
  * @tc.author: Gang Wang
  */
-HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSize.Level0)
+HWTEST_F(SingleStorePerfPhoneTest, Gallery5WThumbnailsKVStoreBetweenTest, TestSize.Level1)
 {
     cout << "monthly start" << endl;
     SingleStorePerfPhoneTest::DataConfig monthlyConfig = {

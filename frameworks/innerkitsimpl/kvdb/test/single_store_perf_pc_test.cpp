@@ -163,7 +163,7 @@ static double TimeDiff(const struct timespec *beg, const struct timespec *end)
  * @tc.require:
  * @tc.author: Gang Wang
  */
-HWTEST_F(SingleStorePerfPcTest, HashIndexKVStoreTest001, TestSize.Level0)
+HWTEST_F(SingleStorePerfPcTest, HashIndexKVStoreTest001, TestSize.Level1)
 {
     printf("HashIndexKVStoreTest001 BEGIN\n");
     std::string strKey(8, 'k');
@@ -217,7 +217,7 @@ HWTEST_F(SingleStorePerfPcTest, HashIndexKVStoreTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: Gang Wang
  */
-HWTEST_F(SingleStorePerfPcTest, HashIndexKVStoreTest002, TestSize.Level0)
+HWTEST_F(SingleStorePerfPcTest, HashIndexKVStoreTest002, TestSize.Level1)
 {
     printf("HashIndexKVStoreTest002 BEGIN\n");
     std::string strKey(8, 'k');
