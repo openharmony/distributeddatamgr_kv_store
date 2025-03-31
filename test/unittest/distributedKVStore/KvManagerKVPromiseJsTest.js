@@ -500,7 +500,7 @@ describe('KVManagerPromiseTest', function () {
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('KVManagerGetKVStorePromiseSucTest getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('KVManagerGetKVStorePromiseSucTest getKVStore err ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
