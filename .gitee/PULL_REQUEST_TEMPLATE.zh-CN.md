@@ -4,10 +4,9 @@
 * **Feature or Bugfix**:
 * **Binary Source**:Yes/No
 * **TDD**:Pass/Fail/NA
-* **FUZZ**:Pass/Fail/NA
 * **ACTS**:Pass/Fail/NA
 * **DCTS**:Pass/Fail/NA
-* **DST**:Pass/Fail/NA
+* **Pretest**:Pass/Fail/NA
 
 ### 稳定性排查：
 - [ ] 【规则】禁止在锁内向其他进程发送IPC（进程间通信）;
