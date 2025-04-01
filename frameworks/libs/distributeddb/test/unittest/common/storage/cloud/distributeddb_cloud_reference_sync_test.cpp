@@ -432,7 +432,7 @@ std::vector<std::string> DistributedDBCloudReferenceSyncTest::InitMultiTable(int
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest001, TestSize.Level1)
 {
     std::vector<std::string> tableNames = { parentTableName_, childTableName_ };
     Query query = Query::Select().FromTable(tableNames);
@@ -458,7 +458,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest002, TestSize.Level1)
 {
     std::vector<std::string> tableNames = { sharedParentTableName_, sharedChildTableName_ };
     Query query = Query::Select().FromTable(tableNames);
@@ -484,7 +484,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest003, TestSize.Level1)
 {
     std::vector<std::string> tableNames = { childTableName_, parentTableName_ };
     Query query = Query::Select().FromTable(tableNames);
@@ -510,7 +510,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest003, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. cloud insert records then sync, check distributed shared table
@@ -558,7 +558,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest004, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. user insert records then sync, check distributed shared table
@@ -599,7 +599,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest005, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. user insert records then sync, check distributed shared table
@@ -628,7 +628,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest006, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. user insert records then sync, check distributed shared table
@@ -652,7 +652,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest007, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open store with dot store id
@@ -740,7 +740,7 @@ void ComplexReferenceCheck001SetReference(RelationalStoreDelegate *delegate)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck001, TestSize.Level1)
 {
     auto tableName = InitMultiTable(8); // 8 table
     ComplexReferenceCheck001SetReference(delegate_);
@@ -796,7 +796,7 @@ void ComplexReferenceCheck002SetReference(RelationalStoreDelegate *delegate)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck002, TestSize.Level1)
 {
     auto tableName = InitMultiTable(5); // 5 table
     ASSERT_EQ(delegate_->SetCloudDbSchema(GetSchema(tableName)), DBStatus::OK);
@@ -848,7 +848,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck002, TestSize
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. init reference table, and reopen db
@@ -915,7 +915,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck003, TestSize
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. init table and set reference twice

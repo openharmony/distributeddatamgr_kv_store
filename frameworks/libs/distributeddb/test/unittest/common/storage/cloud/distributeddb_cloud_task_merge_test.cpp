@@ -277,7 +277,7 @@ SyncProcessCallback DistributedDBCloudTaskMergeTest::GetProcessCallback(
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert user table record.
@@ -481,7 +481,7 @@ HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest003, TestSize.Le
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest004, TestSize.Level1)
 {
     size_t finishCount = 0u;
     std::mutex callbackMutex;

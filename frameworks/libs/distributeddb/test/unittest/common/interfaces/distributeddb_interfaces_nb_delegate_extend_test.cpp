@@ -690,7 +690,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, UpdateKey003, TestSize.Lev
   * @tc.require:
   * @tc.author: zhangqiquan
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, BlockTimer001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, BlockTimer001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create database.
@@ -932,7 +932,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, SyncRangeQuery001, TestSiz
   * @tc.require:
   * @tc.author: zhangshijie
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, OptionModeValidCheck001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, OptionModeValidCheck001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.

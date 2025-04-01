@@ -307,7 +307,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSystemApiAdapterTest0
  * @tc.type: FUNC
  * @tc.require:
  */
-HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade001, TestSize.Level0)
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set g_adapter and open with s1
@@ -352,7 +352,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade001
  * @tc.type: FUNC
  * @tc.require:
  */
-HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade002, TestSize.Level0)
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set g_adapter and open with s1
@@ -391,7 +391,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade002
  * @tc.type: FUNC
  * @tc.require:
  */
-HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade003, TestSize.Level0)
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SecurityOptionUpgrade003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set g_adapter and open with not set

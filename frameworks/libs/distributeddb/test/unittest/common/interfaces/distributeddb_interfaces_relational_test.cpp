@@ -1628,7 +1628,7 @@ namespace {
   * @tc.require:
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.Level1)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -1753,7 +1753,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, T
   * @tc.require:
   * @tc.author: zhangshjie
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -1834,7 +1834,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, T
   * @tc.require:
   * @tc.author: zhangqiquan
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest003, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Prepare db file

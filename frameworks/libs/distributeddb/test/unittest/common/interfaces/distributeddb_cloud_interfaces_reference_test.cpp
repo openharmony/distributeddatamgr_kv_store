@@ -493,7 +493,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshjie
      */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest010, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest010, TestSize.Level1)
     {
         NormalSetReferenceTest(true);
     }
@@ -569,7 +569,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshjie
      */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest011, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest011, TestSize.Level1)
     {
         ReferenceChangeTest(true);
     }
@@ -581,7 +581,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshjie
      */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest012, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest012, TestSize.Level1)
     {
         ReferenceChangeTest(false);
     }
@@ -593,7 +593,7 @@ namespace {
      * @tc.require:
      * @tc.author: zhangshjie
      */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest013, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest013, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. prepare table and distributed table
@@ -669,7 +669,7 @@ namespace {
     * @tc.require:
     * @tc.author: zhangshjie
     */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest014, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest014, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. prepare table and distributed table
@@ -755,7 +755,7 @@ namespace {
     * @tc.require:
     * @tc.author: zhangshjie
     */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest015, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest015, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. prepare table and distributed table
@@ -802,7 +802,7 @@ namespace {
     * @tc.require:
     * @tc.author: zhangshjie
     */
-    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest016, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest016, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. prepare table and distributed table, then set reference t1->t2

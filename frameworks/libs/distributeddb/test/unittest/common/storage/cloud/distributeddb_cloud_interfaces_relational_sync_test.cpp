@@ -1160,7 +1160,7 @@ namespace {
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int64_t cloudCount = 20;
@@ -1202,7 +1202,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestSize.Level1)
 {
     int64_t localCount = 20;
     int64_t cloudCount = 10;
@@ -1230,7 +1230,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
@@ -1288,7 +1288,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestSize.Level1)
 {
     int64_t paddingSize = 1024 * 8;
     vector<thread> threads;
@@ -1309,7 +1309,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest005, TestSize.Level1)
 {
     Query query = Query::Select().FromTable(g_tables).OrderBy("123", true);
     ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime),
@@ -1328,7 +1328,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest005, TestS
  * @tc.require:
  * @tc.author: wanyi
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
@@ -1399,7 +1399,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest007, TestS
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest008, TestSize.Level1)
 {
     ASSERT_EQ(g_delegate->SetCloudDB(nullptr), OK);   // it will not happen because cloudb has been set in SetUp()
     Query query = Query::Select().FromTable({g_tableName3});
@@ -1415,7 +1415,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest008, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
@@ -1442,7 +1442,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestS
     CloseDb();
 }
 
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
@@ -1478,7 +1478,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, Test
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestSize.Level1)
 {
     Query query = Query::Select().FromTable({g_tableName1, g_tableName1});
     bool syncFinish = false;
@@ -1506,7 +1506,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestS
     CloseDb();
 }
 
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestSize.Level1)
 {
     int64_t localCount = 20;
     int64_t cloudCount = 10;
@@ -1537,7 +1537,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestS
  * @tc.require:
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest013, TestSize.Level1)
 {
     /**
      * @tc.steps: insert some data into cloud db
@@ -1625,7 +1625,7 @@ void TestSyncForStatus(RelationalStoreDelegate *delegate, DBStatus expectStatus)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest015, TestSize.Level1)
 {
     g_virtualCloudDb->SetActionStatus(CLOUD_NETWORK_ERROR);
     TestSyncForStatus(g_delegate, CLOUD_NETWORK_ERROR);
@@ -1653,7 +1653,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest015, TestS
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest014, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest014, TestSize.Level1)
 {
     auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
@@ -1702,7 +1702,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest014, TestS
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestSize.Level1)
 {
     int64_t localCount = 10;
     int64_t paddingSize = 10;
@@ -1736,7 +1736,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestS
  * @tc.require:
  * @tc.author: wangxiangdong
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest017, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest017, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. make data: 20 records on local, 20 records on cloud
@@ -1769,7 +1769,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest017, TestS
  * @tc.require:
  * @tc.author: wanyi
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DataNotifier001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DataNotifier001, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 20;
@@ -1805,7 +1805,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, 
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 10;
@@ -1903,7 +1903,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, 
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest002, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 3;
@@ -1921,7 +1921,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest002, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 3;
@@ -1961,7 +1961,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest004, TestSize.Level1)
 {
     int64_t paddingSize = 10;
     int localCount = 3;
@@ -2000,7 +2000,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest004, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Construct local data with asset names and hashes consistent with the cloud
@@ -2058,7 +2058,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest005, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Construct local data with NULL asset and the local count is greater than the cloud
@@ -2087,7 +2087,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest006, 
  * @tc.require:
  * @tc.author: wanyi
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. local asset contain an asset which has a corresponding asset in cloud
@@ -2149,7 +2149,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest007, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Set different status out of parameters, and the code returns OK
@@ -2189,7 +2189,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest001, T
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest008, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. prepare asset data
@@ -2240,7 +2240,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest008, 
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest009, TestSize.Level1)
 {
     // insert 3 data with asset 3 data without asset into local
     // sync them to cloud
@@ -2264,7 +2264,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest009, 
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
@@ -2304,7 +2304,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest002, T
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Init data and sync
@@ -2343,7 +2343,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, T
  * @tc.require:
  * @tc.author: liufuchenxing
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Init data and sync
@@ -2389,7 +2389,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, T
  * @tc.require:
  * @tc.author: wanyi
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create table with Cloud cooperation mode
@@ -2412,7 +2412,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize
  * @tc.require:
  * @tc.author: wanyi
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create table with DEVICE_COOPERATION mode

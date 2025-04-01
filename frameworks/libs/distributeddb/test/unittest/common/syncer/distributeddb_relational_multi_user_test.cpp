@@ -547,7 +547,7 @@ void DistributedDBRelationalMultiUserTest::TearDown(void)
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
@@ -620,7 +620,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser001, TestSize.Level0)
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
@@ -855,7 +855,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser005, TestSize.Level0)
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser006, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser006, TestSize.Level1)
 {
     TestSyncWithUserChange(true, false);
 }
@@ -867,7 +867,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser006, TestSize.Level0)
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser007, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser007, TestSize.Level1)
 {
     TestSyncWithUserChange(false, false);
 }
@@ -918,7 +918,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser009, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser009, TestSize.Level1)
 {
     TestSyncWithUserChange(false, true);
 }
@@ -1082,7 +1082,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser014, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -1125,7 +1125,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt002, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -1167,7 +1167,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -1209,7 +1209,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt003, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt004, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -1251,7 +1251,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt004, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. record packet which send to B
@@ -1295,7 +1295,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt005, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt006, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. openStore and insert data
@@ -1344,7 +1344,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RDBSyncOpt006, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db1 and db2 with subUser
@@ -1407,7 +1407,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSiz
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db1 and db2.
@@ -1462,7 +1462,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, DropDistributedTableTest001, Test
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRelationalMultiUserTest, DeleteTest001, TestSize.Level0)
+HWTEST_F(DistributedDBRelationalMultiUserTest, DeleteTest001, TestSize.Level1)
 {
      /**
      * @tc.steps: step1. Prepare db2.

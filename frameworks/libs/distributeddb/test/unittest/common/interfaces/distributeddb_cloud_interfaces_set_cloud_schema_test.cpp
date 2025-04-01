@@ -921,7 +921,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest010, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest010, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. use SetCloudDbSchema
@@ -1082,7 +1082,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest013, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest013, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. use SetCloudDbSchema
@@ -1186,7 +1186,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync001, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. use set shared table without primary key
@@ -1218,7 +1218,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync002, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync002, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. use set shared table
@@ -1260,7 +1260,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync003, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync003, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. insert local shared table records and sync
@@ -1312,7 +1312,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync004, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync004, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. use set shared table
@@ -1354,7 +1354,7 @@ namespace {
      * @tc.require:
      * @tc.author: chenchaohao
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync006, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync006, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. set shared table and sync
@@ -1533,7 +1533,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync007, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync007, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud share data contains sharing_resource
@@ -1572,7 +1572,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync008, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync008, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data and sync
@@ -1634,7 +1634,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync009, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync009, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data and sync
@@ -1697,7 +1697,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync010, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync010, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud share data and sync
@@ -1754,7 +1754,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync011, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync011, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data and sync
@@ -1811,7 +1811,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync012, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync012, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init local share data and sync
@@ -1851,7 +1851,7 @@ namespace {
      * @tc.require:
      * @tc.author: bty
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync013, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync013, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data and sync
@@ -1899,7 +1899,7 @@ namespace {
      * @tc.require:
      * @tc.author: wangxiangdong
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync014, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync014, TestSize.Level1)
     {
         /**
          * @tc.steps: step1. Set data is logicDelete
@@ -1951,7 +1951,7 @@ namespace {
      * @tc.require:
      * @tc.author: wangxiangdong
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync015, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync015, TestSize.Level1)
     {
         /**
          * @tc.steps: step1. Set data is logicDelete
@@ -2027,7 +2027,7 @@ namespace {
      * @tc.require:
      * @tc.author: wangxiangdong
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync016, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync016, TestSize.Level1)
     {
         /**
          * @tc.steps: step1. Set data is logicDelete
@@ -2092,7 +2092,7 @@ namespace {
      * @tc.require:
      * @tc.author: luoguo
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync017, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync017, TestSize.Level1)
     {
         /**
          * @tc.steps: step1. Set data is logicDelete
@@ -2174,7 +2174,7 @@ namespace {
      * @tc.require:
      * @tc.author: wangxiangdong
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync019, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync019, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data and sync
@@ -2209,7 +2209,7 @@ namespace {
      * @tc.require:
      * @tc.author: liaoyonghuang
     */
-    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetTrackerTable001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetTrackerTable001, TestSize.Level1)
     {
         /**
          * @tc.steps:step1. init cloud data

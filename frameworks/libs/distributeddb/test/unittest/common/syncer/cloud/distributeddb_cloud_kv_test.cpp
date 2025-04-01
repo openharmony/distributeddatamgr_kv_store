@@ -397,7 +397,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. store1 put (k1,v1) store2 put (k2,v2)
@@ -459,7 +459,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. store1 put (k1,v1) store2 put (k1,v2)
@@ -496,7 +496,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync003, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. store1 put (k1,v1) and both sync
@@ -555,7 +555,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync005, TestSize.Level1)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync006, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Key k2 = {'k', '2'};
@@ -581,7 +581,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync006, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Key k2 = {'k', '2'};
@@ -611,7 +611,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync007, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync008, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync008, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Value v1 = {'v', '1'};
@@ -636,7 +636,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync008, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync009, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync009, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Key k2 = {'k', '2'};
@@ -663,7 +663,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync009, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync010, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync010, TestSize.Level1)
 {
     // add <k1, v1>, sync to cloud with user1
     Key key1 = {'k', '1'};
@@ -710,7 +710,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync010, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync011, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync011, TestSize.Level1)
 {
     std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync011, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync012, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync012, TestSize.Level1)
 {
     KvStoreNbDelegate *memoryDB1 = nullptr;
     KvStoreNbDelegate::Option option1;
@@ -760,7 +760,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync012, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync013, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync013, TestSize.Level1)
 {
     KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
     KvStoreNbDelegate::Option option;
@@ -819,7 +819,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync014, TestSize.Level1)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync015, TestSize.Level1)
 {
     Key key = {'k'};
     Value expectValue = {'v'};
@@ -848,7 +848,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync015, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level1)
 {
     Key key = {'k', '1'};
     Value value1 = {'v', '1'};
@@ -878,7 +878,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync016, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync017, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync017, TestSize.Level1)
 {
     Key key = {'k'};
     Value value = {'v'};
@@ -897,7 +897,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync017, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync018, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync018, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get two Memory DB.
@@ -955,7 +955,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync018, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync019, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync019, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Value v1 = {'v', '1'};
@@ -974,7 +974,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync019, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync020, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync020, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Inserts a piece of data.
@@ -1009,7 +1009,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync020, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync021, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync021, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. store2 GetCloudVersion.
@@ -1094,7 +1094,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync022, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync023, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync023, TestSize.Level1)
 {
     Key k1 = {'k', '1'};
     Value v1 = {'v', '1'};
@@ -1116,7 +1116,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync023, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync024, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync024, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Device A inserts data and synchronizes, then Device B synchronizes.
@@ -1155,7 +1155,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync024, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync025, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync025, TestSize.Level1)
 {
     virtualCloudDb_->SetBlockTime(1000); // block query 1000ms
     auto option = g_CloudSyncoption;
@@ -1173,7 +1173,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync025, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create a database with the DEVICE_COLLABORATION mode on device1.
@@ -1216,7 +1216,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync026, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync027, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync027, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 1 record and sync.
@@ -1246,7 +1246,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync027, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync028, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync028, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 1 record and sync.
@@ -1327,7 +1327,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync029, TestSize.Level3)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync030, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync030, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Create a database.
@@ -1373,7 +1373,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync030, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync031, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync031, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 1 record and sync.
@@ -1404,7 +1404,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync031, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync032, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync032, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 10 records.
@@ -1451,7 +1451,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync032, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put local records {k1, v1} {k2, v2} and sync to cloud.
@@ -1496,7 +1496,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync033, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync034, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync034, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put data which size > maxUploadSize.
@@ -1542,7 +1542,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync034, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put local records {k1, v1} and sync to cloud.
@@ -1597,7 +1597,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync035, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put data and SetCloudSyncConfig.
@@ -1624,7 +1624,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync036, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync037, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync037, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
@@ -1670,7 +1670,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync037, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync038, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync038, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
@@ -1720,7 +1720,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync038, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync039, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync039, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. deviceA put {k1, v1} {k2, v2} and sync to cloud.
@@ -1774,7 +1774,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync039, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync040, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync040, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
@@ -1860,7 +1860,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync041, TestSize.Level1)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync042, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync042, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 10 records.
@@ -1921,7 +1921,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync042, TestSize.Level0)
  * @tc.require:
  * @tc.author: caihaoting
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 10 records.
@@ -1977,7 +1977,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync043, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync044, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync044, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. store1 put (k1,v1) and (k2,v2)
@@ -2033,7 +2033,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync044, TestSize.Level0)
  * @tc.require:
  * @tc.author: zhangtao
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. put 10 records.
@@ -2072,7 +2072,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync045, TestSize.Level0)
  * @tc.require:
  * @tc.author: chenghuitao
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. store1 put (k1,v1) and (k2,v2)
@@ -2128,7 +2128,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync046, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. put 20 records.
@@ -2179,7 +2179,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync047, TestSize.Level0)
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. deviceB put {k1, v1} {k2, v2} and sync to cloud
@@ -2220,7 +2220,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync048, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. put {k, v}
@@ -2282,7 +2282,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync049, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync050, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync050, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set the retry count to 1
@@ -2332,7 +2332,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync050, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyuchen
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync051, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync051, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set the retry count to 0
@@ -2382,7 +2382,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync051, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyuchen
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync052, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync052, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set the retry count to 2
@@ -2434,7 +2434,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync052, TestSize.Level0)
  * @tc.require:
  * @tc.author: suyuchen
  */
-HWTEST_F(DistributedDBCloudKvTest, NormalSync053, TestSize.Level0)
+HWTEST_F(DistributedDBCloudKvTest, NormalSync053, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Set the retry count to 0

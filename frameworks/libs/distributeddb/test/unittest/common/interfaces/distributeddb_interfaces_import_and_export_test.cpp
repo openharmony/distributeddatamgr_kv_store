@@ -1374,7 +1374,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
   * @tc.require:
   * @tc.author: zqq
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel001, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel001, TestSize.Level1)
 {
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
@@ -1421,7 +1421,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel001, Test
   * @tc.require:
   * @tc.author: liuhongyang
   */
-HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel002, TestSize.Level0)
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel002, TestSize.Level1)
 {
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);

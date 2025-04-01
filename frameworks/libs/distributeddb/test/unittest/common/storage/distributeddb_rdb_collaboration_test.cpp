@@ -195,7 +195,7 @@ void DistributedDBRDBCollaborationTest::CloseDb()
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -236,7 +236,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema002, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create cloud table in SPLIT_BY_DEVICE
@@ -265,7 +265,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema003, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -374,7 +374,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema005, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -456,7 +456,7 @@ std::string GetTriggerSql(const std::string &tableName, const std::string &trigg
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema007, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db
@@ -510,7 +510,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema007, TestSize.Level0)
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema008, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db
@@ -645,7 +645,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema012, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema013, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema013, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table
@@ -690,7 +690,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema013, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema014, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema014, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create auto increment table and specified pk, distributed schema without not null field
@@ -743,7 +743,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema014, TestSize.Level0)
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema015, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema015, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db, tableMode is COLLABORATION
@@ -841,7 +841,7 @@ int GetHashKey(sqlite3 *db, const std::string &tableName, std::vector<std::strin
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema017, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema017, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db
@@ -1048,7 +1048,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema021, TestSize.Level1)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema022, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema022, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table named keywords.
@@ -1104,7 +1104,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema023, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema024, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema024, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set distributed schema for the first time
@@ -1150,7 +1150,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema024, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync001, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1185,7 +1185,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync001, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync002, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1231,7 +1231,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync002, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync003, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1303,7 +1303,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync004, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync005, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1359,7 +1359,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync005, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync006, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1406,7 +1406,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync006, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync007, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync007, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1460,7 +1460,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync007, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1506,7 +1506,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync008, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync009, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync009, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1601,7 +1601,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1636,7 +1636,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create auto increment table and unique index
@@ -1698,7 +1698,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
  * @tc.require:
  * @tc.author: lg
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync013, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync013, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1752,7 +1752,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync013, TestSize.Level0)
  * @tc.require:
  * @tc.author: tankaisheng
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync014, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync014, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1813,7 +1813,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync014, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync015, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync015, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1881,7 +1881,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync015, TestSize.Level0)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync016, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync016, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Prepare db, tableMode is COLLABORATION
@@ -1922,7 +1922,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync016, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync017, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync017, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -1975,7 +1975,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync017, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync018, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync018, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2030,7 +2030,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync018, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync019, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync019, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2072,7 +2072,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync019, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync020, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync020, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2111,7 +2111,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync020, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync021, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync021, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2165,7 +2165,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync021, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync022, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync022, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2226,7 +2226,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync022, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync023, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync023, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2277,7 +2277,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync023, TestSize.Level0)
  * @tc.require:
  * @tc.author: lg
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync024, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync024, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION
@@ -2340,7 +2340,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync024, TestSize.Level0)
  * @tc.require:
  * @tc.author: liuhongyang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync025, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync025, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create SPLIT_BY_DEVICE tables
@@ -2417,7 +2417,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync025, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig001, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in SPLIT_BY_DEVICE
@@ -2496,7 +2496,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig003, TestSize.Level0)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync001, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Remote device set empty distributed schema
@@ -2655,7 +2655,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync004, TestSize.Level0)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync005, TestSize.Level0)
+HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. Create device table and cloud table in COLLABORATION

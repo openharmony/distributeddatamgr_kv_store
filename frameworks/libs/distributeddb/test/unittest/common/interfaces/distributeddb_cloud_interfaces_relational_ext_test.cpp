@@ -455,7 +455,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest001, TestSize.Level1)
 {
     UpdateTriggerTest(false);
 }
@@ -467,7 +467,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest001, Te
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest002, TestSize.Level1)
 {
     UpdateTriggerTest(true);
 }
@@ -479,7 +479,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, UpdateTriggerTest002, Te
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. prepare data.
@@ -1078,7 +1078,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Level1)
 {
     std::map<int, int> ans;
 #ifdef USE_FFRT
@@ -1143,7 +1143,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Level1)
 {
     std::map<int, int> ans;
 #ifdef USE_FFRT
@@ -1216,7 +1216,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
  * @tc.require:
  * @tc.author:
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Level1)
 {
     size_t count = 0;
     size_t num = 3000;
@@ -1345,7 +1345,7 @@ void CheckDataStatus(const std::string &tableName, const std::string &condition,
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and lock, hashKey has no matching data
@@ -1387,7 +1387,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest001, TestSiz
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, LockDataTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data and unLock, there is data to be compensated for

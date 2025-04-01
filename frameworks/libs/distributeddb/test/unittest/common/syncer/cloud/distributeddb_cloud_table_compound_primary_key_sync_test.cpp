@@ -143,7 +143,7 @@ namespace {
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -167,7 +167,7 @@ HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest001, Te
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -200,7 +200,7 @@ HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest002, Te
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -233,7 +233,7 @@ HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest003, Te
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -257,7 +257,7 @@ HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest004, Te
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -290,7 +290,7 @@ HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest005, Te
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableCompoundPrimaryKeySyncTest, CloudSyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge

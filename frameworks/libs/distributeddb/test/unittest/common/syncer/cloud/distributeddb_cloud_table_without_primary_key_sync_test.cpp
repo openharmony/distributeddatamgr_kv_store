@@ -208,7 +208,7 @@ namespace {
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -232,7 +232,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest001, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest002, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -265,7 +265,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest002, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest003, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud data and merge
@@ -298,7 +298,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest003, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -322,7 +322,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest004, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest005, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -355,7 +355,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest005, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest006, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest006, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -388,7 +388,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest006, Tes
  * @tc.require:
  * @tc.author: chenchaohao
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest007, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. insert cloud asset and merge
@@ -422,7 +422,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest007, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest001, TestSize.Level1)
 {
     std::vector<ChangeProperties> expectProperties = {
         g_onChangeProperties, g_unChangeProperties, g_onChangeProperties
@@ -438,7 +438,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest002, TestSize.Level1)
 {
     std::vector<ChangeProperties> expectProperties = {
         g_onChangeProperties, g_unChangeProperties, g_onChangeProperties
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest003, TestSize.Level1)
 {
     std::vector<ChangeProperties> expectProperties = {
         g_unChangeProperties, g_unChangeProperties, g_unChangeProperties
@@ -470,7 +470,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest004, TestSize.Level1)
 {
     std::vector<ChangeProperties> expectProperties = {
         g_onChangeProperties, g_onChangeProperties, g_onChangeProperties
@@ -486,7 +486,7 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest005, TestSize.Level1)
 {
     std::vector<ChangeProperties> expectProperties = {
         g_unChangeProperties, g_unChangeProperties, g_unChangeProperties

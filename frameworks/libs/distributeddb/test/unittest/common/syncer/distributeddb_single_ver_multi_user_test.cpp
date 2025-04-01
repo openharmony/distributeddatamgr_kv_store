@@ -300,7 +300,7 @@ void TestSyncWithUserChange(bool wait)
  * @tc.require: AR000CQS3S SR000CQE0B
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser001, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
@@ -376,7 +376,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser001, TestSize.Level0)
  * @tc.require: AR000CQS3S SR000CQE0B
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser002, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
@@ -512,7 +512,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
  * @tc.require: AR000E8S2T
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
@@ -588,7 +588,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level0)
  * @tc.require: AR000E8S2T
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser005, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser005, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. openstore1 and openstore2 in normal sync mode
@@ -623,7 +623,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser005, TestSize.Level0)
  * @tc.require: AR000E8S2T
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId1 can active
@@ -696,7 +696,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser007, TestSize.Level0)
  * @tc.require: AR000E8S2T
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser008, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser008, TestSize.Level1)
 {
     TestSyncWithUserChange(true);
 }
@@ -916,7 +916,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser014, TestSize.Level1)
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level0)
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. create sub user KvStoreDelegateManager
