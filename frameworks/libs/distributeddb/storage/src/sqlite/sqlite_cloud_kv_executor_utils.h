@@ -161,6 +161,8 @@ private:
 
     static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
         const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);
+
+    static int64_t GetModifyTime(int64_t timestamp);
 private:
     static void MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data,
         const std::string &user, size_t dataIndex);
