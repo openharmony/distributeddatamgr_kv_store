@@ -206,4 +206,37 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable003, TestSize.Level0)
 {
     DataStatusComplexTest(true);
 }
+
+/**
+ * @tc.name: CreateDistributedTableTest001
+ * @tc.desc: Test CreateDistributedTable interface after re-create table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRDBDataStatusTest, CreateDistributedTableTest001, TestSize.Level0)
+{
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    ASSERT_NO_FATAL_FAILURE(PrepareTableBasicEnv());
+    EXPECT_EQ(RDBGeneralUt::CreateDistributedTable(info1_, {DEVICE_SYNC_TABLE}), E_OK);
+
+    /**
+     * @tc.steps: step1. Drop table, and create same table that unique field are added.
+     * @tc.expected: step1. Ok
+     */
+    sqlite3 *db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    std::string newSql = "DROP TABLE DEVICE_SYNC_TABLE;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, newSql), SQLITE_OK);
+    newSql = "CREATE TABLE IF NOT EXISTS DEVICE_SYNC_TABLE('id' INTEGER PRIMARY KEY, new_field INTEGER UNIQUE);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, newSql), SQLITE_OK);
+
+    /**
+     * @tc.steps: step2. Create distributed table.
+     * @tc.expected: step2. OK
+     */
+    EXPECT_EQ(RDBGeneralUt::CreateDistributedTable(info1_, {DEVICE_SYNC_TABLE}), E_OK);
+}
 }

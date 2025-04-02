@@ -427,16 +427,27 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std:
     // new table should has same or compatible upgrade
     TableInfo tableInfo = schema.GetTable(tableName);
     errCode = tableInfo.CompareWithTable(newTableInfo, schema.GetSchemaVersion());
-    if (errCode == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
-        LOGE("[UpgradeDistributedTable] Not support with incompatible upgrade.");
-        return -E_SCHEMA_MISMATCH;
-    } else if (errCode == -E_RELATIONAL_TABLE_EQUAL) {
-        LOGD("[UpgradeDistributedTable] schema has not changed.");
-        // update table if tableName changed
-        schema.RemoveRelationalTable(tableName);
-        tableInfo.SetTableName(tableName);
-        schema.AddRelationalTable(tableInfo);
-        return E_OK;
+    bool onceDropped = false;
+    int ret = IsTableOnceDropped(tableName, onceDropped);
+    if (ret != E_OK) {
+        LOGE("[UpgradeDistributedTable] Get table %s dropped status fail %d.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), ret);
+        return ret;
+    }
+    LOGI("[UpgradeDistributedTable] table name is %s length is %zu, the dropped status is %d, errCode is %d",
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), onceDropped, errCode);
+    if (!onceDropped) {
+        if (errCode == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
+            LOGE("[UpgradeDistributedTable] Not support with incompatible upgrade.");
+            return -E_SCHEMA_MISMATCH;
+        } else if (errCode == -E_RELATIONAL_TABLE_EQUAL) {
+            LOGD("[UpgradeDistributedTable] schema has not changed.");
+            // update table if tableName changed
+            schema.RemoveRelationalTable(tableName);
+            tableInfo.SetTableName(tableName);
+            schema.AddRelationalTable(tableInfo);
+            return E_OK;
+        }
     }
 
     schemaChanged = true;

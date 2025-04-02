@@ -1134,7 +1134,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level1)
     RelationalStoreDelegate::Option option;
     ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
     ASSERT_NE(delegate_, nullptr);
-    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::SCHEMA_MISMATCH);
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::OK);
     ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
