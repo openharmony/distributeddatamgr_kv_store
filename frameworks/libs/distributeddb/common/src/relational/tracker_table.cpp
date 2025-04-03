@@ -81,7 +81,7 @@ const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
 const std::string TrackerTable::GetDiffTrackerValSql() const
 {
     if (trackerColNames_.empty() || isTrackerAction_) {
-        return isTrackerAction_ ? "1" : "0";
+        return isTrackerAction_ ? GetOnChangeType() : "0";
     }
     std::string sql = " CASE WHEN (";
     size_t index = 0;
@@ -92,7 +92,7 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
         }
         index++;
     }
-    sql += ") THEN 1 ELSE 0 END";
+    sql += ") THEN " + GetOnChangeType() + " ELSE 0 END";
     return sql;
 }
 
@@ -213,7 +213,7 @@ const std::string TrackerTable::GetTempInsertTriggerSql(bool incFlag) const
         sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
     }
     sql += " hash_key = NEW.hash_key;\n";
-    if (!IsEmpty()) {
+    if (!IsEmpty() && isTriggerObserver_) {
         sql += "SELECT server_observer('" + tableName_ + "', 1);";
     }
     sql += "\nEND;";
@@ -244,7 +244,7 @@ const std::string TrackerTable::GetTempUpdateTriggerSql(bool incFlag) const
         sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
     }
     sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    if (!IsEmpty()) {
+    if (!IsEmpty() && isTriggerObserver_) {
         sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql() + ");";
     }
     sql += "\nEND;";
@@ -277,7 +277,7 @@ const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
         sql.pop_back();
     }
     sql += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    if (!IsEmpty()) {
+    if (!IsEmpty() && isTriggerObserver_) {
         sql += "SELECT server_observer('" + tableName_ + "', 1);";
     }
     sql += "\nEND;";
@@ -381,6 +381,22 @@ int TrackerTable::ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum m
 void TrackerTable::SetTrackerAction(bool isTrackerAction)
 {
     isTrackerAction_ = isTrackerAction;
+}
+
+void TrackerTable::SetTriggerObserver(bool isTriggerObserver)
+{
+    isTriggerObserver_ = isTriggerObserver;
+}
+
+void TrackerTable::SetKnowledgeTable(bool isKnowledgeTable)
+{
+    isKnowledgeTable_ = isKnowledgeTable;
+}
+
+std::string TrackerTable::GetOnChangeType() const
+{
+    return isKnowledgeTable_ ? std::to_string(CloudDbConstant::ON_CHANGE_KNOWLEDGE) :
+        std::to_string(CloudDbConstant::ON_CHANGE_TRACKER);
 }
 }
 #endif

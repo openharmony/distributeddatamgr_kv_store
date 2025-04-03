@@ -752,7 +752,7 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
             }
         } else {
             LOGE("[AnalysisSchema] Step for the analysis create table sql and trigger failed:%d", err);
-            errCode = SQLiteUtils::MapSQLiteErrno(err);
+            errCode = err;
             break;
         }
     } while (true);

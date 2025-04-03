@@ -614,34 +614,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
 int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor,
     bool isOnlyTrackTable)
 {
-    std::string sql;
-    if (isOnlyTrackTable) {
-        sql = "DELETE FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log";
-    } else {
-        sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log SET extend_field = NULL";
-    }
-    sql += " where data_key = -1 and cursor <= ?;";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("get clean tracker data stmt failed %d.", errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, cursor);
-    int ret = E_OK;
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("bind clean tracker data stmt failed %d.", errCode);
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // LCOV_EXCL_BR_LINE
-        errCode = E_OK;
-    } else {
-        LOGE("clean tracker step failed: %d.", errCode);
-    }
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return errCode == E_OK ? ret : errCode;
+    return SQLiteRelationalUtils::CleanTrackerData(dbHandle_, tableName, cursor, isOnlyTrackTable);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchema &tableSchema)

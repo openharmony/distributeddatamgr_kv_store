@@ -1309,24 +1309,9 @@ int SQLiteSingleVerRelationalStorageExecutor::LogicDeleteCloudData(const std::st
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string &tableName)
+int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string &tableName) const
 {
-    Value key;
-    Value cursor;
-    DBCommon::StringToVector(DBCommon::GetCursorKey(tableName), key);
-    int errCode = GetKvData(key, cursor);
-    if (errCode == -E_NOT_FOUND) {
-        DBCommon::StringToVector(std::string("0"), cursor);
-        errCode = PutKvData(key, cursor);
-        if (errCode != E_OK) {
-            LOGE("Init cursor to meta table failed. %d", errCode);
-        }
-        return errCode;
-    }
-    if (errCode != E_OK) {
-        LOGE("Get cursor from meta table failed. %d", errCode);
-    }
-    return errCode;
+    return SQLiteRelationalUtils::InitCursorToMeta(dbHandle_, isMemDb_, tableName);
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::SetTableSchema(const TableSchema &tableSchema)

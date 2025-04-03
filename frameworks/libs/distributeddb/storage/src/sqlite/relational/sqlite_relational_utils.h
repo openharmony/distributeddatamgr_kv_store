@@ -68,6 +68,28 @@ public:
     static int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset);
 
     static std::pair<int, std::string> GetCurrentVirtualTime(sqlite3 *db);
+
+    static int CreateRelationalMetaTable(sqlite3 *db);
+
+    static int GetKvData(sqlite3 *db, bool isMemory, const Key &key, Value &value);
+    static int PutKvData(sqlite3 *db, bool isMemory, const Key &key, const Value &value);
+
+    static int InitCursorToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
+    static int SetLogTriggerStatus(sqlite3 *db, bool status);
+
+    struct GenLogParam {
+        sqlite3 *db = nullptr;
+        bool isMemory = false;
+        bool isTrackerTable = false;
+    };
+    static int GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param);
+
+    static int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isMem, int64_t &timeOffset);
+
+    static std::string GetExtendValue(const TrackerTable &trackerTable);
+
+    static int CleanTrackerData(sqlite3 *db, const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
