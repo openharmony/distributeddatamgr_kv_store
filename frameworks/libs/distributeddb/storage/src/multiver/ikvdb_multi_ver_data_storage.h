@@ -32,7 +32,7 @@ enum class KvDataType {
 };
 
 struct UpdateVerTimestamp {
-    uint64_t timestamp = 0ull;
+    uint64_t timestamp = 0uLL;
     bool isNeedUpdate = false;
 };
 
