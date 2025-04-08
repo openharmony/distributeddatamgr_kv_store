@@ -68,10 +68,9 @@ std::string StoreFactory::GenerateKey(const std::string &userId, const std::stri
 }
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
-    const Options &options, Status &status, bool &isCreate)
+    const Options &options, Status &status, StoreParams &storeParams)
 {
     std::shared_ptr<SingleStoreImpl> kvStore;
-    isCreate = false;
     auto key = GenerateKey(std::to_string(options.subUser), storeId.storeId);
     stores_.Compute(appId, [&](auto &, auto &stores) {
         if (stores.find(key) != stores.end()) {
@@ -120,9 +119,11 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
             return !stores.empty();
         }
-        isCreate = true;
         stores[key] = kvStore;
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
+        storeParams.isCreate = true;
+        storeParams.password = dbPassword;
+        dbPassword.Clear();
         return !stores.empty();
     });
     return kvStore;

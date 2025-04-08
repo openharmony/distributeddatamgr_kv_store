@@ -16,6 +16,7 @@
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 #include "single_kvstore.h"
 #include "kv_hiview_reporter.h"
+#include "store_factory.h"
 namespace OHOS::DistributedKv {
 class StoreManager {
 public:
@@ -33,7 +34,7 @@ public:
 
 private:
     std::shared_ptr<SingleKvStore> OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-        const Options &options, Status &status, bool &isCreate);
+        const Options &options, Status &status, StoreParams &storeParams);
 };
 }
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H

@@ -22,11 +22,16 @@
 #include "security_manager.h"
 #include "single_store_impl.h"
 namespace OHOS::DistributedKv {
+struct StoreParams {
+    bool isCreate = false;
+    SecurityManager::DBPassword password;
+};
 class StoreFactory {
 public:
+    using DBPassword = DistributedKv::SecurityManager::DBPassword;
     static StoreFactory &GetInstance();
     std::shared_ptr<SingleKvStore> GetOrOpenStore(const AppId &appId, const StoreId &storeId, const Options &options,
-        Status &status, bool &isCreate);
+        Status &status, StoreParams &storeParams);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser = 0, bool isForce = false);
 
@@ -35,7 +40,6 @@ private:
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBStatus = DistributedDB::DBStatus;
-    using DBPassword = DistributedKv::SecurityManager::DBPassword;
 
     static constexpr int REKEY_TIMES = 3;
     static constexpr const char *REKEY_NEW = ".new";
