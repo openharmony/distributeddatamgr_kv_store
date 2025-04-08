@@ -456,9 +456,9 @@ std::pair<TimeOffset, TimeOffset> TimeSync::CalculateTimeOffset(const TimeSyncPa
     TimeOffset roundTrip = static_cast<TimeOffset>((timeSyncInfo.GetSourceTimeEnd() -
         timeSyncInfo.GetSourceTimeBegin()) - (timeSyncInfo.GetTargetTimeEnd() - timeSyncInfo.GetTargetTimeBegin()));
     TimeOffset offset1 = static_cast<TimeOffset>(timeSyncInfo.GetTargetTimeBegin() -
-        timeSyncInfo.GetSourceTimeBegin() - (roundTrip / TRIP_DIV_HALF));
-    TimeOffset offset2 = static_cast<TimeOffset>(timeSyncInfo.GetTargetTimeEnd() + (roundTrip / TRIP_DIV_HALF) -
-        timeSyncInfo.GetSourceTimeEnd());
+        timeSyncInfo.GetSourceTimeBegin()) - (roundTrip / TRIP_DIV_HALF);
+    TimeOffset offset2 = static_cast<TimeOffset>(timeSyncInfo.GetTargetTimeEnd() - timeSyncInfo.GetSourceTimeEnd()) +
+        (roundTrip / TRIP_DIV_HALF);
     TimeOffset offset = (offset1 / TRIP_DIV_HALF) + (offset2 / TRIP_DIV_HALF);
     LOGD("TimeSync::CalculateTimeOffset roundTrip= %" PRId64 ", offset1 = %" PRId64 ", offset2 = %" PRId64
         ", offset = %" PRId64, roundTrip, offset1, offset2, offset);
