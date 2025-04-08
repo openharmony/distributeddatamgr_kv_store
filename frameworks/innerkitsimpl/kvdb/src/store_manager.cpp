@@ -75,6 +75,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
             service->AfterCreate(appId, storeId, options, pwd);
         }
         pwd.assign(pwd.size(), 0);
+        storeParams.password.Clear();
     }
     return kvStore;
 }
