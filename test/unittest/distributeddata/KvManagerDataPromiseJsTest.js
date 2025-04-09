@@ -864,7 +864,7 @@ describe('KvManagerPromiseTest', function () {
                 expect(null).assertFail()
             });
         }catch (e) {
-            console.error('CreateKVManagerPromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('CreateKVManagerPromiseTest001 promise delete fail err' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
@@ -913,7 +913,7 @@ describe('KvManagerPromiseTest', function () {
                 expect(null).assertFail()
             });
         }catch (e) {
-            console.error('CreateKVManagerPromiseTest002 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('CreateKVManagerPromiseTest002 promise delete fail err' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();

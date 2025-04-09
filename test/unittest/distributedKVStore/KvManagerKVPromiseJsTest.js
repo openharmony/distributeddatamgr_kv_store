@@ -709,7 +709,7 @@ describe('KVManagerPromiseTest', function () {
                     expect(null).assertFail();
                 });
         } catch (e) {
-            console.error('CreateKVManagerPromiseFullFuncTest promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('CreateKVManagerPromiseFullFuncTest promise delete fail err' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();

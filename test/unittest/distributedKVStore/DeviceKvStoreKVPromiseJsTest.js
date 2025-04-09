@@ -141,7 +141,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
             kvStore = null;
         } catch (e) {
-            console.error('afterEach closeKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('afterEach closeKVStore err ' + `, error code is ${e.code}, message is ${e.message}`);
         }
     })
 
