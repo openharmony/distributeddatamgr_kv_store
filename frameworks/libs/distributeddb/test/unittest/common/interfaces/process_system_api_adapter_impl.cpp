@@ -38,8 +38,7 @@ namespace {
 ProcessSystemApiAdapterImpl::ProcessSystemApiAdapterImpl()
     : callback_(nullptr),
       isLocked_(false),
-      createDb_(false),
-      needValidateBeforeSet_(false)
+      createDb_(false)
 {
 }
 
@@ -59,19 +58,6 @@ bool ProcessSystemApiAdapterImpl::IsAccessControlled() const
     return isLocked_;
 }
 
-bool ProcessSystemApiAdapterImpl::SetSecurityOptionInner(const std::string &filePath, const SecurityOption &option)
-{
-    // file manager will return fail when trying to lower a secOpt
-    if (needValidateBeforeSet_ &&
-        pathSecOptDic_.find(filePath) != pathSecOptDic_.end() &&
-        pathSecOptDic_[filePath].securityLabel >= option.securityLabel) {
-        LOGW("[AdapterImpl] found path secOpt!");
-        return pathSecOptDic_[filePath] == option;
-    }
-    pathSecOptDic_[filePath] = option;
-    return true;
-}
-
 DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &filePath, const SecurityOption &option)
 {
     bool isExisted = OS::CheckPathExistence(filePath);
@@ -85,13 +71,10 @@ DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &fileP
     DIR *dirPtr = opendir(filePath.c_str());
     if (dirPtr == nullptr) {
         LOGD("set path secOpt![%s] [%d] [%d]", filePath.c_str(), option.securityFlag, option.securityLabel);
-        if (!SetSecurityOptionInner(filePath, option)) {
-            return DB_ERROR;
-        }
+        pathSecOptDic_[filePath] = option;
         return OK;
     }
 
-    bool success = true;
     while (true) {
         direntPtr = readdir(dirPtr);
         // condition to exit the loop
@@ -108,20 +91,17 @@ DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &fileP
         if (direntPtr->d_type == DT_DIR) {
             SetSecurityOption(dirName, option);
             std::lock_guard<std::mutex> lock(adapterlock_);
-            success = SetSecurityOptionInner(dirName, option) && success;
+            pathSecOptDic_[dirName] = option;
             LOGD("set path secOpt![%s] [%d] [%d]", dirName.c_str(), option.securityFlag, option.securityLabel);
         } else {
             std::lock_guard<std::mutex> lock(adapterlock_);
-            success = SetSecurityOptionInner(dirName, option) && success;
+            pathSecOptDic_[dirName] = option;
             LOGD("set path secOpt![%s] [%d] [%d]", dirName.c_str(), option.securityFlag, option.securityLabel);
             continue;
         }
     }
     closedir(dirPtr);
-    success = SetSecurityOptionInner(filePath, option) && success;
-    if (!success) {
-        return DB_ERROR;
-    }
+    pathSecOptDic_[filePath] = option;
     return OK;
 }
 
@@ -175,13 +155,6 @@ void ProcessSystemApiAdapterImpl::SetNeedCreateDb(bool isCreate)
 {
     std::lock_guard<std::mutex> lock(adapterlock_);
     createDb_ = isCreate;
-}
-
-void ProcessSystemApiAdapterImpl::SetNeedValidateBeforeSet(bool needValid)
-{
-    std::lock_guard<std::mutex> lock(adapterlock_);
-    LOGW("[AdapterImpl] need valid before set is set to [%d]", needValid);
-    needValidateBeforeSet_ = needValid;
 }
 
 void ProcessSystemApiAdapterImpl::ResetSecOptDic()

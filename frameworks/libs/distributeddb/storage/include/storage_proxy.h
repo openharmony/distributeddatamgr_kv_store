@@ -87,8 +87,6 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
-    int ClearCloudLogVersion(const std::vector<std::string> &tableNameList);
-
     int CheckSchema(const TableName &tableName) const;
 
     int CheckSchema(std::vector<std::string> &tables);

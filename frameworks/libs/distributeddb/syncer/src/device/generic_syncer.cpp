@@ -388,11 +388,11 @@ void GenericSyncer::AddSyncOperation(ISyncEngine *engine, SyncOperation *operati
         return;
     }
 
-    LOGD("[Syncer] AddSyncOperation, sync id: %" PRIu32 ".", operation->GetSyncId());
+    LOGD("[Syncer] AddSyncOperation, sync id: %d.", operation->GetSyncId());
     engine->AddSyncOperation(operation);
 
     if (operation->CheckIsAllFinished()) {
-        LOGD("[Syncer] AddSyncOperation, sync id: %" PRIu32 ", but all finished.", operation->GetSyncId());
+        LOGD("[Syncer] AddSyncOperation, sync id: %d, but all finished.", operation->GetSyncId());
         return;
     }
 

@@ -108,7 +108,6 @@ void VirtualCommunicatorAggregator::RunOnConnectCallback(const std::string &targ
 
 int VirtualCommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
 {
-    // no work with using virtual communicator
     std::lock_guard<std::mutex> lock(localDeviceIdMutex_);
     if (localDeviceId_.empty()) {
         outTarget = "DEVICES_A";
@@ -404,16 +403,5 @@ void VirtualCommunicatorAggregator::MockCommErrCode(int mockErrCode)
 void VirtualCommunicatorAggregator::MockDirectEndFlag(bool isDirectEnd)
 {
     isDirectEnd_ = isDirectEnd;
-}
-
-void VirtualCommunicatorAggregator::ClearOnlineLabel()
-{
-}
-
-void VirtualCommunicatorAggregator::SetRemoteDeviceId(const std::string &dev)
-{
-    std::lock_guard<std::mutex> autoLock(communicatorsLock_);
-    remoteDeviceId_ = dev;
-    LOGI("[VirtualCommunicatorAggregator] Set dev %s", dev.c_str());
 }
 } // namespace DistributedDB

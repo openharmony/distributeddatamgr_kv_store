@@ -148,7 +148,6 @@ public:
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets,
         std::vector<std::string> &notifyTableList);
-    int DoClearCloudLogVersion(const std::vector<std::string> &tableNameList);
 
     int FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema, const CloudSyncBatch &data);
     int FillCloudVersionForUpload(const OpType opType, const CloudSyncData &data);
@@ -182,8 +181,7 @@ public:
     int CheckIfExistUserTable(const std::string &tableName);
 
     void SetLogicDelete(bool isLogicDelete);
-    int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
-        const std::string &localIdentity = "");
+    int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
 
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets);
@@ -199,7 +197,7 @@ public:
 
     void SetMarkFlagOption(MarkFlagOption option);
 
-    int UpgradedLogForExistedData(const TableInfo &tableInfo, bool schemaChanged);
+    int UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged);
 
     int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
@@ -239,6 +237,7 @@ public:
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
+
     int GetDownloadingAssetsCount(const TableSchema &tableSchema, int32_t &totalCount);
 
     int GetDownloadingCount(const std::string &tableName, int32_t &count);
@@ -271,8 +270,6 @@ private:
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
     int CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode);
-
-    int ClearVersionOnLogTable(const std::string &logTableName);
 
     int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName,
         const RelationalSchemaObject &localSchema);
@@ -310,7 +307,7 @@ private:
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
     int SaveSyncDataItem(const DataItem &dataItem, bool isUpdate, SaveSyncDataStmt &saveStmt,
-        RelationalSyncDataInserter &inserter, std::map<std::string, Type> &saveVals);
+        RelationalSyncDataInserter &inserter, int64_t &rowid);
 
     int DeleteSyncDataItem(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt);
 

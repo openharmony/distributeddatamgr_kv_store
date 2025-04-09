@@ -85,16 +85,6 @@ void BlockSync(const Query &query, RelationalStoreDelegate *delegate, SyncMode s
     LOGW("end call sync");
 }
 
-int QueryCountCallback(void *data, int count, char **colValue, char **colName)
-{
-    if (count != 1) {
-        return 0;
-    }
-    auto expectCount = reinterpret_cast<int64_t>(data);
-    EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount); // 10: decimal
-    return 0;
-}
-
 class  DistributedDBCloudAssetsOperationSyncTest : public testing::Test {
 public:
     static void SetUpTestCase();
@@ -116,7 +106,6 @@ protected:
     void ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount, int &removeCount);
     void InsertLocalAssetData(const std::string &assetHash);
     void InsertCloudAssetData(const std::string &assetHash);
-    void DeleteCloudDBData(int64_t beginGid, int64_t count, const std::string &tableName);
     void PrepareForAssetOperation010();
     void UpdateAssetWhenSyncUpload();
     DBStatus InsertRecordToCloud(const std::vector<VBucket> &record);
@@ -883,22 +872,6 @@ void DistributedDBCloudAssetsOperationSyncTest::InsertCloudAssetData(const std::
     log.insert_or_assign(DistributedDB::CloudDbConstant::DELETE_FIELD, false);
     extend.push_back(log);
     virtualCloudDb_->BatchInsert(tableName_, std::move(record), extend);
-}
-
-void DistributedDBCloudAssetsOperationSyncTest::DeleteCloudDBData(int64_t beginGid, int64_t count,
-    const std::string &tableName)
-{
-    Timestamp now = TimeHelper::GetSysCurrentTime();
-    std::vector<VBucket> extend;
-    for (int64_t i = 0; i < count; ++i) {
-        VBucket log;
-        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
-        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
-        log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(beginGid + i));
-        extend.push_back(log);
-    }
-    ASSERT_EQ(virtualCloudDb_->BatchDelete(tableName, extend), DBStatus::OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(count));
 }
 
 void DistributedDBCloudAssetsOperationSyncTest::PrepareForAssetOperation010()
@@ -1779,52 +1752,6 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, BatchAbnormalDownloadAsset00
     EXPECT_EQ(virtualAssetLoader_->GetBatchDownloadCount(), 2u); // download 2 times
     EXPECT_EQ(virtualAssetLoader_->GetBatchRemoveCount(), 0u);   // remove 0 times
     RuntimeContext::GetInstance()->SetBatchDownloadAssets(false);
-}
-
-/**
- * @tc.name: SyncWithLogFlag001
- * @tc.desc: Test cloud update to local, flag will change.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lg
- */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Insert 5 records and sync.
-     * @tc.expected: step1. ok.
-     */
-    const int actualCount = 5;
-    RelationalTestUtils::InsertCloudRecord(0, actualCount, tableName_, virtualCloudDb_);
-    InsertUserTableRecord(tableName_, 0, actualCount);
-    /**
-     * @tc.steps:step2. modify data and sync, check flag count.
-     * @tc.expected: step2. ok.
-     */
-    UpdateCloudTableRecord(0, 3, true);
-    Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
-    string checkSql = "select count(*) from naturalbase_rdb_aux_" + tableName_ + "_log where flag&0x4000=0x4000;";
-    EXPECT_EQ(sqlite3_exec(db_, checkSql.c_str(), QueryCountCallback,
-                reinterpret_cast<void *>(3u), nullptr), SQLITE_OK);
-    /**
-     * @tc.steps:step3. delete local data and sync, check flag count.
-     * @tc.expected: step3. ok.
-     */
-    std::string sql = "delete from " + tableName_ + " where id = 0;" ;
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), SQLITE_OK);
-    BlockSync(query, delegate_);
-    EXPECT_EQ(sqlite3_exec(db_, checkSql.c_str(), QueryCountCallback,
-                reinterpret_cast<void *>(2u), nullptr), SQLITE_OK);
-
-    /**
-     * @tc.steps:step4. delete cloud data and sync, check flag count.
-     * @tc.expected: step4. ok.
-     */
-    DeleteCloudDBData(1, 1, tableName_);
-    BlockSync(query, delegate_);
-    EXPECT_EQ(sqlite3_exec(db_, checkSql.c_str(), QueryCountCallback,
-                reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
 }
 }
 #endif

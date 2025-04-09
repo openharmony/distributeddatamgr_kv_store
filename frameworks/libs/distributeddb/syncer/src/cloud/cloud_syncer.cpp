@@ -1714,12 +1714,6 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     return errCode;
 }
 
-int CloudSyncer::ClearCloudWatermark(const std::vector<std::string> &tableNameList)
-{
-    std::lock_guard<std::mutex> lock(syncMutex_);
-    return CloudSyncUtils::ClearCloudWatermark(tableNameList, storageProxy_);
-}
-
 int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameList)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);
@@ -2184,5 +2178,11 @@ void CloudSyncer::ModifyDownLoadInfoCount(const int errorCode, InnerProcessInfo 
     } else {
         info.downLoadInfo.successCount -= 1;
     }
+}
+
+Timestamp CloudSyncer::GetResumeWaterMark(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return resumeTaskInfos_[taskId].lastLocalWatermark;
 }
 } // namespace DistributedDB

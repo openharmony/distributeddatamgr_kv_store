@@ -35,6 +35,7 @@ using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
+    RelationalStoreObserverUnitTest *g_observer = nullptr;
     std::shared_ptr<std::string> g_testDir = nullptr;
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     const std::string DEVICE_A = "real_device";
@@ -133,7 +134,7 @@ namespace {
     }
 
     DBStatus OpenDelegate(const std::string &dlpPath, RelationalStoreDelegate *&rdbDelegatePtr,
-        RelationalStoreObserverUnitTest *&observer, RelationalStoreManager &mgr, sqlite3 *&db)
+        RelationalStoreManager &mgr, sqlite3 *&db)
     {
         if (g_testDir == nullptr) {
             return DB_ERROR;
@@ -144,8 +145,8 @@ namespace {
         db = RelationalTestUtils::CreateDataBase(dbPath);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_SINGLE_PRIMARY_KEY_TABLE), SQLITE_OK);
-        observer = new (std::nothrow) RelationalStoreObserverUnitTest();
-        RelationalStoreDelegate::Option option = { .observer = observer };
+        g_observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+        RelationalStoreDelegate::Option option = { .observer = g_observer };
         return mgr.OpenStore(dbPath, STORE_ID_1, option, rdbDelegatePtr);
     }
 
@@ -177,20 +178,20 @@ namespace {
         EXPECT_EQ(mgr.DeleteKvStore(storeID), OK);
     }
 
-    void CloseDelegate(RelationalStoreDelegate *&delegatePtr, RelationalStoreObserverUnitTest *&observer,
-        RelationalStoreManager &mgr, sqlite3 *&db)
+    void CloseDelegate(RelationalStoreDelegate *&delegatePtr, RelationalStoreManager &mgr, sqlite3 *&db)
     {
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
         db = nullptr;
-        if (delegatePtr != nullptr) {
-            EXPECT_EQ(mgr.CloseStore(delegatePtr), OK);
-            delegatePtr = nullptr;
-        }
-        if (observer == nullptr) {
+        if (delegatePtr == nullptr) {
             return;
         }
-        delete observer;
-        observer = nullptr;
+        EXPECT_EQ(mgr.CloseStore(delegatePtr), OK);
+        delegatePtr = nullptr;
+        if (g_observer == nullptr) {
+            return;
+        }
+        delete g_observer;
+        g_observer = nullptr;
     }
 
 class DistributedDBSingleVerMultiSubUserTest : public testing::Test {
@@ -513,29 +514,26 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, RDBDelegateInvalidParamTest001,
     RelationalStoreManager mgr1(APP_ID, USER_ID, subUser1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    RelationalStoreObserverUnitTest *observer1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, observer1, mgr1, db1), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr1, nullptr);
-    CloseDelegate(rdbDelegatePtr1, observer1, mgr1, db1);
+    CloseDelegate(rdbDelegatePtr1, mgr1, db1);
 
     std::string subUser2 = "subUser-1";
     RelationalStoreManager mgr2(APP_ID, USER_ID, subUser2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    RelationalStoreObserverUnitTest *observer2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr2, observer2, mgr2, db2), INVALID_ARGS);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr2, mgr2, db2), INVALID_ARGS);
     ASSERT_EQ(rdbDelegatePtr2, nullptr);
-    CloseDelegate(rdbDelegatePtr2, observer2, mgr2, db2);
+    CloseDelegate(rdbDelegatePtr2, mgr2, db2);
 
     std::string subUser3 = std::string(128, 'a');
     RelationalStoreManager mgr3(APP_ID, USER_ID, subUser3, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr3 = nullptr;
     sqlite3 *db3;
-    RelationalStoreObserverUnitTest *observer3 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr3, observer3, mgr3, db3), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr3, mgr3, db3), OK);
     ASSERT_NE(rdbDelegatePtr3, nullptr);
 
-    CloseDelegate(rdbDelegatePtr3, observer3, mgr3, db3);
+    CloseDelegate(rdbDelegatePtr3, mgr3, db3);
 }
 
 /**
@@ -589,15 +587,13 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SameDelegateTest002, TestSize.L
     RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    RelationalStoreObserverUnitTest *observer1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, observer1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
 
     RelationalStoreManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    RelationalStoreObserverUnitTest *observer2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, observer2, mgr2, db2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, mgr2, db2), OK);
     ASSERT_NE(rdbDelegatePtr2, nullptr);
 
     int localCount = 10;
@@ -617,8 +613,8 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SameDelegateTest002, TestSize.L
     EXPECT_EQ(sqlite3_exec(db2, sql1.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
-    CloseDelegate(rdbDelegatePtr1, observer1, mgr1, db1);
-    CloseDelegate(rdbDelegatePtr2, observer2, mgr2, db2);
+    CloseDelegate(rdbDelegatePtr1, mgr1, db1);
+    CloseDelegate(rdbDelegatePtr2, mgr2, db2);
 }
 
 /**
@@ -633,8 +629,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest001, Tes
     RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    RelationalStoreObserverUnitTest *observer1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, observer1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
 
     int localCount = 10;
@@ -653,7 +648,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCRUDTest001, Tes
     EXPECT_EQ(sqlite3_exec(db1, sql1.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
-    CloseDelegate(rdbDelegatePtr1, observer1, mgr1, db1);
+    CloseDelegate(rdbDelegatePtr1, mgr1, db1);
 }
 
 /**
@@ -742,16 +737,14 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002
     RelationalStoreManager mgr1(APP_ID, USER_ID, SUB_USER_1, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr1 = nullptr;
     sqlite3 *db1;
-    RelationalStoreObserverUnitTest *observer1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, observer1, mgr1, db1), OK);
+    EXPECT_EQ(OpenDelegate("/subUser1", rdbDelegatePtr1, mgr1, db1), OK);
     ASSERT_NE(rdbDelegatePtr1, nullptr);
     EXPECT_EQ(SetCloudDB(rdbDelegatePtr1), OK);
 
     RelationalStoreManager mgr2(APP_ID, USER_ID, SUB_USER_2, INSTANCE_ID_1);
     RelationalStoreDelegate *rdbDelegatePtr2 = nullptr;
     sqlite3 *db2;
-    RelationalStoreObserverUnitTest *observer2 = nullptr;
-    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, observer2, mgr2, db2), OK);
+    EXPECT_EQ(OpenDelegate("/subUser2", rdbDelegatePtr2, mgr2, db2), OK);
     ASSERT_NE(rdbDelegatePtr2, nullptr);
     EXPECT_EQ(SetCloudDB(rdbDelegatePtr2), OK);
 
@@ -765,8 +758,8 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002
     EXPECT_EQ(sqlite3_exec(db2, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(10), nullptr), SQLITE_OK);
 
-    CloseDelegate(rdbDelegatePtr1, observer1, mgr1, db1);
-    CloseDelegate(rdbDelegatePtr2, observer2, mgr2, db2);
+    CloseDelegate(rdbDelegatePtr1, mgr1, db1);
+    CloseDelegate(rdbDelegatePtr2, mgr2, db2);
 }
 #endif
 

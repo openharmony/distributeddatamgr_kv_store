@@ -59,26 +59,6 @@ namespace {
         sqlite3_close(db);
     }
 
-    string GetCreateTableSql(const string tableName)
-    {
-        return "CREATE TABLE IF NOT EXISTS " + tableName + "(name Text PRIMARY KEY);";
-    }
-
-    void CreateTables()
-    {
-        sqlite3 *db = nullptr;
-        int errCode = sqlite3_open(g_storePath.c_str(), &db);
-        if (errCode != SQLITE_OK) {
-            LOGE("open db failed:%d", errCode);
-            sqlite3_close(db);
-            return;
-        }
-
-        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, GetCreateTableSql(TABLE_NAME_1).c_str()), E_OK);
-        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, GetCreateTableSql(TABLE_NAME_2).c_str()), E_OK);
-        sqlite3_close(db);
-    }
-
     void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
         RelationalDBProperties &properties)
     {
@@ -406,81 +386,5 @@ namespace {
         EXPECT_EQ(obj.StartTransaction(TransactType::DEFERRED), -E_INVALID_DB);
         EXPECT_EQ(obj.ClearAllTempSyncTrigger(), -E_INVALID_DB);
         EXPECT_EQ(obj.SetIAssetLoader(nullptr), -E_INVALID_DB);
-    }
-
-    /**
-     * @tc.name: ClearMetaDataTest001
-     * @tc.desc: Check option mode
-     * @tc.type: FUNC
-     * @tc.require:
-     * @tc.author: lhy
-     */
-    HWTEST_F(DistributedDBCloudMetaDataTest, ClearMetaDataTest001, TestSize.Level0)
-    {
-        /**
-         * @tc.steps: step1. Call ClearMetaData with invalid mode
-         * @tc.expected: step1. return INVALID_ARGS.
-         */
-        ClearMetaDataOption option;
-        option.mode = ClearMetaDataMode::BUTT;
-        EXPECT_EQ(option.tableNameList.size(), 0u);
-        EXPECT_EQ(g_delegate->ClearMetaData(option), INVALID_ARGS);
-        /**
-         * @tc.steps: step2. Call ClearMetaData with valid mode
-         * @tc.expected: step2. return OK.
-         */
-        option.mode = ClearMetaDataMode::CLOUD_WATERMARK;
-        EXPECT_EQ(g_delegate->ClearMetaData(option), OK);
-    }
-
-    /**
-     * @tc.name: ClearMetaDataTest002
-     * @tc.desc: Check the meta data are cleared based on the tableNameList
-     * @tc.type: FUNC
-     * @tc.require:
-     * @tc.author: lhy
-     */
-    HWTEST_F(DistributedDBCloudMetaDataTest, ClearMetaDataTest002, TestSize.Level0)
-    {
-        /**
-         * @tc.steps: step1. Create the distributed table and set water mark
-         * @tc.expected: step1. OK
-         */
-        CreateTables();
-        ASSERT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME_1, CLOUD_COOPERATION), OK);
-        ASSERT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME_2, CLOUD_COOPERATION), OK);
-        SetAndGetWaterMark(TABLE_NAME_1, "cloudMark1");
-        SetAndGetWaterMark(TABLE_NAME_2, "cloudMark2");
-        /**
-         * @tc.steps: step2. Call ClearMetaData with empty list
-         * @tc.expected: step2. Meta data of all tables are cleared
-         */
-        ClearMetaDataOption option;
-        EXPECT_EQ(option.tableNameList.size(), 0u);
-        EXPECT_EQ(g_delegate->ClearMetaData(option), OK);
-        std::string retMark1;
-        std::string retMark2;
-        g_storageProxy = GetStorageProxy((ICloudSyncStorageInterface *) GetRelationalStore());
-        EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_1, retMark1), E_OK);
-        EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_2, retMark2), E_OK);
-        EXPECT_EQ(retMark1, "");
-        EXPECT_EQ(retMark2, "");
-        /**
-         * @tc.steps: step3. Set water mark for 2 tables
-         * @tc.expected: step3. OK
-         */
-        SetAndGetWaterMark(TABLE_NAME_1, "cloudMark1");
-        SetAndGetWaterMark(TABLE_NAME_2, "cloudMark2");
-        /**
-         * @tc.steps: step4. Call ClearMetaData with one table
-         * @tc.expected: step4. Return NOT_SUPPORT and meta is not cleared
-         */
-        option.tableNameList.insert(TABLE_NAME_1);
-        EXPECT_EQ(g_delegate->ClearMetaData(option), NOT_SUPPORT);
-        g_storageProxy = GetStorageProxy((ICloudSyncStorageInterface *) GetRelationalStore());
-        EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_1, retMark1), E_OK);
-        EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_2, retMark2), E_OK);
-        EXPECT_EQ(retMark1, "cloudMark1");
-        EXPECT_EQ(retMark2, "cloudMark2");
     }
 }

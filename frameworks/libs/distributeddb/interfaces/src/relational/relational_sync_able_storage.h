@@ -179,8 +179,6 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) override;
 
-    int ClearCloudLogVersion(const std::vector<std::string> &tableNameList) override;
-
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
     int FillCloudAssetForAsyncDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
@@ -291,8 +289,6 @@ protected:
     int ReviseLocalModTime(const std::string &tableName,
         const std::vector<ReviseModTimeInfo> &revisedData) override;
 
-    bool IsSetDistributedSchema(const std::string &tableName, RelationalSchemaObject &schemaObj);
-
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -380,8 +376,6 @@ private:
     CloudUploadRecorder uploadRecorder_;
 
     std::map<std::string, std::pair<uint64_t, uint64_t>> cursorChangeMap_;
-
-    std::mutex cursorChangeMutex_;
 };
 }  // namespace DistributedDB
 #endif

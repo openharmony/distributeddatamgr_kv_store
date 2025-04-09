@@ -14,15 +14,14 @@
  */
 
 #include "sqlite_relational_utils.h"
-#include "cloud/cloud_db_constant.h"
-#include "cloud/cloud_db_types.h"
-#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "cloud/cloud_db_types.h"
+#include "sqlite_utils.h"
+#include "cloud/cloud_storage_utils.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
-#include "sqlite_utils.h"
-#include "time_helper.h"
+#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value)
@@ -426,9 +425,8 @@ int SQLiteRelationalUtils::QueryCount(sqlite3 *db, const std::string &tableName,
     } else {
         LOGE("Failed to get the count. %d", errCode);
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 
 int SQLiteRelationalUtils::GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor)
@@ -653,27 +651,6 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
     return E_OK;
 }
 
-int CheckDistributedSchemaTables(const RelationalSchemaObject &schemaObj, const DistributedSchema &schema)
-{
-    auto localSchema = schemaObj.GetDistributedSchema();
-    if (schema.tables.size() < localSchema.tables.size()) {
-        LOGE("[RDBUtils][CheckDistributedSchemaTables] the number of tables should not decrease");
-        return -E_DISTRIBUTED_FIELD_DECREASE;
-    }
-    std::map<std::string, std::vector<DistributedField>, CaseInsensitiveComparator> tableSchemaMap;
-    for (const auto &table : schema.tables) {
-        tableSchemaMap[table.tableName] = table.fields;
-    }
-    for (const auto &table : localSchema.tables) {
-        if (tableSchemaMap.find(table.tableName) == tableSchemaMap.end()) {
-            LOGE("[RDBUtils][CheckDistributedSchemaTables] table [%s [%zu]] missing",
-                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size());
-            return -E_DISTRIBUTED_FIELD_DECREASE;
-        }
-    }
-    return E_OK;
-}
-
 int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj,
     const DistributedSchema &schema, SQLiteSingleVerRelationalStorageExecutor *executor)
 {
@@ -685,11 +662,6 @@ int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObj
     int errCode = executor->GetDbHandle(db);
     if (errCode != E_OK) {
         LOGE("[RDBUtils][CheckDistributedSchemaValid] sqlite handle failed %d", errCode);
-        return errCode;
-    }
-    errCode = CheckDistributedSchemaTables(schemaObj, schema);
-    if (errCode != E_OK) {
-        LOGE("[RDBUtils][CheckDistributedSchemaValid] Check tables fail %d", errCode);
         return errCode;
     }
     for (const auto &table : schema.tables) {
@@ -811,91 +783,5 @@ int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTab
         errCode = SQLiteRelationalUtils::GetLogData(queryStmt, logInfoGet);
     }
     return errCode;
-}
-
-int SQLiteRelationalUtils::OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables)
-{
-    auto [errCode, time] = GetCurrentVirtualTime(db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    LOGI("[SQLiteRDBUtils] %zu tables wait for update time to %s", tables.size(), time.c_str());
-    for (const auto &table : tables) {
-        errCode = UpdateLocalDataModifyTime(db, table, time);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteRDBUtils] %s table len %zu operate failed %d", DBCommon::StringMiddleMasking(table).c_str(),
-                table.size(), errCode);
-            break;
-        }
-    }
-    if (errCode == E_OK) {
-        LOGI("[SQLiteRDBUtils] Operate data all success");
-    }
-    return errCode;
-}
-
-int SQLiteRelationalUtils::UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table,
-    const std::string &modifyTime)
-{
-    auto logTable = DBCommon::GetLogTableName(table);
-    bool isCreate = false;
-    auto errCode = SQLiteUtils::CheckTableExists(db, logTable, isCreate);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteRDBUtils] Check table exist failed %d when update time", errCode);
-        return errCode;
-    }
-    if (!isCreate) {
-        LOGW("[SQLiteRDBUtils] Skip non exist log table %s len %zu when update time",
-            DBCommon::StringMiddleMasking(table).c_str(), table.size());
-        return E_OK;
-    }
-    std::string operateSql = "UPDATE " + logTable +
-        " SET timestamp= _rowid_ + " + modifyTime + " WHERE flag & 0x02 != 0";
-    errCode = SQLiteUtils::ExecuteRawSQL(db, operateSql);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteRDBUtils] Update %s len %zu modify time failed %d", DBCommon::StringMiddleMasking(table).c_str(),
-            table.size(), errCode);
-    }
-    return errCode;
-}
-
-int SQLiteRelationalUtils::GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
-{
-    std::string sql = "SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
-        DBCommon::TransferStringToHex(std::string(DBConstant::LOCALTIME_OFFSET_KEY)) + "';";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        if (timeOffset < 0) {
-            LOGE("[SQLiteRDBUtils] TimeOffset %" PRId64 "is invalid.", timeOffset);
-            SQLiteUtils::ResetStatement(stmt, true, ret);
-            return -E_INTERNAL_ERROR;
-        }
-        errCode = E_OK;
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
-
-std::pair<int, std::string> SQLiteRelationalUtils::GetCurrentVirtualTime(sqlite3 *db)
-{
-    int64_t localTimeOffset = 0;
-    std::pair<int, std::string> res;
-    auto &[errCode, time] = res;
-    errCode = GetMetaLocalTimeOffset(db, localTimeOffset);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteRDBUtils] Failed to get local timeOffset.%d", errCode);
-        return res;
-    }
-    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-    Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
-    time = std::to_string(currentLocalTime);
-    return res;
 }
 } // namespace DistributedDB

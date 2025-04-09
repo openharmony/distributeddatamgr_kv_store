@@ -205,10 +205,16 @@ public:
         const Query &query, bool wait) = 0;
 
     // Sync with device, provides sync count information
-    DB_API virtual DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) = 0;
+    DB_API virtual DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
+    {
+        return OK;
+    };
 
     // Cancel sync by syncId
-    DB_API virtual DBStatus CancelSync(uint32_t syncId) = 0;
+    DB_API virtual DBStatus CancelSync(uint32_t syncId)
+    {
+        return OK;
+    };
 
     // Check the integrity of this kvStore.
     DB_API virtual DBStatus CheckIntegrity() const = 0;
@@ -306,11 +312,9 @@ public:
     // If device is empty, it would return all the entries which was written by local device.
     DB_API virtual DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const = 0;
 
-    DB_API virtual DatabaseStatus GetDatabaseStatus() const = 0;
-
-    DB_API virtual DBStatus OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
+    DB_API virtual DatabaseStatus GetDatabaseStatus() const
     {
-        return OK;
+        return {};
     }
 };
 } // namespace DistributedDB

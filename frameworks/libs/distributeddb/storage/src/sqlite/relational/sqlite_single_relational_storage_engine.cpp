@@ -153,12 +153,7 @@ int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, cons
 {
     const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY.begin(), DBConstant::RELATIONAL_SCHEMA_KEY.end());
     Value schemaVal;
-    auto schemaStr = schema.ToSchemaString();
-    if (schemaStr.size() > SchemaConstant::SCHEMA_STRING_SIZE_LIMIT) {
-        LOGE("schema is too large %zu", schemaStr.size());
-        return -E_MAX_LIMITS;
-    }
-    DBCommon::StringToVector(schemaStr, schemaVal);
+    DBCommon::StringToVector(schema.ToSchemaString(), schemaVal);
     int errCode = handle->PutKvData(schemaKey, schemaVal); // save schema to meta_data
     if (errCode != E_OK) {
         LOGE("Save schema to meta table failed. %d", errCode);
@@ -476,17 +471,6 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         (void)handle->Rollback();
         ReleaseExecutor(handle);
         return ret;
-    }
-    Key key;
-    DBCommon::StringToVector(SYNC_TABLE_TYPE + schema.tableName, key);
-    Value value;
-    DBCommon::StringToVector(tableInfo.GetTableSyncType() == DEVICE_COOPERATION ? DEVICE_TYPE : CLOUD_TYPE, value);
-    errCode = handle->PutKvData(key, value);
-    if (errCode != E_OK) {
-        LOGE("[SetTrackerTable] Save sync type to meta table failed: %d", errCode);
-        (void)handle->Rollback();
-        ReleaseExecutor(handle);
-        return errCode;
     }
 
     if (schema.trackerColNames.empty() && !schema.isTrackAction) {
@@ -1096,8 +1080,7 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
     return handle->Commit();
 }
 
-std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(const DistributedSchema &schema,
-    const std::string &localIdentity)
+std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(const DistributedSchema &schema)
 {
     std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
     auto schemaObj = GetSchema();
@@ -1116,7 +1099,7 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
         LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
         errCode = -E_INVALID_ARGS;
     } else {
-        errCode = SetDistributedSchemaInner(schemaObj, schema, localIdentity);
+        errCode = SetDistributedSchemaInner(schemaObj, schema);
     }
     if (errCode == E_OK) {
         SetSchema(schemaObj);
@@ -1125,7 +1108,7 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
 }
 
 int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSchemaObject &schemaObj,
-    const DistributedSchema &schema, const std::string &localIdentity)
+    const DistributedSchema &schema)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -1154,8 +1137,7 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSch
             continue;
         }
         tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.tableName));
-        errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType(),
-            localIdentity);
+        errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType());
         if (errCode != E_OK) {
             LOGE("Failed to refresh trigger while setting up distributed schema: %d", errCode);
             (void)handle->Rollback();

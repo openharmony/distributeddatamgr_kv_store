@@ -343,7 +343,6 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     context->MoveOutRecordAndExtend(record, extend);
-    RecordSyncDataTimeStampLog(extend, action);
     uint32_t recordSize = record.size();
 
     switch (action) {

@@ -22,7 +22,6 @@
 #include "sqlite_utils.h"
 #include "sqlite_storage_executor.h"
 #include "single_ver_natural_store_commit_notify_data.h"
-#include "time_helper.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerStorageExecutor : public SQLiteStorageExecutor {
@@ -227,7 +226,7 @@ private:
     void PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet, const DataOperStatus &status,
         SingleVerNaturalStoreCommitNotifyData *committedData);
 
-    int BindSavedSyncData(sqlite3_stmt *statement, const DataItem &dataItem, const Key &hashKey,
+    static int BindSavedSyncData(sqlite3_stmt *statement, const DataItem &dataItem, const Key &hashKey,
         const SyncDataDevices &devices, bool isUpdate);
 
     static int BindDevForSavedSyncData(sqlite3_stmt *statement, const DataItem &dataItem, const std::string &origDev,
@@ -361,9 +360,7 @@ private:
 
     static void CalHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
-    bool IsPrintTimestamp();
-
-    int BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate);
+    static int BindSyncDataTime(sqlite3_stmt *statement, const DataItem &dataItem, bool isUpdate);
 
     int CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName, const std::string &user,
         bool isUserBlobType = false);
@@ -404,13 +401,6 @@ private:
     // maxTimestampInMainDB_ and migrateTimeOffset_ is meaningful.
     bool isSyncMigrating_;
     int conflictResolvePolicy_;
-
-    // Record log print count.
-    static constexpr uint64_t maxLogTimesPerSecond = 100;
-    static constexpr Timestamp printIntervalSeconds = (1000*TimeHelper::MS_TO_100_NS);
-    Timestamp startTime_ = 0;
-    uint64_t logCount_ = 0;
-    uint64_t droppedCount_ = 0;
 };
 } // namespace DistributedDB
 

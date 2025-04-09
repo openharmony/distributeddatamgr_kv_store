@@ -144,7 +144,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     updateTrigger += "\t UPDATE " + logTblName;
-    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=((flag&0x1000)|0x02|0x20)&~0x4000";
+    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=(flag&0x1000)|0x02|0x20";
     if (!table.GetTrackerTable().IsEmpty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }

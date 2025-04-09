@@ -2101,7 +2101,7 @@ namespace {
         bool logicDelete = true;
         auto data = static_cast<PragmaData>(&logicDelete);
         g_delegate->Pragma(LOGIC_DELETE_SYNC_DATA, data);
-
+ 
         /**
          * @tc.steps:step2. init cloud share data and sync
          * @tc.expected: step2. return OK
@@ -2114,19 +2114,19 @@ namespace {
         Query query = Query::Select().FromTable({ g_tableName2, g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::OK);
         forkInsertFunc_ = nullptr;
-
+ 
         /**
          * @tc.steps:step3. update local share data
          * @tc.expected: step3. return OK
          */
         InsertLocalSharedTableRecords(11, 10, g_sharedTableName1, true);
-
+ 
         /**
          * @tc.steps:step4. insert local share data
          * @tc.expected: step4. return OK
          */
         InsertLocalSharedTableRecords(21, 10, g_sharedTableName1);
-
+ 
         /**
          * @tc.steps:step5. remove device data and check notify
          * @tc.expected: step5. return OK

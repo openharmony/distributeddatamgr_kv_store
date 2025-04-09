@@ -111,10 +111,6 @@ namespace {
         {
             return E_OK;
         }
-
-        void ClearOnlineLabel() override
-        {
-        }
     private:
         CommunicatorLackCallback lackCallback_;
     };

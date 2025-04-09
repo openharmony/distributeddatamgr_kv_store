@@ -1273,14 +1273,4 @@ std::shared_ptr<AssetsDownloadManager> RuntimeContextImpl::GetAssetsDownloadMana
     assetsDownloadManager_ = std::make_shared<AssetsDownloadManager>();
     return assetsDownloadManager_;
 }
-
-void RuntimeContextImpl::ClearOnlineLabel()
-{
-    std::lock_guard<std::mutex> autoLock(communicatorLock_);
-    if (communicatorAggregator_ == nullptr) {
-        LOGE("[Runtime] clear online label with null aggregator");
-        return;
-    }
-    communicatorAggregator_->ClearOnlineLabel();
-}
 } // namespace DistributedDB

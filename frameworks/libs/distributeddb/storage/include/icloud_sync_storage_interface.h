@@ -151,11 +151,6 @@ public:
         return E_OK;
     }
 
-    virtual int ClearCloudLogVersion(const std::vector<std::string> &tableNameList)
-    {
-        return E_OK;
-    }
-
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
 

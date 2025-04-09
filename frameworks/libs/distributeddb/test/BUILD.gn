@@ -127,13 +127,10 @@ ohos_source_set("src_file") {
   sources = distributeddb_src
   sources += distributeddb_cloud_src
   sources += [
-    "unittest/common/common/basic_unit_test.cpp",
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
-    "unittest/common/common/kv_general_ut.cpp",
     "unittest/common/common/native_sqlite.cpp",
     "unittest/common/common/rdb_data_generator.cpp",
-    "unittest/common/common/rdb_general_ut.cpp",
     "unittest/common/common/system_time.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
@@ -871,26 +868,6 @@ distributeddb_unittest("DistributedDBRDBCollaborationTest") {
       [ "unittest/common/storage/distributeddb_rdb_collaboration_test.cpp" ]
 }
 
-distributeddb_unittest("DistributedDBBasicKVTest") {
-  sources = [ "unittest/common/store_test/kv/distributeddb_basic_kv_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBKVDataStatusTest") {
-  sources =
-      [ "unittest/common/store_test/kv/distributeddb_kv_data_status_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBBasicRDBTest") {
-  sources =
-      [ "unittest/common/store_test/rdb/distributeddb_basic_rdb_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBRDBDataStatusTest") {
-  sources = [
-    "unittest/common/store_test/rdb/distributeddb_rdb_data_status_test.cpp",
-  ]
-}
-
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -898,8 +875,6 @@ group("unittest") {
   deps += [
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
-    ":DistributedDBBasicKVTest",
-    ":DistributedDBBasicRDBTest",
     ":DistributedDBCloudAssetCompareTest",
     ":DistributedDBCloudAssetsOperationSyncTest",
     ":DistributedDBCloudAsyncDownloadAssetsTest",
@@ -910,7 +885,6 @@ group("unittest") {
     ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",
     ":DistributedDBCloudInterfacesSetCloudSchemaTest",
-    ":DistributedDBCloudKvStoreTest",
     ":DistributedDBCloudKvSyncerTest",
     ":DistributedDBCloudKvTest",
     ":DistributedDBCloudReferenceSyncTest",
@@ -967,7 +941,6 @@ group("unittest") {
     ":DistributedDBInterfacesTransactionSyncDBTest",
     ":DistributedDBInterfacesTransactionTest",
     ":DistributedDBJsonPrecheckUnitTest",
-    ":DistributedDBKVDataStatusTest",
     ":DistributedDBMetaDataTest",
     ":DistributedDBMockSyncModuleTest",
     ":DistributedDBMultiVerP2PSyncTest",
@@ -975,7 +948,6 @@ group("unittest") {
     ":DistributedDBNotificationChainTest",
     ":DistributedDBParcelTest",
     ":DistributedDBRDBCollaborationTest",
-    ":DistributedDBRDBDataStatusTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",

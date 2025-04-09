@@ -78,7 +78,7 @@ enum DBStatus {
     CLOUD_SYNC_UNSET, // not set sync option in cloud
     CLOUD_FULL_RECORDS, // cloud's record is full
     CLOUD_LOCK_ERROR, // cloud failed to get sync lock
-    CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud asset space is insufficient
+    CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud failed to download asset
     PROPERTY_CHANGED, // reference property changed
     CLOUD_VERSION_CONFLICT, // cloud failed to update version
     CLOUD_RECORD_EXIST_CONFLICT, // this error happen in Download/BatchInsert/BatchUpdate
@@ -312,11 +312,6 @@ struct DistributedSchema {
 enum class DistributedTableMode : int {
     COLLABORATION = 0, // Save all devices data in user table
     SPLIT_BY_DEVICE // Save device data in each table split by device
-};
-
-enum class DataOperator : uint32_t {
-    UPDATE_TIME = 0x01,
-    RESET_UPLOAD_CLOUD = 0x02
 };
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

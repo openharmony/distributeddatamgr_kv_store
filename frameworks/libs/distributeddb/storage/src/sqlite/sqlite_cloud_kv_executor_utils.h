@@ -61,6 +61,7 @@ public:
 
     static int QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
         const QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid);
+
 private:
     using UploadDetail = std::pair<uint32_t, uint32_t>;
     static int GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,

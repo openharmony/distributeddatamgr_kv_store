@@ -82,11 +82,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
         LOGE("Get fill asset statement failed, %d.", errCode);
         return errCode;
     }
-    int ret = E_OK;
     for (size_t i = 0; i < fields.size(); ++i) {
         errCode = BindOneField(i + 1, vBucket, fields[i], stmt);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, ret);
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
             return errCode;
         }
     }
@@ -109,12 +108,11 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlagByGid(const st
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         return errCode;
     }
-    int ret = E_OK;
     errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gid);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor]bind gid failed when clean downloading flag:%d, tableName:%s, length:%zu",
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt);
@@ -124,6 +122,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlagByGid(const st
         LOGE("[RDBExecutor]clean downloading flag failed:%d, tableName:%s, length:%zu",
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
     }
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
     if (ret != E_OK) {
         LOGE("[RDBExecutor]reset stmt when clean downloading flag:%d, tableName:%s, length:%zu",
@@ -209,7 +208,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IncreaseCursorOnAssetData(const st
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statementInner, true, ret);
         if (ret != E_OK) {
-            LOGW("Reset stmt failed %d when increase cursor on asset data", ret);
+            LOGW("Reset  stmt failed %d when increase cursor on asset data", ret);
         }
     });
     int index = 1;
@@ -454,11 +453,11 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
         SQLiteUtils::ResetStatement(statement, true, errCode);
         return -E_INVALID_ARGS;
     }
-    int ret = E_OK;
     for (size_t i = 0; i < condition.bindArgs.size(); i++) {
         Type type = condition.bindArgs[i];
         errCode = SQLiteRelationalUtils::BindStatementByType(statement, i + 1, type);
         if (errCode != E_OK) {
+            int ret = E_OK;
             SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
@@ -467,11 +466,13 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
         VBucket bucket;
         errCode = SQLiteRelationalUtils::GetSelectVBucket(statement, bucket);
         if (errCode != E_OK) {
+            int ret = E_OK;
             SQLiteUtils::ResetStatement(statement, true, ret);
             return errCode;
         }
         records.push_back(std::move(bucket));
     }
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
@@ -509,7 +510,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(const TableInfo &tableInfo, bool schemaChanged)
+int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(TableInfo &tableInfo, bool schemaChanged)
 {
     std::string logTable = DBCommon::GetLogTableName(tableInfo.GetTableName());
     if (schemaChanged) {
@@ -1044,8 +1045,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::s
     errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableName);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] Bind table name failed: %d.", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, ret);
+        SQLiteUtils::ResetStatement(statement, true, errCode);
         return errCode;
     }
     if (SQLiteUtils::StepWithRetry(statement) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -1070,15 +1070,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::strin
     if (isLogicDelete_) {
         // cursor already increased by DeleteCloudData, can be assigned directly here
         // 1001 which is logicDelete|cloudForcePush|local|delete
-        sql += "flag = (flag&" + std::string(CONSISTENT_FLAG) + "|" +
-               std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
-                              static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) +
-               ")&" + std::to_string(~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) +
-               ", cursor = " + std::to_string(cursor) + " ";
+        sql += "flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
+            std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
+            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) + ", cursor = " + std::to_string(cursor) + " ";
     } else {
-        sql += "data_key = -1, flag = (flag&" + std::string(CONSISTENT_FLAG) + "|" +
-               std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ")&" +
-               std::to_string(~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) + ", sharing_resource = ''";
+        sql += "data_key = -1, flag = flag&" + std::string(CONSISTENT_FLAG) + "|" +
+            std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) + ", sharing_resource = ''";
         errCode = SetCursor(table, cursor + 1);
         if (errCode == E_OK) {
             sql += ", cursor = " + std::to_string(cursor + 1) + " ";
@@ -1142,10 +1139,10 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGidInner(const st
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::RenewTableTrigger(DistributedTableMode mode,
-    const TableInfo &tableInfo, TableSyncType syncType, const std::string &localIdentity)
+    const TableInfo &tableInfo, TableSyncType syncType)
 {
     auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
-    return tableManager->AddRelationalLogTableTrigger(dbHandle_, tableInfo, localIdentity);
+    return tableManager->AddRelationalLogTableTrigger(dbHandle_, tableInfo, "");
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DoCleanAssetId(const std::string &tableName,
@@ -1294,24 +1291,23 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetsIdOnUserTable(const std
     std::string cleanAssetIdSql = "UPDATE " + tableName  + " SET " + fieldName + " = ? WHERE " +
         std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
     sqlite3_stmt *stmt = nullptr;
-    int ret = E_OK;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, cleanAssetIdSql, stmt);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Get statement failed, %d", errCode);
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, assetsValue, false);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // LCOV_EXCL_BR_LINE
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 
 std::pair<int, uint32_t> SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(
@@ -1377,19 +1373,18 @@ int SQLiteSingleVerRelationalStorageExecutor::InitGetAssetStmt(const std::string
         return errCode;
     }
     int index = 1;
-    int ret = E_OK;
     if (!gid.empty()) {
         errCode = SQLiteUtils::BindTextToStatement(stmt, index++, gid);
         if (errCode != E_OK) {
             LOGE("bind gid failed %d.", errCode);
-            SQLiteUtils::ResetStatement(stmt, true, ret);
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
             return errCode;
         }
     }
     errCode = SQLiteUtils::BindBlobToStatement(stmt, index, hashKey);
     if (errCode != E_OK) {
         LOGE("bind hash failed %d.", errCode);
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
     return errCode;
 }
@@ -1748,10 +1743,9 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql(const VBucket &data)
 {
-    std::string retentionFlag = "flag = (flag & " +
-                                std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
-                                               static_cast<uint32_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC)) +
-                                ") | " + std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL));
+    std::string retentionFlag = "flag = flag & " +
+        std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC));
     if (putDataMode_ == PutDataMode::SYNC) {
         if (CloudStorageUtils::IsAssetsContainDownloadRecord(data)) {
             return retentionFlag;

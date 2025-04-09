@@ -1160,15 +1160,5 @@ uint64_t CommunicatorAggregator::IncreaseSendSequenceId(const std::string &targe
     std::lock_guard<std::mutex> autoLock(sendSequenceMutex_);
     return ++sendSequence_[target];
 }
-
-void CommunicatorAggregator::ClearOnlineLabel()
-{
-    std::lock_guard<std::mutex> autoLock(commMapMutex_);
-    if (commLinker_ == nullptr) {
-        LOGE("[CommAggr] clear online label with null linker");
-        return;
-    }
-    commLinker_->ClearOnlineLabel();
-}
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB

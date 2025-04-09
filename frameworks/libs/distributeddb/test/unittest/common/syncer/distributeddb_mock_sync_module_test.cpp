@@ -245,7 +245,7 @@ void AbilitySync004()
     std::unique_lock<std::mutex> lock(mutex);
     std::condition_variable cv;
     for (int i = 0; i < loopCount; i++) {
-        std::thread t = std::thread([&context, &finishCount, &cv] {
+        std::thread t = std::thread([&] {
             DbAbility dbAbility;
             context->SetDbAbility(dbAbility);
             finishCount++;
@@ -924,12 +924,12 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync003, TestSize.Level1)
     /**
      * @tc.steps: step2. call RemoveDeviceDataIfNeed in diff thread and then put data
      */
-    std::thread thread1([&dataSync, &syncTaskContext, &storage, deviceId, k1, v1]() {
+    std::thread thread1([&]() {
         (void)dataSync.CallRemoveDeviceDataIfNeed(&syncTaskContext);
         storage.PutDeviceData(deviceId, k1, v1);
         LOGD("PUT FINISH");
     });
-    std::thread thread2([&dataSync, &syncTaskContext, &storage, deviceId, k2, v2]() {
+    std::thread thread2([&]() {
         (void)dataSync.CallRemoveDeviceDataIfNeed(&syncTaskContext);
         storage.PutDeviceData(deviceId, k2, v2);
         LOGD("PUT FINISH");
@@ -1253,7 +1253,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
     auto communicator =
         static_cast<VirtualCommunicator *>(virtualCommunicatorAggregator->GetCommunicator("real_device"));
     RefObject::IncObjRef(communicator);
-    std::thread thread1([&communicator]() {
+    std::thread thread1([&]() {
         if (communicator == nullptr) {
             return;
         }
@@ -1265,7 +1265,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
             communicator->CallbackOnMessage("src", message);
         }
     });
-    std::thread thread2([&enginePtr]() {
+    std::thread thread2([&]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         enginePtr->Close();
     });

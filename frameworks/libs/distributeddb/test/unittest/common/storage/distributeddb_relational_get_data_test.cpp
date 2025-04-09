@@ -527,8 +527,6 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData3, TestSize.Level1)
      * @tc.expected: 2 data in the from deviceA are deleted and all data from deviceB are not deleted.
      */
     ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName +
-        "_log WHERE flag&0x01=0x01;", 0U);  // g_tableName has no data, therefore no delete log
-    ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
         "_log WHERE flag&0x01=0x01;", 2U);  // 2 deleted log
     ExpectCount(db, "SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceA)) + ";", 3U);  // 3 records in A
@@ -1390,7 +1388,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
 
     Timestamp time1 = 0;
     store->GetMaxTimestamp(time1);
-    EXPECT_EQ(time1, 0uLL);
+    EXPECT_EQ(time1, 0ull);
 
     /**
      * @tc.steps: step3. Put 1 record into data table and get max timestamp.
@@ -1424,7 +1422,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
      */
     Timestamp time5 = 0;
     store->GetMaxTimestamp(tableName, time5);
-    EXPECT_EQ(time5, 0uLL);
+    EXPECT_EQ(time5, 0ull);
 
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);

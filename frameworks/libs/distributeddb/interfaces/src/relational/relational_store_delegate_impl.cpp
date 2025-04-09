@@ -530,39 +530,6 @@ int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
     }
     return count;
 }
-
-DBStatus RelationalStoreDelegateImpl::ClearMetaData(const ClearMetaDataOption &option)
-{
-    if (option.mode >= ClearMetaDataMode::BUTT) {
-        LOGE("[RelationalStore Delegate] Invalid mode for clear meta data.");
-        return INVALID_ARGS;
-    }
-
-    if (option.mode == ClearMetaDataMode::CLOUD_WATERMARK) {
-        return ClearWatermark(option);
-    }
-    return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &option)
-{
-    if (!option.tableNameList.empty()) {
-        LOGE("[RelationalStore Delegate] Clearing watermark of specific tables is not supported yet!");
-        return NOT_SUPPORT;
-    }
-
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for clear water mark!");
-        return DB_ERROR;
-    }
-
-    int errCode = conn_->ClearCloudWatermark(option.tableNameList);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] clear cloud water mark failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
-}
 #endif
 
 DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
@@ -577,20 +544,6 @@ DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
     int errCode = conn_->SetTableMode(config.tableMode.value());
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] set store config failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::OperateDataStatus(uint32_t dataOperator)
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for operate data status.");
-        return DB_ERROR;
-    }
-    int errCode = conn_->OperateDataStatus(dataOperator);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] operate data failed:%d op:%" PRIu32, errCode, dataOperator);
         return TransferDBErrno(errCode);
     }
     return OK;
