@@ -760,9 +760,10 @@ void KvStoreObserverUnitTest::OnChange(DistributedDB::StoreObserver::StoreChange
 void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::string &originalId,
     DistributedDB::ChangedData &&data)
 {
-    callCount_++;
-    changedData_[data.tableName] = data;
-    LOGD("data change when cloud sync, origin = %d, tableName = %s", origin, data.tableName.c_str());
+    (void)origin;
+    (void)originalId;
+    (void)data;
+    KvStoreObserver::OnChange(origin, originalId, std::move(data));
 }
 
 void KvStoreObserverUnitTest::ResetToZero()
@@ -772,7 +773,6 @@ void KvStoreObserverUnitTest::ResetToZero()
     inserted_.clear();
     updated_.clear();
     deleted_.clear();
-    changedData_.clear();
 }
 
 unsigned long KvStoreObserverUnitTest::GetCallCount() const
@@ -798,11 +798,6 @@ const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesDeleted() const
 bool KvStoreObserverUnitTest::IsCleared() const
 {
     return isCleared_;
-}
-
-std::unordered_map<std::string, DistributedDB::ChangedData> KvStoreObserverUnitTest::GetChangedData() const
-{
-    return changedData_;
 }
 
 RelationalStoreObserverUnitTest::RelationalStoreObserverUnitTest() : callCount_(0)
@@ -1067,6 +1062,21 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
             return WaitUntilReady(status, syncProcessMap);
         });
     }
+    std::unique_lock<std::mutex> lock(this->syncLock_);
+    this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
+        if (status != OK) {
+            return true;
+        }
+        if (syncProcessMap.empty()) {
+            return false;
+        }
+        for (const auto &entry : syncProcessMap) {
+            if (entry.second.process < ProcessStatus::FINISHED) {
+                return false;
+            }
+        }
+        return true;
+    });
     return status;
 }
 
@@ -1656,7 +1666,6 @@ DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(con
         return nullptr;
     }
     auto engine = static_cast<SQLiteRelationalStore *>(store)->GetStorageEngine();
-    RefObject::DecObjRef(store);
     return static_cast<ICloudSyncStorageHook *>(engine);
 }
 
@@ -1672,46 +1681,5 @@ bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) co
 DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
 {
     return lastOrigin_;
-}
-
-void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
-    DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult)
-{
-    if (delegate == nullptr) {
-        return;
-    }
-    std::mutex dataMutex;
-    std::condition_variable cv;
-    bool finish = false;
-    SyncProcess last;
-    auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish, &option](const std::map<std::string,
-        SyncProcess> &process) {
-        size_t notifyCnt = 0;
-        for (const auto &item: process) {
-            LOGD("user = %s, status = %d, errCode = %d", item.first.c_str(), item.second.process, item.second.errCode);
-            if (item.second.process != DistributedDB::FINISHED) {
-                continue;
-            }
-            EXPECT_EQ(item.second.errCode, expectDBStatus);
-            {
-                std::lock_guard<std::mutex> autoLock(dataMutex);
-                notifyCnt++;
-                std::set<std::string> userSet(option.users.begin(), option.users.end());
-                if (notifyCnt == userSet.size()) {
-                    finish = true;
-                    last = item.second;
-                    cv.notify_one();
-                }
-            }
-        }
-    };
-    auto actualRet = delegate->Sync(option, callback);
-    EXPECT_EQ(actualRet, expectSyncResult);
-    if (actualRet == OK) {
-        std::unique_lock<std::mutex> uniqueLock(dataMutex);
-        cv.wait(uniqueLock, [&finish]() {
-            return finish;
-        });
-    }
 }
 } // namespace DistributedDBUnitTest

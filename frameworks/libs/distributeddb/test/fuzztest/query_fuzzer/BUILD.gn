@@ -83,7 +83,6 @@ ohos_fuzztest("QueryFuzzTest") {
   sources = distributeddb_src
   sources += distributeddb_cloud_src
   sources += [
-    "../common/fuzzer_data.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "query_fuzzer.cpp",
   ]

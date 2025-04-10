@@ -14,7 +14,6 @@
  */
 
 #include "query_fuzzer.h"
-#include "fuzzer_data.h"
 #include "get_query_info.h"
 
 using namespace DistributedDB;
@@ -112,23 +111,6 @@ void FuzzIsNull(const uint8_t* data, size_t size)
     std::string rawString(reinterpret_cast<const char *>(data), size);
     Query query = Query::Select().IsNull(rawString);
 }
-
-void FuzzAssetsOnly(const uint8_t *data, size_t size)
-{
-    DistributedDBTest::FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32();
-    const int lenMod = 30;  // 30 is mod for string vector size
-    std::string tableName = fuzzerData.GetString(len % lenMod);
-    std::string fieldName = fuzzerData.GetString(len % lenMod);
-    std::map<std::string, std::set<std::string>> assets;
-    assets[fuzzerData.GetString(len % lenMod)] = fuzzerData.GetStringSet(len % lenMod);
-    Query query = Query::Select().From(tableName)
-                      .BeginGroup()
-                      .EqualTo(fieldName, fuzzerData.GetInt())
-                      .And()
-                      .AssetsOnly(assets)
-                      .EndGroup();
-}
 }
 
 /* Fuzzer entry point */
@@ -152,7 +134,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::FuzzIn(data, size);
     OHOS::FuzzNotIn(data, size);
     OHOS::FuzzIsNull(data, size);
-    OHOS::FuzzAssetsOnly(data, size);
     return 0;
 }
 

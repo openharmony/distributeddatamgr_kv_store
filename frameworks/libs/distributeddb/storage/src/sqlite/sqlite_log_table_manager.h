@@ -60,9 +60,6 @@ private:
 
     static int UpgradeKvSyncLogTable(const std::string &tableName, sqlite3 *db);
     static int CreateKvCloudFlagIndex(const std::string &tableName, sqlite3 *db);
-
-    static std::string GetUpdateSqlWhenFieldExceedsLimit(const std::vector<std::string> &syncFields,
-        const std::string &matchValue, const std::string &missMatchValue);
 };
 }
 #endif // SQLITE_LOG_TABLE_MANAGER_H

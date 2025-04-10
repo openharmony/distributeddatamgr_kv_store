@@ -23,7 +23,6 @@
 #include "log_print.h"
 #include "db_types.h"
 #include "sqlite_log_table_manager.h"
-#include "sqlite_relational_utils.h"
 #include "sqlite_relational_store_connection.h"
 #include "storage_engine_manager.h"
 #include "cloud_sync_utils.h"
@@ -444,16 +443,8 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
 
-    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
-    std::string localIdentity; // collaboration mode need local identify
-    if (mode == DistributedTableMode::COLLABORATION) {
-        int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
-        if (errCode != E_OK || localIdentity.empty()) {
-            LOGW("Get local identity failed: %d", errCode);
-        }
-    }
     bool schemaChanged = false;
-    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
+    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(""),
         schemaChanged, syncType, trackerSchemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
@@ -502,43 +493,6 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
         LOGE("[RelationalStore] failed to clean cloud data, %d.", errCode);
     }
 
-    return errCode;
-}
-
-int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tableNames)
-{
-    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
-    TableInfoMap tables = localSchema.GetTables();
-    std::vector<std::string> cloudTableNameList;
-    bool isClearAllTables = tableNames.empty();
-    for (const auto &tableInfo : tables) {
-        if (tableInfo.second.GetSharedTableMark()) {
-            continue;
-        }
-        std::string tableName = tableInfo.first;
-        std::string maskedName = DBCommon::StringMiddleMasking(tableName);
-        bool isTargetTable = tableNames.count(tableName) > 0;
-        if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION && (isClearAllTables || isTargetTable)) {
-            cloudTableNameList.push_back(tableName);
-            LOGI("[RelationalStore] cloud watermark of table %s will be cleared, original name length: %zu",
-                maskedName.c_str(), tableName.length());
-        } else if (!isClearAllTables && isTargetTable) {
-            LOGW("[RelationalStore] table %s ignored when clear cloud watermark, original name length: %zu",
-                maskedName.c_str(), tableName.length());
-        }
-    }
-    if (cloudTableNameList.empty()) {
-        LOGI("[RelationalStore] no target tables found for clear cloud watermark");
-        return E_OK;
-    }
-    if (cloudSyncer_ == nullptr) {
-        LOGE("[RelationalStore] cloudSyncer was not initialized when clear cloud watermark");
-        return -E_INVALID_DB;
-    }
-    int errCode = cloudSyncer_->ClearCloudWatermark(cloudTableNameList);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore] failed to clear cloud watermark, %d.", errCode);
-    }
     return errCode;
 }
 #endif
@@ -1741,15 +1695,7 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
         LOGE("[RelationalStore] engine was not initialized");
         return -E_INVALID_DB;
     }
-    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
-    std::string localIdentity; // collaboration mode need local identify
-    if (mode == DistributedTableMode::COLLABORATION) {
-        int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
-        if (errCode != E_OK || localIdentity.empty()) {
-            LOGW("Get local identity failed: %d", errCode);
-        }
-    }
-    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema, localIdentity);
+    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1797,7 +1743,8 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
         LOGE("[RelationalStore][SetTableMode] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() != tableMode) {
+    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE &&
+        tableMode == DistributedTableMode::COLLABORATION) {
         auto schema = sqliteStorageEngine_->GetSchema();
         for (const auto &tableMap : schema.GetTables()) {
             if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
@@ -1812,64 +1759,6 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
     sqliteStorageEngine_->SetProperties(properties);
     LOGI("[RelationalStore][SetTableMode] Set table mode to %d successful", static_cast<int>(tableMode));
     return E_OK;
-}
-
-int SQLiteRelationalStore::OperateDataStatus(uint32_t dataOperator)
-{
-    LOGI("[RelationalStore] OperateDataStatus %" PRIu32, dataOperator);
-    if ((dataOperator & static_cast<uint32_t>(DataOperator::UPDATE_TIME)) == 0) {
-        return E_OK;
-    }
-    if (sqliteStorageEngine_ == nullptr) {
-        LOGE("[RelationalStore] sqliteStorageEngine was not initialized when operate data status");
-        return -E_INVALID_DB;
-    }
-    auto schema = sqliteStorageEngine_->GetSchema();
-    std::vector<std::string> operateTables;
-    for (const auto &tableMap : schema.GetTables()) {
-        if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-            operateTables.push_back(tableMap.second.GetTableName());
-        }
-    }
-    return OperateDataStatusInner(operateTables);
-}
-
-int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string> &tables) const
-{
-    int errCode = E_OK;
-    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGE("[RelationalStore][OperateDataStatus] Get handle failed %d when operate data status", errCode);
-        return errCode;
-    }
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore][OperateDataStatus] Start transaction failed %d when operate data status", errCode);
-        ReleaseHandle(handle);
-        return errCode;
-    }
-    sqlite3 *db = nullptr;
-    errCode = handle->GetDbHandle(db);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore][OperateDataStatus] Get db failed %d when operate data status", errCode);
-        (void)handle->Rollback();
-        ReleaseHandle(handle);
-        return errCode;
-    }
-    errCode = SQLiteRelationalUtils::OperateDataStatus(db, tables);
-    if (errCode == E_OK) {
-        errCode = handle->Commit();
-        if (errCode != E_OK) {
-            LOGE("[RelationalStore][OperateDataStatus] Commit failed %d when operate data status", errCode);
-        }
-    } else {
-        int ret = handle->Rollback();
-        if (ret != E_OK) {
-            LOGE("[RelationalStore][OperateDataStatus] Rollback failed %d when operate data status", ret);
-        }
-    }
-    ReleaseHandle(handle);
-    return errCode;
 }
 } // namespace DistributedDB
 #endif

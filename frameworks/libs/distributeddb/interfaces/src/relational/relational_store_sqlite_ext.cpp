@@ -496,10 +496,9 @@ int RegisterCalcHash(sqlite3 *db)
     return RegisterFunction(db, "calc_hash", 2, nullptr, func); // 2 is params count
 }
 
-int GetNumValueFromMeta(sqlite3 *db, std::string keyStr, int64_t &numResult)
+int GetLocalTimeOffsetFromMeta(sqlite3 *db, TimeOffset &offset)
 {
     if (db == nullptr) {
-        LOGE("[GetNumValueFromMeta] db is null");
         return -E_ERROR;
     }
 
@@ -510,6 +509,7 @@ int GetNumValueFromMeta(sqlite3 *db, std::string keyStr, int64_t &numResult)
         return -E_ERROR;
     }
 
+    std::string keyStr = "localTimeOffset";
     std::vector<uint8_t> key(keyStr.begin(), keyStr.end());
     errCode = BindBlobToStatement(stmt, 1, key);
     if (errCode != E_OK) {
@@ -535,37 +535,10 @@ int GetNumValueFromMeta(sqlite3 *db, std::string keyStr, int64_t &numResult)
     std::string valueStr(value.begin(), value.end());
     int64_t result = std::strtoll(valueStr.c_str(), nullptr, STR_TO_LL_BY_DEVALUE);
     if (errno != ERANGE && result != LLONG_MIN && result != LLONG_MAX) {
-        numResult = result;
+        offset = result;
     }
     (void)ResetStatement(stmt);
-    return E_OK;
-}
-
-int GetLocalTimeOffsetFromMeta(sqlite3 *db, TimeOffset &offset)
-{
-    std::string keyStr(DBConstant::LOCALTIME_OFFSET_KEY);
-    int64_t dbVal = 0;
-    int errCode = GetNumValueFromMeta(db, keyStr, dbVal);
-    if (errCode != E_OK) {
-        LOGE("[GetLocalTimeOffsetFromMeta] Failed to get localTimeOffset. %d", errCode);
-        return errCode;
-    }
-    offset = dbVal;
-    LOGD("[GetLocalTimeOffsetFromMeta] Get local time offset: %" PRId64, offset);
-    return E_OK;
-}
-
-int GetTableModeFromMeta(sqlite3 *db, DistributedTableMode &mode)
-{
-    std::string keyStr = RelationalDBProperties::DISTRIBUTED_TABLE_MODE;
-    int64_t dbVal = 0;
-    int errCode = GetNumValueFromMeta(db, keyStr, dbVal);
-    if (errCode != E_OK) {
-        LOGE("[GetTableModeFromMeta] Failed to get distributed table mode. %d", errCode);
-        return errCode;
-    }
-    mode = static_cast<DistributedTableMode>(dbVal);
-    LOGD("[GetTableModeFromMeta] Get distributed table mode: %d", mode);
+    LOGD("Get local time offset from meta: %" PRId64, offset);
     return E_OK;
 }
 
@@ -1279,9 +1252,8 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
         return -E_ERROR;
     }
     (void)sqlite3_finalize(statement);
-    LOGW("[GetTableSyncType] Not found sync type for %s[%zu]", DBCommon::StringMiddleMasking(tableName).c_str(),
-        tableName.size());
-    return -E_NOT_FOUND;
+    tableType = DEVICE_TYPE;
+    return E_OK;
 }
 
 void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
@@ -1408,17 +1380,8 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
         if (tableType == DEVICE_TYPE) {
             RegisterGetSysTime(db);
             RegisterGetLastTime(db);
-            std::string targetFlag = "flag|0x01";
-            std::string originalFlag = "flag&0x01=0x0";
-            auto tableMode = DistributedTableMode::COLLABORATION;
-            (void)GetTableModeFromMeta(db, tableMode);
-            if (tableMode == DistributedTableMode::SPLIT_BY_DEVICE) {
-                targetFlag = "0x03";
-                originalFlag = "flag&0x03=0x02";
-            }
-            std::string sql = "UPDATE " + logTblName + " SET data_key=-1, flag=" + targetFlag +
-                ", timestamp=get_sys_time(0) WHERE " + originalFlag +
-                " AND timestamp<" + std::to_string(dropTimeStamp);
+            std::string sql = "UPDATE " + logTblName + " SET data_key=-1, flag=0x03, timestamp=get_sys_time(0) "
+                "WHERE flag&0x03=0x02 AND timestamp<" + std::to_string(dropTimeStamp);
             (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
         } else {
             HandleDropCloudSyncTable(db, tableStr);
@@ -1748,8 +1711,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
 {
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
-        LOGD("[UnregisterAllStoreObserver] StoreObserver is invalid.");
-        
+        LOGE("[UnregisterAllStoreObserver] StoreObserver is invalid.");
         return DistributedDB::INVALID_ARGS;
     }
 

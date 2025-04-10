@@ -404,16 +404,6 @@ namespace {
         return sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     }
 
-    void ClearAllDevicesData()
-    {
-        sqlite3 *db = nullptr;
-        EXPECT_EQ(GetDB(db, g_storePath2), SQLITE_OK);
-        std::string dis_tableName = RelationalStoreManager::GetDistributedTableName(DEVICE_B, g_tableName);
-        std::string sql = "DELETE FROM " + dis_tableName;
-        EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
-        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
-    }
-
     void CheckDataInRealDevice()
     {
         sqlite3 *db = nullptr;
@@ -767,7 +757,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     g_currentStatus = 0;
-    ClearAllDevicesData();
     CloseStore();
 }
 
@@ -1397,7 +1386,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSiz
 
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_1, SUB_USER_1, APP_ID, STORE_ID, DBType::DB_RELATION);
-    ClearAllDevicesData();
 }
 
 /**

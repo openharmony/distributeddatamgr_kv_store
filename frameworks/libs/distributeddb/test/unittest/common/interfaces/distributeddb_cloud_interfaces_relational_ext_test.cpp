@@ -1758,7 +1758,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest001, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. create db and open store.
+     * @tc.steps:step1. create db and open store.
      * @tc.expected: step1. return ok.
      */
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
@@ -1779,7 +1779,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(status, OK);
 
     /**
-     * @tc.steps: step3. test DelegateImpl interface after delegate is closed.
+     * @tc.steps:step3. test DelegateImpl interface after delegate is closed.
      * @tc.expected: step3. return DB_ERROR.
      */
     const RemoteCondition condition;
@@ -1797,9 +1797,9 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(delegateImpl->UpsertData("", records, RecordStatus::WAIT_COMPENSATED_SYNC), DB_ERROR);
     const CloudSyncConfig config;
     EXPECT_EQ(delegateImpl->SetCloudSyncConfig(config), DB_ERROR);
-
+    
     /**
-     * @tc.steps: step4. close store.
+     * @tc.steps:step4. close store.
      * @tc.expected: step4. return ok.
      */
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
@@ -1816,7 +1816,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest002, TestSize.Level0)
 {
     /**
-     * @tc.steps: step1. create db and open store.
+     * @tc.steps:step1. create db and open store.
      * @tc.expected: step1. return ok.
      */
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
@@ -1829,7 +1829,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     ASSERT_NE(delegate, nullptr);
 
     /**
-     * @tc.steps: step2. test DelegateImpl interface when para is err.
+     * @tc.steps:step2. test DelegateImpl interface when para is err.
      * @tc.expected: step2. return INVALID_ARGS or NOT_FOUND.
      */
     auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
@@ -1846,7 +1846,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(delegateImpl->SetTrackerTable(schema), NOT_FOUND);
 
     /**
-     * @tc.steps: step3. close store.
+     * @tc.steps:step3. close store.
      * @tc.expected: step3. return ok.
      */
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);

@@ -405,13 +405,12 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
     ASSERT_EQ(timer != nullptr, true);
     int counter = 1; // Interval: 1 * TIME_PIECE_100
     EventTime lastTime = TimerTester::GetCurrentTime();
-    std::atomic<EventTime> total = 0;
     errCode = timer->SetAction(
-        [timer, &counter, &lastTime, &total](EventsMask revents) -> int {
+        [timer, &counter, &lastTime](EventsMask revents) -> int {
             EventTime now = TimerTester::GetCurrentTime();
             EventTime delta = now - lastTime;
             delta -= counter * TIME_PIECE_1000;
-            total += delta;
+            EXPECT_EQ(delta >= -TIME_INACCURACY && delta <= TIME_INACCURACY, true);
             if (++counter > RETRY_TIMES_5) {
                 return -E_STALE;
             }
@@ -422,7 +421,6 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
             }
             return E_OK;
         }, nullptr);
-    EXPECT_LE(std::abs(total), TIME_INACCURACY * RETRY_TIMES_5);
     EXPECT_EQ(errCode, E_OK);
     errCode = g_loop->Add(timer);
     EXPECT_EQ(errCode, E_OK);

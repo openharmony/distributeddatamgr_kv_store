@@ -381,19 +381,6 @@ int StorageProxy::CleanCloudData(ClearMode mode, const std::vector<std::string> 
     return store_->CleanCloudData(mode, tableNameList, localSchema, assets);
 }
 
-int StorageProxy::ClearCloudLogVersion(const std::vector<std::string> &tableNameList)
-{
-    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    if (!transactionExeFlag_.load()) {
-        LOGE("[StorageProxy][ClearCloudLogVersion] the transaction has not been started");
-        return -E_TRANSACT_STATE;
-    }
-    return store_->ClearCloudLogVersion(tableNameList);
-}
-
 int StorageProxy::ReleaseContinueToken(ContinueToken &continueStmtToken)
 {
     return store_->ReleaseCloudDataToken(continueStmtToken);

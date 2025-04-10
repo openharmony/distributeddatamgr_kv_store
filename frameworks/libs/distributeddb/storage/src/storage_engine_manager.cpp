@@ -21,7 +21,7 @@
 #include "sqlite_single_ver_storage_engine.h"
 
 namespace DistributedDB {
-volatile bool StorageEngineManager::isRegLockStatusListener_ = false;
+bool StorageEngineManager::isRegLockStatusListener_ = false;
 std::mutex StorageEngineManager::instanceLock_;
 std::atomic<StorageEngineManager *> StorageEngineManager::instance_{nullptr};
 std::mutex StorageEngineManager::storageEnginesLock_;
@@ -150,13 +150,10 @@ StorageEngineManager *StorageEngineManager::GetInstance()
     }
 
     if (!isRegLockStatusListener_) {
-        std::lock_guard<std::mutex> mgrLock(storageEnginesLock_);
-        if (!isRegLockStatusListener_) {
-            int errCode = (instance_.load())->RegisterLockStatusListener();
-            if (errCode == E_OK) {
-                isRegLockStatusListener_ = true;
-                LOGW("[StorageEngineManager] Register lock status listener.");
-            }
+        int errCode = (instance_.load())->RegisterLockStatusListener();
+        if (errCode == E_OK) {
+            isRegLockStatusListener_ = true;
+            LOGW("[StorageEngineManager] Register lock status listener.");
         }
     }
     return instance_;

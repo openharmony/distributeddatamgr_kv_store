@@ -1238,7 +1238,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {35, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
-    CheckLogoutLogCount(db, g_tables, {10, 10});
     /**
      * @tc.steps: step6. do sync again and remove device data, then check local data and log.
      * @tc.expected: OK.
@@ -1536,7 +1535,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckLogoutLogCount(db, g_tables, {0, 0});
     CloseDb();
 }
-
 /*
  * @tc.name: CleanCloudDataTest021
  * @tc.desc: Test conflict, not found, exist errCode of cloudSpace will deal.

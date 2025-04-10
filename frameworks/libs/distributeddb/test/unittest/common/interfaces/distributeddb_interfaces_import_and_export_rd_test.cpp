@@ -1084,7 +1084,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, SeparaDbExportAndImport, 
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
 
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     option.passwd = g_passwd1;
     option.isEncryptedDb = true;
     g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);

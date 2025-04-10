@@ -2016,17 +2016,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
     EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step6. Use range query conditions to obtain the resultset and check the resultset
-     * @tc.expected: step6. The expected data are 0, 1, 2, 3, 4, 5.
-     */
-    DistributedDB::Query query = Query::Select().Range({}, {});
-    vector<Entry> returnEntries;
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(query, returnEntries), OK);
-    EXPECT_EQ(returnEntries.size(), 6); // 6 means data: 0, 1, 2, 3, 4, 5.
-
-    /**
-     * @tc.steps:step7. Close and delete KV store
-     * @tc.expected: step7. Returns OK.
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
      */
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
     EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery002"), OK);

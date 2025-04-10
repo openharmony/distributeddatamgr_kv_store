@@ -255,7 +255,7 @@ void TestSyncWithUserChange(bool wait)
     CipherPassword passwd;
     bool startSync = false;
     std::condition_variable cv;
-    thread subThread([&startSync, &cv]() {
+    thread subThread([&]() {
         std::mutex notifyLock;
         std::unique_lock<std::mutex> lck(notifyLock);
         cv.wait(lck, [&startSync]() { return startSync; });
@@ -285,9 +285,7 @@ void TestSyncWithUserChange(bool wait)
     EXPECT_EQ(result.size(), devices.size());
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
-        // If the ClearSyncOperations interface is scheduled to be executed first, syncer has been closed
-        // when AddSyncOperation is triggered and the returned status is OP_FAILED(DB_ERROR).
-        EXPECT_TRUE((pair.second == USER_CHANGED) || (pair.second == DB_ERROR));
+        EXPECT_EQ(pair.second, USER_CHANGED);
     }
     CloseStore();
 }

@@ -112,8 +112,6 @@ public:
     void MarkRebuild() override;
 
     bool IsRebuild() const override;
-
-    int OperateDataStatus(uint32_t dataOperator) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

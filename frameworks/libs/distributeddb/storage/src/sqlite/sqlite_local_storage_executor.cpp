@@ -68,8 +68,7 @@ int SQLiteLocalStorageExecutor::Get(const Key &key, Value &value) const
     errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value);
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -124,8 +123,7 @@ int SQLiteLocalStorageExecutor::GetEntries(const Key &keyPrefix,
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -218,8 +216,7 @@ int SQLiteLocalStorageExecutor::Put(const Key &key, const Value &value)
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -249,8 +246,7 @@ int SQLiteLocalStorageExecutor::Delete(const Key &key)
         }
     }
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
 } // namespace DistributedDB

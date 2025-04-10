@@ -193,8 +193,6 @@ public:
 
     std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
 #endif
-
-    DBStatus OperateDataStatus(uint32_t dataOperator) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);
@@ -214,10 +212,6 @@ private:
     DBStatus UnRegisterDeviceObserver(const KvStoreObserver *observer);
 
     DBStatus UnRegisterCloudObserver(const KvStoreObserver *observer);
-
-    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
-
-    DBStatus CheckCloudObserver(KvStoreObserver *observer);
 
     IKvDBConnection *conn_;
     std::string storeId_;

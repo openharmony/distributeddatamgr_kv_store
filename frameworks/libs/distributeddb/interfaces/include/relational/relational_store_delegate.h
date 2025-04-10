@@ -66,11 +66,6 @@ public:
         return 0;
     }
 
-    DB_API virtual DBStatus ClearMetaData([[gnu::unused]] const ClearMetaDataOption &option)
-    {
-        return OK;
-    }
-
     DB_API DBStatus RemoveDeviceData(const std::string &device, ClearMode mode = DEFAULT)
     {
         return RemoveDeviceDataInner(device, mode);
@@ -159,11 +154,6 @@ public:
     DB_API virtual std::pair<DBStatus, int32_t> GetDownloadingAssetsCount()
     {
         return {OK, 0};
-    }
-
-    DB_API virtual DBStatus OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
-    {
-        return OK;
     }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;

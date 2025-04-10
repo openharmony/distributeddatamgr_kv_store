@@ -108,8 +108,6 @@ public:
 
     int CleanCloudData(ClearMode mode);
 
-    int ClearCloudWatermark(const std::set<std::string> &tableNames);
-
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId);
@@ -118,8 +116,6 @@ public:
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId);
 #endif
-
-    int OperateDataStatus(uint32_t dataOperator);
 private:
     void ReleaseResources();
 
@@ -198,8 +194,6 @@ private:
 
     int CheckCloudSchema(const DataBaseSchema &schema);
 #endif
-
-    int OperateDataStatusInner(const std::vector<std::string> &tables) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

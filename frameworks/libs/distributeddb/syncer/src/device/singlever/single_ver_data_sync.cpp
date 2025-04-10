@@ -1848,7 +1848,7 @@ int SingleVerDataSync::ControlCmdStart(SingleVerSyncTaskContext *context)
     if (errCode != E_OK) {
         return errCode;
     }
-    auto packet = new (std::nothrow) SubscribeRequest();
+    ControlRequestPacket* packet = new (std::nothrow) SubscribeRequest();
     if (packet == nullptr) {
         LOGE("[DataSync][ControlCmdStart] new SubscribeRequest error");
         return -E_OUT_OF_MEMORY;
@@ -1872,7 +1872,7 @@ int SingleVerDataSync::ControlCmdStart(SingleVerSyncTaskContext *context)
 
 int SingleVerDataSync::ControlCmdRequestRecv(SingleVerSyncTaskContext *context, const Message *message)
 {
-    const SubscribeRequest *packet = message->GetObject<SubscribeRequest>();
+    const ControlRequestPacket *packet = message->GetObject<ControlRequestPacket>();
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }

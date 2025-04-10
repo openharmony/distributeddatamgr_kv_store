@@ -602,7 +602,7 @@ void SingleVerSyncTaskContext::UpdateOperationFinishedCount(const std::string &d
         syncOperation_->UpdateFinishedCount(deviceId, count);
     }
 }
-
+ 
 void SingleVerSyncTaskContext::SetOperationSyncProcessTotal(const std::string &deviceId, uint32_t total)
 {
     std::lock_guard<std::mutex> lock(operationLock_);

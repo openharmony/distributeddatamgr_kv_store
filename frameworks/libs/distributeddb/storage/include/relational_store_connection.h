@@ -85,8 +85,6 @@ public:
 
     virtual int DoClean(ClearMode mode) = 0;
 
-    virtual int ClearCloudWatermark(const std::set<std::string> &tableNames) = 0;
-
     virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
 
     virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
@@ -99,7 +97,6 @@ public:
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
 #endif
-    virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

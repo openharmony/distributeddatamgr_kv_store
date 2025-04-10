@@ -190,8 +190,6 @@ public:
     void SetBatchDownloadAssets(bool isBatchDownload) override;
 
     std::shared_ptr<AssetsDownloadManager> GetAssetsDownloadManager() override;
-
-    void ClearOnlineLabel() override;
 private:
     static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.

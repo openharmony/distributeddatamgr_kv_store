@@ -1043,7 +1043,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest008, TestSize.Level0)
 
 /**
  * @tc.name: CloudSyncTest009
- * @tc.desc: reopen database and sync 
+ * @tc.desc: reopen database and sync
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
@@ -1097,7 +1097,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest009, TestSize.Level0)
 
 /**
  * @tc.name: CloudSyncTest010
- * @tc.desc: reopen database, recreate table with less columns and sync 
+ * @tc.desc: reopen database, recreate table with less columns and sync
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wangxiangdong
@@ -2514,7 +2514,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LockActionTest001, TestSize.Level0)
  * @tc.name: LogicCreateRepeatedTableNameTest001
  * @tc.desc: test create repeated table name with different cases
  * @tc.type: FUNC
- * @tc.require:DTS2023120705927
+ * @tc.require:
  * @tc.author: wangxiangdong
  */
 HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, TestSize.Level0)

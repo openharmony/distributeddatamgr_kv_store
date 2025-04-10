@@ -807,6 +807,20 @@ int SqliteCloudKvExecutorUtils::BindSyncDataStmt(sqlite3_stmt *dataStmt, const D
     return errCode;
 }
 
+int64_t SqliteCloudKvExecutorUtils::GetModifyTime(int64_t timestamp)
+{
+    uint64_t curTime = 0;
+    int64_t modifyTime = timestamp;
+    if (TimeHelper::GetSysCurrentRawTime(curTime) == E_OK) {
+        if (curTime < static_cast<uint64_t>(INT64_MAX)) {
+            if (modifyTime > static_cast<int64_t>(curTime)) {
+                modifyTime = static_cast<int64_t>(curTime);
+            }
+        }
+    }
+    return modifyTime;
+}
+
 int SqliteCloudKvExecutorUtils::BindCloudDataStmt(sqlite3_stmt *dataStmt, const DataItem &dataItem, int &index)
 {
     int errCode = SQLiteUtils::BindInt64ToStatement(dataStmt, index++, dataItem.modifyTime);
@@ -1019,7 +1033,8 @@ int SqliteCloudKvExecutorUtils::BindUpdateTimestampStmt(sqlite3_stmt *dataStmt, 
         LOGE("[SqliteCloudKvExecutorUtils] Bind timestamp failed %d", errCode);
         return errCode;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(dataStmt, currentBindIndex++, dataItem.modifyTime);
+    int64_t modifyTime = GetModifyTime(dataItem.modifyTime);
+    errCode = SQLiteUtils::BindInt64ToStatement(dataStmt, currentBindIndex++, modifyTime);
     if (errCode != E_OK) {
         LOGE("[SqliteCloudKvExecutorUtils] Bind modifyTime failed %d", errCode);
     }
@@ -1059,8 +1074,9 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     if (dataItem.origDev == dev) {
         dataItem.origDev = "";
     }
-    dataItem.timestamp = static_cast<Timestamp>(static_cast<int64_t>(dataItem.modifyTime) + downloadData.timeOffset);
-    dataItem.writeTimestamp = dataItem.timestamp; // writeTimestamp is process conflict time
+    int64_t timestamp = GetModifyTime(dataItem.modifyTime);
+    dataItem.timestamp = static_cast<Timestamp>(timestamp + downloadData.timeOffset);
+    dataItem.writeTimestamp = timestamp; // writeTimestamp is process conflict time
     return res;
 }
 

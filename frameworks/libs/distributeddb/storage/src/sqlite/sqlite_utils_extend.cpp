@@ -499,9 +499,8 @@ int SQLiteUtils::CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool
         errCode = E_OK;
     }
 
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return SQLiteUtils::MapSQLiteErrno(errCode != E_OK ? errCode : ret);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return SQLiteUtils::MapSQLiteErrno(errCode);
 }
 
 int SQLiteUtils::SetPersistWalMode(sqlite3 *db)
@@ -675,9 +674,8 @@ int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, boo
     errCode = E_OK;
     isCreated = (sqlite3_column_int(stmt, 0) == 1);
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 
 int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
@@ -724,67 +722,5 @@ bool SQLiteUtils::IsStmtReadOnly(sqlite3_stmt *statement)
     }
     int isReadOnly = sqlite3_stmt_readonly(statement);
     return static_cast<bool>(isReadOnly);
-}
-
-int SQLiteUtils::UpdateLocalDataModifyTime(sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime)
-{
-    if (db == nullptr) {
-        return -E_INVALID_DB;
-    }
-    bool isCreate = false;
-    std::string tableName = DBConstant::KV_SYNC_TABLE_NAME;
-    auto errCode = SQLiteUtils::CheckTableExists(db, tableName, isCreate);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils] Check table exist failed %d when update modify time", errCode);
-        return errCode;
-    }
-    if (!isCreate) {
-        LOGW("[SQLiteUtils] non exist table when update time");
-        return E_OK;
-    }
-    std::string updateTimeSql = "UPDATE " + tableName + " SET timestamp = _rowid_ + " + virtualTime +
-                                ", w_timestamp = _rowid_ + " + virtualTime + ", modify_time = _rowid_ + " + modifyTime +
-                                " WHERE flag & 0x02 != 0;";
-    errCode = SQLiteUtils::ExecuteRawSQL(db, updateTimeSql);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils] Update modify time failed %d", errCode);
-    }
-    return errCode;
-}
-
-int SQLiteUtils::UpdateLocalDataCloudFlag(sqlite3 *db)
-{
-    if (db == nullptr) {
-        return -E_INVALID_DB;
-    }
-    bool isCreate = false;
-    std::string logTableName = "naturalbase_kv_aux_sync_data_log";
-    auto errCode = SQLiteUtils::CheckTableExists(db, logTableName, isCreate);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils] Check log table exist failed %d when update cloud flag", errCode);
-        return errCode;
-    }
-    if (!isCreate) {
-        LOGW("[SQLiteUtils] non exist log table when update cloud flag");
-        return E_OK;
-    }
-    std::string tableName = DBConstant::KV_SYNC_TABLE_NAME;
-    errCode = SQLiteUtils::CheckTableExists(db, tableName, isCreate);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils] Check table exist failed %d when update cloud flag", errCode);
-        return errCode;
-    }
-    if (!isCreate) {
-        LOGW("[SQLiteUtils] non exist table when update cloud flag");
-        return E_OK;
-    }
-    std::string updateCloudFlagSql = "UPDATE " + logTableName + " SET cloud_flag = cloud_flag & ~0x400 "
-                                     "WHERE hash_key IN (SELECT hash_key FROM " + tableName +
-                                     " WHERE flag & 0x02 != 0);";
-    errCode = SQLiteUtils::ExecuteRawSQL(db, updateCloudFlagSql);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils] Update cloud flag failed %d", errCode);
-    }
-    return errCode;
 }
 } // namespace DistributedDB

@@ -731,7 +731,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount004, Tes
      */
     std::thread getUploadCountThread([&]() {
         for (int i = 0; i < 100; i++) {
-            if(g_storageProxy->StartTransaction() == E_OK) {
+            if (g_storageProxy->StartTransaction() == E_OK) {
                 EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime, false, resCount), E_OK);
                 EXPECT_EQ(resCount, insCount);
                 EXPECT_EQ(g_storageProxy->Commit(), E_OK);
@@ -1626,7 +1626,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     gid = "11";
     pk = "1";
     hashKey.assign(pk.begin(), pk.end());
-    EXPECT_EQ(g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, false, gid, hashKey, assets).first, -E_CLOUD_GID_MISMATCH);
+    EXPECT_EQ(
+        g_storageProxy->GetAssetsByGidOrHashKey(g_tableName, false, gid, hashKey, assets).first, -E_CLOUD_GID_MISMATCH);
     CheckGetAsset(assets, static_cast<uint32_t>(AssetStatus::NORMAL));
 
     /**
@@ -1672,9 +1673,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestS
     ContinueToken token = nullptr;
     CloudSyncData cloudSyncData;
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_UNFINISHED);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
-    ASSERT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 /**

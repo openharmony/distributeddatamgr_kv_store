@@ -2052,15 +2052,5 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device,
     ReleaseExecutor(handle);
     return errCode;
 }
-
-int SQLiteSingleVerNaturalStoreConnection::OperateDataStatus(uint32_t dataOperator)
-{
-    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-    if (naturalStore == nullptr) {
-        LOGE("[SingleVerConnection] DB is null when operate data status");
-        return -E_INVALID_DB;
-    }
-    return naturalStore->OperateDataStatus(dataOperator);
-}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

@@ -208,7 +208,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
         errCode = SQLiteUtils::BindTextToStatement(selectStmt, index, cloudGid);
         if (errCode != E_OK) {
             LOGE("Bind cloud gid to query log statement failed. %d", errCode);
-            SQLiteUtils::ResetStatement(selectStmt, true, ret);
+            SQLiteUtils::ResetStatement(selectStmt, true, errCode);
             return errCode;
         }
     }
@@ -336,23 +336,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
         LOGE("Fail to set log trigger on when clean cloud data, %d", errCode);
     }
 
-    return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::DoClearCloudLogVersion(const std::vector<std::string> &tableNameList)
-{
-    int errCode = E_OK;
-    for (const auto &tableName: tableNameList) {
-        std::string logTableName = DBCommon::GetLogTableName(tableName);
-        LOGD("[Storage Executor] Start clear version on log table.");
-        errCode = ClearVersionOnLogTable(logTableName);
-        if (errCode != E_OK) {
-            std::string maskedName = DBCommon::StringMiddleMasking(tableName);
-            LOGE("[Storage Executor] failed to clear version of cloud data on log table %s (name length is %zu), %d",
-                maskedName.c_str(), maskedName.length(), errCode);
-            return errCode;
-        }
-    }
     return errCode;
 }
 
@@ -732,14 +715,14 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, 
     if (putDataMode_ == PutDataMode::SYNC) {
         CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetBeforeDownload);
     }
-    int ret = E_OK;
     errCode = BindValueToUpsertStatement(vBucket, tableSchema.fields, insertStmt);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(insertStmt, true, ret);
+        SQLiteUtils::ResetStatement(insertStmt, true, errCode);
         return errCode;
     }
     // insert data
     errCode = SQLiteUtils::StepWithRetry(insertStmt, false);
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(insertStmt, true, ret);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         LOGE("insert data failed when save cloud data:%d, reset stmt:%d", errCode, ret);
@@ -797,14 +780,14 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
         return errCode;
     }
 
-    int ret = E_OK;
     errCode = BindValueToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(insertLogStmt, true, ret);
+        SQLiteUtils::ResetStatement(insertLogStmt, true, errCode);
         return errCode;
     }
 
     errCode = SQLiteUtils::StepWithRetry(insertLogStmt, false);
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(insertLogStmt, true, ret);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         return ret;
@@ -1066,8 +1049,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     errCode = BindValueToUpsertStatement(vBucket, updateFields, updateStmt);
     if (errCode != E_OK) {
         LOGE("bind value to update statement failed when update cloud data, %d", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(updateStmt, true, ret);
+        SQLiteUtils::ResetStatement(updateStmt, true, errCode);
     }
     return errCode;
 }
@@ -1085,16 +1067,15 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(VBucket &vBucket, 
     }
 
     // update data
-    int ret = E_OK;
     errCode = SQLiteUtils::StepWithRetry(updateStmt, false);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
         LOGE("update data failed when save cloud data:%d", errCode);
-        SQLiteUtils::ResetStatement(updateStmt, true, ret);
+        SQLiteUtils::ResetStatement(updateStmt, true, errCode);
         return errCode;
     }
-    SQLiteUtils::ResetStatement(updateStmt, true, ret);
+    SQLiteUtils::ResetStatement(updateStmt, true, errCode);
 
     // update log
     errCode = UpdateLogRecord(vBucket, tableSchema, OpType::UPDATE);
@@ -1606,9 +1587,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestam
     } else {
         LOGE("Failed to get the count to be uploaded. %d", errCode);
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
@@ -1940,18 +1920,17 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSch
     std::vector<std::string> &gids, int64_t beginTime, bool abortWithLimit)
 {
     std::string sql = "SELECT cloud_gid FROM " + DBCommon::GetLogTableName(tableSchema.name) +
-        " WHERE flag&0x1000=0x1000 AND timestamp > ?;";
+        " WHERE flag&0x1000=0x1000 AND timestamp >= ?;";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor]Get gid statement failed, %d", errCode);
         return errCode;
     }
-    int ret = E_OK;
     errCode = SQLiteUtils::BindInt64ToStatement(stmt, 1, beginTime);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor] bind time failed %d when get download asset gid", errCode);
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     uint32_t count = 0;
@@ -1975,6 +1954,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSch
             break;
         }
     } while (errCode == E_OK);
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;
 }
@@ -2001,10 +1981,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetRecordsByGid(const
         LOGE("Get downloading asset records statement failed, %d", errCode);
         return errCode;
     }
-    int ret = E_OK;
     errCode = SQLiteUtils::BindTextToStatement(stmt, 1, gid);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, ret);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt);
@@ -2026,6 +2005,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetRecordsByGid(const
     } else {
         LOGE("step get downloading asset records statement failed %d.", errCode);
     }
+    int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == E_OK ? ret : errCode;
 }

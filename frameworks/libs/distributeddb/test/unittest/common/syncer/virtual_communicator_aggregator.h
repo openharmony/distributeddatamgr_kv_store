@@ -103,10 +103,6 @@ public:
 
     void MockDirectEndFlag(bool isDirectEnd);
 
-    void ClearOnlineLabel() override;
-
-    void SetRemoteDeviceId(const std::string &dev);
-
     ~VirtualCommunicatorAggregator() override = default;
     VirtualCommunicatorAggregator() = default;
 

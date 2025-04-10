@@ -1084,7 +1084,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level0)
     std::map<std::string, DBStatus> result;
     DBStatus status = g_tool.SyncTest(kvDelegatePtrS2_, devices, SYNC_MODE_PUSH_PULL, result, query);
     ASSERT_TRUE(status == OK);
-
+ 
     /**
      * @tc.steps: step2. insert k1 v2 and sync data to cloud.
      * @tc.expected: step2. return ok.

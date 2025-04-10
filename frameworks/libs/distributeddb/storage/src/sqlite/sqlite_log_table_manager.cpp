@@ -17,10 +17,6 @@
 #include "sqlite_log_table_manager.h"
 
 namespace DistributedDB {
-namespace {
-    const int MAX_FIELD_NUM_IN_ONE_STATEMENT = 100;
-}
-
 int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const TableInfo &table,
     const std::string &identity)
 {
@@ -171,38 +167,12 @@ std::string SqliteLogTableManager::GetUpdateTimestamp(const TableInfo &table, bo
         defaultNewTime ? "get_sys_time(0)" : "timestamp");
 }
 
-std::string SqliteLogTableManager::GetUpdateSqlWhenFieldExceedsLimit(const std::vector<std::string> &syncFields,
-    const std::string &matchValue, const std::string &missMatchValue)
-{
-    std::string sql = " CASE";
-    int index = 0;
-    int maxNum = syncFields.size();
-    while (index < maxNum) {
-        sql.append(" WHEN (");
-        int beginIndex = index;
-        for (int i = beginIndex; i < (beginIndex + MAX_FIELD_NUM_IN_ONE_STATEMENT) && i < maxNum; i++) {
-            auto field = syncFields[i];
-            sql.append("(").append("OLD.'").append(field).append("'!= NEW.'").append(field).append("') OR");
-            index++;
-        }
-        // pop last "OR"
-        sql.pop_back();
-        sql.pop_back();
-        sql.append(") THEN ").append(matchValue);
-    }
-    sql.append(" ELSE ").append(missMatchValue).append(" END");
-    return sql;
-}
-
 std::string SqliteLogTableManager::GetUpdateWithAssignSql(const TableInfo &table, const std::string &emptyValue,
     const std::string &matchValue, const std::string &missMatchValue)
 {
     auto syncFields = table.GetSyncField();
     if (syncFields.empty() || table.GetFields().size() <= syncFields.size()) {
         return emptyValue;
-    }
-    if (syncFields.size() > MAX_FIELD_NUM_IN_ONE_STATEMENT) {
-        return GetUpdateSqlWhenFieldExceedsLimit(syncFields, matchValue, missMatchValue);
     }
     std::string sql = " CASE WHEN (";
     for (const auto &field : syncFields) {

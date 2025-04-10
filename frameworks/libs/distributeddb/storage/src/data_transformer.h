@@ -59,7 +59,6 @@ enum class LogInfoFlag : uint32_t {
     FLAG_LOGIC_DELETE_FOR_LOGOUT = 0x800,
     FLAG_ASSET_DOWNLOADING_FOR_ASYNC = 0x1000,
     FLAG_LOGIN_USER = 0x2000, // same hash key, login user's data
-    FLAG_CLOUD_UPDATE_LOCAL = 0x4000,
 };
 
 struct RowDataWithLog {

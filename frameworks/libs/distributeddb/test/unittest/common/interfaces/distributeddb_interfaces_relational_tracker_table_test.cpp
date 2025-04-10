@@ -142,14 +142,15 @@ namespace {
     void CheckExtendAndCursor(uint64_t num, int start, const std::string &tableName, bool addNum = true)
     {
         int index = 0;
-        string querySql = "select json_extract(extend_field, '$.name'), cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName +
-            "_log" + " where data_key <= " + std::to_string(num);
+        string querySql = "select json_extract(extend_field, '$.name'), cursor from " +
+                          std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log" +
+                          " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::string extendVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
-            ASSERT_NE(num, 0uL);
+            ASSERT_NE(num, 0u);
             EXPECT_EQ(extendVal, "Local" + std::to_string(index % num));
             std::string cursorVal;
             EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, cursorVal), E_OK);
@@ -1844,7 +1845,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestS
      * @tc.steps:step2. ExecuteSql concurrently
      * @tc.expected: step2. Return OK.
      */
-    std::thread readThread([&](){
+    std::thread readThread([&]() {
         SqlCondition condition;
         std::vector<VBucket> records;
         condition.readOnly = true;
@@ -1853,7 +1854,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql011, TestS
             EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
         }
     });
-    std::thread transactionThread([&](){
+    std::thread transactionThread([&]() {
         SqlCondition condition;
         condition.readOnly = true;
         std::vector<VBucket> records;
@@ -2595,60 +2596,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest042,
 }
 
 /**
-  * @tc.name: TrackerTableTest043
-  * @tc.desc: Test whether to save syncType after setting up the tracking table
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: liaoyonghuang
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest043, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. SetTrackerTable
-     * @tc.expected: step1. Return OK.
-     */
-    TrackerSchema schema = g_normalSchema1;
-    CreateMultiTable();
-    OpenStore();
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
-    /**
-     * @tc.steps:step2. Check sync type in metatable
-     * @tc.expected: step2. Return E_OK.
-     */
-    std::string metaTableName = "naturalbase_rdb_aux_metadata";
-    std::string sql = "select count(*) from " + metaTableName + " where key = ?";
-    sqlite3_stmt* stmt = nullptr;
-    SQLiteUtils::GetStatement(g_db, sql, stmt);
-    std::string keyStr = "sync_table_type_" + schema.tableName;
-    Key key(keyStr.begin(), keyStr.end());
-    SQLiteUtils::BindBlobToStatement(stmt, 1, key);
-    SQLiteUtils::StepWithRetry(stmt);
-
-    int count = static_cast<int>(sqlite3_column_int(stmt, 0));
-    EXPECT_EQ(count, 1);
-    int errCode = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    CloseStore();
-}
-
-void CheckCursor(int begin, int end, sqlite3 *db)
-{
-    std::string querySql = "select cursor from " + DBCommon::GetLogTableName(TABLE_NAME2) + " order by data_key;";
-    sqlite3_stmt *stmt = nullptr;
-    EXPECT_EQ(SQLiteUtils::GetStatement(db, querySql, stmt), E_OK);
-    int64_t cursor = begin;
-    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        std::string extendVal;
-        int64_t actualCursor = sqlite3_column_int64(stmt, 0);
-        EXPECT_EQ(actualCursor, cursor);
-        cursor++;
-    }
-    EXPECT_EQ(cursor, end + 1);
-    int errCode = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-}
-
-/**
   * @tc.name: TrackerTableTest044
   * @tc.desc: Test SetTrackerTable and CreateDistributedTable when there is data in the table
   * @tc.type: FUNC
@@ -2671,7 +2618,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest044,
      */
     uint64_t num = 10;
     BatchInsertTableName2Data(num);
-    CheckCursor(1, 10, g_db);
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
     /**
      * @tc.steps:step3. Check log table
@@ -2691,44 +2637,20 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest044,
     EXPECT_EQ(count, 10);
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    CheckCursor(11, 20, g_db);
-    CloseStore();
-}
 
-/**
-  * @tc.name: TrackerTableTest045
-  * @tc.desc: Test SetTrackerTable and CreateDistributedTable when there is data in the table
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: liaoyonghuang
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest045, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. CreateDistributedTable on table2 and insert data
-     * @tc.expected: step1. Return OK.
-     */
-    CreateMultiTable();
-    OpenStore();
-    uint64_t num = 10;
-    BatchInsertTableName2Data(num);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
-    /**
-     * @tc.steps:step2. Check cursor
-     * @tc.expected: step2. Return OK.
-     */
-    CheckCursor(1, 10, g_db);
-    /**
-     * @tc.steps:step3. SetTrackerTable on table2
-     * @tc.expected: step3. Return WITH_INVENTORY_DATA.
-     */
-    TrackerSchema schema = g_normalSchema1;
-    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
-    /**
-     * @tc.steps:step4. Check cursor
-     * @tc.expected: step4. Return OK.
-     */
-    CheckCursor(11, 20, g_db);
+    querySql = "select cursor from " + DBCommon::GetLogTableName(TABLE_NAME2) + " order by data_key;";
+    stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    int64_t cursor = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        cursor++;
+        std::string extendVal;
+        int64_t actualCursor = sqlite3_column_int64(stmt, 0);
+        EXPECT_EQ(actualCursor, cursor);
+    }
+    EXPECT_EQ(cursor, 10);
+    errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
     CloseStore();
 }
 
@@ -2803,7 +2725,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, Te
 
 /**
  * @tc.name: TrackerTableTest041
- * @tc.desc: Test cursor increases when set tracker table after create distributed table by DEVICE_COOPERATION type 
+ * @tc.desc: Test cursor increases when set tracker table after create distributed table by DEVICE_COOPERATION type
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: suyue

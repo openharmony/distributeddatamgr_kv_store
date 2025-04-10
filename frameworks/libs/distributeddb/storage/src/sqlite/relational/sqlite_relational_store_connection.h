@@ -66,8 +66,6 @@ public:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DoClean(ClearMode mode) override;
 
-    int ClearCloudWatermark(const std::set<std::string> &tableNames) override;
-
     int32_t GetCloudSyncTaskCount() override;
 
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
@@ -82,8 +80,6 @@ public:
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
 #endif
-
-    int OperateDataStatus(uint32_t dataOperator) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;
