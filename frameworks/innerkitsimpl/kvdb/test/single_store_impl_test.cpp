@@ -2060,19 +2060,4 @@ HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
     bool ret = kvStore->IsRemoteChanged("");
     ASSERT_TRUE(ret);
 }
-
-/**
- * @tc.name: ReportDBFaultEvent
- * @tc.desc: report DB corrupted fault
- * @tc.type: FUNC
- */
-HWTEST_F(SingleStoreImplTest, ReportDBFaultEvent, TestSize.Level0)
-{
-    std::shared_ptr<SingleStoreImpl> kvStore;
-    kvStore = CreateKVStore();
-    ASSERT_NE(kvStore, nullptr);
-    Status status = DATA_CORRUPTED;
-    kvStore->ReportDBFaultEvent(status, std::string(__FUNCTION__));
-    EXPECT_TRUE(status == DATA_CORRUPTED);
-}
 } // namespace OHOS::Test
