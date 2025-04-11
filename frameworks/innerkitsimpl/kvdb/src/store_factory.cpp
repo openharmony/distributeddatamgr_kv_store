@@ -132,9 +132,11 @@ Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const st
 {
     Close(appId, storeId, subUser, true);
     auto dbManager = GetDBManager(path, appId, subUser);
-    auto status = dbManager->DeleteKvStore(storeId);
-    SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
-    return StoreUtil::ConvertStatus(status);
+    Status status = StoreUtil::ConvertStatus(dbManager->DeleteKvStore(storeId));
+    if (status == SUCCESS) {
+        SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
+    }
+    return status;
 }
 
 Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, int32_t subUser, bool isForce)

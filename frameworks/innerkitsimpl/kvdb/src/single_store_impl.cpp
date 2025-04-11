@@ -1101,7 +1101,7 @@ bool SingleStoreImpl::IsRebuild()
 void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &functionName) const
 {
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
-        .area = area_, .hapName = hapName_ };
+        .area = area_, .hapName = hapName_, .baseDir = path_ };
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
         .appId = appId_, .storeId = storeId_, .functionName = functionName };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);

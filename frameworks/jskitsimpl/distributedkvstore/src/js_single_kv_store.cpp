@@ -787,6 +787,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
                 proxy->syncObservers_.erase(it);
                 break;
             }
+            ++it;
         }
         ctxt->status = napi_ok;
     }

@@ -2604,4 +2604,29 @@ describe('SingleKvStorePromiseTest', function () {
         });
         done();
     })
+
+    /**
+     * @tc.name SingleKvStoreOffSyncCompleteTest
+     * @tc.desc Test OffSyncComplete with mismatched callback function
+     * @tc.type: FUNC
+     * @tc.require:
+     */
+    it('SingleKvStoreOffSyncCompleteTest', 0, async function (done) {
+        function syncCallback1(data) {
+            console.info('SingleKvStoreOffSyncCompleteTest callback1');
+        }
+        function syncCallback2(data) {
+            console.info('SingleKvStoreOffSyncCompleteTest callback2');
+        }
+        try {
+            console.info('SingleKvStoreOffSyncCompleteTest start');
+            kvStore.on('syncComplete', syncCallback1);
+            kvStore.off('syncComplete', syncCallback2);
+            kvStore.off('syncComplete', syncCallback1);
+            expect(true).assertTrue();
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    })
 })
