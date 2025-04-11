@@ -2846,7 +2846,7 @@ describe('singleKvStorePromiseTest', function () {
                 console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
             });
         }catch (e) {
-            console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
+            console.error('KVStoreDeletePromiseTest001 promise delete fail err' + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })    
