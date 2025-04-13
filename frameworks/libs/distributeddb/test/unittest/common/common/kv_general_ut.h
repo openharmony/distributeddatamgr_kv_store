@@ -37,8 +37,6 @@ protected:
         std::vector<Entry> &entries);
     void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectRet = DBStatus::OK);
     static KvStoreConfig GetKvStoreConfig();
-    static StoreInfo GetStoreInfo1();
-    static StoreInfo GetStoreInfo2();
     mutable std::mutex storeMutex_;
     std::optional<KvStoreNbDelegate::Option> option_;
     std::map<StoreInfo, KvStoreNbDelegate *, StoreComparator> stores_;

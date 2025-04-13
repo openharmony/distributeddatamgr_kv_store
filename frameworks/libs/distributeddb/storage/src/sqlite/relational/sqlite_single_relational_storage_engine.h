@@ -85,8 +85,6 @@ private:
     int CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const std::string &tableName,
         const std::string &sharedTableName, TableSyncType syncType, RelationalSchemaObject &schema);
 
-    int CreateRelationalMetaTable(sqlite3 *db);
-
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
 

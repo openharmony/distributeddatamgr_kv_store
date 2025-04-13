@@ -225,7 +225,7 @@ public:
 
     void SetUploadConfig(int32_t maxUploadCount, int32_t maxUploadSize);
 
-    int InitCursorToMeta(const std::string &tableName);
+    int InitCursorToMeta(const std::string &tableName) const;
 
     void SetTableSchema(const TableSchema &tableSchema);
 
@@ -327,9 +327,6 @@ private:
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable);
-
-    int GeneLogInfoForExistedDataInner(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
         std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable);
 
     int CleanExtendAndCursorForDeleteData(const std::string &tableName);

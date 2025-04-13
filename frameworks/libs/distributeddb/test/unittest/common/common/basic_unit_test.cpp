@@ -91,4 +91,22 @@ void BasicUnitTest::SetDevice(const StoreInfo &info, const std::string &device)
     LOGW("[BasicUnitTest] Set device app %s store %s user %s device %s", info.appId.c_str(),
         info.storeId.c_str(), info.userId.c_str(), device.c_str());
 }
+
+StoreInfo BasicUnitTest::GetStoreInfo1()
+{
+    StoreInfo info;
+    info.userId = DistributedDBUnitTest::USER_ID;
+    info.storeId = DistributedDBUnitTest::STORE_ID_1;
+    info.appId = DistributedDBUnitTest::APP_ID;
+    return info;
+}
+ 
+StoreInfo BasicUnitTest::GetStoreInfo2()
+{
+    StoreInfo info;
+    info.userId = DistributedDBUnitTest::USER_ID;
+    info.storeId = DistributedDBUnitTest::STORE_ID_2;
+    info.appId = DistributedDBUnitTest::APP_ID;
+    return info;
+}
 }

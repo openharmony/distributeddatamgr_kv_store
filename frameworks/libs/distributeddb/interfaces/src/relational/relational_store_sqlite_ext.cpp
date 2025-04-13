@@ -24,6 +24,7 @@
 #include "concurrent_adapter.h"
 #include "db_common.h"
 #include "db_constant.h"
+#include "knowledge_source_utils.h"
 #include "kv_store_errno.h"
 #include "param_check_utils.h"
 #include "platform_specific.h"
@@ -694,6 +695,7 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     auto changeStatus = static_cast<uint64_t>(sqlite3_value_int(argv[3])); // 3 is param index
     bool isTrackerChange = (changeStatus & CloudDbConstant::ON_CHANGE_TRACKER) != 0;
     bool isP2pChange = (changeStatus & CloudDbConstant::ON_CHANGE_P2P) != 0;
+    bool isKnowledgeDataChange = (changeStatus & CloudDbConstant::ON_CHANGE_KNOWLEDGE) != 0;
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -707,10 +709,12 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
             if (itTable != g_clientChangedDataMap[hashFileName].tableData.end()) {
                 itTable->second.isTrackedDataChange |= isTrackerChange;
                 itTable->second.isP2pSyncDataChange |= isP2pChange;
+                itTable->second.isKnowledgeDataChange |= isKnowledgeDataChange;
             } else {
                 DistributedDB::ChangeProperties properties = {
                     .isTrackedDataChange = isTrackerChange,
-                    .isP2pSyncDataChange = isP2pChange
+                    .isP2pSyncDataChange = isP2pChange,
+                    .isKnowledgeDataChange = isKnowledgeDataChange
                 };
                 g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
             }
@@ -1831,6 +1835,42 @@ DB_API DistributedDB::DBStatus CreateDataChangeTempTrigger(sqlite3 *db)
 {
     return DistributedDB::TransferDBErrno(CreateTempTrigger(db));
 }
+
+DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db, const DistributedDB::KnowledgeSourceSchema &schema)
+{
+    if (db == nullptr) {
+        LOGE("Can't set knowledge source schema with null db");
+        return INVALID_ARGS;
+    }
+    int errCode = KnowledgeSourceUtils::SetKnowledgeSourceSchema(db, schema);
+    if (errCode == DistributedDB::E_OK) {
+        LOGI("Set knowledge source schema success, table %s len %zu",
+            DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.size());
+    } else {
+        LOGE("Set knowledge source schema failed %d, table %s len %zu",
+            errCode, DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.size());
+    }
+    return TransferDBErrno(errCode);
+}
+
+DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    if (db == nullptr) {
+        LOGE("Can't clean deleted data with null db");
+        return INVALID_ARGS;
+    }
+    if (cursor > static_cast<uint64_t>(INT64_MAX)) {
+        LOGW("Cursor is too large %" PRIu64, cursor);
+        cursor = 0;
+    }
+    int errCode = KnowledgeSourceUtils::CleanDeletedData(db, tableName, cursor);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("Clean delete data failed %d, table %s len %zu cursor " PRIu64,
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), cursor);
+    }
+    return TransferDBErrno(errCode);
+}
+
 // hw export the symbols
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
 #if defined(__GNUC__)

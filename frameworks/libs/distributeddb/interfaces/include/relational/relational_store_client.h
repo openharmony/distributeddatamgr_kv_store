@@ -58,4 +58,17 @@ DB_API void RegisterDbHook(sqlite3 *db);
 DB_API void UnregisterDbHook(sqlite3 *db);
 
 DB_API DistributedDB::DBStatus CreateDataChangeTempTrigger(sqlite3 *db);
+
+namespace DistributedDB {
+struct KnowledgeSourceSchema {
+    std::string tableName;
+    std::set<std::string> extendColNames;
+    std::set<std::string> knowledgeColNames;
+};
+}
+
+DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,
+    const DistributedDB::KnowledgeSourceSchema &schema);
+
+DB_API DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 #endif // RELATIONAL_STORE_CLIENT_H
