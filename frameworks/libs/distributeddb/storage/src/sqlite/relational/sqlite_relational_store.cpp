@@ -1453,12 +1453,6 @@ int SQLiteRelationalStore::CleanWaterMark(SQLiteSingleVerRelationalStorageExecut
             return errCode;
         }
     }
-#ifdef USE_DISTRIBUTEDDB_CLOUD
-    errCode = cloudSyncer_->CleanWaterMarkInMemory(clearWaterMarkTable);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", errCode);
-    }
-#endif
     return errCode;
 }
 
@@ -1496,12 +1490,21 @@ int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty
 
     int ret = handle->Commit();
     ReleaseHandle(handle);
-    if (ret == E_OK) {
-        sqliteStorageEngine_->SetSchema(schema);
-        return errCode;
+    if (ret != E_OK) {
+        LOGE("[SQLiteRelationalStore] SetReference commit transaction failed, errCode = %d", ret);
+        return ret;
     }
-    LOGE("[SQLiteRelationalStore] SetReference commit transaction failed, errCode = %d", ret);
-    return ret;
+    sqliteStorageEngine_->SetSchema(schema);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    if (!clearWaterMarkTables.empty()) {
+        ret = cloudSyncer_->CleanWaterMarkInMemory(clearWaterMarkTables);
+        if (ret != E_OK) {
+            LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", errCode);
+            return ret;
+        }
+    }
+#endif
+    return errCode;
 }
 
 int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
