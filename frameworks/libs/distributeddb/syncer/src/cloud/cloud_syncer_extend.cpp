@@ -2174,4 +2174,10 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     cloudTaskInfos_[triggerTaskId].queryList.push_back(syncQuery[0]);
     return true;
 }
+
+int CloudSyncer::ClearCloudWatermark(std::function<int(void)> &clearFunc)
+{
+    std::lock_guard<std::mutex> lock(syncMutex_);
+    return clearFunc();
+}
 }

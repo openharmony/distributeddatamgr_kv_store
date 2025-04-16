@@ -93,6 +93,8 @@ public:
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) const;
+
+    int ClearCloudWatermark(std::function<int(void)> &clearFunc);
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;

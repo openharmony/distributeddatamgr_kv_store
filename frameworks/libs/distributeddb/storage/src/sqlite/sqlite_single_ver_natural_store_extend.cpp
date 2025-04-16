@@ -696,4 +696,55 @@ int SQLiteSingleVerNaturalStore::OperateDataStatus(uint32_t dataOperator)
     }
     return sqliteCloudKvStore_->OperateDataStatus(dataOperator);
 }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int SQLiteSingleVerNaturalStore::ClearCloudWatermark()
+{
+    auto syncer = GetAndIncCloudSyncer();
+    if (syncer == nullptr) {
+        LOGE("[SingleVerNStore] Cloud syncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    auto clearFunc = ClearCloudWatermarkInner();
+    int errCode = syncer->ClearCloudWatermark(clearFunc);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] Clear cloud watermark failed: %d", errCode);
+        DecObjRef(syncer);
+        return errCode;
+    }
+    CleanAllWaterMark();
+    DecObjRef(syncer);
+    return errCode;
+}
+
+std::function<int(void)> SQLiteSingleVerNaturalStore::ClearCloudWatermarkInner()
+{
+    return [this]()->int {
+        int errCode = E_OK;
+        SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+        if (handle == nullptr) {
+            LOGE("[SingleVerNStore] get handle failed when clear cloud watermark:%d.", errCode);
+            return errCode;
+        }
+        errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore] start transaction failed when clear cloud watermark:%d.", errCode);
+            ReleaseHandle(handle);
+            return errCode;
+        }
+        errCode = handle->ClearCloudWatermark();
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore] clear cloud watermark failed: %d", errCode);
+            (void)handle->Rollback();
+        } else {
+            errCode = handle->Commit();
+            if (errCode != E_OK) {
+                LOGE("[SingleVerNStore] transaction commit failed %d in RemoveDeviceData.", errCode);
+            }
+        }
+        ReleaseHandle(handle);
+        return errCode;
+    };
+}
+#endif
 }

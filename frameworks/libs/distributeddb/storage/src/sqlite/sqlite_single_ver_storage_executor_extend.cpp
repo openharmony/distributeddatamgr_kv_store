@@ -482,4 +482,9 @@ bool SQLiteSingleVerStorageExecutor::IsFromDataOwner(const DataItem &itemGet, co
     return itemGet.dev == syncDev ||
         (conflictResolvePolicy_ == DENY_OTHER_DEV_AMEND_CUR_DEV_DATA && itemGet.origDev == syncDev);
 }
+
+int SQLiteSingleVerStorageExecutor::ClearCloudWatermark()
+{
+    return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
+}
 } // namespace DistributedDB

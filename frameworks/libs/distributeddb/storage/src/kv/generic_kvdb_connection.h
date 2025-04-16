@@ -114,6 +114,8 @@ public:
     bool IsRebuild() const override;
 
     int OperateDataStatus(uint32_t dataOperator) override;
+
+    int ClearCloudWatermark() override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

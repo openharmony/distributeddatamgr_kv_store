@@ -198,6 +198,8 @@ public:
     int CreateCloudLogTable();
 
     int GetEntries(const std::string &device, std::vector<Entry> &entries) const;
+
+    int ClearCloudWatermark();
 protected:
     virtual int SaveKvData(SingleVerDataType type, const Key &key, const Value &value, Timestamp timestamp);
 

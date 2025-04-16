@@ -1111,4 +1111,31 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level1)
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, value2);
 }
+
+/**
+ * @tc.name: ClearCloudWatermarkTest001.
+ * @tc.desc: Test clear kv cloud watermark
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, ClearCloudWatermarkTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put (k1, v1)(k2, v2) and sync
+     * @tc.expected: step1. return ok.
+     */
+    EXPECT_EQ(kvDelegatePtrS1_->Put(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(kvDelegatePtrS2_->Put(KEY_2, VALUE_2), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    /**
+     * @tc.steps: step1. clear kv cloud watermark.
+     * @tc.expected: step1. return ok.
+     */
+    ClearKvMetaDataOption option;
+    option.type = ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK;
+    EXPECT_EQ(kvDelegatePtrS1_->ClearMetaData(option), OK);
+    EXPECT_EQ(kvDelegatePtrS2_->ClearMetaData(option), OK);
+}
 }

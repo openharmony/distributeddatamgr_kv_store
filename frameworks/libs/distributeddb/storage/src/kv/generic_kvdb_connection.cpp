@@ -461,4 +461,9 @@ int GenericKvDBConnection::OperateDataStatus([[gnu::unused]] uint32_t dataOperat
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::ClearCloudWatermark()
+{
+    return -E_NOT_SUPPORT;
+}
 }

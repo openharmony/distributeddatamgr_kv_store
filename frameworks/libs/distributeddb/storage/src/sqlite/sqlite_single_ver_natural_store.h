@@ -238,6 +238,11 @@ public:
     }
 
     int OperateDataStatus(uint32_t dataOperator);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int ClearCloudWatermark();
+    std::function<int(void)> ClearCloudWatermarkInner();
+#endif
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
