@@ -122,6 +122,8 @@ public:
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap) override;
 
     int SetCloudSyncConfig(const CloudSyncConfig &config) override;
+
+    int ClearCloudWatermark() override;
 #endif
 
     int OperateDataStatus(uint32_t dataOperator) override;

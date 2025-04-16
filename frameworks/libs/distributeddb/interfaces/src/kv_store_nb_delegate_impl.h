@@ -192,6 +192,8 @@ public:
     DBStatus SetCloudSyncConfig(const CloudSyncConfig &config) override;
 
     std::pair<DBStatus, std::map<std::string, std::string>> GetCloudVersion(const std::string &device) override;
+
+    DBStatus ClearMetaData(ClearKvMetaDataOption option) override;
 #endif
 
     DBStatus OperateDataStatus(uint32_t dataOperator) override;

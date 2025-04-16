@@ -312,6 +312,11 @@ public:
     {
         return OK;
     }
+
+    DB_API virtual DBStatus ClearMetaData([[gnu::unused]] ClearKvMetaDataOption option)
+    {
+        return OK;
+    }
 };
 } // namespace DistributedDB
 

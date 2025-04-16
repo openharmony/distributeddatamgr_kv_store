@@ -1372,6 +1372,24 @@ std::pair<DBStatus, std::map<std::string, std::string>> KvStoreNbDelegateImpl::G
     res.first = TransferDBErrno(errCode);
     return res;
 }
+
+DBStatus KvStoreNbDelegateImpl::ClearMetaData(ClearKvMetaDataOption option)
+{
+    if (option.type != ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK) {
+        return NOT_SUPPORT;
+    }
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->ClearCloudWatermark();
+    if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate][%.3s] clear kv cloud watermark success", storeId_.c_str());
+    } else {
+        LOGE("[KvStoreNbDelegate][%.3s] clear kv cloud watermark failed:%d", storeId_.c_str(), errCode);
+    }
+    return TransferDBErrno(errCode);
+}
 #endif
 
 DBStatus KvStoreNbDelegateImpl::OperateDataStatus(uint32_t dataOperator)

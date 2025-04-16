@@ -2000,6 +2000,16 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudSyncConfig(const CloudSyncCon
     }
     return naturalStore->SetCloudSyncConfig(config);
 }
+
+int SQLiteSingleVerNaturalStoreConnection::ClearCloudWatermark()
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] DB is null when clear cloud watermark");
+        return -E_INVALID_DB;
+    }
+    return naturalStore->ClearCloudWatermark();
+}
 #endif
 
 void SQLiteSingleVerNaturalStoreConnection::RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,

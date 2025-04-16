@@ -49,6 +49,14 @@ struct ClearMetaDataOption {
     std::set<std::string> tableNameList;  // an empty set means clearing meta data on all tables
 };
 
+enum class ClearKvMetaOpType : uint64_t {
+    CLEAN_CLOUD_WATERMARK = 0x01,  // clear watermark of device to cloud sync
+};
+
+struct ClearKvMetaDataOption {
+    ClearKvMetaOpType type;
+};
+
 enum class AssetOpType {
     NO_CHANGE = 0,
     INSERT,
