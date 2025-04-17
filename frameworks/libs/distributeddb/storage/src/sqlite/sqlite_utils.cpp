@@ -119,6 +119,7 @@ void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
 {
     bool verboseLog = (data != nullptr);
     auto errType = static_cast<unsigned int>(err);
+    bool isWarningDump = errType == (SQLITE_WARNING | (2 << 8)); // SQLITE_WARNING_DUMP
     std::string logMsg = msg == nullptr ? "NULL" : msg;
     errType &= 0xFF;
     if (IsNeedSkipLog(errType, logMsg.c_str())) {
@@ -129,7 +130,8 @@ void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
         if (verboseLog) {
             LOGD("[SQLite] Error[%d] sys[%d] %s ", err, errno, sqlite3_errstr(err));
         }
-    } else if (errType == SQLITE_WARNING || errType == SQLITE_IOERR || errType == SQLITE_CANTOPEN) {
+    } else if ((errType == SQLITE_WARNING && !isWarningDump) ||
+        errType == SQLITE_IOERR || errType == SQLITE_CANTOPEN) {
         LOGI("[SQLite] Error[%d], sys[%d], %s, msg: %s ", err, errno,
             sqlite3_errstr(err), SQLiteUtils::Anonymous(logMsg).c_str());
     } else {
@@ -179,9 +181,6 @@ END:
         (void)sqlite3_close_v2(dbTemp);
         dbTemp = nullptr;
     }
-    struct stat curStat;
-    stat(fileUrl.c_str(), &curStat);
-    LOGI("[SQLite] open database result: %d, inode: %llu", errCode, curStat.st_ino);
 
     return errCode;
 }

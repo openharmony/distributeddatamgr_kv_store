@@ -16,6 +16,7 @@
 #include "storage_engine.h"
 
 #include <algorithm>
+#include <sys/stat.h>
 
 #include "db_common.h"
 #include "db_errno.h"
@@ -62,6 +63,7 @@ OpenDbProperties StorageEngine::GetOption()
 
 int StorageEngine::InitReadWriteExecutors()
 {
+    PrintDbFileMsg(true);
     int errCode = E_OK;
     std::scoped_lock initLock(writeMutex_, readMutex_);
     // only for create the database avoid the minimum number is 0.
@@ -449,6 +451,7 @@ void StorageEngine::CloseExecutor()
         ClearHandleList(readIdleList_);
         ClearHandleList(externalReadIdleList_);
     }
+    PrintDbFileMsg(false);
 }
 
 StorageExecutor *StorageEngine::FetchStorageExecutor(bool isWrite, std::list<StorageExecutor *> &idleList,
@@ -525,5 +528,49 @@ void StorageEngine::SetSchemaChangedCallback(const std::function<int(void)> &cal
 {
     std::unique_lock<std::shared_mutex> lock(schemaChangedMutex_);
     schemaChangedFunc_ = callback;
+}
+
+void StorageEngine::PrintDbFileMsg(bool isOpen)
+{
+    OpenDbProperties option = GetOption();
+    std::string dbFilePath = option.uri;
+    if (option.isMemDb || dbFilePath.empty()) {
+        return;
+    }
+    struct stat dbFileStat;
+    if (memset_s(&dbFileStat, sizeof(struct stat), 0, sizeof(struct stat)) != E_OK) {
+        LOGW("init db file stat fail");
+        return;
+    }
+    stat(dbFilePath.c_str(), &dbFileStat);
+    std::string dbWalFilePath = dbFilePath + "-wal";
+    struct stat dbWalFileStat;
+    if (memset_s(&dbWalFileStat, sizeof(struct stat), 0, sizeof(struct stat)) != E_OK) {
+        LOGW("init db wal file stat fail");
+        return;
+    }
+    stat(dbWalFilePath.c_str(), &dbWalFileStat);
+    std::string dbShmFilePath = dbFilePath + "-shm";
+    struct stat dbShmFileStat;
+    if (memset_s(&dbShmFileStat, sizeof(struct stat), 0, sizeof(struct stat)) != E_OK) {
+        LOGW("init db shm file stat fail");
+        return;
+    }
+    stat(dbShmFilePath.c_str(), &dbShmFileStat);
+    std::string dbDwrFilePath = dbFilePath + "-dwr";
+    struct stat dbDwrFileStat;
+    if (memset_s(&dbDwrFileStat, sizeof(struct stat), 0, sizeof(struct stat)) != E_OK) {
+        LOGW("init db dwr file stat fail");
+        return;
+    }
+    stat(dbDwrFilePath.c_str(), &dbDwrFileStat);
+    std::string stage = isOpen ? "before open db," : "after close db,";
+#ifdef __linux__
+    LOGI("%s db file: [size: %lld, mtime: %lld, inode: %llu], db-wal file: [size: %lld, mtime: %lld, inode: %llu], "
+         "db-shm file: [size: %lld, mtime: %lld, inode: %llu], db-dwr file: [size: %lld, mtime: %lld, inode: %llu]",
+         stage.c_str(), dbFileStat.st_size, dbFileStat.st_mtim.tv_sec, dbFileStat.st_ino, dbWalFileStat.st_size,
+         dbWalFileStat.st_mtim.tv_sec, dbWalFileStat.st_ino, dbShmFileStat.st_size, dbShmFileStat.st_mtim.tv_sec,
+         dbShmFileStat.st_ino, dbDwrFileStat.st_size, dbDwrFileStat.st_mtim.tv_sec, dbDwrFileStat.st_ino);
+#endif
 }
 }
