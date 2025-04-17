@@ -18,7 +18,7 @@
 
 namespace DistributedDB {
 namespace {
-    const int MAX_FIELD_NUM_IN_ONE_STATEMENT = 100;
+    const unsigned int MAX_FIELD_NUM_IN_ONE_STATEMENT = 100u;
 }
 
 int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const TableInfo &table,
@@ -175,12 +175,12 @@ std::string SqliteLogTableManager::GetUpdateSqlWhenFieldExceedsLimit(const std::
     const std::string &matchValue, const std::string &missMatchValue)
 {
     std::string sql = " CASE";
-    int index = 0;
-    int maxNum = syncFields.size();
+    size_t index = 0;
+    size_t maxNum = syncFields.size();
     while (index < maxNum) {
         sql.append(" WHEN (");
-        int beginIndex = index;
-        for (int i = beginIndex; i < (beginIndex + MAX_FIELD_NUM_IN_ONE_STATEMENT) && i < maxNum; i++) {
+        size_t beginIndex = index;
+        for (size_t i = beginIndex; i < (beginIndex + MAX_FIELD_NUM_IN_ONE_STATEMENT) && i < maxNum; i++) {
             auto field = syncFields[i];
             sql.append("(").append("OLD.'").append(field).append("'!= NEW.'").append(field).append("') OR");
             index++;
