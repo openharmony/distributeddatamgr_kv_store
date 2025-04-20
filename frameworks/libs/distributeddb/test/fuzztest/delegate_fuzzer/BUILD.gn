@@ -66,7 +66,6 @@ ohos_fuzztest("DelegateFuzzTest") {
     "//third_party/grpc/src/core/lib/json",
   ]
 
-  use_exceptions = true
   cflags = [
     "-g",
     "-O0",
@@ -106,6 +105,7 @@ ohos_fuzztest("DelegateFuzzTest") {
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
     "USE_DISTRIBUTEDDB_CLOUD",
+    "USE_EXCEPTIONS",
   ]
 
   deps = [
