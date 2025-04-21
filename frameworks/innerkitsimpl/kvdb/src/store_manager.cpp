@@ -182,7 +182,7 @@ Status StoreManager::PutSwitch(const AppId &appId, const SwitchData &data)
 std::pair<Status, SwitchData> StoreManager::GetSwitch(const AppId &appId, const std::string &networkId)
 {
     ZLOGD("appId:%{public}s, networkId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(networkId).c_str());
-    if (!appId.IsValid() || DevManager::GetInstance().ToUUID(networkId).empty()) {
+    if (!appId.IsValid() || networkId.empty()) {
         return { INVALID_ARGUMENT, SwitchData() };
     }
     auto service = KVDBServiceClient::GetInstance();
