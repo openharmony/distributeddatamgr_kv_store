@@ -95,7 +95,7 @@ public:
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 
-    int SetDistributedSchema(const DistributedSchema &schema);
+    int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
 
     int GetDownloadingAssetsCount(int32_t &count);
 

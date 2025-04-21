@@ -1742,7 +1742,7 @@ SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 }
 #endif
 
-int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
+int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
 {
     if (sqliteStorageEngine_ == nullptr || storageEngine_ == nullptr) {
         LOGE("[RelationalStore] engine was not initialized");
@@ -1756,7 +1756,7 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
             LOGW("Get local identity failed: %d", errCode);
         }
     }
-    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema, localIdentity);
+    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema, localIdentity, isForceUpgrade);
     if (errCode != E_OK) {
         return errCode;
     }

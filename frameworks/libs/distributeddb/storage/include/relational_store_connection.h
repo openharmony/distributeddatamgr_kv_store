@@ -76,7 +76,7 @@ public:
 
     virtual int GetDownloadingAssetsCount(int32_t &count) = 0;
 
-    virtual int SetDistributedDbSchema(const DistributedSchema &schema) = 0;
+    virtual int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) = 0;
 
     virtual int SetTableMode(DistributedTableMode tableMode) = 0;
 

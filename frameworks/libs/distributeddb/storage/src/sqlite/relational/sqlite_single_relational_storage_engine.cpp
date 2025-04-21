@@ -1084,7 +1084,7 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
 }
 
 std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(const DistributedSchema &schema,
-    const std::string &localIdentity)
+    const std::string &localIdentity, bool isForceUpgrade)
 {
     std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
     auto schemaObj = GetSchema();
@@ -1103,7 +1103,7 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
         LOGE("new schema version no upgrade old:%" PRIu32 " new:%" PRIu32, localSchema.version, schema.version);
         errCode = -E_INVALID_ARGS;
     } else {
-        errCode = SetDistributedSchemaInner(schemaObj, schema, localIdentity);
+        errCode = SetDistributedSchemaInner(schemaObj, schema, localIdentity, isForceUpgrade);
     }
     if (errCode == E_OK) {
         SetSchema(schemaObj);
@@ -1112,7 +1112,7 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
 }
 
 int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSchemaObject &schemaObj,
-    const DistributedSchema &schema, const std::string &localIdentity)
+    const DistributedSchema &schema, const std::string &localIdentity, bool isForceUpgrade)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -1129,7 +1129,7 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSch
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SQLiteRelationalUtils::CheckDistributedSchemaValid(schemaObj, schema, handle);
+    errCode = SQLiteRelationalUtils::CheckDistributedSchemaValid(schemaObj, schema, isForceUpgrade, handle);
     if (errCode != E_OK) {
         (void)handle->Rollback();
         return errCode;
