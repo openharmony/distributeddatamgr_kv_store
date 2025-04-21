@@ -884,7 +884,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema017, TestSize.Level0)
     DistributedSchema schema2 = {0, {{"multiPriKeyTable", {
         {"pk1", false, false},
         {"pk2", true, true}}}}};
-    EXPECT_EQ(delegate_->SetDistributedSchema(schema2), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(schema2, true), OK);
     std::vector<std::string> newHashKeys2;
     EXPECT_EQ(GetHashKey(db_, tableName, newHashKeys2), E_OK);
     ASSERT_EQ(newHashKeys2.size(), static_cast<size_t>(dataCount));
@@ -1012,6 +1012,31 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema022, TestSize.Level0)
     deviceB_->SetDistributedSchema(distributedSchema);
     EXPECT_EQ(delegate_->CreateDistributedTable(tableName, TableSyncType::DEVICE_COOPERATION), OK);
     EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+}
+
+/**
+ * @tc.name: SetSchema025
+ * @tc.desc: Test SetDistributedSchema with isForceUpgrade.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema025, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate());
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    DistributedSchema distributedSchema1 = {1, {{DEVICE_SYNC_TABLE, {{"pk", true}, {"int_field1", true}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema1), OK);
+    /**
+     * @tc.steps: step2. Set distributed schema with isForceUpgrade
+     * @tc.expected: step2.ok
+     */
+    DistributedSchema distributedSchema2 = {2, {{DEVICE_SYNC_TABLE, {{"pk", true}}}}};
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema2, true), OK);
 }
 
 /**

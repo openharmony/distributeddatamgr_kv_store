@@ -1692,13 +1692,13 @@ SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 }
 #endif
 
-int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema)
+int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
 {
     if (sqliteStorageEngine_ == nullptr || storageEngine_ == nullptr) {
         LOGE("[RelationalStore] engine was not initialized");
         return -E_INVALID_DB;
     }
-    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema);
+    auto [errCode, isSchemaChange] = sqliteStorageEngine_->SetDistributedSchema(schema, isForceUpgrade);
     if (errCode != E_OK) {
         return errCode;
     }

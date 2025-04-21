@@ -470,14 +470,14 @@ SyncProcess SQLiteRelationalStoreConnection::GetCloudTaskStatus(uint64_t taskId)
 }
 #endif
 
-int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSchema &schema)
+int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
         LOGE("[RelationalConnection] store is null when set distributed schema");
         return -E_INVALID_CONNECTION;
     }
-    return store->SetDistributedSchema(SQLiteRelationalUtils::FilterRepeatDefine(schema));
+    return store->SetDistributedSchema(SQLiteRelationalUtils::FilterRepeatDefine(schema), isForceUpgrade);
 }
 
 int SQLiteRelationalStoreConnection::GetDownloadingAssetsCount(int32_t &count)
