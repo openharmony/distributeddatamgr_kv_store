@@ -856,7 +856,7 @@ HWTEST_F(DistributedKvDataManagerTest, GetSwitchWithInvalidArg, TestSize.Level1)
     auto [status2, data2] = manager.GetSwitch({ "switches_test_appId" }, "");
     ASSERT_EQ(status2, Status::INVALID_ARGUMENT);
     auto [status3, data3] = manager.GetSwitch({ "switches_test_appId" }, "networkId_test");
-    ASSERT_EQ(status3, Status::INVALID_ARGUMENT);
+    ASSERT_EQ(status3, Status::PERMISSION_DENIED);
 }
 
 /**
