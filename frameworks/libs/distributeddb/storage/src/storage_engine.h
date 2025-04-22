@@ -140,6 +140,8 @@ private:
 
     virtual void ClearCorruptedFlag();
 
+    void PrintDbFileMsg(bool isOpen);
+
     static const int MAX_WAIT_TIME;
     static const int MAX_WRITE_SIZE;
     static const int MAX_READ_SIZE;
