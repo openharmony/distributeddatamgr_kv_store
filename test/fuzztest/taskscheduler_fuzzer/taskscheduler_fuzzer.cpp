@@ -17,14 +17,15 @@
 
 #include <chrono>
 #include <thread>
-
+#include "fuzzer/FuzzedDataProvider.h"
 #include "task_scheduler.h"
 
 namespace OHOS {
 static constexpr int MAX_DELAY_TIME = 5;
 static constexpr int MAX_INTERVAL_TIME = 3;
-void AtFuzz(int time)
+void AtFuzz(FuzzedDataProvider &provider)
 {
+    int time = provider.ConsumeIntegral<int>();
     TaskScheduler taskScheduler;
     std::chrono::steady_clock::time_point tp = std::chrono::steady_clock::now() +
                                                std::chrono::duration<int>(time % MAX_DELAY_TIME);
@@ -33,8 +34,9 @@ void AtFuzz(int time)
     taskScheduler.Remove(task);
 }
 
-void EveryFUZZ(int time)
+void EveryFUZZ(FuzzedDataProvider &provider)
 {
+    int time = provider.ConsumeIntegral<int>();
     TaskScheduler taskScheduler;
     std::chrono::duration<int> delay(time % MAX_DELAY_TIME);
     std::chrono::duration<int> interval(time % MAX_INTERVAL_TIME);
@@ -47,8 +49,9 @@ void EveryFUZZ(int time)
     taskScheduler.Clean();
 }
 
-void ResetFuzz(int time)
+void ResetFuzz(FuzzedDataProvider &provider)
 {
+    int time = provider.ConsumeIntegral<int>();
     TaskScheduler taskScheduler;
     std::chrono::duration<int> interval(time % MAX_INTERVAL_TIME);
     std::chrono::steady_clock::time_point tp1 = std::chrono::steady_clock::now() +
@@ -61,9 +64,9 @@ void ResetFuzz(int time)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    int time = static_cast<int>(*data);
-    OHOS::AtFuzz(time);
-    OHOS::EveryFUZZ(time);
-    OHOS::ResetFuzz(time);
+    FuzzedDataProvider provider(data, size);
+    OHOS::AtFuzz(provider);
+    OHOS::EveryFUZZ(provider);
+    OHOS::ResetFuzz(provider);
     return 0;
 }

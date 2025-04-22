@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "distributed_kv_data_manager.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "store_errno.h"
 
 using namespace OHOS;
@@ -86,20 +87,20 @@ void TearDown(void)
     (void)remove("/data/service/el1/public/database/singlekvstorefuzzertest");
 }
 
-void PutFuzz(const uint8_t *data, size_t size)
+void PutFuzz(FuzzedDataProvider &provider)
 {
-    std::string skey(data, data + size);
-    std::string svalue(data, data + size);
+    std::string skey = provider.ConsumeRandomLengthString();
+    std::string svalue = provider.ConsumeRandomLengthString();
     Key key = { skey };
     Value val = { svalue };
     singleKvStore_->Put(key, val);
     singleKvStore_->Delete(key);
 }
 
-void PutBatchFuzz(const uint8_t *data, size_t size)
+void PutBatchFuzz(FuzzedDataProvider &provider)
 {
-    std::string skey(data, data + size);
-    std::string svalue(data, data + size);
+    std::string skey = provider.ConsumeRandomLengthString();
+    std::string svalue = provider.ConsumeRandomLengthString();
     std::vector<Entry> entries;
     std::vector<Key> keys;
     Entry entry1;
@@ -121,10 +122,10 @@ void PutBatchFuzz(const uint8_t *data, size_t size)
     singleKvStore_->DeleteBatch(keys);
 }
 
-void GetFuzz(const uint8_t *data, size_t size)
+void GetFuzz(FuzzedDataProvider &provider)
 {
-    std::string skey(data, data + size);
-    std::string svalue(data, data + size);
+    std::string skey = provider.ConsumeRandomLengthString();
+    std::string svalue = provider.ConsumeRandomLengthString();
     Key key = { skey };
     Value val = { svalue };
     Value val1;
@@ -133,9 +134,9 @@ void GetFuzz(const uint8_t *data, size_t size)
     singleKvStore_->Delete(key);
 }
 
-void GetEntriesFuzz1(const uint8_t *data, size_t size)
+void GetEntriesFuzz1(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     std::string keys = "test_";
     size_t sum = 10;
     std::vector<Entry> results;
@@ -148,9 +149,9 @@ void GetEntriesFuzz1(const uint8_t *data, size_t size)
     }
 }
 
-void GetEntriesFuzz2(const uint8_t *data, size_t size)
+void GetEntriesFuzz2(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -165,9 +166,9 @@ void GetEntriesFuzz2(const uint8_t *data, size_t size)
     }
 }
 
-void SubscribeKvStoreFuzz(const uint8_t *data, size_t size)
+void SubscribeKvStoreFuzz(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -183,12 +184,12 @@ void SubscribeKvStoreFuzz(const uint8_t *data, size_t size)
     }
 }
 
-void SyncCallbackFuzz(const uint8_t *data, size_t size)
+void SyncCallbackFuzz(FuzzedDataProvider &provider)
 {
     auto syncCallback = std::make_shared<DeviceSyncCallbackTestImpl>();
     singleKvStore_->RegisterSyncCallback(syncCallback);
 
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -206,11 +207,11 @@ void SyncCallbackFuzz(const uint8_t *data, size_t size)
     singleKvStore_->UnRegisterSyncCallback();
 }
 
-void GetResultSetFuzz1(const uint8_t *data, size_t size)
+void GetResultSetFuzz1(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     std::string keys = "test_";
-    int position = static_cast<int>(size);
+    int position = provider.ConsumeIntegral<int>();
     std::shared_ptr<KvStoreResultSet> resultSet;
     size_t sum = 10;
     for (size_t i = 0; i < sum; i++) {
@@ -229,9 +230,9 @@ void GetResultSetFuzz1(const uint8_t *data, size_t size)
     }
 }
 
-void GetResultSetFuzz2(const uint8_t *data, size_t size)
+void GetResultSetFuzz2(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -247,9 +248,9 @@ void GetResultSetFuzz2(const uint8_t *data, size_t size)
     }
 }
 
-void GetResultSetFuzz3(const uint8_t *data, size_t size)
+void GetResultSetFuzz3(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -264,7 +265,7 @@ void GetResultSetFuzz3(const uint8_t *data, size_t size)
         return;
     }
     int cnt = resultSet->GetCount();
-    if (static_cast<int>(size) != cnt) {
+    if (cnt != sum) {
         return;
     }
     resultSet->GetPosition();
@@ -296,10 +297,10 @@ void GetResultSetFuzz3(const uint8_t *data, size_t size)
     }
 }
 
-void GetCountFuzz1(const uint8_t *data, size_t size)
+void GetCountFuzz1(FuzzedDataProvider &provider)
 {
     int count;
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery query;
     query.KeyPrefix(prefix);
     std::string keys = "test_";
@@ -313,12 +314,12 @@ void GetCountFuzz1(const uint8_t *data, size_t size)
     }
 }
 
-void GetCountFuzz2(const uint8_t *data, size_t size)
+void GetCountFuzz2(FuzzedDataProvider &provider)
 {
     int count;
     size_t sum = 10;
     std::vector<std::string> keys;
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     for (size_t i = 0; i < sum; i++) {
         keys.push_back(prefix);
     }
@@ -334,10 +335,10 @@ void GetCountFuzz2(const uint8_t *data, size_t size)
     }
 }
 
-void RemoveDeviceDataFuzz(const uint8_t *data, size_t size)
+void RemoveDeviceDataFuzz(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
-    std::string deviceId(data, data + size);
+    std::string deviceId = provider.ConsumeRandomLengthString();
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
@@ -357,11 +358,11 @@ void RemoveDeviceDataFuzz(const uint8_t *data, size_t size)
     }
 }
 
-void GetSecurityLevelFuzz(const uint8_t *data, size_t size)
+void GetSecurityLevelFuzz(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
     std::vector<std::string> keys;
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     for (size_t i = 0; i < sum; i++) {
         keys.push_back(prefix);
     }
@@ -376,14 +377,14 @@ void GetSecurityLevelFuzz(const uint8_t *data, size_t size)
     }
 }
 
-void SyncFuzz1(const uint8_t *data, size_t size)
+void SyncFuzz1(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
     std::string skey = "test_";
     for (size_t i = 0; i < sum; i++) {
         singleKvStore_->Put(skey + std::to_string(i), skey + std::to_string(i));
     }
-    std::string deviceId(data, data + size);
+    std::string deviceId = provider.ConsumeRandomLengthString();
     std::vector<std::string> deviceIds = { deviceId };
     uint32_t allowedDelayMs = 200;
     singleKvStore_->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
@@ -392,14 +393,14 @@ void SyncFuzz1(const uint8_t *data, size_t size)
     }
 }
 
-void SyncFuzz2(const uint8_t *data, size_t size)
+void SyncFuzz2(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
     std::string skey = "test_";
     for (size_t i = 0; i < sum; i++) {
         singleKvStore_->Put(skey + std::to_string(i), skey + std::to_string(i));
     }
-    std::string deviceId(data, data + size);
+    std::string deviceId = provider.ConsumeRandomLengthString();
     std::vector<std::string> deviceIds = { deviceId };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
@@ -409,11 +410,11 @@ void SyncFuzz2(const uint8_t *data, size_t size)
     }
 }
 
-void SyncParamFuzz(const uint8_t *data, size_t size)
+void SyncParamFuzz(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
     std::vector<std::string> keys;
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     for (size_t i = 0; i < sum; i++) {
         keys.push_back(prefix);
     }
@@ -433,11 +434,11 @@ void SyncParamFuzz(const uint8_t *data, size_t size)
     }
 }
 
-void SetCapabilityEnabledFuzz(const uint8_t *data, size_t size)
+void SetCapabilityEnabledFuzz(FuzzedDataProvider &provider)
 {
     size_t sum = 10;
     std::vector<std::string> keys;
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     for (size_t i = 0; i < sum; i++) {
         keys.push_back(prefix);
     }
@@ -454,17 +455,17 @@ void SetCapabilityEnabledFuzz(const uint8_t *data, size_t size)
     }
 }
 
-void SetCapabilityRangeFuzz(const uint8_t *data, size_t size)
+void SetCapabilityRangeFuzz(FuzzedDataProvider &provider)
 {
-    std::string label(data, data + size);
+    std::string label = provider.ConsumeRandomLengthString();
     std::vector<std::string> local = { label + "_local1", label + "_local2" };
     std::vector<std::string> remote = { label + "_remote1", label + "_remote2" };
     singleKvStore_->SetCapabilityRange(local, remote);
 }
 
-void SubscribeWithQueryFuzz(const uint8_t *data, size_t size)
+void SubscribeWithQueryFuzz(FuzzedDataProvider &provider)
 {
-    std::string deviceId(data, data + size);
+    std::string deviceId = provider.ConsumeRandomLengthString();
     std::vector<std::string> deviceIds = { deviceId + "_1", deviceId + "_2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
@@ -472,32 +473,32 @@ void SubscribeWithQueryFuzz(const uint8_t *data, size_t size)
     singleKvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
 }
 
-void UnSubscribeWithQueryFuzz(const uint8_t *data, size_t size)
+void UnSubscribeWithQueryFuzz(FuzzedDataProvider &provider)
 {
-    std::string deviceId(data, data + size);
+    std::string deviceId = provider.ConsumeRandomLengthString();
     std::vector<std::string> deviceIds = { deviceId + "_1", deviceId + "_2" };
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
     singleKvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
 }
 
-void AsyncGetFuzz(const uint8_t *data, size_t size)
+void AsyncGetFuzz(FuzzedDataProvider &provider)
 {
-    std::string strKey(data, data + size);
-    std::string strValue(data, data + size);
+    std::string strKey = provider.ConsumeRandomLengthString();
+    std::string strValue = provider.ConsumeRandomLengthString();
     Key key = { strKey };
     Value val = { strValue };
     singleKvStore_->Put(key, val);
     Value out;
     std::function<void(Status, Value &&)> call = [](Status status, Value &&value) {};
-    std::string networkId(data, data + size);
+    std::string networkId = provider.ConsumeRandomLengthString();
     singleKvStore_->Get(key, networkId, call);
     singleKvStore_->Delete(key);
 }
 
-void AsyncGetEntriesFuzz(const uint8_t *data, size_t size)
+void AsyncGetEntriesFuzz(FuzzedDataProvider &provider)
 {
-    std::string prefix(data, data + size);
+    std::string prefix = provider.ConsumeRandomLengthString();
     std::string keys = "test_";
     size_t sum = 10;
     std::vector<Entry> results;
@@ -505,7 +506,7 @@ void AsyncGetEntriesFuzz(const uint8_t *data, size_t size)
         singleKvStore_->Put(prefix + keys + std::to_string(i), { keys + std::to_string(i) });
     }
     std::function<void(Status, std::vector<Entry> &&)> call = [](Status status, std::vector<Entry> &&entry) {};
-    std::string networkId(data, data + size);
+    std::string networkId = provider.ConsumeRandomLengthString();
     singleKvStore_->GetEntries(prefix, networkId, call);
     for (size_t i = 0; i < sum; i++) {
         singleKvStore_->Delete(prefix + keys + std::to_string(i));
@@ -517,30 +518,31 @@ void AsyncGetEntriesFuzz(const uint8_t *data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
+    FuzzedDataProvider provider(data, size);
     OHOS::SetUpTestCase();
-    OHOS::PutFuzz(data, size);
-    OHOS::PutBatchFuzz(data, size);
-    OHOS::GetFuzz(data, size);
-    OHOS::GetEntriesFuzz1(data, size);
-    OHOS::GetEntriesFuzz2(data, size);
-    OHOS::GetResultSetFuzz1(data, size);
-    OHOS::GetResultSetFuzz2(data, size);
-    OHOS::GetResultSetFuzz3(data, size);
-    OHOS::GetCountFuzz1(data, size);
-    OHOS::GetCountFuzz2(data, size);
-    OHOS::SyncFuzz1(data, size);
-    OHOS::SyncFuzz2(data, size);
-    OHOS::SubscribeKvStoreFuzz(data, size);
-    OHOS::RemoveDeviceDataFuzz(data, size);
-    OHOS::GetSecurityLevelFuzz(data, size);
-    OHOS::SyncCallbackFuzz(data, size);
-    OHOS::SyncParamFuzz(data, size);
-    OHOS::SetCapabilityEnabledFuzz(data, size);
-    OHOS::SetCapabilityRangeFuzz(data, size);
-    OHOS::SubscribeWithQueryFuzz(data, size);
-    OHOS::UnSubscribeWithQueryFuzz(data, size);
-    OHOS::AsyncGetFuzz(data, size);
-    OHOS::AsyncGetEntriesFuzz(data, size);
+    OHOS::PutFuzz(provider);
+    OHOS::PutBatchFuzz(provider);
+    OHOS::GetFuzz(provider);
+    OHOS::GetEntriesFuzz1(provider);
+    OHOS::GetEntriesFuzz2(provider);
+    OHOS::GetResultSetFuzz1(provider);
+    OHOS::GetResultSetFuzz2(provider);
+    OHOS::GetResultSetFuzz3(provider);
+    OHOS::GetCountFuzz1(provider);
+    OHOS::GetCountFuzz2(provider);
+    OHOS::SyncFuzz1(provider);
+    OHOS::SyncFuzz2(provider);
+    OHOS::SubscribeKvStoreFuzz(provider);
+    OHOS::RemoveDeviceDataFuzz(provider);
+    OHOS::GetSecurityLevelFuzz(provider);
+    OHOS::SyncCallbackFuzz(provider);
+    OHOS::SyncParamFuzz(provider);
+    OHOS::SetCapabilityEnabledFuzz(provider);
+    OHOS::SetCapabilityRangeFuzz(provider);
+    OHOS::SubscribeWithQueryFuzz(provider);
+    OHOS::UnSubscribeWithQueryFuzz(provider);
+    OHOS::AsyncGetFuzz(provider);
+    OHOS::AsyncGetEntriesFuzz(provider);
     OHOS::TearDown();
     return 0;
 }
