@@ -69,7 +69,7 @@ public:
     DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
         RecordStatus status) override;
 
-    DBStatus SetDistributedSchema(const DistributedSchema &schema) override;
+    DBStatus SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
 
     std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
 
