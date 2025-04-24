@@ -526,12 +526,37 @@ bool IsMarkUniqueColumnInvalid(const TableInfo &tableInfo, const std::vector<Dis
     return false;
 }
 
-bool IsDistributedPkInvalid(const TableInfo &tableInfo,
+bool IsDistributedPKInvalidInAutoIncrementTable(const TableInfo &tableInfo,
     const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
     const std::vector<DistributedField> &originFields)
 {
+    if (distributedPk.empty()) {
+        return false;
+    }
+    auto uniqueAndPkDefine = tableInfo.GetUniqueAndPkDefine();
+    if (IsMarkUniqueColumnInvalid(tableInfo, originFields)) {
+        LOGE("Mark more than one unique column specified in auto increment table: %s, tableName len: %zu",
+            DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str(), tableInfo.GetTableName().length());
+        return true;
+    }
+    auto find = std::any_of(uniqueAndPkDefine.begin(), uniqueAndPkDefine.end(), [&distributedPk](const auto &item) {
+        // unique index field count should be same
+        return item.size() == distributedPk.size() && distributedPk == DBCommon::TransformToCaseInsensitive(item);
+    });
+    bool isMissMatch = !find;
+    if (isMissMatch) {
+        LOGE("Miss match distributed pk size %zu in auto increment table %s", distributedPk.size(),
+            DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str());
+    }
+    return isMissMatch;
+}
+
+bool IsDistributedPkInvalid(const TableInfo &tableInfo,
+    const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
+    const std::vector<DistributedField> &originFields, bool isForceUpgrade)
+{
     auto lastDistributedPk = DBCommon::TransformToCaseInsensitive(tableInfo.GetSyncDistributedPk());
-    if (!lastDistributedPk.empty() && distributedPk != lastDistributedPk) {
+    if (!isForceUpgrade && !lastDistributedPk.empty() && distributedPk != lastDistributedPk) {
         LOGE("distributed pk has change last %zu now %zu", lastDistributedPk.size(), distributedPk.size());
         return true;
     }
@@ -543,25 +568,7 @@ bool IsDistributedPkInvalid(const TableInfo &tableInfo,
         return true;
     }
     if (tableInfo.GetAutoIncrement()) {
-        if (distributedPk.empty()) {
-            return false;
-        }
-        auto uniqueAndPkDefine = tableInfo.GetUniqueAndPkDefine();
-        if (IsMarkUniqueColumnInvalid(tableInfo, originFields)) {
-            LOGE("Mark more than one unique column specified in auto increment table: %s, tableName len: %zu",
-                DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str(), tableInfo.GetTableName().length());
-            return true;
-        }
-        auto find = std::any_of(uniqueAndPkDefine.begin(), uniqueAndPkDefine.end(), [&distributedPk](const auto &item) {
-            // unique index field count should be same
-            return item.size() == distributedPk.size() && distributedPk == DBCommon::TransformToCaseInsensitive(item);
-        });
-        bool isMissMatch = !find;
-        if (isMissMatch) {
-            LOGE("Miss match distributed pk size %zu in auto increment table %s", distributedPk.size(),
-                DBCommon::StringMiddleMasking(tableInfo.GetTableName()).c_str());
-        }
-        return isMissMatch;
+        return IsDistributedPKInvalidInAutoIncrementTable(tableInfo, distributedPk, originFields);
     }
     for (const auto &field : originFields) {
         bool isLocalPk = tableInfo.IsPrimaryKey(field.colName);
@@ -625,7 +632,7 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
             distributedPk.insert(field.colName);
         }
     }
-    if (IsDistributedPkInvalid(tableInfo, distributedPk, fields)) {
+    if (IsDistributedPkInvalid(tableInfo, distributedPk, fields, isForceUpgrade)) {
         return -E_SCHEMA_MISMATCH;
     }
     std::set<std::string> fieldsNeedContain;
@@ -651,27 +658,6 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
     return E_OK;
 }
 
-int CheckDistributedSchemaTables(const RelationalSchemaObject &schemaObj, const DistributedSchema &schema)
-{
-    auto localSchema = schemaObj.GetDistributedSchema();
-    if (schema.tables.size() < localSchema.tables.size()) {
-        LOGE("[RDBUtils][CheckDistributedSchemaTables] the number of tables should not decrease");
-        return -E_DISTRIBUTED_FIELD_DECREASE;
-    }
-    std::map<std::string, std::vector<DistributedField>, CaseInsensitiveComparator> tableSchemaMap;
-    for (const auto &table : schema.tables) {
-        tableSchemaMap[table.tableName] = table.fields;
-    }
-    for (const auto &table : localSchema.tables) {
-        if (tableSchemaMap.find(table.tableName) == tableSchemaMap.end()) {
-            LOGE("[RDBUtils][CheckDistributedSchemaTables] table [%s [%zu]] missing",
-                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size());
-            return -E_DISTRIBUTED_FIELD_DECREASE;
-        }
-    }
-    return E_OK;
-}
-
 int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj,
     const DistributedSchema &schema, bool isForceUpgrade, SQLiteSingleVerRelationalStorageExecutor *executor)
 {
@@ -683,11 +669,6 @@ int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObj
     int errCode = executor->GetDbHandle(db);
     if (errCode != E_OK) {
         LOGE("[RDBUtils][CheckDistributedSchemaValid] sqlite handle failed %d", errCode);
-        return errCode;
-    }
-    errCode = CheckDistributedSchemaTables(schemaObj, schema);
-    if (errCode != E_OK) {
-        LOGE("[RDBUtils][CheckDistributedSchemaValid] Check tables fail %d", errCode);
         return errCode;
     }
     for (const auto &table : schema.tables) {
