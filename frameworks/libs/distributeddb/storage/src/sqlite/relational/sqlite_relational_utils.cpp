@@ -471,10 +471,8 @@ void GetFieldsNeedContain(const TableInfo &tableInfo, const std::vector<FieldInf
     std::set<std::string> &requiredNotNullFields)
 {
     // should not decrease distributed field
-    for (const auto &syncField : syncFields) {
-        if (!tableInfo.IsPrimaryKey(syncField.GetFieldName())) {
-            fieldsNotDecrease.insert(syncField.GetFieldName());
-        }
+    for (const auto &field : tableInfo.GetSyncField()) {
+        fieldsNotDecrease.insert(field);
     }
     const std::vector<CompositeFields> &uniqueDefines = tableInfo.GetUniqueDefine();
     for (const auto &compositeFields : uniqueDefines) {
@@ -528,10 +526,10 @@ bool IsMarkUniqueColumnInvalid(const TableInfo &tableInfo, const std::vector<Dis
 
 bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
-    const std::vector<DistributedField> &originFields)
+    const std::vector<DistributedField> &originFields, bool isForceUpgrade)
 {
     auto lastDistributedPk = DBCommon::TransformToCaseInsensitive(tableInfo.GetSyncDistributedPk());
-    if (!lastDistributedPk.empty() && distributedPk != lastDistributedPk) {
+    if (!isForceUpgrade && !lastDistributedPk.empty() && distributedPk != lastDistributedPk) {
         LOGE("distributed pk has change last %zu now %zu", lastDistributedPk.size(), distributedPk.size());
         return true;
     }
@@ -601,7 +599,7 @@ bool IsDistributedSchemaSupport(const TableInfo &tableInfo, const std::vector<Di
 }
 
 int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<FieldInfo> &syncFields,
-    const std::vector<DistributedField> &fields)
+    const std::vector<DistributedField> &fields, bool isForceUpgrade)
 {
     if (fields.empty()) {
         LOGE("fields cannot be empty");
@@ -625,7 +623,7 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
             distributedPk.insert(field.colName);
         }
     }
-    if (IsDistributedPkInvalid(tableInfo, distributedPk, fields)) {
+    if (IsDistributedPkInvalid(tableInfo, distributedPk, fields, isForceUpgrade)) {
         return -E_SCHEMA_MISMATCH;
     }
     std::set<std::string> fieldsNeedContain;
@@ -640,7 +638,7 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
         LOGE("The required fields are not found in fieldsMap");
         return -E_SCHEMA_MISMATCH;
     }
-    if (!CheckRequireFieldsInMap(fieldsNotDecrease, fieldsMap)) {
+    if (!isForceUpgrade && !CheckRequireFieldsInMap(fieldsNotDecrease, fieldsMap)) {
         LOGE("The fields should not decrease");
         return -E_DISTRIBUTED_FIELD_DECREASE;
     }
@@ -652,7 +650,7 @@ int CheckDistributedSchemaFields(const TableInfo &tableInfo, const std::vector<F
 }
 
 int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj,
-    const DistributedSchema &schema, SQLiteSingleVerRelationalStorageExecutor *executor)
+    const DistributedSchema &schema, bool isForceUpgrade, SQLiteSingleVerRelationalStorageExecutor *executor)
 {
     if (executor == nullptr) {
         LOGE("[RDBUtils][CheckDistributedSchemaValid] executor is null");
@@ -678,7 +676,7 @@ int SQLiteRelationalUtils::CheckDistributedSchemaValid(const RelationalSchemaObj
         }
         tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.tableName));
         errCode = CheckDistributedSchemaFields(tableInfo, schemaObj.GetSyncFieldInfo(table.tableName, false),
-            table.fields);
+            table.fields, isForceUpgrade);
         if (errCode != E_OK) {
             LOGE("[CheckDistributedSchema] Check fields of [%s [%zu]] fail",
                 DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size());

@@ -391,7 +391,7 @@ DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, c
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema)
+DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
@@ -411,9 +411,10 @@ DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSche
         LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
         return TransferDBErrno(errCode);
     }
-    errCode = conn_->SetDistributedDbSchema(schema);
-    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d",
-        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode);
+    errCode = conn_->SetDistributedDbSchema(schema, isForceUpgrade);
+    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d, force upgrade: %d",
+        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode,
+        isForceUpgrade);
     return TransferDBErrno(errCode);
 }
 

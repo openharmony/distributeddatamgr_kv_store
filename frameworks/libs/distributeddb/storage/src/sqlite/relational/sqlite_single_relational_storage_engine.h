@@ -62,7 +62,7 @@ public:
         const std::map<std::string, std::string> &sharedTableOriginNames);
     int UpdateExtendField(const TrackerSchema &schema);
 
-    std::pair<int, bool> SetDistributedSchema(const DistributedSchema &schema);
+    std::pair<int, bool> SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
@@ -124,7 +124,8 @@ private:
     int CheckIfExistUserTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const DataBaseSchema &cloudSchema,
         const std::map<std::string, std::string> &alterTableNames, const RelationalSchemaObject &schema);
 
-    int SetDistributedSchemaInner(RelationalSchemaObject &schemaObj, const DistributedSchema &schema);
+    int SetDistributedSchemaInner(RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
+        bool isForceUpgrade);
 
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;

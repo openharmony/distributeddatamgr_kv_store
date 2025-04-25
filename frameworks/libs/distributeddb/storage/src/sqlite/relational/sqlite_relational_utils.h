@@ -52,7 +52,7 @@ public:
     static int GetCursor(sqlite3 *db, const std::string &tableName, uint64_t &cursor);
 
     static int CheckDistributedSchemaValid(const RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
-        SQLiteSingleVerRelationalStorageExecutor *executor);
+        bool isForceUpgrade, SQLiteSingleVerRelationalStorageExecutor *executor);
 
     static DistributedSchema FilterRepeatDefine(const DistributedSchema &schema);
 
