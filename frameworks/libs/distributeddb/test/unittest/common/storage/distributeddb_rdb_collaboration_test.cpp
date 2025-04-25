@@ -1088,13 +1088,13 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema023, TestSize.Level0)
 
     /**
      * @tc.steps: step2. decrease tables of input parameter to set distributed schema
-     * @tc.expected: step2. return DISTRIBUTED_FIELD_DECREASE
+     * @tc.expected: step2. return OK
      */
     distributedSchema = {2, {{CLOUD_SYNC_TABLE, {{"pk", true}, {"int_field2", false}}}}};
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), DISTRIBUTED_FIELD_DECREASE);
-    distributedSchema = {2, {{DEVICE_SYNC_TABLE, {{"pk", true}, {"int_field1", true}}},
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    distributedSchema = {3, {{DEVICE_SYNC_TABLE, {{"pk", true}, {"int_field1", true}}},
                              {DEVICE_SYNC_TABLE_UPGRADE, {{"pk", true}, {"int_field2", false}}}}};
-    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), DISTRIBUTED_FIELD_DECREASE);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
 }
 
 /**
