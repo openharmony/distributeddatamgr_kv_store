@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "JSFieldNode"
+
 #include "js_field_node.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -22,12 +23,16 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedKVStore {
-static std::string FIELD_NAME = "FIELD_NAME";
-static std::string VALUE_TYPE = "VALUE_TYPE";
-static std::string DEFAULT_VALUE = "DEFAULT_VALUE";
-static std::string IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
-static std::string IS_NULLABLE = "IS_NULLABLE";
-static std::string CHILDREN = "CHILDREN";
+static constexpr const char* FIELD_NAME = "FIELD_NAME";
+static constexpr const char* VALUE_TYPE = "VALUE_TYPE";
+static constexpr const char* DEFAULT_VALUE = "DEFAULT_VALUE";
+static constexpr const char* IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
+static constexpr const char* IS_NULLABLE = "IS_NULLABLE";
+static constexpr const char* CHILDREN = "CHILDREN";
+static constexpr const char* SPLIT = ",";
+static constexpr const char* NOT_NULL = ", NOT NULL,";
+static constexpr const char* DEFAULT = " DEFAULT ";
+static constexpr const char* MARK = "'";
 
 std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::STRING, std::string("STRING") },
@@ -58,20 +63,23 @@ std::string JsFieldNode::GetFieldName()
     return fieldName_;
 }
 
-JsFieldNode::json JsFieldNode::GetValueForJson()
+cJSON* JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
+        std::string jsonDesc = "";
         if (valueType_ == JSUtil::STRING) {
-            return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-                " DEFAULT '" + ToString(defaultValue_) + "'";
+            jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) +
+                DEFAULT + MARK + ToString(defaultValue_) + MARK;
+        } else {
+            jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) +
+                DEFAULT + ToString(defaultValue_);
         }
-        return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-            " DEFAULT " + ToString(defaultValue_);
+        return cJSON_CreateString(jsonDesc.c_str());
     }
 
-    json jsFields;
+    cJSON* jsFields = cJSON_CreateObject();
     for (auto fld : fields_) {
-        jsFields[fld->fieldName_] = fld->GetValueForJson();
+        cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), fld->GetValueForJson());
     }
     return jsFields;
 }
@@ -285,19 +293,22 @@ std::string JsFieldNode::ToString(uint32_t type)
 
 std::string JsFieldNode::Dump()
 {
-    json jsFields;
-    for (auto fld : fields_) {
-        jsFields.push_back(fld->Dump());
-    }
+    cJSON* jsNode = cJSON_CreateObject();
+    cJSON_AddStringToObject(jsNode, FIELD_NAME, fieldName_.c_str());
+    cJSON_AddStringToObject(jsNode, VALUE_TYPE, ToString(valueType_).c_str());
+    cJSON_AddStringToObject(jsNode, DEFAULT_VALUE, ToString(defaultValue_).c_str());
+    cJSON_AddBoolToObject(jsNode, IS_DEFAULT_VALUE, isWithDefaultValue_);
+    cJSON_AddBoolToObject(jsNode, IS_NULLABLE, isNullable_);
 
-    json jsNode = {
-        { FIELD_NAME, fieldName_ },
-        { VALUE_TYPE, ToString(valueType_) },
-        { DEFAULT_VALUE, ToString(defaultValue_) },
-        { IS_DEFAULT_VALUE, isWithDefaultValue_ },
-        { IS_NULLABLE, isNullable_ },
-        { CHILDREN, jsFields.dump() }
-    };
-    return jsNode.dump();
+    cJSON* jsFields = cJSON_CreateArray();
+    for (auto fld : fields_) {
+        cJSON_AddItemToArray(jsFields, cJSON_CreateString(fld->Dump().c_str()));
+    }
+    cJSON_AddItemToObject(jsNode, CHILDREN, jsFields);
+    
+    std::unique_ptr<char, decltype(&cJSON_free)> jsonPtr(cJSON_Print(jsNode), cJSON_free);
+    std::string jsonStr = jsonPtr ? jsonPtr.get() : "";
+    cJSON_Delete(jsNode);
+    return jsonStr;
 }
 } // namespace OHOS::DistributedKVStore

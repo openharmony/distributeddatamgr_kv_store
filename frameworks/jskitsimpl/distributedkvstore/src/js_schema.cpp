@@ -14,24 +14,22 @@
  */
 #define LOG_TAG "JsSchema"
 #include "js_schema.h"
-#include <nlohmann/json.hpp>
-
 #include "js_util.h"
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
 
 using namespace OHOS::DistributedKv;
-using json = nlohmann::json;
 
 namespace OHOS::DistributedKVStore {
-static std::string LABEL = "Schema";
-static std::string SCHEMA_VERSION = "SCHEMA_VERSION";
-static std::string SCHEMA_MODE = "SCHEMA_MODE";
-static std::string SCHEMA_DEFINE = "SCHEMA_DEFINE";
-static std::string SCHEMA_INDEXES = "SCHEMA_INDEXES";
-static std::string SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
-static std::string DEFAULT_SCHEMA_VERSION = "1.0";
+static constexpr const char* SCHEMA_VERSION = "SCHEMA_VERSION";
+static constexpr const char* SCHEMA_MODE = "SCHEMA_MODE";
+static constexpr const char* SCHEMA_DEFINE = "SCHEMA_DEFINE";
+static constexpr const char* SCHEMA_INDEXES = "SCHEMA_INDEXES";
+static constexpr const char* SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
+static constexpr const char* DEFAULT_SCHEMA_VERSION = "1.0";
+static constexpr const char* SCHEMA_STRICT = "STRICT";
+static constexpr const char* SCHEMA_COMPATIBLE = "COMPATIBLE";
 
 JsSchema::JsSchema(napi_env env)
     : env_(env)
@@ -228,17 +226,21 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
 
 std::string JsSchema::Dump()
 {
-    json jsIndexes = nlohmann::json::array();
-    for (auto idx : indexes_) {
-        jsIndexes.push_back(idx);
+    cJSON* js = cJSON_CreateObject();
+    cJSON_AddStringToObject(js, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
+    cJSON_AddStringToObject(js, SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
+    cJSON_AddItemToObject(js, SCHEMA_DEFINE, rootNode_->GetValueForJson());
+    
+    cJSON* jsIndexes = cJSON_CreateArray();
+    for (auto& idx : indexes_) {
+        cJSON_AddItemToArray(jsIndexes, cJSON_CreateString(idx.c_str()));
     }
-    json js = {
-        { SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION },
-        { SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? "STRICT" : "COMPATIBLE" },
-        { SCHEMA_DEFINE, rootNode_->GetValueForJson() },
-        { SCHEMA_INDEXES, jsIndexes },
-        { SCHEMA_SKIPSIZE, skip_ },
-    };
-    return js.dump();
+    cJSON_AddItemToObject(js, SCHEMA_INDEXES, jsIndexes);
+    cJSON_AddNumberToObject(js, SCHEMA_SKIPSIZE, skip_);
+
+    std::unique_ptr<char, decltype(&cJSON_free)> jsonPtr(cJSON_Print(js), cJSON_free);
+    std::string jsonStr = jsonPtr ? jsonPtr.get() : "";
+    cJSON_Delete(js);
+    return jsonStr;
 }
 } // namespace OHOS::DistributedKVStore
