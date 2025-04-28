@@ -106,12 +106,12 @@ void DistributedKvDataManagerEncryptTest::TearDown(void)
 }
 
 /**
-* @tc.name: kvstore_ddm_createEncryptedStore_001
-* @tc.desc: Create an encrypted KvStore.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: liqiao
-*/
+ * @tc.name: kvstore_ddm_createEncryptedStore_001
+ * @tc.desc: Create an encrypted KvStore.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liqiao
+ */
 HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_001, TestSize.Level1)
 {
     ZLOGI("kvstore_ddm_createEncryptedStore_001 begin.");
