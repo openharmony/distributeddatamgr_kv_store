@@ -109,8 +109,6 @@ void DistributedKvDataManagerEncryptTest::TearDown(void)
  * @tc.name: kvstore_ddm_createEncryptedStore_001
  * @tc.desc: Create an encrypted KvStore.
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liqiao
  */
 HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_001, TestSize.Level1)
 {
@@ -137,8 +135,6 @@ HWTEST_F(DistributedKvDataManagerEncryptTest, kvstore_ddm_createEncryptedStore_0
  * @tc.name: GetEncryptStoreWithKeyFromService
  * @tc.desc: Get encrypt store, delete key, get store again.
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: yanhui
  */
 HWTEST_F(DistributedKvDataManagerEncryptTest, GetEncryptStoreWithKeyFromService, TestSize.Level1)
 {
@@ -163,8 +159,6 @@ HWTEST_F(DistributedKvDataManagerEncryptTest, GetEncryptStoreWithKeyFromService,
  * @tc.name: DeleteEncryptedStore_001
  * @tc.desc: Failed to delete encrypted store, then open again.
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: yanhui
  */
 HWTEST_F(DistributedKvDataManagerEncryptTest, DeleteEncryptedStore_001, TestSize.Level1)
 {
