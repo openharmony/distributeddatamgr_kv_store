@@ -246,7 +246,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
             errCode = ResetLogStatus(tableName);
         }
     } else {
-        if (table.GetTrackerTable().GetTableName().empty()) {
+        bool isOnceDropped = false;
+        (void)IsTableOnceDropped(tableName, isOnceDropped);
+        if (isOnceDropped && table.GetTrackerTable().GetTableName().empty()) {
             SQLiteRelationalUtils::GenLogParam param = {dbHandle_, isMemDb_, false};
             errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, table, tableManager, param);
         }
