@@ -1099,7 +1099,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level
     g_cloudStoreHook->SetSyncFinishHook([&callCount, this]() {
         LOGD("sync finish times:%d", ++callCount);
         if (callCount == 1) { // 1 is the normal sync
-            CheckUploadAbnormal(OpType::UPDATE, 1L); // 1 is expected count
+            CheckUploadAbnormal(OpType::UPDATE, 1L, true); // 1 is expected count
         } else {
             CheckUploadAbnormal(OpType::UPDATE, 1L, true); // 1 is expected count
         }
@@ -1109,7 +1109,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, UploadAbnormalSync001, TestSize.Level
     {
         std::unique_lock<std::mutex> lock(g_processMutex);
         bool result = g_processCondition.wait_for(lock, std::chrono::seconds(WAIT_TIME),
-            [&callCount]() { return callCount == 2; }); // 2 is sync times
+            [&callCount]() { return callCount == 1; }); // 2 is sync times
         ASSERT_EQ(result, true);
     }
 }

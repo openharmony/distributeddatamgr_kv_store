@@ -346,14 +346,14 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadAbnormalSync001, TestSize.Level1)
     cloudHook->SetSyncFinishHook([&syncCnt, this] {
         LOGD("sync finish times:%d", ++syncCnt);
         if (syncCnt == 1) { // 1 is the first sync
-            CheckUploadAbnormal(OpType::UPDATE, 1L); // 1 is expected count
+            CheckUploadAbnormal(OpType::UPDATE, 1L, true); // 1 is expected count
         } else {
             CheckUploadAbnormal(OpType::UPDATE, 1L, true); // 1 is expected count
         }
         comSyncCv.notify_all();
     });
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
-    BlockCompensatedSync(syncCnt, 2); // 2 is sync times
+    BlockCompensatedSync(syncCnt, 1); // 2 is sync times
     virtualCloudDb_->ForkUpload(nullptr);
     cloudHook->SetSyncFinishHook(nullptr);
 }

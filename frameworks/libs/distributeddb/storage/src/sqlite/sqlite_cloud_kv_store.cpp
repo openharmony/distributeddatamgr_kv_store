@@ -150,14 +150,17 @@ int SqliteCloudKvStore::GetUploadCount([[gnu::unused]] const QuerySyncObject &qu
     const Timestamp &timestamp, bool isCloudForcePush, [[gnu::unused]] bool isCompensatedTask,
     int64_t &count)
 {
-    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
-    if (db == nullptr) {
+    auto [db, handle] = GetTransactionDbHandleAndMemoryStatus(false);
+    if (db == nullptr || handle == nullptr) {
         LOGE("[SqliteCloudKvStore] get upload count without transaction");
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
-    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountCloudData(db, isMemory, timestamp, user_,
+    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountCloudData(db, handle->IsMemory(), timestamp, user_,
         isCloudForcePush);
+    if (transactionHandle_ == nullptr) {
+        storageHandle_->RecycleStorageExecutor(handle);
+    }
     return errCode;
 }
 
@@ -165,15 +168,18 @@ int SqliteCloudKvStore::GetAllUploadCount(const QuerySyncObject &query,
     const std::vector<Timestamp> &timestampVec, bool isCloudForcePush, [[gnu::unused]] bool isCompensatedTask,
     int64_t &count)
 {
-    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
-    if (db == nullptr) {
+    auto [db, handle] = GetTransactionDbHandleAndMemoryStatus(false);
+    if (db == nullptr || handle == nullptr) {
         LOGE("[SqliteCloudKvStore] get upload count without transaction");
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
     QuerySyncObject queryObj = query;
-    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountAllCloudData({ db, isMemory }, timestampVec, user_,
-        isCloudForcePush, queryObj);
+    std::tie(errCode, count) = SqliteCloudKvExecutorUtils::CountAllCloudData(
+        {db, handle->IsMemory()}, timestampVec, user_, isCloudForcePush, queryObj);
+    if (transactionHandle_ == nullptr) {
+        storageHandle_->RecycleStorageExecutor(handle);
+    }
     return errCode;
 }
 
@@ -205,14 +211,17 @@ int SqliteCloudKvStore::GetCloudDataNext(ContinueToken &continueStmtToken, Cloud
         LOGE("[SqliteCloudKvStore] token is invalid");
         return -E_INVALID_ARGS;
     }
-    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
-    if (db == nullptr) {
+    auto [db, handle] = GetTransactionDbHandleAndMemoryStatus(false);
+    if (db == nullptr || handle == nullptr) {
         LOGE("[SqliteCloudKvStore] the transaction has not been started, release the token");
         ReleaseCloudDataToken(continueStmtToken);
         return -E_INTERNAL_ERROR;
     }
-    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(GetCloudSyncConfig(), {db, isMemory}, recorder_, *token,
-        cloudDataResult);
+    int errCode = SqliteCloudKvExecutorUtils::GetCloudData(
+        GetCloudSyncConfig(), {db, handle->IsMemory()}, recorder_, *token, cloudDataResult);
+    if (transactionHandle_ == nullptr) {
+        storageHandle_->RecycleStorageExecutor(handle);
+    }
     if (errCode != -E_UNFINISHED) {
         ReleaseCloudDataToken(continueStmtToken);
     } else {
@@ -239,25 +248,32 @@ int SqliteCloudKvStore::ReleaseCloudDataToken(ContinueToken &continueStmtToken)
 int SqliteCloudKvStore::GetInfoByPrimaryKeyOrGid([[gnu::unused]] const std::string &tableName, const VBucket &vBucket,
     DataInfoWithLog &dataInfoWithLog, [[gnu::unused]] VBucket &assetInfo)
 {
-    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
-    if (db == nullptr) {
+    auto [db, handle] = GetTransactionDbHandleAndMemoryStatus(false);
+    if (db == nullptr || handle == nullptr) {
         LOGE("[SqliteCloudKvStore] the transaction has not been started");
         return -E_INTERNAL_ERROR;
     }
     int errCode = E_OK;
-    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, isMemory, vBucket, user_);
+    std::tie(errCode, dataInfoWithLog) = SqliteCloudKvExecutorUtils::GetLogInfo(db, handle->IsMemory(), vBucket, user_);
+    if (transactionHandle_ == nullptr) {
+        storageHandle_->RecycleStorageExecutor(handle);
+    }
     return errCode;
 }
 
 int SqliteCloudKvStore::PutCloudSyncData([[gnu::unused]] const std::string &tableName, DownloadData &downloadData)
 {
-    auto [db, isMemory] = GetTransactionDbHandleAndMemoryStatus();
-    if (db == nullptr) {
+    auto [db, handle] = GetTransactionDbHandleAndMemoryStatus(true);
+    if (db == nullptr || handle == nullptr) {
         LOGE("[SqliteCloudKvStore] the transaction has not been started");
         return -E_INTERNAL_ERROR;
     }
     downloadData.timeOffset = storageHandle_->GetLocalTimeOffsetForCloud();
-    return SqliteCloudKvExecutorUtils::PutCloudData(db, isMemory, downloadData);
+    int ret = SqliteCloudKvExecutorUtils::PutCloudData(db, handle->IsMemory(), downloadData);
+    if (transactionHandle_ == nullptr) {
+        storageHandle_->RecycleStorageExecutor(handle);
+    }
+    return ret;
 }
 
 int SqliteCloudKvStore::UpdateAssetStatusForAssetOnly(const std::string &tableName, VBucket &asset)
@@ -273,26 +289,11 @@ int SqliteCloudKvStore::FillCloudLogAndAsset(OpType opType, const CloudSyncData 
         LOGE("[SqliteCloudKvStore] get handle failed %d when fill log", errCode);
         return errCode;
     }
-    if (handle->IsMemory()) {
-        errCode = Commit();
-        if (errCode != E_OK) {
-            LOGE("[SqliteCloudKvStore] commit failed %d before fill log", errCode);
-            storageHandle_->RecycleStorageExecutor(handle);
-            return errCode;
-        }
-    }
     sqlite3 *db = nullptr;
     (void)handle->GetDbHandle(db);
     errCode = SqliteCloudKvExecutorUtils::FillCloudLog({db, ignoreEmptyGid}, opType, data, user_, recorder_);
-    int ret = E_OK;
-    if (handle->IsMemory()) {
-        ret = StartTransaction(TransactType::DEFERRED);
-        if (ret != E_OK) {
-            LOGE("[SqliteCloudKvStore] restart transaction failed %d", ret);
-        }
-    }
     storageHandle_->RecycleStorageExecutor(handle);
-    return errCode == E_OK ? ret : errCode;
+    return errCode;
 }
 
 void SqliteCloudKvStore::FilterCloudVersionPrefixKey(std::vector<std::vector<Type>> &changeValList)
@@ -421,15 +422,26 @@ void SqliteCloudKvStore::SetUser(const std::string &user)
     user_ = user;
 }
 
-std::pair<sqlite3 *, bool> SqliteCloudKvStore::GetTransactionDbHandleAndMemoryStatus()
+std::pair<sqlite3 *, SQLiteSingleVerStorageExecutor *> SqliteCloudKvStore::GetTransactionDbHandleAndMemoryStatus(
+    bool isWrite)
 {
     std::lock_guard<std::mutex> autoLock(transactionMutex_);
     if (transactionHandle_ == nullptr) {
-        return {nullptr, false};
+        if (storageHandle_ == nullptr) {
+            return {nullptr, nullptr};
+        }
+        auto [errCode, handle] = storageHandle_->GetStorageExecutor(isWrite);
+        if (errCode != E_OK) {
+            LOGE("[SqliteCloudKvStore] get handle failed %d when fill log", errCode);
+            return {nullptr, nullptr};
+        }
+        sqlite3 *db = nullptr;
+        (void)handle->GetDbHandle(db);
+        return {db, handle};
     }
     sqlite3 *db = nullptr;
     (void)transactionHandle_->GetDbHandle(db);
-    return {db, transactionHandle_->IsMemory()};
+    return {db, transactionHandle_};
 }
 
 void SqliteCloudKvStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)

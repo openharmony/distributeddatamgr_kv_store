@@ -306,7 +306,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
         return E_OK;
     }
     storageProxy_->BeforeUploadTransaction();
-    int errCode = storageProxy_->StartTransaction();
+    int errCode = CloudSyncUtils::StartTransactionIfNeed(taskInfo, storageProxy_);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] start transaction failed before doing upload.");
         return errCode;
@@ -332,17 +332,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
         std::lock_guard<std::mutex> autoLock(dataLock_);
         resumeTaskInfos_[taskInfo.taskId].upload = true;
     }
-    if (errCode == E_OK || errCode == -E_TASK_PAUSED) {
-        int commitErrorCode = storageProxy_->Commit();
-        if (commitErrorCode != E_OK) {
-            LOGE("[CloudSyncer] cannot commit transaction: %d.", commitErrorCode);
-        }
-    } else {
-        int rollBackErrorCode = storageProxy_->Rollback();
-        if (rollBackErrorCode != E_OK) {
-            LOGE("[CloudSyncer] cannot roll back transaction: %d.", rollBackErrorCode);
-        }
-    }
+    CloudSyncUtils::EndTransactionIfNeed(errCode, taskInfo, storageProxy_);
     return errCode;
 }
 
