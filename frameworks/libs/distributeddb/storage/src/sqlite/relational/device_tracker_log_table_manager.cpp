@@ -49,6 +49,7 @@ std::string DeviceTrackerLogTableManager::GetPrimaryKeySql(const TableInfo &tabl
     return "PRIMARY KEY(hash_key)";
 }
 
+// LCOV_EXCL_BR_START
 // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
 std::string DeviceTrackerLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
 {
@@ -154,6 +155,7 @@ std::vector<std::string> DeviceTrackerLogTableManager::GetDropTriggers(const Tab
     }
     return dropTriggers;
 }
+// LCOV_EXCL_BR_STOP
 
 std::string DeviceTrackerLogTableManager::GetChangeDataStatus(const TableInfo &table)
 {

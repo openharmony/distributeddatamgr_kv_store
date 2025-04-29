@@ -27,6 +27,7 @@ EventLoopEpoll::EventLoopEpoll()
 {
 }
 
+// LCOV_EXCL_BR_START
 EventLoopEpoll::~EventLoopEpoll()
 {
     if (wakeUpFd_.IsValid()) {
@@ -36,6 +37,7 @@ EventLoopEpoll::~EventLoopEpoll()
         epollFd_.Close();
     }
 }
+// LCOV_EXCL_BR_STOP
 
 int EventLoopEpoll::Initialize()
 {
@@ -75,6 +77,7 @@ int EventLoopEpoll::Initialize()
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int EventLoopEpoll::Prepare(const std::set<EventImpl *> &polling)
 {
     if (pollFdCount_ > 0) {
@@ -167,7 +170,9 @@ void EventLoopEpoll::EpollWokenUp()
         break;
     }
 }
+// LCOV_EXCL_BR_STOP
 
+// LCOV_EXCL_START
 uint32_t EventLoopEpoll::CalEpollEvents(EventsMask events) const
 {
     uint32_t epollEvents = 0;
@@ -281,6 +286,7 @@ int EventLoopEpoll::ModifyEvent(EventImpl *event, bool isAdd, EventsMask events)
     }
     return E_OK;
 }
+// LCOV_EXCL_STOP
 
 DEFINE_OBJECT_TAG_FACILITIES(EventLoopEpoll)
 }

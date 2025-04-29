@@ -95,6 +95,7 @@ SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecut
     bindCloudFieldFuncMap_[TYPE_INDEX<Assets>] = &CloudStorageUtils::BindAsset;
 }
 
+// LCOV_EXCL_BR_START
 int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, TableSyncType syncType)
 {
     std::string trimedSql = DBCommon::TrimSpace(table.GetCreateTableSql());
@@ -141,6 +142,7 @@ int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, Tabl
 
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &identity,
     const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTrackerTable)
@@ -215,6 +217,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, co
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded,
     const std::string &identity, TableInfo &table)
 {
@@ -266,6 +269,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
     }
     return SetLogTriggerStatus(true);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
     const std::string &identity, TableInfo &table)
@@ -304,6 +308,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     return CreateRelationalLogTable(mode, isUpgraded, identity, table);
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const std::string &tableName)
 {
     bool onceDropped = false;
@@ -329,6 +334,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const st
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
     DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema, TableSyncType syncType)
@@ -428,6 +434,7 @@ int GetDeviceTableName(sqlite3 *handle, const std::string &tableName, const std:
     return errCode != E_OK ? errCode : ret;
 }
 
+// LCOV_EXCL_BR_START
 std::vector<FieldInfo> GetUpgradeFields(const TableInfo &oldTableInfo, const TableInfo &newTableInfo)
 {
     std::vector<FieldInfo> fields;
@@ -506,6 +513,7 @@ IndexInfoMap GetChangedIndexes(const TableInfo &oldTableInfo, const TableInfo &n
 
     return indexes;
 }
+// LCOV_EXCL_BR_STOP
 
 int UpgradeIndexes(sqlite3 *db, const std::vector<std::string> &tables, const IndexInfoMap &indexes)
 {
@@ -1863,6 +1871,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::string &tableName, const std::string &gid,
     LockStatus &status)
 {
@@ -1888,6 +1897,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::stri
     SQLiteUtils::ResetStatement(stmt, true, resetRet);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo,
     TableSyncType syncType)

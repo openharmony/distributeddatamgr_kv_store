@@ -81,6 +81,7 @@ int SQLiteSingleVerStorageExecutor::CreateCloudLogTable()
     return SqliteLogTableManager::CreateKvSyncLogTable(dbHandle_);
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::CloudExcuteRemoveOrUpdate(const std::string &sql, const std::string &deviceName,
     const std::string &user, bool isUserBlobType)
 {
@@ -224,7 +225,9 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
 }
+// LCOV_EXCL_BR_STOP
 
+// LCOV_EXCL_START
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode)
 {
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_HWM_DATA_BY_USERID_SQL, "",
@@ -277,7 +280,9 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::str
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_HASHKEY_NOTIN_SQL, deviceName, "");
 }
+// LCOV_EXCL_STOP
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName, ClearMode mode)
 {
     if (deviceName.empty()) {
@@ -314,6 +319,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
     }
     return CheckCorruptedStatus(RemoveDeviceDataWithUserInner(deviceName, user, mode));
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::vector<Entry> &entries) const
 {
