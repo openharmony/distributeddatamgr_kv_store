@@ -1262,6 +1262,66 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest012, TestSize.Level0)
 }
 
 /**
+ * @tc.name: CloudSyncTest013
+ * @tc.desc: insert data before re-SetDistributedTable and sync is ok
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. insert 1 record to user table
+     * @tc.expected: step1. OK.
+     */
+    const int actualCount = 10;
+    InsertUserTableRecord(tableName_, actualCount);
+    /**
+     * @tc.steps: step2. sync data to cloud
+     * @tc.expected: step2. OK.
+     */
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 10);
+    /**
+     * @tc.steps: step3. drop data table then close db
+     * @tc.expected: step3. OK.
+     */
+    std::string deleteSql = "DROP TABLE IF EXISTS " + tableName_ + ";";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, deleteSql), DBStatus::OK);
+    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+    delegate_ = nullptr;
+    /**
+     * @tc.steps: step4. recreate data table and reopen database
+     * @tc.expected: step4. OK.
+     */
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db_, g_createSQL), DBStatus::OK);
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr_->OpenStore(storePath_, STORE_ID_1, option, delegate_), DBStatus::OK);
+    ASSERT_NE(delegate_, nullptr);
+    ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
+    DataBaseSchema dataBaseSchema = GetSchema();
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(communicatorAggregator_ != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
+    /**
+     * @tc.steps: step5. insert data to new table
+     * @tc.expected: step5. OK.
+     */
+    int begin = 0;
+    InsertUserTableRecord(tableName_, actualCount, begin);
+    /**
+     * @tc.steps: step6. sync and cloud data should be deleted
+     * @tc.expected: step6. OK.
+     */
+    ASSERT_EQ(delegate_->CreateDistributedTable(tableName_, CLOUD_COOPERATION), DBStatus::OK);
+    BlockSync(query, delegate_, g_actualDBStatus);
+    CheckCloudTableCount(tableName_, 10);
+}
+
+/**
  * @tc.name: CloudSyncObserverTest001
  * @tc.desc: test cloud sync multi observer
  * @tc.type: FUNC
