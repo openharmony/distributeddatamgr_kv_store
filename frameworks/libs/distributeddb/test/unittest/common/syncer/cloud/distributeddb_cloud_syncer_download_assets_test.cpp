@@ -135,16 +135,20 @@ void GetCloudDbSchema(DataBaseSchema &dataBaseSchema)
     dataBaseSchema.tables.push_back(assetsTableSchema);
 }
 
-void GenerateDataRecords(
-    int64_t begin, int64_t count, int64_t gidStart, std::vector<VBucket> &record, std::vector<VBucket> &extend)
+std::pair<std::vector<VBucket>, std::vector<VBucket>> GenerateDataRecords(int64_t begin, int64_t count,
+    int64_t gidStart, bool hasAsset)
 {
+    std::pair<std::vector<VBucket>, std::vector<VBucket>> res;
+    auto &[record, extend] = res;
     for (int64_t i = begin; i < begin + count; i++) {
         Assets assets;
-        Asset asset = ASSET_COPY;
-        asset.name = ASSET_COPY.name + std::to_string(i);
-        assets.emplace_back(asset);
-        asset.name = ASSET_COPY.name + std::to_string(i) + "_copy";
-        assets.emplace_back(asset);
+        if (hasAsset) {
+            Asset asset = ASSET_COPY;
+            asset.name = ASSET_COPY.name + std::to_string(i);
+            assets.emplace_back(asset);
+            asset.name = ASSET_COPY.name + std::to_string(i) + "_copy";
+            assets.emplace_back(asset);
+        }
         VBucket data;
         data.insert_or_assign(COL_ID, i);
         data.insert_or_assign(COL_NAME, "name" + std::to_string(i));
@@ -161,6 +165,13 @@ void GenerateDataRecords(
         log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i + gidStart));
         extend.push_back(log);
     }
+    return res;
+}
+
+void GenerateDataRecords(
+    int64_t begin, int64_t count, int64_t gidStart, std::vector<VBucket> &record, std::vector<VBucket> &extend)
+{
+    std::tie(record, extend) = GenerateDataRecords(begin, count, gidStart, true);
 }
 
 void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName, bool isAssetNull = true)
@@ -281,11 +292,10 @@ void CheckLockStatus(sqlite3 *db, int startId, int endId, LockStatus lockStatus)
     }
 }
 
-void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName)
+void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName,
+    bool hasAsset = true)
 {
-    std::vector<VBucket> record;
-    std::vector<VBucket> extend;
-    GenerateDataRecords(begin, count, gidStart, record, extend);
+    auto [record, extend] = GenerateDataRecords(begin, count, gidStart, hasAsset);
     if (tableName == ASSETS_TABLE_NAME_SHARED) {
         for (auto &vBucket: record) {
             vBucket.insert_or_assign(CloudDbConstant::CLOUD_OWNER, std::string("cloudA"));
@@ -2555,6 +2565,39 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestS
     g_virtualCloudDb->ForkInsertConflict(nullptr);
     g_virtualCloudDb->ForkQuery(nullptr);
     g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
+ * @tc.name: DownloadAssetTest004
+ * @tc.desc: Test asset download failed with no asset data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int cloudCount = 10; // 10 is num of cloud
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME, true);
+    InsertCloudDBData(cloudCount, cloudCount, cloudCount, ASSETS_TABLE_NAME, false);
+    /**
+     * @tc.steps:step2. Set asset download status error and sync
+     * @tc.expected: step2. sync successful but download assets fail.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(DBStatus::CLOUD_ERROR);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    /**
+     * @tc.steps:step3. Check FLAG_DEVICE_CLOUD_INCONSISTENCY data
+     * @tc.expected: step3. 10 data is cloud consistency because no asset.
+     */
+    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
+    std::string sql = "SELECT COUNT(1) FROM " + logName + " WHERE flag & 0x20 = 0";
+    int count = 0;
+    ASSERT_EQ(SQLiteUtils::GetCountBySql(db, sql, count), E_OK);
+    EXPECT_EQ(count, cloudCount);
 }
 
 /**

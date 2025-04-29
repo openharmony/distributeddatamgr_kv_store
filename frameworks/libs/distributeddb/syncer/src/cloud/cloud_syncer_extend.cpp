@@ -702,12 +702,10 @@ int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
         downloadList = currentContext_.assetDownloadList;
     }
     std::set<std::string> downloadGid;
-    std::set<std::string> consistentGid;
     for (const auto &tuple : downloadList) {
         if (CloudSyncUtils::IsContainDownloading(tuple)) {
             downloadGid.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
         }
-        consistentGid.insert(std::get<CloudSyncUtils::GID_INDEX>(tuple));
     }
     if (IsCurrentAsyncDownloadTask()) {
         int errCode = storageProxy_->MarkFlagAsAssetAsyncDownload(param.tableName, param.downloadData, downloadGid);
@@ -716,7 +714,7 @@ int CloudSyncer::UpdateFlagForSavedRecord(const SyncParam &param)
             return errCode;
         }
     }
-    return storageProxy_->MarkFlagAsConsistent(param.tableName, param.downloadData, consistentGid);
+    return storageProxy_->MarkFlagAsConsistent(param.tableName, param.downloadData, downloadGid);
 }
 
 int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
