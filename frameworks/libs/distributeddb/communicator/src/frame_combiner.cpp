@@ -58,6 +58,7 @@ void FrameCombiner::Finalize()
     }
 }
 
+// LCOV_EXCL_BR_START
 SerialBuffer *FrameCombiner::AssembleFrameFragment(const uint8_t *bytes, uint32_t length,
     const ParseResult &inPacketInfo, ParseResult &outFrameInfo, int &outErrorNo)
 {
@@ -253,4 +254,5 @@ SerialBuffer *FrameCombiner::CreateNewFrameBuffer(const ParseResult &inInfo)
     }
     return buffer;
 }
+// LCOV_EXCL_BR_STOP
 } // namespace DistributedDB

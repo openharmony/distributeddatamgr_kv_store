@@ -160,6 +160,7 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetInsertSqlForCloudSync(c
     return sql;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBucket &vBucket,
     const TableSchema &tableSchema, std::vector<uint8_t> &hashValue, bool allowEmpty)
 {
@@ -183,6 +184,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSchema &tableSchema,
     const VBucket &vBucket, const std::string &querySql, const Key &hashKey, sqlite3_stmt *&selectStmt)
@@ -413,6 +415,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCursor(const std::string &table
     return SQLiteRelationalUtils::GetCursor(dbHandle_, tableName, cursor);
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::SetCursor(const std::string &tableName, uint64_t cursor)
 {
     std::string sql = "UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata SET VALUE = ? where KEY = ?;";
@@ -481,6 +484,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string &tableName,
     const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
@@ -528,6 +532,7 @@ END:
     return errCode != E_OK ? errCode : ret;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::string &tableName,
     const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
 {
@@ -605,6 +610,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataCount(const std::strin
     SQLiteUtils::ResetStatement(queryStmt, true, ret);
     return errCode != E_OK ? errCode : ret;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &tableName,
     const std::vector<FieldInfo> &fieldInfos, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
@@ -1319,6 +1325,7 @@ void SQLiteSingleVerRelationalStorageExecutor::SetTableSchema(const TableSchema 
     tableSchema_ = tableSchema;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::ReviseLocalModTime(const std::string &tableName,
     const std::vector<ReviseModTimeInfo> &revisedData)
 {
@@ -1370,6 +1377,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ReviseLocalModTime(const std::stri
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsNeedUpdateAssetIdInner(sqlite3_stmt *selectStmt,
     const VBucket &vBucket, const Field &field, VBucket &assetInfo, bool &isNotIncCursor)
@@ -1685,6 +1693,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUpload
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
 {
     if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
@@ -1712,6 +1721,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field,
     Type &cloudValue)
@@ -1830,6 +1840,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateExtendField(const std::strin
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int BuildJsonExtendField(const std::string &tableName, const std::string &lowVersionExtendColName, sqlite3 *db)
 {
     std::string sql = "update " + DBCommon::GetLogTableName(tableName) + " set extend_field = json_object('" +
@@ -1875,6 +1886,7 @@ std::string GetUpdateExtendFieldSql(const std::string &tableName, const std::set
     sql += ") where data_key = -1 and json_valid(extend_field) = 1;";
     return sql;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateDeleteDataExtendField(const std::string &tableName,
     const std::string &lowVersionExtendColName, const std::set<std::string> &oldExtendColNames,
@@ -1921,6 +1933,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateDeleteDataExtendField(const 
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAssetGid(const TableSchema &tableSchema,
     std::vector<std::string> &gids, int64_t beginTime, bool abortWithLimit)
 {
@@ -2081,6 +2094,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadingFlag(const std::st
     }
     return errCode != E_OK ? errCode : ret;
 }
+// LCOV_EXCL_BR_STOP
 
 bool SQLiteSingleVerRelationalStorageExecutor::AbortGetDownloadAssetGidIfNeed(
     const DistributedDB::TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,

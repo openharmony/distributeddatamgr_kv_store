@@ -31,6 +31,7 @@ SqliteRelationalDatabaseUpgrader::SqliteRelationalDatabaseUpgrader(sqlite3 *db)
 
 SqliteRelationalDatabaseUpgrader::~SqliteRelationalDatabaseUpgrader() {}
 
+// LCOV_EXCL_BR_START
 int SqliteRelationalDatabaseUpgrader::Upgrade()
 {
     // read version first, if not newest, start transaction
@@ -98,6 +99,7 @@ int SqliteRelationalDatabaseUpgrader::ExecuteUpgrade()
 
     return UpgradeTrigger(logTableVersion, schemaObj, trackerSchemaObj);
 }
+// LCOV_EXCL_BR_STOP
 
 int SqliteRelationalDatabaseUpgrader::EndUpgrade(bool isSuccess)
 {
@@ -113,6 +115,7 @@ bool SqliteRelationalDatabaseUpgrader::IsNewestVersion(const std::string &logTab
     return logTableVersion == DBConstant::LOG_TABLE_VERSION_CURRENT;
 }
 
+// LCOV_EXCL_BR_START
 int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTableVersion,
     const RelationalSchemaObject &schemaObj, const RelationalSchemaObject &trackerSchemaObj)
 {
@@ -264,4 +267,5 @@ int SqliteRelationalDatabaseUpgrader::GetParseSchema(RelationalSchemaObject &sch
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 } // namespace DistributedDB

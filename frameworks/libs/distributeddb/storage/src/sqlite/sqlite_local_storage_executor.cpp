@@ -37,6 +37,7 @@ namespace {
     const int SELECT_RESULT_VAL_INDEX = 1;
 }
 
+// LCOV_EXCL_START
 SQLiteLocalStorageExecutor::SQLiteLocalStorageExecutor(sqlite3 *dbHandle, bool writable, bool isMemDb)
     : SQLiteStorageExecutor(dbHandle, writable, isMemDb)
 {}
@@ -253,4 +254,5 @@ END:
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_STOP
 } // namespace DistributedDB

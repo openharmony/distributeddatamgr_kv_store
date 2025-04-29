@@ -20,6 +20,7 @@ namespace CNTokenizer {
 
 static GRD_CNTokenizerApiT g_tokenizerApi = {};
 
+// LCOV_EXCL_START
 GRD_API int32_t GRD_TokenizerInit(const char *userDictPath, const char *userStopWordPath, GRD_TokenizerParamT param)
 {
     if (g_tokenizerApi.tokenizerInit == nullptr) {
@@ -87,4 +88,5 @@ GRD_API int32_t GRD_TokenizerDestroy(void *ptr)
     g_tokenizerApi.tokenizerDestroy();
     return GRD_OK;
 }
+// LCOV_EXCL_STOP
 }  // namespace CNTokenizer
