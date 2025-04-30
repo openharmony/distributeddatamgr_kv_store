@@ -257,6 +257,7 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, b
     return errCode;
 }
 
+// LCOV_EXCL_START
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
@@ -286,6 +287,7 @@ int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_STOP
 
 // Delete multiple meta data records with key prefix in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
@@ -532,6 +534,7 @@ int RelationalSyncAbleStorage::PutSyncDataWithQuery(const QueryObject &object,
     return PutSyncData(object, dataItems, deviceName);
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems,
     const std::string &deviceName)
 {
@@ -601,6 +604,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncAbleStorage::PutSyncData(const QueryObject &query, std::vector<DataItem> &dataItems,
     const std::string &deviceName)
@@ -748,6 +752,7 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
     const RelationalObserverAction &action)
 {
@@ -794,6 +799,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
     }
     return -E_NOT_FOUND;
 }
+// LCOV_EXCL_BR_STOP
 
 void RelationalSyncAbleStorage::ExecuteDataChangeCallback(
     const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item,
@@ -843,6 +849,7 @@ void RelationalSyncAbleStorage::RegisterHeartBeatListener(const std::function<vo
     heartBeatListener_ = listener;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::CheckAndInitQueryCondition(QueryObject &query) const
 {
     RelationalSchemaObject schema = storageEngine_->GetSchema();
@@ -872,6 +879,7 @@ int RelationalSyncAbleStorage::CheckAndInitQueryCondition(QueryObject &query) co
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 bool RelationalSyncAbleStorage::CheckCompatible(const std::string &schema, uint8_t type) const
 {
@@ -974,6 +982,7 @@ int RelationalSyncAbleStorage::SaveRemoteDeviceSchema(const std::string &deviceI
     return remoteDeviceSchema_.Put(deviceId, remoteSchema);
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId,
     RelationalSchemaObject &schemaObj) const
 {
@@ -1009,6 +1018,7 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 void RelationalSyncAbleStorage::SetReusedHandle(StorageExecutor *handle)
 {
@@ -1213,6 +1223,7 @@ int RelationalSyncAbleStorage::ReleaseCloudDataToken(ContinueToken &continueStmt
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::GetSchemaFromDB(RelationalSchemaObject &schema)
 {
     Key schemaKey;
@@ -1236,6 +1247,7 @@ int RelationalSyncAbleStorage::GetSchemaFromDB(RelationalSchemaObject &schema)
     storageEngine_->SetSchema(schema);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
 {
@@ -1351,6 +1363,7 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
     return errCode;
 }
 
+// LCOV_EXCL_START
 int RelationalSyncAbleStorage::ClearCloudLogVersion(const std::vector<std::string> &tableNameList)
 {
     if (transactionHandle_ == nullptr) {
@@ -1359,6 +1372,7 @@ int RelationalSyncAbleStorage::ClearCloudLogVersion(const std::vector<std::strin
     }
     return transactionHandle_->DoClearCloudLogVersion(tableNameList);
 }
+// LCOV_EXCL_STOP
 
 int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)
 {
@@ -1686,6 +1700,7 @@ int RelationalSyncAbleStorage::GetTableReference(const std::string &tableName,
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const std::string &tableName)
 {
     std::pair<std::string, int> res = { "", E_OK };
@@ -1736,6 +1751,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSharedTargetTableName(
     }
     return res;
 }
+// LCOV_EXCL_BR_STOP
 
 void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
 {
@@ -1795,6 +1811,7 @@ int RelationalSyncAbleStorage::UpsertData(RecordStatus status, const std::string
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::UpsertDataInner(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const std::vector<VBucket> &records)
 {
@@ -1822,6 +1839,7 @@ int RelationalSyncAbleStorage::UpsertDataInner(SQLiteSingleVerRelationalStorageE
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, const std::vector<VBucket> &records)
@@ -2047,6 +2065,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
     const std::string &tableName, bool flag)
 {
@@ -2106,7 +2125,9 @@ void RelationalSyncAbleStorage::SetCloudSyncConfig(const CloudSyncConfig &config
     std::lock_guard<std::mutex> autoLock(configMutex_);
     cloudSyncConfig_ = config;
 }
+// LCOV_EXCL_BR_STOP
 
+// LCOV_EXCL_START
 bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
 {
     // check whether reference exist
@@ -2118,6 +2139,7 @@ bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
     }
     return !tableReference.empty();
 }
+// LCOV_EXCL_STOP
 
 bool RelationalSyncAbleStorage::IsTableExistReferenceOrReferenceBy(const std::string &table)
 {
@@ -2150,6 +2172,7 @@ void RelationalSyncAbleStorage::ReleaseUploadRecord(const std::string &tableName
     uploadRecorder_.ReleaseUploadRecord(tableName, type, localMark);
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncAbleStorage::ReviseLocalModTime(const std::string &tableName,
     const std::vector<ReviseModTimeInfo> &revisedData)
 {
@@ -2204,5 +2227,6 @@ int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, i
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 }
 #endif

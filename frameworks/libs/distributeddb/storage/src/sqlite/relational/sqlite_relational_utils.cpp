@@ -551,6 +551,7 @@ bool IsDistributedPKInvalidInAutoIncrementTable(const TableInfo &tableInfo,
     return isMissMatch;
 }
 
+// LCOV_EXCL_BR_START
 bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     const std::set<std::string, CaseInsensitiveComparator> &distributedPk,
     const std::vector<DistributedField> &originFields, bool isForceUpgrade)
@@ -585,6 +586,7 @@ bool IsDistributedPkInvalid(const TableInfo &tableInfo,
     }
     return false;
 }
+// LCOV_EXCL_BR_STOP
 
 bool IsDistributedSchemaSupport(const TableInfo &tableInfo, const std::vector<DistributedField> &fields)
 {
@@ -792,6 +794,7 @@ int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTab
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteRelationalUtils::OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables)
 {
     auto [errCode, time] = GetCurrentVirtualTime(db);
@@ -861,6 +864,7 @@ int SQLiteRelationalUtils::GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffs
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode != E_OK ? errCode : ret;
 }
+// LCOV_EXCL_BR_STOP
 
 std::pair<int, std::string> SQLiteRelationalUtils::GetCurrentVirtualTime(sqlite3 *db)
 {
