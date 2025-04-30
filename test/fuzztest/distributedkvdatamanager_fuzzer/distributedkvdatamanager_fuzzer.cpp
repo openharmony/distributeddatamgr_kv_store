@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 
 #include "distributed_kv_data_manager.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
 #include "types.h"
@@ -91,10 +92,10 @@ void TearDown(void)
     (void)remove("/data/service/el1/public/database/distributedkvdatamanagerfuzzertest");
 }
 
-void GetKvStoreFuzz(const uint8_t *data, size_t size)
+void GetKvStoreFuzz(FuzzedDataProvider &provider)
 {
     StoreId storeId;
-    storeId.storeId = std::string(data, data + size);
+    storeId.storeId = provider.ConsumeRandomLengthString();
     std::shared_ptr<SingleKvStore> notExistKvStore;
     manager.GetSingleKvStore(create, appId, storeId, notExistKvStore);
     std::shared_ptr<SingleKvStore> existKvStore;
@@ -103,13 +104,13 @@ void GetKvStoreFuzz(const uint8_t *data, size_t size)
     manager.DeleteKvStore(appId, storeId);
 }
 
-void GetAllKvStoreFuzz(const uint8_t *data, size_t size)
+void GetAllKvStoreFuzz(FuzzedDataProvider &provider)
 {
     std::vector<StoreId> storeIds;
     manager.GetAllKvStoreId(appId, storeIds);
 
     std::shared_ptr<SingleKvStore> KvStore;
-    std::string storeId_base(data, data + size);
+    std::string storeId_base = provider.ConsumeRandomLengthString();
     int sum = 10;
     for (int i = 0; i < sum; i++) {
         StoreId storeId;
@@ -122,10 +123,10 @@ void GetAllKvStoreFuzz(const uint8_t *data, size_t size)
     manager.GetAllKvStoreId(appId, storeIds);
 }
 
-void CloseKvStoreFuzz(const uint8_t *data, size_t size)
+void CloseKvStoreFuzz(FuzzedDataProvider &provider)
 {
     StoreId storeId;
-    storeId.storeId = std::string(data, data + size);
+    storeId.storeId = provider.ConsumeRandomLengthString();
     manager.CloseKvStore(appId, storeId);
     std::shared_ptr<SingleKvStore> kvStore;
     manager.GetSingleKvStore(create, appId, storeId, kvStore);
@@ -133,10 +134,10 @@ void CloseKvStoreFuzz(const uint8_t *data, size_t size)
     manager.CloseKvStore(appId, storeId);
 }
 
-void DeleteKvStoreFuzz(const uint8_t *data, size_t size)
+void DeleteKvStoreFuzz(FuzzedDataProvider &provider)
 {
     StoreId storeId;
-    storeId.storeId = std::string(data, data + size);
+    storeId.storeId = provider.ConsumeRandomLengthString();
     manager.DeleteKvStore(appId, storeId, create.baseDir);
 
     std::shared_ptr<SingleKvStore> kvStore;
@@ -147,14 +148,14 @@ void DeleteKvStoreFuzz(const uint8_t *data, size_t size)
     manager.CloseKvStore(appId, storeId);
 }
 
-void DeleteAllKvStoreFuzz1(const uint8_t *data, size_t size)
+void DeleteAllKvStoreFuzz1(FuzzedDataProvider &provider)
 {
     std::vector<StoreId> storeIds;
     manager.GetAllKvStoreId(appId, storeIds);
 
     manager.DeleteAllKvStore(appId, create.baseDir);
     std::shared_ptr<SingleKvStore> KvStore;
-    std::string storeId_base(data, data + size);
+    std::string storeId_base = provider.ConsumeRandomLengthString();
     int sum = 10;
     for (int i = 0; i < sum; i++) {
         StoreId storeId;
@@ -166,13 +167,13 @@ void DeleteAllKvStoreFuzz1(const uint8_t *data, size_t size)
     manager.DeleteAllKvStore(appId, create.baseDir);
 }
 
-void DeleteAllKvStoreFuzz2(const uint8_t *data, size_t size)
+void DeleteAllKvStoreFuzz2(FuzzedDataProvider &provider)
 {
     std::vector<StoreId> storeIds;
     manager.GetAllKvStoreId(appId, storeIds);
 
     std::shared_ptr<SingleKvStore> KvStore;
-    std::string storeId_base(data, data + size);
+    std::string storeId_base = provider.ConsumeRandomLengthString();
     manager.GetSingleKvStore(create, appId, storeIdTest, KvStore);
     manager.CloseKvStore(appId, storeIdTest);
     int sum = 10;
@@ -184,13 +185,13 @@ void DeleteAllKvStoreFuzz2(const uint8_t *data, size_t size)
     manager.DeleteAllKvStore(appId, create.baseDir);
 }
 
-void DeleteAllKvStoreFuzz3(const uint8_t *data, size_t size)
+void DeleteAllKvStoreFuzz3(FuzzedDataProvider &provider)
 {
     std::vector<StoreId> storeIds;
     manager.GetAllKvStoreId(appId, storeIds);
 
     std::shared_ptr<SingleKvStore> KvStore;
-    std::string storeId_base(data, data + size);
+    std::string storeId_base = provider.ConsumeRandomLengthString();
     int sum = 10;
     for (int i = 0; i < sum; i++) {
         StoreId storeId;
@@ -214,10 +215,10 @@ void UnRegisterKvStoreServiceDeathRecipientFuzz()
     kvStoreDeathRecipient->OnRemoteDied();
 }
 
-void PutSwitchFuzz(const uint8_t *data, size_t size)
+void PutSwitchFuzz(FuzzedDataProvider &provider)
 {
-    std::string appIds(data, data + size);
-    uint32_t input = static_cast<uint32_t>(size);
+    std::string appIds = provider.ConsumeRandomLengthString();
+    uint32_t input = provider.ConsumeIntegral<uint32_t>();
     SwitchData switchData;
     switchData.value = input;
     switchData.length = input & 0xFFFF;
@@ -225,24 +226,24 @@ void PutSwitchFuzz(const uint8_t *data, size_t size)
     manager.PutSwitch({ "distributed_device_profile_service" }, switchData);
 }
 
-void GetSwitchFuzz(const uint8_t *data, size_t size)
+void GetSwitchFuzz(FuzzedDataProvider &provider)
 {
-    std::string appIds(data, data + size);
-    std::string networkId(data, data + size);
+    std::string appIds = provider.ConsumeRandomLengthString();
+    std::string networkId = provider.ConsumeRandomLengthString();
     manager.GetSwitch({ appIds }, networkId);
     manager.GetSwitch({ "distributed_device_profile_service" }, networkId);
 }
 
-void SubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
+void SubscribeSwitchDataFuzz(FuzzedDataProvider &provider)
 {
-    std::string appIds(data, data + size);
+    std::string appIds = provider.ConsumeRandomLengthString();
     std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
     manager.SubscribeSwitchData({ appIds }, observer);
 }
 
-void UnsubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
+void UnsubscribeSwitchDataFuzz(FuzzedDataProvider &provider)
 {
-    std::string appIds(data, data + size);
+    std::string appIds = provider.ConsumeRandomLengthString();
     std::shared_ptr<SwitchDataObserver> observer = std::make_shared<SwitchDataObserver>();
     manager.SubscribeSwitchData({ appIds }, observer);
     manager.UnsubscribeSwitchData({ appIds }, observer);
@@ -253,20 +254,21 @@ void UnsubscribeSwitchDataFuzz(const uint8_t *data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
+    FuzzedDataProvider provider(data, size);
     OHOS::SetUpTestCase();
-    OHOS::GetKvStoreFuzz(data, size);
-    OHOS::GetAllKvStoreFuzz(data, size);
-    OHOS::CloseKvStoreFuzz(data, size);
-    OHOS::DeleteKvStoreFuzz(data, size);
-    OHOS::DeleteAllKvStoreFuzz1(data, size);
-    OHOS::DeleteAllKvStoreFuzz2(data, size);
-    OHOS::DeleteAllKvStoreFuzz3(data, size);
+    OHOS::GetKvStoreFuzz(provider);
+    OHOS::GetAllKvStoreFuzz(provider);
+    OHOS::CloseKvStoreFuzz(provider);
+    OHOS::DeleteKvStoreFuzz(provider);
+    OHOS::DeleteAllKvStoreFuzz1(provider);
+    OHOS::DeleteAllKvStoreFuzz2(provider);
+    OHOS::DeleteAllKvStoreFuzz3(provider);
     OHOS::RegisterKvStoreServiceDeathRecipientFuzz();
     OHOS::UnRegisterKvStoreServiceDeathRecipientFuzz();
-    OHOS::PutSwitchFuzz(data, size);
-    OHOS::GetSwitchFuzz(data, size);
-    OHOS::SubscribeSwitchDataFuzz(data, size);
-    OHOS::UnsubscribeSwitchDataFuzz(data, size);
+    OHOS::PutSwitchFuzz(provider);
+    OHOS::GetSwitchFuzz(provider);
+    OHOS::SubscribeSwitchDataFuzz(provider);
+    OHOS::UnsubscribeSwitchDataFuzz(provider);
     OHOS::TearDown();
     return 0;
 }

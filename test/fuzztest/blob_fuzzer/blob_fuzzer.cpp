@@ -17,7 +17,7 @@
 
 #include <cstdint>
 #include <vector>
-
+#include "fuzzer/FuzzedDataProvider.h"
 #include "securec.h"
 #include "types.h"
 #include "blob.h"
@@ -59,29 +59,27 @@ void BlobOption(const Blob &blob)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    std::string fuzzStr(reinterpret_cast<const char *>(data), size);
-    std::vector<uint8_t> fuzzVec(fuzzStr.begin(), fuzzStr.end());
+    FuzzedDataProvider fuzzer(data, size);
+    size_t blobSize = fuzzer.ConsumeIntegralInRange<size_t>(1, 50);
+    std::vector<uint8_t> fuzzVec = fuzzer.ConsumeBytes<uint8_t>(blobSize);
 
-    int count = 10;
-    char str[count + 1];
-    auto ret = memcpy_s(str, count + 1, data, std::min(static_cast<size_t>(count + 1), size));
-    if (ret != EOK) {
-        return 0;
-    }
-    str[count] = '\0';
-    Blob blob1(str);
-    blob1 = str;
-    Blob blob2(fuzzStr);
-    blob2 = fuzzStr;
+    std::string str1 = fuzzer.ConsumeRandomLengthString();
+    Blob blob1(str1.c_str());
+    std::string str2 = fuzzer.ConsumeRandomLengthString();
+    blob1 = str2.c_str();
+    Blob blob2(fuzzer.ConsumeRandomLengthString());
+    blob2 = fuzzer.ConsumeRandomLengthString();
     Blob blob3(fuzzVec);
-    Blob blob4(str, count + 1);
+    std::string str3 = fuzzer.ConsumeRandomLengthString();
+    Blob blob4(str3.c_str(), str3.length() + 1);
     Blob blob5(blob4);
     Blob blob6(std::move(blob5));
     Blob blob7 = blob6;
     blob7 = Blob(blob6);
+    int count = 10;
     auto buffer = std::make_unique<uint8_t[]>(count);
     uint8_t *writePtr = buffer.get();
-    Blob blob8(fuzzStr);
+    Blob blob8(fuzzer.ConsumeRandomLengthString());
     blob8.WriteToBuffer(writePtr, count);
     OHOS::BlobOption(blob8);
 

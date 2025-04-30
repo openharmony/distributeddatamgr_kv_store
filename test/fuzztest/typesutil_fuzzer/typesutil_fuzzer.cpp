@@ -20,46 +20,49 @@
 #include <vector>
 
 #include "change_notification.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "itypes_util.h"
 #include "kv_types_util.h"
 #include "types.h"
 
 using namespace OHOS::DistributedKv;
 namespace OHOS {
-void ClientDevFuzz(const std::string &strBase)
+void ClientDevFuzz(FuzzedDataProvider &provider)
 {
     DeviceInfo clientDev;
-    clientDev.deviceId = strBase;
-    clientDev.deviceName = strBase;
-    clientDev.deviceType = strBase;
+    clientDev.deviceId = provider.ConsumeRandomLengthString();
+    clientDev.deviceName = provider.ConsumeRandomLengthString();
+    clientDev.deviceType = provider.ConsumeRandomLengthString();
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, clientDev);
     DeviceInfo serverDev;
     ITypesUtil::Unmarshal(parcel, serverDev);
 }
 
-void EntryFuzz(const std::string &strBase)
+void EntryFuzz(FuzzedDataProvider &provider)
 {
     Entry entryIn;
-    entryIn.key = strBase;
-    entryIn.value = strBase;
+    entryIn.key = provider.ConsumeRandomLengthString();
+    entryIn.value = provider.ConsumeRandomLengthString();
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, entryIn);
     Entry entryOut;
     ITypesUtil::Unmarshal(parcel, entryOut);
 }
 
-void BlobFuzz(const std::string &strBase)
+void BlobFuzz(FuzzedDataProvider &provider)
 {
-    Blob blobIn = strBase;
+    Blob blobIn = provider.ConsumeRandomLengthString();
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, blobIn);
     Blob blobOut;
     ITypesUtil::Unmarshal(parcel, blobOut);
 }
 
-void VecFuzz(const std::vector<uint8_t> &vec)
+void VecFuzz(FuzzedDataProvider &provider)
 {
+    size_t blobSize = provider.ConsumeIntegralInRange<size_t>(1, 50);
+    std::vector<uint8_t> vec = provider.ConsumeBytes<uint8_t>(blobSize);
     std::vector<uint8_t> vecIn(vec);
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, vecIn);
@@ -67,7 +70,7 @@ void VecFuzz(const std::vector<uint8_t> &vec)
     ITypesUtil::Unmarshal(parcel, vecOut);
 }
 
-void OptionsFuzz(const std::string &strBase)
+void OptionsFuzz(FuzzedDataProvider &provider)
 {
     Options optionsIn = {
         .createIfMissing = true,
@@ -76,33 +79,35 @@ void OptionsFuzz(const std::string &strBase)
         .kvStoreType = KvStoreType::SINGLE_VERSION
     };
     optionsIn.area = EL1;
-    optionsIn.baseDir = strBase;
+    optionsIn.baseDir = provider.ConsumeRandomLengthString();
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, optionsIn);
     Options optionsOut;
     ITypesUtil::Unmarshal(parcel, optionsOut);
 }
 
-void SyncPolicyFuzz(uint32_t base)
+void SyncPolicyFuzz(FuzzedDataProvider &provider)
 {
-    SyncPolicy syncPolicyIn { base, base };
+    uint32_t base1 = provider.ConsumeIntegral<uint32_t>();
+    uint32_t base2 = provider.ConsumeIntegral<uint32_t>();
+    SyncPolicy syncPolicyIn { base1, base2 };
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, syncPolicyIn);
     SyncPolicy syncPolicyOut;
     ITypesUtil::Unmarshal(parcel, syncPolicyOut);
 }
 
-void ChangeNotificationFuzz(const std::string &strBase, bool boolBase)
+void ChangeNotificationFuzz(FuzzedDataProvider &provider)
 {
     Entry insert;
     Entry update;
     Entry del;
-    insert.key = strBase;
-    update.key = strBase;
-    del.key = strBase;
-    insert.value = strBase;
-    update.value = strBase;
-    del.value = strBase;
+    insert.key = provider.ConsumeRandomLengthString();
+    update.key = provider.ConsumeRandomLengthString();
+    del.key = provider.ConsumeRandomLengthString();
+    insert.value = provider.ConsumeRandomLengthString();
+    update.value = provider.ConsumeRandomLengthString();
+    del.value = provider.ConsumeRandomLengthString();
     std::vector<Entry> inserts;
     std::vector<Entry> updates;
     std::vector<Entry> deleteds;
@@ -110,6 +115,8 @@ void ChangeNotificationFuzz(const std::string &strBase, bool boolBase)
     updates.push_back(update);
     deleteds.push_back(del);
 
+    bool boolBase = provider.ConsumeBool();
+    std::string strBase = provider.ConsumeRandomLengthString();
     ChangeNotification changeIn(std::move(inserts), std::move(updates), std::move(deleteds), strBase, boolBase);
     MessageParcel parcel;
     ITypesUtil::Marshal(parcel, changeIn);
@@ -118,8 +125,9 @@ void ChangeNotificationFuzz(const std::string &strBase, bool boolBase)
     ITypesUtil::Unmarshal(parcel, changeOut);
 }
 
-void IntFuzz(size_t valBase)
+void IntFuzz(FuzzedDataProvider &provider)
 {
+    size_t valBase = provider.ConsumeIntegral<size_t>();
     MessageParcel parcel;
     int32_t int32In = static_cast<int32_t>(valBase);
     ITypesUtil::Marshal(parcel, int32In);
@@ -137,22 +145,25 @@ void IntFuzz(size_t valBase)
     ITypesUtil::Unmarshal(parcel, uint64Out);
 }
 
-void StringFuzz(const std::string &strBase)
+void StringFuzz(FuzzedDataProvider &provider)
 {
     MessageParcel parcel;
-    std::string strIn = strBase;
+    std::string strIn = provider.ConsumeRandomLengthString();
     ITypesUtil::Marshal(parcel, strIn);
     std::string strOut;
     ITypesUtil::Unmarshal(parcel, strOut);
 }
 
-void GetTotalSizeFuzz(const std::string &strBase, uint32_t size)
+void GetTotalSizeFuzz(FuzzedDataProvider &provider)
 {
     Entry entry;
-    entry.key = strBase;
-    entry.value = strBase;
-    std::vector<Entry> VecEntryIn(size, entry);
-    std::vector<Key> VecKeyIn(size, Key { strBase });
+    entry.key = provider.ConsumeRandomLengthString();
+    entry.value = provider.ConsumeRandomLengthString();
+    size_t size1 = provider.ConsumeIntegralInRange<size_t>(1, 10);
+    std::vector<Entry> VecEntryIn(size1, entry);
+    std::string strBase = provider.ConsumeRandomLengthString();
+    size_t size2 = provider.ConsumeIntegralInRange<size_t>(1, 10);
+    std::vector<Key> VecKeyIn(size2, Key { strBase });
     ITypesUtil::GetTotalSize(VecEntryIn);
     ITypesUtil::GetTotalSize(VecKeyIn);
 }
@@ -162,20 +173,16 @@ void GetTotalSizeFuzz(const std::string &strBase, uint32_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    bool fuzzBool = ((size % 2) == 0);
-    uint32_t fuzzUInt32 = static_cast<uint32_t>(size);
-    std::string fuzzStr(reinterpret_cast<const char *>(data), size);
-    std::vector<uint8_t> fuzzVec(fuzzStr.begin(), fuzzStr.end());
-
-    OHOS::ClientDevFuzz(fuzzStr);
-    OHOS::EntryFuzz(fuzzStr);
-    OHOS::BlobFuzz(fuzzStr);
-    OHOS::VecFuzz(fuzzVec);
-    OHOS::OptionsFuzz(fuzzStr);
-    OHOS::SyncPolicyFuzz(fuzzUInt32);
-    OHOS::ChangeNotificationFuzz(fuzzStr, fuzzBool);
-    OHOS::IntFuzz(size);
-    OHOS::StringFuzz(fuzzStr);
-    OHOS::GetTotalSizeFuzz(fuzzStr, fuzzUInt32);
+    FuzzedDataProvider provider(data, size);
+    OHOS::ClientDevFuzz(provider);
+    OHOS::EntryFuzz(provider);
+    OHOS::BlobFuzz(provider);
+    OHOS::VecFuzz(provider);
+    OHOS::OptionsFuzz(provider);
+    OHOS::SyncPolicyFuzz(provider);
+    OHOS::ChangeNotificationFuzz(provider);
+    OHOS::IntFuzz(provider);
+    OHOS::StringFuzz(provider);
+    OHOS::GetTotalSizeFuzz(provider);
     return 0;
 }
