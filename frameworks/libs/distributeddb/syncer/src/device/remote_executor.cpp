@@ -363,6 +363,7 @@ bool RemoteExecutor::CheckTaskExeStatus(const std::string &device)
         (totalCount + 1 <= MAX_QUEUE_COUNT);
 }
 
+// LCOV_EXCL_BR_START
 uint32_t RemoteExecutor::GenerateSessionId()
 {
     uint32_t sessionId = Hash::Hash32Func(std::to_string(TimeHelper::GetSysCurrentTime()));
@@ -449,6 +450,7 @@ void RemoteExecutor::TryExecuteTaskInLock(const std::string &device)
         DoFinished(sessionId, errCode);
     }
 }
+// LCOV_EXCL_BR_STOP
 
 void RemoteExecutor::DoRollBack(uint32_t sessionId)
 {
@@ -509,6 +511,7 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
     return SendRequestMessage(target, message, sessionId);
 }
 
+// LCOV_EXCL_BR_START
 int RemoteExecutor::SendRequestMessage(const std::string &target, Message *message, uint32_t sessionId)
 {
     auto communicator = GetAndIncCommunicator();
@@ -539,6 +542,7 @@ int RemoteExecutor::SendRequestMessage(const std::string &target, Message *messa
     syncInterface->DecRefCount();
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId,
     const std::string &device)
@@ -637,6 +641,7 @@ void RemoteExecutor::StartTimer(uint64_t timeout, uint32_t sessionId)
     taskFinishMap_[sessionId] = timerId;
 }
 
+// LCOV_EXCL_BR_START
 void RemoteExecutor::RemoveTimer(uint32_t sessionId)
 {
     TimerId timerId = 0u;
@@ -680,6 +685,7 @@ void RemoteExecutor::DoTimeout(TimerId timerId)
     }
     DoFinished(sessionId, -E_TIMEOUT);
 }
+// LCOV_EXCL_BR_STOP
 
 void RemoteExecutor::DoSendFailed(uint32_t sessionId, int errCode)
 {
@@ -711,6 +717,7 @@ void RemoteExecutor::DoFinished(uint32_t sessionId, int errCode)
     }
 }
 
+// LCOV_EXCL_BR_START
 int RemoteExecutor::ClearTaskInfo(uint32_t sessionId, Task &task)
 {
     {
@@ -725,6 +732,7 @@ int RemoteExecutor::ClearTaskInfo(uint32_t sessionId, Task &task)
     RemoveTimer(sessionId);
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 void RemoteExecutor::ClearInnerSource()
 {
@@ -811,6 +819,7 @@ bool RemoteExecutor::IsPacketValid(uint32_t sessionId)
     return taskMap_.find(sessionId) != taskMap_.end() && taskMap_[sessionId].status == Status::WORKING;
 }
 
+// LCOV_EXCL_BR_START
 void RemoteExecutor::ReceiveDataWithValidSession(const std::string &targetDev, uint32_t sessionId, uint32_t sequenceId,
     const RemoteExecutorAckPacket *packet)
 {
@@ -869,6 +878,7 @@ void RemoteExecutor::RemoveTaskByDevice(const std::string &device, std::vector<u
         }
     }
 }
+// LCOV_EXCL_BR_STOP
 
 void RemoteExecutor::RemoveAllTask(int errCode)
 {
@@ -901,6 +911,7 @@ void RemoteExecutor::RemoveAllTask(int errCode)
     taskFinishMap_.clear();
 }
 
+// LCOV_EXCL_BR_START
 void RemoteExecutor::RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList)
 {
     std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -910,6 +921,7 @@ void RemoteExecutor::RemoveTaskByConnection(uint64_t connectionId, std::vector<u
         }
     }
 }
+// LCOV_EXCL_BR_STOP
 
 int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize) const
 {

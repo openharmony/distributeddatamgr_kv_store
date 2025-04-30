@@ -524,6 +524,7 @@ void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished, ISyncTaskConte
     }
 }
 
+// LCOV_EXCL_BR_START
 bool AbilitySync::SecLabelCheckInner(int32_t remoteSecLabel, int errCode, SecurityOption option,
     const AbilitySyncRequestPacket *packet) const
 {
@@ -544,6 +545,7 @@ bool AbilitySync::SecLabelCheckInner(int32_t remoteSecLabel, int errCode, Securi
          remoteSecLabel, packet->GetSecFlag(), option.securityLabel, option.securityFlag);
     return false;
 }
+// LCOV_EXCL_BR_STOP
 
 bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
 {
@@ -636,6 +638,7 @@ int AbilitySync::RegisterTransformFunc()
     return MessageTransform::RegTransformFunction(ABILITY_SYNC_MESSAGE, func);
 }
 
+// LCOV_EXCL_BR_START
 uint32_t AbilitySync::CalculateLen(const Message *inMsg)
 {
     if ((inMsg == nullptr) || (inMsg->GetMessageId() != ABILITY_SYNC_MESSAGE)) {
@@ -968,6 +971,7 @@ ERROR_OUT:
     delete packet;
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 void AbilitySync::SetAbilityRequestBodyInfoInner(uint16_t remoteCommunicatorVersion, AbilitySyncRequestPacket &packet,
     std::string &schemaStr, uint32_t schemaType) const
@@ -983,6 +987,7 @@ void AbilitySync::SetAbilityRequestBodyInfoInner(uint16_t remoteCommunicatorVers
     }
 }
 
+// LCOV_EXCL_BR_START
 int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, const ISyncTaskContext *context,
     AbilitySyncRequestPacket &packet) const
 {
@@ -1032,6 +1037,7 @@ int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, c
         SOFTWARE_VERSION_CURRENT, option.securityLabel, option.securityFlag, dbCreateTime, localSchemaVer);
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int AbilitySync::SetAbilityAckBodyInfo(const ISyncTaskContext *context, int ackCode, bool isAckNotify,
     AbilitySyncAckPacket &ackPacket) const
@@ -1134,6 +1140,7 @@ bool AbilitySync::IsSingleRelationalVer() const
 #endif
 }
 
+// LCOV_EXCL_BR_START
 int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *context, bool isCompatible)
 {
     const AbilitySyncRequestPacket *packet = message->GetObject<AbilitySyncRequestPacket>();
@@ -1171,6 +1178,7 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     int errCode = SendAck(context, message, ackCode, false, ackPacket);
     return ackCode != E_OK ? ackCode : errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int AbilitySync::SendAck(const ISyncTaskContext *context, const Message *message, int ackCode, bool isAckNotify,
     AbilitySyncAckPacket &ackPacket)

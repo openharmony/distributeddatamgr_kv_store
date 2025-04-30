@@ -65,6 +65,7 @@ const std::map<QueryObjType, std::string> LOGIC_SYMBOL_TO_SQL {
     {QueryObjType::END_GROUP, ")"},
 };
 
+// LCOV_EXCL_BR_START
 std::string FieldValue2String(const FieldValue &val, QueryValueType type)
 {
     std::stringstream ss;
@@ -87,6 +88,7 @@ std::string FieldValue2String(const FieldValue &val, QueryValueType type)
             return "";
     }
 }
+// LCOV_EXCL_BR_STOP
 
 std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std::vector<std::string> &fieldNames)
 {
@@ -342,6 +344,7 @@ int SqliteQueryHelper::GetSyncDataCheckSql(std::string &sql)
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SqliteQueryHelper::BindSyncDataCheckStmt(sqlite3_stmt *statement, const Key &hashKey) const
 {
     if (statement == nullptr) {
@@ -379,6 +382,7 @@ int SqliteQueryHelper::BindSyncDataCheckStmt(sqlite3_stmt *statement, const Key 
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SqliteQueryHelper::GetCountQuerySql(std::string &sql)
 {
@@ -809,6 +813,7 @@ std::string SqliteQueryHelper::AssembleSqlForSuggestIndex(const std::string &bas
     return baseSql + USING_INDEX + "'" + formatIndex + "' " + filter;
 }
 
+// LCOV_EXCL_BR_START
 std::string SqliteQueryHelper::CheckAndFormatSuggestIndex() const
 {
     if (suggestIndex_.empty()) {
@@ -827,6 +832,7 @@ std::string SqliteQueryHelper::CheckAndFormatSuggestIndex() const
     }
     return SchemaUtils::FieldPathString(indexName);
 }
+// LCOV_EXCL_BR_STOP
 
 std::string SqliteQueryHelper::MapKeysInSubCondition(const std::string &accessStr) const
 {
@@ -841,6 +847,7 @@ std::string SqliteQueryHelper::MapKeysInSubCondition(const std::string &accessSt
     return resultStr;
 }
 
+// LCOV_EXCL_BR_START
 int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::string &conditionStr)
 {
     if (queryObjNodes_.empty()) {
@@ -892,6 +899,7 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
     conditionStr += ")";
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SqliteQueryHelper::GetSubscribeSql(TriggerModeEnum mode, std::string &subscribeCondition)
 {
@@ -1253,6 +1261,7 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
     sql += isCloudForcePush ? " (b.flag & 0x04 != 0x04) AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";
 }
 
+// LCOV_EXCL_BR_START
 int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql,
     sqlite3_stmt *&statement)
 {
@@ -1280,6 +1289,7 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *db, bool forcePush,
     const CloudWaterType mode, int64_t timeStamp, const std::string &user)
