@@ -1005,4 +1005,46 @@ int CloudSyncUtils::ClearCloudWatermark(const std::vector<std::string> &tableNam
 
     return storageProxy->Commit();
 }
+
+bool CloudSyncUtils::HaveReferenceOrReferenceByTable(
+    const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy)
+{
+    for (size_t i = 0u; i < taskInfo.table.size(); ++i) {
+        if (storageProxy->IsTableExistReferenceOrReferenceBy(taskInfo.table[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int CloudSyncUtils::StartTransactionIfNeed(
+    const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy)
+{
+    bool isStartTransaction = true;
+    if (taskInfo.table.size() <= 1u || !HaveReferenceOrReferenceByTable(taskInfo, storageProxy)) {
+        // only one table or no reference table, no need to start transaction.
+        isStartTransaction = false;
+    }
+    return isStartTransaction ? storageProxy->StartTransaction() : E_OK;
+}
+
+void CloudSyncUtils::EndTransactionIfNeed(
+    const int &errCode, const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy)
+{
+    if (!storageProxy->GetTransactionExeFlag()) {
+        // no need to end transaction.
+        return;
+    }
+    if (errCode == E_OK || errCode == -E_TASK_PAUSED) {
+        int commitErrorCode = storageProxy->Commit();
+        if (commitErrorCode != E_OK) {
+            LOGE("[CloudSyncer] cannot commit transaction: %d.", commitErrorCode);
+        }
+    } else {
+        int rollBackErrorCode = storageProxy->Rollback();
+        if (rollBackErrorCode != E_OK) {
+            LOGE("[CloudSyncer] cannot roll back transaction: %d.", rollBackErrorCode);
+        }
+    }
+}
 }

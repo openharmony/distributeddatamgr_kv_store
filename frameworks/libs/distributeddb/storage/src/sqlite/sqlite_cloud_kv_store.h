@@ -124,7 +124,7 @@ public:
 
     int OperateDataStatus(uint32_t dataOperator);
 private:
-    std::pair<sqlite3 *, bool> GetTransactionDbHandleAndMemoryStatus();
+    std::pair<sqlite3 *, SQLiteSingleVerStorageExecutor *> GetTransactionDbHandleAndMemoryStatus(bool isWrite);
 
     static void FillTimestamp(Timestamp rawSystemTime, Timestamp virtualTime, CloudSyncBatch &syncBatch);
 

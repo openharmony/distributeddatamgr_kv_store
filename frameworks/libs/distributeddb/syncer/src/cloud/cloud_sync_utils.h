@@ -140,6 +140,15 @@ public:
 
     static int ClearCloudWatermark(const std::vector<std::string> &tableNameList,
         std::shared_ptr<StorageProxy> &storageProxy);
+
+    static bool HaveReferenceOrReferenceByTable(
+        const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy);
+
+    static int StartTransactionIfNeed(
+        const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy);
+
+    static void EndTransactionIfNeed(
+        const int &errCode, const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

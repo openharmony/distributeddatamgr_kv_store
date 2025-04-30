@@ -350,9 +350,6 @@ namespace {
         int64_t count;
         EXPECT_EQ(obj.GetUploadCount(querySync, timestamp, true, true, count), -E_INVALID_DB);
         TableSchema tableSchema;
-        ContinueToken token;
-        CloudSyncData data;
-        EXPECT_EQ(obj.GetCloudData(tableSchema, querySync, timestamp, token, data), -E_INVALID_DB);
         std::vector<Timestamp> timestampVec;
         EXPECT_EQ(obj.GetAllUploadCount(querySync, timestampVec, true, true, count), -E_INVALID_DB);
         std::vector<std::string> cloudGid;

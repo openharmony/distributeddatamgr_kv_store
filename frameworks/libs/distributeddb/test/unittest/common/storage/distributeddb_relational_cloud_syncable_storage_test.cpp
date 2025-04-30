@@ -657,11 +657,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
     int64_t resCount = 0;
 
     /**
-     * @tc.steps: GetUploadCount must be called under transaction
-     * @tc.expected: return -E_TRANSACT_STATE.
+     * @tc.steps: GetUploadCount can be called under read transaction
+     * @tc.expected: return -E_OK.
      */
-    EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime, false, resCount), -E_TRANSACT_STATE);
-
     int timeOffset = 30;
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime + timeOffset, false, resCount), E_OK);
@@ -696,11 +694,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
     int64_t resCount = 0;
 
     /**
-     * @tc.steps: GetUploadCount must be called under transaction
-     * @tc.expected: return -E_TRANSACT_STATE.
+     * @tc.steps: GetUploadCount can be called under transaction
+     * @tc.expected: return E_OK.
      */
-    EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime, false, resCount), -E_TRANSACT_STATE);
-
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->GetUploadCount(g_tableName, g_startTime, false, resCount), E_OK);
     EXPECT_EQ(resCount, insCount);
@@ -935,7 +931,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestS
      * @tc.steps: GetCloudDataNext after the transaction ends, token will released internally
      * @tc.expected: return -E_INVALID_DB.
      */
-    ASSERT_EQ(g_cloudStore->GetCloudDataNext(token, cloudSyncData), -E_INVALID_DB);
+    ASSERT_EQ(g_cloudStore->GetCloudDataNext(token, cloudSyncData), -E_UNFINISHED);
 }
 
 /**

@@ -188,6 +188,8 @@ public:
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 
     bool IsExistTableContainAssets();
+
+    bool GetTransactionExeFlag();
 protected:
     void Init();
 

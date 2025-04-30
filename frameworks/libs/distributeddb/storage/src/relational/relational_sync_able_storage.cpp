@@ -1136,10 +1136,6 @@ int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, cons
 int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
     const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
-    if (transactionHandle_ == nullptr) {
-        LOGE("the transaction has not been started");
-        return -E_INVALID_DB;
-    }
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
     QuerySyncObject query = querySyncObject;
     query.SetSchema(GetSchemaInfo());
@@ -1163,18 +1159,23 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     if (!token->CheckValid()) {
         return -E_INVALID_ARGS;
     }
-    if (transactionHandle_ == nullptr) {
-        LOGE("the transaction has not been started, release the token");
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        LOGE("Invalid handle, release the token, %d", errCode);
         ReleaseCloudDataToken(continueStmtToken);
         return -E_INVALID_DB;
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     auto config = GetCloudSyncConfig();
-    transactionHandle_->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
-    int errCode = transactionHandle_->GetSyncCloudData(uploadRecorder_, cloudDataResult, *token);
+    handle->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
+    errCode = handle->GetSyncCloudData(uploadRecorder_, cloudDataResult, *token);
     LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
         cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
         cloudDataResult.delData.extend.size(), cloudDataResult.lockData.extend.size());
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
     if (errCode != -E_UNFINISHED) {
         delete token;
         token = nullptr;

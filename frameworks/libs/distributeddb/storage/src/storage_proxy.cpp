@@ -71,10 +71,6 @@ int StorageProxy::GetLocalWaterMarkByMode(const std::string &tableName, CloudWat
     if (cloudMetaData_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (transactionExeFlag_.load() && isWrite_.load()) {
-        LOGE("the write transaction has been started, can not get meta");
-        return -E_BUSY;
-    }
     return cloudMetaData_->GetLocalWaterMarkByType(AppendWithUserIfNeed(tableName), mode, localMark);
 }
 
@@ -169,10 +165,6 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const bool isClou
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
-    }
     std::vector<Timestamp> timeStampVec;
     std::vector<CloudWaterType> waterTypeVec = DBCommon::GetWaterTypeVec();
     for (size_t i = 0; i < waterTypeVec.size(); i++) {
@@ -196,10 +188,6 @@ int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
-    }
     QuerySyncObject query;
     query.SetTableName(tableName);
     return store_->GetUploadCount(query, localMark, isCloudForcePush, false, count);
@@ -211,10 +199,6 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const Timestamp &
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
-    }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
     }
     return store_->GetUploadCount(query, localMark, isCloudForcePush, isCompensatedTask, count);
 }
@@ -234,10 +218,6 @@ int StorageProxy::GetCloudData(const QuerySyncObject &querySyncObject, const Tim
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
-    }
     TableSchema tableSchema;
     int errCode = store_->GetCloudTableSchema(querySyncObject.GetRelationTableName(), tableSchema);
     if (errCode != E_OK) {
@@ -251,10 +231,6 @@ int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncDa
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
-    }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
     }
     return store_->GetCloudDataNext(continueStmtToken, cloudDataResult);
 }
@@ -522,10 +498,6 @@ int StorageProxy::FillCloudLogAndAsset(OpType opType, const CloudSyncData &data)
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
-    }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
     }
     return store_->FillCloudLogAndAsset(opType, data, true, false);
 }
@@ -871,5 +843,11 @@ bool StorageProxy::IsExistTableContainAssets()
         return false;
     }
     return store_->IsExistTableContainAssets();
+}
+
+bool StorageProxy::GetTransactionExeFlag()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    return transactionExeFlag_.load();
 }
 }
