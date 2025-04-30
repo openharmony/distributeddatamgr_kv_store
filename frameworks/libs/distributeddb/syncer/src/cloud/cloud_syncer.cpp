@@ -1714,7 +1714,6 @@ int CloudSyncer::ClearCloudWatermark(const std::vector<std::string> &tableNameLi
 
 int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameList)
 {
-    std::lock_guard<std::mutex> lock(syncMutex_);
     for (const auto &tableName: tableNameList) {
         int ret = storageProxy_->CleanWaterMarkInMemory(tableName);
         if (ret != E_OK) {

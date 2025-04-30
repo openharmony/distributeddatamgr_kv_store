@@ -64,6 +64,8 @@ public:
 
     int CleanKvCloudData(std::function<int(void)> &removeFunc);
 
+    int StopTaskBeforeSetReference(std::function<int(void)> &setReferenceFunc);
+
     int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);
 
     int32_t GetCloudSyncTaskCount();
