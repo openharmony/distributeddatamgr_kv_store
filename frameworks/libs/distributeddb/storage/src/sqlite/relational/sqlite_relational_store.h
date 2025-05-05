@@ -91,6 +91,8 @@ public:
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
 
+    std::function<int(void)> SetReferenceInner(const std::vector<TableReferenceProperty> &tableReferenceProperty);
+
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
