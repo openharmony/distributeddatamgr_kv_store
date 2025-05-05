@@ -32,16 +32,17 @@ protected:
 
     static std::pair<int, RelationalSchemaObject> GetKnowledgeSourceSchema(sqlite3 *db);
 
-    static std::pair<int, RelationalSchemaObject> GetRDBSchema(sqlite3 *db);
+    static std::pair<int, RelationalSchemaObject> GetRDBSchema(sqlite3 *db, bool isTracker);
 
     static int SaveKnowledgeSourceSchema(sqlite3 *db, const RelationalSchemaObject &schema);
 
-    static std::pair<int, bool> CheckSchemaValidAndChangeStatus(const RelationalSchemaObject &knowledgeSchema,
-        const RelationalSchemaObject &rdbSchema, const KnowledgeSourceSchema &schema, const TableInfo &tableInfo);
+    static std::pair<int, bool> CheckSchemaValidAndChangeStatus(sqlite3 *db,
+        const RelationalSchemaObject &knowledgeSchema,
+        const KnowledgeSourceSchema &schema, const TableInfo &tableInfo);
 
     static bool IsSchemaValid(const KnowledgeSourceSchema &schema, const TableInfo &tableInfo);
 
-    static bool IsTableInRDBSchema(const std::string &table, const RelationalSchemaObject &rdbSchema);
+    static bool IsTableInRDBSchema(const std::string &table, const RelationalSchemaObject &rdbSchema, bool isTracker);
 
     static bool IsSchemaChange(const RelationalSchemaObject &dbSchema, const KnowledgeSourceSchema &schema);
 
