@@ -96,39 +96,20 @@ uint32_t JsonObject::CalculateNestDepth(const uint8_t *dataBegin, const uint8_t 
 JsonObject::JsonObject(const JsonObject &other)
 {
     isValid_ = other.isValid_;
-    value_ = other.value_;
+    cjson_ = other.cjson_;
 }
 
 JsonObject& JsonObject::operator=(const JsonObject &other)
 {
     if (&other != this) {
         isValid_ = other.isValid_;
-        value_ = other.value_;
+        cjson_ = other.cjson_;
     }
     return *this;
 }
 
-JsonObject::JsonObject(const Json::Value &value) : isValid_(true), value_(value)
+JsonObject::JsonObject(const CJsonObject &value) : isValid_(true), cjson_(value)
 {
-}
-
-int JsonObject::JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &jsonReader, const char *begin,
-    const char *end, JSONCPP_STRING &errs)
-{
-    if (!jsonReader->parse(begin, end, &value_, &errs)) {
-        value_ = Json::Value();
-        return -E_JSON_PARSE_FAIL;
-    }
-    return E_OK;
-}
-
-int JsonObject::ReaderParseInner(Json::Reader &reader, const std::string &inString, bool collectComments)
-{
-    if (!reader.parse(inString, value_, collectComments)) {
-        value_ = Json::Value();
-        return -E_JSON_PARSE_FAIL;
-    }
-    return E_OK;
 }
 
 int JsonObject::Parse(const std::string &inString)
@@ -145,32 +126,10 @@ int JsonObject::Parse(const std::string &inString)
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
-#ifdef JSONCPP_USE_BUILDER
-    JSONCPP_STRING errs;
-    Json::CharReaderBuilder builder;
-    Json::CharReaderBuilder::strictMode(&builder.settings_);
-    builder[JSON_CONFIG_COLLECT_COMMENTS] = false;
-    builder[JSON_CONFIG_REJECT_DUP_KEYS] = false;
-    std::unique_ptr<Json::CharReader> const jsonReader(builder.newCharReader());
-
-    auto begin = reinterpret_cast<const std::string::value_type *>(inString.c_str());
-    auto end = reinterpret_cast<const std::string::value_type *>(inString.c_str() + inString.length());
-    errCode = JsonReaderParseInner(jsonReader, begin, end, errs);
-    if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse string to JsonValue fail, reason=%s.", errs.c_str());
-        return errCode;
-    }
-#else
-    Json::Reader reader(Json::Features::strictMode());
-    errCode = ReaderParseInner(reader, inString, false);
-    if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse string to JsonValue fail, reason=%s.", reader.getFormattedErrorMessages().c_str());
-        return errCode;
-    }
-#endif
+    cjson_ = CJsonObject::Parse(inString);
     // The jsoncpp lib parser in strict mode will still regard root type jsonarray as valid, but we require jsonobject
-    if (value_.type() != Json::ValueType::objectValue) {
-        value_ = Json::Value();
+    if (!cjson_.IsObject()) {
+        cjson_ = CJsonObject::CreateNullCJsonObject();
         LOGE("[Json][Parse] Not an object at root.");
         return -E_JSON_PARSE_FAIL;
     }
@@ -184,21 +143,6 @@ int JsonObject::Parse(const std::vector<uint8_t> &inData)
         return -E_INVALID_ARGS;
     }
     return Parse(inData.data(), inData.data() + inData.size());
-}
-
-bool JsonObject::IsReaderParseValid(const uint8_t *dataBegin, const uint8_t *dataEnd)
-{
-    Json::Reader reader(Json::Features::strictMode());
-    auto begin = reinterpret_cast<const std::string::value_type *>(dataBegin);
-    auto end = reinterpret_cast<const std::string::value_type *>(dataEnd);
-    // The endDoc parameter of reader::parse refer to the byte after the string itself
-    if (!reader.parse(begin, end, value_, false)) {
-        value_ = Json::Value();
-        LOGE("[Json][Parse] Parse dataRange to JsonValue by reader fail, reason=%s.",
-            reader.getFormattedErrorMessages().c_str());
-        return false;
-    }
-    return true;
 }
 
 int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
@@ -217,31 +161,9 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
-#ifdef JSONCPP_USE_BUILDER
-    std::string jsonStr(dataBegin, dataEnd);
-    auto begin = jsonStr.c_str();
-    auto end = jsonStr.c_str() + jsonStr.size();
-
-    JSONCPP_STRING errs;
-    Json::CharReaderBuilder builder;
-    Json::CharReaderBuilder::strictMode(&builder.settings_);
-    builder[JSON_CONFIG_COLLECT_COMMENTS] = false;
-    builder[JSON_CONFIG_REJECT_DUP_KEYS] = false;
-    std::unique_ptr<Json::CharReader> const jsonReader(builder.newCharReader());
-    // The endDoc parameter of reader::parse refer to the byte after the string itself
-    errCode = JsonReaderParseInner(jsonReader, begin, end, errs);
-    if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse dataRange to JsonValue fail, reason=%s.", errs.c_str());
-        return errCode;
-    }
-#else
-    if (!IsReaderParseValid(dataBegin, dataEnd)) {
-        return -E_JSON_PARSE_FAIL;
-    }
-#endif
-    // The jsoncpp lib parser in strict mode will still regard root type jsonarray as valid, but we require jsonobject
-    if (value_.type() != Json::ValueType::objectValue) {
-        value_ = Json::Value();
+    cjson_ = CJsonObject::Parse(dataBegin, dataEnd);
+    if (!cjson_.IsObject()) {
+        cjson_ = CJsonObject::CreateNullCJsonObject();
         LOGE("[Json][Parse] Not an object at root.");
         return -E_JSON_PARSE_FAIL;
     }
@@ -258,25 +180,9 @@ std::string JsonObject::ToString() const
 {
     if (!isValid_) {
         LOGE("[Json][ToString] Not Valid Yet.");
-        return std::string();
+        return {};
     }
-#ifdef JSONCPP_USE_BUILDER
-    Json::StreamWriterBuilder writerBuilder;
-    writerBuilder[JSON_CONFIG_INDENTATION] = "";
-    writerBuilder[JSON_CONFIG_PRECISION] = JSON_VALUE_PRECISION;
-    std::unique_ptr<Json::StreamWriter> const jsonWriter(writerBuilder.newStreamWriter());
-    std::stringstream ss;
-    jsonWriter->write(value_, &ss);
-    // The endingLineFeedSymbol is left empty by default.
-    return ss.str();
-#else
-    Json::FastWriter fastWriter;
-    // Call omitEndingLineFeed to let JsonCpp not append an \n at the end of string. If not doing so, when passing a
-    // minified jsonString, the result of this function will be one byte longer then the original, which may cause the
-    // result checked as length invalid by upper logic when the original length is just at the limitation boundary.
-    fastWriter.omitEndingLineFeed();
-    return fastWriter.write(value_);
-#endif
+    return cjson_.ToString();
 }
 
 bool JsonObject::IsFieldPathExist(const FieldPath &inPath) const
@@ -286,7 +192,7 @@ bool JsonObject::IsFieldPathExist(const FieldPath &inPath) const
         return false;
     }
     int errCode = E_OK;
-    (void)GetJsonValueByFieldPath(inPath, errCode); // Ignore return const reference
+    (void)GetCJsonValueByFieldPath(inPath, errCode); // Ignore return const reference
     return (errCode == E_OK);
 }
 
@@ -297,11 +203,11 @@ int JsonObject::GetFieldTypeByFieldPath(const FieldPath &inPath, FieldType &outT
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
-    return GetFieldTypeByJsonValue(valueNode, outType);
+    return GetFieldTypeByCJsonValue(valueNode, outType);
 }
 
 int JsonObject::GetFieldValueByFieldPath(const FieldPath &inPath, FieldValue &outValue) const
@@ -311,30 +217,30 @@ int JsonObject::GetFieldValueByFieldPath(const FieldPath &inPath, FieldValue &ou
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
     FieldType valueType;
-    errCode = GetFieldTypeByJsonValue(valueNode, valueType);
+    errCode = GetFieldTypeByCJsonValue(valueNode, valueType);
     if (errCode != E_OK) {
         return errCode;
     }
     switch (valueType) {
         case FieldType::LEAF_FIELD_BOOL:
-            outValue.boolValue = valueNode.asBool();
+            outValue.boolValue = valueNode.GetBoolValue();
             break;
         case FieldType::LEAF_FIELD_INTEGER:
-            outValue.integerValue = valueNode.asInt();
+            outValue.integerValue = valueNode.GetInt32Value();
             break;
         case FieldType::LEAF_FIELD_LONG:
-            outValue.longValue = valueNode.asInt64();
+            outValue.longValue = valueNode.GetInt64Value();
             break;
         case FieldType::LEAF_FIELD_DOUBLE:
-            outValue.doubleValue = valueNode.asDouble();
+            outValue.doubleValue = valueNode.GetDoubleValue();
             break;
         case FieldType::LEAF_FIELD_STRING:
-            outValue.stringValue = valueNode.asString();
+            outValue.stringValue = valueNode.GetStringValue();
             break;
         default:
             return -E_NOT_SUPPORT;
@@ -349,15 +255,15 @@ int JsonObject::GetSubFieldPath(const FieldPath &inPath, std::set<FieldPath> &ou
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
-    if (valueNode.type() != Json::ValueType::objectValue) {
+    if (!valueNode.IsObject()) {
         return -E_NOT_SUPPORT;
     }
     // Note: the subFields JsonCpp returnout will be different from each other
-    std::vector<std::string> subFields = valueNode.getMemberNames();
+    std::vector<std::string> subFields = valueNode.GetMemberNames();
     for (const auto &eachSubField : subFields) {
         FieldPath eachSubPath = inPath;
         eachSubPath.emplace_back(eachSubField);
@@ -384,20 +290,20 @@ int JsonObject::GetSubFieldPathAndType(const FieldPath &inPath, std::map<FieldPa
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
-    if (valueNode.type() != Json::ValueType::objectValue) {
+    if (!valueNode.IsObject()) {
         return -E_NOT_SUPPORT;
     }
     // Note: the subFields JsonCpp returnout will be different from each other
-    std::vector<std::string> subFields = valueNode.getMemberNames();
+    std::vector<std::string> subFields = valueNode.GetMemberNames();
     for (const auto &eachSubField : subFields) {
         FieldPath eachSubPath = inPath;
         eachSubPath.push_back(eachSubField);
         FieldType eachSubType;
-        errCode = GetFieldTypeByJsonValue(valueNode[eachSubField], eachSubType);
+        errCode = GetFieldTypeByCJsonValue(valueNode[eachSubField], eachSubType);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -425,14 +331,14 @@ int JsonObject::GetArraySize(const FieldPath &inPath, uint32_t &outSize) const
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
-    if (valueNode.type() != Json::ValueType::arrayValue) {
+    if (!valueNode.IsArray()) {
         return -E_NOT_SUPPORT;
     }
-    outSize = valueNode.size();
+    outSize = valueNode.GetArraySize();
     return E_OK;
 }
 
@@ -444,31 +350,31 @@ int JsonObject::GetArrayContentOfStringOrStringArray(const FieldPath &inPath,
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         LOGW("[Json][GetArrayContent] Get JsonValue Fail=%d.", errCode);
         return errCode;
     }
-    if (valueNode.type() != Json::ValueType::arrayValue) {
+    if (!valueNode.IsArray()) {
         LOGE("[Json][GetArrayContent] Not an array.");
         return -E_NOT_SUPPORT;
     }
-    if (valueNode.size() > DBConstant::MAX_SET_VALUE_SIZE) {
+    if (valueNode.GetArraySize() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetArrayContent] Exceeds max value size.");
         return -E_NOT_SUPPORT;
     }
-    for (uint32_t index = 0; index < valueNode.size(); index++) {
-        const Json::Value &eachArrayItem = valueNode[index];
-        if (eachArrayItem.isString()) {
-            outContent.emplace_back(std::vector<std::string>({eachArrayItem.asString()}));
+    for (uint32_t index = 0; index < valueNode.GetArraySize(); index++) {
+        const auto eachArrayItem = valueNode[index];
+        if (eachArrayItem.IsString()) {
+            outContent.emplace_back(std::vector<std::string>({eachArrayItem.GetStringValue()}));
             continue;
         }
-        if (eachArrayItem.isArray()) {
-            if (eachArrayItem.empty()) {
+        if (eachArrayItem.IsArray()) {
+            if (eachArrayItem.GetArraySize() == 0) {
                 continue; // Ignore empty array-type member
             }
             outContent.emplace_back(std::vector<std::string>());
-            errCode = GetStringArrayContentByJsonValue(eachArrayItem, outContent.back());
+            errCode = GetStringArrayContentByCJsonValue(eachArrayItem, outContent.back());
             if (errCode == E_OK) {
                 continue; // Everything ok
             }
@@ -493,36 +399,37 @@ bool InsertFieldCheckParameter(const FieldPath &inPath, FieldType inType, const 
     return !(inType == FieldType::LEAF_FIELD_DOUBLE && !std::isfinite(inValue.doubleValue));
 }
 
-void LeafJsonNodeAppendValue(Json::Value &leafNode, FieldType inType, const FieldValue &inValue)
+void LeafJsonNodeAppendValue(CJsonObject &leafNode, FieldType inType, const FieldValue &inValue)
 {
     if (inType == FieldType::LEAF_FIELD_STRING) {
-        leafNode.append(Json::Value(inValue.stringValue));
+        leafNode.Append(CJsonObject::CreateStrCJsonObject(inValue.stringValue));
     }
 }
 
-// Function design for InsertField call on an null-type Json::Value
-void LeafJsonNodeAssignValue(Json::Value &leafNode, FieldType inType, const FieldValue &inValue)
+// Function design for InsertField call on a null-type
+void LeafCJsonNodeAssignValue(CJsonObject &parentNode, FieldType inType,
+    const std::string &fieldName, const FieldValue &inValue)
 {
     switch (inType) {
         case FieldType::LEAF_FIELD_BOOL:
-            leafNode = Json::Value(inValue.boolValue);
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateBoolCJsonObject(inValue.boolValue));
             break;
         case FieldType::LEAF_FIELD_INTEGER:
             // Cast to Json::Int to avoid "ambiguous call of overloaded function"
-            leafNode = Json::Value(static_cast<Json::Int>(inValue.integerValue));
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateInt32CJsonObject(inValue.integerValue));
             break;
         case FieldType::LEAF_FIELD_LONG:
             // Cast to Json::Int64 to avoid "ambiguous call of overloaded function"
-            leafNode = Json::Value(static_cast<Json::Int64>(inValue.longValue));
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateInt64CJsonObject(inValue.longValue));
             break;
         case FieldType::LEAF_FIELD_DOUBLE:
-            leafNode = Json::Value(inValue.doubleValue);
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateDoubleCJsonObject(inValue.doubleValue));
             break;
         case FieldType::LEAF_FIELD_STRING:
-            leafNode = Json::Value(inValue.stringValue);
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateStrCJsonObject(inValue.stringValue));
             break;
         case FieldType::LEAF_FIELD_OBJECT:
-            leafNode = Json::Value(Json::ValueType::objectValue);
+            parentNode.InsertOrReplaceField(fieldName, CJsonObject::CreateObjCJsonObject());
             break;
         default:
             // For LEAF_FIELD_NULL, Do nothing.
@@ -532,50 +439,27 @@ void LeafJsonNodeAssignValue(Json::Value &leafNode, FieldType inType, const Fiel
 }
 }
 
-// move the nearest to the leaf of inPath, if not exist, will create it, else it should be an array object.
-int JsonObject::MoveToPath(const FieldPath &inPath, Json::Value *&exact, Json::Value *&nearest)
+int JsonObject::MoveToPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest)
 {
     uint32_t nearDepth = 0;
-    int errCode = LocateJsonValueByFieldPath(inPath, exact, nearest, nearDepth);
+    int errCode = LocateCJsonValueByFieldPath(inPath, exact, nearest, nearDepth);
     if (errCode != -E_NOT_FOUND) { // Path already exist and it's not an array object
         return -E_JSON_INSERT_PATH_EXIST;
     }
     // nearDepth 0 represent for root value. nearDepth equal to inPath.size indicate an exact path match
-    if (nearest == nullptr || nearDepth >= inPath.size()) { // Impossible
+    if (nearest.IsNull() || nearDepth >= inPath.size()) { // Impossible
         return -E_INTERNAL_ERROR;
     }
-    if (nearest->type() != Json::ValueType::objectValue) { // path ends with type not object
+    if (!nearest.IsObject()) { // path ends with type not object
         return -E_JSON_INSERT_PATH_CONFLICT;
     }
     // Use nearDepth as startIndex pointing to the first field that lacked
+    exact = nearest;
     for (uint32_t lackFieldIndex = nearDepth; lackFieldIndex < inPath.size(); lackFieldIndex++) {
         // The new JsonValue is null-type, we can safely add members to an null-type JsonValue which will turn into
         // object-type after member adding. Then move "nearest" to point to the new JsonValue.
-        nearest = &((*nearest)[inPath[lackFieldIndex]]);
-    }
-    return E_OK;
-}
-
-int JsonObject::InsertField(const FieldPath &inPath, const JsonObject &inValue, bool isAppend)
-{
-    if (inPath.empty() || inPath.size() > maxNestDepth_ || !inValue.IsValid()) {
-        return -E_INVALID_ARGS;
-    }
-    if (!isValid_) {
-        value_ = Json::Value(Json::ValueType::objectValue);
-        isValid_ = true;
-    }
-    Json::Value *exact = nullptr;
-    Json::Value *nearest = nullptr;
-    int errCode = MoveToPath(inPath, exact, nearest);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    LOGD("nearest type is %d", nearest->type());
-    if (isAppend || nearest->type() == Json::ValueType::arrayValue) {
-        nearest->append(inValue.value_);
-    } else {
-        *nearest = inValue.value_;
+        nearest = exact;
+        exact = (nearest)[inPath[lackFieldIndex]];
     }
     return E_OK;
 }
@@ -587,20 +471,20 @@ int JsonObject::InsertField(const FieldPath &inPath, FieldType inType, const Fie
     }
     if (!isValid_) {
         // Insert on invalid object never fail after parameter check ok, so here no need concern rollback.
-        value_ = Json::Value(Json::ValueType::objectValue);
+        cjson_ = CJsonObject::CreateObjCJsonObject();
         isValid_ = true;
     }
-    Json::Value *exact = nullptr;
-    Json::Value *nearest = nullptr;
+    CJsonObject exact;
+    CJsonObject nearest;
     int errCode = MoveToPath(inPath, exact, nearest);
     if (errCode != E_OK) {
         return errCode;
     }
     // Here "nearest" points to the JsonValue(null-type now) corresponding to the last field
-    if (isAppend || nearest->type() == Json::ValueType::arrayValue) {
-        LeafJsonNodeAppendValue(*nearest, inType, inValue);
+    if (isAppend || exact.IsArray()) {
+        LeafJsonNodeAppendValue(exact, inType, inValue);
     } else {
-        LeafJsonNodeAssignValue(*nearest, inType, inValue);
+        LeafCJsonNodeAssignValue(nearest, inType, inPath[inPath.size() - 1], inValue);
     }
     return E_OK;
 }
@@ -614,90 +498,87 @@ int JsonObject::DeleteField(const FieldPath &inPath)
     if (inPath.empty()) {
         return -E_INVALID_ARGS;
     }
-    Json::Value *exact = nullptr;
-    Json::Value *nearest = nullptr;
+    CJsonObject exact;
+    CJsonObject nearest;
     uint32_t nearDepth = 0;
-    int errCode = LocateJsonValueByFieldPath(inPath, exact, nearest, nearDepth);
+    int errCode = LocateCJsonValueByFieldPath(inPath, exact, nearest, nearDepth);
     if (errCode != E_OK) { // Path not exist
         return -E_JSON_DELETE_PATH_NOT_FOUND;
     }
     // nearDepth should be equal to inPath.size() - 1, because nearest is at the parent path of inPath
-    if (nearest == nullptr || nearest->type() != Json::ValueType::objectValue || nearDepth != inPath.size() - 1) {
+    if (nearest.IsNull() || !nearest.IsObject() || nearDepth != inPath.size() - 1) {
         return -E_INTERNAL_ERROR; // Impossible
     }
     // Remove member from nearest, ignore returned removed Value, use nearDepth as index pointing to last field of path.
-    (void)nearest->removeMember(inPath[nearDepth]);
+    nearest.RemoveMember(inPath[nearDepth]);
     return E_OK;
 }
 
-int JsonObject::GetStringArrayContentByJsonValue(const Json::Value &value,
+int JsonObject::GetStringArrayContentByCJsonValue(const CJsonObject &value,
     std::vector<std::string> &outStringArray) const
 {
-    if (value.type() != Json::ValueType::arrayValue) {
+    if (!value.IsArray()) {
         LOGE("[Json][GetStringArrayByValue] Not an array.");
         return -E_NOT_SUPPORT;
     }
-    if (value.size() > DBConstant::MAX_SET_VALUE_SIZE) {
+    if (value.GetArraySize() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetStringArrayByValue] Exceeds max value size.");
         return -E_NOT_SUPPORT;
     }
-    for (uint32_t index = 0; index < value.size(); index++) {
-        const Json::Value &eachArrayItem = value[index];
-        if (!eachArrayItem.isString()) {
+    for (uint32_t index = 0; index < value.GetArraySize(); index++) {
+        CJsonObject eachArrayItem = value[index];
+        if (!eachArrayItem.IsString()) {
             LOGE("[Json][GetStringArrayByValue] Index=%u in Array is not string.", index);
             outStringArray.clear();
             return -E_NOT_SUPPORT;
         }
-        outStringArray.push_back(eachArrayItem.asString());
+        outStringArray.push_back(eachArrayItem.GetStringValue());
     }
     return E_OK;
 }
 
-int JsonObject::GetFieldTypeByJsonValue(const Json::Value &value, FieldType &outType) const
+int JsonObject::GetFieldTypeByCJsonValue(const CJsonObject &value, FieldType &outType) const
 {
-    Json::ValueType valueType = value.type();
-    switch (valueType) {
-        case Json::ValueType::nullValue:
+    switch (value.GetType()) {
+        case cJSON_NULL:
             outType = FieldType::LEAF_FIELD_NULL;
             break;
-        case Json::ValueType::booleanValue:
+        case cJSON_False:
+        case cJSON_True:
             outType = FieldType::LEAF_FIELD_BOOL;
             break;
-        // The case intValue and uintValue cover from INT64_MIN to UINT64_MAX. Inside this range, isInt() take range
-        // from INT32_MIN to INT32_MAX, which should be regard as LEAF_FIELD_INTEGER; isInt64() take range from
-        // INT64_MIN to INT64_MAX, which should be regard as LEAF_FIELD_LONG if it is not LEAF_FIELD_INTEGER;
-        // INT64_MAX + 1 to UINT64_MAX will be regard as LEAF_FIELD_DOUBLE, therefore lose its precision when read out
-        // as double value.
-        case Json::ValueType::intValue:
-        case Json::ValueType::uintValue:
-            if (value.isInt()) {
+            // The case intValue and uintValue cover from INT64_MIN to UINT64_MAX. Inside this range, isInt() take range
+            // from INT32_MIN to INT32_MAX, which should be regard as LEAF_FIELD_INTEGER; isInt64() take range from
+            // INT64_MIN to INT64_MAX, which should be regard as LEAF_FIELD_LONG if it is not LEAF_FIELD_INTEGER;
+            // INT64_MAX + 1 to UINT64_MAX will be regard as LEAF_FIELD_DOUBLE, therefore lose its precision
+            // when read out as double value.
+        case cJSON_Number:
+            if (value.IsInt32()) {
                 outType = FieldType::LEAF_FIELD_INTEGER;
-            } else if (value.isInt64()) {
+            } else if (value.IsInt64()) {
                 outType = FieldType::LEAF_FIELD_LONG;
             } else {
                 outType = FieldType::LEAF_FIELD_DOUBLE; // The isDouble() judge is always true in this case.
             }
-            break;
-        // Integral value beyond range INT64_MIN to UINT64_MAX will be recognized as realValue and lose its precision.
-        // Value in scientific notation or has decimal point will be recognized as realValue without exception,
-        // no matter whether the value is large or small, no matter with or without non-zero decimal part.
-        // In a word, when regard as DOUBLE type, a value can not guarantee its presision
-        case Json::ValueType::realValue:
             // The isDouble() judge is always true in this case. A value exceed double range is not support.
-            outType = FieldType::LEAF_FIELD_DOUBLE;
-            if (!std::isfinite(value.asDouble())) {
+            if (value.IsInfiniteDouble()) {
                 LOGE("[Json][GetTypeByJson] Infinite double not support.");
                 return -E_NOT_SUPPORT;
             }
             break;
-        case Json::ValueType::stringValue:
+            // Integral value beyond range INT64_MIN to UINT64_MAX will be recognized as realValue
+            // and lose its precision.
+            // Value in scientific notation or has decimal point will be recognized as realValue without exception,
+            // no matter whether the value is large or small, no matter with or without non-zero decimal part.
+            // In a word, when regard as DOUBLE type, a value can not guarantee its presision
+        case cJSON_String:
             outType = FieldType::LEAF_FIELD_STRING;
             break;
-        case Json::ValueType::arrayValue:
+        case cJSON_Array:
             outType = FieldType::LEAF_FIELD_ARRAY;
             break;
-        case Json::ValueType::objectValue:
-            if (value.getMemberNames().empty()) {
+        case cJSON_Object:
+            if (value.GetMemberNames().empty()) {
                 outType = FieldType::LEAF_FIELD_OBJECT;
                 break;
             }
@@ -710,55 +591,51 @@ int JsonObject::GetFieldTypeByJsonValue(const Json::Value &value, FieldType &out
     return E_OK;
 }
 
-const Json::Value &JsonObject::GetJsonValueByFieldPath(const FieldPath &inPath, int &errCode) const
+CJsonObject JsonObject::GetCJsonValueByFieldPath(const FieldPath &inPath, int &errCode) const
 {
     // Root path always exist
     if (inPath.empty()) {
         errCode = E_OK;
-        return value_;
+        return CJsonObject::CreateTempCJsonObject(cjson_);
     }
-    const Json::Value *valueNode = &value_;
-    if (valueNode == nullptr) {
-        errCode = -E_INVALID_PATH;
-        return value_;
-    }
+    CJsonObject valueNode = CJsonObject::CreateTempCJsonObject(cjson_);
     for (const auto &eachPathSegment : inPath) {
-        if ((valueNode->type() != Json::ValueType::objectValue) || (!valueNode->isMember(eachPathSegment))) {
+        if (!valueNode.IsObject() || (!valueNode.IsMember(eachPathSegment))) {
             // Current JsonValue is not an object, or no such member field
             errCode = -E_INVALID_PATH;
-            return value_;
+            return CJsonObject::CreateTempCJsonObject(cjson_);
         }
-        valueNode = &((*valueNode)[eachPathSegment]);
+        valueNode = (valueNode)[eachPathSegment];
     }
     errCode = E_OK;
-    return *valueNode;
+    return valueNode;
 }
 
-int JsonObject::LocateJsonValueByFieldPath(const FieldPath &inPath, Json::Value *&exact,
-    Json::Value *&nearest, uint32_t &nearDepth)
+int JsonObject::LocateCJsonValueByFieldPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest,
+    uint32_t &nearDepth)
 {
     if (!isValid_) {
         return -E_NOT_PERMIT;
     }
-    exact = &value_;
-    nearest = &value_;
+    exact = CJsonObject::CreateTempCJsonObject(cjson_);
+    nearest = CJsonObject::CreateTempCJsonObject(cjson_);
     nearDepth = 0;
     if (inPath.empty()) {
         return E_OK;
     }
     for (const auto &eachPathSegment : inPath) {
         nearest = exact; // Let "nearest" trace "exact" before "exact" go deeper
-        if (nearest != &value_) {
+        if (nearest != cjson_) {
             nearDepth++; // For each "nearest" trace up "exact", increase nearDepth to indicate where it is.
         }
-        if ((exact->type() != Json::ValueType::objectValue) || (!exact->isMember(eachPathSegment))) {
+        if (!exact.IsObject() || (!exact.IsMember(eachPathSegment))) {
             // "exact" is not an object, or no such member field
-            exact = nullptr; // Set "exact" to nullptr indicate exact path not exist
+            exact = CJsonObject::CreateNullCJsonObject(); // Set "exact" to nullptr indicate exact path not exist
             return -E_NOT_FOUND;
         }
-        exact = &((*exact)[eachPathSegment]); // "exact" go deeper
+        exact = exact[eachPathSegment]; // "exact" go deeper
     }
-    if (exact->type() == Json::ValueType::arrayValue) {
+    if (exact.IsArray()) {
         return -E_NOT_FOUND; // could append value if path is an array field.
     }
     // Here, JsonValue exist at exact path, "nearest" is "exact" parent.
@@ -772,21 +649,21 @@ int JsonObject::GetObjectArrayByFieldPath(const FieldPath &inPath, std::vector<J
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         LOGE("[Json][GetValue] Get json value failed. %d", errCode);
         return errCode;
     }
 
-    if (!valueNode.isArray()) {
+    if (!valueNode.IsArray()) {
         LOGE("[Json][GetValue] Not Array type.");
         return -E_NOT_PERMIT;
     }
-    if (valueNode.size() > DBConstant::MAX_SET_VALUE_SIZE) {
+    if (valueNode.GetArraySize() > DBConstant::MAX_SET_VALUE_SIZE) {
         LOGE("[Json][GetValue] Exceeds max value size.");
         return -E_NOT_PERMIT;
     }
-    for (Json::ArrayIndex i = 0; i < valueNode.size(); ++i) {
+    for (size_t i = 0; i < valueNode.GetArraySize(); ++i) {
         outArray.emplace_back(JsonObject(valueNode[i]));
     }
     return E_OK;
@@ -799,13 +676,13 @@ int JsonObject::GetObjectByFieldPath(const FieldPath &inPath, JsonObject &outObj
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         LOGE("[Json][GetValue] Get json value failed. %d", errCode);
         return errCode;
     }
 
-    if (!valueNode.isObject()) {
+    if (!valueNode.IsObject()) {
         LOGE("[Json][GetValue] Not Object type.");
         return -E_NOT_PERMIT;
     }
@@ -820,13 +697,12 @@ int JsonObject::GetStringArrayByFieldPath(const FieldPath &inPath, std::vector<s
         return -E_NOT_PERMIT;
     }
     int errCode = E_OK;
-    const Json::Value &valueNode = GetJsonValueByFieldPath(inPath, errCode);
+    const auto valueNode = GetCJsonValueByFieldPath(inPath, errCode);
     if (errCode != E_OK) {
         LOGE("[Json][GetValue] Get json value failed. %d", errCode);
         return errCode;
     }
-
-    return GetStringArrayContentByJsonValue(valueNode, outArray);
+    return GetStringArrayContentByCJsonValue(valueNode, outArray);
 }
 
 #else // OMIT_JSON
