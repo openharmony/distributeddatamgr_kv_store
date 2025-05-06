@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "JSFieldNode"
-
+#include "cJSON.h"
 #include "js_field_node.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -78,8 +78,16 @@ cJSON* JsFieldNode::GetValueForJson()
     }
 
     cJSON* jsFields = cJSON_CreateObject();
+    if (!jsFields) {
+        return nullptr;
+    }
     for (auto fld : fields_) {
-        cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), fld->GetValueForJson());
+        cJSON* childItem = fld->GetValueForJson();
+        if (!childItem) {
+            cJSON_Delete(jsFields);
+            return nullptr;
+        }
+        cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), childItem);
     }
     return jsFields;
 }
@@ -294,6 +302,9 @@ std::string JsFieldNode::ToString(uint32_t type)
 std::string JsFieldNode::Dump()
 {
     cJSON* jsNode = cJSON_CreateObject();
+    if (!jsNode) {
+        return "";
+    }
     cJSON_AddStringToObject(jsNode, FIELD_NAME, fieldName_.c_str());
     cJSON_AddStringToObject(jsNode, VALUE_TYPE, ToString(valueType_).c_str());
     cJSON_AddStringToObject(jsNode, DEFAULT_VALUE, ToString(defaultValue_).c_str());
@@ -301,13 +312,23 @@ std::string JsFieldNode::Dump()
     cJSON_AddBoolToObject(jsNode, IS_NULLABLE, isNullable_);
 
     cJSON* jsFields = cJSON_CreateArray();
-    for (auto fld : fields_) {
-        cJSON_AddItemToArray(jsFields, cJSON_CreateString(fld->Dump().c_str()));
+    if (jsFields) {
+        for (auto fld : fields_) {
+            cJSON* childItem = fld->GetValueForJson();
+            if (childItem) {
+                cJSON_AddItemToArray(jsFields, childItem);
+            }
+        }
     }
-    cJSON_AddItemToObject(jsNode, CHILDREN, jsFields);
-    
-    std::unique_ptr<char, decltype(&cJSON_free)> jsonPtr(cJSON_Print(jsNode), cJSON_free);
-    std::string jsonStr = jsonPtr ? jsonPtr.get() : "";
+    cJSON_AddItemToObject(jsNode, CHILDREN, jsFields ? jsFields : cJSON_CreateNull());
+    char* jsonPtr = cJSON_Print(jsNode);
+    std::string jsonStr;
+    if (jsonPtr) {
+        jsonStr = jsonPtr;
+        cJSON_free(jsonPtr);
+    } else {
+        jsonStr = "";
+    }
     cJSON_Delete(jsNode);
     return jsonStr;
 }

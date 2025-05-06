@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "JsSchema"
+#include "cJSON.h"
 #include "js_schema.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -227,19 +228,39 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
 std::string JsSchema::Dump()
 {
     cJSON* js = cJSON_CreateObject();
+    if (!js) {
+        return "";
+    }
     cJSON_AddStringToObject(js, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
     cJSON_AddStringToObject(js, SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
-    cJSON_AddItemToObject(js, SCHEMA_DEFINE, rootNode_->GetValueForJson());
-    
-    cJSON* jsIndexes = cJSON_CreateArray();
-    for (auto& idx : indexes_) {
-        cJSON_AddItemToArray(jsIndexes, cJSON_CreateString(idx.c_str()));
+    if (rootNode_) {
+        cJSON* childJson = rootNode_->GetValueForJson();
+        if (childJson) {
+            cJSON_AddItemToObject(js, SCHEMA_DEFINE, childJson);
+        } else {
+            cJSON_AddNullToObject(js, SCHEMA_DEFINE);
+        }
+    } else {
+        cJSON_AddNullToObject(js, SCHEMA_DEFINE);
     }
-    cJSON_AddItemToObject(js, SCHEMA_INDEXES, jsIndexes);
+    cJSON* jsIndexes = cJSON_CreateArray();
+    if (jsIndexes) {
+        for (auto& idx : indexes_) {
+            cJSON* item = cJSON_CreateString(idx.c_str());
+            if (item) {
+                cJSON_AddItemToArray(jsIndexes, item);
+            }
+        }
+    }
+    cJSON_AddItemToObject(js, SCHEMA_INDEXES, jsIndexes ? jsIndexes : cJSON_CreateNull());
     cJSON_AddNumberToObject(js, SCHEMA_SKIPSIZE, skip_);
 
-    std::unique_ptr<char, decltype(&cJSON_free)> jsonPtr(cJSON_Print(js), cJSON_free);
-    std::string jsonStr = jsonPtr ? jsonPtr.get() : "";
+    char* jsonPtr = cJSON_Print(js);
+    std::string jsonStr = "";
+    if (jsonPtr) {
+        jsonStr = jsonPtr;
+        cJSON_free(jsonPtr);
+    }
     cJSON_Delete(js);
     return jsonStr;
 }

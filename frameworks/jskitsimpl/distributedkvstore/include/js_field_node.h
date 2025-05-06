@@ -15,10 +15,10 @@
 #ifndef OHOS_FIELD_NODE_H
 #define OHOS_FIELD_NODE_H
 #include <list>
-#include "cJSON.h"
 #include "js_util.h"
 #include "napi_queue.h"
 
+struct cJSON;
 namespace OHOS::DistributedKVStore {
 class JsFieldNode {
 public:
