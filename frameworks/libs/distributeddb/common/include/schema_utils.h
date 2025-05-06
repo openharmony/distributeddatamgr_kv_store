@@ -79,6 +79,8 @@ private:
     static int TransToString(const std::string &defaultContent, SchemaAttribute &outAttr);
 
     static int TransToBool(const std::string &defaultContent, SchemaAttribute &outAttr);
+
+    static void TrimFiled(std::string &inString);
 };
 } // namespace DistributedDB
 #endif // SCHEMA_UTILS_H

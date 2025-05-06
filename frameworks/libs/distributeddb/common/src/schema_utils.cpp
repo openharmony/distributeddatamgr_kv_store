@@ -31,14 +31,6 @@ namespace {
     {
         return (std::isalnum(character) || character == '_');
     }
-    void TrimFiled(std::string &inString)
-    {
-        inString.erase(0, inString.find_first_not_of("\r\t "));
-        size_t temp = inString.find_last_not_of("\r\t ");
-        if (temp < inString.size()) {
-            inString.erase(temp + 1);
-        }
-    }
 
     // TYPE, [NOT NULL,] [DEFAULT X]
     // DEFAULT at last
@@ -449,13 +441,6 @@ int SchemaUtils::CheckFieldName(const FieldName &inName)
     return E_OK;
 }
 
-std::string SchemaUtils::Strip(const std::string &inString)
-{
-    std::string stripRes = inString;
-    TrimFiled(stripRes);
-    return stripRes;
-}
-
 std::string SchemaUtils::StripNameSpace(const std::string &inFullName)
 {
     auto pos = inFullName.find_last_of('.');
@@ -463,22 +448,6 @@ std::string SchemaUtils::StripNameSpace(const std::string &inFullName)
         return inFullName;
     }
     return inFullName.substr(pos + 1);
-}
-
-std::string SchemaUtils::FieldTypeString(FieldType inType)
-{
-    static std::map<FieldType, std::string> fieldTypeMapString = {
-        {FieldType::LEAF_FIELD_NULL, "NULL"},
-        {FieldType::LEAF_FIELD_BOOL, "BOOL"},
-        {FieldType::LEAF_FIELD_INTEGER, "INTEGER"},
-        {FieldType::LEAF_FIELD_LONG, "LONG"},
-        {FieldType::LEAF_FIELD_DOUBLE, "DOUBLE"},
-        {FieldType::LEAF_FIELD_STRING, "STRING"},
-        {FieldType::LEAF_FIELD_ARRAY, "ARRAY"},
-        {FieldType::LEAF_FIELD_OBJECT, "LEAF_OBJECT"},
-        {FieldType::INTERNAL_FIELD_OBJECT, "INTERNAL_OBJECT"},
-    };
-    return fieldTypeMapString[inType];
 }
 
 std::string SchemaUtils::SchemaTypeString(SchemaType inType)
@@ -514,51 +483,5 @@ void SchemaUtils::TransTrackerSchemaToLower(const TrackerSchema &srcSchema, Trac
     for (const auto &srcName : srcSchema.trackerColNames) {
         destSchema.trackerColNames.insert(DBCommon::ToLowerCase(srcName));
     }
-}
-
-int SchemaUtils::ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field,
-    JsonObject &out)
-{
-    FieldType fieldType;
-    auto fieldPath = FieldPath {field};
-    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
-    if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    if (FieldType::INTERNAL_FIELD_OBJECT != fieldType) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
-            SchemaUtils::FieldTypeString(fieldType).c_str());
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    errCode = inJsonObject.GetObjectByFieldPath(fieldPath, out);
-    if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    return E_OK;
-}
-
-int SchemaUtils::ExtractJsonObjArray(const JsonObject &inJsonObject, const std::string &field,
-    std::vector<JsonObject> &out)
-{
-    FieldType fieldType;
-    auto fieldPath = FieldPath {field};
-    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
-    if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
-            SchemaUtils::FieldTypeString(fieldType).c_str());
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    errCode = inJsonObject.GetObjectArrayByFieldPath(fieldPath, out);
-    if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
-        return -E_SCHEMA_PARSE_FAIL;
-    }
-    return E_OK;
 }
 } // namespace DistributedDB
