@@ -79,7 +79,10 @@
         "safwk",
         "samgr",
         "file_api",
-        "zlib"
+        "zlib",
+        "jsoncpp",
+        "openssl",
+        "sqlite"
       ]
     },
     "build": {
@@ -276,6 +279,35 @@
               "acl.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/databaseutils/include"
+          }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "header": {
+            "header_files": [
+              "relational_store_client.h",
+              "relational_store_sqlite_ext.h",
+              "relational_store_manager.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational"
+          }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "header": {
+            "header_files": [
+              "store_observer.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include"
+          }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "header": {
+            "header_files": [
+              "query.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include"
           }
         }
       ],
