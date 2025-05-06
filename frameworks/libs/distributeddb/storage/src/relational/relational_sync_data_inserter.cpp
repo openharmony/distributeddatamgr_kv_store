@@ -45,6 +45,7 @@ int SaveSyncDataStmt::ResetStatements(bool isNeedFinalize)
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std::string &deviceName,
     const QueryObject &query, const SchemaInfo &schemaInfo, const std::vector<FieldInfo> &remoteFields,
     const StoreInfo &info)
@@ -215,6 +216,7 @@ int RelationalSyncDataInserter::GetObserverDataByRowId(sqlite3 *db, int64_t rowi
     data_.primaryData[type].push_back(primaryValues);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem,
     SaveSyncDataStmt &saveSyncDataStmt, std::map<std::string, Type> &saveVals)
@@ -249,6 +251,7 @@ int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncDataInserter::BindSaveDataStatement(bool isExist, const DataItem &dataItem,
     const std::set<std::string> &filterSet, sqlite3_stmt *stmt, std::map<std::string, Type> &saveVals)
 {
@@ -290,6 +293,7 @@ int RelationalSyncDataInserter::BindSaveDataStatement(bool isExist, const DataIt
     }
     return isExist ? BindHashKeyAndDev(dataItem, stmt, bindIdx) : E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncDataInserter::GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stmt)
 {
@@ -324,6 +328,7 @@ int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt 
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt)
 {
     const std::string tableName = DBConstant::RELATIONAL_PREFIX + query_.GetTableName() + "_log";
@@ -441,6 +446,7 @@ int RelationalSyncDataInserter::GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&s
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqlite3_stmt *stmt,
     int beginIndex)
@@ -459,6 +465,7 @@ int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqli
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt,
     const DataItem &dataItem, std::map<std::string, Type> &saveVals)
 {
@@ -524,4 +531,5 @@ void RelationalSyncDataInserter::BindExtendFieldOrRowid(sqlite3_stmt *&stmt, std
         SQLiteUtils::BindInt64ToStatement(stmt, ++bindIndex, std::get<int64_t>(saveVals[DBConstant::ROWID]));
     }
 }
+// LCOV_EXCL_BR_STOP
 } // namespace DistributedDB

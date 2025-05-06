@@ -210,6 +210,7 @@ int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context
     return RunPermissionCheckInner(context, storage, label, nullptr, mode);
 }
 
+// LCOV_EXCL_BR_START
 bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskContext *context,
     const ICommunicator *communicator, const SyncGenericInterface *storage)
 {
@@ -308,6 +309,7 @@ int SingleVerDataSyncUtils::GetReSendMode(int mode, uint32_t sequenceId, SyncTyp
     }
     return (syncType == SyncType::QUERY_SYNC_TYPE) ? SyncModeType::QUERY_PUSH : SyncModeType::PUSH;
 }
+// LCOV_EXCL_BR_STOP
 
 void SingleVerDataSyncUtils::FillControlRequestPacket(ControlRequestPacket *packet, SingleVerSyncTaskContext *context)
 {

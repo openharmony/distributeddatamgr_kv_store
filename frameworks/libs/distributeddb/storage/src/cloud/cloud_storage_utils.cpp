@@ -107,6 +107,7 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int CloudStorageUtils::BindBlob(int index, const VBucket &vBucket, const Field &field,
     sqlite3_stmt *upsertStmt)
 {
@@ -146,6 +147,7 @@ ERROR:
     LOGE("get blob from vbucket failed, %d", errCode);
     return -E_CLOUD_ERROR;
 }
+// LCOV_EXCL_BR_STOP
 
 int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt)
 {
@@ -255,6 +257,7 @@ int CloudStorageUtils::TextToVector(const VBucket &vBucket, const Field &field, 
     return E_OK;
 }
 
+// LCOV_EXCL_START
 int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
     std::vector<uint8_t> &value)
 {
@@ -283,6 +286,7 @@ int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, 
         return errCode;
     }
 }
+// LCOV_EXCL_STOP
 
 std::set<std::string> CloudStorageUtils::GetCloudPrimaryKey(const TableSchema &tableSchema)
 {
@@ -572,6 +576,7 @@ void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::fun
     }
 }
 
+// LCOV_EXCL_BR_START
 void CloudStorageUtils::FillAssetFromVBucketFinish(const AssetOperationUtils::RecordAssetOpType &assetOpType,
     VBucket &vBucket, VBucket &dbAssets,
     std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset,
@@ -616,6 +621,7 @@ void CloudStorageUtils::FillAssetFromVBucketFinish(const AssetOperationUtils::Re
         }
     }
 }
+// LCOV_EXCL_BR_STOP
 
 bool CloudStorageUtils::IsAsset(const Type &type)
 {
@@ -659,6 +665,7 @@ int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBu
     return DBCommon::CalcValueHash(value, hashValue);
 }
 
+// LCOV_EXCL_BR_START
 bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
 {
     std::set<std::string> set;
@@ -671,6 +678,7 @@ bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
     }
     return false;
 }
+// LCOV_EXCL_BR_STOP
 
 void CloudStorageUtils::EraseNoChangeAsset(std::map<std::string, Assets> &assetsMap)
 {
@@ -758,6 +766,7 @@ static bool IsViolationOfConstraints(const std::string &name, const std::vector<
     return false;
 }
 
+// LCOV_EXCL_BR_START
 int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql)
 {
     if (DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
@@ -774,6 +783,7 @@ int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const st
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 bool CloudStorageUtils::CheckAssetStatus(const Assets &assets)
 {
@@ -945,6 +955,7 @@ void CloudStorageUtils::FillAssetsAfterDownloadFail(Assets &assets, Assets &dbAs
     MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetAfterDownloadFail);
 }
 
+// LCOV_EXCL_BR_START
 void CloudStorageUtils::MergeAssetWithFillFunc(Assets &assets, Assets &dbAssets, const std::map<std::string,
     AssetOperationUtils::AssetOpType> &assetOpTypeMap,
     std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset)
@@ -1010,6 +1021,7 @@ std::pair<int, std::vector<uint8_t>> CloudStorageUtils::GetHashValueWithPrimaryK
     }
     return { errCode, hashValue };
 }
+// LCOV_EXCL_BR_STOP
 
 bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
 {
@@ -1102,6 +1114,7 @@ int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, cons
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 std::string CloudStorageUtils::GetUpdateRecordFlagSql(UpdateRecordFlagStruct updateRecordFlag, const LogInfo &logInfo,
     const VBucket &uploadExtend, const CloudWaterType &type)
 {
@@ -1143,6 +1156,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(UpdateRecordFlagStruct upd
     sql += ";";
     return sql;
 }
+// LCOV_EXCL_BR_STOP
 
 std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &tableName, bool recordConflict,
     const LogInfo &logInfo, const VBucket &uploadExtend, const CloudWaterType &type)

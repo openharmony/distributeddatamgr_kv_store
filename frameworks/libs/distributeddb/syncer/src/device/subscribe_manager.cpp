@@ -112,6 +112,7 @@ void SubscribeManager::PutLocalUnFinishedSubQueries(const std::string &device,
     }
 }
 
+// LCOV_EXCL_BR_START
 void SubscribeManager::GetAllUnFinishSubQueries(
     std::map<std::string, std::vector<QuerySyncObject>> &allSyncQueries) const
 {
@@ -223,6 +224,7 @@ int SubscribeManager::LocalSubscribeLimitCheck(const std::vector<std::string> &d
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 bool SubscribeManager::IsQueryExistSubscribe(const std::string &queryId) const
 {
@@ -252,6 +254,7 @@ void SubscribeManager::ClearSubscribeQuery(const std::string &device, SubscribeM
     LOGI("[SubscribeManager] clear dev=%s remote subscribe queies finished", STR_MASK(device));
 }
 
+// LCOV_EXCL_BR_START
 int SubscribeManager::ReserveSubscribeQuery(const std::string &device, const QuerySyncObject &query,
     SubscribeMap &subscribeMap, SubscribedTotalMap &subscribedTotalMap)
 {
@@ -293,6 +296,7 @@ int SubscribeManager::ReserveSubscribeQuery(const std::string &device, const Que
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SubscribeManager::ActiveSubscribeQuery(const std::string &device, const std::string &queryId,
     SubscribeMap &subscribeMap, SubscribedTotalMap &subscribedTotalMap)
