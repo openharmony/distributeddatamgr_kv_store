@@ -198,6 +198,8 @@ protected:
 
     static void RecordSyncDataTimeStampLog(std::vector<VBucket> &data, InnerActionCode action);
 
+    void FillErrorToExtend(int error, std::vector<VBucket> &extend);
+
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
