@@ -16,7 +16,6 @@
 #include "split_device_log_table_manager.h"
 
 namespace DistributedDB {
-// LCOV_EXCL_BR_START
 std::string SplitDeviceLogTableManager::CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,
     const std::string &identity)
 {
@@ -83,7 +82,6 @@ std::string SplitDeviceLogTableManager::GetUpdateTrigger(const TableInfo &table,
     updateTrigger += "END;";
     return updateTrigger;
 }
-// LCOV_EXCL_BR_STOP
 
 std::string SplitDeviceLogTableManager::GetDeleteTrigger(const TableInfo &table, const std::string &identity)
 {

@@ -52,7 +52,6 @@ CommunicatorAggregator::~CommunicatorAggregator()
     commLinker_ = nullptr;
 }
 
-// LCOV_EXCL_BR_START
 int CommunicatorAggregator::Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter)
 {
     if (inAdapter == nullptr) {
@@ -100,7 +99,6 @@ ROLL_BACK:
     combiner_.Finalize();
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 void CommunicatorAggregator::Finalize()
 {
@@ -172,7 +170,6 @@ ICommunicator *CommunicatorAggregator::AllocCommunicator(const std::vector<uint8
     return commPtr;
 }
 
-// LCOV_EXCL_BR_START
 void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator, const std::string &userId)
 {
     if (inCommunicator == nullptr) {
@@ -198,7 +195,6 @@ void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator, 
         LOGE("[CommAggr][Release] DecreaseLocalLabel Fail, Just Log, errCode=%d.", errCode);
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int CommunicatorAggregator::RegCommunicatorLackCallback(const CommunicatorLackCallback &onCommLack,
     const Finalizer &inOper)
@@ -487,7 +483,6 @@ void CommunicatorAggregator::NotifySendableToAllCommunicator()
     }
 }
 
-// LCOV_EXCL_BR_START
 void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
     const DataUserInfoProc &userInfoProc)
 {
@@ -615,7 +610,6 @@ void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, con
         }
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget, const ParseResult &inResult)
 {
@@ -750,7 +744,6 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget,
     SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const std::string &userId)
 {
@@ -825,7 +818,6 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 void CommunicatorAggregator::UnRegCallbackFromAdapter()
 {
@@ -860,7 +852,6 @@ bool CommunicatorAggregator::ReGenerateLocalSourceIdIfNeed()
     return (localSourceId_ != 0);
 }
 
-// LCOV_EXCL_BR_START
 void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTarget)
 {
     LOGI("[CommAggr][TrigVer] Do version negotiate with target=%s{private}.", dstTarget.c_str());
@@ -1005,8 +996,6 @@ void CommunicatorAggregator::RegDBChangeCallback()
             });
     }
 }
-// LCOV_EXCL_BR_STOP
-
 void CommunicatorAggregator::InitSendThread()
 {
     if (RuntimeContext::GetInstance()->GetThreadPool() != nullptr) {
@@ -1096,7 +1085,6 @@ void CommunicatorAggregator::TriggerSendData()
     }
 }
 
-// LCOV_EXCL_BR_START
 void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu)
 {
     std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
@@ -1105,7 +1093,6 @@ void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, cons
         sendRecord_[frameId].sendIndex = 0u;
     }
 }
-// LCOV_EXCL_BR_STOP
 
 void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId)
 {
@@ -1174,7 +1161,6 @@ uint64_t CommunicatorAggregator::IncreaseSendSequenceId(const std::string &targe
     return ++sendSequence_[target];
 }
 
-// LCOV_EXCL_START
 void CommunicatorAggregator::ClearOnlineLabel()
 {
     std::lock_guard<std::mutex> autoLock(commMapMutex_);
@@ -1184,6 +1170,5 @@ void CommunicatorAggregator::ClearOnlineLabel()
     }
     commLinker_->ClearOnlineLabel();
 }
-// LCOV_EXCL_STOP
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB

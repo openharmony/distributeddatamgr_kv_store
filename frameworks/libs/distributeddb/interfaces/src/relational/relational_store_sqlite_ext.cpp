@@ -723,7 +723,6 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-// LCOV_EXCL_BR_START
 int JudgeIfGetRowid(sqlite3 *db, const std::string &tableName, std::string &type, bool &isRowid)
 {
     if (db == nullptr) {
@@ -751,7 +750,6 @@ int JudgeIfGetRowid(sqlite3 *db, const std::string &tableName, std::string &type
     ResetStatement(checkPrimaryKeyStmt);
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 void SaveChangedData(const std::string &hashFileName, const std::string &tableName, const std::string &columnName,
     const DistributedDB::Type &data, ChangeType option)
@@ -1171,7 +1169,6 @@ int GetColumnTextValue(sqlite3_stmt *stmt, int index, std::string &value)
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int GetColumnBlobValue(sqlite3_stmt *stmt, int index, std::vector<uint8_t> &value)
 {
     if (stmt == nullptr) {
@@ -1195,7 +1192,6 @@ int GetColumnBlobValue(sqlite3_stmt *stmt, int index, std::vector<uint8_t> &valu
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
 {

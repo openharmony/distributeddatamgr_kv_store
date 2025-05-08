@@ -116,7 +116,6 @@ SingleVerSyncStateMachine::~SingleVerSyncStateMachine()
     Clear();
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface,
     const std::shared_ptr<Metadata> &metaData, ICommunicator *communicator)
 {
@@ -177,7 +176,6 @@ void SingleVerSyncStateMachine::SyncStep()
         RefObject::DecObjRef(context_);
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int SingleVerSyncStateMachine::ReceiveMessageCallback(Message *inMsg)
 {
@@ -495,7 +493,6 @@ Event SingleVerSyncStateMachine::DoTimeSync() const
     return Event::TIME_SYNC_FINISHED_EVENT;
 }
 
-// LCOV_EXCL_BR_START
 Event SingleVerSyncStateMachine::DoAbilitySync() const
 {
     uint16_t remoteCommunicatorVersion = 0;
@@ -528,7 +525,6 @@ Event SingleVerSyncStateMachine::DoAbilitySync() const
     }
     return Event::WAIT_ACK_EVENT;
 }
-// LCOV_EXCL_BR_STOP
 
 Event SingleVerSyncStateMachine::GetEventAfterTimeSync(int mode) const
 {
@@ -555,7 +551,6 @@ Event SingleVerSyncStateMachine::DoSyncTaskFinished()
     return TransformErrCodeToEvent(errCode);
 }
 
-// LCOV_EXCL_BR_START
 Event SingleVerSyncStateMachine::DoTimeout()
 {
     RefObject::AutoLock lock(context_);
@@ -570,7 +565,6 @@ Event SingleVerSyncStateMachine::DoTimeout()
     AbortInner();
     return Event::ANY_EVENT;
 }
-// LCOV_EXCL_BR_STOP
 
 Event SingleVerSyncStateMachine::DoInnerErr()
 {
@@ -989,7 +983,6 @@ bool SingleVerSyncStateMachine::CheckIsStartPullResponse() const
     return false;
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerSyncStateMachine::MessageCallbackPre(const Message *inMsg)
 {
     RefObject::AutoLock lock(context_);
@@ -1002,7 +995,6 @@ int SingleVerSyncStateMachine::MessageCallbackPre(const Message *inMsg)
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 void SingleVerSyncStateMachine::AddPullResponseTarget(const Message *inMsg, WaterMark pullEndWatermark)
 {
@@ -1092,7 +1084,6 @@ bool SingleVerSyncStateMachine::IsNeedResetWatchdog(const Message *inMsg) const
     return false;
 }
 
-// LCOV_EXCL_START
 Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent() const
 {
     if (syncContext_->IsSyncTaskNeedRetry() && (syncContext_->GetRetryTime() < syncContext_->GetSyncRetryTimes())) {
@@ -1101,7 +1092,6 @@ Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent() const
         return Event::TIME_OUT_EVENT;
     }
 }
-// LCOV_EXCL_STOP
 
 bool SingleVerSyncStateMachine::IsNeedErrCodeHandle(uint32_t sessionId) const
 {
@@ -1113,7 +1103,6 @@ bool SingleVerSyncStateMachine::IsNeedErrCodeHandle(uint32_t sessionId) const
     return false;
 }
 
-// LCOV_EXCL_START
 void SingleVerSyncStateMachine::PushPullDataRequestEvokeErrHandle()
 {
     // the pushpull sync task should wait for send finished after remote dev get data occur E_EKEYREVOKED error.
@@ -1128,7 +1117,6 @@ void SingleVerSyncStateMachine::PushPullDataRequestEvokeErrHandle()
         SwitchStateAndStep(Event::INNER_ERR_EVENT);
     }
 }
-// LCOV_EXCL_STOP
 
 void SingleVerSyncStateMachine::DataRecvErrCodeHandle(uint32_t sessionId, int errCode)
 {

@@ -29,7 +29,6 @@ static uint32_t g_magicCode = 0x12345678;
 static uint32_t g_refCount = 0;
 constexpr int FTS5_MAX_VERSION = 2;
 
-// LCOV_EXCL_START
 int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Fts5Tokenizer **ppOut)
 {
     (void)sqlite3;
@@ -106,7 +105,6 @@ int fts5_customtokenizer_xTokenize(
     }
     return SQLITE_OK;
 }
-// LCOV_EXCL_STOP
 
 void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr)
 {
@@ -139,7 +137,6 @@ static int fts5_api_from_db(sqlite3 *db, fts5_api **ppApi)
     return rc;
 }
 
-// LCOV_EXCL_BR_START
 int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi)
 {
     (void)pzErrMsg;
@@ -160,4 +157,3 @@ int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api
     }
     return fts5api->xCreateTokenizer(fts5api, "customtokenizer", reinterpret_cast<void *>(fts5api), &tokenizer, NULL);
 }
-// LCOV_EXCL_BR_STOP

@@ -49,7 +49,6 @@ int SQLiteSingleVerStorageEngine::MigrateLocalData(SQLiteSingleVerStorageExecuto
     return handle->MigrateLocalData();
 }
 
-// LCOV_EXCL_START
 int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::string> &removeDevices, bool isNeedHash)
 {
     auto kvdbManager = KvDBManager::GetInstance();
@@ -137,7 +136,6 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(SQLiteSingleVerStorageExe
     }
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorageExecutor *&handle,
     NotifyMigrateSyncData &syncData, uint64_t &curMigrateVer)
@@ -196,7 +194,6 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
     return E_OK;
 }
 
-// LCOV_EXCL_START
 // Temporary release handle for idleTime ms, avoid long-term blocking
 int SQLiteSingleVerStorageEngine::ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,
     NotifyMigrateSyncData &syncData)
@@ -248,7 +245,6 @@ END:
     ReleaseExecutor(handle);
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 int SQLiteSingleVerStorageEngine::MigrateSyncData(SQLiteSingleVerStorageExecutor *&handle, bool &isNeedTriggerSync)
 {
@@ -333,7 +329,6 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(SQLiteSingleVerStorageE
     return errCode;
 }
 
-// LCOV_EXCL_START
 int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(sqlite3 *dbHandle, EngineState stateBeforeMigrate) const
 {
     LOGD("Begin attach main db and cache db by sqlite handle!");
@@ -358,7 +353,6 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(sqlite3 *dbHandle, Engi
 
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 int SQLiteSingleVerStorageEngine::ReInit()
 {
@@ -381,7 +375,6 @@ int SQLiteSingleVerStorageEngine::ReleaseExecutor(SQLiteSingleVerStorageExecutor
     return E_OK;
 }
 
-// LCOV_EXCL_START
 int SQLiteSingleVerStorageEngine::FinishMigrateData(SQLiteSingleVerStorageExecutor *&handle,
     EngineState stateBeforeMigrate)
 {
@@ -530,7 +523,6 @@ END: // after FinishMigrateData, it will reset engine state
     LOGD("Migrate stop.");
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 void SQLiteSingleVerStorageEngine::EndMigrate(SQLiteSingleVerStorageExecutor *&handle, EngineState stateBeforeMigrate,
     int errCode, bool isNeedTriggerSync)
@@ -577,7 +569,6 @@ StorageExecutor *SQLiteSingleVerStorageEngine::NewSQLiteStorageExecutor(sqlite3 
     return executor;
 }
 
-// LCOV_EXCL_START
 int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&db)
 {
     // Only could get the main database handle in the uninitialized and the main status.
@@ -707,7 +698,6 @@ int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
     }
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 void SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secOption) const
 {
@@ -981,7 +971,6 @@ void SQLiteSingleVerStorageEngine::RegisterFunctionIfNeed(sqlite3 *dbHandle) con
     }
 }
 
-// LCOV_EXCL_START
 int SQLiteSingleVerStorageEngine::AttachMetaDatabase(sqlite3 *dbHandle, const OpenDbProperties &option) const
 {
     int errCode;
@@ -1002,7 +991,6 @@ int SQLiteSingleVerStorageEngine::AttachMetaDatabase(sqlite3 *dbHandle, const Op
     }
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 void SQLiteSingleVerStorageEngine::ResetCacheRecordVersion()
 {
