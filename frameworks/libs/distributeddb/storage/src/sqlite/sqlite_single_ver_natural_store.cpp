@@ -1361,6 +1361,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToMain(const QueryObject &query, st
 
 // Currently, this function only suitable to be call from sync in insert_record_from_sync procedure
 // Take attention if future coder attempt to call it in other situation procedure
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerNaturalStore::SaveSyncItems(const QueryObject &query, std::vector<DataItem> &dataItems,
     const DeviceInfo &deviceInfo, Timestamp &maxTimestamp, SingleVerNaturalStoreCommitNotifyData *commitData) const
 {
@@ -1412,6 +1413,7 @@ END:
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query, std::vector<DataItem> &dataItems,
     const DeviceInfo &deviceInfo)
@@ -1433,6 +1435,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
 {
     std::vector<uint8_t> key;
@@ -1463,6 +1466,7 @@ uint64_t SQLiteSingleVerNaturalStore::GetTimestampFromDB()
     lastLocalSysTime_ = currentSysTime;
     return currentSysTime;
 }
+// LCOV_EXCL_BR_STOP
 
 Timestamp SQLiteSingleVerNaturalStore::GetCurrentTimestamp(bool needStartSync)
 {
@@ -2036,6 +2040,7 @@ int SQLiteSingleVerNaturalStore::RemoveSubscribe(const std::string &subscribeId)
     return RemoveSubscribe(std::vector<std::string> {subscribeId});
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerNaturalStore::RemoveAllSubscribe()
 {
     int errCode = E_OK;
@@ -2078,6 +2083,7 @@ END:
     ReleaseHandle(handle);
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
 {

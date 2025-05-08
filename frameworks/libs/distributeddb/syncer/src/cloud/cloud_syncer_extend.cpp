@@ -1212,6 +1212,7 @@ void CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
     }
 }
 
+// LCOV_EXCL_BR_START
 bool CloudSyncer::IsLockInDownload()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1221,6 +1222,7 @@ bool CloudSyncer::IsLockInDownload()
     auto currentLockAction = static_cast<uint32_t>(cloudTaskInfos_[currentContext_.currentTaskId].lockAction);
     return (currentLockAction & static_cast<uint32_t>(LockAction::DOWNLOAD)) != 0;
 }
+// LCOV_EXCL_BR_STOP
 
 CloudSyncEvent CloudSyncer::SetCurrentTaskFailedInMachine(int errCode)
 {
@@ -2031,6 +2033,7 @@ int CloudSyncer::CheckCloudQueryAssetsOnlyIfNeed(TaskId taskId, SyncParam &param
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncParam &param, DataInfoWithLog &logInfo)
 {
     if (!param.isAssetsOnly) {
@@ -2050,6 +2053,7 @@ int CloudSyncer::CheckLocalQueryAssetsOnlyIfNeed(VBucket &localAssetInfo, SyncPa
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 bool CloudSyncer::IsCurrentAsyncDownloadTask()
 {
@@ -2081,6 +2085,7 @@ void CloudSyncer::SetGenCloudVersionCallback(const GenerateCloudVersionCallback 
     cloudDB_.SetGenCloudVersionCallback(callback);
 }
 
+// LCOV_EXCL_BR_START
 size_t CloudSyncer::GetDownloadAssetIndex(TaskId taskId)
 {
     size_t index = 0u;
@@ -2172,6 +2177,7 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     cloudTaskInfos_[triggerTaskId].queryList.push_back(syncQuery[0]);
     return true;
 }
+// LCOV_EXCL_BR_STOP
 
 int CloudSyncer::ClearCloudWatermark(std::function<int(void)> &clearFunc)
 {

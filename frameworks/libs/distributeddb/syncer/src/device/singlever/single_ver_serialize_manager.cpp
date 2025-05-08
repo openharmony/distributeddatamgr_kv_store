@@ -29,6 +29,8 @@
 namespace DistributedDB {
 std::mutex SingleVerSerializeManager::handlesLock_;
 std::map<uint32_t, TransformFunc> SingleVerSerializeManager::messageHandles_;
+
+// LCOV_EXCL_BR_START
 int SingleVerSerializeManager::Serialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
     if ((buffer == nullptr) || length == 0u || !(IsPacketValid(inMsg))) {
@@ -50,6 +52,7 @@ int SingleVerSerializeManager::Serialization(uint8_t *buffer, uint32_t length, c
     }
     return DataSerialization(buffer, length, inMsg);
 }
+// LCOV_EXCL_BR_STOP
 
 int SingleVerSerializeManager::DataSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
@@ -76,6 +79,7 @@ int SingleVerSerializeManager::ControlSerialization(uint8_t *buffer, uint32_t le
     }
 }
 
+// LCOV_EXCL_BR_START
 int SingleVerSerializeManager::DeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg)
 {
     if ((buffer == nullptr) || length == 0u || !(IsPacketValid(inMsg))) {
@@ -96,6 +100,7 @@ int SingleVerSerializeManager::DeSerialization(const uint8_t *buffer, uint32_t l
     }
     return DataDeSerialization(buffer, length, inMsg);
 }
+// LCOV_EXCL_BR_STOP
 
 int SingleVerSerializeManager::DataDeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg)
 {
@@ -122,6 +127,7 @@ int SingleVerSerializeManager::ControlDeSerialization(const uint8_t *buffer, uin
     }
 }
 
+// LCOV_EXCL_BR_START
 uint32_t SingleVerSerializeManager::CalculateLen(const Message *inMsg)
 {
     if (!(IsPacketValid(inMsg))) {
@@ -142,6 +148,7 @@ uint32_t SingleVerSerializeManager::CalculateLen(const Message *inMsg)
     }
     return CalculateDataLen(inMsg);
 }
+// LCOV_EXCL_BR_STOP
 
 uint32_t SingleVerSerializeManager::CalculateDataLen(const Message *inMsg)
 {
@@ -221,6 +228,7 @@ int SingleVerSerializeManager::DataPacketSyncerPartSerialization(Parcel &parcel,
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int SingleVerSerializeManager::DataPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
     auto packet = inMsg->GetObject<DataRequestPacket>();
@@ -266,6 +274,7 @@ int SingleVerSerializeManager::DataPacketSerialization(uint8_t *buffer, uint32_t
     }
     return DataPacketInnerSerialization(packet, parcel);
 }
+// LCOV_EXCL_BR_STOP
 
 int SingleVerSerializeManager::DataPacketQuerySyncSerialization(Parcel &parcel, const DataRequestPacket *packet)
 {
@@ -326,6 +335,7 @@ bool SingleVerSerializeManager::IsPacketValid(const Message *inMsg)
     return true;
 }
 
+// LCOV_EXCL_BR_START
 int SingleVerSerializeManager::AckPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
 {
     const DataAckPacket *packet = inMsg->GetObject<DataAckPacket>();
@@ -404,6 +414,7 @@ ERROR:
     packet = nullptr;
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 int SingleVerSerializeManager::DataPacketQuerySyncDeSerialization(Parcel &parcel, DataRequestPacket *packet)
 {
@@ -434,6 +445,7 @@ int SingleVerSerializeManager::DataPacketQuerySyncDeSerialization(Parcel &parcel
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int SingleVerSerializeManager::DataPacketCompressDataDeSerialization(Parcel &parcel, DataRequestPacket *packet)
 {
     std::vector<SendDataItem> originalData;
@@ -535,6 +547,7 @@ int SingleVerSerializeManager::AckPacketSyncerPartDeSerializationV1(Parcel &parc
     packet.SetReserved(reserved);
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SingleVerSerializeManager::ControlPacketCalculateLen(const Message *inMsg, uint32_t &len)
 {

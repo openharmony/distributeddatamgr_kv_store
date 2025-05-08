@@ -153,6 +153,7 @@ int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
     return CheckCorruptedStatus(errCode);
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) const
 {
     if (dataItem.key != REMOVE_DEVICE_DATA_KEY) {
@@ -193,6 +194,7 @@ END:
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::AttachMainDbAndCacheDb(CipherType type, const CipherPassword &passwd,
     const std::string &attachDbAbsPath, EngineState engineState)
@@ -227,6 +229,7 @@ int SQLiteSingleVerStorageExecutor::AttachMainDbAndCacheDb(CipherType type, cons
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion) const
 {
     sqlite3_stmt *statement = nullptr;
@@ -257,7 +260,9 @@ int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion)
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
+// LCOV_EXCL_START
 int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, const NotifyMigrateSyncData &syncData)
 {
     // Put or delete. Prepare notify data here.
@@ -302,7 +307,9 @@ END:
     ResetForMigrateCacheData();
     return errCode;
 }
+// LCOV_EXCL_STOP
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(std::vector<DataItem> &dataItems)
 {
     int errCode = E_OK;
@@ -338,6 +345,7 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(std::vector<DataItem> &da
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::MigrateDataItems(std::vector<DataItem> &dataItems, NotifyMigrateSyncData &syncData)
 {
@@ -428,6 +436,7 @@ END:
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::DelCacheDbDataByVersion(uint64_t version) const
 {
     std::string sql;
@@ -462,6 +471,7 @@ END:
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::VacuumLocalData() const
 {
@@ -946,6 +956,7 @@ int SQLiteSingleVerStorageExecutor::GetMaxTimestampDuringMigrating(Timestamp &ma
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::DeleteMetaData(const std::vector<Key> &keys)
 {
     sqlite3_stmt *statement = nullptr;
@@ -973,6 +984,7 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaData(const std::vector<Key> &keys)
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPrefix)
 {

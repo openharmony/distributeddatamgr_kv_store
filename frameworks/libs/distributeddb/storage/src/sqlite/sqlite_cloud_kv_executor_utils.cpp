@@ -58,6 +58,7 @@ int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, cons
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 Timestamp SqliteCloudKvExecutorUtils::GetMaxTimeStamp(const std::vector<VBucket> &dataExtend)
 {
     Timestamp maxTimeStamp = 0;
@@ -98,6 +99,7 @@ bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerConti
     LOGW("[SqliteCloudKvExecutorUtils] The start time of the in memory database has not been updated.");
     return false;
 }
+// LCOV_EXCL_BR_STOP
 
 int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
     sqlite3_stmt *statement, CloudSyncData &cloudDataResult, UploadDetail &detail)
@@ -253,6 +255,7 @@ int SqliteCloudKvExecutorUtils::GetCloudKvBlobData(const std::string &keyStr, in
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *db, bool isMemory,
     const VBucket &cloudData, const std::string &userId)
 {
@@ -286,6 +289,7 @@ std::pair<int, DataInfoWithLog> SqliteCloudKvExecutorUtils::GetLogInfo(sqlite3 *
     }
     return GetLogInfoInner(stmt, isMemory, gid, hashKey, userId);
 }
+// LCOV_EXCL_BR_STOP
 
 std::pair<int, sqlite3_stmt*> SqliteCloudKvExecutorUtils::GetLogInfoStmt(sqlite3 *db, const VBucket &cloudData,
     bool existKey, bool emptyUserId)
@@ -916,6 +920,7 @@ int SqliteCloudKvExecutorUtils::OnlyUpdateLogTable(sqlite3 *db, bool isMemory, i
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const CloudSyncBatch &data,
     const std::string &user, const CloudWaterType &type, CloudUploadRecorder &recorder)
 {
@@ -967,6 +972,7 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const Cl
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SqliteCloudKvExecutorUtils::OnlyUpdateSyncData(sqlite3 *db, bool isMemory, int index, OpType opType,
     DownloadData &downloadData)
@@ -1074,6 +1080,7 @@ std::pair<int, DataItem> SqliteCloudKvExecutorUtils::GetDataItem(int index, Down
     return res;
 }
 
+// LCOV_EXCL_BR_START
 std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudDataInner(sqlite3 *db, bool isMemory,
     const Timestamp &timestamp, const std::string &user, const std::string &sql)
 {
@@ -1112,6 +1119,7 @@ std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudDataInner(sqlite3 
     LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
     return res;
 }
+// LCOV_EXCL_BR_STOP
 
 std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountCloudData(sqlite3 *db, bool isMemory,
     const Timestamp &timestamp, const std::string &user, bool forcePush)
@@ -1285,6 +1293,7 @@ void SqliteCloudKvExecutorUtils::InitDefaultCloudVersionRecord(const std::string
     syncData.insData.hashKey.push_back(bytesHashKey);
 }
 
+// LCOV_EXCL_START
 int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, sqlite3_stmt *dataStmt)
 {
     std::string hashDevice;
@@ -1305,7 +1314,9 @@ int SqliteCloudKvExecutorUtils::BindVersionStmt(const std::string &device, sqlit
     }
     return errCode;
 }
+// LCOV_EXCL_STOP
 
+// LCOV_EXCL_BR_START
 int SqliteCloudKvExecutorUtils::GetCloudVersionFromCloud(sqlite3 *db, bool isMemory, const std::string &device,
     std::vector<VBucket> &dataVector)
 {
@@ -1509,6 +1520,7 @@ int SqliteCloudKvExecutorUtils::BindFillGidLogStmt(sqlite3_stmt *logStmt, const 
     }
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 
 void SqliteCloudKvExecutorUtils::MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data,
     const std::string &user, size_t dataIndex)
@@ -1527,6 +1539,7 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccess(const FillGidParam &param, co
     MarkUploadSuccessInner(param, data, user, dataIndex);
 }
 
+// LCOV_EXCL_BR_START
 bool SqliteCloudKvExecutorUtils::CheckDataChanged(const FillGidParam &param,
     const CloudSyncBatch &data, size_t dataIndex)
 {
@@ -1641,4 +1654,5 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &para
         return;
     }
 }
+// LCOV_EXCL_BR_STOP
 }

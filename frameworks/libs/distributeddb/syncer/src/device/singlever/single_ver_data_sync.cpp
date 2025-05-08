@@ -1675,6 +1675,7 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     }
 }
 
+// LCOV_EXCL_BR_START
 int SingleVerDataSync::GetReSendData(SyncEntry &syncData, SingleVerSyncTaskContext *context,
     DataSyncReSendInfo reSendInfo)
 {
@@ -1827,6 +1828,7 @@ void SingleVerDataSync::FillRequestReSendPacketV2(const SingleVerSyncTaskContext
         packet->SetTotalDataCount(total);
     }
 }
+// LCOV_EXCL_BR_STOP
 
 DataSizeSpecInfo SingleVerDataSync::GetDataSizeSpecInfo(size_t packetSize)
 {

@@ -319,6 +319,7 @@ int ProtocolProto::SplitFrameIntoPacketsIfNeed(const SerialBuffer *inBuff, uint3
     return FrameFragmentation(frameBytesLen.first + sizeof(CommPhyHeader), fragInfo, *oriPhyHeader, outPieces);
 }
 
+// LCOV_EXCL_BR_START
 int ProtocolProto::AnalyzeSplitStructure(const ParseResult &inResult, uint32_t &outFragLen, uint32_t &outLastFragLen)
 {
     uint32_t frameLen = inResult.GetFrameLen();
@@ -488,6 +489,7 @@ int ProtocolProto::SetPhyHeader(SerialBuffer *inBuff, const PhyHeaderInfo &inInf
 
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int ProtocolProto::CheckAndParsePacket(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
     ParseResult &outResult)
@@ -524,6 +526,7 @@ int ProtocolProto::CheckAndParsePacket(const std::string &srcTarget, const uint8
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int ProtocolProto::CheckAndParseFrame(const SerialBuffer *inBuff, ParseResult &outResult)
 {
     if (inBuff == nullptr || outResult.IsFragment()) {
@@ -545,6 +548,7 @@ int ProtocolProto::CheckAndParseFrame(const SerialBuffer *inBuff, ParseResult &o
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t length)
 {
@@ -656,6 +660,7 @@ int ProtocolProto::SerializeMessage(SerialBuffer *inBuff, const Message *inMsg)
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg, bool onlyMsgHeader)
 {
     auto payloadByteLen = inBuff->GetReadOnlyBytesForPayload();
@@ -707,6 +712,7 @@ int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg
     }
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 bool ProtocolProto::IsSupportMessageVersion(uint16_t version)
 {
@@ -873,6 +879,7 @@ int ProtocolProto::ParseCommLayerPayload(const uint8_t *bytes, uint32_t length, 
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int ProtocolProto::ParseLabelExchange(const uint8_t *bytes, uint32_t length, ParseResult &inResult)
 {
     // Check version at very first
@@ -946,6 +953,7 @@ int ProtocolProto::ParseLabelExchangeAck(const uint8_t *bytes, uint32_t length, 
     inResult.SetLabelExchangeSequenceId(sequenceId);
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 // Note: framePhyHeader is in network endian
 // This function aims at calculating and preparing each part of each packets

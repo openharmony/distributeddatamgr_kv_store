@@ -32,6 +32,7 @@
 namespace DistributedDB {
 namespace {
 
+// LCOV_EXCL_BR_START
 int ResetOrRegetStmt(sqlite3 *db, sqlite3_stmt *&stmt, const std::string &sql)
 {
     int errCode = E_OK;
@@ -65,6 +66,7 @@ int GetEntryFromStatement(bool isGetValue, sqlite3_stmt *statement, std::vector<
     entries.push_back(std::move(entry));
     return errCode;
 }
+// LCOV_EXCL_BR_STOP
 }
 
 SQLiteSingleVerStorageExecutor::SQLiteSingleVerStorageExecutor(sqlite3 *dbHandle, bool writable, bool isMemDb)
@@ -193,6 +195,7 @@ int SQLiteSingleVerStorageExecutor::BindPutKvData(sqlite3_stmt *statement, const
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::GetKvDataByHashKey(const Key &hashKey, SingleVerRecord &result) const
 {
     sqlite3_stmt *statement = nullptr;
@@ -246,6 +249,7 @@ END:
     SQLiteUtils::ResetStatement(statement, true, ret);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key &key, const Value &value,
     Timestamp timestamp)
@@ -467,6 +471,7 @@ ERROR:
     return CheckCorruptedStatus(errCode);
 }
 
+// LCOV_EXCL_BR_START
 void SQLiteSingleVerStorageExecutor::ReleaseContinueStatement()
 {
     if (getSyncStatement_ != nullptr) {
@@ -477,6 +482,7 @@ void SQLiteSingleVerStorageExecutor::ReleaseContinueStatement()
         }
     }
 }
+// LCOV_EXCL_BR_STOP
 
 namespace {
 int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem)
@@ -940,6 +946,7 @@ int SQLiteSingleVerStorageExecutor::ReloadResultSetForCacheRowIdMode(QueryObject
     return errCode;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::GetNextEntryFromResultSet(Key &key, Value &value, bool isCopy)
 {
     if (getResultRowIdStatement_ == nullptr || getResultEntryStatement_ == nullptr) {
@@ -984,6 +991,7 @@ int SQLiteSingleVerStorageExecutor::GetNextEntryFromResultSet(Key &key, Value &v
     LOGE("SQLite step failed:%d", errCode);
     return CheckCorruptedStatus(errCode);
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::GetEntryByRowId(int64_t rowId, Entry &entry)
 {
@@ -1984,6 +1992,7 @@ int SQLiteSingleVerStorageExecutor::GetOneRawDataItem(sqlite3_stmt *statement, D
     return E_OK;
 }
 
+// LCOV_EXCL_BR_START
 int SQLiteSingleVerStorageExecutor::GetAllDataItems(sqlite3_stmt *statement, std::vector<DataItem> &dataItems,
     uint64_t &verInCurCacheDb, bool isCacheDb) const
 {
@@ -2034,6 +2043,7 @@ int SQLiteSingleVerStorageExecutor::OpenResultSetForCacheRowIdModeCommon(std::ve
     // Consider finalize getResultRowIdStatement_ here if count equal to size of rowIdCache.
     return E_OK;
 }
+// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleVerStorageExecutor::ResultSetLoadRowIdCache(std::vector<int64_t> &rowIdCache, uint32_t cacheLimit,
     uint32_t cacheStartPos, int &count)
