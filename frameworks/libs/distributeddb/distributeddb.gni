@@ -309,7 +309,7 @@ distributeddb_src_rd = [
   "${distributeddb_path}/gaussdb_rd/src/oh_adapter/src/rd_sqlite_utils.cpp",
 ]
 
-distributeddbforrdbclient_src = [
+distributeddb_client_src = [
   "${distributeddb_path}/common/src/concurrent_adapter.cpp",
   "${distributeddb_path}/common/src/db_common_client.cpp",
   "${distributeddb_path}/common/src/db_constant.cpp",
