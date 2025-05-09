@@ -19,7 +19,6 @@
 #include "db_common.h"
 
 namespace DistributedDB {
-// LCOV_EXCL_BR_START
 std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,
     const std::string &identity)
 {
@@ -96,7 +95,6 @@ std::string CloudSyncLogTableManager::GetConflictPkSql(const TableInfo &table)
     }
     return "ON CONFLICT(hash_key)";
 }
-// LCOV_EXCL_BR_STOP
 
 // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
 std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
@@ -133,7 +131,6 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     return insertTrigger;
 }
 
-// LCOV_EXCL_BR_START
 std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, const std::string &identity)
 {
     (void)identity;
@@ -214,5 +211,4 @@ std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableIn
     }
     return dropTriggers;
 }
-// LCOV_EXCL_BR_STOP
 } // DistributedDB

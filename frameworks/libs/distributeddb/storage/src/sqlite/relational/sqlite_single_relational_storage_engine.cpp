@@ -201,7 +201,6 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
 }
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName,
     const std::string &identity, bool &schemaChanged, TableSyncType syncType, bool trackerSchemaChanged)
 {
@@ -239,7 +238,6 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
     const std::string &tableName, const std::string &sharedTableName, TableSyncType tableSyncType,
@@ -577,7 +575,6 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
     return errCode;
 }
 
-// LCOV_EXCL_BR_START
 static int CheckReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
     const RelationalSchemaObject &schema)
 {
@@ -673,7 +670,6 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     ReleaseExecutor(handle);
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleRelationalStorageEngine::UpgradeSharedTable(const DataBaseSchema &cloudSchema,
     const std::vector<std::string> &deleteTableNames, const std::map<std::string, std::vector<Field>> &updateTableNames,
@@ -874,7 +870,6 @@ int SQLiteSingleRelationalStorageEngine::DoCreateSharedTable(SQLiteSingleVerRela
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteSingleRelationalStorageEngine::UpdateKvData(SQLiteSingleVerRelationalStorageExecutor *&handle,
     const std::map<std::string, std::string> &alterTableNames)
 {
@@ -904,7 +899,6 @@ int SQLiteSingleRelationalStorageEngine::UpdateKvData(SQLiteSingleVerRelationalS
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleRelationalStorageEngine::CheckIfExistUserTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
     const DataBaseSchema &cloudSchema, const std::map<std::string, std::string> &alterTableNames,
@@ -927,7 +921,6 @@ int SQLiteSingleRelationalStorageEngine::CheckIfExistUserTable(SQLiteSingleVerRe
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 std::pair<std::vector<std::string>, int> SQLiteSingleRelationalStorageEngine::CalTableRef(
     const std::vector<std::string> &tableNames, const std::map<std::string, std::string> &sharedTableOriginNames)
 {
@@ -1046,7 +1039,6 @@ std::map<std::string, int> SQLiteSingleRelationalStorageEngine::GetTableWeightWi
     }
     return res;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::TrackerSchema &schema)
 {

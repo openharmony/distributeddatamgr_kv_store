@@ -509,7 +509,6 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
     return errCode;
 }
 
-// LCOV_EXCL_START
 int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tableNames)
 {
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
@@ -546,7 +545,6 @@ int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tabl
     }
     return errCode;
 }
-// LCOV_EXCL_STOP
 #endif
 
 int SQLiteRelationalStore::RemoveDeviceData()
@@ -600,7 +598,6 @@ int SQLiteRelationalStore::RemoveDeviceData()
     return errCode;
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
@@ -646,7 +643,6 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     }
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
     const RelationalObserverAction &action)
@@ -1642,7 +1638,6 @@ static int ChkTable(const TableInfo &table)
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records)
 {
     if (tableName.empty()) {
@@ -1692,7 +1687,6 @@ int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteRelationalStore::InitSQLiteStorageEngine(const RelationalDBProperties &properties)
 {
@@ -1837,7 +1831,6 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteRelationalStore::OperateDataStatus(uint32_t dataOperator)
 {
     LOGI("[RelationalStore] OperateDataStatus %" PRIu32, dataOperator);
@@ -1895,6 +1888,5 @@ int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string>
     ReleaseHandle(handle);
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 } // namespace DistributedDB
 #endif

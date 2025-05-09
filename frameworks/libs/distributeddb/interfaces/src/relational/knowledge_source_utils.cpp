@@ -168,7 +168,6 @@ std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(
     return res;
 }
 
-// LCOV_EXCL_BR_START
 bool KnowledgeSourceUtils::IsSchemaValid(const KnowledgeSourceSchema &schema, const TableInfo &tableInfo)
 {
     auto fields = tableInfo.GetFields();
@@ -264,7 +263,6 @@ std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetKnowledgeSourceS
     errCode = rdbSchema.ParseFromTrackerSchemaString(schemaJson);
     return res;
 }
-// LCOV_EXCL_BR_STOP
 
 std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetRDBSchema(sqlite3 *db)
 {

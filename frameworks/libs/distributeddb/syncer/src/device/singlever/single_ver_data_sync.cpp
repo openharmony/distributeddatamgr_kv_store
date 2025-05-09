@@ -149,7 +149,6 @@ void SingleVerDataSync::InnerClearSyncStatus()
     isAllDataHasSent_ = false;
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::TryContinueSync(SingleVerSyncTaskContext *context, const Message *message)
 {
     if (message == nullptr) {
@@ -199,7 +198,6 @@ int SingleVerDataSync::TryContinueSync(SingleVerSyncTaskContext *context, const 
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 void SingleVerDataSync::ClearSyncStatus()
 {
@@ -461,7 +459,6 @@ SyncTimeRange SingleVerDataSync::GetSyncDataTimeRange(SyncType syncType, SingleV
     return SingleVerDataSyncUtils::GetSyncDataTimeRange(syncType, localMark, deleteMark, inData, isUpdate);
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSyncTaskContext *context,
     SyncTimeRange dataTimeRange, bool isCheckBeforUpdate) const
 {
@@ -510,7 +507,6 @@ int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSync
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 void SingleVerDataSync::GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify,
     const DeviceID &deviceId, WaterMark &waterMark) const
@@ -591,7 +587,6 @@ int SingleVerDataSync::RemoveDeviceDataHandle(SingleVerSyncTaskContext *context,
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *context, WaterMark ackWaterMark,
     const std::vector<uint64_t> &reserved)
 {
@@ -627,7 +622,6 @@ int SingleVerDataSync::DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *conte
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 void SingleVerDataSync::SetSessionEndTimestamp(Timestamp end)
 {
@@ -661,7 +655,6 @@ void SingleVerDataSync::UpdateSendInfo(SyncTimeRange dataTimeRange, SingleVerSyn
         reSendInfo.packetId, windowSize_, isAllDataHasSent_, label_.c_str(), STR_MASK(deviceId_));
 }
 
-// LCOV_EXCL_BR_START
 void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     SyncEntry &syncData, int sendCode, int mode)
 {
@@ -766,7 +759,6 @@ int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SingleVerDataSync::PushStart(SingleVerSyncTaskContext *context)
 {
@@ -834,7 +826,6 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     return SendDataPacket(syncType, packet, context);
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::PullResponseStart(SingleVerSyncTaskContext *context)
 {
     if (context == nullptr) {
@@ -878,7 +869,6 @@ int SingleVerDataSync::PullResponseStart(SingleVerSyncTaskContext *context)
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 void SingleVerDataSync::UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId,
     const SyncTimeRange &dataTime, const SingleVerSyncTaskContext *context, UpdateWaterMark isUpdateWaterMark)
@@ -1177,7 +1167,6 @@ int SingleVerDataSync::SendDataAck(SingleVerSyncTaskContext *context, const Mess
     return errCode;
 }
 
-// LCOV_EXCL_BR_START
 bool SingleVerDataSync::AckPacketIdCheck(const Message *message)
 {
     if (message == nullptr) {
@@ -1204,7 +1193,6 @@ bool SingleVerDataSync::AckPacketIdCheck(const Message *message)
     }
     return true;
 }
-// LCOV_EXCL_BR_STOP
 
 int SingleVerDataSync::AckRecv(SingleVerSyncTaskContext *context, const Message *message)
 {
@@ -1418,7 +1406,6 @@ void SingleVerDataSync::SendResetWatchDogPacket(SingleVerSyncTaskContext *contex
     }
 }
 
-// LCOV_EXCL_BR_START
 int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReSendInfo reSendInfo)
 {
     if (context == nullptr) {
@@ -1462,7 +1449,6 @@ int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReS
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SingleVerDataSync::SendReSendPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
     uint32_t sessionId, uint32_t sequenceId)
@@ -1497,7 +1483,6 @@ int SingleVerDataSync::SendReSendPacket(DataRequestPacket *packet, SingleVerSync
     return errCode;
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::CheckPermitSendData(int inMode, SingleVerSyncTaskContext *context)
 {
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
@@ -1535,7 +1520,6 @@ int SingleVerDataSync::CheckPermitSendData(int inMode, SingleVerSyncTaskContext 
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 std::string SingleVerDataSync::GetLabel() const
 {
@@ -1675,7 +1659,6 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     }
 }
 
-// LCOV_EXCL_BR_START
 int SingleVerDataSync::GetReSendData(SyncEntry &syncData, SingleVerSyncTaskContext *context,
     DataSyncReSendInfo reSendInfo)
 {
@@ -1828,7 +1811,6 @@ void SingleVerDataSync::FillRequestReSendPacketV2(const SingleVerSyncTaskContext
         packet->SetTotalDataCount(total);
     }
 }
-// LCOV_EXCL_BR_STOP
 
 DataSizeSpecInfo SingleVerDataSync::GetDataSizeSpecInfo(size_t packetSize)
 {

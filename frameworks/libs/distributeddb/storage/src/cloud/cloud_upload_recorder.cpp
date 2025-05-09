@@ -23,7 +23,6 @@ void CloudUploadRecorder::RecordUploadRecord(const std::string &table, const Byt
     uploadRecord_[currentUser_][table][type][hashKey] = modifyTime;
 }
 
-// LCOV_EXCL_BR_START
 bool CloudUploadRecorder::IsIgnoreUploadRecord(const std::string &table, const Bytes &hashKey,
     const CloudWaterType &type, int64_t modifyTime) const
 {
@@ -63,5 +62,4 @@ void CloudUploadRecorder::SetUser(const std::string &user)
     std::lock_guard<std::mutex> autoLock(recordMutex_);
     currentUser_ = user;
 }
-// LCOV_EXCL_BR_STOP
 }

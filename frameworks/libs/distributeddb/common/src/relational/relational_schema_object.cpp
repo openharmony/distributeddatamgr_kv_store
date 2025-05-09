@@ -361,7 +361,6 @@ int RelationalSchemaObject::CompareAgainstSchemaObject(const RelationalSchemaObj
 }
 
 namespace {
-// LCOV_EXCL_BR_START
 int GetMemberFromJsonObject(const JsonObject &inJsonObject, const std::string &fieldName, FieldType expectType,
     bool isNecessary, FieldValue &fieldValue)
 {
@@ -446,7 +445,6 @@ int RelationalSchemaObject::ParseCheckTrackerTable(const JsonObject &inJsonObjec
     trackerTables_[table.GetTableName()].SetTrackerTable(table);
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int RelationalSchemaObject::ParseCheckTrackerTableName(const JsonObject &inJsonObject, TrackerTable &resultTable)
 {
@@ -803,7 +801,6 @@ int RelationalSchemaObject::ParseCheckTableFieldInfo(const JsonObject &inJsonObj
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int RelationalSchemaObject::ParseCheckOriginTableName(const JsonObject &inJsonObject, TableInfo &resultTable)
 {
     FieldValue fieldValue;
@@ -950,7 +947,6 @@ int RelationalSchemaObject::ParseCheckReference(const JsonObject &inJsonObject)
     tables_[referenceProperty.targetTableName].AddTableReferenceProperty(referenceProperty);
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int RelationalSchemaObject::ParseCheckReferenceColumns(const JsonObject &inJsonObject,
     TableReferenceProperty &tableReferenceProperty)
@@ -984,7 +980,6 @@ int RelationalSchemaObject::ParseCheckReferenceColumns(const JsonObject &inJsonO
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int RelationalSchemaObject::ParseCheckReferenceColumn(const JsonObject &inJsonObject,
     TableReferenceProperty &tableReferenceProperty)
 {
@@ -1224,7 +1219,6 @@ bool RelationalSchemaObject::CheckDistributedFieldChange(const std::vector<Distr
     }
     return false;
 }
-// LCOV_EXCL_BR_STOP
 
 void RelationalSchemaObject::SetDistributedSchema(const DistributedSchema &schema)
 {
@@ -1306,7 +1300,6 @@ std::string RelationalSchemaObject::GetOneDistributedTableString(const Distribut
     return res;
 }
 
-// LCOV_EXCL_BR_START
 int RelationalSchemaObject::ParseDistributedSchema(const JsonObject &inJsonObject)
 {
     if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_SCHEMA})) {
@@ -1429,7 +1422,6 @@ int RelationalSchemaObject::ParseDistributedFields(const JsonObject &inJsonObjec
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int RelationalSchemaObject::ParseDistributedField(const JsonObject &inJsonObject, DistributedField &field)
 {

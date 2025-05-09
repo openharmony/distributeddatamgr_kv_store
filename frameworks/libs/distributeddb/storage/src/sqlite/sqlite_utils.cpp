@@ -566,7 +566,6 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
     const std::string &attachDbAbsPath, const std::string &attachAsName)
 {
@@ -598,7 +597,6 @@ int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPas
 #endif
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteUtils::AttachNewDatabaseInner(sqlite3 *db, CipherType type, const CipherPassword &password,
     const std::string &attachDbAbsPath, const std::string &attachAsName)
@@ -658,7 +656,6 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     return errCode;
 }
 
-// LCOV_EXCL_START
 int SQLiteUtils::CheckIntegrity(const std::string &dbFile, CipherType type, const CipherPassword &passwd)
 {
     std::vector<std::string> createTableSqls;
@@ -676,7 +673,6 @@ int SQLiteUtils::CheckIntegrity(const std::string &dbFile, CipherType type, cons
     }
     return errCode;
 }
-// LCOV_EXCL_STOP
 
 int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 {
@@ -862,7 +858,6 @@ int AnalysisSchemaIndex(sqlite3 *db, const std::string &tableName, TableInfo &ta
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 void SetPrimaryKeyCollateType(const std::string &sql, FieldInfo &field)
 {
     std::string upperFieldName = DBCommon::ToUpperCase(field.GetFieldName());
@@ -874,7 +869,6 @@ void SetPrimaryKeyCollateType(const std::string &sql, FieldInfo &field)
         field.SetCollateType(CollateType::COLLATE_RTRIM);
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 {
@@ -1477,7 +1471,6 @@ void SQLiteUtils::CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlit
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-// LCOV_EXCL_BR_START
 void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is param counts
@@ -1596,7 +1589,6 @@ int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const
     }
     return errCode;
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteUtils::CloneIndexes(sqlite3 *db, const std::string &oriTableName, const std::string &newTableName)
 {
@@ -1779,7 +1771,6 @@ int SQLiteUtils::RegisterFlatBufferFunction(sqlite3 *db, const std::string &inSc
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 void SQLiteUtils::UpdateMetaDataWithinTrigger(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 : Number of parameters for sqlite register function
@@ -1832,7 +1823,6 @@ void SQLiteUtils::UpdateMetaDataWithinTrigger(sqlite3_context *ctx, int argc, sq
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
-// LCOV_EXCL_BR_STOP
 
 int SQLiteUtils::RegisterMetaDataUpdateFunction(sqlite3 *db)
 {

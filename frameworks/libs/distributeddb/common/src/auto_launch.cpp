@@ -74,7 +74,6 @@ void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
     }
 }
 
-// LCOV_EXCL_BR_START
 AutoLaunch::~AutoLaunch()
 {
     {
@@ -160,7 +159,6 @@ int AutoLaunch::EnableKvStoreAutoLaunchParmCheck(AutoLaunchItem &autoLaunchItem,
         STR_TO_HEX(identifier), isDualTupleMode);
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int AutoLaunch::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
     const AutoLaunchOption &option)
@@ -342,7 +340,6 @@ int AutoLaunch::RegisterObserver(AutoLaunchItem &autoLaunchItem, const std::stri
     }
 }
 
-// LCOV_EXCL_BR_START
 void AutoLaunch::ObserverFunc(const KvDBCommitNotifyData &notifyData, const std::string &identifier,
     const std::string &userId)
 {
@@ -395,7 +392,6 @@ void AutoLaunch::ObserverFunc(const KvDBCommitNotifyData &notifyData, const std:
     autoLaunchItemMap_[identifier][userId].inObserver = false;
     cv_.notify_all();
 }
-// LCOV_EXCL_BR_STOP
 
 int AutoLaunch::DisableKvStoreAutoLaunch(const std::string &normalIdentifier, const std::string &dualTupleIdentifier,
     const std::string &userId)
@@ -477,7 +473,6 @@ void AutoLaunch::CloseNotifier(const AutoLaunchItem &autoLaunchItem)
     }
 }
 
-// LCOV_EXCL_BR_START
 void AutoLaunch::ConnectionLifeCycleCallbackTask(const std::string &identifier, const std::string &userId)
 {
     LOGI("[AutoLaunch] ConnectionLifeCycleCallbackTask identifier=%.6s", STR_TO_HEX(identifier));
@@ -525,7 +520,6 @@ void AutoLaunch::ConnectionLifeCycleCallback(const std::string &identifier, cons
         LOGE("[AutoLaunch] ConnectionLifeCycleCallback ScheduleTask failed");
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int AutoLaunch::OpenOneConnection(AutoLaunchItem &autoLaunchItem)
 {
@@ -573,7 +567,6 @@ void AutoLaunch::OnlineCallBackTask()
     UpdateGlobalMap(doOpenMap);
 }
 
-// LCOV_EXCL_BR_START
 void AutoLaunch::GetDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -750,7 +743,6 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
 EXT:
     return AutoLaunchExt(identifier, userId);
 }
-// LCOV_EXCL_BR_STOP
 
 void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type)
 {
@@ -808,7 +800,6 @@ int AutoLaunch::AutoLaunchExt(const std::string &identifier, const std::string &
     return errCode;
 }
 
-// LCOV_EXCL_BR_START
 void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::string &userId,
     AutoLaunchItem &autoLaunchItem)
 {
@@ -949,7 +940,6 @@ void AutoLaunch::ExtConnectionLifeCycleCallbackTask(const std::string &identifie
         CloseNotifier(autoLaunchItem);
     }
 }
-// LCOV_EXCL_BR_STOP
 
 int AutoLaunch::SetConflictNotifier(AutoLaunchItem &autoLaunchItem)
 {
@@ -1062,7 +1052,6 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
     return E_OK;
 }
 
-// LCOV_EXCL_BR_START
 int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     const std::shared_ptr<RelationalDBProperties> &propertiesPtr)
 {
@@ -1084,7 +1073,6 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param,
     DBTypeInner &openType)
@@ -1247,7 +1235,6 @@ void AutoLaunch::EraseAutoLaunchItem(const std::string &identifier, const std::s
     }
 }
 
-// LCOV_EXCL_START
 void AutoLaunch::NotifyInvalidParam(const AutoLaunchItem &autoLaunchItem)
 {
     if (!autoLaunchItem.notifier) {
@@ -1263,9 +1250,7 @@ void AutoLaunch::NotifyInvalidParam(const AutoLaunchItem &autoLaunchItem)
         LOGE("[AutoLaunch] AutoLaunchExt notifier ScheduleTask retCode:%d", retCode);
     }
 }
-// LCOV_EXCL_STOP
 
-// LCOV_EXCL_BR_START
 int AutoLaunch::CheckAutoLaunchRealPath(const AutoLaunchItem &autoLaunchItem)
 {
     std::string canonicalDir;
@@ -1278,7 +1263,6 @@ int AutoLaunch::CheckAutoLaunchRealPath(const AutoLaunchItem &autoLaunchItem)
     autoLaunchItem.propertiesPtr->SetStringProp(DBProperties::DATA_DIR, canonicalDir);
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 void AutoLaunch::Dump(int fd)
 {
@@ -1417,7 +1401,6 @@ void AutoLaunch::CloseConnection(DBTypeInner type, const DBProperties &propertie
     ADAPTER_WAIT(handle);
 }
 
-// LCOV_EXCL_BR_START
 std::string AutoLaunch::GetAutoLaunchItemUid(const std::string &identifier, const std::string &originalUserId,
     bool &handleByCallback)
 {
@@ -1449,7 +1432,6 @@ std::string AutoLaunch::GetAutoLaunchItemUid(const std::string &identifier, cons
     }
     return userId;
 }
-// LCOV_EXCL_BR_STOP
 
 bool AutoLaunch::ChkAutoLaunchAbort(const std::string &identifier, AutoLaunchItem &autoLaunchItem)
 {

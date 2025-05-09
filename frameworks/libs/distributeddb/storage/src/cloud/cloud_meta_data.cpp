@@ -26,7 +26,6 @@ CloudMetaData::CloudMetaData(ICloudSyncStorageInterface *store)
 {
 }
 
-// LCOV_EXCL_BR_START
 int CloudMetaData::GetLocalWaterMark(const TableName &tableName, Timestamp &localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
@@ -153,7 +152,6 @@ int CloudMetaData::SetCloudWaterMark(const TableName &tableName, std::string &cl
     LOGD("[Meta] set cloud water mark=%s", cloudMark.c_str());
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int CloudMetaData::ReadMarkFromMeta(const TableName &tableName)
 {
@@ -206,7 +204,6 @@ uint64_t CloudMetaData::GetParcelCurrentLength(CloudMetaValue &cloudMetaValue)
            Parcel::GetUInt64Len() + Parcel::GetUInt64Len();
 }
 
-// LCOV_EXCL_BR_START
 int CloudMetaData::SerializeWaterMark(CloudMetaValue &cloudMetaValue, Value &blobMetaVal)
 {
     uint64_t length = GetParcelCurrentLength(cloudMetaValue);
@@ -253,7 +250,6 @@ int CloudMetaData::DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaVal
     }
     return E_OK;
 }
-// LCOV_EXCL_BR_STOP
 
 int CloudMetaData::CleanWaterMark(const TableName &tableName)
 {
