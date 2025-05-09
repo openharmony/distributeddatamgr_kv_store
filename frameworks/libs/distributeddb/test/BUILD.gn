@@ -952,7 +952,7 @@ distributeddb_unittest("DistributedDBRDBKnowledgeTest") {
 }
 
 ###############################################################################
-config("rdbclient_module_private_config") {
+config("distributeddb_client_module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
@@ -1000,7 +1000,6 @@ config("rdbclient_module_private_config") {
     "USE_DFX_ABILITY",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
-    "USE_EXCEPTIONS",
   ]
   if (is_ohos) {
     defines += [ "USE_FFRT" ]
@@ -1008,11 +1007,10 @@ config("rdbclient_module_private_config") {
   }
 }
 
-ohos_source_set("rdbclient_src_file") {
+ohos_source_set("distributeddb_client_src_file") {
   testonly = true
-  use_exceptions = true
 
-  sources = distributeddbforrdbclient_src
+  sources = distributeddb_client_src
   sources += [
     "unittest/common/common/distributeddb_tools_unit_client_test.cpp",
     "unittest/common/common/rdb_data_generator_client.cpp",
@@ -1020,7 +1018,7 @@ ohos_source_set("rdbclient_src_file") {
     "unittest/common/syncer/cloud/cloud_db_sync_utils_client_test.cpp",
   ]
 
-  configs = [ ":rdbclient_module_private_config" ]
+  configs = [ ":distributeddb_client_module_private_config" ]
 
   branch_protector_ret = "pac_ret"
   sanitize = {
@@ -1045,7 +1043,6 @@ ohos_source_set("rdbclient_src_file") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
-    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:libz",
@@ -1053,7 +1050,7 @@ ohos_source_set("rdbclient_src_file") {
   part_name = "kv_store"
 }
 
-template("distributeddb_rdbclient_unittest") {
+template("distributeddb_client_unittest") {
   ohos_unittest(target_name) {
     forward_variables_from(invoker, "*")
     module_out_path = module_output_path
@@ -1063,15 +1060,16 @@ template("distributeddb_rdbclient_unittest") {
     if (!defined(external_deps)) {
       external_deps = []
     }
-    configs = [ ":rdbclient_module_private_config" ]
+    configs = [ ":distributeddb_client_module_private_config" ]
     deps += [
-      ":rdbclient_src_file",
+      ":distributeddb_client_src_file",
       "../gaussdb_rd:gaussdb_rd",
     ]
 
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
 
     external_deps = [
+      "cJSON:cjson",
       "c_utils:utils",
       "ffrt:libffrt",
       "googletest:gmock_main",
@@ -1079,22 +1077,11 @@ template("distributeddb_rdbclient_unittest") {
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
-      "jsoncpp:jsoncpp",
       "openssl:libcrypto_shared",
       "sqlite:sqlite",
       "zlib:libz",
     ]
   }
-}
-
-distributeddb_rdbclient_unittest("DistributedDBRDBKnowledgeClientTest") {
-  sources =
-      [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_client_test.cpp" ]
-}
-
-distributeddb_rdbclient_unittest("DistributedDBCloudInterfacesRelationalExtClientTest") {
-  sources =
-      [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_ext_client_test.cpp" ]
 }
 
 ###############################################################################
@@ -1231,8 +1218,6 @@ group("unittest") {
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
     ":tokenizer_test",
-    ":DistributedDBRDBKnowledgeClientTest",
-    ":DistributedDBCloudInterfacesRelationalExtClientTest",
   ]
 
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {

@@ -15,6 +15,7 @@
 
 #include "cloud/cloud_storage_utils.h"
 
+#include <sstream>
 #include "db_common.h"
 #include "runtime_context.h"
 
