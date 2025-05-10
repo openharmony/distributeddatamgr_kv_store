@@ -91,7 +91,7 @@ group("build_module") {
   deps = [
     ":customtokenizer",
     ":distributeddb",
-    ":distributeddbforrdbclient",
+    ":distributeddb_client",
   ]
 }
 
@@ -191,7 +191,7 @@ ohos_shared_library("customtokenizer") {
   part_name = "kv_store"
 }
 
-config("distrdbclient_public_config") {
+config("distributeddb_client_public_config") {
   visibility = [ "*:*" ]
   include_dirs = [
     "interfaces/include/relational",
@@ -200,7 +200,7 @@ config("distrdbclient_public_config") {
   ]
 }
 
-config("distributeddbforrdbclient_config") {
+config("distributeddb_client_config") {
   visibility = [ ":*" ]
   include_dirs = [
     "interfaces/src/relational",
@@ -250,7 +250,7 @@ config("distributeddbforrdbclient_config") {
   }
 }
 
-ohos_shared_library("distributeddbforrdbclient") {
+ohos_shared_library("distributeddb_client") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     ubsan = true
@@ -260,9 +260,9 @@ ohos_shared_library("distributeddbforrdbclient") {
     debug = false
   }
 
-  sources = distributeddbforrdbclient_src
-  configs = [ ":distributeddbforrdbclient_config" ]
-  public_configs = [ ":distrdbclient_public_config" ]
+  sources = distributeddb_client_src
+  configs = [ ":distributeddb_client_config" ]
+  public_configs = [ ":distributeddb_client_public_config" ]
 
   use_exceptions = true
   cflags_cc = [

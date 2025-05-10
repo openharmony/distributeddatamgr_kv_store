@@ -282,7 +282,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb_client",
           "header": {
             "header_files": [
               "relational_store_client.h",
@@ -293,7 +293,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb_client",
           "header": {
             "header_files": [
               "store_observer.h"
@@ -302,7 +302,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddbforrdbclient",
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb_client",
           "header": {
             "header_files": [
               "query.h"
