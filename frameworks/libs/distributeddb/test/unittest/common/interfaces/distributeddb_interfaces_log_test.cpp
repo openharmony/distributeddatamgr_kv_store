@@ -60,7 +60,8 @@ HWTEST_F(DistributedDBInterfacesLogTest, DBFactoryTest001, TestSize.Level1)
 {
     DistributedTableMode mode = DistributedTableMode::COLLABORATION;
     TableSyncType tableSyncType = TableSyncType::DEVICE_COOPERATION;
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode, tableSyncType);
+    TableInfo tableInfo;
+    auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, tableSyncType);
     EXPECT_TRUE(tableManager != nullptr);
 }
 

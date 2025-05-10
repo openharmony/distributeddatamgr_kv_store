@@ -1137,6 +1137,7 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSch
     schemaObj.SetDistributedSchema(schema);
     for (const auto &table : schema.tables) {
         TableInfo tableInfo = schemaObj.GetTable(table.tableName);
+        tableInfo.SetTrackerTable(GetTrackerSchema().GetTrackerTable(table.tableName));
         if (tableInfo.Empty()) {
             continue;
         }

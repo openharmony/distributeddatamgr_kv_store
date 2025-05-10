@@ -95,7 +95,8 @@ void CreateLogTable(const std::string &tableName)
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
     auto tableManager =
-        LogTableManagerFactory::GetTableManager(DistributedTableMode::COLLABORATION, TableSyncType::CLOUD_COOPERATION);
+        LogTableManagerFactory::GetTableManager(table, DistributedTableMode::COLLABORATION,
+                                    TableSyncType::CLOUD_COOPERATION);
     int errCode = tableManager->CreateRelationalLogTable(db, table);
     EXPECT_EQ(errCode, E_OK);
     sqlite3_close(db);
