@@ -131,6 +131,8 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     }
 
     TaskConfig taskConfig {config.nonBlock, config.timeout, inMsg->GetPriority()};
+    taskConfig.infos = {config.paramInfo.appId, config.paramInfo.storeId, config.paramInfo.userId,
+        config.paramInfo.subUserId};
     errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, taskConfig, onEnd);
     if (errCode == E_OK) {
         // if ok, free inMsg, otherwise the caller should take over inMsg

@@ -24,9 +24,17 @@
 #include "store_types.h"
 
 namespace DistributedDB {
+struct AccessInfos {
+    std::string appId;
+    std::string storeId;
+    std::string userId;
+    std::string subUserId;
+};
+
 // The DeviceInfos may contain other fields(Can only be auxiliary information) besides identifier field in the future.
 struct DeviceInfos {
     std::string identifier; // An unique and fixed identifier representing a device, such as UUID.
+    AccessInfos callee; // A message frame's access info.
 };
 
 struct ExtendInfo {
@@ -35,6 +43,19 @@ struct ExtendInfo {
     std::string userId;
     std::string dstTarget;
     std::string subUserId;
+};
+
+struct DataHeadInfo {
+    const uint8_t *data = nullptr;
+    uint32_t totalLen;
+    std::string device;
+};
+
+struct DataUserInfo {
+    const uint8_t *data = nullptr;
+    uint32_t totalLen;
+    const std::string label;
+    const std::string device;
 };
 
 struct UserInfo {
@@ -169,14 +190,13 @@ public:
         headLength = 0;
         return OK;
     }
-    virtual DBStatus GetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength)
+    virtual DBStatus GetDataHeadInfo(DataHeadInfo dataHeadInfo, uint32_t &headLength)
     {
         headLength = 0;
         return OK;
     }
     // return NO_PERMISSION while no need to handle the dataBuff if remote device userId is not mate with local userId
-    virtual DBStatus GetDataUserInfo(const uint8_t *data, uint32_t totalLen, const std::string &label,
-        std::vector<UserInfo> &userInfos)
+    virtual DBStatus GetDataUserInfo(DataUserInfo dataUserInfo, std::vector<UserInfo> &userInfos)
     {
         return OK;
     }

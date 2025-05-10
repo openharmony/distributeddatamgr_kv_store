@@ -786,7 +786,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead0
      */
     Message *msgForAA = BuildAppLayerFrameMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {false, true, 0, {"appId", "storeId", "", "DeviceB"}};
+    SendConfig conf = {false, true, 0, {"appId", "storeId", "userId", "DeviceB"}};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms

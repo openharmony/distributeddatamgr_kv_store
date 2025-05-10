@@ -233,14 +233,20 @@ int NetworkAdapter::GetLocalIdentity(std::string &outTarget)
 
 int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length, uint32_t totalLength)
 {
+    DeviceInfos dstDevInfo;
+    dstDevInfo.identifier = dstTarget;
+    return SendBytes(dstDevInfo, bytes, length, totalLength);
+}
+
+int NetworkAdapter::SendBytes(const DeviceInfos &deviceInfos, const uint8_t *bytes, uint32_t length,
+    uint32_t totalLength)
+{
     if (bytes == nullptr || length == 0) {
         return -E_INVALID_ARGS;
     }
-    LOGI("[NAdapt][SendBytes] Enter, to=%s{private}, length=%u, totalLength=%u", dstTarget.c_str(), length,
+    LOGI("[NAdapt][SendBytes] Enter, to=%s{private}, length=%u, totalLength=%u", deviceInfos.identifier.c_str(), length,
         totalLength);
-    DeviceInfos dstDevInfo;
-    dstDevInfo.identifier = dstTarget;
-    DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length,
+    DBStatus errCode = processCommunicator_->SendData(deviceInfos, bytes, length,
         totalLength > length ? totalLength : length);
     if (errCode == DBStatus::RATE_LIMIT) {
         LOGD("[NAdapt][SendBytes] rate limit!");
@@ -253,7 +259,7 @@ int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes
         // OnDeviceChangeHandler is reused but check the existence of peer process is done outerly.
         // Since this thread is the sending_thread of the CommunicatorAggregator,
         // We need an async task which bring about dependency on the lifecycle of this NetworkAdapter Object.
-        CheckDeviceOfflineAfterSendFail(dstDevInfo);
+        CheckDeviceOfflineAfterSendFail(deviceInfos);
         return static_cast<int>(errCode);
     }
     return E_OK;
@@ -284,7 +290,8 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
         return;
     }
     uint32_t headLength = 0;
-    DBStatus errCode = processCommunicator_->GetDataHeadInfo(data, length, headLength);
+    DataHeadInfo dataHeadInfo = {data, length, srcDevInfo.identifier};
+    DBStatus errCode = processCommunicator_->GetDataHeadInfo(dataHeadInfo, headLength);
     LOGI("[NAdapt][OnDataRecv] Enter, from=%s{private}, extendHeadLength=%u, totalLength=%u",
         srcDevInfo.identifier.c_str(), headLength, length);
     if (errCode != OK) {
@@ -301,7 +308,8 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
             return;
         }
         DataUserInfoProc userInfoProc = {data, length, processCommunicator_};
-        onReceiveHandle_(srcDevInfo.identifier, data + headLength, length - headLength, userInfoProc);
+        ReceiveBytesInfo receiveBytesInfo = {data + headLength, srcDevInfo.identifier, length - headLength, headLength};
+        onReceiveHandle_(receiveBytesInfo, userInfoProc);
     }
     // These code is compensation for the probable defect of IProcessCommunicator implementation.
     // As described in the agreement, for the missed online situation, we check the source dev when received.
