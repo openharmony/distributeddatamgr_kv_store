@@ -87,6 +87,16 @@ public:
         return saveDataNotifyRefCount_;
     }
 
+    void CallSyncStepInner()
+    {
+        SingleVerSyncStateMachine::SyncStepInner();
+    }
+
+    void CallSetCurStateErrStatus()
+    {
+        SingleVerSyncStateMachine::SetCurStateErrStatus();
+    }
+
     MOCK_METHOD1(SwitchStateAndStep, void(uint8_t));
 
     MOCK_METHOD0(PrepareNextSyncTask, int(void));

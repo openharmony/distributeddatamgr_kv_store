@@ -18,6 +18,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "native_sqlite.h"
 #include "platform_specific.h"
+#include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_import.h"
 #include "sqlite_log_table_manager.h"
 
@@ -385,4 +386,43 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalBranchErrAfterClose, TestSize.Lev
     EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetRelationalSchema(g_db, strSchema));
     EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::GetLogTableVersion(g_db, strSchema));
     EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::CheckTableExists(g_db, tableName, isEmpty));
+}
+
+/**
+ * @tc.name: AbnormalSqliteCloudKvExecutorUtilsTest001
+ * @tc.desc: Test sqlite cloud kv executor utils abnormal
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalSqliteCloudKvExecutorUtilsTest001, TestSize.Level1)
+{
+    SqliteCloudKvExecutorUtils cloudKvObj;
+    sqlite3 *db = nullptr;
+    CloudSyncData data;
+    CloudUploadRecorder recorder;
+
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/test.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    ASSERT_NE(db, nullptr);
+
+    data.isCloudVersionRecord = false;
+    int ret = cloudKvObj.FillCloudLog({db, true}, OpType::INSERT, data, "", recorder);
+    EXPECT_EQ(ret, E_OK);
+
+    std::vector<VBucket> dataVector;
+    ret = cloudKvObj.GetWaitCompensatedSyncDataPk(db, true, dataVector);
+    EXPECT_NE(ret, E_OK);
+    std::vector<VBucket> dataUser;
+    ret = cloudKvObj.GetWaitCompensatedSyncDataUserId(db, true, dataUser);
+    EXPECT_NE(ret, E_OK);
+    ret = cloudKvObj.GetWaitCompensatedSyncData(db, true, dataVector, dataUser);
+    EXPECT_NE(ret, E_OK);
+    std::vector<std::string> gid;
+    std::string user("USER");
+    QuerySyncObject query;
+    ret = cloudKvObj.QueryCloudGid(db, true, user, query, gid);
+    EXPECT_NE(ret, E_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }

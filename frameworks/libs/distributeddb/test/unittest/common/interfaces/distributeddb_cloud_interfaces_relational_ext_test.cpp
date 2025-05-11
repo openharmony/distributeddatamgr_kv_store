@@ -1276,6 +1276,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateTest001,
      * @tc.expected: step2. return ok.
      */
     auto delegateImpl = static_cast<RelationalStoreDelegateImpl *>(delegate);
+    ClearMetaDataOption option;
+    EXPECT_EQ(delegateImpl->ClearMetaData(option), OK);
+    option.tableNameList.insert("asdad");
+    EXPECT_EQ(delegateImpl->ClearMetaData(option), NOT_SUPPORT);
     status = delegateImpl->Close();
     EXPECT_EQ(status, OK);
 
@@ -1724,6 +1728,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     begin = 20; // 21 is begin id
     PrepareDataForStoreObserver(db, tableName, begin, dataCounts);
     EXPECT_TRUE(g_changedData.empty());
+    UnregisterDbHook(db);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
@@ -1851,5 +1856,45 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
      */
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
+}
+
+/**
+ * @tc.name: FuncExceptionTest001
+ * @tc.desc: Test the interception exception of the interface
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FuncExceptionTest001, TestSize.Level1)
+{
+    std::shared_ptr<StoreObserver> iStoreObserver = nullptr;
+    EXPECT_EQ(RegisterStoreObserver(nullptr, iStoreObserver), INVALID_ARGS);
+    EXPECT_EQ(UnregisterStoreObserver(nullptr, iStoreObserver), INVALID_ARGS);
+    iStoreObserver = std::make_shared<StoreObserver>();
+    EXPECT_EQ(RegisterStoreObserver(nullptr, iStoreObserver), INVALID_ARGS);
+    EXPECT_EQ(UnregisterStoreObserver(nullptr, iStoreObserver), INVALID_ARGS);
+
+    EXPECT_EQ(RelationalStoreManager::CalcPrimaryKeyHash({}, {}).size(), 0u);
+    std::map<std::string, Type> pkMap1 = {{"fielddInt", 0L}};
+    std::map<std::string, CollateType> ctMap1 = {{"fielddInt", CollateType::COLLATE_BUTT}};
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap1, ctMap1);
+    EXPECT_TRUE(result.empty());
+
+    std::map<std::string, Type> pkMap2 = {{"FIELDINT", 0L}, {"FIELDSTR", std::string("FIELDSTR")}};
+    std::map<std::string, CollateType> ctMap2;
+    ctMap2.insert_or_assign("fieldint", CollateType::COLLATE_BUTT);
+    ctMap2.insert_or_assign("fieldstr", CollateType::COLLATE_BUTT);
+    result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap2, ctMap2);
+    EXPECT_TRUE(result.empty());
+
+    ctMap2.insert_or_assign("fieldint", CollateType::COLLATE_NOCASE);
+    ctMap2.insert_or_assign("fieldstr", CollateType::COLLATE_NOCASE);
+    result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap2, ctMap2);
+    EXPECT_FALSE(result.empty());
+
+    std::map<std::string, std::string> entries2;
+    pkMap2.insert_or_assign("FIELDINT", entries2);
+    result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap2, ctMap2);
+    EXPECT_TRUE(result.empty());
 }
 }
