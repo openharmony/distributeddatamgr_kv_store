@@ -1117,7 +1117,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGidInner(const st
 int SQLiteSingleVerRelationalStorageExecutor::RenewTableTrigger(DistributedTableMode mode,
     const TableInfo &tableInfo, TableSyncType syncType, const std::string &localIdentity)
 {
-    auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, syncType);
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
     return tableManager->AddRelationalLogTableTrigger(dbHandle_, tableInfo, localIdentity);
 }
 

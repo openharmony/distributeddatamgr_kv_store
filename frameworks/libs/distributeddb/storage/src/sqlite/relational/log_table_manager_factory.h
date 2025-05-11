@@ -24,8 +24,7 @@
 namespace DistributedDB {
 class LogTableManagerFactory final {
 public:
-    static std::unique_ptr<SqliteLogTableManager> GetTableManager(const TableInfo &tableInfo,
-        DistributedTableMode mode, TableSyncType syncType);
+    static std::unique_ptr<SqliteLogTableManager> GetTableManager(DistributedTableMode mode, TableSyncType syncType);
 
 private:
     LogTableManagerFactory() {}
