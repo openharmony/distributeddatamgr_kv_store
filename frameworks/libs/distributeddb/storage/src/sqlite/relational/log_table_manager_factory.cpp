@@ -32,6 +32,6 @@ std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(c
     if (!tableInfo.GetTrackerTable().IsEmpty()) {
         return std::make_unique<DeviceTrackerLogTableManager>();
     }
-        return std::make_unique<CollaborationLogTableManager>();
+    return std::make_unique<CollaborationLogTableManager>();
 }
 }
