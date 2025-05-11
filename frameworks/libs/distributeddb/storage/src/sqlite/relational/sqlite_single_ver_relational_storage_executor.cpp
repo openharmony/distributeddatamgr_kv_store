@@ -220,11 +220,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
 {
     // create log table
     std::unique_ptr<SqliteLogTableManager> tableManager;
-    if (!table.GetTrackerTable().IsEmpty() && table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
-        tableManager = std::make_unique<DeviceTrackerLogTableManager>();
-    } else {
-        tableManager = LogTableManagerFactory::GetTableManager(mode, table.GetTableSyncType());
-    }
+    tableManager = LogTableManagerFactory::GetTableManager(table, mode, table.GetTableSyncType());
     if (tableManager == nullptr) {
         LOGE("[CreateRelationalLogTable] get table manager failed");
         return -E_INVALID_DB;
@@ -1892,7 +1888,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::stri
 int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo,
     TableSyncType syncType)
 {
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
+    auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, syncType);
     auto logName = DBCommon::GetLogTableName(tableInfo.GetTableName());
     std::string sql = "UPDATE " + logName + " SET hash_key = hash_key || '_old' where data_key in " +
         "(select _rowid_ from '" + tableInfo.GetTableName() + "');";

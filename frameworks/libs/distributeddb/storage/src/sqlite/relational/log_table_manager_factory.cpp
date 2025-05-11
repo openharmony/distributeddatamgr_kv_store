@@ -16,19 +16,22 @@
 #include "log_table_manager_factory.h"
 #include "cloud_sync_log_table_manager.h"
 #include "collaboration_log_table_manager.h"
+#include "device_tracker_log_table_manager.h"
 #include "split_device_log_table_manager.h"
 
 namespace DistributedDB {
-std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(DistributedTableMode mode,
-    TableSyncType syncType)
+std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(const TableInfo &tableInfo,
+    DistributedTableMode mode, TableSyncType syncType)
 {
     if (syncType == CLOUD_COOPERATION) {
         return std::make_unique<CloudSyncLogTableManager>();
-    } else {
-        if (mode == DistributedTableMode::COLLABORATION) {
-            return std::make_unique<CollaborationLogTableManager>();
-        }
+    }
+    if (mode == DistributedTableMode::SPLIT_BY_DEVICE) {
         return std::make_unique<SplitDeviceLogTableManager>();
     }
+    if (!tableInfo.GetTrackerTable().IsEmpty()) {
+        return std::make_unique<DeviceTrackerLogTableManager>();
+    }
+    return std::make_unique<CollaborationLogTableManager>();
 }
 }

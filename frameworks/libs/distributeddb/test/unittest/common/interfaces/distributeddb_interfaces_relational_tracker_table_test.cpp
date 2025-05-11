@@ -2437,7 +2437,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038,
     std::string checkInsertSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
         " where cursor='10';";
     ASSERT_EQ(sqlite3_exec(g_db, checkInsertSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
     /**
      * @tc.steps:step4. Update data to table2 then check tracker table data
@@ -2469,7 +2469,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest038,
     std::string checkDeleteSql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
         " where cursor='17';";
     ASSERT_EQ(sqlite3_exec(g_db, checkDeleteSql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();
 }
 
@@ -2691,7 +2691,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest044,
     EXPECT_EQ(count, 10);
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    CheckCursor(11, 20, g_db);
     CloseStore();
 }
 
@@ -2837,13 +2836,12 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest041,
 
     TrackerSchema schema = g_normalSchema1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
-    int index = 0;
     stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::string cursorVal;
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, cursorVal), E_OK);
-        EXPECT_EQ(cursorVal, std::to_string(++index));
+        EXPECT_EQ(cursorVal, "");
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     CloseStore();
