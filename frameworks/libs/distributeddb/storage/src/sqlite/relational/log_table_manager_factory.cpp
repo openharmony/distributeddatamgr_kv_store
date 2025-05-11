@@ -16,7 +16,7 @@
 #include "log_table_manager_factory.h"
 #include "cloud_sync_log_table_manager.h"
 #include "collaboration_log_table_manager.h"
-include "device_tracker_log_table_manager.h"
+#include "device_tracker_log_table_manager.h"
 #include "split_device_log_table_manager.h"
 
 namespace DistributedDB {
