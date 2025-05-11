@@ -26,11 +26,11 @@ std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(c
     if (syncType == CLOUD_COOPERATION) {
         return std::make_unique<CloudSyncLogTableManager>();
     }
-    if (mode == DistributedTableMode::SPLIT_BY_DEVICE) {
-        return std::make_unique<SplitDeviceLogTableManager>();
-    }
     if (!tableInfo.GetTrackerTable().IsEmpty()) {
         return std::make_unique<DeviceTrackerLogTableManager>();
+    }
+    if (mode == DistributedTableMode::SPLIT_BY_DEVICE) {
+        return std::make_unique<SplitDeviceLogTableManager>();
     }
     return std::make_unique<CollaborationLogTableManager>();
 }
