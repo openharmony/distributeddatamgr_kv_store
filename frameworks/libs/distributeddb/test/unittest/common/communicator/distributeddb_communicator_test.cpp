@@ -1410,4 +1410,31 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter005, TestSize.Level1)
     adapterA->SetDBInfoHandle(nullptr);
     EXPECT_EQ(adapterA->IsNeedAutoSync(USER_ID, APP_ID, STORE_ID_1, deviceB), true);
 }
+
+/**
+  * @tc.name: AbnormalCommunicatorTest001
+  * @tc.desc: Test communicator abnormal.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
+HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Level1)
+{
+    ICommunicator *commAA = nullptr;
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+    EXPECT_EQ(commAA, nullptr);
+    int errCode = E_OK;
+    commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errCode);
+    SendConfig conf = {true, false, 0};
+    Message *msgForAA = nullptr;
+    errCode = commAA->SendMessage(DEVICE_NAME_A, msgForAA, conf);
+    EXPECT_NE(errCode, E_OK);
+    msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    errCode = commAA->SendMessage("", msgForAA, conf);
+    EXPECT_NE(errCode, E_OK);
+    errCode = commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    g_envDeviceA.commAggrHandle->ClearOnlineLabel();
+}
 }

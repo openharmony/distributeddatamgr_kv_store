@@ -820,6 +820,33 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck004, TestSize.Level1)
 }
 
 /**
+ * @tc.name: DataSyncCheck005
+ * @tc.desc: Test dataSync do ability sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lg
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck005, TestSize.Level1)
+{
+    MockSingleVerDataSync mockDataSync;
+    auto mockMetadata = std::make_shared<MockMetadata>();
+    MockSyncTaskContext mockSyncTaskContext;
+    SyncTimeRange dataTimeRange = {1, 0, 1, 0};
+    mockDataSync.CallUpdateSendInfo(dataTimeRange, &mockSyncTaskContext);
+
+    VirtualRelationalVerSyncDBInterface storage;
+    MockCommunicator communicator;
+    std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
+    mockDataSync.Initialize(&storage, &communicator, metadata, "deviceId");
+
+    EXPECT_CALL(*mockMetadata, GetLocalWaterMark(_, _)).WillOnce(Return());
+    std::vector<uint64_t> reserved;
+    mockDataSync.CallDealRemoveDeviceDataByAck(&mockSyncTaskContext, 1, reserved);
+    reserved.push_back(1);
+    mockDataSync.CallDealRemoveDeviceDataByAck(&mockSyncTaskContext, 1, reserved);
+}
+
+/**
  * @tc.name: AutoLaunchCheck001
  * @tc.desc: Test autoLaunch close connection.
  * @tc.type: FUNC
@@ -2400,5 +2427,26 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTimerResetTest001, TestSize.Level1
     EXPECT_EQ(stateMachine.CallStartWatchDog(), E_OK);
     EXPECT_EQ(stateMachine.CallPrepareNextSyncTask(), E_OK);
     stateMachine.CallStopWatchDog();
+}
+
+/**
+ * @tc.name: SingleVerSyncStateMachineTest001
+ * @tc.desc: Test it will return ok when sync with a timer already exists.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lg
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerSyncStateMachineTest001, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    EXPECT_EQ(stateMachine.Initialize(nullptr, nullptr, metaData, nullptr), -E_INVALID_ARGS);
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    EXPECT_EQ(stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metaData, &communicator), -E_INVALID_ARGS);
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    stateMachine.CallSyncStepInner();
+    stateMachine.CallSetCurStateErrStatus();
 }
 }

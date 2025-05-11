@@ -53,6 +53,12 @@ public:
     }
 
     MOCK_METHOD1(RemoveDeviceDataIfNeed, int(SingleVerSyncTaskContext *));
+
+    int CallDealRemoveDeviceDataByAck(
+        SingleVerSyncTaskContext *context, WaterMark ackWaterMark, const std::vector<uint64_t> &reserved)
+    {
+        return SingleVerDataSync::DealRemoveDeviceDataByAck(context, ackWaterMark, reserved);
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SINGLE_VER_DATA_SYNC_H

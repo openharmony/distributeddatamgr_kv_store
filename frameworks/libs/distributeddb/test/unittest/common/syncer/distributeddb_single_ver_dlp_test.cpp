@@ -15,16 +15,20 @@
 
 #include <condition_variable>
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <thread>
 
 #include "db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "generic_single_ver_kv_entry.h"
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
+#include "mock_sync_task_context.h"
 #include "platform_specific.h"
 #include "relational_store_manager.h"
 #include "runtime_config.h"
+#include "single_ver_data_sync_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -36,8 +40,10 @@ namespace {
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     const std::string DEVICE_A = "real_device";
     const std::string DEVICE_B = "deviceB";
+    const std::string DEVICE_C = "deviceC";
     const std::string KEY_INSTANCE_ID = "INSTANCE_ID";
     KvVirtualDevice *g_deviceB = nullptr;
+    KvVirtualDevice *g_deviceC = nullptr;
     DistributedDBToolsUnitTest g_tool;
 
     DBStatus OpenDelegate(const std::string &dlpPath, KvStoreNbDelegate *&delegatePtr,
@@ -107,7 +113,14 @@ namespace {
     }
 }
 
+class MockVirtualSingleVerSyncDBInterface : public VirtualSingleVerSyncDBInterface {
+public:
+    MOCK_CONST_METHOD1(GetSecurityOption, int(SecurityOption &));
+};
+
 class DistributedDBSingleVerDLPTest : public testing::Test {
+public:
+    MockVirtualSingleVerSyncDBInterface *syncInterfaceC = nullptr;
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -147,9 +160,14 @@ void DistributedDBSingleVerDLPTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_deviceB = new (std::nothrow) KvVirtualDevice(DEVICE_B);
     ASSERT_TRUE(g_deviceB != nullptr);
+    g_deviceC = new (std::nothrow) KvVirtualDevice(DEVICE_C);
+    ASSERT_TRUE(g_deviceC != nullptr);
     VirtualSingleVerSyncDBInterface *syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(syncInterfaceB != nullptr);
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
+    syncInterfaceC = new (std::nothrow) MockVirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceC != nullptr);
+    ASSERT_EQ(g_deviceC->Initialize(g_communicatorAggregator, syncInterfaceC), E_OK);
 }
 
 void DistributedDBSingleVerDLPTest::TearDown(void)
@@ -157,6 +175,10 @@ void DistributedDBSingleVerDLPTest::TearDown(void)
     if (g_deviceB != nullptr) {
         delete g_deviceB;
         g_deviceB = nullptr;
+    }
+    if (g_deviceC != nullptr) {
+        delete g_deviceC;
+        g_deviceC = nullptr;
     }
     PermissionCheckCallbackV3 nullCallback = nullptr;
     RuntimeConfig::SetPermissionCheckCallback(nullCallback);
@@ -304,6 +326,106 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync001, TestSize.Level1)
     EXPECT_EQ(result[DEVICE_B], OK);
 
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
+}
+
+/**
+ * @tc.name: SingleVerUtilsTest001
+ * @tc.desc: Test single verification utils function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lg
+ */
+HWTEST_F(DistributedDBSingleVerDLPTest, SingleVerUtilsTest001, TestSize.Level0)
+{
+    bool isCheckStatus;
+    EXPECT_EQ(SingleVerDataSyncUtils::QuerySyncCheck(nullptr, isCheckStatus), -E_INVALID_ARGS);
+    MockSyncTaskContext context;
+    context.SetQuerySync(true);
+    context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_1_0);
+    EXPECT_EQ(SingleVerDataSyncUtils::QuerySyncCheck(&context, isCheckStatus), OK);
+    context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_3_0);
+    EXPECT_EQ(SingleVerDataSyncUtils::QuerySyncCheck(&context, isCheckStatus), OK);
+    EXPECT_EQ(SingleVerDataSyncUtils::RequestQueryCheck(nullptr, nullptr), -E_INVALID_ARGS);
+
+    std::string deviceId;
+    SecurityOption option;
+    EXPECT_EQ(SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(deviceId, option, nullptr), false);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_)).WillOnce(testing::Return(-E_INVALID_DB));
+    EXPECT_EQ(SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(deviceId, option, syncInterfaceC), false);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_)).WillRepeatedly(testing::Return(E_OK));
+    EXPECT_EQ(SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(deviceId, option, syncInterfaceC), false);
+    std::vector<SendDataItem> outData = {nullptr};
+    SingleVerDataSyncUtils::TransDbDataItemToSendDataItem(deviceId, outData);
+    SingleVerDataSyncUtils::TransSendDataItemToLocal(&context, deviceId, outData);
+    int errNo = E_OK;
+    auto communicator = g_communicatorAggregator->AllocCommunicator(12345, errNo);
+    EXPECT_EQ(SingleVerDataSyncUtils::CheckPermitReceiveData(&context, communicator, syncInterfaceC), false);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_)).WillRepeatedly(testing::Return(-E_NOT_SUPPORT));
+    EXPECT_EQ(SingleVerDataSyncUtils::CheckPermitReceiveData(&context, communicator, syncInterfaceC), true);
+    option.securityLabel = SecurityLabel::S0;
+    context.SetRemoteSeccurityOption(option);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_))
+        .WillRepeatedly(testing::Invoke([](SecurityOption &option) {
+            option.securityLabel = SecurityLabel::S1;
+            return E_OK;
+        }));
+    EXPECT_EQ(SingleVerDataSyncUtils::CheckPermitReceiveData(&context, communicator, syncInterfaceC), true);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_))
+        .WillRepeatedly(testing::Invoke([](SecurityOption &option) {
+            option.securityLabel = SecurityLabel::S1;
+            return E_OK;
+        }));
+    option.securityLabel = FAILED_GET_SEC_CLASSIFICATION;
+    context.SetRemoteSeccurityOption(option);
+    EXPECT_EQ(SingleVerDataSyncUtils::CheckPermitReceiveData(&context, communicator, syncInterfaceC), false);
+    EXPECT_CALL(*syncInterfaceC, GetSecurityOption(testing::_)).Times(testing::AtLeast(0));
+    g_communicatorAggregator->ReleaseCommunicator(communicator);
+}
+
+/**
+ * @tc.name: SingleVerUtilsTest002
+ * @tc.desc: Test single verification utils function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lg
+ */
+HWTEST_F(DistributedDBSingleVerDLPTest, SingleVerUtilsTest002, TestSize.Level0)
+{
+    MockSyncTaskContext context;
+    context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_3_0);
+    context.SetTaskErrCode(-E_EKEYREVOKED);
+    context.SetMode(SyncModeType::PUSH_AND_PULL);
+    SingleVerDataSyncUtils::PushAndPullKeyRevokHandle(&context);
+    EXPECT_EQ(SingleVerDataSyncUtils::GetReSendMode(SyncModeType::RESPONSE_PULL, 1, SyncType::QUERY_SYNC_TYPE),
+        SyncModeType::QUERY_PUSH);
+    EXPECT_EQ(SingleVerDataSyncUtils::GetReSendMode(SyncModeType::QUERY_PUSH_PULL, 1, SyncType::QUERY_SYNC_TYPE),
+        SyncModeType::QUERY_PUSH_PULL);
+    EXPECT_EQ(SingleVerDataSyncUtils::GetReSendMode(SyncModeType::QUERY_PUSH_PULL, 0, SyncType::QUERY_SYNC_TYPE),
+        SyncModeType::QUERY_PUSH);
+    EXPECT_EQ(
+        SingleVerDataSyncUtils::GetControlCmdType(SyncModeType::QUERY_PUSH_PULL), ControlCmdType::INVALID_CONTROL_CMD);
+    EXPECT_EQ(SingleVerDataSyncUtils::GetModeByControlCmdType(ControlCmdType::INVALID_CONTROL_CMD),
+        SyncModeType::INVALID_MODE);
+    EXPECT_EQ(SingleVerDataSyncUtils::GetModeByControlCmdType(ControlCmdType::UNSUBSCRIBE_QUERY_CMD),
+        SyncModeType::UNSUBSCRIBE_QUERY);
+    QuerySyncObject query;
+    EXPECT_EQ(SingleVerDataSyncUtils::IsNeedTriggerQueryAutoSync(nullptr, query), false);
+    Message msg;
+    msg.SetMessageId(CONTROL_SYNC_MESSAGE);
+    msg.SetMessageType(TYPE_REQUEST);
+    EXPECT_EQ(SingleVerDataSyncUtils::IsNeedTriggerQueryAutoSync(&msg, query), false);
+    std::vector<SendDataItem> inData = {nullptr};
+    SingleVerDataSyncUtils::GetMaxSendDataTime(inData);
+    UpdateWaterMark isUpdate;
+    auto kvEnv = new (std::nothrow) GenericSingleVerKvEntry();
+    inData.push_back(kvEnv);
+    SingleVerDataSyncUtils::GetFullSyncDataTimeRange(inData, 100, isUpdate);
+    SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, 100, 100, isUpdate);
+    DataItem dataItem;
+    dataItem.flag = DataItem::DELETE_FLAG;
+    kvEnv->SetEntryData(std::move(dataItem));
+    SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, 100, 100, isUpdate);
+    delete kvEnv;
 }
 
 /**

@@ -20,6 +20,7 @@
 #include "db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
 
 using namespace testing::ext;
@@ -883,5 +884,37 @@ namespace {
         columns["id"] = "id";
         tableReferenceProperty.columns = columns;
         EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
+    }
+
+    /**
+     * @tc.name: FuncExceptionTest001
+     * @tc.desc: Test the interception exception of the delegate interface when the conn is empty.
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+     */
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, FuncExceptionTest001, TestSize.Level1)
+    {
+        RelationalStoreConnection *iConn = nullptr;
+        std::string iPath = "";
+        auto iDelegate = std::make_shared<RelationalStoreDelegateImpl>(iConn, iPath);
+        EXPECT_EQ(iDelegate->SetStoreConfig({}), OK);
+        EXPECT_EQ(iDelegate->SetStoreConfig({DistributedTableMode::COLLABORATION}), DB_ERROR);
+
+        ClearMetaDataOption iOption;
+        iOption.tableNameList.insert(STORE_ID);
+        #ifdef USE_DISTRIBUTEDDB_CLOUD
+        EXPECT_EQ(iDelegate->ClearMetaData(iOption), NOT_SUPPORT);
+        iOption.tableNameList.clear();
+        EXPECT_EQ(iDelegate->ClearMetaData(iOption), DB_ERROR);
+        #endif
+        iOption.mode = ClearMetaDataMode::BUTT;
+        EXPECT_EQ(iDelegate->ClearMetaData(iOption), INVALID_ARGS);
+
+        EXPECT_EQ(iDelegate->GetDownloadingAssetsCount().first, DB_ERROR);
+        EXPECT_EQ(iDelegate->SetDistributedSchema({}, false), DB_ERROR);
+
+        iDelegate->SetReleaseFlag(false);
+        iDelegate = nullptr;
     }
 }
