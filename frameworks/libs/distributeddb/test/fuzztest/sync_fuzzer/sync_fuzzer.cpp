@@ -19,6 +19,7 @@
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "virtual_communicator_aggregator.h"
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
@@ -28,7 +29,9 @@
 namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
-
+static constexpr const int MOD = 1024; // 1024 is mod
+static constexpr const int HUNDRED = 100;
+static constexpr const int TEN = 10;
 /* Keep C++ file names the same as the class name. */
 class SyncFuzzer {
 };
@@ -88,36 +91,37 @@ void TearDownTestCase()
     }
 }
 
-std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<Key> keys)
+std::vector<Entry> CreateEntries(FuzzedDataProvider &fdp, std::vector<Key> keys)
 {
     std::vector<Entry> entries;
     // key'length is less than 1024.
-    auto count = static_cast<int>(std::min(size, size_t(1024)));
+    auto count = fdp.ConsumeIntegralInRange<int32_t>(0, MOD);
     for (int i = 1; i < count; i++) {
         Entry entry;
-        entry.key = std::vector<uint8_t>(data, data + i);
+        entry.key = fdp.ConsumeBytes<uint8_t>(1);
         keys.push_back(entry.key);
-        entry.value = std::vector<uint8_t>(data, data + size);
+        size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
+        entry.value = fdp.ConsumeBytes<uint8_t>(size);
         entries.push_back(entry);
     }
     return entries;
 }
 
-void NormalSyncPush(const uint8_t* data, size_t size, bool isWithQuery = false)
+void NormalSyncPush(FuzzedDataProvider &fdp, bool isWithQuery = false)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
         return;
     }
     std::vector<Key> keys;
-    std::vector<Entry> tmp = CreateEntries(data, size, keys);
+    std::vector<Entry> tmp = CreateEntries(fdp, keys);
     g_kvDelegatePtr->PutBatch(tmp);
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     std::map<std::string, DBStatus> result;
     if (isWithQuery) {
-        int len = std::min(size, size_t(100));
-        Key tmpKey = std::vector<uint8_t>(data, data + len);
+        int len = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
+        Key tmpKey = fdp.ConsumeBytes<uint8_t>(len);
         Query query = Query::Select().PrefixKey(tmpKey);
         DistributedDBToolsTest::SyncTestWithQuery(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, query);
     } else {
@@ -126,14 +130,14 @@ void NormalSyncPush(const uint8_t* data, size_t size, bool isWithQuery = false)
     TearDownTestCase();
 }
 
-void NormalSyncPull(const uint8_t* data, size_t size, bool isWithQuery = false)
+void NormalSyncPull(FuzzedDataProvider &fdp, bool isWithQuery = false)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
         return;
     }
     std::vector<Key> keys;
-    std::vector<Entry> tmp = CreateEntries(data, size, keys);
+    std::vector<Entry> tmp = CreateEntries(fdp, keys);
     g_kvDelegatePtr->PutBatch(tmp);
     int i = 0;
     for (auto &item : tmp) {
@@ -149,8 +153,8 @@ void NormalSyncPull(const uint8_t* data, size_t size, bool isWithQuery = false)
     devices.push_back(g_deviceB->GetDeviceId());
     std::map<std::string, DBStatus> result;
     if (isWithQuery) {
-        int len = std::min(size, size_t(100));
-        Key tmpKey = std::vector<uint8_t>(data, data + len);
+        int len = fdp.ConsumeIntegralInRange<size_t>(0, HUNDRED);
+        Key tmpKey = fdp.ConsumeBytes<uint8_t>(len);
         Query query = Query::Select().PrefixKey(tmpKey);
         DistributedDBToolsTest::SyncTestWithQuery(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, query);
     } else {
@@ -159,21 +163,20 @@ void NormalSyncPull(const uint8_t* data, size_t size, bool isWithQuery = false)
     TearDownTestCase();
 }
 
-void NormalSyncPushAndPull(const uint8_t* data, size_t size, bool isWithQuery = false)
+void NormalSyncPushAndPull(FuzzedDataProvider &fdp, bool isWithQuery = false)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
         return;
     }
     std::vector<Key> keys;
-    std::vector<Entry> tmp = CreateEntries(data, size, keys);
+    std::vector<Entry> tmp = CreateEntries(fdp, keys);
     g_kvDelegatePtr->PutBatch(tmp);
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     std::map<std::string, DBStatus> result;
     if (isWithQuery) {
-        int len = std::min(size, size_t(100));
-        Key tmpKey = std::vector<uint8_t>(data, data + len);
+        Key tmpKey = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<int>(0, HUNDRED));
         Query query = Query::Select().PrefixKey(tmpKey);
         DistributedDBToolsTest::SyncTestWithQuery(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result, query);
     } else {
@@ -182,7 +185,7 @@ void NormalSyncPushAndPull(const uint8_t* data, size_t size, bool isWithQuery = 
     TearDownTestCase();
 }
 
-void SubscribeOperation(const uint8_t* data, size_t size)
+void SubscribeOperation(FuzzedDataProvider &fdp)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
@@ -193,9 +196,11 @@ void SubscribeOperation(const uint8_t* data, size_t size)
     Query query2 = Query::Select().EqualTo("$.field_name1", 1).Limit(20, 0);
     g_kvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query2, true);
     std::set<Key> keys;
-    int count = std::min(size, size_t(3));
+    int countMax = 3;
+    int count = fdp.ConsumeIntegralInRange<int>(0, countMax);
+    int byteLen = 1;
     for (int i = 0; i < count; i++) {
-        Key tmpKey = std::vector<uint8_t>(data + i, data + i + 1);
+        Key tmpKey = fdp.ConsumeBytes<uint8_t>(byteLen);
         keys.insert(tmpKey);
     }
     Query query = Query::Select().InKeys(keys);
@@ -205,49 +210,42 @@ void SubscribeOperation(const uint8_t* data, size_t size)
     TearDownTestCase();
 }
 
-void OtherOperation(const uint8_t* data, size_t size)
+void OtherOperation(FuzzedDataProvider &fdp)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
         return;
     }
-    int len = std::min(size, size_t(10));
-    std::string tmpIdentifier(data, data + len);
+    std::string tmpIdentifier = fdp.ConsumeRandomLengthString(TEN);
     std::vector<std::string> targets;
-    int j = 0;
-    int count = std::min(size, size_t(4));
+    int countMax = 4;
+    int count = fdp.ConsumeIntegralInRange<int>(0, countMax);
     for (int i = 0; i < count; i++) {
-        std::string tmpStr(data + j, data + j + 1);
-        j = j + 10; // target size is 10
+        std::string tmpStr = fdp.ConsumeBytesAsString(1);
         targets.push_back(tmpStr);
-        if ((1 + j) >= static_cast<int>(size)) {
-            break;
-        }
     }
     g_kvDelegatePtr->SetEqualIdentifier(tmpIdentifier, targets);
     TearDownTestCase();
 }
 
-void PragmaOperation(const uint8_t* data, size_t size)
+void PragmaOperation(FuzzedDataProvider &fdp)
 {
     SetUpTestcase();
     if (g_kvDelegatePtr == nullptr) {
         return;
     }
-    bool autoSync = (size == 0) ? true : data[0];
+    bool autoSync = fdp.ConsumeBool();
     PragmaData praData = static_cast<PragmaData>(&autoSync);
     g_kvDelegatePtr->Pragma(AUTO_SYNC, praData);
 
     PragmaDeviceIdentifier param1;
-    int len = std::min(size, size_t(100));
-    std::string tmpStr(data, data + len);
+    std::string tmpStr = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<int>(0, HUNDRED));
     param1.deviceID = tmpStr;
     PragmaData input = static_cast<void *>(&param1);
     g_kvDelegatePtr->Pragma(GET_IDENTIFIER_OF_DEVICE, input);
 
     PragmaEntryDeviceIdentifier param2;
-    len = std::min(size, size_t(10)); // use min 10
-    param2.key.assign(data, data + len);
+    param2.key = fdp.ConsumeBytes<uint8_t>(TEN);
     param2.origDevice = false;
     input = static_cast<void *>(&param2);
     g_kvDelegatePtr->Pragma(GET_DEVICE_IDENTIFIER_OF_ENTRY, input);
@@ -256,11 +254,7 @@ void PragmaOperation(const uint8_t* data, size_t size)
     input = static_cast<PragmaData>(&size2);
     g_kvDelegatePtr->Pragma(GET_QUEUED_SYNC_SIZE, input);
 
-    int limit = 1; // init 1
-    if (size > sizeof(int)) {
-        auto *r = reinterpret_cast<const int *>(data);
-        limit = *r;
-    }
+    int limit = fdp.ConsumeIntegral<int>();
     input = static_cast<PragmaData>(&limit);
     g_kvDelegatePtr->Pragma(SET_QUEUED_SYNC_LIMIT, input);
 
@@ -270,21 +264,21 @@ void PragmaOperation(const uint8_t* data, size_t size)
     TearDownTestCase();
 }
 
-void FuzzSync(const uint8_t* data, size_t size)
+void FuzzSync(FuzzedDataProvider &fdp)
 {
     KvStoreConfig config;
     DistributedDBToolsTest::TestDirInit(config.dataDir);
     g_mgr.SetKvStoreConfig(config);
     InitEnv();
-    NormalSyncPush(data, size);
-    NormalSyncPull(data, size);
-    NormalSyncPushAndPull(data, size);
-    NormalSyncPush(data, size, true);
-    NormalSyncPull(data, size, true);
-    NormalSyncPushAndPull(data, size, true);
-    SubscribeOperation(data, size);
-    OtherOperation(data, size);
-    PragmaOperation(data, size);
+    NormalSyncPush(fdp);
+    NormalSyncPull(fdp);
+    NormalSyncPushAndPull(fdp);
+    NormalSyncPush(fdp, true);
+    NormalSyncPull(fdp, true);
+    NormalSyncPushAndPull(fdp, true);
+    SubscribeOperation(fdp);
+    OtherOperation(fdp);
+    PragmaOperation(fdp);
     FinalizeEnv();
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
 }
@@ -293,7 +287,8 @@ void FuzzSync(const uint8_t* data, size_t size)
 /* Fuzzer entry point */
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    OHOS::FuzzSync(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::FuzzSync(fdp);
     return 0;
 }
 

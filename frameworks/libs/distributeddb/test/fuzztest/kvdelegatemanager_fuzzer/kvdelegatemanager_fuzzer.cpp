@@ -20,6 +20,7 @@
 #include <securec.h>
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "kv_store_delegate_manager.h"
 #include "log_print.h"
 #include "runtime_config.h"
@@ -31,27 +32,13 @@ class KvDelegateManagerFuzzer {
 namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
-
+static constexpr const int MOD = 1024; // 1024 is mod
 KvStoreDelegateManager g_mgr("APP_ID", "USER_ID");
 const std::string DUMP_DISTRIBUTED_DB = "--database";
 
-std::string GetString(const uint8_t *data, size_t size, size_t len, uint32_t &start)
+void GetAutoLaunchOption(FuzzedDataProvider &fdp, AutoLaunchOption &option)
 {
-    std::string res;
-    if (size == 0) {
-        return "";
-    }
-    if (start >= size || start + len >= size) {
-        return std::string(data, data + size - 1);
-    }
-    res = std::string(data + start, data + start + len - 1);
-    start += len;
-    return res;
-}
-
-void GetAutoLaunchOption(const uint8_t* data, size_t size, AutoLaunchOption &option)
-{
-    std::string randomStr = size == 0 ? "" : std::string(data, data + size - 1);
+    std::string randomStr = fdp.ConsumeRandomLengthString();
     option.schema = randomStr;
     option.observer = nullptr;
     option.notifier = nullptr;
@@ -68,11 +55,11 @@ void RuntimeConfigFuzz()
     RuntimeConfig::Dump(handle, params);
 }
 
-void CallbackFuzz(const uint8_t *data, std::string storeId)
+void CallbackFuzz(FuzzedDataProvider &fdp, std::string storeId)
 {
-    uint64_t diskSize = static_cast<uint64_t>(*data);
+    uint64_t diskSize = fdp.ConsumeIntegral<uint64_t>();
     g_mgr.GetKvStoreDiskSize(storeId, diskSize);
-    bool isPermissionCheck = static_cast<bool>(*data);
+    bool isPermissionCheck = fdp.ConsumeBool();
     auto permissionCheckCallback = [isPermissionCheck](const std::string &userId, const std::string &appId,
         const std::string &storeId, uint8_t flag) -> bool { return isPermissionCheck; };
     (void) KvStoreDelegateManager::SetPermissionCheckCallback(permissionCheckCallback);
@@ -81,38 +68,38 @@ void CallbackFuzz(const uint8_t *data, std::string storeId)
             return isPermissionCheck;
     };
     (void) KvStoreDelegateManager::SetPermissionCheckCallback(permissionCheckCallbackV2);
-    bool isSyncActivationCheck = static_cast<bool>(*data);
+    bool isSyncActivationCheck = fdp.ConsumeBool();
     auto syncActivationCheck = [isSyncActivationCheck](const std::string &userId, const std::string &appId,
         const std::string &storeId) -> bool { return isSyncActivationCheck; };
     KvStoreDelegateManager::SetSyncActivationCheckCallback(syncActivationCheck);
     KvStoreDelegateManager::NotifyUserChanged();
 }
 
-void CombineTest(const uint8_t *data, size_t size)
+void CombineTest(FuzzedDataProvider &fdp)
 {
     LOGD("Begin KvDelegateManagerFuzzer");
     std::string path;
     DistributedDBToolsTest::TestDirInit(path);
     const int paramCount = 3;
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(paramCount, MOD);
     for (size_t len = 1; len < (size / paramCount); len++) {
-        uint32_t start = 0;
-        std::string appId = GetString(data, size, len, start);
-        std::string userId = GetString(data, size, len, start);
-        std::string storeId = GetString(data, size, len, start);
+        std::string appId = fdp.ConsumeRandomLengthString();
+        std::string userId = fdp.ConsumeRandomLengthString();
+        std::string storeId = fdp.ConsumeRandomLengthString();
         std::string dir;
         (void) KvStoreDelegateManager::GetDatabaseDir(storeId, appId, userId, dir);
         (void) KvStoreDelegateManager::GetDatabaseDir(storeId, dir);
         (void) KvStoreDelegateManager::SetProcessLabel(appId, userId);
-        bool syncDualTupleMode = static_cast<bool>(*data);
+        bool syncDualTupleMode = fdp.ConsumeBool();
         (void) KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
         AutoLaunchOption option;
-        GetAutoLaunchOption(data, size, option);
+        GetAutoLaunchOption(fdp, option);
         option.dataDir = path;
         (void) KvStoreDelegateManager::EnableKvStoreAutoLaunch(userId, appId, storeId, option, nullptr);
         (void) KvStoreDelegateManager::DisableKvStoreAutoLaunch(userId, appId, storeId);
-        CallbackFuzz(data, storeId);
-        std::string targetDev = GetString(data, size, len, start);
-        bool isCheckOk = static_cast<bool>(*data);
+        CallbackFuzz(fdp, storeId);
+        std::string targetDev = fdp.ConsumeRandomLengthString();
+        bool isCheckOk = fdp.ConsumeBool();
         auto databaseStatusNotifyCallback = [userId, appId, storeId, targetDev, &isCheckOk] (
             const std::string &notifyUserId, const std::string &notifyAppId, const std::string &notifyStoreId,
             const std::string &deviceId, bool onlineStatus) -> void {
@@ -133,6 +120,7 @@ void CombineTest(const uint8_t *data, size_t size)
 /* Fuzzer entry point */
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    OHOS::CombineTest(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(fdp);
     return 0;
 }

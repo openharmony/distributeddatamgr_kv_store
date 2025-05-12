@@ -26,6 +26,7 @@
 #include "distributeddb_tools_test.h"
 #include "log_print.h"
 #include "fuzzer_data.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "relational_store_client.h"
 #include "relational_store_delegate.h"
 #include "relational_store_manager.h"
@@ -98,14 +99,13 @@ public:
         }
     }
 
-    void FuzzTest(const uint8_t* data, size_t size)
+    void FuzzTest(FuzzedDataProvider &fdp)
     {
-        FuzzerData fuzzData(data, size);
-        if (!SetAndGetLocalWaterMark(TABLE_NAME_1, fuzzData.GetUInt64())) {
+        if (!SetAndGetLocalWaterMark(TABLE_NAME_1, fdp.ConsumeIntegral<uint64_t>())) {
             LOGE("Set and get local watermark unsuccess");
             return;
         }
-        std::string cloudMark = fuzzData.GetString(size);
+        std::string cloudMark = fdp.ConsumeRandomLengthString();
         if (!SetAndGetCloudWaterMark(TABLE_NAME_1, cloudMark)) {
             LOGE("Set and get cloud watermark unsuccess");
             return;
@@ -224,12 +224,12 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void CombineTest(const uint8_t* data, size_t size)
+void CombineTest(FuzzedDataProvider &fdp)
 {
     if (g_storageFuzzerTest == nullptr) {
         return;
     }
-    g_storageFuzzerTest->FuzzTest(data, size);
+    g_storageFuzzerTest->FuzzTest(fdp);
 }
 
 class ClientStoreObserver : public StoreObserver {
@@ -353,16 +353,15 @@ void LockAndUnLockFuzz(std::string tableName, int count)
     sqlite3_close_v2(db);
 }
 
-void CombineClientFuzzTest(const uint8_t *data, size_t size)
+void CombineClientFuzzTest(FuzzedDataProvider &fdp)
 {
-    FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32() % MOD;
-    std::string tableName = fuzzerData.GetString(len);
+    uint32_t len = fdp.ConsumeIntegralInRange<uint32_t>(0, MOD);
+    std::string tableName = fdp.ConsumeRandomLengthString(len);
     ClientObserverFuzz(tableName);
     StoreObserverFuzz(tableName);
-    uint64_t num = fuzzerData.GetUInt64();
+    uint64_t num = fdp.ConsumeIntegral<uint64_t>();
     DropLogicDeletedDataFuzz(tableName, num);
-    int count = fuzzerData.GetInt();
+    int count = fdp.ConsumeIntegral<int>();
     LockAndUnLockFuzz(tableName, count);
 }
 }
@@ -371,8 +370,9 @@ void CombineClientFuzzTest(const uint8_t *data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     OHOS::Setup();
-    OHOS::CombineTest(data, size);
-    OHOS::CombineClientFuzzTest(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(fdp);
+    OHOS::CombineClientFuzzTest(fdp);
     OHOS::TearDown();
     return 0;
 }

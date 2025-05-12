@@ -16,6 +16,7 @@
 #include "kvstoreresultset_fuzzer.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "process_communicator_test_stub.h"
 
 using namespace DistributedDB;
@@ -24,7 +25,8 @@ using namespace std;
 
 namespace OHOS {
 static auto g_kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
-void ResultSetFuzzer(const uint8_t* data, size_t size)
+static constexpr const int MOD = 1024; // 1024 is mod
+void ResultSetFuzzer(FuzzedDataProvider &fdp)
 {
     KvStoreNbDelegate::Option option = {true, false, true};
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
@@ -41,11 +43,10 @@ void ResultSetFuzzer(const uint8_t* data, size_t size)
 
     Key testKey;
     Value testValue;
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
     for (size_t i = 0; i < size; i++) {
-        testKey.clear();
-        testValue.clear();
-        testKey.push_back(data[i]);
-        testValue.push_back(data[i]);
+        testKey = fdp.ConsumeBytes<uint8_t>(1);
+        testValue = fdp.ConsumeBytes<uint8_t>(1);
         kvNbDelegatePtr->Put(testKey, testValue);
     }
 
@@ -63,7 +64,7 @@ void ResultSetFuzzer(const uint8_t* data, size_t size)
         if (size == 0) {
             return;
         }
-        auto pos = KvStoreResultSetFuzzer::U32_AT(data) % size;
+        auto pos = fdp.ConsumeIntegralInRange<size_t>(0, size);
         readResultSet->MoveToPosition(pos++);
         readResultSet->Move(0 - pos);
         readResultSet->IsFirst();
@@ -88,7 +89,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     KvStoreConfig config;
     DistributedDBToolsTest::TestDirInit(config.dataDir);
     OHOS::g_kvManager.SetKvStoreConfig(config);
-    OHOS::ResultSetFuzzer(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::ResultSetFuzzer(fdp);
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
     return 0;
 }

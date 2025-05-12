@@ -17,6 +17,7 @@
 #include <list>
 #include "distributeddb_tools_test.h"
 #include "db_info_handle.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
 #include "runtime_config.h"
@@ -87,12 +88,18 @@ public:
         onDeviceChange_(devInfo, isOnline);
     }
 
-    void FuzzOnDataReceive(const  DistributedDB::DeviceInfos &devInfo, const uint8_t* data, size_t size)
+    void FuzzOnDataReceive(const  DistributedDB::DeviceInfos &devInfo, FuzzedDataProvider &provider)
     {
         if (onDataReceive_ == nullptr) {
             return;
         }
+        size_t dataLen = 1024;
+        uint32_t size = provider.ConsumeIntegralInRange<size_t>(0, dataLen);;
+        uint8_t* data = static_cast<uint8_t*>(new uint8_t[size]);
+        provider.ConsumeData(data, size);
         onDataReceive_(devInfo, data, size);
+        delete[] static_cast<uint8_t*>(data);
+        data = nullptr;
     }
 
 private:
@@ -147,10 +154,10 @@ public:
     }
 };
 
-void CommunicatorFuzzer(const uint8_t *data, size_t size)
+void CommunicatorFuzzer(FuzzedDataProvider &provider)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
-    std::string rawString(reinterpret_cast<const char*>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     KvStoreDelegateManager::SetProcessLabel(rawString, "defaut");
     auto communicator = std::make_shared<ProcessCommunicatorFuzzTest>();
     KvStoreDelegateManager::SetProcessCommunicator(communicator);
@@ -173,7 +180,7 @@ void CommunicatorFuzzer(const uint8_t *data, size_t size)
             }
         });
     DeviceInfos device = {"defaut"};
-    communicator->FuzzOnDataReceive(device, data, size);
+    communicator->FuzzOnDataReceive(device, provider);
     if (kvNbDelegatePtr != nullptr) {
         kvManager.CloseKvStore(kvNbDelegatePtr);
         kvManager.DeleteKvStore(rawString);
@@ -188,6 +195,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (size < 4) {
         return 0;
     }
-    OHOS::CommunicatorFuzzer(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CommunicatorFuzzer(fdp);
     return 0;
 }

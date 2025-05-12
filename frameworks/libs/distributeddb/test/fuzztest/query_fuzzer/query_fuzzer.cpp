@@ -15,6 +15,7 @@
 
 #include "query_fuzzer.h"
 #include "fuzzer_data.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "get_query_info.h"
 
 using namespace DistributedDB;
@@ -25,106 +26,118 @@ namespace {
 }
 
 namespace OHOS {
-void FuzzEqualTo(const uint8_t* data, size_t size)
+void FuzzEqualTo(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
-    Query query = Query::Select().EqualTo(rawString, static_cast<int>(size));
+    std::string rawString = provider.ConsumeRandomLengthString();
+    int size = provider.ConsumeIntegral<int>();
+    Query query = Query::Select().EqualTo(rawString, size);
 }
 
-void FuzzNotEqualTo(const uint8_t* data, size_t size)
+void FuzzNotEqualTo(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().NotEqualTo(TEST_FIELD_NAME, rawString);
 }
 
-void FuzzGreaterThan(const uint8_t* data, size_t size)
+void FuzzGreaterThan(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
-    Query query = Query::Select().GreaterThan(rawString, static_cast<int>(QueryFuzzer::U32_AT(data)));
+    std::string rawString = provider.ConsumeRandomLengthString();
+    int size = provider.ConsumeIntegral<int>();
+    Query query = Query::Select().GreaterThan(rawString, size);
 }
 
-void FuzzLessThan(const uint8_t* data, size_t size)
+void FuzzLessThan(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().LessThan(TEST_FIELD_NAME, rawString);
 }
 
-void FuzzGreaterThanOrEqualTo(const uint8_t* data, size_t size)
+void FuzzGreaterThanOrEqualTo(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
+    size_t size = provider.ConsumeIntegral<size_t>();
     Query query = Query::Select().GreaterThanOrEqualTo(rawString, static_cast<int>(size));
 }
 
-void FuzzLessThanOrEqualTo(const uint8_t* data, size_t size)
+void FuzzLessThanOrEqualTo(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().LessThanOrEqualTo(TEST_FIELD_NAME, rawString);
 }
 
-void FuzzOrderBy(const uint8_t* data, size_t size)
+void FuzzOrderBy(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     (void)Query::Select().GreaterThanOrEqualTo(rawString, true);
     (void)Query::Select().GreaterThanOrEqualTo(rawString, false);
 }
 
-void FuzzLimit(const uint8_t* data, size_t size)
+void FuzzLimit(FuzzedDataProvider &provider)
 {
-    Query query = Query::Select().Limit(static_cast<int>(size), static_cast<int>(QueryFuzzer::U32_AT(data)));
+    int size1 = provider.ConsumeIntegral<int>();
+    int size2 = provider.ConsumeIntegral<int>();
+    Query query = Query::Select().Limit(size1, size2);
 }
 
-void FuzzLike(const uint8_t* data, size_t size)
+void FuzzLike(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().Like(rawString, rawString);
 }
 
-void FuzzNotLike(const uint8_t* data, size_t size)
+void FuzzNotLike(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().NotLike(TEST_FIELD_NAME, rawString);
 }
 
-void FuzzIn(const uint8_t* data, size_t size)
+void FuzzIn(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     std::vector<std::string> values;
     // 512 max size
-    for (int i = 0; i < static_cast<int>(QueryFuzzer::U32_AT(data) % 512); i++) {
+    int maxSize = 512;
+    int size = provider.ConsumeIntegralInRange<int>(0, maxSize);
+    for (int i = 0; i < size; i++) {
         values.push_back(rawString);
     }
     Query query = Query::Select().In(TEST_FIELD_NAME, values);
 }
 
-void FuzzNotIn(const uint8_t* data, size_t size)
+void FuzzNotIn(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     std::vector<std::string> values;
     // 512 max size
-    for (int i = 0; i < static_cast<int>(size % 512); i++) {
+    int maxSize = 512;
+    int size = provider.ConsumeIntegralInRange<int>(0, maxSize);
+    for (int i = 0; i < size; i++) {
         values.push_back(rawString);
     }
     Query query = Query::Select().NotIn(TEST_FIELD_NAME, values);
 }
 
-void FuzzIsNull(const uint8_t* data, size_t size)
+void FuzzIsNull(FuzzedDataProvider &provider)
 {
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().IsNull(rawString);
 }
 
-void FuzzAssetsOnly(const uint8_t *data, size_t size)
+void FuzzAssetsOnly(FuzzedDataProvider &provider)
 {
-    DistributedDBTest::FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32();
     const int lenMod = 30;  // 30 is mod for string vector size
-    std::string tableName = fuzzerData.GetString(len % lenMod);
-    std::string fieldName = fuzzerData.GetString(len % lenMod);
+    std::string tableName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod));
+    std::string fieldName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod));
     std::map<std::string, std::set<std::string>> assets;
-    assets[fuzzerData.GetString(len % lenMod)] = fuzzerData.GetStringSet(len % lenMod);
+    std::set<std::string> set;
+    size_t size = provider.ConsumeIntegral<size_t>();
+    for (size_t i = 1; i <= size; i++) {
+        set.insert(provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, i)));
+    }
+    assets[provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod))] = set;
     Query query = Query::Select().From(tableName)
                       .BeginGroup()
-                      .EqualTo(fieldName, fuzzerData.GetInt())
+                      .EqualTo(fieldName, provider.ConsumeIntegral<int>())
                       .And()
                       .AssetsOnly(assets)
                       .EndGroup();
@@ -138,21 +151,22 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     if (size < 4) {
         return 0;
     }
+    FuzzedDataProvider provider(data, size);
     // Run your code on data
-    OHOS::FuzzEqualTo(data, size);
-    OHOS::FuzzNotEqualTo(data, size);
-    OHOS::FuzzGreaterThan(data, size);
-    OHOS::FuzzLessThan(data, size);
-    OHOS::FuzzGreaterThanOrEqualTo(data, size);
-    OHOS::FuzzLessThanOrEqualTo(data, size);
-    OHOS::FuzzOrderBy(data, size);
-    OHOS::FuzzLimit(data, size);
-    OHOS::FuzzLike(data, size);
-    OHOS::FuzzNotLike(data, size);
-    OHOS::FuzzIn(data, size);
-    OHOS::FuzzNotIn(data, size);
-    OHOS::FuzzIsNull(data, size);
-    OHOS::FuzzAssetsOnly(data, size);
+    OHOS::FuzzEqualTo(provider);
+    OHOS::FuzzNotEqualTo(provider);
+    OHOS::FuzzGreaterThan(provider);
+    OHOS::FuzzLessThan(provider);
+    OHOS::FuzzGreaterThanOrEqualTo(provider);
+    OHOS::FuzzLessThanOrEqualTo(provider);
+    OHOS::FuzzOrderBy(provider);
+    OHOS::FuzzLimit(provider);
+    OHOS::FuzzLike(provider);
+    OHOS::FuzzNotLike(provider);
+    OHOS::FuzzIn(provider);
+    OHOS::FuzzNotIn(provider);
+    OHOS::FuzzIsNull(provider);
+    OHOS::FuzzAssetsOnly(provider);
     return 0;
 }
 
