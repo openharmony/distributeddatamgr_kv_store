@@ -39,7 +39,7 @@ protected:
     static KvStoreConfig GetKvStoreConfig();
     mutable std::mutex storeMutex_;
     std::optional<KvStoreNbDelegate::Option> option_;
-    std::map<StoreInfo, KvStoreNbDelegate *, StoreComparator> stores_;
+    std::map<StoreInfo, KvStoreNbDelegate *> stores_;
     DistributedDBUnitTest::DistributedDBToolsUnitTest tool_;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
 };

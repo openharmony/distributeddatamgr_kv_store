@@ -549,6 +549,31 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     return errCode;
 }
 
+int SQLiteSingleVerNaturalStore::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+
+    int errCode = E_OK;
+    SecurityOption option;
+    (void)GetSecurityOption(option);
+    bool isWrite = (option.securityLabel >= S3) && (option.securityFlag == SECE);
+    // meta in S3 SECE open meta.db, should use write handle
+    auto handle = GetHandle(isWrite, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->GetMetaDataByPrefixKey(keyPrefix, data);
+    ReleaseHandle(handle);
+    HeartBeatForLifeCycle();
+    return errCode;
+}
+
 int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
     (void)isInTransaction;

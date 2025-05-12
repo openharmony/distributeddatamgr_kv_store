@@ -35,6 +35,7 @@ public:
     MOCK_METHOD2(RegOnMessageCallback, int(const OnMessageCallback &, const Finalizer &));
     MOCK_METHOD1(Activate, void(const std::string &));
     MOCK_CONST_METHOD1(IsDeviceOnline, bool(const std::string &));
+    MOCK_CONST_METHOD1(GetTargetUserId, std::string(const ExtendInfo &));
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_COMMUNICATOR_H

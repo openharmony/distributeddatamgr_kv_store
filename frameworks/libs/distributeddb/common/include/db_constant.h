@@ -120,6 +120,7 @@ public:
 
     // Prefix Key in meta db
     static constexpr const char *DEVICEID_PREFIX_KEY = "deviceId";
+    static constexpr const char *USERID_PREFIX_KEY = "userId";
     static constexpr const char *QUERY_SYNC_PREFIX_KEY = "querySync";
     static constexpr const char *DELETE_SYNC_PREFIX_KEY = "deleteSync";
 
@@ -201,6 +202,8 @@ public:
     static constexpr const char *KV_LOCAL_TABLE_NAME = "local_data";
 
     static constexpr const char *ROWID = "rowid";
+
+    static constexpr const char *DEFAULT_USER = "default_user";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

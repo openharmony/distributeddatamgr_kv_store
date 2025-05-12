@@ -50,23 +50,25 @@ public:
 
     int Initialize(ISyncInterface *storage);
 
-    int GetQueryWaterMark(const std::string &queryIdentify, const std::string &deviceId,
+    int GetQueryWaterMark(const std::string &queryIdentify, const std::string &deviceId, const std::string &userId,
         QueryWaterMark &queryWaterMark);
 
     int SetSendQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, const WaterMark &waterMark);
+        const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
     int SetRecvQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, const WaterMark &waterMark);
+        const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
     int SetLastQueryTime(const std::string &queryIdentify,
-        const std::string &deviceId, const Timestamp &timestamp);
+        const std::string &deviceId, const std::string &userId, const Timestamp &timestamp);
 
-    int GetDeleteSyncWaterMark(const std::string &deviceId, DeleteWaterMark &deleteWaterMark);
+    int GetDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId,
+        DeleteWaterMark &deleteWaterMark);
 
-    int SetSendDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
+    int SetSendDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
-    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark, bool isNeedHash);
+    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, const WaterMark &waterMark,
+        bool isNeedHash);
 
     // this function will read deleteWaterMark from db by it's deleteWaterMarkKey
     // and then serialize it and put to cache
@@ -76,7 +78,8 @@ public:
     int RemoveLeastUsedQuerySyncItems(const std::vector<Key> &querySyncIds);
 
     // reset the waterMark to zero
-    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
+    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const DeviceID &userId, const std::string &tableName,
+        bool isNeedHash);
 
     static std::string GetQuerySyncPrefixKey();
 
@@ -85,6 +88,8 @@ public:
 private:
 
     int GetMetadataFromDb(const std::vector<uint8_t> &key, std::vector<uint8_t> &outValue);
+
+    int GetMetadataByPrefixKeyFromDb(const Key &prefixKey, std::map<Key, Value> &data);
 
     int SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector<uint8_t> &inValue);
 
@@ -107,7 +112,7 @@ private:
 
     // get the querySync hashId in cache_ or generate one and then put it in to cache_
     // the hashId is made up of "QUERY_SYNC_PREFIX_KEY" + hash(deviceId) + queryId
-    DeviceID GetHashQuerySyncDeviceId(const DeviceID &deviceId, const DeviceID &queryId);
+    DeviceID GetHashQuerySyncDeviceId(const DeviceID &deviceId, const DeviceID &userId, const DeviceID &queryId);
 
     // put queryWaterMark to lru cache_ and then save to db
     int UpdateCacheAndSave(const std::string &cacheKey, QueryWaterMark &queryWaterMark);
@@ -118,11 +123,13 @@ private:
 
     // get the deleteSync hashId in cache_ or generate one and then put it in to cache_
     // the hashId is made up of "DELETE_SYNC_PREFIX_KEY" + hash(deviceId)
-    DeviceID GetHashDeleteSyncDeviceId(const DeviceID &deviceId, bool isNeedHash = true);
+    DeviceID GetHashDeleteSyncDeviceId(const DeviceID &deviceId, const DeviceID &userId, bool isNeedHash = true);
 
     int SaveDeleteWaterMarkToDB(const DeviceID &hashDeviceId, const DeleteWaterMark &deleteWaterMark);
 
     int GetDeleteWaterMarkFromDB(const DeviceID &hashDeviceId, DeleteWaterMark &deleteWaterMark);
+
+    int GetDeleteWatersMarkFromDB(const DeviceID &hashId, std::map<Key, DeleteWaterMark> &deleteWaterMarks);
 
     // put queryWaterMark to lru cache_ and then save to db
     int UpdateDeleteSyncCacheAndSave(const std::string &dbKey, const DeleteWaterMark &deleteWaterMark);
@@ -143,11 +150,11 @@ private:
     // because it will change the eliminationChain
     // and the queryWaterMark use a LRU Map to store in ram
     std::mutex queryWaterMarkLock_;
-    std::map<DeviceID, std::map<std::string, std::string>> deviceIdToHashQuerySyncIdMap_;
+    std::map<DeviceSyncTarget, std::map<std::string, std::string>> deviceIdToHashQuerySyncIdMap_;
 
     // also store deleteKeyWaterMark should add a lock
     std::mutex deleteSyncLock_;
-    std::map<DeviceID, std::string> deviceIdToHashDeleteSyncIdMap_;
+    std::map<DeviceSyncTarget, std::string> deviceIdToHashDeleteSyncIdMap_;
 
     ISyncInterface *storage_;
 };

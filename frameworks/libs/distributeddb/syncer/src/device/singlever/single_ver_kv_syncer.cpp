@@ -266,7 +266,8 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
             std::string queryId = query.GetIdentify();
             WaterMark queryWaterMark = 0;
             uint64_t lastTimestamp = metadata->GetQueryLastTimestamp(device, queryId);
-            errCode = metadata->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
+            // Auto sync does not support multi-user sync, The userId param is set to "".
+            errCode = metadata->GetSendQueryWaterMark(queryId, device, "", queryWaterMark, false);
             if (errCode != E_OK) {
                 LOGE("[Syncer] get queryId=%s,dev=%s watermark failed", STR_MASK(queryId), STR_MASK(device));
                 continue;

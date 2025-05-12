@@ -55,6 +55,8 @@ public:
 
     void Dump(int fd);
 
+    std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
+
 private:
     ICommunicator *mainComm_;
     mutable std::mutex devCommMapLock_;

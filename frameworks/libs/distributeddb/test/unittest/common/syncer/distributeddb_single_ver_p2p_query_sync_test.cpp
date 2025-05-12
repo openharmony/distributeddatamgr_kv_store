@@ -792,17 +792,17 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark001, TestSize.
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 1;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", w1), E_OK);
-    EXPECT_EQ(meta.SetSendQueryWaterMark("Q1", "D1", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SetSendQueryWaterMark("Q1", "D1", "", w1), E_OK);
 
     /**
      * @tc.steps: step3. get receive and send watermark
      * @tc.expected: step3. E_OK and get the latest value
      */
     WaterMark w = 0;
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
-    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
 
     /**
@@ -810,16 +810,16 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark001, TestSize.
      * @tc.expected: step4. E_OK
      */
     WaterMark w2 = 2;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D1", w2), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w2, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D1", "", w2), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w2, true), E_OK);
 
     /**
      * @tc.steps: step5. get receive and send watermark
      * @tc.expected: step5. E_OK and get the w1
      */
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w2, w);
-    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w2, w);
 
     /**
@@ -827,25 +827,25 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark001, TestSize.
      * @tc.expected: step6. E_OK
      */
     WaterMark w3 = 3;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D2", w3), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D2", w3, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D2", "", w3), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D2", "", w3, true), E_OK);
 
     /**
      * @tc.steps: step7. get receive and send watermark
      * @tc.expected: step7. E_OK and get the w3
      */
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q2", "D2", w), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q2", "D2", "", w), E_OK);
     EXPECT_EQ(w3, w);
-    EXPECT_EQ(meta.GetSendQueryWaterMark("Q2", "D2", w), E_OK);
+    EXPECT_EQ(meta.GetSendQueryWaterMark("Q2", "D2", "", w), E_OK);
     EXPECT_EQ(w3, w);
 
     /**
      * @tc.steps: step8. get not exit receive and send watermark
      * @tc.expected: step8. E_OK and get the 0
      */
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q3", "D3", w), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q3", "D3", "", w), E_OK);
     EXPECT_EQ(w, 0u);
-    EXPECT_EQ(meta.GetSendQueryWaterMark("Q3", "D3", w), E_OK);
+    EXPECT_EQ(meta.GetSendQueryWaterMark("Q3", "D3", "", w), E_OK);
     EXPECT_EQ(w, 0u);
 }
 
@@ -873,25 +873,25 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark002, TestSize.
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 2;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D1", w1), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w1, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w1, true), E_OK);
 
     /**
      * @tc.steps: step2. save receive and send watermark
      * @tc.expected: step2. E_OK
      */
     WaterMark w2 = 1;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", w2), E_OK);
-    EXPECT_EQ(meta.SetSendQueryWaterMark("Q1", "D1", w2), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", "", w2), E_OK);
+    EXPECT_EQ(meta.SetSendQueryWaterMark("Q1", "D1", "", w2), E_OK);
 
     /**
      * @tc.steps: step3. get receive and send watermark
      * @tc.expected: step3. E_OK and get the bigger value
      */
     WaterMark w = 0;
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
-    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendQueryWaterMark("Q1", "D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
 }
 
@@ -912,13 +912,13 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark003, TestSize.
 
     const std::string DEVICE_B = "DEVICE_B";
     TimeOffset offset = 100; // 100: offset
-    meta.SaveTimeOffset(DEVICE_B, offset);
+    meta.SaveTimeOffset(DEVICE_B, "", offset);
 
     WaterMark w1 = 2; // 2: watermark
-    meta.SavePeerWaterMark(DBCommon::TransferHashString(DEVICE_B), w1, false);
+    meta.SavePeerWaterMark(DBCommon::TransferHashString(DEVICE_B), "", w1, false);
 
     TimeOffset offsetGot;
-    meta.GetTimeOffset(DEVICE_B, offsetGot);
+    meta.GetTimeOffset(DEVICE_B, "", offsetGot);
     EXPECT_EQ(offsetGot, offset);
 }
 
@@ -949,17 +949,17 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteWaterMark001, TestSize
     const WaterMark maxWaterMark = 1000u;
     std::thread recvThread([&meta, &device, &maxWaterMark]() {
         for (WaterMark expectRecv = 0u; expectRecv < maxWaterMark; ++expectRecv) {
-            EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark(device, expectRecv), E_OK);
+            EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark(device, "", expectRecv), E_OK);
             WaterMark actualRecv = 0u;
-            EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark(device, actualRecv), E_OK);
+            EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark(device, "", actualRecv), E_OK);
             EXPECT_EQ(actualRecv, expectRecv);
         }
     });
     std::thread sendThread([&meta, &device, &maxWaterMark]() {
         for (WaterMark expectSend = 0u; expectSend < maxWaterMark; ++expectSend) {
-            EXPECT_EQ(meta.SetSendDeleteSyncWaterMark(device, expectSend), E_OK);
+            EXPECT_EQ(meta.SetSendDeleteSyncWaterMark(device, "", expectSend), E_OK);
             WaterMark actualSend = 0u;
-            EXPECT_EQ(meta.GetSendDeleteSyncWaterMark(device, actualSend), E_OK);
+            EXPECT_EQ(meta.GetSendDeleteSyncWaterMark(device, "", actualSend), E_OK);
             EXPECT_EQ(actualSend, expectSend);
         }
     });
@@ -991,7 +991,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark001, TestSiz
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 1;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", "", w1), E_OK);
 
     /**
      * @tc.steps: step3. erase peer watermark
@@ -1004,7 +1004,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark001, TestSiz
      * @tc.expected: step4. E_OK receive watermark is zero
      */
     WaterMark w2 = -1;
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", w2), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", "", w2), E_OK);
     EXPECT_EQ(w2, 0u);
 
     /**
@@ -1012,14 +1012,14 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark001, TestSiz
      * @tc.expected: step5. E_OK
      */
     WaterMark w3 = 2;
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w3, true), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w3, true), E_OK);
 
     /**
      * @tc.steps: step6. get receive watermark
      * @tc.expected: step6. E_OK receive watermark is peer watermark
      */
     WaterMark w4 = -1;
-    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", w4), E_OK);
+    EXPECT_EQ(meta.GetRecvQueryWaterMark("Q1", "D1", "", w4), E_OK);
     EXPECT_EQ(w4, w3);
 }
 
@@ -1047,9 +1047,9 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSiz
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 1;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", w1), E_OK);
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q2", "D1", w1), E_OK);
-    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D2", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q2", "D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark("Q1", "D2", "", w1), E_OK);
 
     /**
      * @tc.steps: step3. erase peer watermark, make sure data remove in db
@@ -1064,13 +1064,13 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSiz
      * @tc.expected: step4. E_OK receive watermark is zero
      */
     WaterMark w2 = -1;
-    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q1", "D1", w2), E_OK);
+    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q1", "D1", "", w2), E_OK);
     EXPECT_EQ(w2, 0u);
     w2 = -1;
-    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q2", "D1", w2), E_OK);
+    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q2", "D1", "", w2), E_OK);
     EXPECT_EQ(w2, 0u);
     w2 = -1;
-    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q1", "D2", w2), E_OK);
+    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark("Q1", "D2", "", w2), E_OK);
     EXPECT_EQ(w2, w1);
 }
 
@@ -1207,7 +1207,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, Tes
     
     uint64_t val = 99; // 99 is the initial value of outValue
     uint64_t outValue = val;
-    meta.GetRemoveDataMark("D1", outValue);
+    meta.GetRemoveDataMark("D1", "", outValue);
     EXPECT_EQ(outValue, 0u);
 
     /**
@@ -1215,14 +1215,14 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, Tes
      * @tc.expected: step2. out value = 0
      */
     outValue = val;
-    meta.GetDbCreateTime("D1", outValue);
+    meta.GetDbCreateTime("D1", "", outValue);
     EXPECT_EQ(outValue, 0u);
 
     /**
      * @tc.steps: step3. call ResetMetaDataAfterRemoveData with a device not in map
      * @tc.expected: step3. return -E_NOT_FOUND
      */
-    EXPECT_EQ(meta.ResetMetaDataAfterRemoveData("D1"), -E_NOT_FOUND);
+    EXPECT_EQ(meta.ResetMetaDataAfterRemoveData("D1", ""), -E_NOT_FOUND);
 }
 
 /**
@@ -1249,17 +1249,17 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestS
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 1;
-    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", w1), E_OK);
-    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark("D1", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark("D1", "", w1), E_OK);
 
     /**
      * @tc.steps: step3. get receive and send watermark
      * @tc.expected: step3. E_OK and get the latest value
      */
     WaterMark w = 0;
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
-    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
 
     /**
@@ -1267,16 +1267,16 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestS
      * @tc.expected: step4. E_OK
      */
     WaterMark w2 = 2;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D1", w2), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w2, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D1", "", w2), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w2, true), E_OK);
 
     /**
      * @tc.steps: step5. get receive and send watermark
      * @tc.expected: step5. E_OK and get the w1
      */
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w2, w);
-    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w2, w);
 
     /**
@@ -1284,25 +1284,25 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestS
      * @tc.expected: step6. E_OK
      */
     WaterMark w3 = 3;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D2", w3), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D2", w3, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D2", "", w3), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D2", "", w3, true), E_OK);
 
     /**
      * @tc.steps: step7. get receive and send watermark
      * @tc.expected: step7. E_OK and get the w3
      */
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D2", w), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D2", "", w), E_OK);
     EXPECT_EQ(w3, w);
-    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D2", w), E_OK);
+    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D2", "", w), E_OK);
     EXPECT_EQ(w3, w);
 
     /**
      * @tc.steps: step8. get not exit receive and send watermark
      * @tc.expected: step8. E_OK and get the 0
      */
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D3", w), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D3", "", w), E_OK);
     EXPECT_EQ(w, 0u);
-    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D3", w), E_OK);
+    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D3", "", w), E_OK);
     EXPECT_EQ(w, 0u);
 }
 
@@ -1330,25 +1330,25 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark002, TestS
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 3;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D1", w1), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w1, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D1", "", w1), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w1, true), E_OK);
 
     /**
      * @tc.steps: step2. save receive and send watermark
      * @tc.expected: step2. E_OK
      */
     WaterMark w2 = 1;
-    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", w2), E_OK);
-    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark("D1", w2), E_OK);
+    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", "", w2), E_OK);
+    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark("D1", "", w2), E_OK);
 
     /**
      * @tc.steps: step3. get receive and send watermark
      * @tc.expected: step3. E_OK and get the bigger value
      */
     WaterMark w = 0;
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
-    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", w), E_OK);
+    EXPECT_EQ(meta.GetSendDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w1, w);
 }
 
@@ -1376,7 +1376,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearDeleteKeyWaterMark001, Tes
      * @tc.expected: step2. E_OK
      */
     WaterMark w1 = 1;
-    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", w1), E_OK);
+    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark("D1", "", w1), E_OK);
 
     /**
      * @tc.steps: step3. erase peer watermark
@@ -1389,7 +1389,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearDeleteKeyWaterMark001, Tes
      * @tc.expected: step4. E_OK receive watermark is zero
      */
     WaterMark w2 = -1;
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", w2), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w2), E_OK);
     EXPECT_EQ(w2, 0u);
 
     /**
@@ -1397,14 +1397,14 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearDeleteKeyWaterMark001, Tes
      * @tc.expected: step5. E_OK
      */
     WaterMark w3 = 2;
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", w3, true), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", w3, true), E_OK);
 
     /**
      * @tc.steps: step6. get receive watermark
      * @tc.expected: step6. E_OK receive watermark is peer watermark
      */
     WaterMark w4 = -1;
-    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", w4), E_OK);
+    EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w4), E_OK);
     EXPECT_EQ(w4, w3);
 }
 
@@ -1435,16 +1435,16 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataQuerySync001, Tes
     * @tc.expected: step2. E_OK
     */
     WaterMark deleteWaterMark = 1;
-    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark(deviceId, deleteWaterMark), E_OK);
-    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark(deviceId, deleteWaterMark), E_OK);
+    EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark(deviceId, "", deleteWaterMark), E_OK);
+    EXPECT_EQ(meta.SetSendDeleteSyncWaterMark(deviceId, "", deleteWaterMark), E_OK);
 
     /**
     * @tc.steps: step3. save querySync watermark
     * @tc.expected: step2. E_OK
     */
     WaterMark queryWaterMark = 2;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark(queryId, deviceId, queryWaterMark), E_OK);
-    EXPECT_EQ(meta.SetSendQueryWaterMark(queryId, deviceId, queryWaterMark), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark(queryId, deviceId, "", queryWaterMark), E_OK);
+    EXPECT_EQ(meta.SetSendQueryWaterMark(queryId, deviceId, "", queryWaterMark), E_OK);
 
     /**
     * @tc.steps: step4. initialize meta with storage
@@ -1458,18 +1458,18 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataQuerySync001, Tes
     * @tc.expected: step5. E_OK and waterMark equal to deleteWaterMark
     */
     WaterMark waterMark;
-    EXPECT_EQ(anotherMeta.GetRecvDeleteSyncWaterMark(deviceId, waterMark), E_OK);
+    EXPECT_EQ(anotherMeta.GetRecvDeleteSyncWaterMark(deviceId, "", waterMark), E_OK);
     EXPECT_EQ(waterMark, deleteWaterMark);
-    EXPECT_EQ(anotherMeta.GetSendDeleteSyncWaterMark(deviceId, waterMark), E_OK);
+    EXPECT_EQ(anotherMeta.GetSendDeleteSyncWaterMark(deviceId, "", waterMark), E_OK);
     EXPECT_EQ(waterMark, deleteWaterMark);
 
     /**
     * @tc.steps: step6. verify query sync data
     * @tc.expected: step6. E_OK and waterMark equal to queryWaterMark
     */
-    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark(queryId, deviceId, waterMark), E_OK);
+    EXPECT_EQ(anotherMeta.GetRecvQueryWaterMark(queryId, deviceId, "", waterMark), E_OK);
     EXPECT_EQ(waterMark, queryWaterMark);
-    EXPECT_EQ(anotherMeta.GetSendQueryWaterMark(queryId, deviceId, waterMark), E_OK);
+    EXPECT_EQ(anotherMeta.GetSendQueryWaterMark(queryId, deviceId, "", waterMark), E_OK);
     EXPECT_EQ(waterMark, queryWaterMark);
 }
 
@@ -1551,12 +1551,12 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataInit001, TestSize
     * @tc.steps: step2. meta save and get waterMark
     * @tc.expected: step2. expect get the same waterMark
     */
-    EXPECT_EQ(meta.SaveLocalWaterMark(deviceA, setWaterMark), E_OK);
-    EXPECT_EQ(meta.SaveLocalWaterMark(deviceB, setWaterMark), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark(deviceA, "", setWaterMark), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark(deviceB, "", setWaterMark), E_OK);
     WaterMark getWaterMark = 0;
-    meta.GetLocalWaterMark(deviceA, getWaterMark);
+    meta.GetLocalWaterMark(deviceA, "", getWaterMark);
     EXPECT_EQ(getWaterMark, setWaterMark);
-    meta.GetLocalWaterMark(deviceB, getWaterMark);
+    meta.GetLocalWaterMark(deviceB, "", getWaterMark);
     EXPECT_EQ(getWaterMark, setWaterMark);
 
 
@@ -1571,9 +1571,9 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataInit001, TestSize
     * @tc.steps: step4. get waterMark again
     * @tc.expected: step4. expect get the same waterMark
     */
-    anotherMeta.GetLocalWaterMark(deviceA, getWaterMark);
+    anotherMeta.GetLocalWaterMark(deviceA, "", getWaterMark);
     EXPECT_EQ(getWaterMark, setWaterMark);
-    anotherMeta.GetLocalWaterMark(deviceB, getWaterMark);
+    anotherMeta.GetLocalWaterMark(deviceB, "", getWaterMark);
     EXPECT_EQ(getWaterMark, setWaterMark);
 }
 
@@ -1594,7 +1594,7 @@ void InitVerifyStorageEnvironment(Metadata &meta, VirtualSingleVerSyncDBInterfac
     for (uint32_t i = startCount; i < maxStoreItems; i++) {
         std::string queryId = std::to_string(i);
         WaterMark recvWaterMark = i + 1;
-        EXPECT_EQ(meta.SetRecvQueryWaterMark(queryId, deviceId, recvWaterMark), E_OK);
+        EXPECT_EQ(meta.SetRecvQueryWaterMark(queryId, deviceId, "", recvWaterMark), E_OK);
     }
 }
 }
@@ -1622,7 +1622,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     */
     std::string newQueryId = std::to_string(maxStoreItems);
     WaterMark newWaterMark = maxStoreItems + 1;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark(newQueryId, deviceId, newWaterMark), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark(newQueryId, deviceId, "", newWaterMark), E_OK);
 
     /**
     * @tc.steps: step4. touch the first item
@@ -1630,7 +1630,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     */
     std::string firstItemKey = std::to_string(startCount);
     WaterMark firstWaterMark = 11u;
-    EXPECT_EQ(meta.SetRecvQueryWaterMark(firstItemKey, deviceId, firstWaterMark), E_OK);
+    EXPECT_EQ(meta.SetRecvQueryWaterMark(firstItemKey, deviceId, "", firstWaterMark), E_OK);
 
     /**
     * @tc.steps: step5. initialize new meta with storage
@@ -1644,7 +1644,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     * @tc.expected: step6. E_OK it still exist
     */
     WaterMark exceptWaterMark;
-    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(firstItemKey, deviceId, exceptWaterMark), E_OK);
+    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(firstItemKey, deviceId, "", exceptWaterMark), E_OK);
     EXPECT_EQ(exceptWaterMark, firstWaterMark);
 
     /**
@@ -1653,7 +1653,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     */
     WaterMark secondWaterMark;
     std::string secondQueryId = std::to_string(startCount + 1);
-    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(secondQueryId, deviceId, secondWaterMark), E_OK);
+    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(secondQueryId, deviceId, "", secondWaterMark), E_OK);
     EXPECT_EQ(secondWaterMark, 0u);
 }
 
@@ -1679,33 +1679,33 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDbCreateTime001, Test
      * @tc.expected: step4. E_OK
      */
     WaterMark value = 2;
-    EXPECT_EQ(meta.SaveLocalWaterMark("D1", value), E_OK);
-    EXPECT_EQ(meta.SavePeerWaterMark("D1", value, true), E_OK);
-    EXPECT_EQ(meta.SetDbCreateTime("D1", 10u, true), E_OK);
+    EXPECT_EQ(meta.SaveLocalWaterMark("D1", "", value), E_OK);
+    EXPECT_EQ(meta.SavePeerWaterMark("D1", "", value, true), E_OK);
+    EXPECT_EQ(meta.SetDbCreateTime("D1", "", 10u, true), E_OK);
     /**
      * @tc.steps: step3. check peer and local watermark and dbCreateTime
      * @tc.expected: step4. E_OK
      */
     WaterMark curValue = 0;
-    meta.GetLocalWaterMark("D1", curValue);
+    meta.GetLocalWaterMark("D1", "", curValue);
     EXPECT_EQ(value, curValue);
-    meta.GetPeerWaterMark("D1", curValue);
+    meta.GetPeerWaterMark("D1", "", curValue);
     EXPECT_EQ(value, curValue);
     uint64_t curDbCreatTime = 0;
-    meta.GetDbCreateTime("D1", curDbCreatTime);
+    meta.GetDbCreateTime("D1", "", curDbCreatTime);
     EXPECT_EQ(curDbCreatTime, 10u);
     /**
      * @tc.steps: step3. change dbCreateTime and check
      * @tc.expected: step4. E_OK
      */
-    EXPECT_EQ(meta.SetDbCreateTime("D1", 20u, true), E_OK);
+    EXPECT_EQ(meta.SetDbCreateTime("D1", "", 20u, true), E_OK);
     uint64_t clearDeviceDataMark = INT_MAX;
-    meta.GetRemoveDataMark("D1", clearDeviceDataMark);
+    meta.GetRemoveDataMark("D1", "", clearDeviceDataMark);
     EXPECT_EQ(clearDeviceDataMark, 1u);
-    EXPECT_EQ(meta.ResetMetaDataAfterRemoveData("D1"), E_OK);
-    meta.GetRemoveDataMark("D1", clearDeviceDataMark);
+    EXPECT_EQ(meta.ResetMetaDataAfterRemoveData("D1", ""), E_OK);
+    meta.GetRemoveDataMark("D1", "", clearDeviceDataMark);
     EXPECT_EQ(clearDeviceDataMark, 0u);
-    meta.GetDbCreateTime("D1", curDbCreatTime);
+    meta.GetDbCreateTime("D1", "", curDbCreatTime);
     EXPECT_EQ(curDbCreatTime, 20u);
 }
 
@@ -1750,7 +1750,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     */
     std::string firstItemKey = std::to_string(startCount);
     WaterMark exceptWaterMark;
-    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(firstItemKey, deviceId, exceptWaterMark), E_OK);
+    EXPECT_EQ(newMeta.GetRecvQueryWaterMark(firstItemKey, deviceId, "", exceptWaterMark), E_OK);
     EXPECT_EQ(exceptWaterMark, 1u);
 }
 

@@ -211,6 +211,7 @@ void VirtualCommunicatorAggregator::DispatchMessageInner(const std::string &srcT
         uint32_t messageId = inMsg->GetMessageId();
         Message *msg = const_cast<Message *>(inMsg);
         msg->SetTarget(srcTarget);
+        msg->SetSenderUserId(communicator->GetTargetUserId({}));
         RefObject::IncObjRef(communicator);
         auto onDispatch = onDispatch_;
         bool isNeedDelay = ((sendDelayTime_ > 0) && (delayTimes_ > 0) && (messageId == delayMessageId_) &&

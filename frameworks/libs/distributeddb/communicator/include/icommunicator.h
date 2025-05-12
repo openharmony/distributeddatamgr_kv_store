@@ -84,6 +84,8 @@ public:
     virtual int SendMessage(const std::string &dstTarget, const Message *inMsg, const SendConfig &config,
         const OnSendEnd &onEnd) = 0; // HW Code Regulation do not allow to use default parameters on virtual function
 
+    virtual std::string GetTargetUserId(const ExtendInfo &paramInfo) const = 0;
+
     virtual ~ICommunicator() {};
 };
 } // namespace DistributedDB

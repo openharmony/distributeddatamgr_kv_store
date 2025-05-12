@@ -181,9 +181,11 @@ int SingleVerDataSync::TryContinueSync(SingleVerSyncTaskContext *context, const 
     }
     if (context->IsQuerySync() && storage_->GetInterfaceType() == ISyncInterface::SYNC_RELATION) {
         Timestamp dbLastQueryTime = 0;
-        int errCode = metadata_->GetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(), dbLastQueryTime);
+        int errCode = metadata_->GetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(),
+            context->GetTargetUserId(), dbLastQueryTime);
         if (errCode == E_OK && dbLastQueryTime < lastQueryTime) {
-            errCode = metadata_->SetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(), lastQueryTime);
+            errCode = metadata_->SetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(),
+                context->GetTargetUserId(), lastQueryTime);
         }
         if (errCode != E_OK) {
             return errCode;
@@ -350,7 +352,7 @@ int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vec
         GetLocalDeleteSyncWaterMark(context, deletedStartMark);
         Timestamp lastQueryTimestamp = 0;
         int errCode = metadata_->GetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(),
-            lastQueryTimestamp);
+            context->GetTargetUserId(), lastQueryTimestamp);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -473,7 +475,7 @@ int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSync
                 return E_OK;
             }
         }
-        errCode = metadata_->SaveLocalWaterMark(deviceId, dataTimeRange.endTime);
+        errCode = metadata_->SaveLocalWaterMark(deviceId, context->GetTargetUserId(), dataTimeRange.endTime);
     } else {
         bool isNeedUpdateMark = true;
         bool isNeedUpdateDeleteMark = true;
@@ -490,7 +492,8 @@ int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSync
         }
         if (isNeedUpdateMark) {
             LOGD("label=%s,dev=%s,endTime=%" PRIu64, label_.c_str(), STR_MASK(GetDeviceId()), dataTimeRange.endTime);
-            errCode = metadata_->SetSendQueryWaterMark(queryId, deviceId, dataTimeRange.endTime);
+            errCode = metadata_->SetSendQueryWaterMark(queryId, deviceId, context->GetTargetUserId(),
+                dataTimeRange.endTime);
             if (errCode != E_OK) {
                 LOGE("[DataSync][SaveLocalWaterMark] save query metadata watermark failed,errCode=%d", errCode);
                 return errCode;
@@ -499,7 +502,8 @@ int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSync
         if (isNeedUpdateDeleteMark) {
             LOGD("label=%s,dev=%s,deleteEndTime=%" PRIu64, label_.c_str(), STR_MASK(GetDeviceId()),
                 dataTimeRange.deleteEndTime);
-            errCode = metadata_->SetSendDeleteSyncWaterMark(context->GetDeleteSyncId(), dataTimeRange.deleteEndTime);
+            errCode = metadata_->SetSendDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(),
+                dataTimeRange.deleteEndTime);
         }
     }
     if (errCode != E_OK) {
@@ -509,34 +513,36 @@ int SingleVerDataSync::SaveLocalWaterMark(SyncType syncType, const SingleVerSync
 }
 
 void SingleVerDataSync::GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify,
-    const DeviceID &deviceId, WaterMark &waterMark) const
+    const DeviceID &deviceId, const DeviceID &userId, WaterMark &waterMark) const
 {
     if (syncType != SyncType::QUERY_SYNC_TYPE) {
-        metadata_->GetPeerWaterMark(deviceId, waterMark);
+        metadata_->GetPeerWaterMark(deviceId, userId, waterMark);
         return;
     }
-    metadata_->GetRecvQueryWaterMark(queryIdentify, deviceId, waterMark);
+    metadata_->GetRecvQueryWaterMark(queryIdentify, deviceId, userId, waterMark);
 }
 
-void SingleVerDataSync::GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &waterMark)
+void SingleVerDataSync::GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, const DeviceID &userId,
+    WaterMark &waterMark)
 {
-    metadata_->GetRecvDeleteSyncWaterMark(deviceId, waterMark);
+    metadata_->GetRecvDeleteSyncWaterMark(deviceId, userId, waterMark);
 }
 
 void SingleVerDataSync::GetLocalDeleteSyncWaterMark(const SingleVerSyncTaskContext *context,
     WaterMark &waterMark) const
 {
-    metadata_->GetSendDeleteSyncWaterMark(context->GetDeleteSyncId(), waterMark, context->IsAutoLiftWaterMark());
+    metadata_->GetSendDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(), waterMark,
+        context->IsAutoLiftWaterMark());
 }
 
 void SingleVerDataSync::GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify,
     const SingleVerSyncTaskContext *context, WaterMark &waterMark) const
 {
     if (syncType != SyncType::QUERY_SYNC_TYPE) {
-        metadata_->GetLocalWaterMark(context->GetDeviceId(), waterMark);
+        metadata_->GetLocalWaterMark(context->GetDeviceId(), context->GetTargetUserId(), waterMark);
         return;
     }
-    metadata_->GetSendQueryWaterMark(queryIdentify, context->GetDeviceId(),
+    metadata_->GetSendQueryWaterMark(queryIdentify, context->GetDeviceId(), context->GetTargetUserId(),
         waterMark, context->IsAutoLiftWaterMark());
 }
 
@@ -547,7 +553,7 @@ int SingleVerDataSync::RemoveDeviceDataHandle(SingleVerSyncTaskContext *context,
     std::lock_guard<std::mutex> autoLock(removeDeviceDataLock_);
     if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
         uint64_t clearDeviceDataMark = 0;
-        metadata_->GetRemoveDataMark(context->GetDeviceId(), clearDeviceDataMark);
+        metadata_->GetRemoveDataMark(context->GetDeviceId(), context->GetTargetUserId(), clearDeviceDataMark);
         isNeedClearRemoteData = (clearDeviceDataMark == REMOVE_DEVICE_DATA_MARK);
     } else {
         const DataRequestPacket *packet = message->GetObject<DataRequestPacket>();
@@ -558,7 +564,8 @@ int SingleVerDataSync::RemoveDeviceDataHandle(SingleVerSyncTaskContext *context,
         SyncType curType = SyncOperation::GetSyncType(packet->GetMode());
         WaterMark packetLocalMark = packet->GetLocalWaterMark();
         WaterMark peerMark = 0;
-        GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(), peerMark);
+        GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(), context->GetTargetUserId(),
+            peerMark);
         isNeedClearRemoteData = ((packetLocalMark == 0) && (peerMark != 0));
     }
     if (!isNeedClearRemoteData) {
@@ -574,11 +581,11 @@ int SingleVerDataSync::RemoveDeviceDataHandle(SingleVerSyncTaskContext *context,
         }
         if (context->GetRemoteSoftwareVersion() == SOFTWARE_VERSION_EARLIEST) {
             // avoid repeat clear in ack
-            metadata_->SaveLocalWaterMark(context->GetDeviceId(), 0);
+            metadata_->SaveLocalWaterMark(context->GetDeviceId(), context->GetTargetUserId(), 0);
         }
     }
     if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
-        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId());
+        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId(), context->GetTargetUserId());
         if (errCode != E_OK) {
             (void)SendDataAck(context, message, errCode, maxSendDataTime);
             return errCode;
@@ -595,7 +602,7 @@ int SingleVerDataSync::DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *conte
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
         uint64_t clearDeviceDataMark = 0;
-        metadata_->GetRemoveDataMark(context->GetDeviceId(), clearDeviceDataMark);
+        metadata_->GetRemoveDataMark(context->GetDeviceId(), context->GetTargetUserId(), clearDeviceDataMark);
         isNeedClearRemoteData = (clearDeviceDataMark != 0);
     } else if (reserved.empty()) {
         WaterMark localMark = 0;
@@ -604,7 +611,7 @@ int SingleVerDataSync::DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *conte
     } else {
         WaterMark peerMark = 0;
         GetPeerWaterMark(curType, context->GetQuerySyncId(),
-            context->GetDeviceId(), peerMark);
+            context->GetDeviceId(), context->GetTargetUserId(), peerMark);
         isNeedClearRemoteData = ((reserved[ACK_PACKET_RESERVED_INDEX_LOCAL_WATER_MARK] == 0) && (peerMark != 0));
     }
     if (!isNeedClearRemoteData) {
@@ -618,7 +625,7 @@ int SingleVerDataSync::DealRemoveDeviceDataByAck(SingleVerSyncTaskContext *conte
         return errCode;
     }
     if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
-        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId());
+        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId(), context->GetTargetUserId());
     }
     return errCode;
 }
@@ -669,7 +676,7 @@ void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleV
     (void)storage_->GetCompressionOption(needCompressOnSync, compressionRate);
     std::string id = context->GetQuerySyncId();
     GetLocalWaterMark(curType, id, context, localMark);
-    GetPeerWaterMark(curType, id, context->GetDeviceId(), peerMark);
+    GetPeerWaterMark(curType, id, context->GetDeviceId(), context->GetTargetUserId(), peerMark);
     GetLocalDeleteSyncWaterMark(context, deleteMark);
     if (((mode != SyncModeType::RESPONSE_PULL && sendCode == E_OK)) ||
         (mode == SyncModeType::RESPONSE_PULL && sendCode == SEND_FINISHED)) {
@@ -802,7 +809,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     WaterMark localMark = 0;
     WaterMark deleteMark = 0;
     GetPeerWaterMark(syncType, context->GetQuerySyncId(),
-        context->GetDeviceId(), peerMark);
+        context->GetDeviceId(), context->GetTargetUserId(), peerMark);
     GetLocalWaterMark(syncType, context->GetQuerySyncId(), context, localMark);
     GetLocalDeleteSyncWaterMark(context, deleteMark);
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
@@ -892,11 +899,12 @@ void SingleVerDataSync::UpdatePeerWaterMark(SyncType syncType, const std::string
     }
     int errCode = E_OK;
     if (syncType != SyncType::QUERY_SYNC_TYPE) {
-        errCode = metadata_->SavePeerWaterMark(context->GetDeviceId(), peerWatermark, true);
+        errCode = metadata_->SavePeerWaterMark(context->GetDeviceId(), context->GetTargetUserId(), peerWatermark, true);
     } else {
         if (peerWatermark != 0) {
             LOGD("label=%s,dev=%s,endTime=%" PRIu64, label_.c_str(), STR_MASK(GetDeviceId()), peerWatermark);
-            errCode = metadata_->SetRecvQueryWaterMark(queryId, context->GetDeviceId(), peerWatermark);
+            errCode = metadata_->SetRecvQueryWaterMark(queryId, context->GetDeviceId(), context->GetTargetUserId(),
+                peerWatermark);
             if (errCode != E_OK) {
                 LOGE("[DataSync][UpdatePeerWaterMark] save query peer water mark failed,errCode=%d", errCode);
             }
@@ -904,7 +912,8 @@ void SingleVerDataSync::UpdatePeerWaterMark(SyncType syncType, const std::string
         if (peerDeletedWatermark != 0) {
             LOGD("label=%s,dev=%s,peerDeletedTime=%" PRIu64,
                 label_.c_str(), STR_MASK(GetDeviceId()), peerDeletedWatermark);
-            errCode = metadata_->SetRecvDeleteSyncWaterMark(context->GetDeleteSyncId(), peerDeletedWatermark);
+            errCode = metadata_->SetRecvDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(),
+                peerDeletedWatermark);
         }
     }
     if (errCode != E_OK) {
@@ -1293,7 +1302,7 @@ void SingleVerDataSync::GetPullEndWatermark(const SingleVerSyncTaskContext *cont
     if ((mode == SyncModeType::PULL) || (mode == SyncModeType::PUSH_AND_PULL)) {
         WaterMark endMark = packet->GetEndWaterMark();
         TimeOffset offset;
-        metadata_->GetTimeOffset(context->GetDeviceId(), offset);
+        metadata_->GetTimeOffset(context->GetDeviceId(), context->GetTargetUserId(), offset);
         pullEndWatermark = endMark - static_cast<WaterMark>(offset);
         LOGD("[DataSync][PullEndWatermark] packetEndMark=%" PRIu64 ",offset=%" PRId64 ",endWaterMark=%" PRIu64 ","
             "label=%s,dev=%s", endMark, offset, pullEndWatermark, label_.c_str(), STR_MASK(GetDeviceId()));
@@ -1542,9 +1551,9 @@ bool SingleVerDataSync::WaterMarkErrHandle(SyncType syncType, SingleVerSyncTaskC
     WaterMark packetDeletedMark = packet->GetDeletedWaterMark();
     WaterMark peerMark = 0;
     WaterMark deletedMark = 0;
-    GetPeerWaterMark(syncType, packet->GetQueryId(), context->GetDeviceId(), peerMark);
+    GetPeerWaterMark(syncType, packet->GetQueryId(), context->GetDeviceId(), context->GetTargetUserId(), peerMark);
     if (syncType == SyncType::QUERY_SYNC_TYPE) {
-        GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), deletedMark);
+        GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(), deletedMark);
     }
     if (syncType != SyncType::QUERY_SYNC_TYPE && packetLocalMark > peerMark) {
         LOGI("[DataSync][DataRequestRecv] packetLocalMark=%" PRIu64 ",current=%" PRIu64, packetLocalMark, peerMark);
@@ -1569,7 +1578,7 @@ int SingleVerDataSync::CheckSchemaStrategy(SingleVerSyncTaskContext *context, co
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }
-    if (metadata_->IsAbilitySyncFinish(deviceId_)) {
+    if (metadata_->IsAbilitySyncFinish(deviceId_, context->GetTargetUserId())) {
         return E_OK;
     }
     auto query = packet->GetQuery();
@@ -1620,7 +1629,7 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
         ackPacket.SetData(maxSendDataTime + 1); // + 1 to next start
     } else if (recvCode != WATER_MARK_INVALID) {
         WaterMark mark = 0;
-        GetPeerWaterMark(curType, packet->GetQueryId(), context->GetDeviceId(), mark);
+        GetPeerWaterMark(curType, packet->GetQueryId(), context->GetDeviceId(), context->GetTargetUserId(), mark);
         if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetLocalWaterMark() < mark) {
             LOGI("[DataSync][SetAckPacket] packetLocalMark=%" PRIu64 ",lockMark=%" PRIu64, packet->GetLocalWaterMark(),
                 mark);
@@ -1642,7 +1651,7 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     // while recv is not E_OK, data is peerMark, reserve[2] is deletedPeerMark value
     if (curType == SyncType::QUERY_SYNC_TYPE && recvCode != WATER_MARK_INVALID) {
         WaterMark deletedPeerMark;
-        GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), deletedPeerMark);
+        GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(), deletedPeerMark);
         if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetDeletedWaterMark() < deletedPeerMark) {
             LOGI("[DataSync][SetAckPacket] packetDeletedMark=%" PRIu64 ",deletedMark=%" PRIu64,
                 packet->GetDeletedWaterMark(), deletedPeerMark);
@@ -1725,7 +1734,7 @@ int SingleVerDataSync::RemoveDeviceDataIfNeed(SingleVerSyncTaskContext *context)
     }
     uint64_t clearRemoteDataMark = 0;
     std::lock_guard<std::mutex> autoLock(removeDeviceDataLock_);
-    metadata_->GetRemoveDataMark(context->GetDeviceId(), clearRemoteDataMark);
+    metadata_->GetRemoveDataMark(context->GetDeviceId(), context->GetTargetUserId(), clearRemoteDataMark);
     if (clearRemoteDataMark == 0) {
         return E_OK;
     }
@@ -1738,7 +1747,7 @@ int SingleVerDataSync::RemoveDeviceDataIfNeed(SingleVerSyncTaskContext *context)
         }
     }
     if (clearRemoteDataMark == REMOVE_DEVICE_DATA_MARK) {
-        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId());
+        errCode = metadata_->ResetMetaDataAfterRemoveData(context->GetDeviceId(), context->GetTargetUserId());
         if (errCode != E_OK) {
             LOGE("set %s removeDataWaterMark to false failed,errCode=%d", STR_MASK(GetDeviceId()), errCode);
             return errCode;
@@ -1758,7 +1767,7 @@ void SingleVerDataSync::FillRequestReSendPacket(SingleVerSyncTaskContext *contex
     SingleVerDataSyncUtils::SetDataRequestCommonInfo(*context, *storage_, *packet, metadata_);
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     WaterMark peerMark = 0;
-    GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(),
+    GetPeerWaterMark(curType, context->GetQuerySyncId(), context->GetDeviceId(), context->GetTargetUserId(),
         peerMark);
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     // transfer reSend mode, RESPONSE_PULL transfer to push or query push

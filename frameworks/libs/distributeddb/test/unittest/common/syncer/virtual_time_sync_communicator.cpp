@@ -151,4 +151,9 @@ void VirtualTimeSyncCommunicator::SetRemoteVersion(uint16_t remoteVersion)
 {
     version_ = remoteVersion;
 }
+
+std::string VirtualTimeSyncCommunicator::GetTargetUserId(const ExtendInfo &paramInfo) const
+{
+    return "";
+}
 } // namespace DistributedDB

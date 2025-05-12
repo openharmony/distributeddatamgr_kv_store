@@ -148,7 +148,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync001, TestSize.Level0)
         TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET + offsetA, 0);
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
@@ -157,13 +157,13 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync001, TestSize.Level0)
     g_syncInterfaceB->PutData(DistributedDBUnitTest::KEY_1, DistributedDBUnitTest::VALUE_1,
         TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET + offsetB, 0);
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
 
     /**
      * @tc.steps: step3. Register the OnMessageCallback to virtual communicator
      */
-    g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
 
     /**
@@ -193,17 +193,17 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync002, TestSize.Level0)
     g_metadataA->Initialize(g_syncInterfaceA);
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
     /**
      * @tc.steps: step2. Register the OnMessageCallback to virtual communicator
      */
-    g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step3. Fetch timeOffset value
@@ -239,7 +239,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
 
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     // set timeOffset for timeSyncA
@@ -248,12 +248,12 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
     g_metadataB->SaveLocalTimeOffset(offsetB);
 
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
     /**
      * @tc.steps: step3. Register the OnMessageCallback to virtual communicator
      */
-    g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step4. Fetch timeOffset value
@@ -282,15 +282,15 @@ HWTEST_F(DistributedDBTimeSyncTest, NetDisconnetSyncTest001, TestSize.Level0)
     g_metadataA->Initialize(g_syncInterfaceA);
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
 
-    g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step2. Disable the virtual communicator
@@ -320,12 +320,12 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
     g_metadataA->Initialize(g_syncInterfaceA);
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
@@ -388,14 +388,14 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
     g_metadataA->Initialize(g_syncInterfaceA);
     int errCode;
     // initialize timeSyncA
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
     // initialize timeSyncB
-    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
+    errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A, "");
     EXPECT_TRUE(errCode == E_OK);
-    g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
 
     Message *msg = new (std::nothrow) Message();
@@ -452,14 +452,14 @@ HWTEST_F(DistributedDBTimeSyncTest, SyncTimeout001, TestSize.Level2)
     // initialize timeSyncA
     g_metadataA->Initialize(g_syncInterfaceA);
     int errCode;
-    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_TRUE(errCode == E_OK);
 
     /**
      * @tc.steps: step1. Initialize the syncTaskContext
      * @tc.expected: step1. Initialize syncTaskContext successfully
      */
-    errCode = g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    errCode = g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     EXPECT_TRUE(errCode == E_OK);
     /**
      * @tc.steps: step2. Start the time syc task invoking StartSync() method
@@ -481,14 +481,14 @@ HWTEST_F(DistributedDBTimeSyncTest, CheckRemoteVersion001, TestSize.Level0)
 {
     // initialize timeSyncA
     g_metadataA->Initialize(g_syncInterfaceA);
-    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_EQ(errCode, E_OK);
 
     /**
      * @tc.steps: step1. Initialize the syncTaskContext
      * @tc.expected: step1. Initialize syncTaskContext successfully
      */
-    errCode = g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
+    errCode = g_syncTaskContext->Initialize({DEVICE_B, ""}, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     EXPECT_EQ(errCode, E_OK);
     /**
      * @tc.steps: step2. Check remote version
@@ -512,18 +512,18 @@ HWTEST_F(DistributedDBTimeSyncTest, SetTimeSyncFinish001, TestSize.Level0)
      * @tc.expected: step1. Initialize successfully
      */
     EXPECT_EQ(g_metadataA->Initialize(g_syncInterfaceA), E_OK);
-    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, true), E_OK);
-    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B);
+    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, "", true), E_OK);
+    int errCode = g_timeSyncA->Initialize(g_virtualCommunicator, g_metadataA, g_syncInterfaceA, DEVICE_B, "");
     EXPECT_EQ(errCode, E_OK);
     /**
      * @tc.steps: step2. Set time sync finish
      * @tc.expected: step2. meta is not finish because time sync cache is finish
      */
-    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, false), E_OK);
+    EXPECT_EQ(g_metadataA->SetTimeSyncFinishMark(DEVICE_B, "", false), E_OK);
     DeviceTimeInfo info;
     RuntimeContext::GetInstance()->SetDeviceTimeInfo(DEVICE_B, info);
     g_timeSyncA->SetTimeSyncFinishIfNeed();
-    EXPECT_FALSE(g_metadataA->IsTimeSyncFinish(DEVICE_B));
+    EXPECT_FALSE(g_metadataA->IsTimeSyncFinish(DEVICE_B, ""));
     RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
 }
 

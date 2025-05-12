@@ -56,7 +56,7 @@ public:
         const OnSendEnd &onEnd) override;
 
     // Call by CommunicatorAggregator directly
-    void OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf);
+    void OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf, const std::string &sendUser);
 
     // Call by CommunicatorAggregator directly
     void OnConnectChange(const std::string &target, bool isConnect);
@@ -67,6 +67,7 @@ public:
     // Call by CommunicatorAggregator directly
     LabelType GetCommunicatorLabel() const;
 
+    std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
 private:
     void TriggerVersionNegotiation(const std::string &dstTarget);
     void TriggerUnknownMessageFeedback(const std::string &dstTarget, Message* &oriMsg);

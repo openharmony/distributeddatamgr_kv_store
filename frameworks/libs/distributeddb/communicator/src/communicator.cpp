@@ -146,13 +146,15 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     return errCode;
 }
 
-void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf)
+void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf,
+    const std::string &sendUser)
 {
     std::lock_guard<std::mutex> messageHandleLockGuard(messageHandleMutex_);
-    if (srcTarget.size() != 0 && inBuf != nullptr && onMessageHandle_) {
+    if (!srcTarget.empty() && inBuf != nullptr && onMessageHandle_) {
         int error = E_OK;
         // if error is not E_OK, null pointer will be returned
         Message *message = ProtocolProto::ToMessage(inBuf, error);
+        message->SetSenderUserId(sendUser);
         delete inBuf;
         inBuf = nullptr;
         // message is not nullptr if error is E_OK or error is E_NOT_REGISTER.
@@ -269,6 +271,12 @@ void Communicator::TriggerUnknownMessageFeedback(const std::string &dstTarget, M
         delete buffer;
         buffer = nullptr;
     }
+}
+
+std::string Communicator::GetTargetUserId(const ExtendInfo &paramInfo) const
+{
+    std::shared_ptr<ExtendHeaderHandle> extendHandle = commAggrHandle_->GetExtendHeaderHandle(paramInfo);
+    return extendHandle->GetTargetUserId();
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(Communicator)

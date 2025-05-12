@@ -276,7 +276,7 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, co
     // Do Redeliver, the communicator is responsible to deal with the frame
     std::list<FrameInfo> framesToRedeliver = retainer_.FetchFramesForSpecificCommunicator(commLabel);
     for (auto &entry : framesToRedeliver) {
-        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer);
+        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer, entry.sendUser);
     }
 }
 
@@ -678,11 +678,12 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     LabelType toLabel = inResult.GetCommLabel();
-    std::string userId;
+    UserInfo userInfo = { .sendUser = DBConstant::DEFAULT_USER };
     if (receiveBytesInfo.headLength != 0) {
-        int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userId);;
-        if ((ret != E_OK) || (userId.empty())) {
-            LOGE("[CommAggr][AppReceive] get data user id err, ret=%d", ret);
+        int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userInfo);
+        if (ret != E_OK || userInfo.receiveUser.empty() || userInfo.sendUser.empty()) {
+            LOGE("[CommAggr][AppReceive] get data user id err, ret=%d, empty receiveUser=%d, empty sendUser=%d", ret,
+                userInfo.receiveUser.empty(), userInfo.sendUser.empty());
             delete inFrameBuffer;
             inFrameBuffer = nullptr;
             return ret != E_OK ? ret : -E_NO_TRUSTED_USER;
@@ -691,7 +692,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
         int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
-            userId);
+            userInfo);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
         }
@@ -701,7 +702,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     {
         std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
         if (onCommLackHandle_) {
-            errCode = onCommLackHandle_(toLabel, userId);
+            errCode = onCommLackHandle_(toLabel, userInfo.receiveUser);
             LOGI("[CommAggr][AppReceive] On CommLack End."); // Log in case callback block this thread
         } else {
             LOGI("[CommAggr][AppReceive] CommLackHandle invalid currently.");
@@ -710,7 +711,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     // Here we have to lock commMapMutex_ and search communicator again.
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
-        userId);
+        userInfo);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
         LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
         return E_OK;
@@ -723,13 +724,14 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
         return errCode; // The caller will display errCode in log
     }
     // Do Retention, the retainer is responsible to deal with the frame
-    retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, toLabel, inResult.GetFrameId()});
+    retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, userInfo.sendUser, toLabel,
+        inResult.GetFrameId()});
     inFrameBuffer = nullptr;
     return E_OK;
 }
 
 int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const LabelType &toLabel,
-    const DataUserInfoProc &userInfoProc, const std::string &device, std::string &userId)
+    const DataUserInfoProc &userInfoProc, const std::string &device, UserInfo &userInfo)
 {
     if (userInfoProc.processCommunicator == nullptr) {
         LOGE("[CommAggr][GetDataUserId] processCommunicator is nullptr");
@@ -744,8 +746,8 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
         LOGE("[CommAggr][GetDataUserId] userId dismatched, drop packet");
         return ret;
     }
-    if (userInfos.size() >= 1) {
-        userId = userInfos[0].receiveUser;
+    if (!userInfos.empty()) {
+        userInfo = userInfos[0];
     } else {
         LOGW("[CommAggr][GetDataUserId] userInfos is empty");
     }
@@ -753,11 +755,13 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
 }
 
 int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget,
-    SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const std::string &userId)
+    SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo)
 {
     // Ignore nonactivated communicator, which is regarded as inexistent
-    if (commMap_[userId].count(toLabel) != 0 && commMap_[userId].at(toLabel).second) {
-        commMap_[userId].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer);
+    const std::string &sendUser = userInfo.sendUser;
+    const std::string &receiveUser = userInfo.receiveUser;
+    if (commMap_[receiveUser].count(toLabel) != 0 && commMap_[receiveUser].at(toLabel).second) {
+        commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
         // Frame handed over to communicator who is responsible to delete it. The frame is deleted here after return.
         inFrameBuffer = nullptr;
         return E_OK;
@@ -770,7 +774,7 @@ int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const s
                 communicator = entry.second.first;
                 isEmpty = userCommMap.first.empty();
                 LOGW("[CommAggr][TryDeliver] Found communicator of %s, but required user is %s",
-                     userCommMap.first.c_str(), userId.c_str());
+                     userCommMap.first.c_str(), receiveUser.c_str());
                 break;
             }
         }
@@ -778,8 +782,8 @@ int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const s
             break;
         }
     }
-    if (communicator != nullptr && (userId.empty() || isEmpty)) {
-        communicator->OnBufferReceive(srcTarget, inFrameBuffer);
+    if (communicator != nullptr && (receiveUser.empty() || isEmpty)) {
+        communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
         inFrameBuffer = nullptr;
         return E_OK;
     }

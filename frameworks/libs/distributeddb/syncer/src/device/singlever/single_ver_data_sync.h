@@ -174,9 +174,9 @@ protected:
         SyncTimeRange dataTimeRange, bool isCheckBeforUpdate = false) const;
 
     void GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify, const DeviceID &deviceId,
-        WaterMark &waterMark) const;
+        const DeviceID &userId, WaterMark &waterMark) const;
 
-    void GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &waterMark);
+    void GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, const DeviceID &userId, WaterMark &waterMark);
 
     int RemoveDeviceDataHandle(SingleVerSyncTaskContext *context, const Message *message, WaterMark maxSendDataTime);
 

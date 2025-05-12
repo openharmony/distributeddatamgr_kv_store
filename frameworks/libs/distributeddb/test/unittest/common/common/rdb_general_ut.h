@@ -85,9 +85,9 @@ protected:
     int EncryptedDb(sqlite3 *db);
 
     mutable std::mutex storeMutex_;
-    std::map<StoreInfo, RelationalStoreDelegate *, StoreComparator> stores_;
-    std::map<StoreInfo, sqlite3 *, StoreComparator> sqliteDb_;
-    std::map<StoreInfo, DistributedDBUnitTest::UtDateBaseSchemaInfo, StoreComparator> schemaInfoMap_;
+    std::map<StoreInfo, RelationalStoreDelegate *> stores_;
+    std::map<StoreInfo, sqlite3 *> sqliteDb_;
+    std::map<StoreInfo, DistributedDBUnitTest::UtDateBaseSchemaInfo> schemaInfoMap_;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_ = nullptr;
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_ = nullptr;
     RelationalStoreDelegate::Option option_;

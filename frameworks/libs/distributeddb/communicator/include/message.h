@@ -142,6 +142,11 @@ public:
         target_ = inTarget;
     }
 
+    void SetSenderUserId(const std::string &userId)
+    {
+        senderUserId_ = userId;
+    }
+
     void SetPriority(Priority inPriority)
     {
         prio_ = inPriority;
@@ -185,6 +190,11 @@ public:
         return target_;
     }
 
+    std::string GetSenderUserId() const
+    {
+        return senderUserId_;
+    }
+
     Priority GetPriority() const
     {
         return prio_;
@@ -212,6 +222,7 @@ private:
 
     // Field carry supplemental info
     std::string target_;
+    std::string senderUserId_;
     Priority prio_ = Priority::LOW;
 };
 } // namespace DistributedDB

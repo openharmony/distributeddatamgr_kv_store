@@ -54,6 +54,8 @@ public:
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
 
+    int GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const;
+
     int GetAllSyncedEntries(const std::string &hashDev, std::vector<Entry> &entries) const;
 
     int SaveSyncDataItem(DataItem &dataItem, const DeviceInfo &deviceInfo,

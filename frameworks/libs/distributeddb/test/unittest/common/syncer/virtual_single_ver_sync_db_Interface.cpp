@@ -102,6 +102,22 @@ int VirtualSingleVerSyncDBInterface::GetMetaData(const Key &key, Value &value) c
     return -E_NOT_FOUND;
 }
 
+int VirtualSingleVerSyncDBInterface::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    if (readBusy_) {
+        return -E_BUSY;
+    }
+    for (const auto &metadata : metadata_) {
+        if (metadata.first.size() < keyPrefix.size()) {
+            continue;
+        }
+        if (std::equal(keyPrefix.begin(), keyPrefix.end(), metadata.first.begin())) {
+            data[metadata.first] = metadata.second;
+        }
+    }
+    return data.empty() ? -E_NOT_FOUND : E_OK;
+}
+
 int VirtualSingleVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
     (void)isInTransaction;

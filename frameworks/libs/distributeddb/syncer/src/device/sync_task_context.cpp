@@ -285,6 +285,16 @@ std::string SyncTaskContext::GetDeviceId() const
     return deviceId_;
 }
 
+std::string SyncTaskContext::GetTargetUserId() const
+{
+    return targetUserId_;
+}
+
+void SyncTaskContext::SetTargetUserId(const std::string &userId)
+{
+    targetUserId_ = userId;
+}
+
 void SyncTaskContext::SetTaskExecStatus(int status)
 {
     taskExecStatus_ = status;

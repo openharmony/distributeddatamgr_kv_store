@@ -78,6 +78,10 @@ public:
     // Get the current task deviceId.
     std::string GetDeviceId() const override;
 
+    std::string GetTargetUserId() const override;
+
+    void SetTargetUserId(const std::string &userId) override;
+
     // Set the sync task queue exec status
     void SetTaskExecStatus(int status) override;
 
@@ -260,6 +264,7 @@ protected:
     volatile int status_;
     volatile int taskExecStatus_;
     std::string deviceId_;
+    std::string targetUserId_;
     std::string syncActionName_;
     ISyncInterface *syncInterface_;
     ICommunicator *communicator_;

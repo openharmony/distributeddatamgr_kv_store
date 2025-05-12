@@ -83,6 +83,9 @@ public:
 
     void SetRemoteVersion(uint16_t remoteVersion);
 
+    std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
+
+    void SetTargetUserId(const std::string &userId);
 private:
     int TimeSync();
     int DataSync();
@@ -112,6 +115,8 @@ private:
     uint32_t mtuSize_ = 5 * 1024 * 1024; // 5 * 1024 * 1024B
 
     uint16_t remoteVersion_ = UINT16_MAX;
+
+    std::string targetUserId_;
 };
 } // namespace DistributedDB
 
