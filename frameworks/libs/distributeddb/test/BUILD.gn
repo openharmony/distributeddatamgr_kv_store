@@ -892,6 +892,54 @@ distributeddb_unittest("DistributedDBRDBDataStatusTest") {
   ]
 }
 
+config("tokenizer_config_unittest") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include",
+  ]
+
+  defines = [
+    "SQLITE_ENABLE_SNAPSHOT",
+    "SQLITE_HAS_CODEC",
+    "SQLITE_ENABLE_JSON1",
+    "USING_HILOG_LOGGER",
+    "USE_SQLITE_SYMBOLS",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+  ]
+}
+
+ohos_unittest("tokenizer_test") {
+  branch_protector_ret = "pac_ret"
+
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  module_out_path = module_output_path
+
+  sources = [ "unittest/common/tokenizer/sqlite_adapter_test.cpp" ]
+  sources += [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp" ]
+
+  configs = [ ":tokenizer_config_unittest" ]
+  cflags_cc = []
+
+  external_deps = [
+    "c_utils:utils",
+    "ffrt:libffrt",
+    "googletest:gmock_main",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "jsoncpp:jsoncpp",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
+    "zlib:libz",
+  ]
+}
+
 distributeddb_unittest("DistributedDBRDBKnowledgeTest") {
   sources =
       [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_test.cpp" ]
@@ -1029,6 +1077,7 @@ group("unittest") {
     ":DistributedDBTimeSyncTest",
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
+    ":tokenizer_test",
   ]
 
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
