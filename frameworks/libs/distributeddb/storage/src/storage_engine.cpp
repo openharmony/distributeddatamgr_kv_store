@@ -43,6 +43,7 @@ StorageEngine::StorageEngine()
 
 StorageEngine::~StorageEngine()
 {
+    LOGI("[StorageEngine] close executor");
     CloseExecutor();
 }
 
