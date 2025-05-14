@@ -17,6 +17,7 @@
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "kv_store_errno.h"
 #include "log_print.h"
 
 namespace DistributedDB {
@@ -92,11 +93,21 @@ void CloudDBProxy::RecordSyncDataTimeStampLog(std::vector<VBucket> &data, InnerA
         static_cast<int>(action), data.size(), first, last);
 }
 
+void CloudDBProxy::FillErrorToExtend(int error, std::vector<VBucket> &extend)
+{
+    for (auto &item : extend) {
+        if (item.find(CloudDbConstant::ERROR_FIELD) == item.end()) {
+            item[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(TransferDBErrno(error));
+        }
+    }
+}
+
 int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
     std::vector<VBucket> &extend, Info &uploadInfo, uint32_t &retryCount)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
+        FillErrorToExtend(static_cast<int>(-E_CLOUD_ERROR), extend);
         return -E_CLOUD_ERROR;
     }
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
@@ -115,6 +126,7 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
+        FillErrorToExtend(static_cast<int>(-E_CLOUD_ERROR), extend);
         return -E_CLOUD_ERROR;
     }
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
@@ -133,6 +145,7 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
+        FillErrorToExtend(static_cast<int>(-E_CLOUD_ERROR), extend);
         return -E_CLOUD_ERROR;
     }
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
