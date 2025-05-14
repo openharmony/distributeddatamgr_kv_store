@@ -25,7 +25,7 @@ static constexpr int MAX_DELAY_TIME = 5;
 static constexpr int MAX_INTERVAL_TIME = 3;
 void AtFuzz(FuzzedDataProvider &provider)
 {
-    int time = provider.ConsumeIntegral<int>();
+    uint32_t time = provider.ConsumeIntegral<uint32_t>();
     TaskScheduler taskScheduler;
     std::chrono::steady_clock::time_point tp = std::chrono::steady_clock::now() +
                                                std::chrono::duration<int>(time % MAX_DELAY_TIME);
