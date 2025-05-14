@@ -1890,13 +1890,13 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode
 {
     auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, syncType);
     auto logName = DBCommon::GetLogTableName(tableInfo.GetTableName());
-    std::string sql = "UPDATE " + logName + " SET hash_key = hash_key || '_old' where data_key in " +
+    std::string sql = "UPDATE OR REPLACE " + logName + " SET hash_key = hash_key || '_old' where data_key in " +
         "(select _rowid_ from '" + tableInfo.GetTableName() + "');";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         return errCode;
     }
-    sql = "UPDATE " + logName + " SET hash_key = data.hash_value FROM (SELECT _rowid_, " +
+    sql = "UPDATE OR REPLACE " + logName + " SET hash_key = data.hash_value FROM (SELECT _rowid_, " +
         tableManager->CalcPrimaryKeyHash("dataTable.", tableInfo, "") + " AS hash_value " +
         "FROM '" + tableInfo.GetTableName() + "' AS dataTable) AS data WHERE data._rowid_ = " + logName + ".data_key;";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
