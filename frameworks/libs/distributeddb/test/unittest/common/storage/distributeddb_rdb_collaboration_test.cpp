@@ -1169,6 +1169,55 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema025, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SetSchema026
+ * @tc.desc: Test SetDistributedSchema with conflict log.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema026, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db, tableMode is COLLABORATION
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::COLLABORATION));
+    std::string createSql = "CREATE TABLE IF NOT EXISTS table_pk_int(integer_field INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "int_field INT UNIQUE);";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, createSql), E_OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable("table_pk_int", TableSyncType::DEVICE_COOPERATION), OK);
+    /**
+     * @tc.steps: step2. Set Distributed Schema
+     * @tc.expected: step2. return OK
+     */
+    DistributedSchema distributedSchema = {1, {
+        {"table_pk_int", {
+            {"integer_field", true},
+            {"int_field", true}
+        }}}
+    };
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    /**
+     * @tc.steps: step3. Local insert (1, 2), (2, 1) and delete (1, 2)
+     * @tc.expected: step3. return OK
+     */
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, "INSERT INTO table_pk_int VALUES(1, 2)"), E_OK);
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, "INSERT INTO table_pk_int VALUES(2, 1)"), E_OK);
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, "DELETE FROM table_pk_int WHERE integer_field = 1"), E_OK);
+    /**
+     * @tc.steps: step4. Upgrade Distributed Schema and mark int_field specified
+     * @tc.expected: step4. return OK
+     */
+    distributedSchema = {2, {
+            {"table_pk_int", {
+                    {"integer_field", false},
+                    {"int_field", true, true}
+            }}}
+    };
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema, true), OK);
+}
+
+/**
  * @tc.name: NormalSync001
  * @tc.desc: Test set distributed schema and sync.
  * @tc.type: FUNC
