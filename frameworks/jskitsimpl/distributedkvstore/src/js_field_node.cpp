@@ -78,16 +78,24 @@ cJSON* JsFieldNode::GetValueForJson()
     }
 
     cJSON* jsFields = cJSON_CreateObject();
-    if (!jsFields) {
+    if (jsFields == nullptr) {
         return nullptr;
     }
     for (auto fld : fields_) {
+        if (fld == nullptr) {
+            continue;
+        }
         cJSON* childItem = fld->GetValueForJson();
-        if (!childItem) {
+        if (childItem == nullptr) {
             cJSON_Delete(jsFields);
             return nullptr;
         }
-        cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), childItem);
+        auto status = cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), childItem);
+        if (!status) {
+            cJSON_Delete(childItem);
+            cJSON_Delete(jsFields);
+            return nullptr;
+        }
     }
     return jsFields;
 }
@@ -302,7 +310,7 @@ std::string JsFieldNode::ToString(uint32_t type)
 std::string JsFieldNode::Dump()
 {
     cJSON* jsNode = cJSON_CreateObject();
-    if (!jsNode) {
+    if (jsNode == nullptr) {
         return "";
     }
     cJSON_AddStringToObject(jsNode, FIELD_NAME, fieldName_.c_str());
@@ -312,22 +320,34 @@ std::string JsFieldNode::Dump()
     cJSON_AddBoolToObject(jsNode, IS_NULLABLE, isNullable_);
 
     cJSON* jsFields = cJSON_CreateArray();
-    if (jsFields) {
+    if (jsFields != nullptr) {
         for (auto fld : fields_) {
-            cJSON* childItem = fld->GetValueForJson();
-            if (childItem) {
-                cJSON_AddItemToArray(jsFields, childItem);
+            if (fld == nullptr) {
+                continue;
+            }
+            std::string childDump = fld->Dump();
+            cJSON* childItem = cJSON_CreateString(childDump.c_str());
+            if (childItem == nullptr) {
+                continue;
+            }
+            auto addResult = cJSON_AddItemToArray(jsFields, childItem);
+            if (!addResult) {
+                cJSON_Delete(childItem);
             }
         }
     }
-    cJSON_AddItemToObject(jsNode, CHILDREN, jsFields ? jsFields : cJSON_CreateNull());
+    char* childrenStr = cJSON_Print(jsFields);
+    cJSON_Delete(jsFields);
+    cJSON_AddStringToObject(jsNode, CHILDREN, childrenStr ? childrenStr : "");
+    if (childrenStr != nullptr) {
+        cJSON_free(childrenStr);
+    }
+    
     char* jsonPtr = cJSON_Print(jsNode);
     std::string jsonStr;
-    if (jsonPtr) {
+    if (jsonPtr != nullptr) {
         jsonStr = jsonPtr;
         cJSON_free(jsonPtr);
-    } else {
-        jsonStr = "";
     }
     cJSON_Delete(jsNode);
     return jsonStr;

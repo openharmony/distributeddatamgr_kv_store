@@ -227,41 +227,47 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
 
 std::string JsSchema::Dump()
 {
-    cJSON* js = cJSON_CreateObject();
-    if (!js) {
+    cJSON* jsNode = cJSON_CreateObject();
+    if (jsNode == nullptr) {
         return "";
     }
-    cJSON_AddStringToObject(js, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
-    cJSON_AddStringToObject(js, SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
-    if (rootNode_) {
-        cJSON* childJson = rootNode_->GetValueForJson();
-        if (childJson) {
-            cJSON_AddItemToObject(js, SCHEMA_DEFINE, childJson);
-        } else {
-            cJSON_AddNullToObject(js, SCHEMA_DEFINE);
+    cJSON_AddStringToObject(jsNode, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
+    cJSON_AddStringToObject(jsNode, SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
+
+    cJSON* childJson = rootNode_ ? rootNode_->GetValueForJson() : nullptr;
+    if (childJson == nullptr || !cJSON_AddItemToObject(jsNode, SCHEMA_DEFINE, childJson)) {
+        cJSON_AddNullToObject(jsNode, SCHEMA_DEFINE);
+        if (childJson != nullptr) {
+            cJSON_Delete(childJson);
         }
-    } else {
-        cJSON_AddNullToObject(js, SCHEMA_DEFINE);
     }
+
     cJSON* jsIndexes = cJSON_CreateArray();
-    if (jsIndexes) {
+    if (jsIndexes != nullptr) {
         for (auto& idx : indexes_) {
             cJSON* item = cJSON_CreateString(idx.c_str());
-            if (item) {
-                cJSON_AddItemToArray(jsIndexes, item);
+            if (item == nullptr) {
+                continue;
+            }
+            auto addResult = cJSON_AddItemToArray(jsIndexes, item);
+            if (!addResult) {
+                cJSON_Delete(item);
             }
         }
     }
-    cJSON_AddItemToObject(js, SCHEMA_INDEXES, jsIndexes ? jsIndexes : cJSON_CreateNull());
-    cJSON_AddNumberToObject(js, SCHEMA_SKIPSIZE, skip_);
-
-    char* jsonPtr = cJSON_Print(js);
-    std::string jsonStr = "";
-    if (jsonPtr) {
+    cJSON* indexesNode = jsIndexes ? jsIndexes : cJSON_CreateNull();
+    auto addResult = cJSON_AddItemToObject(jsNode, SCHEMA_INDEXES, indexesNode);
+    if (!addResult) {
+        cJSON_Delete(indexesNode);
+    }
+    cJSON_AddNumberToObject(jsNode, SCHEMA_SKIPSIZE, skip_);
+    char* jsonPtr = cJSON_Print(jsNode);
+    std::string jsonStr;
+    if (jsonPtr != nullptr) {
         jsonStr = jsonPtr;
         cJSON_free(jsonPtr);
     }
-    cJSON_Delete(js);
+    cJSON_Delete(jsNode);
     return jsonStr;
 }
 } // namespace OHOS::DistributedKVStore
