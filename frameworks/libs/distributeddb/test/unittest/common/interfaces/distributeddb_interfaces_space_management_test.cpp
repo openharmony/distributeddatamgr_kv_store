@@ -163,7 +163,7 @@ static uint64_t CheckRealFileSize(const vector<string> &fileNames)
   * @tc.name: GetKvStoreDiskSize001
   * @tc.desc: ROM space occupied by applications in the distributed database can be calculated.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize001, TestSize.Level1)
@@ -221,7 +221,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize001, Test
   * @tc.name: GetKvStoreDiskSize002
   * @tc.desc: Obtain the size of the opened database.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize002, TestSize.Level2)
@@ -321,7 +321,7 @@ static void DeleteFile(const std::string &fileUrl)
   * @tc.name: GetKvStoreDiskSize003
   * @tc.desc: Verification exception parameters
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, TestSize.Level1)
@@ -395,7 +395,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, Test
   * @tc.name: GetKvStoreDiskSize004
   * @tc.desc: Calculate memory database size
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize004, TestSize.Level1)
@@ -453,7 +453,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize004, Test
   * @tc.name: DeleteDbByStoreId001
   * @tc.desc: Delete database by storeId.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestSize.Level1)
@@ -526,7 +526,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
   * @tc.name: DeleteDbByStoreId002
   * @tc.desc: Delete database by not exist storeId.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTD
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId002, TestSize.Level1)

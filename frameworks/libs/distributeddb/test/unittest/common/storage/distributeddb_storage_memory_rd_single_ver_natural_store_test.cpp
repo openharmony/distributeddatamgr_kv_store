@@ -83,7 +83,7 @@ void DistributedDBStorageMemoryRdSingleVerNaturalStoreTest::TearDown(void)
   * @tc.name: SyncDatabaseOperate001
   * @tc.desc: To test the function of inserting data of the local device in the synchronization database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOperate001, TestSize.Level1)
@@ -139,7 +139,7 @@ HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOper
   * @tc.name: SyncDatabaseOperate003
   * @tc.desc: test the delete operation in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOperate003, TestSize.Level1)
@@ -172,7 +172,7 @@ HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOper
   * @tc.name: SyncDatabaseOperate005
   * @tc.desc: test the reading for sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOperate005, TestSize.Level1)
@@ -207,7 +207,7 @@ HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOper
   * @tc.name: SyncDatabaseOperate006
   * @tc.desc: test the get entries for sync database
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageMemoryRdSingleVerNaturalStoreTest, SyncDatabaseOperate006, TestSize.Level1)

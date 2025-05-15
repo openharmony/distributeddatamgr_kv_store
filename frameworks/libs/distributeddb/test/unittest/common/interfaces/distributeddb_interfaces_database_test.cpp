@@ -357,7 +357,7 @@ void DistributedDBInterfacesDatabaseTest::TearDown(void)
   * @tc.name: GetKvStore001
   * @tc.desc: Get kv store through different parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV4 AR000CQS3P
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore001, TestSize.Level1)
@@ -484,7 +484,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore001, TestSize.Level1)
   * @tc.name: GetKvStore002
   * @tc.desc: Get kv store through different parameters for the same storeID.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV5 AR000CQS3P
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore002, TestSize.Level1)
@@ -553,7 +553,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore002, TestSize.Level1)
   * @tc.name: GetKvStore003
   * @tc.desc: Get kv store through different SecurityOption, abnormal or normal.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore003, TestSize.Level1)
@@ -623,7 +623,7 @@ static void NotifierCallback(const KvStoreNbConflictData &data)
   * @tc.name: GetKvStore004
   * @tc.desc: Get kv store parameters with Observer and Notifier, then trigger callback.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore004, TestSize.Level1)
@@ -685,7 +685,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore004, TestSize.Level1)
   * @tc.name: CloseKvStore001
   * @tc.desc: Test the CloseKvStore Interface and check whether the database file can be closed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV6 AR000CQS3P
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, CloseKvStore001, TestSize.Level1)
@@ -731,7 +731,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, CloseKvStore001, TestSize.Level1)
   * @tc.name: DeleteKvStore001
   * @tc.desc: Test the DeleteKvStore Interface and check whether the database files can be removed.
   * @tc.type: FUNC
-  * @tc.require: AR000C2F0C AR000CQDV7
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, DeleteKvStore001, TestSize.Level1)
@@ -808,7 +808,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, DeleteKvStore001, TestSize.Level1)
   * @tc.name: RepeatCloseKvStore001
   * @tc.desc: Close the kv store repeatedly and check the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C2F0C AR000CQDV7
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, RepeatCloseKvStore001, TestSize.Level2)
@@ -863,7 +863,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, RepeatCloseKvStore001, TestSize.Le
   * @tc.name: CreatKvStoreWithSchema001
   * @tc.desc: Create non-memory KvStore with schema, check if create success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, CreatKvStoreWithSchema001, TestSize.Level1)
@@ -925,7 +925,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, CreatKvStoreWithSchema001, TestSiz
   * @tc.name: CreatKvStoreWithSchema002
   * @tc.desc: Create memory KvStore with schema, check if create success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, CreatKvStoreWithSchema002, TestSize.Level1)
@@ -955,7 +955,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, CreatKvStoreWithSchema002, TestSiz
   * @tc.name: OpenKvStoreWithSchema001
   * @tc.desc: open an opened kvstore(non-memory, no-schema) with schema, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema001, TestSize.Level1)
@@ -1030,7 +1030,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema001, TestSize
   * @tc.name: OpenKvStoreWithSchema002
   * @tc.desc: open an opened kvstore(non-memory, schema) with schema, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema002, TestSize.Level1)
@@ -1051,7 +1051,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema002, TestSize
   * @tc.name: OpenKvStoreWithSchema003
   * @tc.desc: open an opened kvstore(memory) with different schemas, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema003, TestSize.Level1)
@@ -1098,7 +1098,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema003, TestSize
   * @tc.name: OpenKvStoreWithSchema004
   * @tc.desc: open a totally closed schema-kvstore(non-memory) with different schemas, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema004, TestSize.Level1)
@@ -1123,7 +1123,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema004, TestSize
   * @tc.name: OpenKvStoreWithSchema005
   * @tc.desc: open a totally closed non-schema-kvstore(non-memory) with different schemas, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema005, TestSize.Level1)
@@ -1146,7 +1146,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema005, TestSize
   * @tc.name: OpenKvStoreWithSchema006
   * @tc.desc: open a memory non-schema-kvstore with different schemas, check if open success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema006, TestSize.Level1)
@@ -1200,7 +1200,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithSchema006, TestSize
   * @tc.name: OpenKvStoreWithStoreOnly001
   * @tc.desc: open the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithStoreOnly001, TestSize.Level1)
@@ -1236,7 +1236,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, OpenKvStoreWithStoreOnly001, TestS
   * @tc.name: GetDBWhileOpened001
   * @tc.desc: open the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000E8S2V
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, GetDBWhileOpened001, TestSize.Level1)
@@ -1340,7 +1340,7 @@ namespace {
   * @tc.name: FreqOpenCloseDel001
   * @tc.desc: Open/close/delete the kv store concurrently.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Level2)
@@ -1352,7 +1352,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Leve
   * @tc.name: FreqOpenClose001
   * @tc.desc: Open and close the kv store concurrently.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenClose001, TestSize.Level2)
@@ -1364,7 +1364,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenClose001, TestSize.Level2)
   * @tc.name: CheckKvStoreDir001
   * @tc.desc: Delete the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, CheckKvStoreDir001, TestSize.Level1)
@@ -1399,7 +1399,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, CheckKvStoreDir001, TestSize.Level
  * @tc.name: CompressionRate1
  * @tc.desc: Open the kv store with invalid compressionRate and open successfully.
  * @tc.type: FUNC
- * @tc.require: AR000G3QTT
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, CompressionRate1, TestSize.Level1)

@@ -151,7 +151,7 @@ void DistributedDBCloudSyncerUploadTest::CheckUploadFinish(TestCloudSyncer &clou
  * @tc.name: UploadModeCheck001
  * @tc.desc: Test different strategies of sync task call DoUpload()
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck001, TestSize.Level1)
@@ -210,7 +210,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck001, TestSize.Level1
  * @tc.name: UploadModeCheck002
  * @tc.desc: Test case1 about getting water mark
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck002, TestSize.Level1)
@@ -247,7 +247,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck002, TestSize.Level1
  * @tc.name: UploadModeCheck003
  * @tc.desc: Test case2 about getting water mark
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck003, TestSize.Level1)
@@ -284,7 +284,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck003, TestSize.Level1
  * @tc.name: UploadModeCheck004
  * @tc.desc: Test case1 about Getting upload count
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck004, TestSize.Level1)
@@ -319,7 +319,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck004, TestSize.Level1
  * @tc.name: UploadModeCheck005
  * @tc.desc: Test case2 about Getting upload count
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck005, TestSize.Level1)
@@ -369,7 +369,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck005, TestSize.Level1
  * @tc.name: UploadModeCheck006
  * @tc.desc: Test case1 about CloudSyncData
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck006, TestSize.Level1)
@@ -425,7 +425,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck006, TestSize.Level1
  * @tc.name: UploadModeCheck007
  * @tc.desc: Test case2 about CloudSyncData
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1)
@@ -490,7 +490,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
  * @tc.name: UploadModeCheck008
  * @tc.desc: Test case3 about CloudSyncData
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1)
@@ -548,7 +548,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1
  * @tc.name: UploadModeCheck009
  * @tc.desc: Test case about CloudSyncData
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1)
@@ -610,7 +610,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
  * @tc.name: UploadModeCheck017
  * @tc.desc: Test case about CloudSyncData
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck017, TestSize.Level1)
@@ -660,7 +660,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck017, TestSize.Level1
  * @tc.name: UploadModeCheck010
  * @tc.desc: Test case1 about batch api in upload
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1)
@@ -717,7 +717,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
  * @tc.name: UploadModeCheck011
  * @tc.desc: Test case2 about batch api in upload
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1)
@@ -777,7 +777,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
  * @tc.name: UploadModeCheck012
  * @tc.desc: Test case2 about batch api in upload
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1)
@@ -842,7 +842,7 @@ void MockMethod014(MockICloudSyncStorageInterface *iCloud)
  * @tc.name: UploadModeCheck014
  * @tc.desc: Test case2 about upload when batch api are partially successful.
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1)
@@ -940,7 +940,7 @@ void SetFuncs015(MockICloudSyncStorageInterface *iCloud, std::shared_ptr<MockICl
  * @tc.name: UploadModeCheck015
  * @tc.desc: Test case3 about upload when batch api are partially successful.
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck015, TestSize.Level1)
@@ -993,7 +993,7 @@ void PrepareEnv018(MockICloudSyncStorageInterface *iCloud, const std::shared_ptr
  * @tc.name: UploadModeCheck018
  * @tc.desc: Test notify count when upload with two batch
  * @tc.type: FUNC
- * @tc.require: AR000HSNJO
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1)

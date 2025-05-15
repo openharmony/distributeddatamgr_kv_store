@@ -122,7 +122,7 @@ void DistributedDBSqliteRegisterTest::TearDown()
   * @tc.name: JsonExtract001
   * @tc.desc: test json_extract_by_path function in sqlite
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract001, TestSize.Level1)
@@ -143,7 +143,7 @@ HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract001, TestSize.Level1)
   * @tc.name: JsonExtract002
   * @tc.desc: test json_extract_by_path function in sqlite
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract002, TestSize.Level1)
@@ -164,7 +164,7 @@ HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract002, TestSize.Level1)
   * @tc.name: JsonExtract003
   * @tc.desc: test json_extract_by_path function in sqlite
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract003, TestSize.Level1)
@@ -185,7 +185,7 @@ HWTEST_F(DistributedDBSqliteRegisterTest, JsonExtract003, TestSize.Level1)
   * @tc.name: CalcHashValue001
   * @tc.desc: test calc_hash_key function in sqlite
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBSqliteRegisterTest, CalcHashValue001, TestSize.Level1)

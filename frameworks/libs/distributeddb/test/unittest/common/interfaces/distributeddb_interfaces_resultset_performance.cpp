@@ -112,7 +112,7 @@ void DistributedDBInterfacesNBResultsetPerfTest::TearDown(void)
   * @tc.name: ResultSetPerfTest001
   * @tc.desc: Test the NbDelegate for result set function.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBResultsetPerfTest, ResultSetPerfTest001, TestSize.Level4)

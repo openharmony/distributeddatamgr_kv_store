@@ -126,7 +126,7 @@ void DistributedDBStorageRdResultAndJsonOptimizeTest::TearDown(void)
   * @tc.name: ResultSetOpen001
   * @tc.desc: Test the RdSingleVerResultSet Open function
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetOpen001, TestSize.Level1)
@@ -166,7 +166,7 @@ HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetOpen001, Test
   * @tc.name: ResultSetGetCount001
   * @tc.desc: Test the RdSingleVerResultSet GetCount function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetGetCount001, TestSize.Level1)
@@ -199,7 +199,7 @@ HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetGetCount001, 
   * @tc.name: ResultSetMoveTo001
   * @tc.desc: Test the RdSingleVerResultSet MoveTo And GetPosition function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetMoveTo001, TestSize.Level1)
@@ -274,7 +274,7 @@ HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetMoveTo001, Te
   * @tc.name: ResultSetGetEntry001
   * @tc.desc: Test the RdSingleVerResultSet GetEntry function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetGetEntry001, TestSize.Level1)

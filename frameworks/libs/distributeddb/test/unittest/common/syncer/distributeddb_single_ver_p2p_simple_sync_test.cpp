@@ -1019,7 +1019,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, LimitDataSync002, TestSize.Lev
     ASSERT_TRUE(result.size() == devices.size());
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
-        printf("dev %s, status %d", pair.first.c_str(), pair.second);
         EXPECT_TRUE(pair.second == OK);
     }
 }

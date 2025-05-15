@@ -130,7 +130,7 @@ void DistributedDBStorageDataOperationTest::TearDown(void)
   * @tc.name: Insert001
   * @tc.desc: Insert a record into a distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV8 AR000CQDVB
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Insert001, TestSize.Level1)
@@ -169,7 +169,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Insert001, TestSize.Level1)
   * @tc.name: InsertBatch001
   * @tc.desc: Insert some records into a distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV9 AR000CQDVE
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, InsertBatch001, TestSize.Level1)
@@ -221,7 +221,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, InsertBatch001, TestSize.Level1)
   * @tc.name: Clear001
   * @tc.desc: Clear some records from a distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000BVTO6 AR000CQDVA
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Clear001, TestSize.Level1)
@@ -289,7 +289,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Clear001, TestSize.Level1)
   * @tc.name: Delete001
   * @tc.desc: Delete a record from a distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDVF AR000CQDVB
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, Delete001, TestSize.Level1)
@@ -367,7 +367,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, Delete001, TestSize.Level1)
   * @tc.name: DeleteBatch001
   * @tc.desc: Delete some records from a distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDVG AR000CQDVB
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, DeleteBatch001, TestSize.Level1)
@@ -503,7 +503,7 @@ static void CheckRecoverData(const Value &savedValue, std::map<ValueSliceHash, V
   * @tc.name: BlockDataIndex001
   * @tc.desc: Determine the block threshold of the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTT SR000CQDTR
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, BlockDataIndex001, TestSize.Level1)
@@ -562,7 +562,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, BlockDataIndex001, TestSize.Leve
   * @tc.name: CutValueIntoBlock001
   * @tc.desc: Database block size test
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTS AR000CQDTU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock001, TestSize.Level1)
@@ -620,7 +620,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock001, TestSize.L
   * @tc.name: CutValueIntoBlock002
   * @tc.desc: Block data index
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTT AR000CQDTV
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock002, TestSize.Level1)
@@ -679,7 +679,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock002, TestSize.L
   * @tc.name: ShaAlgoEncryptTest001
   * @tc.desc: Test sqlite sha algo
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest001, TestSize.Level1)
@@ -717,7 +717,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest001, TestSize.
   * @tc.name: ShaAlgoEncryptTest002
   * @tc.desc: Test sqlite sha algo in attach mode
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest002, TestSize.Level1)
@@ -764,7 +764,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest002, TestSize.
   * @tc.name: ShaAlgoEncryptTest003
   * @tc.desc: Test sqlite sha algo in attach mode
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.Level1)
@@ -810,7 +810,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.
   * @tc.name: ShaAlgoEncryptTest004
   * @tc.desc: Test unnormal sql
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest004, TestSize.Level1)
@@ -844,7 +844,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest004, TestSize.
   * @tc.name: DeleteTableCallbackTest001
   * @tc.desc: Test drop table callback
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest001, TestSize.Level0)
@@ -892,7 +892,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest001, Test
   * @tc.name: DropTableCallbakTest001
   * @tc.desc: Test drop table in attach mode
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest002, TestSize.Level0)

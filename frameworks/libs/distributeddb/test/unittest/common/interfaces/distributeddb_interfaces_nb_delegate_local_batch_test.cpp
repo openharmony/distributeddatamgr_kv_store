@@ -129,7 +129,7 @@ void DistributedDBInterfacesNBDelegateLocalBatchTest::TearDown(void)
   * @tc.name: PutLocalBatch001
   * @tc.desc: This test case use to verify the PutLocalBatch interface function
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, PutLocalBatch001, TestSize.Level1)
@@ -217,7 +217,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, PutLocalBatch002, Test
   * @tc.name: SingleVerPutLocalBatch001
   * @tc.desc: Check for illegal parameters
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch001, TestSize.Level1)
@@ -259,7 +259,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerPutLocalBatch002
   * @tc.desc: PutLocalBatch normal insert function test.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch002, TestSize.Level1)
@@ -324,7 +324,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerPutLocalBatch003
   * @tc.desc: Check interface atomicity
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch003, TestSize.Level1)
@@ -398,7 +398,7 @@ static void PreparePutLocalBatch004(vector<Entry> &entrys1, vector<Entry> &entry
   * @tc.name: SingleVerPutLocalBatch004
   * @tc.desc: Check interface data insertion and update functions.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch004, TestSize.Level1)
@@ -671,7 +671,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerDeleteLocalBatch001
   * @tc.desc: Check for illegal parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch001, TestSize.Level1)
@@ -770,7 +770,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
   * @tc.name: SingleVerDeleteLocalBatch002
   * @tc.desc: Check normal delete batch ability.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatch002, TestSize.Level1)
@@ -988,7 +988,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
   * @tc.name: SingleVerPutLocalBatchObserver001
   * @tc.desc: Test the observer function of PutLocalBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatchObserver001, TestSize.Level1)
@@ -1055,7 +1055,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerPutLocalBatchObserver002
   * @tc.desc: Test the observer function of PutLocalBatch() for invalid input.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatchObserver002, TestSize.Level4)
@@ -1131,7 +1131,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerPutLocalBatchObserver003
   * @tc.desc: Test the observer function of PutLocalBatch() update function.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatchObserver003, TestSize.Level1)
@@ -1199,7 +1199,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerPutLocalBatchObserver004
   * @tc.desc: Test the observer function of PutLocalBatch(), same keys handle.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatchObserver004, TestSize.Level1)
@@ -1275,7 +1275,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
   * @tc.name: SingleVerDeleteLocalBatchObserver001
   * @tc.desc: Test the observer function of DeleteLocalBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBatchObserver001, TestSize.Level1)
@@ -1337,7 +1337,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerDeleteLocalBa
   * @tc.name: LocalDataBatchNotCheckSchema001
   * @tc.desc: Local data does not check schema.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, LocalDataBatchNotCheckSchema001, TestSize.Level1)
@@ -1410,7 +1410,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, LocalDataBatchNotCheck
   * @tc.name: LocalDataBatchNotCheckReadOnly001
   * @tc.desc: Local data does not check readOnly.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, LocalDataBatchNotCheckReadOnly001, TestSize.Level1)

@@ -544,7 +544,7 @@ void DistributedDBRelationalMultiUserTest::TearDown(void)
  * @tc.name: multi user 001
  * @tc.desc: Test multi user change for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser001, TestSize.Level1)
@@ -617,7 +617,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser001, TestSize.Level1)
  * @tc.name: multi user 002
  * @tc.desc: Test multi user not change for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser002, TestSize.Level1)
@@ -696,7 +696,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser002, TestSize.Level1)
  * @tc.name: multi user 003
  * @tc.desc: enhancement callback return true in multiuser mode for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
@@ -775,7 +775,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
  * @tc.name: multi user 004
  * @tc.desc: test NotifyUserChanged func when all db in normal sync mode for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser004, TestSize.Level0)
@@ -813,7 +813,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser004, TestSize.Level0)
  * @tc.name: multi user 005
  * @tc.desc: test NotifyUserChanged and close db concurrently for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser005, TestSize.Level0)
@@ -852,7 +852,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser005, TestSize.Level0)
  * @tc.name: multi user 006
  * @tc.desc: test NotifyUserChanged and block sync concurrently for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser006, TestSize.Level1)
@@ -864,7 +864,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser006, TestSize.Level1)
  * @tc.name: multi user 007
  * @tc.desc: test NotifyUserChanged and non-block sync concurrently for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser007, TestSize.Level1)
@@ -876,7 +876,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser007, TestSize.Level1)
  * @tc.name: multi user 008
  * @tc.desc: test NotifyUserChanged and remote query concurrently for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
@@ -915,7 +915,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
  * @tc.name: multi user 009
  * @tc.desc: test user change and remote query concurrently for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser009, TestSize.Level1)
@@ -927,7 +927,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser009, TestSize.Level1)
  * @tc.name: multi user 010
  * @tc.desc: test check sync active twice when open store
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
@@ -964,7 +964,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
  * @tc.name: multi user 011
  * @tc.desc: test use different option to open store for rdb
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser011, TestSize.Level1)
@@ -985,7 +985,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser011, TestSize.Level1)
  * @tc.name: multi user 012
  * @tc.desc: test dont check sync active when open store with normal store
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser012, TestSize.Level1)
@@ -1012,7 +1012,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser012, TestSize.Level1)
  * @tc.name: multi user 013
  * @tc.desc: test dont check sync active when open store with normal store
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser013, TestSize.Level1)

@@ -92,7 +92,7 @@ void DistributedDBJsonPrecheckUnitTest::SetUp()
  * @tc.name: Precheck Valid String 001
  * @tc.desc: json string is legal
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString001, TestSize.Level1)
@@ -119,7 +119,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString001, TestSize.Level1
  * @tc.name: Precheck Valid String 002
  * @tc.desc: json string is legal
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString002, TestSize.Level1)
@@ -146,7 +146,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString002, TestSize.Level1
  * @tc.name: Precheck invalid String 001
  * @tc.desc: The json string has been detected illegal before exceeding the specified nesting depth.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString001, TestSize.Level1)
@@ -164,7 +164,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString001, TestSize.Leve
  * @tc.name: Precheck invalid String 002
  * @tc.desc: The json string has been detected illegal before exceeding the specified nesting depth.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString002, TestSize.Level1)
@@ -182,7 +182,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString002, TestSize.Leve
  * @tc.name: Precheck invalid String 003
  * @tc.desc: The json string has been detected illegal before exceeding the specified nesting depth.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString003, TestSize.Level1)

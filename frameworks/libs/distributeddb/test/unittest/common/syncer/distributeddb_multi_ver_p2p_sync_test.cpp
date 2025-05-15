@@ -236,7 +236,7 @@ static DBStatus GetData(KvStoreDelegate *kvStore, const Key &key, Value &value)
  * @tc.name: Transaction Sync 001
  * @tc.desc: Verify put transaction sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVRO4 AR000CQE0K
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync001, TestSize.Level2)
@@ -298,7 +298,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync001, TestSize.Level2)
  * @tc.name: Transaction Sync 002
  * @tc.desc: Verify delete transaction sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVRO4 AR000CQE0K
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync002, TestSize.Level2)
@@ -359,7 +359,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync002, TestSize.Level2)
  * @tc.name: Transaction Sync 003
  * @tc.desc: Verify update transaction sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVRO4 AR000CQE0K
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync003, TestSize.Level2)
@@ -420,7 +420,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, TransactionSync003, TestSize.Level2)
  * @tc.name: Metadata 001
  * @tc.desc: Verify metadata add and update function
  * @tc.type: FUNC
- * @tc.require: AR000CQE0P AR000CQE0S
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, Metadata001, TestSize.Level1)
@@ -473,7 +473,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, Metadata001, TestSize.Level1)
  * @tc.name: Isolation Sync 001
  * @tc.desc: Verify add sync isolation between different kvstore.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGP
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync001, TestSize.Level2)
@@ -515,7 +515,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync001, TestSize.Level2)
  * @tc.name: Isolation Sync 002
  * @tc.desc: Verify update sync isolation between different kvstore.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGP
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync002, TestSize.Level2)
@@ -560,7 +560,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync002, TestSize.Level2)
  * @tc.name: Isolation Sync 003
  * @tc.desc: Verify delete sync isolation between different kvstore.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGP
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, IsolationSync003, TestSize.Level2)
@@ -627,7 +627,7 @@ static bool IsTimeSyncPacketEqual(const TimeSyncPacket &inPacketA, const TimeSyn
  * @tc.name: Timesync Packet 001
  * @tc.desc: Verify TimesyncPacket Serialization and DeSerialization
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, TimesyncPacket001, TestSize.Level1)
@@ -793,7 +793,7 @@ static bool IsCommitHistorySyncRequestPacketEqual(const CommitHistorySyncRequest
  * @tc.name: Commit History Sync Request Packet 001
  * @tc.desc: Verify CommitHistorySyncRequestPacket Serialization and DeSerialization
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, CommitHistorySyncRequestPacket001, TestSize.Level1)
@@ -909,7 +909,7 @@ static bool IsCommitHistorySyncAckPacketEqual(const CommitHistorySyncAckPacket &
  * @tc.name: Commit History Sync Ack Packet 001
  * @tc.desc: Verify CommitHistorySyncAckPacket Serialization and DeSerialization
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, CommitHistorySyncAckPacket001, TestSize.Level1)
@@ -990,7 +990,7 @@ static bool IsMultiVerRequestPacketEqual(const MultiVerRequestPacket &inPacketA,
  * @tc.name: MultiVerValueObject Request Packet 001
  * @tc.desc: Verify MultiVerRequestPacket Serialization and DeSerialization
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, MultiVerRequestPacket001, TestSize.Level1)
@@ -1100,7 +1100,7 @@ static bool IsMultiVerAckPacketEqual(const MultiVerAckPacket &inPacketA, const M
  * @tc.name: MultiVerValueObject Ack Packet 001
  * @tc.desc: Verify MultiVerAckPacket Serialization and DeSerialization
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, MultiVerAckPacket001, TestSize.Level1)
@@ -1171,7 +1171,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, MultiVerAckPacket001, TestSize.Level1
  * @tc.name: Simple Data Sync 001
  * @tc.desc: Verify normal simple data sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGR
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, SimpleDataSync001, TestSize.Level2)
@@ -1215,7 +1215,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, SimpleDataSync001, TestSize.Level2)
  * @tc.name: Big Data Sync 001
  * @tc.desc: Verify normal big data sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGR
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, BigDataSync001, TestSize.Level2)
@@ -1263,7 +1263,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, BigDataSync001, TestSize.Level2)
  * @tc.name: Limit Data Sync 001
  * @tc.desc: Verify normal limit data sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGR
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, LimitDataSync001, TestSize.Level2)
@@ -1314,7 +1314,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, LimitDataSync001, TestSize.Level2)
  * @tc.name: Multi Record 001
  * @tc.desc: Verify normal multi record sync function.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGR
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, MultiRecord001, TestSize.Level2)
@@ -1402,7 +1402,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, MultiRecord001, TestSize.Level2)
  * @tc.name: Net Disconnect Sync 001
  * @tc.desc: Test exception sync when net disconnected.
  * @tc.type: FUNC
- * @tc.require: AR000BVDGR
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, NetDisconnectSync001, TestSize.Level3)
@@ -1505,7 +1505,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, NetDisconnectSync001, TestSize.Level3
   * @tc.name: SyncQueue006
   * @tc.desc: multi version not support sync queue
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, SyncQueue006, TestSize.Level3)
@@ -1531,7 +1531,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, SyncQueue006, TestSize.Level3)
  * @tc.name: PermissionCheck001
  * @tc.desc: deviceA permission check not pass
  * @tc.type: FUNC
- * @tc.require: AR000D4876
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, PermissionCheck001, TestSize.Level2)
@@ -1591,7 +1591,7 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, PermissionCheck001, TestSize.Level2)
  * @tc.name: PermissionCheck002
  * @tc.desc: deviceB deviceC permission check not pass
  * @tc.type: FUNC
- * @tc.require: AR000D4876
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBMultiVerP2PSyncTest, PermissionCheck002, TestSize.Level2)

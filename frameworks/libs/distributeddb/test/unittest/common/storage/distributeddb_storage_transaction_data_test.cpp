@@ -293,7 +293,7 @@ void DistributedDBStorageTransactionDataTest::TearDown(void)
   * @tc.name: StorageInsert001
   * @tc.desc: Put the non-empty key, non-empty value into the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert001, TestSize.Level1)
@@ -335,7 +335,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert001, TestSize.Lev
   * @tc.name: StorageInsert002
   * @tc.desc: Put the empty key, non-empty value into the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert002, TestSize.Level1)
@@ -354,7 +354,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert002, TestSize.Lev
   * @tc.name: StorageInsert003
   * @tc.desc: Put the non-empty key, empty value into the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert003, TestSize.Level1)
@@ -380,7 +380,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsert003, TestSize.Lev
   * @tc.name: StorageUpdate001
   * @tc.desc: Update the value to non-empty
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdate001, TestSize.Level1)
@@ -410,7 +410,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdate001, TestSize.Lev
   * @tc.name: StorageUpdate002
   * @tc.desc: Update the value to empty
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdate002, TestSize.Level1)
@@ -439,7 +439,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdate002, TestSize.Lev
   * @tc.name: StorageDelete001
   * @tc.desc: Delete the existed data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete001, TestSize.Level1)
@@ -466,7 +466,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete001, TestSize.Lev
   * @tc.name: StorageDelete002
   * @tc.desc: Delete the non-existed data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete002, TestSize.Level1)
@@ -490,7 +490,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete002, TestSize.Lev
   * @tc.name: StorageDelete003
   * @tc.desc: Delete the invalid key data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete003, TestSize.Level1)
@@ -507,7 +507,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDelete003, TestSize.Lev
   * @tc.name: StorageClear001
   * @tc.desc: Clear the data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageClear001, TestSize.Level1)
@@ -535,7 +535,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageClear001, TestSize.Leve
   * @tc.name: StorageInsertBatch001
   * @tc.desc: Put the valid batch data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsertBatch001, TestSize.Level1)
@@ -565,7 +565,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsertBatch001, TestSiz
   * @tc.name: StorageInsertBatch002
   * @tc.desc: Put the partially valid batch data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsertBatch002, TestSize.Level1)
@@ -593,7 +593,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageInsertBatch002, TestSiz
   * @tc.name: StorageUpdateBatch001
   * @tc.desc: Update the batch data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdateBatch001, TestSize.Level1)
@@ -633,7 +633,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdateBatch001, TestSiz
   * @tc.name: StorageUpdateBatch002
   * @tc.desc: Update the batch data(partially invalid data)
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdateBatch002, TestSize.Level1)
@@ -675,7 +675,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageUpdateBatch002, TestSiz
   * @tc.name: StorageDeleteBatch001
   * @tc.desc: Delete the batch data
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch001, TestSize.Level1)
@@ -711,7 +711,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch001, TestSiz
   * @tc.name: StorageDeleteBatch002
   * @tc.desc: Delete the batch data(partially non-existed)
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch002, TestSize.Level1)
@@ -749,7 +749,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch002, TestSiz
   * @tc.name: StorageDeleteBatch003
   * @tc.desc: Delete the batch data(partially invalid)
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch003, TestSize.Level1)
@@ -787,7 +787,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageDeleteBatch003, TestSiz
   * @tc.name: StorageTransactionCombo001
   * @tc.desc: Multiple operation within the transaction
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, StorageTransactionCombo001, TestSize.Level1)
@@ -853,7 +853,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, StorageTransactionCombo001, Te
   * @tc.name: TransactionRollback001
   * @tc.desc: Multiple operation within the transaction
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionRollback001, TestSize.Level1)
@@ -887,7 +887,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionRollback001, TestSi
   * @tc.name: TransactionGetCommitData001
   * @tc.desc: Get the commit data of one transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionGetCommitData001, TestSize.Level1)
@@ -940,7 +940,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionGetCommitData001, T
   * @tc.name: TransactionSqliteKvEntry001
   * @tc.desc: Serialize the kv entry and deserialize the data.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionSqliteKvEntry001, TestSize.Level1)
@@ -994,7 +994,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionSqliteKvEntry001, T
   * @tc.name: TransactionPutForeignData001
   * @tc.desc: Put the remote commit data into the current device database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionPutForeignData001, TestSize.Level1)
@@ -1044,7 +1044,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, TransactionPutForeignData001, 
   * @tc.name: DefaultConflictResolution001
   * @tc.desc: Merge data without conflicts
   * @tc.type: FUNC
-  * @tc.require: AR000CQE13 AR000CQE14
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution001, TestSize.Level1)
@@ -1073,7 +1073,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution001, 
   * @tc.name: DefaultConflictResolution002
   * @tc.desc: Merge data with conflicts ,no clear operation in the external data and local data
   * @tc.type: FUNC
-  * @tc.require: AR000CQE13 AR000CQE14
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution002, TestSize.Level1)
@@ -1175,7 +1175,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution002, 
   * @tc.name: DefaultConflictResolution003
   * @tc.desc: Merge data with conflicts, clear operation is in the external data
   * @tc.type: FUNC
-  * @tc.require: AR000CQE13 AR000CQE14
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution003, TestSize.Level2)
@@ -1226,7 +1226,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution003, 
   * @tc.name: DefaultConflictResolution004
   * @tc.desc: Merge data with conflicts, clear operation is in the local data
   * @tc.type: FUNC
-  * @tc.require: AR000CQE13 AR000CQE14
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution004, TestSize.Level2)
@@ -1288,7 +1288,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, DefaultConflictResolution004, 
   * @tc.name: CommitTimestamp001
   * @tc.desc: Test the timestamp of the native commit.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE11
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp001, TestSize.Level2)
@@ -1419,7 +1419,7 @@ static bool PutSecondSyncCommitData(const MultiVerCommitNode &multiVerCommit, Mu
   * @tc.name: CommitTimestamp002
   * @tc.desc: Test the timestamp of the native commits.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE11
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp002, TestSize.Level1)
@@ -1467,7 +1467,7 @@ static void ReleaseKvEntries(std::vector<MultiVerKvEntry *> &entries)
   * @tc.name: CommitTimestamp003
   * @tc.desc: Test the timestamp of the foreign commits.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE11
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp003, TestSize.Level1)
@@ -1511,7 +1511,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp003, TestSize.L
   * @tc.name: CommitTimestamp004
   * @tc.desc: Test the timestamp of the merge commits.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE11
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp004, TestSize.Level1)
@@ -1562,7 +1562,7 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, CommitTimestamp004, TestSize.L
   * @tc.name: GetBranchTag
   * @tc.desc: Test the branch tag of the commits.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE11
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionDataTest, GetBranchTag001, TestSize.Level1)

@@ -260,7 +260,7 @@ void DistributedDBInterfacesNBDelegateTest::TearDown(void)
   * @tc.name: CombineTest001
   * @tc.desc: Test the NbDelegate for combined operation.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
@@ -367,7 +367,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
   * @tc.name: CombineTest002
   * @tc.desc: Test the NbDelegate for combined operation, try to use GAUSSDB_RD.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhujinlin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest002, TestSize.Level1)
@@ -426,7 +426,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest002, TestSize.Level1)
   * @tc.name: CombineTest003
   * @tc.desc: Test the NbDelegate for combined operation, try to use GAUSSDB_RD and index type with hash.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhujinlin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest003, TestSize.Level1)
@@ -486,7 +486,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest003, TestSize.Level1)
   * @tc.name: CreateMemoryDb001
   * @tc.desc: Create memory database after.
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb001, TestSize.Level1)
@@ -529,7 +529,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb001, TestSize.Leve
   * @tc.name: CreateMemoryDb002
   * @tc.desc: The MemoryDB cannot be created or open, when the physical database has been opened
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb002, TestSize.Level1)
@@ -562,7 +562,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb002, TestSize.Leve
   * @tc.name: CreateMemoryDb003
   * @tc.desc: The physical database cannot be created or open, when the MemoryDB has been opened.
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb003, TestSize.Level1)
@@ -593,7 +593,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb003, TestSize.Leve
   * @tc.name: OperMemoryDbData001
   * @tc.desc: Operate memory database
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, OperMemoryDbData001, TestSize.Level1)
@@ -654,7 +654,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OperMemoryDbData001, TestSize.Le
   * @tc.name: CloseMemoryDb001
   * @tc.desc: Operate memory database after reopen memory database
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CloseMemoryDb001, TestSize.Level1)
@@ -705,7 +705,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CloseMemoryDb001, TestSize.Level
   * @tc.name: ResultSetTest001
   * @tc.desc: Test the NbDelegate for result set function.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, ResultSetTest001, TestSize.Level1)
@@ -793,7 +793,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, ResultSetTest001, TestSize.Level
   * @tc.name: PutBatchVerify001
   * @tc.desc: This test case use to verify the putBatch interface function
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutBatchVerify001, TestSize.Level1)
@@ -885,7 +885,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutBatchVerify002, TestSize.Leve
   * @tc.name: SingleVerPutBatch001
   * @tc.desc: Check for illegal parameters
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch001, TestSize.Level1)
@@ -927,7 +927,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch001, TestSize.L
   * @tc.name: SingleVerPutBatch002
   * @tc.desc: PutBatch normal insert function test.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch002, TestSize.Level1)
@@ -992,7 +992,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch002, TestSize.L
   * @tc.name: SingleVerPutBatch003
   * @tc.desc: Check interface atomicity
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch003, TestSize.Level1)
@@ -1066,7 +1066,7 @@ static void PreparePutBatch004(vector<Entry> &entrys1, vector<Entry> &entrys2, v
   * @tc.name: SingleVerPutBatch004
   * @tc.desc: Check interface data insertion and update functions.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch004, TestSize.Level1)
@@ -1435,7 +1435,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.L
   * @tc.name: SingleVerDeleteBatch001
   * @tc.desc: Check for illegal parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch001, TestSize.Level1)
@@ -1537,7 +1537,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch001, TestSiz
   * @tc.name: SingleVerDeleteBatch002
   * @tc.desc: Check normal delete batch ability.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ8
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch002, TestSize.Level1)
@@ -1793,7 +1793,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatch007, TestSiz
   * @tc.name: SingleVerPutBatchObserver001
   * @tc.desc: Test the observer function of PutBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, TestSize.Level1)
@@ -1861,7 +1861,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
   * @tc.name: SingleVerPutBatchObserver002
   * @tc.desc: Test the observer function of PutBatch() for invalid input.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver002, TestSize.Level4)
@@ -1936,7 +1936,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver002, Te
   * @tc.name: SingleVerPutBatchObserver003
   * @tc.desc: Test the observer function of PutBatch() update function.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver003, TestSize.Level1)
@@ -2003,7 +2003,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver003, Te
   * @tc.name: SingleVerPutBatchObserver004
   * @tc.desc: Test the observer function of PutBatch(), same keys handle.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver004, TestSize.Level1)
@@ -2078,7 +2078,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver004, Te
   * @tc.name: SingleVerDeleteBatchObserver001
   * @tc.desc: Test the observer function of DeleteBatch() interface.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatchObserver001, TestSize.Level1)
@@ -2139,7 +2139,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatchObserver001,
   * @tc.name: SingleVerConcurrentPut001
   * @tc.desc: Test put the data concurrently, and check the timestamp.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerConcurrentPut001, TestSize.Level4)
@@ -2185,7 +2185,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerConcurrentPut001, TestS
   * @tc.name: SingleVerGetLocalEntries001
   * @tc.desc: Test GetLocalEntries interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetLocalEntries001, TestSize.Level1)
@@ -2274,7 +2274,7 @@ static vector<Entry> PreDataForQueryByPreFixKey()
   * @tc.name: QueryPreFixKey002
   * @tc.desc: The query method without filtering the field can query non-schma databases
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, QueryPreFixKey002, TestSize.Level1)
@@ -2325,7 +2325,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, QueryPreFixKey002, TestSize.Leve
   * @tc.name: SingleVerGetSecurityOption001
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  *@tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption001, TestSize.Level1)
@@ -2373,7 +2373,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption001, T
   * @tc.name: SingleVerGetSecurityOption002
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  *@tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption002, TestSize.Level1)
@@ -2601,7 +2601,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogCheckPoint001, TestSize.Le
   * @tc.name: CreateMemoryDbWithoutPath
   * @tc.desc: Create memory database without path.
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKN
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDbWithoutPath, TestSize.Level1)
@@ -2623,7 +2623,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDbWithoutPath, TestS
   * @tc.name: OpenStorePathCheckTest001
   * @tc.desc: Test open store with same label but different path.
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, OpenStorePathCheckTest001, TestSize.Level1)
@@ -2674,7 +2674,7 @@ std::string GetRealFileUrl(const std::string &dbPath, const std::string &appId, 
   * @tc.name: BusyTest001
   * @tc.desc: Test put kv data while another thread holds the transaction for one second
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)

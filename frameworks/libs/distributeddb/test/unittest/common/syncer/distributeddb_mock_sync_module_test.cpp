@@ -409,7 +409,7 @@ void DistributedDBMockSyncModuleTest::TearDown(void)
  * @tc.name: StateMachineCheck001
  * @tc.desc: Test machine do timeout when has same timerId.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck001, TestSize.Level1)
@@ -432,7 +432,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck001, TestSize.Level1)
  * @tc.name: StateMachineCheck002
  * @tc.desc: Test machine do timeout when has diff timerId.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck002, TestSize.Level1)
@@ -455,7 +455,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck002, TestSize.Level1)
  * @tc.name: StateMachineCheck003
  * @tc.desc: Test machine exec next task when queue not empty.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
@@ -486,7 +486,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
  * @tc.name: StateMachineCheck004
  * @tc.desc: Test machine deal time sync ack failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck004, TestSize.Level1)
@@ -511,7 +511,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck004, TestSize.Level1)
  * @tc.name: StateMachineCheck005
  * @tc.desc: Test machine recv errCode.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck005, TestSize.Level1)
@@ -539,7 +539,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck005, TestSize.Level1)
  * @tc.name: StateMachineCheck006
  * @tc.desc: Test machine exec next task when queue not empty to empty.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck006, TestSize.Level1)
@@ -569,7 +569,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck006, TestSize.Level1)
  * @tc.name: StateMachineCheck007
  * @tc.desc: Test machine DoSaveDataNotify in another thread.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck007, TestSize.Level3)
@@ -596,7 +596,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck007, TestSize.Level3)
  * @tc.name: StateMachineCheck008
  * @tc.desc: test machine process when last sync task send packet failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck008, TestSize.Level1)
@@ -614,7 +614,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck008, TestSize.Level1)
  * @tc.name: StateMachineCheck009
  * @tc.desc: test machine process when last sync task send packet failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck009, TestSize.Level1)
@@ -633,7 +633,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck009, TestSize.Level1)
  * @tc.name: StateMachineCheck010
  * @tc.desc: test machine process when error happened in response pull.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck010, TestSize.Level1)
@@ -652,7 +652,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck010, TestSize.Level1)
  * @tc.name: StateMachineCheck011
  * @tc.desc: test machine process when error happened in response pull.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
@@ -672,7 +672,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
  * @tc.name: StateMachineCheck012
  * @tc.desc: Verify Ability LastNotify AckReceive callback.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
@@ -698,7 +698,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
  * @tc.name: StateMachineCheck013
  * @tc.desc: test kill syncTaskContext.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
@@ -710,7 +710,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
  * @tc.name: StateMachineCheck014
  * @tc.desc: test machine stop save notify without start.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck014, TestSize.Level1)
@@ -724,7 +724,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck014, TestSize.Level1)
  * @tc.name: DataSyncCheck001
  * @tc.desc: Test dataSync recv error ack.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck001, TestSize.Level1)
@@ -741,7 +741,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck001, TestSize.Level1)
  * @tc.name: DataSyncCheck002
  * @tc.desc: Test dataSync recv notify ack.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck002, TestSize.Level1)
@@ -758,7 +758,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck002, TestSize.Level1)
  * @tc.name: DataSyncCheck003
  * @tc.desc: Test dataSync recv notify ack.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
@@ -850,7 +850,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck005, TestSize.Level1)
  * @tc.name: AutoLaunchCheck001
  * @tc.desc: Test autoLaunch close connection.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck001, TestSize.Level1)
@@ -862,7 +862,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck001, TestSize.Level1)
  * @tc.name: AutoLaunchCheck002
  * @tc.desc: Test autoLaunch receive diff userId.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck002, TestSize.Level1)
@@ -884,7 +884,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck002, TestSize.Level1)
  * @tc.name: SyncDataSync001
  * @tc.desc: Test request start when RemoveDeviceDataIfNeed failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync001, TestSize.Level1)
@@ -901,7 +901,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync001, TestSize.Level1)
  * @tc.name: SyncDataSync002
  * @tc.desc: Test pull request start when RemoveDeviceDataIfNeed failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync002, TestSize.Level1)
@@ -918,7 +918,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync002, TestSize.Level1)
  * @tc.name: SyncDataSync003
  * @tc.desc: Test call RemoveDeviceDataIfNeed in diff thread.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync003, TestSize.Level1)
@@ -975,7 +975,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync003, TestSize.Level1)
  * @tc.name: AbilitySync001
  * @tc.desc: Test abilitySync abort when recv error.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync001, TestSize.Level1)
@@ -997,7 +997,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync001, TestSize.Level1)
  * @tc.name: AbilitySync002
  * @tc.desc: Test abilitySync abort when save meta failed.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
@@ -1034,7 +1034,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
  * @tc.name: AbilitySync002
  * @tc.desc: Test abilitySync when offline.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
@@ -1066,7 +1066,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
  * @tc.name: AbilitySync004
  * @tc.desc: Test abilitySync when offline.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
@@ -1078,7 +1078,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
  * @tc.name: SyncLifeTest001
  * @tc.desc: Test syncer alive when thread still exist.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
@@ -1090,7 +1090,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
  * @tc.name: SyncLifeTest002
  * @tc.desc: Test autosync when thread still exist.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
@@ -1102,7 +1102,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
  * @tc.name: SyncLifeTest003
  * @tc.desc: Test syncer localdatachange when store is destructor
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
@@ -1114,7 +1114,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
  * @tc.name: SyncLifeTest004
  * @tc.desc: Test syncer remote data change.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
@@ -1146,7 +1146,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
  * @tc.name: SyncLifeTest005
  * @tc.desc: Test syncer remote device offline.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest005, TestSize.Level3)
@@ -1232,7 +1232,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest006, TestSize.Level1)
  * @tc.name: MessageScheduleTest001
  * @tc.desc: Test MessageSchedule stop timer when no message.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, MessageScheduleTest001, TestSize.Level1)
@@ -1257,7 +1257,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MessageScheduleTest001, TestSize.Level
  * @tc.name: SyncEngineTest001
  * @tc.desc: Test SyncEngine receive message when closing.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
@@ -1312,7 +1312,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
  * @tc.name: SyncEngineTest002
  * @tc.desc: Test SyncEngine add sync operation.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
@@ -1376,7 +1376,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
  * @tc.name: SyncEngineTest003
  * @tc.desc: Test SyncEngine add block sync operation.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest003, TestSize.Level1)
@@ -1470,7 +1470,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest005, TestSize.Level0)
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket001, TestSize.Level1)
@@ -1511,7 +1511,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket001, TestSize.Level1)
 * @tc.name: remote query packet 002
 * @tc.desc: Test RemoteExecutorAckPacket Serialization And DeSerialization
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket002, TestSize.Level1)
@@ -1552,7 +1552,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket002, TestSize.Level1)
 * @tc.name: remote query packet 003
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization with invalid args
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
@@ -1605,7 +1605,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
 * @tc.name: remote query packet 004
 * @tc.desc: Test RemoteExecutorRequestPacket Deserialization with invalid args
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
@@ -1652,7 +1652,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
  * @tc.name: SingleVerKvEntryTest001
  * @tc.desc: Test SingleVerKvEntry Serialize and DeSerialize.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Level1)
@@ -1677,7 +1677,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
 * @tc.name: mock remote query 001
 * @tc.desc: Test RemoteExecutor receive msg when closing
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
@@ -1706,7 +1706,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 * @tc.name: mock remote query 002
 * @tc.desc: Test RemoteExecutor response failed when closing
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
@@ -1718,7 +1718,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
  * @tc.name: SyncTaskContextCheck001
  * @tc.desc: test context check task can be skipped in push mode.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Level1)
@@ -1737,7 +1737,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Leve
  * @tc.name: SyncTaskContextCheck002
  * @tc.desc: test context check task can be skipped in push mode.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Level1)
@@ -1793,7 +1793,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Leve
  * @tc.name: SyncTaskContextCheck003
  * @tc.desc: test context call on sync task add.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck003, TestSize.Level1)
@@ -1831,7 +1831,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck003, TestSize.Leve
  * @tc.name: SyncTaskContextCheck004
  * @tc.desc: test context add sync task should not cancel current task.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck004, TestSize.Level1)
@@ -1865,7 +1865,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck004, TestSize.Leve
  * @tc.name: SyncTaskContextCheck005
  * @tc.desc: test context call get query id async.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck005, TestSize.Level1)
@@ -1921,7 +1921,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck005, TestSize.Leve
  * @tc.name: SyncTaskContextCheck006
  * @tc.desc: test context call get query id async.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Level1)
@@ -2011,7 +2011,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck007, TestSize.Leve
  * @tc.name: TimeChangeListenerTest001
  * @tc.desc: Test RegisterTimeChangedLister.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Level1)
@@ -2041,7 +2041,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Le
  * @tc.name: TimeChangeListenerTest002
  * @tc.desc: Test TimeChange.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Level1)
@@ -2076,7 +2076,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Le
  * @tc.name: SyncerCheck001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
@@ -2088,7 +2088,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
  * @tc.name: SyncerCheck002
  * @tc.desc: Test syncer call get timestamp with close and open.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck002, TestSize.Level1)
@@ -2133,7 +2133,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck002, TestSize.Level1)
  * @tc.name: SyncerCheck003
  * @tc.desc: Test syncer query auto sync.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, DISABLE_SyncerCheck003, TestSize.Level1)
@@ -2167,7 +2167,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DISABLE_SyncerCheck003, TestSize.Level
  * @tc.name: SyncerCheck004
  * @tc.desc: Test syncer call status check.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck004, TestSize.Level1)
@@ -2180,7 +2180,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck004, TestSize.Level1)
  * @tc.name: SyncerCheck005
  * @tc.desc: Test syncer call erase watermark without storage.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck005, TestSize.Level1)
@@ -2196,7 +2196,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck005, TestSize.Level1)
  * @tc.name: SyncerCheck006
  * @tc.desc: Test syncer call init with busy.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck006, TestSize.Level1)
@@ -2215,7 +2215,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck006, TestSize.Level1)
  * @tc.name: SyncerCheck007
  * @tc.desc: Test syncer get sync data size without syncer lock.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
@@ -2240,7 +2240,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
  * @tc.name: SyncerCheck008
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck008, TestSize.Level1)
@@ -2285,7 +2285,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck008, TestSize.Level1)
  * @tc.name: SessionId001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
@@ -2302,7 +2302,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
  * @tc.name: TimeSync001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync001, TestSize.Level1)
@@ -2369,7 +2369,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync003, TestSize.Level0)
  * @tc.name: SyncContextCheck001
  * @tc.desc: Test context time out logic.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncContextCheck001, TestSize.Level1)
@@ -2389,7 +2389,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncContextCheck001, TestSize.Level1)
  * @tc.name: SingleVerDataSyncUtils001
  * @tc.desc: Test translate item got diff timestamp.
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerDataSyncUtils001, TestSize.Level1)

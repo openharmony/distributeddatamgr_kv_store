@@ -100,7 +100,7 @@ void DistributedDBNotificationChainTest::TearDown(void)
  * @tc.name: RegisterEvent001
  * @tc.desc: Register an exits event.
  * @tc.type: FUNC
- * @tc.require: AR000BVDFP AR000CQDVI
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBNotificationChainTest, RegisterEvent001, TestSize.Level0)
@@ -117,7 +117,7 @@ HWTEST_F(DistributedDBNotificationChainTest, RegisterEvent001, TestSize.Level0)
  * @tc.name: RegisterListener001
  * @tc.desc: Register and unregister a listener.
  * @tc.type: FUNC
- * @tc.require: AR000BVDFP AR000CQDVI
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBNotificationChainTest, RegisterListener001, TestSize.Level0)
@@ -144,7 +144,7 @@ HWTEST_F(DistributedDBNotificationChainTest, RegisterListener001, TestSize.Level
  * @tc.name: NotifyEvent001
  * @tc.desc: notify an event to listener.
  * @tc.type: FUNC
- * @tc.require: AR000BVDFQ AR000CQDVJ
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBNotificationChainTest, NotifyEvent001, TestSize.Level0)
@@ -172,7 +172,7 @@ HWTEST_F(DistributedDBNotificationChainTest, NotifyEvent001, TestSize.Level0)
  * @tc.name: UnRegisterEvent001
  * @tc.desc: unregister a invalid event.
  * @tc.type: FUNC
- * @tc.require: AR000BVDFP AR000CQDVI
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBNotificationChainTest, UnRegisterEvent001, TestSize.Level0)

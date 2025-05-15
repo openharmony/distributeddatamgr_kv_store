@@ -143,7 +143,7 @@ void DistributedDBInterfacesImportAndExportTest::TearDown(void)
   * @tc.name: NormalExport001
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.Level1)
@@ -191,7 +191,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.L
   * @tc.name: UndisturbedlSingleExport001
   * @tc.desc: Check that the export action is an independent transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlSingleExport001, TestSize.Level1)
@@ -264,7 +264,7 @@ static void GetSnapshotUnitTest(KvStoreDelegate *&kvDelegatePtr, KvStoreSnapshot
   * @tc.name: UndisturbedlMultiExport001
   * @tc.desc: Check that the export action is an independent transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001, TestSize.Level1)
@@ -336,7 +336,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001,
   * @tc.name: ExportParameterCheck001
   * @tc.desc: Check the verification of abnormal interface parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, TestSize.Level1)
@@ -405,7 +405,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, Te
   * @tc.name: ExportParameterCheck002
   * @tc.desc: Check the verification of abnormal interface parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, TestSize.Level1)
@@ -480,7 +480,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, Te
   * @tc.name: NormalImport001
   * @tc.desc: Normal import capability for single version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.Level1)
@@ -539,7 +539,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.L
   * @tc.name: NormalImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.Level1)
@@ -605,7 +605,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.L
   * @tc.name: ExceptionFileImport001
   * @tc.desc: Normal import capability for single version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport001, TestSize.Level1)
@@ -658,7 +658,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport001, Tes
   * @tc.name: ExceptionFileImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport002, TestSize.Level1)
@@ -690,7 +690,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport002, Tes
   * @tc.name: ExceptionFileImport003
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport003, TestSize.Level1)
@@ -750,7 +750,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport003, Tes
   * @tc.name: ExceptionFileImport004
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487A
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport004, TestSize.Level1)
@@ -851,7 +851,7 @@ static void TryDbForPasswordIndependence001()
   * @tc.name: PasswordIndependence001
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence001, TestSize.Level1)
@@ -938,7 +938,7 @@ static void TryDbForPasswordIndependence002()
   * @tc.name: PasswordIndependence002
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence002, TestSize.Level1)
@@ -996,7 +996,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence002, Te
   * @tc.name: PasswordIndependence002
   * @tc.desc: The data of the current version of the board is exported and the package file is single.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence003, TestSize.Level1)
@@ -1061,7 +1061,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence003, Te
   * @tc.name: SeparaDbExportAndImport
   * @tc.desc: Import and export after Separate database.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, TestSize.Level1)
@@ -1120,7 +1120,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbExportAndImport, Te
   * @tc.name: SeparaDbExportAndImport
   * @tc.desc: Import and export after Separate database.
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesImportAndExportTest, SeparaDbNoPasswdRekey, TestSize.Level1)

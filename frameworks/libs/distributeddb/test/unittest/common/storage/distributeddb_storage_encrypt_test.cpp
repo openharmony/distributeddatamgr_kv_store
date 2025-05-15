@@ -366,7 +366,7 @@ void DistributedDBStorageEncryptTest::TearDown(void)
   * @tc.name: EncryptTest001
   * @tc.desc: Check if opening database possible without encryption
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest001, TestSize.Level1)
@@ -397,7 +397,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest001, TestSize.Level1)
   * @tc.name: EncryptTest002
   * @tc.desc: Check if it is possible to open nonencrypted database with password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest002, TestSize.Level1)
@@ -434,7 +434,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest002, TestSize.Level1)
   * @tc.name: EncryptTest003
   * @tc.desc: Check if deciphering an encrypted database possible with wrong password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest003, TestSize.Level1)
@@ -471,7 +471,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest003, TestSize.Level1)
   * @tc.name: EncryptTest004
   * @tc.desc: Check if deciphering an encrypted database possible with correct password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest004, TestSize.Level1)
@@ -508,7 +508,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest004, TestSize.Level1)
   * @tc.name: EncryptTest005
   * @tc.desc: Check if rekeying possible with wrong password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest005, TestSize.Level1)
@@ -542,7 +542,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest005, TestSize.Level1)
   * @tc.name: EncryptTest006
   * @tc.desc: Check if rekeying possible with correct password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
  */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest006, TestSize.Level1)
@@ -576,7 +576,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest006, TestSize.Level1)
   * @tc.name: EncryptTest007
   * @tc.desc: Check if manipulating data possible after rekeying before disconnecting with DB.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest007, TestSize.Level1)
@@ -619,7 +619,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest007, TestSize.Level1)
   * @tc.name: EncryptTest008
   * @tc.desc: Check if manipulating data possible after rekeying and reconnection with a wrong password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest008, TestSize.Level1)
@@ -669,7 +669,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest008, TestSize.Level1)
   * @tc.name: EncryptTest009
   * @tc.desc: Check if manipulating data possible after rekeying and reconnection with a correct password.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
 */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest009, TestSize.Level1)
@@ -719,7 +719,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest009, TestSize.Level1)
   * @tc.name: EncryptTest010
   * @tc.desc: Export DB when there is no encryption.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
 */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest010, TestSize.Level1)
@@ -753,7 +753,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest010, TestSize.Level1)
   * @tc.name: EncryptTest011
   * @tc.desc: Export DB when there is no encryption but decipherment is attempted.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest011, TestSize.Level1)
@@ -793,7 +793,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest011, TestSize.Level1)
   * @tc.name: EncryptTest012
   * @tc.desc: Export DB when there is encryption but password is wrong.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest012, TestSize.Level1)
@@ -833,7 +833,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest012, TestSize.Level1)
   * @tc.name: EncryptTest013
   * @tc.desc: Export DB when there is encryption and password matches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest013, TestSize.Level1)
@@ -873,7 +873,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest013, TestSize.Level1)
   * @tc.name: EncryptTest014
   * @tc.desc: Attach DB files when there is no encryption.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest014, TestSize.Level1)
@@ -901,7 +901,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest014, TestSize.Level1)
   * @tc.name: EncryptTest015
   * @tc.desc: Attach DB files when there is no encryption but decipherment is attempted.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest015, TestSize.Level1)
@@ -935,7 +935,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest015, TestSize.Level1)
   * @tc.name: EncryptTest016
   * @tc.desc: Attach DB files when there is encryption but password dismatches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest016, TestSize.Level1)
@@ -969,7 +969,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest016, TestSize.Level1)
   * @tc.name: EncryptTest017
   * @tc.desc: Attach DB files when there is encryption and password matches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest017, TestSize.Level1)
@@ -1003,7 +1003,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest017, TestSize.Level1)
   * @tc.name: EncryptTest018
   * @tc.desc: Export attached DB file failed if the file does not exist.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest018, TestSize.Level1)
@@ -1043,7 +1043,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest018, TestSize.Level1)
   * @tc.name: EncryptTest019
   * @tc.desc: Export attached DB file succeeded if the file exists.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
 */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest019, TestSize.Level1)
@@ -1083,7 +1083,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest019, TestSize.Level1)
   * @tc.name: EncryptTest020
   * @tc.desc: Failed to manipulate the data if the parameter of number of iteration dismatches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest020, TestSize.Level1)
@@ -1120,7 +1120,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest020, TestSize.Level1)
   * @tc.name: EncryptTest021
   * @tc.desc: Succeeded to manipulate the data if the parameter of number of iteration matches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest021, TestSize.Level1)
@@ -1157,7 +1157,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest021, TestSize.Level1)
   * @tc.name: EncryptTest022
   * @tc.desc: Failed to manipulate the data if the parameter of encryption algorithm dismatches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest022, TestSize.Level1)
@@ -1194,7 +1194,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest022, TestSize.Level1)
   * @tc.name: EncryptTest023
   * @tc.desc: Succeeded to manipulate the data if the parameter of encryption algorithm matches.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest023, TestSize.Level1)
@@ -1231,7 +1231,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest023, TestSize.Level1)
   * @tc.name: EncryptTest024
   * @tc.desc: Export attached DB (no password) file and check the context.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT6
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest024, TestSize.Level1)
@@ -1292,7 +1292,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest024, TestSize.Level1)
  * @tc.name: EncryptTest025
  * @tc.desc: Export attached DB (password) file and check the context.
  * @tc.type: FUNC
- * @tc.require: AR000CQDT6
+ * @tc.require:
  * @tc.author: maokeheng
  */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest025, TestSize.Level1)
@@ -1358,7 +1358,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest025, TestSize.Level1)
  * @tc.name: EncryptTest026
  * @tc.desc: Check if deciphering with a non-existing algorithm can be detected.
  * @tc.type: FUNC
- * @tc.require: AR000CQDT6
+ * @tc.require:
  * @tc.author: maokeheng
  */
 HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest026, TestSize.Level1)

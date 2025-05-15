@@ -180,7 +180,7 @@ void PreBoolDataForParseAndCheckSchemaAttribute003()
  * @tc.name: ParseAndCheckSchemaAttribute001
  * @tc.desc: Ability to recognize and parse the correct schema attribute format
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute001, TestSize.Level1)
@@ -232,7 +232,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute001, TestSize.Lev
  * @tc.name: ParseAndCheckSchemaAttribute002
  * @tc.desc: Can identify the wrong schema attribute format and report an error.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute002, TestSize.Level1)
@@ -286,7 +286,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute002, TestSize.Lev
  * @tc.name: ParseAndCheckSchemaAttribute003
  * @tc.desc: Can correctly interpret the meaning of each keyword of the schema attribute
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute003, TestSize.Level1)
@@ -315,7 +315,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute003, TestSize.Lev
  * @tc.name: ParseAndCheckSchemaAttribute004
  * @tc.desc: Can correctly identify the meaning of the schema attribute field that is incorrectly parsed
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute004, TestSize.Level1)
@@ -364,7 +364,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckSchemaAttribute004, TestSize.Lev
  * @tc.name: CheckFieldName001
  * @tc.desc: Correctly identify field names
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, CheckFieldName001, TestSize.Level1)
@@ -389,7 +389,7 @@ HWTEST_F(DistributedDBSchemalTest, CheckFieldName001, TestSize.Level1)
  * @tc.name: CheckFieldName002
  * @tc.desc: Identify illegal field name
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, CheckFieldName002, TestSize.Level1)
@@ -416,7 +416,7 @@ HWTEST_F(DistributedDBSchemalTest, CheckFieldName002, TestSize.Level1)
  * @tc.name: ParseAndCheckFieldPath001
  * @tc.desc: Correctly identify and parse shema index fields
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckFieldPath001, TestSize.Level1)
@@ -473,7 +473,7 @@ HWTEST_F(DistributedDBSchemalTest, ParseAndCheckFieldPath001, TestSize.Level1)
  * @tc.name: ParseAndCheckFieldPath002
  * @tc.desc: Correctly identify illegal shema index fields
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBSchemalTest, ParseAndCheckFieldPath002, TestSize.Level1)

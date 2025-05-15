@@ -205,7 +205,7 @@ void InitSchemaDb()
  * @tc.name: Normal Sync 001
  * @tc.desc: Test normal push sync for keyprefix data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync001, TestSize.Level1)
@@ -267,7 +267,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync001, TestSize.Level1)
  * @tc.name: Normal Sync 002
  * @tc.desc: Test normal push sync for limit and offset.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync002, TestSize.Level1)
@@ -327,7 +327,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync002, TestSize.Level1)
  * @tc.name: Normal Sync 001
  * @tc.desc: Test normal push_and_pull sync for keyprefix data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync003, TestSize.Level1)
@@ -401,7 +401,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync003, TestSize.Level1)
  * @tc.name: Normal Sync 001
  * @tc.desc: Test normal pull sync for keyprefix data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync004, TestSize.Level1)
@@ -469,7 +469,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync004, TestSize.Level1)
  * @tc.name: NormalSync005
  * @tc.desc: Test normal push sync for inkeys query.
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync005, TestSize.Level1)
@@ -772,7 +772,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryAckPacketTest001, TestSize
  * @tc.name: GetQueryWaterMark 001
  * @tc.desc: Test metaData save and get queryWaterMark.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark001, TestSize.Level1)
@@ -853,7 +853,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark001, TestSize.
  * @tc.name: GetQueryWaterMark 002
  * @tc.desc: Test metaData save and get queryWaterMark after push or pull mode.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark002, TestSize.Level1)
@@ -926,7 +926,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark003, TestSize.
  * @tc.name: GetDeleteWaterMark001
  * @tc.desc: Test metaData save and get deleteWaterMark.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteWaterMark001, TestSize.Level1)
@@ -971,7 +971,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteWaterMark001, TestSize
  * @tc.name: ClearQueryWaterMark 001
  * @tc.desc: Test metaData clear watermark function.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark001, TestSize.Level1)
@@ -1027,7 +1027,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark001, TestSiz
  * @tc.name: ClearQueryWaterMark 002
  * @tc.desc: Test metaData clear watermark function.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSize.Level1)
@@ -1078,7 +1078,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSiz
  * @tc.name: ClearQueryWaterMark 003
  * @tc.desc: Test metaData clear watermark busy.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark003, TestSize.Level1)
@@ -1103,7 +1103,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark003, TestSiz
  * @tc.name: GetQueryLastTimestamp001
  * @tc.desc: Test function of GetQueryLastTimestamp.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp001, TestSize.Level1)
@@ -1191,7 +1191,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp002, TestS
  * @tc.name: MetaDataExceptionBranch001
  * @tc.desc: Test execption branch of meata data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, TestSize.Level1)
@@ -1229,7 +1229,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, Tes
  * @tc.name: GetDeleteKeyWaterMark 001
  * @tc.desc: Test metaData save and get deleteWaterMark.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestSize.Level1)
@@ -1310,7 +1310,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestS
  * @tc.name: GetDeleteKeyWaterMark 002
  * @tc.desc: Test metaData save and get deleteWaterMark after push or pull mode.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark002, TestSize.Level1)
@@ -1356,7 +1356,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark002, TestS
  * @tc.name: ClearDeleteKeyWaterMark 001
  * @tc.desc: Test metaData clear watermark function.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearDeleteKeyWaterMark001, TestSize.Level1)
@@ -1412,7 +1412,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearDeleteKeyWaterMark001, Tes
  * @tc.name: VerifyCacheAndDb 001
  * @tc.desc: Test metaData watermark cache and db are consistent and correct.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataQuerySync001, TestSize.Level1)
@@ -1477,7 +1477,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataQuerySync001, Tes
  * @tc.name: VerifyLruMap 001
  * @tc.desc: Test metaData watermark cache lru ability.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyLruMap001, TestSize.Level1)
@@ -1529,7 +1529,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyLruMap001, TestSize.Level
  * @tc.name: VerifyMetaDataInit 001
  * @tc.desc: Test metaData init correctly
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDataInit001, TestSize.Level1)
@@ -1603,7 +1603,7 @@ void InitVerifyStorageEnvironment(Metadata &meta, VirtualSingleVerSyncDBInterfac
  * @tc.name: VerifyManagerQuerySyncStorage 001
  * @tc.desc: Test metaData remove least used querySync storage items.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage001, TestSize.Level3)
@@ -1661,7 +1661,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
  * @tc.name: VerifyMetaDbCreateTime 001
  * @tc.desc: Test metaData get and set cbCreateTime.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDbCreateTime001, TestSize.Level1)
@@ -1713,7 +1713,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyMetaDbCreateTime001, Test
  * @tc.name: VerifyManagerQuerySyncStorage 002
  * @tc.desc: Test metaData remove least used querySync storage items when exit wrong data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage002, TestSize.Level3)
@@ -1758,7 +1758,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
  * @tc.name: AllPredicateQuerySync001
  * @tc.desc: Test normal push sync for AllPredicate data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync001, TestSize.Level1)
@@ -1826,7 +1826,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync001, TestS
  * @tc.name: AllPredicateQuerySync002
  * @tc.desc: Test wrong query param push sync for AllPredicate data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync002, TestSize.Level1)
@@ -1857,7 +1857,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync002, TestS
  * @tc.name: AllPredicateQuerySync003
  * @tc.desc: Test normal push sync for AllPredicate data with limit
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync003, TestSize.Level1)
@@ -1924,7 +1924,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync003, TestS
  * @tc.name: AllPredicateQuerySync004
  * @tc.desc: Test normal pull sync for AllPredicate data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestSize.Level1)

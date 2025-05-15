@@ -217,7 +217,7 @@ void DistributedDBStorageSubscribeQueryTest::TearDown()
   * @tc.name: CheckAndInitQueryCondition001
   * @tc.desc: Check the condition is legal or not with json schema
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition001, TestSize.Level1)
@@ -280,7 +280,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition001, 
   * @tc.name: CheckAndInitQueryCondition002
   * @tc.desc: Check the condition always illegal with flatbuffer schema
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition002, TestSize.Level1)
@@ -318,7 +318,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition002, 
   * @tc.name: CheckAndInitQueryCondition003
   * @tc.desc: Check the condition always illegal with flatbuffer schema
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition003, TestSize.Level1)
@@ -361,7 +361,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition003, 
   * @tc.name: PutSyncDataTestWithQuery
   * @tc.desc: put remote devices sync data(get by query sync or subscribe) with query.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery, TestSize.Level1)
@@ -414,7 +414,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery, TestS
   * @tc.name: PutSyncDataTestWithQuery002
   * @tc.desc: put remote devices sync data(timestamp is smaller then DB data) with query.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery002, TestSize.Level1)
@@ -472,7 +472,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery002, Te
   * @tc.name: PutSyncDataTestWithQuery003
   * @tc.desc: put remote devices sync data(with same timestamp in DB data but different devices) with query.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery003, TestSize.Level1)
@@ -529,7 +529,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery003, Te
   * @tc.name: PutSyncDataTestWithQuery004
   * @tc.desc: put remote devices sync data(with same timestamp in DB data but different devices) with query.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery004, TestSize.Level1)
@@ -585,7 +585,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery004, Te
   * @tc.name: AddSubscribeTest001
   * @tc.desc: Add subscribe with query
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest001, TestSize.Level1)
@@ -640,7 +640,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest001, TestSize.L
   * @tc.name: AddSubscribeTest002
   * @tc.desc: Add subscribe with same query not failed
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest002, TestSize.Level1)

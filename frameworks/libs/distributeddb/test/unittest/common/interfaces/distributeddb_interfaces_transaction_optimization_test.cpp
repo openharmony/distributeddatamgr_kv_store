@@ -88,7 +88,7 @@ void DistributedDBInterfacesTransactionOptimizationTest::TearDown(void)
   * @tc.name: BatchOperationsOfSyncAndLocal001
   * @tc.desc: Verify the batch put and query functions of the sync and local data in the same transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalBatchOperations001, TestSize.Level1)
@@ -166,7 +166,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalBatchOp
   * @tc.name: SyncAndLocalSingleOperations001
   * @tc.desc: Verify the single put and query functions of the sync and local data in the same transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalSingleOperations001, TestSize.Level1)
@@ -233,7 +233,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalSingleO
   * @tc.name: DeleteInTransaction001
   * @tc.desc: Verify that the sync and local functions can be deleted in the same transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, DeleteInTransaction001, TestSize.Level1)
@@ -296,7 +296,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, DeleteInTransaction
   * @tc.name: DeleteBatchInTransaction001
   * @tc.desc: Local data does not check readOnly.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, DeleteBatchInTransaction001, TestSize.Level1)
@@ -370,7 +370,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, DeleteBatchInTransa
   * @tc.name: SyncAndLocalObserver001
   * @tc.desc: Verify the observer functions of the sync and local data in the same transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserver001, TestSize.Level1)
@@ -458,7 +458,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
   * @tc.name: OnlyDeleteInTransaction001
   * @tc.desc: Verify the observer functions of delete operation in the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, OnlyDeleteInTransaction001, TestSize.Level1)
@@ -553,7 +553,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, OnlyDeleteInTransac
   * @tc.name: SyncAndLocalObserver002
   * @tc.desc: Verify the observer functions of the sync and local data in the same transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserver002, TestSize.Level1)
@@ -638,7 +638,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
   * @tc.name: PutRollback001
   * @tc.desc: Verify that a transaction can be rolled back after data is put.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutRollback001, TestSize.Level1)
@@ -721,7 +721,7 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutRollback001, Tes
   * @tc.name: PutBatchRollback001
   * @tc.desc: Verify that a transaction can be rolled back after data is put.
   * @tc.type: FUNC
-  * @tc.require: AR000EPAS8
+  * @tc.require:
   * @tc.author: changguicai
   */
 HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutBatchRollback001, TestSize.Level1)

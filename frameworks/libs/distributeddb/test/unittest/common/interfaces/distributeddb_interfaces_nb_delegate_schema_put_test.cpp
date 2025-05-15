@@ -203,7 +203,7 @@ void DistributedDBInterfacesNBDelegateSchemaPutTest::TearDown(void)
   * @tc.name: PutValueStrictSchemaCheck001
   * @tc.desc: Check the value in the strict schema mode.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueStrictSchemaCheck001, TestSize.Level1)
@@ -246,7 +246,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueStrictSchemaChe
   * @tc.name: PutValueReadOnlyCheck001
   * @tc.desc: Test writing the data into the no-schema kvStore which has schema originally.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueCompaSchemaCheck001, TestSize.Level1)
@@ -285,7 +285,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueCompaSchemaChec
   * @tc.name: PutValueReadOnlyCheck001
   * @tc.desc: Test writing the data into the no-schema kvStore which has schema originally.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueReadOnlyCheck001, TestSize.Level1)
@@ -321,7 +321,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, PutValueReadOnlyCheck00
   * @tc.name: QueryDeleted001
   * @tc.desc: Test the query in the deleted scene.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, QueryDeleted001, TestSize.Level1)

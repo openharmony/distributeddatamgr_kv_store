@@ -112,7 +112,7 @@ void DistributedDBAbilitySyncTest::TearDown(void)
  * @tc.name: RequestPacketTest001
  * @tc.desc: Verify RequestPacketSerialization and RequestPacketDeSerialization function.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest001, TestSize.Level0)
@@ -169,7 +169,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest001, TestSize.Level0)
  * @tc.name: RequestPacketTest002
  * @tc.desc: Verify RequestPacketSerialization and RequestPacketDeSerialization function when version not support.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest002, TestSize.Level0)
@@ -215,7 +215,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest002, TestSize.Level0)
  * @tc.name: RequestPacketTest003
  * @tc.desc: Verify RequestPacketSerialization and RequestPacketDeSerialization function.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest003, TestSize.Level0)
@@ -272,7 +272,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest003, TestSize.Level0)
  * @tc.name: RequestPacketTest004
  * @tc.desc: Verify RequestPacketSerialization and RequestPacketDeSerialization function.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest004, TestSize.Level0)
@@ -329,7 +329,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestPacketTest004, TestSize.Level0)
  * @tc.name: AckPacketTest001
  * @tc.desc: Verify AckPacketSerialization and AckPacketDeSerialization function.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, AckPacketTest001, TestSize.Level0)
@@ -386,7 +386,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckPacketTest001, TestSize.Level0)
  * @tc.name: SyncStartTest001
  * @tc.desc: Verify Ability sync SyncStart function.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, SyncStart001, TestSize.Level0)
@@ -419,7 +419,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, SyncStart001, TestSize.Level0)
  * @tc.name: RequestReceiveTest001
  * @tc.desc: Verify Ability RequestReceive callback.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
@@ -490,7 +490,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
  * @tc.name: AckReceiveTest001
  * @tc.desc: Verify Ability AckReceive callback.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
@@ -561,7 +561,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
  * @tc.name: AckReceiveTest002
  * @tc.desc: Verify Ability RDB AckReceive callback.
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest002, TestSize.Level1)

@@ -157,7 +157,7 @@ void DistributedDBInterfacesNBTransactionTest::TearDown(void) {}
   * @tc.name: start001
   * @tc.desc: Test the nb transaction start twice.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, start001, TestSize.Level1)
@@ -189,7 +189,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start001, TestSize.Level1)
   * @tc.name: start002
   * @tc.desc: Test the nb transaction begin and end not match.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, start002, TestSize.Level1)
@@ -239,7 +239,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start002, TestSize.Level1)
   * @tc.name: start003
   * @tc.desc: Test the nb transaction rollback automatically when db close.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, start003, TestSize.Level1)
@@ -291,7 +291,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start003, TestSize.Level1)
   * @tc.name: start004
   * @tc.desc: Test the nb operations return BUSY after transaction started.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
@@ -345,7 +345,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
   * @tc.name: commit001
   * @tc.desc: Test the nb transaction commit without start.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit001, TestSize.Level1)
@@ -370,7 +370,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit001, TestSize.Level1)
   * @tc.name: commit002
   * @tc.desc: Test the nb transaction commit twice.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit002, TestSize.Level1)
@@ -425,7 +425,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit002, TestSize.Level1)
   * @tc.name: commit003
   * @tc.desc: Test the entry size exceed the maximum limit in one transaction
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit003, TestSize.Level1)
@@ -498,7 +498,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit003, TestSize.Level1)
   * @tc.name: commit004
   * @tc.desc: Test the nb normal operations in one transaction
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit004, TestSize.Level1)
@@ -584,7 +584,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit004, TestSize.Level1)
   * @tc.name: commit005
   * @tc.desc: Test the conflict data report normally in one transaction
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit005, TestSize.Level1)
@@ -651,7 +651,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit005, TestSize.Level1)
   * @tc.name: commit006
   * @tc.desc: Test the conflict data report and observer function both be normal in one transaction
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit006, TestSize.Level1)
@@ -725,7 +725,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit006, TestSize.Level1)
   * @tc.name: rollback001
   * @tc.desc: Test the transaction rollback without start.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback001, TestSize.Level1)
@@ -750,7 +750,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback001, TestSize.Level1)
   * @tc.name: rollback002
   * @tc.desc: Test the transaction rollback twice
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback002, TestSize.Level1)
@@ -785,7 +785,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback002, TestSize.Level1)
   * @tc.name: rollback003
   * @tc.desc: Test the Put operation rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback003, TestSize.Level1)
@@ -833,7 +833,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback003, TestSize.Level1)
   * @tc.name: rollback004
   * @tc.desc: Test the PutBatch operation rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback004, TestSize.Level1)
@@ -885,7 +885,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback004, TestSize.Level1)
   * @tc.name: rollback005
   * @tc.desc: Test the modify operation rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback005, TestSize.Level1)
@@ -933,7 +933,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback005, TestSize.Level1)
   * @tc.name: rollback006
   * @tc.desc: Test the Delete operation rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback006, TestSize.Level1)
@@ -981,7 +981,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback006, TestSize.Level1)
   * @tc.name: rollback007
   * @tc.desc: Test the DeleteBatch operation rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback007, TestSize.Level1)
@@ -1030,7 +1030,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback007, TestSize.Level1)
   * @tc.name: rollback008
   * @tc.desc: Test the multiple operations rollback
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ9
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback008, TestSize.Level1)

@@ -329,7 +329,7 @@ void DistributedDBStorageRegisterObserverTest::TearDown(void)
   * @tc.name: RegisterObserver001
   * @tc.desc: Register a NULL pointer as an observer
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver001, TestSize.Level1)
@@ -359,7 +359,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver001, TestSize
   * @tc.name: RegisterObserver002
   * @tc.desc: Register an observer for the local database change of a specified key
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver002, TestSize.Level1)
@@ -402,7 +402,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver002, TestSize
   * @tc.name: RegisterObserver003
   * @tc.desc: Register an observer for the local sync database change of a specified key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver003, TestSize.Level1)
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver003, TestSize
   * @tc.name: RegisterObserver004
   * @tc.desc: Register an observer for the remote sync database change of a specified key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver004, TestSize.Level1)
@@ -472,7 +472,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver004, TestSize
   * @tc.name: RegisterObserver005
   * @tc.desc: Register an observer for the sync database change of a specified key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver005, TestSize.Level1)
@@ -496,7 +496,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver005, TestSize
   * @tc.name: RegisterObserver006
   * @tc.desc: Register an observer for the local database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver006, TestSize.Level1)
@@ -519,7 +519,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver006, TestSize
   * @tc.name: RegisterObserver007
   * @tc.desc: Register an observer for the local sync database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver007, TestSize.Level1)
@@ -542,7 +542,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver007, TestSize
   * @tc.name: RegisterObserver008
   * @tc.desc: Register an observer for the remote sync database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver008, TestSize.Level1)
@@ -565,7 +565,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver008, TestSize
   * @tc.name: RegisterObserver009
   * @tc.desc: Register an observer for the sync database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver009, TestSize.Level1)
@@ -589,7 +589,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver009, TestSize
   * @tc.name: RegisterObserver010
   * @tc.desc: Register an observer for the local sync database change and the local database change of a specified key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver010, TestSize.Level1)
@@ -612,7 +612,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver010, TestSize
   * @tc.name: RegisterObserver011
   * @tc.desc: Register an observer for the remote sync database change and the local database change of a specified key
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver011, TestSize.Level1)
@@ -635,7 +635,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver011, TestSize
   * @tc.name: RegisterObserver012
   * @tc.desc: Register an observer for the local sync database change and the local database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver012, TestSize.Level1)
@@ -658,7 +658,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver012, TestSize
   * @tc.name: RegisterObserver013
   * @tc.desc: Register an observer for the remote sync database change and the local database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver013, TestSize.Level1)
@@ -711,7 +711,7 @@ static void PreSyncDataForRegisterObserver014(Timestamp time, vector<DataItem> &
   * @tc.name: RegisterObserver014
   * @tc.desc: Sync multiple records to the sync database
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver014, TestSize.Level1)
@@ -781,7 +781,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver014, TestSize
   * @tc.name: RegisterObserver015
   * @tc.desc: Sync multiple records to the sync database, and remove them.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver015, TestSize.Level1)

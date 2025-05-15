@@ -127,7 +127,7 @@ void DistributedDBStorageResultAndJsonOptimizeTest::TearDown(void)
   * @tc.name: ResultSetOpen001
   * @tc.desc: Test the SQLiteSingleVerResultSet Open function
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetOpen001, TestSize.Level1)
@@ -167,7 +167,7 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetOpen001, TestSi
   * @tc.name: ResultSetGetCount001
   * @tc.desc: Test the SQLiteSingleVerResultSet GetCount function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetGetCount001, TestSize.Level1)
@@ -200,7 +200,7 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetGetCount001, Te
   * @tc.name: ResultSetMoveTo001
   * @tc.desc: Test the SQLiteSingleVerResultSet MoveTo And GetPosition function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetMoveTo001, TestSize.Level1)
@@ -275,7 +275,7 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetMoveTo001, Test
   * @tc.name: ResultSetGetEntry001
   * @tc.desc: Test the SQLiteSingleVerResultSet GetEntry function.
   * @tc.type: FUNC
-  * @tc.require: AR000F3OP0
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetGetEntry001, TestSize.Level1)

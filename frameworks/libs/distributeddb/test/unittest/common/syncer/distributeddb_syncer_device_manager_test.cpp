@@ -122,7 +122,7 @@ void DistributedDBSyncerDeviceManagerTest::TearDown(void)
  * @tc.name: Online Callback 001
  * @tc.desc: Test DeviceManager device online callback function.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSyncerDeviceManagerTest, OnlineCallback001, TestSize.Level0)
@@ -152,7 +152,7 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, OnlineCallback001, TestSize.Level
  * @tc.name: Offline Callback 001
  * @tc.desc: Test DeviceManager device offline callback function.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSyncerDeviceManagerTest, OfflineCallback001, TestSize.Level0)
@@ -182,7 +182,7 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, OfflineCallback001, TestSize.Leve
  * @tc.name: Get Devices 001
  * @tc.desc: Test DeviceManager GetDevices function.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSyncerDeviceManagerTest, GetDevices001, TestSize.Level0)
@@ -213,7 +213,7 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, GetDevices001, TestSize.Level0)
  * @tc.name: Send BroadCast 001
  * @tc.desc: Test DeviceManager SendBroadCast function.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSyncerDeviceManagerTest, SendBroadCast001, TestSize.Level1)

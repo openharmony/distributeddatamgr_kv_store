@@ -178,7 +178,7 @@ void DistributedDBInterfacesRegisterSyncDBTest::TearDown(void)
   * @tc.name: RegisterObserver001
   * @tc.desc: normal register observer success.
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver001, TestSize.Level1)
@@ -190,7 +190,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver001, TestSiz
   * @tc.name: RegisterObserver002
   * @tc.desc: register(null object) observer success
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver002, TestSize.Level1)
@@ -202,7 +202,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver002, TestSiz
   * @tc.name: RegisterObserver003
   * @tc.desc: Test the new data and check the processing result of the callback function.
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver003, TestSize.Level1)
@@ -238,7 +238,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver003, TestSiz
   * @tc.name: RegisterObserver004
   * @tc.desc: register observer success and putbach callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver004, TestSize.Level1)
@@ -279,7 +279,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver004, TestSiz
   * @tc.name: RegisterObserver005
   * @tc.desc: register observer success and putbach callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver005, TestSize.Level1)
@@ -328,7 +328,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver005, TestSiz
   * @tc.name: RegisterObserver006
   * @tc.desc: register observer success and update callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver006, TestSize.Level1)
@@ -370,7 +370,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver006, TestSiz
   * @tc.name: RegisterObserver007
   * @tc.desc: register observer success and delete callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver007, TestSize.Level1)
@@ -410,7 +410,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver007, TestSiz
   * @tc.name: RegisterObserver008
   * @tc.desc: register observer success and delete callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver008, TestSize.Level1)
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver008, TestSiz
   * @tc.name: RegisterObserver009
   * @tc.desc: register observer success and deletebatch callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver009, TestSize.Level1)
@@ -490,7 +490,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver009, TestSiz
   * @tc.name: RegisterObserver010
   * @tc.desc: register observer success and delete callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver010, TestSize.Level1)
@@ -539,7 +539,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver010, TestSiz
   * @tc.name: RegisterObserver011
   * @tc.desc: register observer success and DeleteBatch callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver011, TestSize.Level1)
@@ -578,7 +578,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver011, TestSiz
   * @tc.name: RegisterObserver012
   * @tc.desc: register observer success and clear callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver012, TestSize.Level1)
@@ -623,7 +623,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver012, TestSiz
   * @tc.name: RegisterObserver013
   * @tc.desc: register observer success and clear callback
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver013, TestSize.Level1)
@@ -656,7 +656,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver013, TestSiz
   * @tc.desc: Test the function of modifying a record, adding a record,
   *  deleting a record, and checking the processing result of the callback function.
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver014, TestSize.Level1)
@@ -781,7 +781,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver014, TestSiz
 /**
   * @tc.name: SnapshotRegisterObserver001
   * @tc.desc: register a normal observer for snapshot
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver001, TestSize.Level1)
@@ -799,7 +799,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver001,
 /**
   * @tc.name: SnapshotRegisterObserver002
   * @tc.desc:  register a null observer for snapshot register a null observer for snapshot
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver002, TestSize.Level1)
@@ -817,7 +817,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver002,
 /**
   * @tc.name: SnapshotRegisterObserver003
   * @tc.desc: register observer success and put callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver003, TestSize.Level1)
@@ -863,7 +863,7 @@ static void CreatEntrysData(size_t size, uint8_t value, vector<Entry> &entries)
 /**
   * @tc.name: SnapshotRegisterObserver004
   * @tc.desc: register observer success and putBatch callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver004, TestSize.Level1)
@@ -898,7 +898,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver004,
 /**
   * @tc.name: SnapshotRegisterObserver005
   * @tc.desc: register observer success and putBatch callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver005, TestSize.Level1)
@@ -940,7 +940,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver005,
 /**
   * @tc.name: SnapshotRegisterObserver006
   * @tc.desc: register observer success and update callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver006, TestSize.Level1)
@@ -982,7 +982,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver006,
 /**
   * @tc.name: SnapshotRegisterObserver007
   * @tc.desc: register observer success and Delete callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver007, TestSize.Level1)
@@ -1020,7 +1020,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver007,
 /**
   * @tc.name: SnapshotRegisterObserver008
   * @tc.desc: register observer success and Delete null value callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver008, TestSize.Level1)
@@ -1054,7 +1054,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver008,
 /**
   * @tc.name: SnapshotRegisterObserver009
   * @tc.desc: register observer success and DeleteBatch callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver009, TestSize.Level1)
@@ -1097,7 +1097,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver009,
 /**
   * @tc.name: SnapshotRegisterObserver010
   * @tc.desc: register observer success and DeleteBatch callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver010, TestSize.Level1)
@@ -1150,7 +1150,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver010,
 /**
   * @tc.name: SnapshotRegisterObserver011
   * @tc.desc: register observer success and DeleteBatch callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver011, TestSize.Level1)
@@ -1190,7 +1190,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver011,
 /**
   * @tc.name: SnapshotRegisterObserver012
   * @tc.desc: register observer success and Clear callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver012, TestSize.Level1)
@@ -1232,7 +1232,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver012,
 /**
   * @tc.name: SnapshotRegisterObserver013
   * @tc.desc: register observer success and Clear callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver013, TestSize.Level1)
@@ -1263,7 +1263,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver013,
 /**
   * @tc.name: SnapshotRegisterObserver014
   * @tc.desc: register observer success and operate callback
-  * @tc.require: AR000BVDFQ AR000CQDVJ
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver014, TestSize.Level1)
@@ -1388,7 +1388,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotRegisterObserver014,
 /**
   * @tc.name: UnRegisterObserver001
   * @tc.desc: Unregister a normal observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver001, TestSize.Level1)
@@ -1409,7 +1409,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver001, TestS
 /**
   * @tc.name: UnRegisterObserver002
   * @tc.desc: Unregister a null observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver002, TestSize.Level1)
@@ -1424,7 +1424,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver002, TestS
 /**
   * @tc.name: UnRegisterObserver003
   * @tc.desc: Unregister a unregister observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver003, TestSize.Level1)
@@ -1439,7 +1439,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver003, TestS
 /**
   * @tc.name: UnRegisterObserver004
   * @tc.desc: Unregister a and check callback
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver004, TestSize.Level1)
@@ -1588,7 +1588,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, UnRegisterObserver004, TestS
 /**
   * @tc.name: SnapshotUnRegisterObserver001
   * @tc.desc: Unregister a snapshot observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver001, TestSize.Level1)
@@ -1606,7 +1606,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver00
 /**
   * @tc.name: SnapshotUnRegisterObserver002
   * @tc.desc: Unregister a null snapshot observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver002, TestSize.Level1)
@@ -1623,7 +1623,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver00
 /**
   * @tc.name: SnapshotUnRegisterObserver003
   * @tc.desc: Unregister a unregister snapshot observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver003, TestSize.Level1)
@@ -1682,7 +1682,7 @@ static void SnapshotUnRegisterObserver004Inner()
 /**
   * @tc.name: SnapshotUnRegisterObserver004
   * @tc.desc: Check a unregister snapshot observer
-  * @tc.require: AR000BVDFP AR000CQDVI
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotUnRegisterObserver004, TestSize.Level1)
@@ -1817,7 +1817,7 @@ static void CheckObserverCallback(const Entry &entryB)
   * @tc.desc: Test whether the data change notification can obtain these changes
   *  when the database is added, deleted, or modified.
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFR AR000CQDVK
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, GetObserverData001, TestSize.Level1)
@@ -1848,7 +1848,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, GetObserverData001, TestSize
   *  when the value of observer is not empty
   *  when a snapshot is obtained and the database data changes.
   * @tc.type: FUNC
-  * @tc.require: AR000C06UT AR000CQDTG
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, GetSnapshotObserverData001, TestSize.Level1)

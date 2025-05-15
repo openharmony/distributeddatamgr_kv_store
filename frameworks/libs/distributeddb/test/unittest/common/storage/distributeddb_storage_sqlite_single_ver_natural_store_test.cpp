@@ -92,7 +92,7 @@ void DistributedDBStorageSQLiteSingleVerNaturalStoreTest::TearDown(void)
   * @tc.name: GetSyncData001
   * @tc.desc: To test the function of querying the data in the time stamp range in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData001, TestSize.Level1)
@@ -110,7 +110,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData001, Te
   * @tc.name: GetSyncData002
   * @tc.desc: Test the function that the database does not query the data in the time stamp range.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData002, TestSize.Level1)
@@ -130,7 +130,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData002, Te
   * @tc.desc: To test the function of querying data when the timestamp range
   *  in the data obtaining interface is invalid.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData003, TestSize.Level1)
@@ -147,7 +147,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData003, Te
   * @tc.name: GetSyncData004
   * @tc.desc: To the test database Subcon reading, a large number of data records exist in the time stamp range.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData004, TestSize.Level1)
@@ -171,7 +171,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData004, Te
   * @tc.desc: In the test database, if a large number of data records exist
   *  in the time stamp range, a packet is read successfully.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData005, TestSize.Level1)
@@ -189,7 +189,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData005, Te
   * @tc.desc: To test the function of reading data when the time stamp range in the database
   *  is greater than the value of blockSize.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData006, TestSize.Level1)
@@ -206,7 +206,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSyncData006, Te
   * @tc.name: PutSyncData001
   * @tc.desc: To test the function of synchronizing the new data of the remote device that synchronizes the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData001, TestSize.Level1)
@@ -253,7 +253,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData001, Te
   * @tc.desc: To test the function of synchronizing data from the remote device
   *  to the local device after the data is deleted from the remote device.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData002, TestSize.Level1)
@@ -291,7 +291,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData002, Te
   * @tc.desc: To test the function of synchronizing the mixed data of the added
   *  and deleted data from the remote device to the local device.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData003, TestSize.Level1)
@@ -323,7 +323,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutSyncData003, Te
   * @tc.name: PutMetaData001
   * @tc.desc: Test metadata insertion and modification.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutMetaData001, TestSize.Level1)
@@ -376,7 +376,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, PutMetaData001, Te
   * @tc.name: GetMetaData001
   * @tc.desc: To test the function of reading the metadata of a key in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetMetaData001, TestSize.Level1)
@@ -429,7 +429,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetMetaData001, Te
   * @tc.name: DeleteMetaData001
   * @tc.desc:   * @tc.name: To test the function of deleting the metadata with prefix key in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteMetaData001, TestSize.Level1)
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteMetaData001,
   * @tc.name: GetCurrentMaxTimestamp001
   * @tc.desc: To test the function of obtaining the maximum timestamp when a record exists in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetCurrentMaxTimestamp001, TestSize.Level1)
@@ -479,7 +479,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetCurrentMaxTimes
   * @tc.name: GetCurrentMaxTimestamp002
   * @tc.desc: Obtain the maximum timestamp when no record exists in the test record library.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetCurrentMaxTimestamp002, TestSize.Level1)
@@ -495,7 +495,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetCurrentMaxTimes
   * @tc.name: LocalDatabaseOperate001
   * @tc.desc: Test the function of inserting data in the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOperate001, TestSize.Level1)
@@ -551,7 +551,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOpera
   * @tc.name: LocalDatabaseOperate002
   * @tc.desc: Test the function of deleting data from the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOperate002, TestSize.Level1)
@@ -607,7 +607,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOpera
   * @tc.name: LocalDatabaseOperate003
   * @tc.desc: To test the function of reading data from the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOperate003, TestSize.Level1)
@@ -663,7 +663,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, LocalDatabaseOpera
   * @tc.name: SyncDatabaseOperate001
   * @tc.desc: To test the function of inserting data of the local device in the synchronization database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate001, TestSize.Level1)
@@ -719,7 +719,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: SyncDatabaseOperate002
   * @tc.desc: test the put operation after data synced from other devices.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate002, TestSize.Level1)
@@ -746,7 +746,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: SyncDatabaseOperate003
   * @tc.desc: test the delete operation in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate003, TestSize.Level1)
@@ -779,7 +779,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: SyncDatabaseOperate004
   * @tc.desc: test the delete for the data from other devices in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate004, TestSize.Level1)
@@ -803,7 +803,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: SyncDatabaseOperate005
   * @tc.desc: test the reading for sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate005, TestSize.Level1)
@@ -838,7 +838,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: SyncDatabaseOperate006
   * @tc.desc: test the get entries for sync database
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperate006, TestSize.Level1)
@@ -869,7 +869,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, SyncDatabaseOperat
   * @tc.name: ClearRemoteData001
   * @tc.desc: test the clear data synced from the remote by device.
   * @tc.type: FUNC
-  * @tc.require: AR000CIFDA AR000CQS3T
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, ClearRemoteData001, TestSize.Level1)
@@ -899,7 +899,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, ClearRemoteData001
  * @tc.name: DeleteUserKeyValue001
  * @tc.desc: When a user deletes a data record, the system clears the user record.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue001, TestSize.Level1)
@@ -920,7 +920,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.name: DeleteUserKeyValue002
  * @tc.desc: After the synchronization library data is deleted locally, add the same key data locally.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue002, TestSize.Level1)
@@ -949,7 +949,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.name: DeleteUserKeyValue003
  * @tc.desc: After the synchronization database data is deleted locally, the same key data is added from the remote end.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue003, TestSize.Level1)
@@ -990,7 +990,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.name: DeleteUserKeyValue004
  * @tc.desc: Changes in key after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue004, TestSize.Level1)
@@ -1014,7 +1014,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.name: DeleteUserKeyValue005
  * @tc.desc: New unified key data locally after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue005, TestSize.Level1)
@@ -1043,7 +1043,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.desc: After the remote delete data is synced to the local,
  *  the same key data is added from the remote other devices
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue006, TestSize.Level1)
@@ -1083,7 +1083,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
  * @tc.name: EraseDeviceWaterMark001
  * @tc.desc: Test erase water mark
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, EraseDeviceWaterMark001, TestSize.Level1)

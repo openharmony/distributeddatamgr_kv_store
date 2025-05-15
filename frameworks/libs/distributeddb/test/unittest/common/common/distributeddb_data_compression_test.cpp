@@ -80,7 +80,7 @@ void DistributedDBDataCompressionTest::TearDown(void)
   * @tc.name: DataCompression1
   * @tc.desc: To test the function compress and uncompress works well in normal situation.
   * @tc.type: FUNC
-  * @tc.require: AR000G3QTT
+  * @tc.require:
   * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBDataCompressionTest, DataCompression1, TestSize.Level1)
@@ -112,7 +112,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression1, TestSize.Level1)
   * @tc.name: DataCompression2
   * @tc.desc: To test uncompress failed when compressed is destroyed.
   * @tc.type: FUNC
-  * @tc.require: AR000G3QTT
+  * @tc.require:
   * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBDataCompressionTest, DataCompression2, TestSize.Level1)
@@ -149,7 +149,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression2, TestSize.Level1)
   * @tc.desc: To test uncompress works when bufferLen is larger but under 30M limit,
               and uncompress failed when bufferLen is beyond the 30M limit.
   * @tc.type: FUNC
-  * @tc.require: AR000G3QTT
+  * @tc.require:
   * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBDataCompressionTest, DataCompression3, TestSize.Level1)

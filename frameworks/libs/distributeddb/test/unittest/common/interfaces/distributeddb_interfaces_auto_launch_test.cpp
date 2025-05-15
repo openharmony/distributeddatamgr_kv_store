@@ -192,7 +192,7 @@ void DistributedDBInterfacesAutoLaunchTest::TearDown(void)
   * @tc.name: EnableKvStoreAutoLaunch001
   * @tc.desc: Enable the kvstore with the diff parameters.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch001, TestSize.Level1)
@@ -250,7 +250,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch001, Test
   * @tc.name: EnableKvStoreAutoLaunch002
   * @tc.desc: Enable the kv store auto launch for the change of createIfNecessary.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch002, TestSize.Level1)
@@ -405,7 +405,7 @@ void TriggerAutoLaunch(const std::string &storeId, bool isWriteCovered)
   * @tc.name: EnableKvStoreAutoLaunch003
   * @tc.desc: test the data change and the notifier of the auto open for no data changed.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch003, TestSize.Level2)
@@ -425,7 +425,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch003, Test
   * @tc.name: EnableKvStoreAutoLaunch004
   * @tc.desc: test the data change and the notifier of the auto open for data changed.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch004, TestSize.Level2)
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch004, Test
   * @tc.name: EnableKvStoreAutoLaunch005
   * @tc.desc: Test enable the same database twice.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch005, TestSize.Level1)
@@ -476,7 +476,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch005, Test
   * @tc.name: EnableKvStoreAutoLaunch005
   * @tc.desc: test the over limits for the enable list.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch006, TestSize.Level2)
@@ -549,7 +549,7 @@ void SetAutoLaunchLifeCycleTime(const std::string &storeId, uint32_t time)
   * @tc.name: EnableKvStoreAutoLaunch007
   * @tc.desc: test the over limits for the enable list.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9KU
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, DisableKvStoreAutoLaunch001, TestSize.Level3)
@@ -590,7 +590,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, DisableKvStoreAutoLaunch001, Tes
   * @tc.name: AutoLaunchLifeCycle001
   * @tc.desc: test the auto closed for the database auto launched by the msg.
   * @tc.type: FUNC
-  * @tc.require: AR000E8S2T
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle001, TestSize.Level3)
@@ -693,7 +693,7 @@ void DelayAutoLaunchCycle(const std::string &storeId, bool isWrite)
   * @tc.name: AutoLaunchLifeCycle002
   * @tc.desc: test the over limits for the enable list.
   * @tc.type: FUNC
-  * @tc.require: AR000E8S2T
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle002, TestSize.Level3)
@@ -713,7 +713,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle002, TestSize
   * @tc.name: AutoLaunchLifeCycle003
   * @tc.desc: test the life cycle of the auto launched database in the sync reading scene.
   * @tc.type: FUNC
-  * @tc.require: AR000E8S2T
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle003, TestSize.Level3)

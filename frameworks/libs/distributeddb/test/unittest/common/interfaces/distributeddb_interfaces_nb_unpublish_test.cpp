@@ -137,7 +137,7 @@ void DistributedDBInterfacesNBUnpublishTest::TearDown(void)
   * @tc.name: CombineTest001
   * @tc.desc: Test unpublish one nonexistent data.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey001, TestSize.Level1)
@@ -202,7 +202,7 @@ HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey001, TestS
   * @tc.name: SingleVerUnPublishKey002
   * @tc.desc: Test unpublish existent data(no conflict with the local data).
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey002, TestSize.Level1)
@@ -279,7 +279,7 @@ HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey002, TestS
   * @tc.name: SingleVerUnPublishKey003
   * @tc.desc: Test unpublish one existent data(conflict with the local data).
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey003, TestSize.Level1)
@@ -360,7 +360,7 @@ HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey003, TestS
   * @tc.name: SingleVerUnPublishKey004
   * @tc.desc: Test unpublish one deleted data(no conflict with the local data).
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey004, TestSize.Level1)
@@ -399,7 +399,7 @@ HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey004, TestS
   * @tc.name: SingleVerUnPublishKey005
   * @tc.desc: Test unpublish one existent data(conflict with the local data).
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesNBUnpublishTest, SingleVerUnPublishKey005, TestSize.Level1)

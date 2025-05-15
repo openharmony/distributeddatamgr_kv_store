@@ -150,7 +150,7 @@ void DistributedDBSingleVerP2PPermissionSyncTest::TearDown(void)
   * @tc.name: PermissionCheck001
   * @tc.desc: deviceA PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck001, TestSize.Level3)
@@ -213,7 +213,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck001, TestSi
   * @tc.name: PermissionCheck002
   * @tc.desc: deviceA PermissionCheck not pass test, SYNC_MODE_PULL_ONLY
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck002, TestSize.Level3)
@@ -283,7 +283,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck002, TestSi
   * @tc.name: PermissionCheck003
   * @tc.desc: deviceA PermissionCheck not pass test, SYNC_MODE_PUSH_PULL
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck003, TestSize.Level3)
@@ -372,7 +372,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck003, TestSi
   * @tc.name: PermissionCheck004
   * @tc.desc: deviceB and deviceC PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck004, TestSize.Level3)
@@ -435,7 +435,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck004, TestSi
   * @tc.name: PermissionCheck005
   * @tc.desc: deviceB and deviceC PermissionCheck not pass test, SYNC_MODE_PULL_ONLY
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck005, TestSize.Level3)
@@ -504,7 +504,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck005, TestSi
   * @tc.name: PermissionCheck006
   * @tc.desc: deviceA PermissionCheck deviceB not pass, deviceC pass
   * @tc.type: FUNC
-  * @tc.require: AR000EJJOJ
+  * @tc.require:
   * @tc.author: wangchuanqing
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck006, TestSize.Level3)
@@ -571,7 +571,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck006, TestSi
   * @tc.name: PermissionCheck007
   * @tc.desc: deviceA PermissionCheck, deviceB not pass, deviceC pass in SYNC_MODE_AUTO_PUSH
   * @tc.type: FUNC
-  * @tc.require: AR000G3RLS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck007, TestSize.Level3)
@@ -626,12 +626,12 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck007, TestSi
 }
 
 /**
-+  * @tc.name: PermissionCheck008
-+  * @tc.desc: deviceA PermissionCheck, deviceB not pass, deviceC pass in SYNC_MODE_AUTO_PULL
-+  * @tc.type: FUNC
-+  * @tc.require: AR000G3RLS
-+  * @tc.author: zhangqiquan
-+  */
+  * @tc.name: PermissionCheck008
+  * @tc.desc: deviceA PermissionCheck, deviceB not pass, deviceC pass in SYNC_MODE_AUTO_PULL
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck008, TestSize.Level3)
 {
     /**
@@ -706,7 +706,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck008, TestSi
   * @tc.name: PermissionCheck009
   * @tc.desc: different runpermissioncheck call return different value
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck009, TestSize.Level3)
@@ -777,7 +777,7 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck009, TestSi
   * @tc.name: PermissionCheck010
   * @tc.desc: permission check cost lot of time and return false
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck010, TestSize.Level3)

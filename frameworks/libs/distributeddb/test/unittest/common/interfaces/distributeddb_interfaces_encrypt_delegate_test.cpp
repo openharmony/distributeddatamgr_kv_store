@@ -144,7 +144,7 @@ void DistributedDBInterfacesEncryptDelegateTest::TearDown(void) {}
   * @tc.name: EncryptedDbOperation001
   * @tc.desc: Test the single version db encrypted function.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT5 AR000CQDT6
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation001, TestSize.Level1)
@@ -222,7 +222,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation001, Te
   * @tc.name: EncryptedDbOperation002
   * @tc.desc: Test the local db encrypted function.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT5 AR000CQDT6
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation002, TestSize.Level1)
@@ -303,7 +303,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation002, Te
   * @tc.name: EncryptedDbOperation003
   * @tc.desc: Test the multi version db encrypted function.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT5 AR000CQDT6
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation003, TestSize.Level1)
@@ -385,7 +385,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation003, Te
   * @tc.name: EncryptedDbSwitch001
   * @tc.desc: Test the single version db for Rekey function.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch001, TestSize.Level1)
@@ -451,7 +451,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch001, TestS
   * @tc.name: EncryptedDbSwitch002
   * @tc.desc: Test the single version db Rekey function return BUSY because of multiple instances.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch002, TestSize.Level1)
@@ -486,7 +486,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch002, TestS
   * @tc.name: EncryptedDbSwitch003
   * @tc.desc: Test the single version db Rekey function return BUSY because of observer.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch003, TestSize.Level1)
@@ -518,7 +518,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch003, TestS
   * @tc.name: EncryptedDbSwitch004
   * @tc.desc: Test the single version db Rekey function return BUSY because of conflict notifier.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch004, TestSize.Level1)
@@ -546,7 +546,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch004, TestS
   * @tc.name: EncryptedDbSwitch009
   * @tc.desc: Test the single version db Rekey function from password1 to password2.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch009, TestSize.Level1)
@@ -583,7 +583,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch009, TestS
   * @tc.name: EncryptedDbSwitch010
   * @tc.desc: Test the single version db Rekey function from encrypted db unencrypted db .
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch010, TestSize.Level1)
@@ -618,7 +618,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch010, TestS
   * @tc.name: EncryptedDbSwitch011
   * @tc.desc: Test the single version db Rekey function from unencrypted db to encrypted db.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch011, TestSize.Level1)
@@ -655,7 +655,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch011, TestS
   * @tc.name: EncryptedDbSwitch012
   * @tc.desc: Test the local db Rekey function from password1 to password2.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch012, TestSize.Level1)
@@ -704,7 +704,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch012, TestS
   * @tc.name: EncryptedDbSwitch013
   * @tc.desc: Test the local db Rekey function from encrypted db unencrypted db .
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch013, TestSize.Level1)
@@ -751,7 +751,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch013, TestS
   * @tc.name: EncryptedDbSwitch014
   * @tc.desc: Test the local db Rekey function from unencrypted db to encrypted db.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch014, TestSize.Level1)
@@ -799,7 +799,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch014, TestS
   * @tc.name: EncryptedDbSwitch015
   * @tc.desc: Test the multi version db Rekey function from password1 to password2.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch015, TestSize.Level1)
@@ -851,7 +851,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch015, TestS
   * @tc.name: EncryptedDbSwitch016
   * @tc.desc: Test the multi version db Rekey function from encrypted db unencrypted db .
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch016, TestSize.Level1)
@@ -898,7 +898,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch016, TestS
   * @tc.name: EncryptedDbSwitch017
   * @tc.desc: Test the multi version db Rekey function from unencrypted db to encrypted db.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch017, TestSize.Level1)
@@ -947,7 +947,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch017, TestS
   * @tc.name: OpenEncryptedDb001
   * @tc.desc: Test create an encrypted database successfully.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT5 AR000CQDT6
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb001, TestSize.Level1)
@@ -985,7 +985,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb001, TestSiz
   * @tc.name: OpenEncryptedDb002
   * @tc.desc: Test create an encrypted database failed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT8
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb002, TestSize.Level1)
@@ -1025,7 +1025,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb002, TestSiz
   * @tc.name: OpenEncryptedDb003
   * @tc.desc: Test reopen an encrypted database successfully.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT8
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb003, TestSize.Level1)
@@ -1077,7 +1077,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb003, TestSiz
   * @tc.name: OpenEncryptedDb004
   * @tc.desc: Test reopen an encrypted database failed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT8
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb004, TestSize.Level1)

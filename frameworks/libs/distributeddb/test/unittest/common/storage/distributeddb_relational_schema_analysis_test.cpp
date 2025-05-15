@@ -113,7 +113,7 @@ TableInfo AnalysisTable(const std::string &name, const std::string &sql)
  * @tc.name: AnalysisTable001
  * @tc.desc: Analysis with table which has one primary key
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable001, TestSize.Level1)
@@ -126,7 +126,7 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable001, TestSize.L
  * @tc.name: AnalysisTable002
  * @tc.desc: Analysis with table which has multi primary key
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable002, TestSize.Level1)
@@ -139,7 +139,7 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable002, TestSize.L
  * @tc.name: AnalysisTable003
  * @tc.desc: Analysis with table which has no primary key
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable003, TestSize.Level1)
@@ -152,7 +152,7 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable003, TestSize.L
  * @tc.name: AnalysisTable003
  * @tc.desc: Analysis with table which has no primary key
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable004, TestSize.Level1)

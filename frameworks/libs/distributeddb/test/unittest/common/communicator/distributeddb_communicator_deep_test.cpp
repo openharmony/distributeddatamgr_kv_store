@@ -136,7 +136,7 @@ void DistributedDBCommunicatorDeepTest::TearDown()
  * @tc.name: WaitAndRetrySend 001
  * @tc.desc: Test send retry semantic
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2)
@@ -223,7 +223,7 @@ static int CreateBufferThenAddIntoScheduler(SendTaskScheduler &scheduler, const 
  * @tc.name: SendSchedule 001
  * @tc.desc: Test schedule in Priority order than in send order
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, SendSchedule001, TestSize.Level2)
@@ -322,7 +322,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendSchedule001, TestSize.Level2)
  * @tc.name: Fragment 001
  * @tc.desc: Test fragmentation in send and receive
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
@@ -377,7 +377,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
  * @tc.name: Fragment 002
  * @tc.desc: Test fragmentation in partial loss
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
@@ -443,7 +443,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
  * @tc.name: Fragment 003
  * @tc.desc: Test fragmentation simultaneously
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
@@ -507,7 +507,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
  * @tc.name: Fragment 004
  * @tc.desc: Test fragmentation in send and receive when rate limit
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
@@ -589,7 +589,7 @@ void ClearPreviousTestCaseInfluence()
  * @tc.name: ReliableOnline 001
  * @tc.desc: Test device online reliability
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ AR000CQE0N
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
@@ -649,7 +649,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
  * @tc.name: NetworkAdapter001
  * @tc.desc: Test networkAdapter start func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
@@ -715,7 +715,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
  * @tc.name: NetworkAdapter002
  * @tc.desc: Test networkAdapter get mtu func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter002, TestSize.Level1)
@@ -746,7 +746,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter002, TestSize.Level1)
  * @tc.name: NetworkAdapter003
  * @tc.desc: Test networkAdapter get timeout func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter003, TestSize.Level1)
@@ -775,7 +775,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter003, TestSize.Level1)
  * @tc.name: NetworkAdapter004
  * @tc.desc: Test networkAdapter send bytes func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
@@ -836,7 +836,7 @@ void InitAdapter(const std::shared_ptr<NetworkAdapter> &adapter,
  * @tc.name: NetworkAdapter005
  * @tc.desc: Test networkAdapter receive data func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
@@ -884,7 +884,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
  * @tc.name: NetworkAdapter006
  * @tc.desc: Test networkAdapter device change func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
@@ -933,7 +933,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
  * @tc.name: NetworkAdapter007
  * @tc.desc: Test networkAdapter recv invalid head length
  * @tc.type: FUNC
- * @tc.require: AR000BVDGJ
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)

@@ -136,7 +136,7 @@ void DistributedDBInterfacesDatabaseCorruptTest::TearDown(void)
   * @tc.name: DatabaseCorruptionHandleTest001
   * @tc.desc: Check the corruption detect without setting the corrupt handler.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest001, TestSize.Level3)
@@ -180,7 +180,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
   * @tc.name: DatabaseCorruptionHandleTest002
   * @tc.desc: Get kv store through different parameters for the same storeID.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest002, TestSize.Level1)
@@ -252,7 +252,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
   * @tc.name: DatabaseCorruptionHandleTest003
   * @tc.desc: Test the CloseKvStore Interface and check whether the database file can be closed.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest003, TestSize.Level1)
@@ -325,7 +325,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
   * @tc.name: DatabaseCorruptionHandleTest004
   * @tc.desc: Test the DeleteKvStore Interface and check whether the database files can be removed.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest004, TestSize.Level1)
@@ -385,7 +385,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
   * @tc.name: DatabaseCorruptionHandleTest005
   * @tc.desc: Test the DeleteKvStore Interface and check whether the database files can be removed.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest005, TestSize.Level1)
@@ -565,7 +565,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseRebuildTest001, Tes
   * @tc.name: DatabaseIntegrityCheck001
   * @tc.desc: Test the integrity check option.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseIntegrityCheck001, TestSize.Level2)
@@ -581,7 +581,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseIntegrityCheck001, 
   * @tc.name: DatabaseIntegrityCheck002
   * @tc.desc: Test the integrity check interface.
   * @tc.type: FUNC
-  * @tc.require: AR000D487C SR000D4878
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseIntegrityCheck002, TestSize.Level1)

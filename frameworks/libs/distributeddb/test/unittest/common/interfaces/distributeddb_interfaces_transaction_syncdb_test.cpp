@@ -100,7 +100,7 @@ void DistributedDBInterfacesTransactionSyncDBTest::TearDown(void)
   * @tc.name: StartTransaction001
   * @tc.desc: Test that can't call StartTransaction interface repeatedly.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction001, TestSize.Level1)
@@ -120,7 +120,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction001, Test
   * @tc.name: StartTransaction002
   * @tc.desc: Test that call StartTransaction and commit interface normally.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction002, TestSize.Level1)
@@ -140,7 +140,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction002, Test
   * @tc.name: StartTransaction003
   * @tc.desc: Test that call StartTransaction and rolback interface normally.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction003, TestSize.Level1)
@@ -160,7 +160,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction003, Test
   * @tc.name: StartTransaction004
   * @tc.desc: Test that call StartTransaction and rolback interface normally.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction004, TestSize.Level1)
@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, StartTransaction004, Test
   * @tc.name: Commit001
   * @tc.desc: Test that can't commit Transaction before it start.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit001, TestSize.Level1)
@@ -209,7 +209,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit001, TestSize.Level
   * @tc.name: Commit002
   * @tc.desc: Test that can't commit Transaction repeatedly even if it start normally.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit002, TestSize.Level1)
@@ -233,7 +233,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit002, TestSize.Level
   * @tc.name: Commit003
   * @tc.desc: Test that can commit Transaction after put record.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit003, TestSize.Level1)
@@ -261,7 +261,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit003, TestSize.Level
   * @tc.name: Commit004
   * @tc.desc: Test that can commit Transaction after update record.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit004, TestSize.Level1)
@@ -289,7 +289,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit004, TestSize.Level
   * @tc.name: Commit005
   * @tc.desc: Test that can commit Transaction after delete record.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit005, TestSize.Level1)
@@ -317,7 +317,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit005, TestSize.Level
   * @tc.name: Commit006
   * @tc.desc: Test that can commit Transaction after clear all the records.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit006, TestSize.Level1)
@@ -345,7 +345,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit006, TestSize.Level
   * @tc.name: Commit007
   * @tc.desc: Test that can commit Transaction after delete and update db.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit007, TestSize.Level1)
@@ -377,7 +377,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit007, TestSize.Level
   * @tc.name: Commit008
   * @tc.desc: Test that can commit Transaction after clear and new add records.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNK AR000CQDTO
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit008, TestSize.Level1)
@@ -410,7 +410,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, Commit008, TestSize.Level
  * @tc.desc: Test if new commit records and logs generated
  *  when a transaction rollback-ed
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack001, TestSize.Level1)
@@ -426,7 +426,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack001, TestSize.Lev
 * @tc.name: RollBack002
 * @tc.desc: rollback a transaction two times
 * @tc.type: FUNC
-* @tc.require: AR000BVRNM AR000CQDTQ
+* @tc.require:
 * @tc.author: huangnaigu
 */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack002, TestSize.Level1)
@@ -450,7 +450,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack002, TestSize.Lev
  * @tc.name: RollBack003
  * @tc.desc: insert a data and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack003, TestSize.Level1)
@@ -478,7 +478,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack003, TestSize.Lev
  * @tc.name: RollBack004
  * @tc.desc: update a data and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack004, TestSize.Level1)
@@ -510,7 +510,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack004, TestSize.Lev
  * @tc.name: RollBack005
  * @tc.desc: delete an exist data and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack005, TestSize.Level1)
@@ -542,7 +542,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack005, TestSize.Lev
  * @tc.name: RollBack006
  * @tc.desc: clear db and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack006, TestSize.Level1)
@@ -574,7 +574,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack006, TestSize.Lev
  * @tc.name: RollBack007
  * @tc.desc: delete a exist data and update a data and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack007, TestSize.Level1)
@@ -610,7 +610,7 @@ HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack007, TestSize.Lev
  * @tc.name: RollBack008
  * @tc.desc: clear db and insert a data and rollback
  * @tc.type: FUNC
- * @tc.require: AR000BVRNM AR000CQDTQ
+ * @tc.require:
  * @tc.author: huangnaigu
  */
 HWTEST_F(DistributedDBInterfacesTransactionSyncDBTest, RollBack008, TestSize.Level1)

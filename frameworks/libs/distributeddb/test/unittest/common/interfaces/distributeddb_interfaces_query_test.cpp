@@ -138,7 +138,7 @@ void DistributedDBInterfacesQueryTest::TearDown(void)
   * @tc.name: Query001
   * @tc.desc: Check the legal single query operation to see if the generated container is correct
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K6
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesQueryTest, Query001, TestSize.Level1)
@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBInterfacesQueryTest, Query001, TestSize.Level1)
   * @tc.name: Query002
   * @tc.desc: Check for illegal query conditions
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K6
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesQueryTest, Query002, TestSize.Level1)
@@ -211,7 +211,7 @@ HWTEST_F(DistributedDBInterfacesQueryTest, Query002, TestSize.Level1)
   * @tc.name: Query003
   * @tc.desc: Check combination condition
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K6
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesQueryTest, Query003, TestSize.Level1)

@@ -124,7 +124,7 @@ void DistributedDBDeviceIdentifierTest::TearDown(void)
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY,
   * set Key to be null and origDevice to be false, expect return INVALID_ARGS.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier001, TestSize.Level1)
@@ -152,7 +152,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier001, TestSize.Level1
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY,
   * set Key to be null and origDevice to be true, expect return INVALID_ARGS.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier002, TestSize.Level1)
@@ -180,7 +180,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier002, TestSize.Level1
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY and origDevice to be false.
   * Check if a non-existing key will return NOT_FOUND.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier003, TestSize.Level1)
@@ -206,7 +206,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier003, TestSize.Level1
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY and origDevice to be true.
   * Check if a non-existing key will return NOT_FOUND.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier004, TestSize.Level1)
@@ -231,7 +231,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier004, TestSize.Level1
   * @tc.name: DeviceIdentifier005
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY and origDevice to be false. check if returns OK.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier005, TestSize.Level1)
@@ -256,7 +256,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier005, TestSize.Level1
   * @tc.name: DeviceIdentifier006
   * @tc.desc: Set pragma to be GET_DEVICE_IDENTIFIER_OF_ENTRY and origDevice to be true. check if returns OK.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier006, TestSize.Level1)
@@ -281,7 +281,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier006, TestSize.Level1
   * @tc.name: DeviceIdentifier007
   * @tc.desc: Set pragma to be GET_IDENTIFIER_OF_DEVICE. check if empty deviceID returns INVALID_ARGS.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier007, TestSize.Level1)
@@ -300,7 +300,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier007, TestSize.Level1
   * @tc.name: DeviceIdentifier008
   * @tc.desc: Set pragma to be GET_IDENTIFIER_OF_DEVICE. check if deviceIdentifier matches deviceID.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KV
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier008, TestSize.Level1)

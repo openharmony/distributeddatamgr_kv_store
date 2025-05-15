@@ -140,7 +140,7 @@ void DistributedDBStorageIndexOptimizeTest::TearDown(void)
   * @tc.name: ParseAndCheckUnionIndex001
   * @tc.desc: Test the Json union index parse and check function Open function
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageIndexOptimizeTest, ParseAndCheckUnionIndex001, TestSize.Level1)
@@ -216,7 +216,7 @@ HWTEST_F(DistributedDBStorageIndexOptimizeTest, ParseAndCheckUnionIndex001, Test
   * @tc.name: UnionIndexCreatTest001
   * @tc.desc: Test the Json uoin index create function
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageIndexOptimizeTest, UnionIndexCreatTest001, TestSize.Level1)
@@ -243,7 +243,7 @@ HWTEST_F(DistributedDBStorageIndexOptimizeTest, UnionIndexCreatTest001, TestSize
   * @tc.name: SuggestIndexTest001
   * @tc.desc: Test the Suggest index verify function
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPE
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageIndexOptimizeTest, SuggestIndexTest001, TestSize.Level1)
@@ -292,7 +292,7 @@ HWTEST_F(DistributedDBStorageIndexOptimizeTest, SuggestIndexTest001, TestSize.Le
   * @tc.name: SuggestIndexTest002
   * @tc.desc: Test the Query parse sql the SuggestIndex
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPE
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBStorageIndexOptimizeTest, SuggestIndexTest002, TestSize.Level1)

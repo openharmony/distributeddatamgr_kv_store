@@ -124,7 +124,7 @@ void DistributedDBInterfacesDatabaseRdKernelTest::TearDown(void)
   * @tc.name: GetKvStore003
   * @tc.desc: Get kv store through different SecurityOption, abnormal or normal.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore003, TestSize.Level1)
@@ -192,7 +192,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore003, TestSize.Le
   * @tc.name: GetKvStore004
   * @tc.desc: Get kv store parameters with Observer and Notifier, then trigger callback.
   * @tc.type: FUNC
-  * @tc.require: AR000EV1G2
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore004, TestSize.Level1)
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStoreWithInvalidOptio
   * @tc.name: RepeatCloseKvStore001
   * @tc.desc: Close the kv store repeatedly and check the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C2F0C AR000CQDV7
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, RepeatCloseKvStore001, TestSize.Level2)
@@ -564,7 +564,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, RepeatCloseKvStore001, Tes
   * @tc.name: CreatKvStoreWithSchema001
   * @tc.desc: Create non-memory KvStore with schema, check if create success.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CreatKvStoreWithSchema001, TestSize.Level1)
@@ -586,7 +586,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CreatKvStoreWithSchema001,
   * @tc.name: OpenKvStoreWithStoreOnly001
   * @tc.desc: open the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, OpenKvStoreWithStoreOnly001, TestSize.Level1)
@@ -623,7 +623,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, OpenKvStoreWithStoreOnly00
   * @tc.name: GetDBWhileOpened001
   * @tc.desc: open the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000E8S2V
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetDBWhileOpened001, TestSize.Level1)
@@ -728,7 +728,7 @@ namespace {
   * @tc.name: FreqOpenCloseDel001
   * @tc.desc: Open/close/delete the kv store concurrently.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqOpenCloseDel001, TestSize.Level2)
@@ -740,7 +740,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqOpenCloseDel001, TestS
   * @tc.name: FreqOpenClose001
   * @tc.desc: Open and close the kv store concurrently.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqOpenClose001, TestSize.Level2)
@@ -752,7 +752,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqOpenClose001, TestSize
   * @tc.name: CheckKvStoreDir001
   * @tc.desc: Delete the kv store with the option that createDirByStoreIdOnly is true.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CheckKvStoreDir001, TestSize.Level1)
@@ -788,7 +788,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CheckKvStoreDir001, TestSi
  * @tc.name: CompressionRate1
  * @tc.desc: Open the kv store with invalid compressionRate and open successfully.
  * @tc.type: FUNC
- * @tc.require: AR000G3QTT
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CompressionRate1, TestSize.Level1)

@@ -191,7 +191,7 @@ void DistributedDBStorageQuerySyncTest::TearDown(void)
   * @tc.name: GetSyncData001
   * @tc.desc: To test the function of querying the data in the time stamp range in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CRAKO
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData001, TestSize.Level1)
@@ -233,7 +233,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData001, TestSize.Level1
  * @tc.name: GetQuerySyncData002
  * @tc.desc: To test GetSyncData function is available and check the boundary value.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData002, TestSize.Level1)
@@ -302,7 +302,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData002, TestSize.Level1
  * @tc.name: GetQuerySyncData004
  * @tc.desc: To test GetSyncDataNext function is available and check the boundary value.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData004, TestSize.Level1)
@@ -373,7 +373,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData004, TestSize.Level1
  * @tc.desc: To test if parameter is invalid, GetSyncData function return an E_INVALID_ARGS code. If no data found,
     GetSyncData will return E_OK but entries will be empty.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData006, TestSize.Level1)
@@ -407,7 +407,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData006, TestSize.Level1
     if the size of query data is greater than QUERY_SYNC_THRESHOLD*MAX_ITEM_SIZE , will not get deleted data next.
     Otherwise, will get deleted data next.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData008, TestSize.Level1)
@@ -478,7 +478,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData008, TestSize.Level1
  * @tc.name: GetQuerySyncData009
  * @tc.desc: To test GetSyncData and GetSyncDataNext function works with large amounts of data.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData009, TestSize.Level2)
@@ -538,7 +538,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData009, TestSize.Level2
  * @tc.name: GetQuerySyncData010
  * @tc.desc: To test GetSyncData when Query with limit.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData010, TestSize.Level1)
@@ -586,7 +586,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData010, TestSize.Level1
   * @tc.name: GetQueryID001
   * @tc.desc: To test the function of generating query identity.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID001, TestSize.Level1)
@@ -613,7 +613,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID001, TestSize.Level1)
   * @tc.name: GetQueryID002
   * @tc.desc: To test the function of generating query identity.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID002, TestSize.Level1)
@@ -672,7 +672,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID002, TestSize.Level1)
   * @tc.name: GetQueryID003
   * @tc.desc: To test the function of generating query identity ignore limit, orderby, suggestion.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID003, TestSize.Level1)
@@ -708,7 +708,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQueryID003, TestSize.Level1)
   * @tc.name: Serialize001
   * @tc.desc: To test the function of querying the data after serialized and deserialized.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, Serialize001, TestSize.Level1)
@@ -767,7 +767,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, Serialize001, TestSize.Level1)
   * @tc.name: Serialize002
   * @tc.desc: To test the function of serialized illegal query object.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, Serialize002, TestSize.Level1)
@@ -787,7 +787,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, Serialize002, TestSize.Level1)
   * @tc.name: DeSerialize001
   * @tc.desc: To test the function of deserialized  illegal query object.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerialize001, TestSize.Level1)
@@ -861,7 +861,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerialize002, TestSize.Level1)
   * @tc.name: SameQueryObjectIdInDiffVer001
   * @tc.desc: Same query object have same id in different version.
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, SameQueryObjectIdInDiffVer001, TestSize.Level1)
@@ -1114,7 +1114,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, MultiQueryGetSyncData001, TestSize.L
   * @tc.name: QueryPredicateValidation001
   * @tc.desc: check query object is query only by key and has orderBy or not
   * @tc.type: FUNC
-  * @tc.require: AR000FN6G9
+  * @tc.require:
   * @tc.author: xulianhui
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, QueryPredicateValidation001, TestSize.Level1)
@@ -1208,7 +1208,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, RelationalQuerySyncTest002, TestSize
  * @tc.name: SerializeAndDeserializeForVer1
  * @tc.desc: Test querySyncObject serialization and deserialization.
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeAndDeserializeForVer1, TestSize.Level1)
@@ -1245,7 +1245,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeAndDeserializeForVer1, Test
  * @tc.name: MultiInkeys1
  * @tc.desc: Test the rc when multiple inkeys exists.
  * @tc.type: FUNC
- * @tc.require: AR000GOHO7
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBStorageQuerySyncTest, MultiInkeys1, TestSize.Level1)

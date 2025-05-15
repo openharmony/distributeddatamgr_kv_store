@@ -31,7 +31,7 @@ namespace {
   * @tc.name: SyncDatabaseOperate001
   * @tc.desc: To test the function of inserting data of the local device in the synchronization database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: huangboxin
   */
 void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate001(RdSingleVerNaturalStore *&store,
@@ -46,7 +46,7 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate001
   * @tc.name: SyncDatabaseOperate003
   * @tc.desc: test the delete operation in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: huangboxin
   */
 void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate003(RdSingleVerNaturalStore *&store,
@@ -61,7 +61,7 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate003
   * @tc.name: SyncDatabaseOperate005
   * @tc.desc: test the reading for sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: huangboxin
   */
 void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate005(RdSingleVerNaturalStore *&store,
@@ -76,7 +76,7 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate005
   * @tc.name: SyncDatabaseOperate006
   * @tc.desc: test the get entries for sync database
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: huangboxin
   */
 void DistributedDBStorageRdSingleVerNaturalStoreTestCase::SyncDatabaseOperate006(RdSingleVerNaturalStore *&store,
