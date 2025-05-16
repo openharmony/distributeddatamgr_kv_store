@@ -566,15 +566,34 @@ int TableInfo::CompareCompositeFields(const CompositeFields &local, const Compos
     return -E_RELATIONAL_TABLE_EQUAL;
 }
 
+std::vector<CompositeFields> TableInfo::RemovePKCompositeFields(const std::vector<CompositeFields> &uniqueFields) const
+{
+    std::vector<CompositeFields> uniqueDefines;
+    for (const auto &compositeFields : uniqueFields) {
+        bool hasPrimaryKey = false;
+        for (const auto &fieldName : compositeFields) {
+            if (IsPrimaryKey(fieldName)) {
+                hasPrimaryKey = true;
+                break;
+            }
+        }
+        if (!hasPrimaryKey) {
+            uniqueDefines.push_back(compositeFields);
+        }
+    }
+    return uniqueDefines;
+}
+
 int TableInfo::CompareWithTableUnique(const std::vector<CompositeFields> &inTableUnique) const
 {
-    if (uniqueDefines_.size() != inTableUnique.size()) {
+    std::vector<CompositeFields> uniqueDefines = RemovePKCompositeFields(uniqueDefines_);
+    std::vector<CompositeFields> curTableUnique = RemovePKCompositeFields(inTableUnique);
+    if (uniqueDefines.size() != curTableUnique.size()) {
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-
-    auto itLocal = uniqueDefines_.begin();
-    auto itInTable = inTableUnique.begin();
-    while (itLocal != uniqueDefines_.end()) {
+    auto itLocal = uniqueDefines.begin();
+    auto itInTable = curTableUnique.begin();
+    while (itLocal != uniqueDefines.end()) {
         if (CompareCompositeFields(*itLocal, *itInTable) != -E_RELATIONAL_TABLE_EQUAL) {
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
