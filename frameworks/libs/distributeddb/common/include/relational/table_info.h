@@ -139,6 +139,8 @@ public:
     std::vector<std::string> GetSyncDistributedPk() const;
 
     const std::vector<CompositeFields> GetUniqueAndPkDefine() const;
+
+    std::vector<CompositeFields> RemovePKCompositeFields(const std::vector<CompositeFields> &uniqueFields) const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;
