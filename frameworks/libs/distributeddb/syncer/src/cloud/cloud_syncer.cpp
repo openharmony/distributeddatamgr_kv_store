@@ -1221,9 +1221,11 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
     if (errCode != E_OK) {
         return errCode;
     }
-    bool lastBatch = (innerProcessInfo.upLoadInfo.successCount + innerProcessInfo.upLoadInfo.failCount) ==
+    bool lastBatch = (innerProcessInfo.upLoadInfo.successCount + innerProcessInfo.upLoadInfo.failCount) >=
                      innerProcessInfo.upLoadInfo.total;
     if (lastBatch) {
+        innerProcessInfo.upLoadInfo.total =
+            (innerProcessInfo.upLoadInfo.successCount + innerProcessInfo.upLoadInfo.failCount);
         innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
     }
     // After each batch upload successed, call NotifyProcess

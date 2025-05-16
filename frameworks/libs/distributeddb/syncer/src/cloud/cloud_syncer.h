@@ -520,8 +520,6 @@ protected:
 
     bool IsCurrentAsyncDownloadTask();
 
-    bool CanStartAsyncDownload() const;
-
     int GetCloudGidAndFillExtend(TaskId taskId, const std::string &tableName, QuerySyncObject &obj, VBucket &extend);
 
     int QueryCloudGidForAssetsOnly(
@@ -546,6 +544,8 @@ protected:
         bool isExistAssetDownloadFail);
 
     static void ModifyDownLoadInfoCount(const int errorCode, InnerProcessInfo &info);
+
+    void ChangeProcessStatusAndNotifyIfNeed(UploadParam &uploadParam, InnerProcessInfo &info);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

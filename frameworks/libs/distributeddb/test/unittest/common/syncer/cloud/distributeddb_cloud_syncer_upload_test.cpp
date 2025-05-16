@@ -476,7 +476,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
         return E_OK;
     });
     int errCode = cloudSyncer->CallDoUpload(5u);
-    EXPECT_EQ(errCode, -E_INTERNAL_ERROR);
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
     RuntimeContext::GetInstance()->StopTaskPool();
     cloudSyncer->CallClose();
@@ -1042,7 +1042,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
         callCount++;
     });
     int errCode = cloudSyncer->CallDoUpload(5u, true);
-    EXPECT_EQ(errCode, -E_INTERNAL_ERROR);
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 1);
