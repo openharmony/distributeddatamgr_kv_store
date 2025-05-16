@@ -602,8 +602,8 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
 {
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
-    int errCode =
-        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(CanStartAsyncDownload(), storageProxy_, users, syncQuery);
+    int errCode = CloudSyncUtils::GetQueryAndUsersForCompensatedSync(
+        CloudSyncUtils::CanStartAsyncDownload(asyncTaskId_), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         return;
@@ -1081,6 +1081,15 @@ std::pair<int, Timestamp> CloudSyncer::GetLocalWater(const std::string &tableNam
     return res;
 }
 
+void CloudSyncer::ChangeProcessStatusAndNotifyIfNeed(UploadParam &uploadParam, InnerProcessInfo &info)
+{
+    if (info.tableStatus == ProcessStatus::FINISHED) {
+        // if process here, the process should't be finished and notify.
+        info.tableStatus = ProcessStatus::PROCESSING;
+        NotifyInBatchUpload(uploadParam, info, false);
+    }
+}
+
 int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &info,
     CloudSyncData &uploadData, ContinueToken &continueStmtToken, std::vector<ReviseModTimeInfo> &revisedData)
 {
@@ -1088,6 +1097,7 @@ int CloudSyncer::HandleBatchUpload(UploadParam &uploadParam, InnerProcessInfo &i
     uint32_t batchIndex = GetCurrentTableUploadBatchIndex();
     bool isLocked = false;
     while (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+        ChangeProcessStatusAndNotifyIfNeed(uploadParam, info);
         revisedData.insert(revisedData.end(), uploadData.revisedData.begin(), uploadData.revisedData.end());
         ret = PreProcessBatchUpload(uploadParam, info, uploadData);
         if (ret != E_OK) {
@@ -2057,15 +2067,6 @@ bool CloudSyncer::IsCurrentAsyncDownloadTask()
     return cloudTaskInfos_[currentContext_.currentTaskId].asyncDownloadAssets;
 }
 
-bool CloudSyncer::CanStartAsyncDownload() const
-{
-    if (!RuntimeContext::GetInstance()->GetAssetsDownloadManager()->CanStartNewTask()) {
-        LOGW("[CloudSyncer] Too many download tasks");
-        return false;
-    }
-    return asyncTaskId_ == INVALID_TASK_ID;
-}
-
 void CloudSyncer::NotifyChangedDataWithDefaultDev(ChangedData &&changedData)
 {
     auto table = changedData.tableName;
@@ -2146,8 +2147,8 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
 {
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
-    int errCode =
-        CloudSyncUtils::GetQueryAndUsersForCompensatedSync(CanStartAsyncDownload(), storageProxy_, users, syncQuery);
+    int errCode = CloudSyncUtils::GetQueryAndUsersForCompensatedSync(
+        CloudSyncUtils::CanStartAsyncDownload(asyncTaskId_), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         // if failed, finshed the task directly.

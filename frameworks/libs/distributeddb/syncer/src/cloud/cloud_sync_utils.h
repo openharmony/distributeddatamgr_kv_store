@@ -149,6 +149,8 @@ public:
 
     static void EndTransactionIfNeed(
         const int &errCode, const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy);
+    
+    static bool CanStartAsyncDownload(const TaskId &asyncTaskId);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

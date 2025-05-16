@@ -23,6 +23,7 @@
 #include "log_print.h"
 
 namespace DistributedDB {
+static constexpr const TaskId INVALID_TASK_ID = 0u;
 int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
     std::vector<Type> &cloudPkVals)
 {
@@ -238,8 +239,8 @@ int CloudSyncUtils::CheckCloudSyncDataValid(const CloudSyncData &uploadData, con
     int64_t syncDataCount = static_cast<int64_t>(insRecordLen) + static_cast<int64_t>(updRecordLen) +
         static_cast<int64_t>(delRecordLen);
     if (syncDataCount > count) {
-        LOGE("[CloudSyncUtils] Size of a batch of sync data is greater than upload data size. count %d", count);
-        return -E_INTERNAL_ERROR;
+        LOGW("[CloudSyncUtils] Size of a batch of sync data is greater than upload data size. insRecordLen:%zu, "
+            "updRecordLen:%zu, delRecordLen:%zu, count %d", insRecordLen, updRecordLen, delRecordLen, count);
     }
     return E_OK;
 }
@@ -1046,5 +1047,14 @@ void CloudSyncUtils::EndTransactionIfNeed(
             LOGE("[CloudSyncer] cannot roll back transaction: %d.", rollBackErrorCode);
         }
     }
+}
+
+bool CloudSyncUtils::CanStartAsyncDownload(const TaskId &asyncTaskId)
+{
+    if (!RuntimeContext::GetInstance()->GetAssetsDownloadManager()->CanStartNewTask()) {
+        LOGW("[CloudSyncer] Too many download tasks");
+        return false;
+    }
+    return asyncTaskId == INVALID_TASK_ID;
 }
 }
