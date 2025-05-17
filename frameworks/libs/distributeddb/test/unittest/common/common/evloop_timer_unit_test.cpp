@@ -103,7 +103,7 @@ void DistributedDBEventLoopTimerTest::TearDown(void)
  * @tc.name: EventLoopTimerTest001
  * @tc.desc: Create and destroy the event loop object.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest001, TestSize.Level0)
@@ -131,7 +131,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest001, TestSize.Level0
  * @tc.name: EventLoopTimerTest002
  * @tc.desc: Start and stop the loop
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest002, TestSize.Level1)
@@ -165,7 +165,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest002, TestSize.Level1
  * @tc.name: EventLoopTimerTest003
  * @tc.desc: Create and destroy a timer object.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest003, TestSize.Level0)
@@ -198,7 +198,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest003, TestSize.Level0
  * @tc.name: EventLoopTimerTest004
  * @tc.desc: Start a timer
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1)
@@ -254,7 +254,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1
  * @tc.name: EventLoopTimerTest005
  * @tc.desc: Stop a timer
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest005, TestSize.Level1)
@@ -314,7 +314,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest005, TestSize.Level1
  * @tc.name: EventLoopTimerTest006
  * @tc.desc: Stop a timer
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1)
@@ -371,7 +371,7 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1
  * @tc.name: EventLoopTimerTest007
  * @tc.desc: Modify a timer
  * @tc.type: FUNC
- * @tc.require: AR000CKRTB AR000CQE0C
+ * @tc.require:
  * @tc.author: fangyi
  */
 HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2)

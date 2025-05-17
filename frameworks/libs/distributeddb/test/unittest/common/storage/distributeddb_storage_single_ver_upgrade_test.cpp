@@ -327,7 +327,7 @@ void DistributedDBStorageSingleVerUpgradeTest::TearDown(void)
   * @tc.name: UpgradeTest001
   * @tc.desc: Test the NbDelegate upgrade from the old version V1.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ7
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Level0)
@@ -373,7 +373,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Leve
   * @tc.name: UpgradeTest002
   * @tc.desc: Test the NbDelegate upgrade from the old version V2.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ7
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest002, TestSize.Level2)
@@ -418,7 +418,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest002, TestSize.Leve
   * @tc.name: UpgradeTest003
   * @tc.desc: Test the NbDelegate upgrade from the old version V2 with schema.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ7
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest003, TestSize.Level2)
@@ -480,7 +480,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest003, TestSize.Leve
   * @tc.name: UpgradeTest004
   * @tc.desc: Test the NbDelegate upgrade from the old version V2 while secOption from NOT_SET to S3SECE.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ7
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest004, TestSize.Level2)

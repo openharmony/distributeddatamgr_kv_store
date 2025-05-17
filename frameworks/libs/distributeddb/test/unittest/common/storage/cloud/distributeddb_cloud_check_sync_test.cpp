@@ -2574,7 +2574,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LockActionTest001, TestSize.Level0)
  * @tc.name: LogicCreateRepeatedTableNameTest001
  * @tc.desc: test create repeated table name with different cases
  * @tc.type: FUNC
- * @tc.require:DTS2023120705927
+ * @tc.require:
  * @tc.author: wangxiangdong
  */
 HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, TestSize.Level0)

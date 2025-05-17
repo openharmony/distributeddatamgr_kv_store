@@ -377,7 +377,7 @@ static void SyncDeleteFromDiffDevConflictData(const int deltaTime)
   * @tc.name: ConflictNotificationTest001
   * @tc.desc: Put a non-conflict key and expect no conflict being triggered.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest001, TestSize.Level1)
@@ -400,7 +400,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest001, 
   * @tc.name: ConflictNotificationTest002
   * @tc.desc: Put a native conflict key and expect native conflict being triggered.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest002, TestSize.Level1)
@@ -429,7 +429,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest002, 
   * @tc.name: ConflictNotificationTest003
   * @tc.desc: Put a data then delete it. Expect native conflict being triggered.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest003, TestSize.Level1)
@@ -458,7 +458,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest003, 
   * @tc.name: ConflictNotificationTest004
   * @tc.desc: Sync a data then put a data with the same key. Expect native conflict being triggered.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest004, TestSize.Level1)
@@ -491,7 +491,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest004, 
   * @tc.name: ConflictNotificationTest005
   * @tc.desc: Get a Sync data then delete it. Expect to see native conflict.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest005, TestSize.Level1)
@@ -523,7 +523,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest005, 
   * @tc.name: ConflictNotificationTest006
   * @tc.desc: Get a sync data without local key that conflicts with it. Expect to see no conflict.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest006, TestSize.Level1)
@@ -546,7 +546,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest006, 
   * @tc.name: ConflictNotificationTest007
   * @tc.desc: Sync-sync data conflict. Expect to see foreign conflict and the winner has larger time tag.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest007, TestSize.Level1)
@@ -564,7 +564,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest007, 
   * @tc.name: ConflictNotificationTest008
   * @tc.desc: Sync-sync data conflict. Expect to see foreign conflict and the winner has larger time tag.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest008, TestSize.Level1)
@@ -583,7 +583,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest008, 
   * @tc.desc: Sync a data to the device. Sync another data with the same key and the time tag +DATA_TIME_LAG us.
   *           Expect to see native conflict and the first data being deleted.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest009, TestSize.Level1)
@@ -607,7 +607,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest009, 
   * @tc.desc: Sync a data to the device. Sync another data with the same key and the time tag -DATA_TIME_LAG us.
   *           Expect to see native conflict and the second data being deleted.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest010, TestSize.Level1)
@@ -630,7 +630,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest010, 
   * @tc.name: ConflictNotificationTest011
   * @tc.desc: Sync-sync multi-origin conflict.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest011, TestSize.Level1)
@@ -653,7 +653,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest011, 
   * @tc.name: ConflictNotificationTest012
   * @tc.desc: Sync-sync multi-origin conflict.
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest012, TestSize.Level1)
@@ -675,7 +675,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest012, 
   * @tc.name: ConflictNotificationTest013
   * @tc.desc: Sync-sync multi-origin conflict with deleted data
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest013, TestSize.Level1)
@@ -698,7 +698,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest013, 
   * @tc.name: ConflictNotificationTest014
   * @tc.desc: Sync-sync multi-origin conflict with deleted data
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest014, TestSize.Level1)
@@ -720,7 +720,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest014, 
   * @tc.name: ConflictNotificationTest015
   * @tc.desc: put same record for conflict notification function
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest015, TestSize.Level1)
@@ -747,7 +747,7 @@ HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest015, 
   * @tc.name: ConflictNotificationTest016
   * @tc.desc: put record for conflict notification function
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest016, TestSize.Level1)
@@ -811,7 +811,7 @@ namespace {
   * @tc.name: ConflictNotificationTest017
   * @tc.desc: put record for conflict notification function
   * @tc.type: FUNC
-  * @tc.require: AR000CQS3U
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBStorageRegisterConflictTest, ConflictNotificationTest017, TestSize.Level1)

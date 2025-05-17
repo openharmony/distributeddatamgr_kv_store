@@ -417,7 +417,7 @@ void DistributedDBSchemaObjectTest::SetUp()
  * @tc.name: Parse Valid Schema 001
  * @tc.desc: Parse Valid Schema
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ParseValidSchema001, TestSize.Level1)
@@ -459,7 +459,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ParseValidSchema001, TestSize.Level1)
  * @tc.name: Parse Invalid Schema 001
  * @tc.desc: Parse Invalid Schema
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema001, TestSize.Level1)
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema001, TestSize.Level1)
  * @tc.name: Parse Invalid Schema 002
  * @tc.desc: Parse Invalid Schema
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema002, TestSize.Level1)
@@ -559,7 +559,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema002, TestSize.Level1)
  * @tc.name: Parse Invalid Schema 003
  * @tc.desc: Parse Invalid Schema
  * @tc.type: FUNC
- * @tc.require: AR000DR9K3
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema003, TestSize.Level1)
@@ -609,7 +609,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema003, TestSize.Level1)
  * @tc.name: Compare Equal Exactly 001
  * @tc.desc: Compare Equal Exactly
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CompareEqualExactly001, TestSize.Level1)
@@ -630,7 +630,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CompareEqualExactly001, TestSize.Level1)
  * @tc.name: Compare Unequal Compatible 001
  * @tc.desc: Compare Unequal Compatible
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatible001, TestSize.Level1)
@@ -665,7 +665,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatible001, TestSize.Le
  * @tc.name: Compare Unequal Compatible Upgrade 001
  * @tc.desc: Compare Unequal Compatible Upgrade
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatibleUpgrade001, TestSize.Level1)
@@ -700,7 +700,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatibleUpgrade001, Test
  * @tc.name: Compare Unequal Incompatible 001
  * @tc.desc: Compare Unequal Incompatible
  * @tc.type: FUNC
- * @tc.require: AR000DR9K4
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalIncompatible001, TestSize.Level1)
@@ -775,7 +775,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalIncompatible001, TestSize.
  * @tc.name: Check Value 001
  * @tc.desc: Check value both in strict and compatible mode
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CheckValue001, TestSize.Level1)
@@ -855,7 +855,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CheckValue001, TestSize.Level1)
  * @tc.name: Check Value 002
  * @tc.desc: Check value that has offset
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, CheckValue002, TestSize.Level1)
@@ -889,7 +889,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, CheckValue002, TestSize.Level1)
  * @tc.name: Value Edit 001
  * @tc.desc: Edit the value in right way
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit001, TestSize.Level1)
@@ -937,7 +937,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit001, TestSize.Level1)
  * @tc.name: Value Edit 002
  * @tc.desc: Edit the value in wrong way
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit002, TestSize.Level1)
@@ -992,7 +992,7 @@ void CheckValueLackField(const SchemaObject &schema, const std::string &oriValue
  * @tc.name: Value LackField 001
  * @tc.desc: check the value which lack field
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField001, TestSize.Level1)
@@ -1051,7 +1051,7 @@ HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField001, TestSize.Level1)
  * @tc.name: Value LackField 002
  * @tc.desc: check the value which lack field
  * @tc.type: FUNC
- * @tc.require: AR000DR9K5
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField002, TestSize.Level1)

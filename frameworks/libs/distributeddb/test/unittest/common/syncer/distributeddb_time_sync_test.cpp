@@ -130,7 +130,7 @@ void DistributedDBTimeSyncTest::TearDown(void)
  * @tc.name: NormalSync001
  * @tc.desc: Verify time sync function is normal between two time sync instance with different timestamp.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, NormalSync001, TestSize.Level0)
@@ -181,7 +181,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync001, TestSize.Level0)
  * @tc.name: NormalSync002
  * @tc.desc: Verify time sync function is normal between two time sync instance with the same timestamp.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, NormalSync002, TestSize.Level0)
@@ -220,7 +220,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync002, TestSize.Level0)
  * @tc.name: NormalSync003
  * @tc.desc: Verify time sync function is normal between two time sync instance with different localTimeOffset.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
@@ -270,7 +270,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
  * @tc.name: NetDisconnetSyncTest001
  * @tc.desc: Verify time sync function return failed when the virtual communicator disabled.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, NetDisconnetSyncTest001, TestSize.Level0)
@@ -308,7 +308,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NetDisconnetSyncTest001, TestSize.Level0)
  * @tc.name: InvalidMessgeTest001
  * @tc.desc: Verify RequestReceive() return failed with invalid input.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
@@ -376,7 +376,7 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
  * @tc.name: InvalidMessgeTest002
  * @tc.desc: Verify AckRec() return failed with invalid input.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
@@ -444,7 +444,7 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
  * @tc.name: SyncTimeout001
  * @tc.desc: Verify the timeout scenario for time sync.
  * @tc.type: FUNC
- * @tc.require: AR000C05EP AR000CQE0G
+ * @tc.require:
  * @tc.author: wumin
  */
 HWTEST_F(DistributedDBTimeSyncTest, SyncTimeout001, TestSize.Level2)

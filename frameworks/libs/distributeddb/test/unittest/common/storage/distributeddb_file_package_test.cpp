@@ -177,7 +177,7 @@ void DistributedDBFilePackageTest::TearDown(void)
   * @tc.name: PackageFileTest001
   * @tc.desc: Test file package and unpack functions.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level1)
@@ -195,7 +195,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level1)
   * @tc.name: PackageFileTest002
   * @tc.desc: Test file package if source path is not exist.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level1)
@@ -209,7 +209,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level1)
   * @tc.name: PackageFileTest003
   * @tc.desc: Test file package if result path is not exist.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level1)
@@ -223,7 +223,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level1)
   * @tc.name: PackageFileTest004
   * @tc.desc: Test file package if source path is empty.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level1)
@@ -249,7 +249,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level1)
   * @tc.name: PackageFileTest005
   * @tc.desc: Test file unpack if source file is not exist.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level1)
@@ -263,7 +263,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level1)
   * @tc.name: PackageFileTest006
   * @tc.desc: Test file unpack if result path is not exist.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level1)
@@ -280,7 +280,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level1)
   * @tc.name: PackageFileTest007
   * @tc.desc: Test file unpack if magic check failed.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level1)
@@ -304,7 +304,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level1)
   * @tc.name: PackageFileTest008
   * @tc.desc: Test file unpack if checksum check failed.
   * @tc.type: FUNC
-  * @tc.require: AR000D4879
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level1)

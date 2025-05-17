@@ -116,7 +116,7 @@ void DistributedDBRelationalResultSetTest::TearDown(void)
  * @tc.name: SerializeAndDeserialize
  * @tc.desc: Serialize and deserialize.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalResultSetTest, SerializeAndDeserialize, TestSize.Level1)
@@ -189,7 +189,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, SerializeAndDeserialize, TestSize
  * @tc.name: Put
  * @tc.desc: Test put into result set
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalResultSetTest, Put, TestSize.Level1)
@@ -225,7 +225,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, Put, TestSize.Level1)
  * @tc.name: EmptyResultSet
  * @tc.desc: Empty result set.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalResultSetTest, EmptyResultSet, TestSize.Level1)
@@ -263,7 +263,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, EmptyResultSet, TestSize.Level1)
  * @tc.name: NormalResultSet
  * @tc.desc: Normal result set.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalResultSetTest, NormalResultSet, TestSize.Level1)

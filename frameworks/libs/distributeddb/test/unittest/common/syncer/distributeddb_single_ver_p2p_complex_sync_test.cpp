@@ -281,7 +281,7 @@ void DistributedDBSingleVerP2PComplexSyncTest::TearDown(void)
   * @tc.name: SaveDataNotify001
   * @tc.desc: Test SaveDataNotify function, delay < 30s should sync ok, > 36 should timeout
   * @tc.type: FUNC
-  * @tc.require: AR000D4876
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SaveDataNotify001, TestSize.Level3)
@@ -353,7 +353,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SaveDataNotify001, TestSize.L
   * @tc.name: SametimeSync001
   * @tc.desc: Test 2 device sync with each other
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync001, TestSize.Level3)
@@ -415,7 +415,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync001, TestSize.Lev
   * @tc.name: SametimeSync002
   * @tc.desc: Test 2 device sync with each other with water error
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync002, TestSize.Level3)
@@ -484,7 +484,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync002, TestSize.Lev
  * @tc.name: DatabaseOnlineCallback001
  * @tc.desc: check database status notify online callback
  * @tc.type: FUNC
- * @tc.require: AR000CQS3S SR000CQE0B
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DatabaseOnlineCallback001, TestSize.Level1)
@@ -517,7 +517,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DatabaseOnlineCallback001, Te
  * @tc.name: DatabaseOfflineCallback001
  * @tc.desc: check database status notify online callback
  * @tc.type: FUNC
- * @tc.require: AR000CQS3S SR000CQE0B
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DatabaseOfflineCallback001, TestSize.Level1)
@@ -550,7 +550,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DatabaseOfflineCallback001, T
   * @tc.name: CloseSync001
   * @tc.desc: Test 2 delegate close when sync
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, CloseSync001, TestSize.Level3)
@@ -608,7 +608,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, CloseSync001, TestSize.Level3
   * @tc.name: CloseSync002
   * @tc.desc: Test 1 delegate close when in time sync
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, CloseSync002, TestSize.Level3)
@@ -660,7 +660,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, CloseSync002, TestSize.Level3
   * @tc.name: OrderbyWriteTimeSync001
   * @tc.desc: sync query with order by writeTime
   * @tc.type: FUNC
-  * @tc.require: AR000H5VLO
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, OrderbyWriteTimeSync001, TestSize.Level0)
@@ -680,7 +680,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, OrderbyWriteTimeSync001, Test
  * @tc.name: Device Offline Sync 001
  * @tc.desc: Test push sync when device offline
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync001, TestSize.Level1)
@@ -757,7 +757,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync001, TestSiz
  * @tc.name: Device Offline Sync 002
  * @tc.desc: Test pull sync when device offline
  * @tc.type: FUNC
- * @tc.require: AR000CCPOM
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync002, TestSize.Level1)
@@ -831,7 +831,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSync002, TestSiz
   * @tc.name: EncryptedAlgoUpgrade001
   * @tc.desc: Test upgrade encrypted db can sync normally
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, EncryptedAlgoUpgrade001, TestSize.Level3)
@@ -954,7 +954,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RemoveDeviceData002, TestSize
   * @tc.name: DataSync001
   * @tc.desc: Test Data Sync when Initialize
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync001, TestSize.Level1)
@@ -976,7 +976,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync001, TestSize.Level1)
   * @tc.name: DataSync002
   * @tc.desc: Test active sync with invalid param in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync002, TestSize.Level1)
@@ -997,7 +997,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync002, TestSize.Level1)
   * @tc.name: DataSync003
   * @tc.desc: Test receive invalid request data packet in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync003, TestSize.Level1)
@@ -1015,7 +1015,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync003, TestSize.Level1)
   * @tc.name: DataSync004
   * @tc.desc: Test receive invalid ack packet in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync004, TestSize.Level1)
@@ -1036,7 +1036,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync004, TestSize.Level1)
   * @tc.name: DataSync005
   * @tc.desc: Test receive invalid notify packet in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync005, TestSize.Level1)
@@ -1048,7 +1048,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync005, TestSize.Level1)
   * @tc.name: DataSync006
   * @tc.desc: Test control start with invalid param in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync006, TestSize.Level1)
@@ -1076,7 +1076,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync006, TestSize.Level1)
   * @tc.name: DataSync007
   * @tc.desc: Test receive invalid control packet in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync007, TestSize.Level1)
@@ -1096,7 +1096,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync007, TestSize.Level1)
   * @tc.name: DataSync008
   * @tc.desc: Test pull null msg in dataQueue in DataSync Class
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync008, TestSize.Level1)
@@ -1108,7 +1108,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync008, TestSize.Level1)
  * @tc.name: SyncRetry001
  * @tc.desc: use sync retry sync use push
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry001, TestSize.Level3)
@@ -1152,7 +1152,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry001, TestSize.Level3
  * @tc.name: SyncRetry002
  * @tc.desc: use sync retry sync use pull
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry002, TestSize.Level3)
@@ -1191,7 +1191,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry002, TestSize.Level3
  * @tc.name: SyncRetry003
  * @tc.desc: use sync retry sync use push by compress
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry003, TestSize.Level3)
@@ -1250,7 +1250,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry003, TestSize.Level3
  * @tc.name: SyncRetry004
  * @tc.desc: use query sync retry sync use push
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3)
@@ -1301,7 +1301,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3
  * @tc.name: SyncRetry005
  * @tc.desc: use sync retry sync use pull by compress
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry005, TestSize.Level3)
@@ -1354,7 +1354,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry005, TestSize.Level3
  * @tc.name: ReSetWatchDogTest001
  * @tc.desc: trigger resetWatchDog while pull
  * @tc.type: FUNC
- * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, ReSetWaterDogTest001, TestSize.Level3)
@@ -1651,7 +1651,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync004, TestSize.Leve
   * @tc.name: RemoveDeviceData001
   * @tc.desc: call rekey and removeDeviceData Concurrently
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RemoveDeviceData001, TestSize.Level1)
@@ -1695,7 +1695,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RemoveDeviceData001, TestSize
   * @tc.name: DeviceOfflineSyncTask001
   * @tc.desc: Test sync task when device offline and close db Concurrently
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSyncTask001, TestSize.Level3)
@@ -1850,7 +1850,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, GetSyncDataFail001, TestSize.
   * @tc.name: GetSyncDataFail002
   * @tc.desc: test get sync data failed when sync with large data
   * @tc.type: FUNC
-  * @tc.require: AR000D487B
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, GetSyncDataFail002, TestSize.Level1)

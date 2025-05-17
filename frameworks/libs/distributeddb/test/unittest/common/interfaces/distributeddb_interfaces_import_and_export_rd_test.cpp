@@ -241,7 +241,7 @@ int DistributedDBInterfacesImportAndExportRdTest::ModifyDataInPage(int modifyPos
 {
     FILE *fp = fopen(modifyFile, "rb+");
     if (fp == nullptr) {
-        printf("Failed to open file");
+        LOGE("Failed to open file");
         return 1;
     }
     (void)fseek(fp, modifyPos, SEEK_SET);

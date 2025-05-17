@@ -166,7 +166,7 @@ void SetTimer(int &timerCount, TimerId &timer)
  * @tc.name: ScheduleTask001
  * @tc.desc: Test schedule task by thread pool
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, ScheduleTask001, TestSize.Level1)
@@ -207,7 +207,7 @@ HWTEST_F(DistributedDBThreadPoolTest, ScheduleTask001, TestSize.Level1)
  * @tc.name: SetTimer001
  * @tc.desc: Test set timer by thread pool
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer001, TestSize.Level1)
@@ -250,7 +250,7 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer001, TestSize.Level1)
  * @tc.name: SetTimer002
  * @tc.desc: Test repeat setting timer
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer002, TestSize.Level1)
@@ -283,7 +283,7 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer002, TestSize.Level1)
  * @tc.name: SetTimer003
  * @tc.desc: Test set timer and finalize is null
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer003, TestSize.Level1)
@@ -310,7 +310,7 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer003, TestSize.Level1)
  * @tc.name: SetTimer004
  * @tc.desc: Test remove timer function
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer004, TestSize.Level2)
@@ -350,7 +350,7 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer004, TestSize.Level2)
  * @tc.name: SetTimer005
  * @tc.desc: Test repeat remove timer
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer005, TestSize.Level1)
@@ -394,7 +394,7 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer005, TestSize.Level1)
  * @tc.name: SetTimer006
  * @tc.desc: Test repeat remove timer when time action finished
  * @tc.type: FUNC
- * @tc.require: AR000I0KU9
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBThreadPoolTest, SetTimer006, TestSize.Level1)

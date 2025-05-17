@@ -147,7 +147,7 @@ void DistributedDBRelationalEncryptedDbTest::TearDown(void)
  * @tc.name: OpenEncryptedDBWithoutPasswd_001
  * @tc.desc: Open encrypted db without password in collaboration mode.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInCollMode_001, TestSize.Level1)
@@ -181,7 +181,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInC
  * @tc.name: OpenEncryptedDBWithoutPasswdInSplitMode_001
  * @tc.desc: Open encrypted db without password in split mode.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInSplitMode_001, TestSize.Level1)
@@ -215,7 +215,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInS
  * @tc.name: OpenEncryptedDBWithPasswdInSplitMode_001
  * @tc.desc: Open encrypted db with password in split mode.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithPasswdInSplitMode_001, TestSize.Level1)
@@ -273,7 +273,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithPasswdInSpli
  * @tc.name: OpenEncryptedDBWithInvalidParameters_001
  * @tc.desc: Open encrypted db with invalid parameters in split mode.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithInvalidParameters_001, TestSize.Level1)
@@ -317,7 +317,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithInvalidParam
  * @tc.name: OpenEncryptedDBWithCustomizedIterTimes_001
  * @tc.desc: Open encrypted db with customized iterate times.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithCustomizedIterTimes_001, TestSize.Level1)
@@ -375,7 +375,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithCustomizedIt
  * @tc.name: RekeyAfterOpenStore_001
  * @tc.desc: Rekey after open store.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSize.Level1)
@@ -451,7 +451,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
  * @tc.name: OpenEncryptedDBWithDifferentPasswd_001
  * @tc.desc: Open encrypted db with different password in split mode.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithDifferentPasswd_001, TestSize.Level1)
@@ -511,7 +511,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithDifferentPas
  * @tc.name: RemoteQueryForEncryptedDb_001
  * @tc.desc: Exec remote query on encrypted db.
  * @tc.type: FUNC
- * @tc.require: AR000H68LL
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalEncryptedDbTest, RemoteQueryForEncryptedDb_001, TestSize.Level1)

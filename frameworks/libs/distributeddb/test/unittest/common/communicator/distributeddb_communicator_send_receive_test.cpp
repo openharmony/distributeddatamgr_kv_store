@@ -144,7 +144,7 @@ static void CheckRecvMessage(Message *recvMsg, bool isEmpty, uint32_t msgId, uin
  * @tc.name: Send And Receive 001
  * @tc.desc: Test send and receive based on equipment communicator
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.Level1)
@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.L
  * @tc.name: Send And Receive 002
  * @tc.desc: Test send oversize message will fail
  * @tc.type: FUNC
- * @tc.require: AR000BVDGK AR000CQE0O
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive002, TestSize.Level1)
@@ -223,7 +223,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive002, TestSize.L
  * @tc.name: Send And Receive 003
  * @tc.desc: Test send unregistered message will fail
  * @tc.type: FUNC
- * @tc.require: AR000BVDGK AR000CQE0O
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive003, TestSize.Level1)
@@ -324,7 +324,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.L
  * @tc.name: Send Flow Control 001
  * @tc.desc: Test send in nonblock way
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl001, TestSize.Level1)
@@ -388,7 +388,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl001, TestSize.
  * @tc.name: Send Flow Control 002
  * @tc.desc: Test send in block(without timeout) way
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl002, TestSize.Level1)
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl002, TestSize.
  * @tc.name: Send Flow Control 003
  * @tc.desc: Test send in block(with timeout) way
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl003, TestSize.Level1)
@@ -520,7 +520,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl003, TestSize.
  * @tc.name: Receive Check 001
  * @tc.desc: Receive packet field check
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck001, TestSize.Level1)
@@ -581,7 +581,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck001, TestSize.Lev
  * @tc.name: Receive Check 002
  * @tc.desc: Receive packet field check
  * @tc.type: FUNC
- * @tc.require: AR000BVRNU AR000CQE0J
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck002, TestSize.Level1)
@@ -642,7 +642,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck002, TestSize.Lev
  * @tc.name: Send Result Notify 001
  * @tc.desc: Test send result notify
  * @tc.type: FUNC
- * @tc.require: AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize.Level1)
@@ -693,7 +693,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize
  * @tc.name: Message Feedback 001
  * @tc.desc: Test feedback not support messageid and communicator not found
  * @tc.type: FUNC
- * @tc.require: AR000CQE0M
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, MessageFeedback001, TestSize.Level1)
@@ -765,7 +765,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, MessageFeedback001, TestSize.
  * @tc.name: SendAndReceiveWithExtendHead001
  * @tc.desc: Test fill extendHead func
  * @tc.type: FUNC
- * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead001, TestSize.Level1)

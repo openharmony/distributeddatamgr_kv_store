@@ -100,7 +100,7 @@ void DistributedDBCommunicatorTest::TearDown()
  * @tc.name: Communicator Management 001
  * @tc.desc: Test alloc and release communicator
  * @tc.type: FUNC
- * @tc.require: AR000BVDGG AR000CQE0L
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicatorManagement001, TestSize.Level1)
@@ -215,7 +215,7 @@ static void ConnectWaitDisconnect()
  * @tc.name: Online And Offline 001
  * @tc.desc: Test functionality triggered by physical devices online and offline
  * @tc.type: FUNC
- * @tc.require: AR000BVRNS AR000CQE0H
+ * @tc.require:
  * @tc.author: wudongxing
  */
 HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline001, TestSize.Level1)
@@ -323,7 +323,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline001, TestSize.Level1)
  * @tc.name: Online And Offline 002
  * @tc.desc: Test functionality triggered by alloc and release communicator
  * @tc.type: FUNC
- * @tc.require: AR000BVRNT AR000CQE0I
+ * @tc.require:
  * @tc.author: wudongxing
  */
 HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
@@ -492,7 +492,7 @@ void TestRemoteRestart()
  * @tc.name: Online And Offline 003
  * @tc.desc: Test functionality triggered by remote restart
  * @tc.type: FUNC
- * @tc.require: AR000CQE0I
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
@@ -504,7 +504,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
  * @tc.name: Online And Offline 004
  * @tc.desc: Test functionality triggered by remote restart with thread pool
  * @tc.type: FUNC
- * @tc.require: AR000CQE0I
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline004, TestSize.Level1)
@@ -519,7 +519,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline004, TestSize.Level1)
  * @tc.name: Report Device Connect Change 001
  * @tc.desc: Test CommunicatorAggregator support report device connect change event
  * @tc.type: FUNC
- * @tc.require: AR000DR9KV
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, ReportDeviceConnectChange001, TestSize.Level1)
@@ -584,7 +584,7 @@ LabelType ToLabelType(uint64_t commLabel)
  * @tc.name: Report Communicator Not Found 001
  * @tc.desc: Test CommunicatorAggregator support report communicator not found event
  * @tc.type: FUNC
- * @tc.require: AR000DR9KV
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.Level1)
@@ -679,7 +679,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
  * @tc.name: ReDeliver Message 001
  * @tc.desc: Test CommunicatorAggregator support redeliver message
  * @tc.type: FUNC
- * @tc.require: AR000DR9KV
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage001, TestSize.Level1)
@@ -762,7 +762,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage001, TestSize.Level1)
  * @tc.name: ReDeliver Message 002
  * @tc.desc: Test CommunicatorAggregator support redeliver message by order
  * @tc.type: FUNC
- * @tc.require: AR000DR9KV
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage002, TestSize.Level1)
@@ -842,7 +842,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage002, TestSize.Level1)
  * @tc.name: ReDeliver Message 003
  * @tc.desc: For observe memory in unusual scenario
  * @tc.type: FUNC
- * @tc.require: AR000DR9KV
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage003, TestSize.Level2)
@@ -940,7 +940,7 @@ namespace {
   * @tc.name: CommunicationOptimization001
   * @tc.desc: Test notify with isSupport true.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization001, TestSize.Level3)
@@ -1019,7 +1019,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization001, TestSize.L
   * @tc.name: CommunicationOptimization002
   * @tc.desc: Test notify with isSupport true and can offline by device change.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization002, TestSize.Level3)
@@ -1077,7 +1077,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization002, TestSize.L
   * @tc.name: CommunicationOptimization003
   * @tc.desc: Test notify with isSupport false.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization003, TestSize.Level3)
@@ -1146,7 +1146,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization003, TestSize.L
   * @tc.name: CommunicationOptimization004
   * @tc.desc: Test notify with isSupport false and it be will changed by communication.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization004, TestSize.Level3)
@@ -1195,7 +1195,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization004, TestSize.L
   * @tc.name: CommunicationOptimization005
   * @tc.desc: Test notify with isSupport false and send label exchange.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization005, TestSize.Level3)
@@ -1248,7 +1248,7 @@ HWTEST_F(DistributedDBCommunicatorTest, CommunicationOptimization005, TestSize.L
   * @tc.name: DbStatusAdapter001
   * @tc.desc: Test notify with isSupport false.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter001, TestSize.Level1)
@@ -1307,7 +1307,7 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter001, TestSize.Level1)
   * @tc.name: DbStatusAdapter002
   * @tc.desc: Test adapter clear cache.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter002, TestSize.Level1) {
@@ -1326,7 +1326,7 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter002, TestSize.Level1) {
   * @tc.name: DbStatusAdapter003
   * @tc.desc: Test adapter get local dbInfo.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter003, TestSize.Level1) {
@@ -1347,7 +1347,7 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter003, TestSize.Level1) {
   * @tc.name: DbStatusAdapter004
   * @tc.desc: Test adapter clear cache will get callback.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter004, TestSize.Level1)
@@ -1390,7 +1390,7 @@ HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter004, TestSize.Level1)
   * @tc.name: DbStatusAdapter005
   * @tc.desc: Test adapter is need auto sync.
   * @tc.type: FUNC
-  * @tc.require: AR000HGD0B
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBCommunicatorTest, DbStatusAdapter005, TestSize.Level1)

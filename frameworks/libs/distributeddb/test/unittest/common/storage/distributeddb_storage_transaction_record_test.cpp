@@ -82,7 +82,7 @@ void DistributedDBStorageTransactionRecordTest::TearDown(void)
   * @tc.name: MultiverStorage001
   * @tc.desc: test the putting non empty data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage001, TestSize.Level1)
@@ -127,7 +127,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage001, TestSize
   * @tc.name: MultiverStorage002
   * @tc.desc: test the putting data(empty key) with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage002, TestSize.Level1)
@@ -160,7 +160,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage002, TestSize
   * @tc.name: MultiverStorage003
   * @tc.desc: test the putting data(empty value) with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage003, TestSize.Level1)
@@ -201,7 +201,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage003, TestSize
   * @tc.name: MultiverStorage004
   * @tc.desc: Update the data value to non-empty with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage004, TestSize.Level1)
@@ -255,7 +255,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage004, TestSize
   * @tc.name: MultiverStorage005
   * @tc.desc: Update the data value to empty with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage005, TestSize.Level1)
@@ -305,7 +305,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage005, TestSize
   * @tc.name: MultiverStorage006
   * @tc.desc: Delete the existed data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage006, TestSize.Level1)
@@ -358,7 +358,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage006, TestSize
   * @tc.name: MultiverStorage007
   * @tc.desc: Delete the non-existed data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage007, TestSize.Level1)
@@ -399,7 +399,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage007, TestSize
   * @tc.name: MultiverStorage008
   * @tc.desc: Delete an empty key with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage008, TestSize.Level1)
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage008, TestSize
   * @tc.name: MultiverStorage009
   * @tc.desc: Clear the existed data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage009, TestSize.Level1)
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage009, TestSize
   * @tc.name: MultiverStorage010
   * @tc.desc: Get the existed data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage010, TestSize.Level1)
@@ -532,7 +532,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage010, TestSize
   * @tc.name: MultiverStorage011
   * @tc.desc: Get the non-existed data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage011, TestSize.Level1)
@@ -564,7 +564,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage011, TestSize
   * @tc.name: MultiverStorage012
   * @tc.desc: Get the empty-key data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage012, TestSize.Level1)
@@ -597,7 +597,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage012, TestSize
   * @tc.name: MultiverStorage013
   * @tc.desc: Get the deleted data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage013, TestSize.Level1)
@@ -630,7 +630,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage013, TestSize
   * @tc.name: MultiverStorage014
   * @tc.desc: Get the modified data with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage014, TestSize.Level1)
@@ -666,7 +666,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage014, TestSize
   * @tc.name: MultiverStorage015
   * @tc.desc: Get the data after clear with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage015, TestSize.Level1)
@@ -700,7 +700,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage015, TestSize
   * @tc.name: MultiverStorage016
   * @tc.desc: Get the new inserted data after clear with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage016, TestSize.Level1)
@@ -742,7 +742,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage016, TestSize
   * @tc.name: MultiverStorage017
   * @tc.desc: Get the new inserted data after delete with the transaction.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage017, TestSize.Level1)
@@ -787,7 +787,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage017, TestSize
   * @tc.name: MultiverStorage018
   * @tc.desc: Get the batch inserted data through the non-empty prefix key.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage018, TestSize.Level1)
@@ -829,7 +829,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage018, TestSize
   * @tc.name: MultiverStorage019
   * @tc.desc: Get the non-existed data through the non-empty prefix key.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage019, TestSize.Level1)
@@ -860,7 +860,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage019, TestSize
   * @tc.name: MultiverStorage020
   * @tc.desc: Get all the data through the empty prefix key.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage020, TestSize.Level1)
@@ -896,7 +896,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage020, TestSize
   * @tc.name: MultiverStorage021
   * @tc.desc: Get the data through the empty prefix key for multiple put the same key data.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage021, TestSize.Level1)
@@ -930,7 +930,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage021, TestSize
   * @tc.name: MultiverStorage022
   * @tc.desc: Get the data through the empty prefix key for deleted data.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage022, TestSize.Level1)
@@ -967,7 +967,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage022, TestSize
   * @tc.name: MultiverStorage023
   * @tc.desc: Get the data through the empty prefix key for updated data.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage023, TestSize.Level1)
@@ -1011,7 +1011,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage023, TestSize
   * @tc.name: MultiverStorage024
   * @tc.desc: Get the data through the empty prefix key for cleared data.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage024, TestSize.Level1)
@@ -1047,7 +1047,7 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage024, TestSize
   * @tc.name: MultiverStorage025
   * @tc.desc: Get the data through the put, delete, re-put operation.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage025, TestSize.Level1)

@@ -89,7 +89,7 @@ void DistributedDBMultiVerVacuumTest::TearDown()
  * @tc.name: SingleTaskNormalStatusSwitch001
  * @tc.desc: Test status switch for single task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch001, TestSize.Level2)
@@ -156,7 +156,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch001, TestS
  * @tc.name: SingleTaskNormalStatusSwitch002
  * @tc.desc: Test status switch for single task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch002, TestSize.Level2)
@@ -223,7 +223,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch002, TestS
  * @tc.name: SingleTaskNormalStatusSwitch003
  * @tc.desc: Test status switch for single task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch003, TestSize.Level2)
@@ -289,7 +289,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch003, TestS
  * @tc.name: SingleTaskNormalStatusSwitch004
  * @tc.desc: Test status switch for single task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch004, TestSize.Level2)
@@ -347,7 +347,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskNormalStatusSwitch004, TestS
  * @tc.name: SingleTaskAbnormalStatusSwitch001
  * @tc.desc: Test status switch for single task under abnormal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskAbnormalStatusSwitch001, TestSize.Level2)
@@ -486,7 +486,7 @@ namespace {
  * @tc.name: SingleTaskConcurrentStatusSwitch001
  * @tc.desc: Test status switch for single task under Concurrent operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskConcurrentStatusSwitch001, TestSize.Level2)
@@ -542,7 +542,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskConcurrentStatusSwitch001, T
  * @tc.name: SingleTaskWriteHandleOccupy001
  * @tc.desc: Test write handle occupy for single task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskWriteHandleOccupy001, TestSize.Level2)
@@ -602,7 +602,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, SingleTaskWriteHandleOccupy001, TestSi
  * @tc.name: MultipleTaskNormalStatusSwitch001
  * @tc.desc: Test status switch for multiple task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, MultipleTaskNormalStatusSwitch001, TestSize.Level1)
@@ -673,7 +673,7 @@ HWTEST_F(DistributedDBMultiVerVacuumTest, MultipleTaskNormalStatusSwitch001, Tes
  * @tc.name: MultipleTaskNormalStatusSwitch002
  * @tc.desc: Test status switch for multiple task under normal operation
  * @tc.type: FUNC
- * @tc.require: AR000C6TRV AR000CQDTM
+ * @tc.require:
  * @tc.author: xiaozhenjian
  */
 HWTEST_F(DistributedDBMultiVerVacuumTest, MultipleTaskNormalStatusSwitch002, TestSize.Level2)

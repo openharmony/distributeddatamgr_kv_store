@@ -297,7 +297,7 @@ void TestSyncWithUserChange(bool wait)
  * @tc.name: multi user 001
  * @tc.desc: Test multi user change
  * @tc.type: FUNC
- * @tc.require: AR000CQS3S SR000CQE0B
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser001, TestSize.Level1)
@@ -373,7 +373,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser001, TestSize.Level1)
  * @tc.name: multi user 002
  * @tc.desc: Test multi user not change
  * @tc.type: FUNC
- * @tc.require: AR000CQS3S SR000CQE0B
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser002, TestSize.Level1)
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser002, TestSize.Level1)
  * @tc.name: multi user 003
  * @tc.desc: enhancement callback return true in multiuser mode
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
@@ -509,7 +509,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
  * @tc.name: MultiUser004
  * @tc.desc: CommunicatorLackCallback in multi user mode
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
@@ -585,7 +585,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
  * @tc.name: MultiUser005
  * @tc.desc: test NotifyUserChanged func when all db in normal sync mode
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser005, TestSize.Level1)
@@ -620,7 +620,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser005, TestSize.Level1)
  * @tc.name: MultiUser006
  * @tc.desc: test NotifyUserChanged and close db concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level1)
@@ -656,7 +656,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level1)
  * @tc.name: MultiUser007
  * @tc.desc: test NotifyUserChanged and rekey db concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser007, TestSize.Level0)
@@ -693,7 +693,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser007, TestSize.Level0)
  * @tc.name: MultiUser008
  * @tc.desc: test NotifyUserChanged and block sync concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser008, TestSize.Level1)
@@ -705,7 +705,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser008, TestSize.Level1)
  * @tc.name: MultiUser009
  * @tc.desc: test NotifyUserChanged and non-block sync concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser009, TestSize.Level0)
@@ -717,7 +717,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser009, TestSize.Level0)
  * @tc.name: MultiUser010
  * @tc.desc: test NotifyUserChanged and non-block sync with multi devices concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
@@ -786,7 +786,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
  * @tc.name: MultiUser011
  * @tc.desc: test check sync active twice when open store
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser011, TestSize.Level1)
@@ -819,7 +819,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser011, TestSize.Level1)
  * @tc.name: MultiUser012
  * @tc.desc: test NotifyUserChanged and SetEqualIdentifier sync concurrently
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser012, TestSize.Level1)
@@ -856,7 +856,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser012, TestSize.Level1)
  * @tc.name: MultiUser013
  * @tc.desc: test dont check sync active when open store with normal store
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser013, TestSize.Level1)
@@ -883,7 +883,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser013, TestSize.Level1)
  * @tc.name: MultiUser014
  * @tc.desc: test active callback call count
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser014, TestSize.Level1)

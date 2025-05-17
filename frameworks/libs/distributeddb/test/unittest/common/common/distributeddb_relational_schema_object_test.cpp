@@ -291,7 +291,7 @@ void DistributedDBRelationalSchemaObjectTest::TearDown()
  * @tc.name: RelationalSchemaParseTest001
  * @tc.desc: Test relational schema parse from json string
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, TestSize.Level1)
@@ -319,7 +319,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, 
  * @tc.name: RelationalSchemaParseTest002
  * @tc.desc: Test relational schema parse from invalid json string
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest002, TestSize.Level1)
@@ -385,7 +385,7 @@ std::string GenerateFromTableStr(const std::string &tableStr)
  * @tc.name: RelationalSchemaParseTest003
  * @tc.desc: Test relational schema parse from invalid json string
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest003, TestSize.Level1)
@@ -534,7 +534,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest007, 
  * @tc.name: RelationalSchemaCompareTest001
  * @tc.desc: Test relational schema negotiate with same schema string
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001, TestSize.Level1)
@@ -554,7 +554,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001
  * @tc.name: RelationalSchemaCompareTest002
  * @tc.desc: Test relational schema v2.1 negotiate with same schema string
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002, TestSize.Level1)
@@ -574,7 +574,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002
  * @tc.name: RelationalSchemaCompareTest003
  * @tc.desc: Test relational schema v2.1 negotiate with schema v2.0
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003, TestSize.Level1)
@@ -592,7 +592,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003
  * @tc.name: RelationalSchemaCompareTest004
  * @tc.desc: Test relational schema v2.0 negotiate with schema v2.1
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004, TestSize.Level1)
@@ -610,7 +610,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004
  * @tc.name: RelationalSchemaCompareTest005
  * @tc.desc: Test collaboration relational schema negotiate with other table mode
  * @tc.type: FUNC
- * @tc.require: AR000H2PKN
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005, TestSize.Level1)
@@ -629,7 +629,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005
  * @tc.name: RelationalTableCompareTest001
  * @tc.desc: Test relational schema negotiate with same schema string
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalTableCompareTest001, TestSize.Level1)
@@ -670,7 +670,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalTableCompareTest001,
  * @tc.name: RelationalSchemaOpinionTest001
  * @tc.desc: Test relational schema sync opinion
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaOpinionTest001, TestSize.Level1)
@@ -703,7 +703,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaOpinionTest001
  * @tc.name: RelationalSchemaNegotiateTest001
  * @tc.desc: Test relational schema negotiate
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaNegotiateTest001, TestSize.Level1)
@@ -728,7 +728,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaNegotiateTest0
  * @tc.name: TableCompareTest001
  * @tc.desc: Test table compare
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest001, TestSize.Level1)
@@ -834,7 +834,7 @@ int TableCompareTest(sqlite3 *db, const std::string &sql1, const std::string &sq
  * @tc.name: TableCompareTest001
  * @tc.desc: Test table compare with default value
  * @tc.type: FUNC
- * @tc.require: AR000GK58I
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.Level1)

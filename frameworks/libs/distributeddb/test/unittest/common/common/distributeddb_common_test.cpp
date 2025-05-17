@@ -78,7 +78,7 @@ void DistributedDBCommonTest::TearDown(void)
  * @tc.name: RemoveAllFilesOfDirectory
  * @tc.desc: Test delete all file and dir.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBCommonTest, RemoveAllFilesOfDirectory, TestSize.Level1)
@@ -118,7 +118,7 @@ HWTEST_F(DistributedDBCommonTest, InvalidArgsTest001, TestSize.Level1)
  * @tc.name: SameProcessReLockFile
  * @tc.desc: Test same process repeat lock same file.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBCommonTest, SameProcessReLockFile, TestSize.Level1)
@@ -149,7 +149,7 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReLockFile, TestSize.Level1)
  * @tc.name: SameProcessReUnLockFile
  * @tc.desc: Test same process repeat lock same file.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
@@ -175,7 +175,7 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
  * @tc.name: CalcFileSizeTest
  * @tc.desc: Test the file size for function test and the performance test.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: wangbingquan
  */
 HWTEST_F(DistributedDBCommonTest, CalcFileSizeTest, TestSize.Level1)
@@ -216,7 +216,7 @@ void createStepFlag(int step)
  * @tc.name: DiffProcessLockFile
  * @tc.desc: Test different process repeat lock same file.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBCommonTest, DiffProcessLockFile, TestSize.Level1)
@@ -251,7 +251,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFile, TestSize.Level1)
  * @tc.name: DiffProcessLockFileBlocked
  * @tc.desc: Test different process repeat lock same file.
  * @tc.type: FUNC
- * @tc.require: AR000FN6G9
+ * @tc.require:
  * @tc.author: sunpeng
  */
 HWTEST_F(DistributedDBCommonTest, DiffProcessLockFileBlocked, TestSize.Level1)
@@ -293,7 +293,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFileBlocked, TestSize.Level1)
   * @tc.name: DiffProcessGetDBBlocked
   * @tc.desc: Test block other process get kvstore when db locked.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked, TestSize.Level1)
@@ -338,7 +338,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked, TestSize.Level1)
   * @tc.name: DiffProcessDeleteDBBlocked
   * @tc.desc: Test block other process delete kvstore when db locked.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessDeleteDBBlocked, TestSize.Level1)
@@ -386,7 +386,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessDeleteDBBlocked, TestSize.Level1)
   * @tc.name: DiffProcessGetDBBlocked001
   * @tc.desc: Test block other process get kvstore when db locked.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked001, TestSize.Level1)
@@ -432,7 +432,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked001, TestSize.Level1)
   * @tc.name: DiffProcessGetDB
   * @tc.desc: Test block other process get kvstore.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessGetDB, TestSize.Level1)
@@ -467,7 +467,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetDB, TestSize.Level1)
   * @tc.name: DiffProcessDeleteDB
   * @tc.desc: Test block other process delete kvstore.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessDeleteDB, TestSize.Level1)
@@ -505,7 +505,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessDeleteDB, TestSize.Level1)
   * @tc.name: DiffProcessGetAndDeleteDB
   * @tc.desc: Test block other process delete kvstore.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDV7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBCommonTest, DiffProcessGetAndDeleteDB, TestSize.Level1)

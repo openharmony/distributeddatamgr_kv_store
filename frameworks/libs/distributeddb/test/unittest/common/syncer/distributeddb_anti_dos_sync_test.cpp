@@ -158,7 +158,7 @@ void DistributeddbAntiDosSyncTest::TearDown(void)
  * @tc.desc: Whether function run normally when the amount of message is lower than the maximum of threads
  *   and the whole length of message is lower than the maximum size of queue.
  * @tc.type: FUNC
- * @tc.require: AR000D08KU
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync001, TestSize.Level3)
@@ -204,7 +204,7 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync001, TestSize.Level3)
  * @tc.desc: Check if the enqueued and dequeue are normal when the whole length of messages is lower than
  *  maximum size of queue.
  * @tc.type: FUNC
- * @tc.require: AR000D08KU
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync002, TestSize.Level3)
@@ -269,7 +269,7 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync002, TestSize.Level3)
  * @tc.name: Anti Dos attack Sync 003
  * @tc.desc: Whether message enter and drop when all threads hang.
  * @tc.type: FUNC
- * @tc.require: AR000D08KU
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync003, TestSize.Level3)

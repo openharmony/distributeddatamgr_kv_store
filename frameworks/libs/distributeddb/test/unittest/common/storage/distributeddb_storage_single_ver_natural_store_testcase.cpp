@@ -40,7 +40,7 @@ namespace {
   * @tc.name: GetSyncData001
   * @tc.desc: To test the function of querying the data in the time stamp range in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData001(SQLiteSingleVerNaturalStore *&store,
@@ -80,7 +80,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData001(SQLiteSin
   * @tc.name: GetSyncData002
   * @tc.desc: Test the function that the database does not query the data in the time stamp range.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData002(SQLiteSingleVerNaturalStore *&store,
@@ -119,7 +119,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData002(SQLiteSin
   * @tc.desc: To test the function of querying data when the timestamp range
   *  in the data obtaining interface is invalid.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData003(SQLiteSingleVerNaturalStore *&store,
@@ -162,7 +162,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData003(SQLiteSin
   * @tc.name: GetSyncData004
   * @tc.desc: To the test database Subcon reading, a large number of data records exist in the time stamp range.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData004(SQLiteSingleVerNaturalStore *&store,
@@ -226,7 +226,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData004(SQLiteSin
   * @tc.desc: In the test database, if a large number of data records exist
   *  in the time stamp range, a packet is read successfully.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData005(SQLiteSingleVerNaturalStore *&store,
@@ -264,7 +264,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData005(SQLiteSin
   * @tc.desc: To test the function of reading data when the time stamp range in the database
   *  is greater than the value of blockSize.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData006(SQLiteSingleVerNaturalStore *&store,
@@ -301,7 +301,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetSyncData006(SQLiteSin
   * @tc.name: PutSyncData001
   * @tc.desc: To test the function of synchronizing the new data of the remote device that synchronizes the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData001(SQLiteSingleVerNaturalStore *&store,
@@ -396,7 +396,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData001(SQLiteSin
   * @tc.desc: To test the function of synchronizing data from the remote device
   *  to the local device after the data is deleted from the remote device.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData002(SQLiteSingleVerNaturalStore *&store,
@@ -480,7 +480,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData002(SQLiteSin
   * @tc.desc: To test the function of synchronizing the mixed data of the added
   *  and deleted data from the remote device to the local device.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData003(SQLiteSingleVerNaturalStore *&store,
@@ -558,7 +558,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::PutSyncData003(SQLiteSin
   * @tc.name: PutMetaData001
   * @tc.desc: Test metadata insertion and modification.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::PutMetaData001(SQLiteSingleVerNaturalStore *&store,
@@ -571,7 +571,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::PutMetaData001(SQLiteSin
   * @tc.name: GetMetaData001
   * @tc.desc: To test the function of reading the metadata of a key in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetMetaData001(SQLiteSingleVerNaturalStore *&store,
@@ -589,7 +589,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetMetaData001(SQLiteSin
   * @tc.name: DeleteMetaData001
   * @tc.desc: To test the function of deleting the metadata with prefix key in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteMetaData001(SQLiteSingleVerNaturalStore *&store,
@@ -607,7 +607,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteMetaData001(SQLite
   * @tc.name: GetCurrentMaxTimestamp001
   * @tc.desc: To test the function of obtaining the maximum timestamp when a record exists in the database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetCurrentMaxTimestamp001(SQLiteSingleVerNaturalStore *&store,
@@ -652,7 +652,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetCurrentMaxTimestamp00
   * @tc.name: GetCurrentMaxTimestamp002
   * @tc.desc: Obtain the maximum timestamp when no record exists in the test record library.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::GetCurrentMaxTimestamp002(SQLiteSingleVerNaturalStore *&store)
@@ -670,7 +670,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::GetCurrentMaxTimestamp00
   * @tc.name: LocalDatabaseOperate001
   * @tc.desc: Test the function of inserting data in the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate001(SQLiteSingleVerNaturalStore *&store,
@@ -685,7 +685,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate001(
   * @tc.name: LocalDatabaseOperate002
   * @tc.desc: Test the function of deleting data from the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate002(SQLiteSingleVerNaturalStore *&store,
@@ -700,7 +700,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate002(
   * @tc.name: LocalDatabaseOperate003
   * @tc.desc: To test the function of reading data from the local database of the NaturalStore.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate003(SQLiteSingleVerNaturalStore *&store,
@@ -715,7 +715,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::LocalDatabaseOperate003(
   * @tc.name: SyncDatabaseOperate001
   * @tc.desc: To test the function of inserting data of the local device in the synchronization database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate001(SQLiteSingleVerNaturalStore *&store,
@@ -730,7 +730,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate001(S
   * @tc.name: SyncDatabaseOperate002
   * @tc.desc: test the put operation after data synced from other devices.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate002(SQLiteSingleVerNaturalStore *&store,
@@ -780,7 +780,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate002(S
   * @tc.name: SyncDatabaseOperate003
   * @tc.desc: test the delete operation in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate003(SQLiteSingleVerNaturalStore *&store,
@@ -795,7 +795,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate003(S
   * @tc.name: SyncDatabaseOperate004
   * @tc.desc: test the delete for the data from other devices in sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate004(SQLiteSingleVerNaturalStore *&store,
@@ -842,7 +842,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate004(S
   * @tc.name: SyncDatabaseOperate005
   * @tc.desc: test the reading for sync database.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate005(SQLiteSingleVerNaturalStore *&store,
@@ -857,7 +857,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate005(S
   * @tc.name: SyncDatabaseOperate006
   * @tc.desc: test the get entries for sync database
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate006(SQLiteSingleVerNaturalStore *&store,
@@ -918,7 +918,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::SyncDatabaseOperate006(S
   * @tc.name: ClearRemoteData001
   * @tc.desc: test the clear data synced from the remote by device.
   * @tc.type: FUNC
-  * @tc.require: AR000CIFDA AR000CQS3T
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::ClearRemoteData001(SQLiteSingleVerNaturalStore *&store,
@@ -988,7 +988,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::ClearRemoteData001(SQLit
  * @tc.name: DeleteUserKeyValue001
  * @tc.desc: When a user deletes a data record, the system clears the user record.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue001(SQLiteSingleVerNaturalStore *&store,
@@ -1032,7 +1032,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue001(SQ
  * @tc.name: MemoryDbDeleteUserKeyValue001
  * @tc.desc: When a user deletes a data record, the system clears the user record.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyValue001(
@@ -1076,7 +1076,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyVal
  * @tc.name: DeleteUserKeyValue002
  * @tc.desc: After the synchronization library data is deleted locally, add the same key data locally.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue002(SQLiteSingleVerNaturalStore *&store,
@@ -1123,7 +1123,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue002(SQ
  * @tc.name: DeleteUserKeyValue003
  * @tc.desc: After the synchronization database data is deleted locally, the same key data is added from the remote end.
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue003(SQLiteSingleVerNaturalStore *&store,
@@ -1206,7 +1206,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue003(SQ
  * @tc.name: DeleteUserKeyValue004
  * @tc.desc: Changes in key after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue004(SQLiteSingleVerNaturalStore *&store,
@@ -1255,7 +1255,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue004(SQ
  * @tc.name: MemoryDbDeleteUserKeyValue004
  * @tc.desc: Changes in key after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyValue004(
@@ -1301,7 +1301,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyVal
  * @tc.name: DeleteUserKeyValue005
  * @tc.desc: New unified key data locally after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue005(SQLiteSingleVerNaturalStore *&store,
@@ -1358,7 +1358,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue005(SQ
  * @tc.name: MemoryDbDeleteUserKeyValue005
  * @tc.desc: New unified key data locally after remote delete data syncs to local
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyValue005(
@@ -1413,7 +1413,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::MemoryDbDeleteUserKeyVal
  * @tc.desc: After the remote delete data is synced to the local,
  *  the same key data is added from the remote other devices
  * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.require:
  * @tc.author: sunpeng
  */
 void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue006(SQLiteSingleVerNaturalStore *&store,

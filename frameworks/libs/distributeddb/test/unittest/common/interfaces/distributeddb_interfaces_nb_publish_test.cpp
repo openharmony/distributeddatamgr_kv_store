@@ -120,7 +120,7 @@ void DistributedDBInterfacesNBPublishTest::TearDown(void) {}
   * @tc.name: SingleVerPublishKey001
   * @tc.desc: Publish nonexistent key
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey001, TestSize.Level1)
@@ -207,7 +207,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey001, TestSize.
   * @tc.name: SingleVerPublishKey002
   * @tc.desc: Publish no conflict key without deleting key from local table
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey002, TestSize.Level1)
@@ -284,7 +284,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey002, TestSize.
   * @tc.name: SingleVerPublishKey003
   * @tc.desc: Publish no conflict key with deleting key from local table
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey003, TestSize.Level1)
@@ -360,7 +360,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey003, TestSize.
   * @tc.name: SingleVerPublishKey004
   * @tc.desc: Publish conflict key and update timestamp
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey004, TestSize.Level1)
@@ -438,7 +438,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey004, TestSize.
   * @tc.name: SingleVerPublishKey005
   * @tc.desc: Publish conflict key but do not update timestamp
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey005, TestSize.Level1)
@@ -515,7 +515,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey005, TestSize.
   * @tc.name: SingleVerPublishKey006
   * @tc.desc: Publish no conflict key and onConflict() not null
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey006, TestSize.Level1)
@@ -556,7 +556,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey006, TestSize.
   * @tc.name: SingleVerPublishKey007
   * @tc.desc: Publish conflict key and onConflict() not null
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey007, TestSize.Level1)
@@ -604,7 +604,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey007, TestSize.
   * @tc.name: SingleVerPublishKey008
   * @tc.desc: Publish conflict key and onConflict() not null, need update timestamp
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey008, TestSize.Level1)
@@ -652,7 +652,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey008, TestSize.
   * @tc.name: SingleVerPublishKey009
   * @tc.desc: Publish conflict key (deleted) and onConflict() not null
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey009, TestSize.Level1)
@@ -699,7 +699,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey009, TestSize.
   * @tc.name: SingleVerPublishKey010
   * @tc.desc: Publish conflict key (deleted) and onConflict() not null, need update timestamp
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey010, TestSize.Level1)
@@ -746,7 +746,7 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey010, TestSize.
   * @tc.name: SingleVerPublishKey011
   * @tc.desc: Publish conflict key (deleted) and onConflict() not null, put(k1,v1) in callback method
   * @tc.type: FUNC
-  * @tc.require: AR000DPTQ5
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey011, TestSize.Level1)

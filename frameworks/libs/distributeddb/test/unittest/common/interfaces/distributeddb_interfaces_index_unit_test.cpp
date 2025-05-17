@@ -285,7 +285,7 @@ namespace {
   * @tc.name: CrudIndex001
   * @tc.desc: Test whether adding index is normal
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K8
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CrudIndex001, TestSize.Level1)
@@ -352,7 +352,7 @@ namespace {
   * @tc.name: CrudIndex002
   * @tc.desc: Test whether deleting index is normal
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K8
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CrudIndex002, TestSize.Level1)
@@ -420,7 +420,7 @@ namespace {
   * @tc.name: CrudIndex003
   * @tc.desc: Test whether updating index is normal
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K8
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CrudIndex003, TestSize.Level1)
@@ -499,7 +499,7 @@ namespace {
   * @tc.name: CreateIndex001
   * @tc.desc: Test whether the index creation is normal
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K9
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CreateIndex001, TestSize.Level1)
@@ -569,7 +569,7 @@ namespace {
   * @tc.name: CreateIndex002
   * @tc.desc: Test whether it is possible to insert 32 four-level indexes with each filed being 64.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K9
+  * @tc.require:
   * @tc.author: yiguang
   */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CreateIndex002, TestSize.Level1)
@@ -618,7 +618,7 @@ namespace {
  * @tc.name: Check schema skipsize 001
  * @tc.desc: When SCHEMA_SKIPSIZE is not defined, check if the default is 0
  * @tc.type: FUNC
- * @tc.require: AR000DR9K9
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize001, TestSize.Level1)
@@ -658,7 +658,7 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize001, TestSize.
  * @tc.name: Check schema skipsize 002
  * @tc.desc: SCHEMA_SKIPSIZE range is [0,4MB-2]
  * @tc.type: FUNC
- * @tc.require: AR000DR9K9
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize002, TestSize.Level1)
@@ -740,7 +740,7 @@ namespace {
  * @tc.desc: When "SCHEMA_SKIPSIZE" is greater than or equal to the size of Value,
  *           the Value verification must fail
  * @tc.type: FUNC
- * @tc.require: AR000DR9K9
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize003, TestSize.Level1)
@@ -782,7 +782,7 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize003, TestSize.
  * @tc.desc: When the SCHEMA_SKIPSIZE definitions of two Schemas are different,
  *           they will be regarded as inconsistent and incompatible
  * @tc.type: FUNC
- * @tc.require: AR000DR9K9
+ * @tc.require:
  * @tc.author: yiguang
  */
 HWTEST_F(DistributedDBInterfacesIndexUnitTest, SchemaCompareSkipsize004, TestSize.Level1)

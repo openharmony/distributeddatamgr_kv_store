@@ -243,7 +243,7 @@ void NoramlCreateDistributedTableTest(TableSyncType tableSyncType)
   * @tc.name: RelationalStoreTest001
   * @tc.desc: Test open store and create distributed db with DEVICE_COOPERATION type
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize.Level1)
@@ -255,7 +255,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize
   * @tc.name: RelationalStoreTest001
   * @tc.desc: Test open store and create distributed db with CLOUD_COOPERATION type
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001_1, TestSize.Level1)
@@ -267,7 +267,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001_1, TestSi
   * @tc.name: RelationalStoreTest002
   * @tc.desc: Test open store with invalid path or store ID
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest002, TestSize.Level1)
@@ -319,7 +319,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest002, TestSize
   * @tc.name: RelationalStoreTest003
   * @tc.desc: Test open store with journal_mode is not WAL
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest003, TestSize.Level1)
@@ -392,7 +392,7 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
   * @tc.name: RelationalStoreTest004
   * @tc.desc: Test create distributed table with over limit for DEVICE_COOPERATION type
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize.Level1)
@@ -469,7 +469,7 @@ void CreateDistributedTableInvalidArgsTest(TableSyncType tableSyncType)
   * @tc.name: RelationalStoreTest005
   * @tc.desc: Test create distributed table with invalid table name or invalid table sync type
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize.Level1)
@@ -540,7 +540,7 @@ void CreateDistributedTableNonPrimaryKeyTest(TableSyncType tableSyncType)
   * @tc.name: RelationalStoreTest006
   * @tc.desc: Test create distributed table with non primary key schema
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006, TestSize.Level1)
@@ -582,7 +582,7 @@ void CreateDistributedTableInvalidFieldTest(TableSyncType tableSyncType)
   * @tc.name: RelationalStoreTest007
   * @tc.desc: Test create distributed table with table has invalid field name
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest007, TestSize.Level1)
@@ -624,7 +624,7 @@ void CreateDistributedTableCompositePKTest(TableSyncType tableSyncType, int expe
   * @tc.name: RelationalStoreTest008
   * @tc.desc: Test create distributed table with table has composite primary keys for DEVICE_COOPERATION
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest008, TestSize.Level1)
@@ -667,7 +667,7 @@ void CreateDistributedTableWithHistoryDataTest(TableSyncType tableSyncType)
   * @tc.name: RelationalStoreTest009
   * @tc.desc: Test create distributed table with table has history data for DEVICE_COOPERATION
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest009, TestSize.Level1)
@@ -746,7 +746,7 @@ void TableModifyTest(const std::string &modifySql, TableSyncType tableSyncType, 
   * @tc.name: RelationalTableModifyTest001
   * @tc.desc: Test modify distributed table with compatible upgrade
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest001, TestSize.Level1)
@@ -759,7 +759,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest001, Te
   * @tc.name: RelationalTableModifyTest002
   * @tc.desc: Test modify distributed table with incompatible upgrade
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest002, TestSize.Level1)
@@ -772,7 +772,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest002, Te
   * @tc.name: RelationalTableModifyTest003
   * @tc.desc: Test modify distributed table with incompatible upgrade
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest003, TestSize.Level1)
@@ -885,7 +885,7 @@ void UpgradeDistributedTableTest(TableSyncType tableSyncType)
   * @tc.name: RelationalTableModifyTest004
   * @tc.desc: Test upgrade distributed table with device table exists
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, TestSize.Level1)
@@ -909,7 +909,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004_1, 
   * @tc.name: RelationalTableModifyTest005
   * @tc.desc: Test modify distributed table with compatible upgrade
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest005, TestSize.Level1)
@@ -1106,7 +1106,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, TableConstraintsTest002, TestSiz
   * @tc.name: RelationalRemoveDeviceDataTest001
   * @tc.desc: Test remove device data
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest001, TestSize.Level1)
@@ -1223,7 +1223,7 @@ void AddErrorTrigger(sqlite3 *db, const std::string &name)
   * @tc.name: RelationalRemoveDeviceDataTest002
   * @tc.desc: Test remove device data and syn
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest002, TestSize.Level1)
@@ -1344,7 +1344,7 @@ void TestRemoveDeviceDataWithCallback(bool removeAll)
   * @tc.name: RelationalRemoveDeviceDataTest003
   * @tc.desc: Test remove all device data and sync again
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest003, TestSize.Level1)
@@ -1356,7 +1356,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
   * @tc.name: RelationalRemoveDeviceDataTest004
   * @tc.desc: Test remove one device data and sync again
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest004, TestSize.Level1)
@@ -1368,7 +1368,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
   * @tc.name: RelationalRemoveDeviceDataTest005
   * @tc.desc: Test remove device data with invalid param
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest005, TestSize.Level1)
@@ -1417,7 +1417,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
   * @tc.name: RelationalRemoveDeviceDataTest006
   * @tc.desc: Test remove device data with busy
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest006, TestSize.Level1)
@@ -1464,7 +1464,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
   * @tc.name: RelationalOpenStorePathCheckTest001
   * @tc.desc: Test open store with same label but different path.
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: lianhuix
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalOpenStorePathCheckTest001, TestSize.Level1)
@@ -1682,7 +1682,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.L
   * @tc.name: GetDistributedTableName001
   * @tc.desc: Test get distributed table name
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, TestSize.Level1)

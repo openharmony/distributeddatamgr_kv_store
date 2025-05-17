@@ -189,7 +189,7 @@ void DistributedDBStorageRdRegisterObserverTest::TearDown(void)
   * @tc.name: RegisterObserver001
   * @tc.desc: Register a NULL pointer as an observer
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver001, TestSize.Level1)
@@ -220,7 +220,7 @@ HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver001, TestSi
   * @tc.name: RegisterObserver010
   * @tc.desc: Register an observer for the local sync database change and the local database change of a specified key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver010, TestSize.Level1)
@@ -244,7 +244,7 @@ HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver010, TestSi
   * @tc.name: RegisterObserver011
   * @tc.desc: Register an observer for the remote sync database change and the local database change of a specified key
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver011, TestSize.Level1)
@@ -268,7 +268,7 @@ HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver011, TestSi
   * @tc.name: RegisterObserver012
   * @tc.desc: Register an observer for the local sync database change and the local database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver012, TestSize.Level1)
@@ -292,7 +292,7 @@ HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver012, TestSi
   * @tc.name: RegisterObserver013
   * @tc.desc: Register an observer for the remote sync database change and the local database change of any key.
   * @tc.type: FUNC
-  * @tc.require: AR000CCPOM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver013, TestSize.Level1)

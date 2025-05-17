@@ -182,7 +182,7 @@ void DistributedDBInterfacesSchemaDatabaseUpgradeTest::TearDown(void)
   * @tc.name: UpgradeFromKv001
   * @tc.desc: Schema database upgrade from kv database, exist value match compatible schema(mismatch strict schema)
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xiaozhenjian
   */
 HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromKv001, TestSize.Level1)
@@ -241,7 +241,7 @@ HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromKv001, Tes
   * @tc.name: UpgradeFromKv002
   * @tc.desc: Schema database upgrade from kv database, exist value mismatch compatible schema
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xiaozhenjian
   */
 HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromKv002, TestSize.Level1)
@@ -326,7 +326,7 @@ void TestUpgradeFromSchema(const std::string &storeId, const std::vector<std::st
   * @tc.name: UpgradeFromSchema001
   * @tc.desc: Schema database upgrade from kv database, exist value match new schema
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xiaozhenjian
   */
 HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromSchema001, TestSize.Level1)
@@ -345,7 +345,7 @@ HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromSchema001,
   * @tc.name: UpgradeFromSchema002
   * @tc.desc: Schema database upgrade from kv database, exist value mismatch new schema
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xiaozhenjian
   */
 HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromSchema002, TestSize.Level1)
@@ -364,7 +364,7 @@ HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromSchema002,
   * @tc.name: UpgradeFromSchema003
   * @tc.desc: Schema database upgrade from kv database, new schema incompatible with old schema
   * @tc.type: FUNC
-  * @tc.require: AR000F3OPD
+  * @tc.require:
   * @tc.author: xiaozhenjian
   */
 HWTEST_F(DistributedDBInterfacesSchemaDatabaseUpgradeTest, UpgradeFromSchema003, TestSize.Level1)

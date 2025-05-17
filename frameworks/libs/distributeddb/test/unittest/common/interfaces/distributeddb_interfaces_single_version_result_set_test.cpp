@@ -159,7 +159,7 @@ void DistributedDBInterfacesSingleVersionResultSetTest::TearDown(void)
   * @tc.name: SingleVersionResultSetTest001
   * @tc.desc: CursorWindow Class: Return error when the window size too large.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest001, TestSize.Level1)
@@ -178,7 +178,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest002
   * @tc.desc: CursorWindow Class: Return error when the window size is negative.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest002, TestSize.Level1)
@@ -197,7 +197,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest003
   * @tc.desc: CursorWindow Class: Return error when the window size is zero.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest003, TestSize.Level1)
@@ -216,7 +216,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest004
   * @tc.desc: CursorWindow Class: Return OK when the window size is positive.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest004, TestSize.Level1)
@@ -235,7 +235,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest005
   * @tc.desc: CursorWindow Class: Return -E_INVALID_ARGS when the window scale is negative.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest005, TestSize.Level1)
@@ -254,7 +254,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest006
   * @tc.desc: CursorWindow Class: Return -E_INVALID_ARGS when the window scale is larger than 1.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest006, TestSize.Level1)
@@ -273,7 +273,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest007
   * @tc.desc: CursorWindow Class: Return -E_INVALID_ARGS when the window scale 0.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest007, TestSize.Level1)
@@ -292,7 +292,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest008
   * @tc.desc: CursorWindow Class: Return OK when the window scale is between 0 and 1.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest008, TestSize.Level1)
@@ -311,7 +311,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest009
   * @tc.desc: CursorWindow Class: Return -E_INVALID_ARGS when the g_rawCursor is nulSSSlptr.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest009, TestSize.Level1)
@@ -331,7 +331,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest010
   * @tc.desc: CursorWindow Class: Check if get total count is feasible.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest010, TestSize.Level1)
@@ -357,7 +357,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.desc: CursorWindow Class: Check if get total count is feasible and the inserted items after
   *           creating ResultEntriesWindow have not been counted.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest011, TestSize.Level1)
@@ -396,7 +396,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest012
   * @tc.desc: CursorWindow Class: Check if current position after initialization is at 0.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest012, TestSize.Level1)
@@ -430,7 +430,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest013
   * @tc.desc: CursorWindow Class: Check if current position after move is at the right place+.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest013, TestSize.Level1)
@@ -465,7 +465,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest014
   * @tc.desc: CursorWindow Class: Move to negative position and the position bounces back to zero.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest014, TestSize.Level1)
@@ -501,7 +501,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
   * @tc.name: SingleVersionResultSetTest015
   * @tc.desc: CursorWindow Class: Move to position larger than N and the position bounces back to original position.
   * @tc.type: FUNC
-  * @tc.require: AR000D08KT
+  * @tc.require:
   * @tc.author: maokeheng
   */
 HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest015, TestSize.Level1)

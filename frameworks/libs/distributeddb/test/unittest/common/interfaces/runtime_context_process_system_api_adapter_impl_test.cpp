@@ -78,7 +78,7 @@ void RuntimeContextProcessSystemApiAdapterImplTest::SetUp(void)
  * @tc.name: SetSecurityOption001
  * @tc.desc: Set SecurityOption.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSecurityOption001, TestSize.Level1)
 {
@@ -104,7 +104,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSecurityOption001, Te
  * @tc.name: GetSecurityOption001
  * @tc.desc: Get SecurityOption.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, GetSecurityOption001, TestSize.Level1)
 {
@@ -130,7 +130,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, GetSecurityOption001, Te
  * @tc.name: RegisterLockStatusLister001
  * @tc.desc: Register a listener.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, RegisterLockStatusLister001, TestSize.Level1)
 {
@@ -188,7 +188,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, RegisterLockStatusLister
  * @tc.name: IsAccessControlled001
  * @tc.desc: Get Access Lock Status.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, IsAccessControlled001, TestSize.Level1)
 {
@@ -214,7 +214,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, IsAccessControlled001, T
  * @tc.name: CheckDeviceSecurityAbility001
  * @tc.desc: Check device security ability.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbility001, TestSize.Level1)
 {
@@ -271,7 +271,7 @@ void CheckDeviceSecurityAbility002()
  * @tc.name: CheckDeviceSecurityAbility002
  * @tc.desc: Check device security ability with getkvstore frequency.
  * @tc.type: FUNC
- * @tc.require: AR000EV1G2
+ * @tc.require:
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbility002, TestSize.Level1)
 {

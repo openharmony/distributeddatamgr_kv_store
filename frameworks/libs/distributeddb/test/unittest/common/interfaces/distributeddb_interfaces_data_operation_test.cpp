@@ -407,7 +407,7 @@ void DistributedDBInterfacesDataOperationTest::TearDown(void)
   * @tc.name: Put001
   * @tc.desc: Put a data(non-empty key, non-empty value) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTM AR000CQS3Q
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Put001, TestSize.Level1)
@@ -435,7 +435,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Put001, TestSize.Level1)
   * @tc.name: Put002
   * @tc.desc: Put a data(empty key) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Put002, TestSize.Level1)
@@ -454,7 +454,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Put002, TestSize.Level1)
   * @tc.name: Put003
   * @tc.desc: Put a data(non-empty key, empty value) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTM AR000CQS3Q
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Put003, TestSize.Level1)
@@ -474,7 +474,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Put003, TestSize.Level1)
   * @tc.name: Put004
   * @tc.desc: Put data into the local database
   * @tc.type: FUNC
-  * @tc.require: AR000CQDVD AR000CQS3Q
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Put004, TestSize.Level1)
@@ -537,7 +537,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Put004, TestSize.Level1)
   * @tc.name: Clear001
   * @tc.desc: Clear the data from an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Clear001, TestSize.Level1)
@@ -570,7 +570,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Clear001, TestSize.Level1)
   * @tc.name: PutBatch001
   * @tc.desc: Putbatch data into the local database
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFE AR000CQDVC
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, PutBatch001, TestSize.Level1)
@@ -613,7 +613,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PutBatch001, TestSize.Level1)
   * @tc.name: PutBatch002
   * @tc.desc: PutBatch modified data into the local database
   * @tc.type: FUNC
-  * @tc.require: AR000BVDFE AR000CQDVC
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, PutBatch002, TestSize.Level1)
@@ -655,7 +655,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PutBatch002, TestSize.Level1)
   * @tc.name: Delete001
   * @tc.desc: Delete existed data from the local database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Delete001, TestSize.Level1)
@@ -686,7 +686,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Delete001, TestSize.Level1)
   * @tc.name: Delete002
   * @tc.desc: Delete non-existed data from the local database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, Delete002, TestSize.Level1)
@@ -709,7 +709,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, Delete002, TestSize.Level1)
   * @tc.name: DeleteBatch001
   * @tc.desc: Delete the existed batch data from the local database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, DeleteBatch001, TestSize.Level1)
@@ -752,7 +752,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, DeleteBatch001, TestSize.Leve
   * @tc.name: DeleteBatch002
   * @tc.desc: Delete the non-existed batch data from the local database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, DeleteBatch002, TestSize.Level1)
@@ -778,7 +778,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, DeleteBatch002, TestSize.Leve
   * @tc.name: GetEntries001
   * @tc.desc: Get the batch data from the non-empty database by the prefix key.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TUQ AR000CQDV3
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries001, TestSize.Level1)
@@ -817,7 +817,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries001, TestSize.Level
   * @tc.name: GetEntries002
   * @tc.desc: Get all the data(empty prefixkey) from the empty database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TUQ AR000CQDV3
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries002, TestSize.Level1)
@@ -842,7 +842,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries002, TestSize.Level
   * @tc.name: GetEntries003
   * @tc.desc: Get all the data(empty prefixkey) from the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TUQ AR000CQDV3
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries003, TestSize.Level1)
@@ -878,7 +878,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntries003, TestSize.Level
   * @tc.name: GetSnapshot001
   * @tc.desc: Get observer is empty, whether you get the snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetSnapshot001, TestSize.Level1)
@@ -895,7 +895,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetSnapshot001, TestSize.Leve
   * @tc.name: GetSnapshot002
   * @tc.desc: Get observer is not empty, whether you get the snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetSnapshot002, TestSize.Level1)
@@ -929,7 +929,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetSnapshot002, TestSize.Leve
   * @tc.name: ReleaseSnapshot001
   * @tc.desc: To test the function of releasing an empty snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, ReleaseSnapshot001, TestSize.Level1)
@@ -947,7 +947,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, ReleaseSnapshot001, TestSize.
   * @tc.name: ReleaseSnapshot002
   * @tc.desc: Release the obtained snapshot object that is not empty.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, ReleaseSnapshot002, TestSize.Level1)
@@ -959,7 +959,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, ReleaseSnapshot002, TestSize.
   * @tc.name: SetConflictResolutionPolicySuccessTest001
   * @tc.desc: Verify SetConflictResolutionPolicy() return OK with valid input.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE12
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, SetConflictResolutionPolicySuccessTest001, TestSize.Level1)
@@ -981,7 +981,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, SetConflictResolutionPolicySu
   * @tc.name: SetConflictResolutionPolicyFailedTest001
   * @tc.desc: Verify SetConflictResolutionPolicy() return INVALID_ARGS with invalid input.
   * @tc.type: FUNC
-  * @tc.require: AR000CQE12
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, SetConflictResolutionPolicyFailedTest001, TestSize.Level1)
@@ -1004,7 +1004,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, SetConflictResolutionPolicyFa
   * @tc.name: GetEntriesWithQuery001
   * @tc.desc: check query_format.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery001, TestSize.Level1)
@@ -1096,7 +1096,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery001, TestS
   * @tc.name: GetEntriesWithQuery002
   * @tc.desc: GetEntries(const Query &query, std::vector<Entry> &entries) interface test.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery002, TestSize.Level1)
@@ -1142,7 +1142,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery002, TestS
   * @tc.name: GetEntriesWithQuery003
   * @tc.desc: GetEntries(const Query &query, std::vector<Entry> &entries) interface test.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery003, TestSize.Level1)
@@ -1181,7 +1181,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery003, TestS
   * @tc.name: GetEntriesWithQuery004
   * @tc.desc: GetEntries(const Query &query, std::vector<Entry> &entries) interface test.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: weifeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery004, TestSize.Level1)
@@ -1230,7 +1230,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery004, TestS
   * @tc.name: QueryIsNotNull001
   * @tc.desc: IsNotNull interface normal function
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryIsNotNull001, TestSize.Level1)
@@ -1286,7 +1286,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryIsNotNull001, TestSize.L
   * @tc.name: QueryPreFixKey001
   * @tc.desc: Normal function of query by prefix key
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey001, TestSize.Level1)
@@ -1368,7 +1368,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey001, TestSize.L
   * @tc.name: QueryPreFixKey003
   * @tc.desc: For special key prefix combination condition of query
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey003, TestSize.Level1)
@@ -1431,7 +1431,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey003, TestSize.L
   * @tc.name: QueryPreFixKey004
   * @tc.desc: Query a prefix that does not exist
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey004, TestSize.Level1)
@@ -1476,7 +1476,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey004, TestSize.L
   * @tc.name: QueryGroup001
   * @tc.desc: Query group nomal ability to change operation priority
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup001, TestSize.Level1)
@@ -1552,7 +1552,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup001, TestSize.Level
   * @tc.name: QueryGroup002
   * @tc.desc: Test for illegal Group query object
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup002, TestSize.Level1)
@@ -1630,7 +1630,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup002, TestSize.Level
   * @tc.name: QueryGroup003
   * @tc.desc: Query expressions containing nested parentheses
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup003, TestSize.Level1)
@@ -1678,7 +1678,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryGroup003, TestSize.Level
   * @tc.name: multiOrderBy001
   * @tc.desc: Test multiple orderby conditions together to query
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K7
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, multiOrderBy001, TestSize.Level1)
@@ -1723,7 +1723,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, multiOrderBy001, TestSize.Lev
   * @tc.name: multiOrderBy001
   * @tc.desc: For multiple order query.
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize.Level1)
@@ -1774,7 +1774,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
   * @tc.name: PrefixAndOther001
   * @tc.desc: Combination of prefix query and logical filtering
   * @tc.type: FUNC
-  * @tc.require: AR000EPARK
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, PrefixAndOther001, TestSize.Level1)
@@ -1811,7 +1811,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PrefixAndOther001, TestSize.L
   * @tc.name: InKeys001
   * @tc.desc: InKeys query base function
   * @tc.type: FUNC
-  * @tc.require: AR000GOH06
+  * @tc.require:
   * @tc.author: xushaohua
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeys001, TestSize.Level1)
@@ -1873,7 +1873,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeys001, TestSize.Level1)
  * @tc.name: InKeysLimit001
  * @tc.desc: InKeys query limit verification
  * @tc.type: FUNC
- * @tc.require: AR000GOH06
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysLimit001, TestSize.Level1)
@@ -1928,7 +1928,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysLimit001, TestSize.Leve
  * @tc.name: InKeysAndOther001
  * @tc.desc: Combination of InKeys query and logical filtering
  * @tc.type: FUNC
- * @tc.require: AR000GOH06
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther001, TestSize.Level1)
@@ -1987,7 +1987,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther001, TestSize.L
  * @tc.name: InKeysAndOther002
  * @tc.desc: Combination of InKeys query and logical filtering
  * @tc.type: FUNC
- * @tc.require: AR000GOH06
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther002, TestSize.Level1)

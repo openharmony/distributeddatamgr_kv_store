@@ -204,7 +204,7 @@ void DistributedDBInterfacesEncryptDatabaseTest::CheckRekeyWithExistedObserver(b
   * @tc.name: LocalDatabaseRekeyCheck001
   * @tc.desc: Attempt to rekey while another delegate is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, LocalDatabaseRekeyCheck001, TestSize.Level1)
@@ -233,7 +233,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, LocalDatabaseRekeyCheck001,
   * @tc.name: LocalDatabaseRekeyCheck002
   * @tc.desc: Attempt to rekey while the snapshot is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, LocalDatabaseRekeyCheck002, TestSize.Level1)
@@ -262,7 +262,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, LocalDatabaseRekeyCheck002,
   * @tc.name: MultiVerRekeyCheck001
   * @tc.desc: Attempt to rekey while another delegate is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck001, TestSize.Level1)
@@ -291,7 +291,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck001, Test
   * @tc.name: MultiVerRekeyCheck002
   * @tc.desc: Attempt to rekey while the snapshot is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck002, TestSize.Level1)
@@ -320,7 +320,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck002, Test
   * @tc.name: MultiVerRekeyCheck003
   * @tc.desc: Attempt to rekey while the observer is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck003, TestSize.Level1)
@@ -376,7 +376,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, ExportAndImportCheck001, Te
   * @tc.name: SingleVerRekeyCheck001
   * @tc.desc: Attempt to rekey while another delegate is existed.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck001, TestSize.Level1)
@@ -428,7 +428,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck001, Tes
   * @tc.name: SingleVerRekeyCheck002
   * @tc.desc: Attempt to rekey when the observer exists.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck002, TestSize.Level1)
@@ -483,7 +483,7 @@ static void NotifierCallback(const KvStoreNbConflictData &data)
   * @tc.name: SingleVerRekeyCheck003
   * @tc.desc: Attempt to rekey while the conflict notifier is set.
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: wumin
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck003, TestSize.Level1)
@@ -529,7 +529,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck003, Tes
   * @tc.name: SingleVerRekeyCheck004
   * @tc.desc: Test rekey and removeDeviceData
   * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
+  * @tc.require:
   * @tc.author: zhangqiquan
   */
 HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck004, TestSize.Level3)

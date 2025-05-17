@@ -168,7 +168,7 @@ void DistributedDBRelationalRemoteQueryTest::TearDown(void)
  * @tc.name: NormalQuery1
  * @tc.desc: Normal query.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery1, TestSize.Level1)
@@ -208,7 +208,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery1, TestSize.Level1)
  * @tc.name: NormalQuery1
  * @tc.desc: test sql len is larger than 100,0000
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: zhuwentao
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery2, TestSize.Level1)
@@ -227,7 +227,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery2, TestSize.Level1)
  * @tc.name: BoolQuery1
  * @tc.desc: Query bool.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, BoolQuery1, TestSize.Level1)
@@ -294,7 +294,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, BoolQuery1, TestSize.Level1)
  * @tc.name: BlobQuery1
  * @tc.desc: Query blob.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, BlobQuery1, TestSize.Level1)
@@ -341,7 +341,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, BlobQuery1, TestSize.Level1)
  * @tc.name: InsertQuery1
  * @tc.desc: Query with insert statement.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, InsertQuery1, TestSize.Level1)
@@ -403,7 +403,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, InsertQuery1, TestSize.Level1)
  * @tc.name: NonexistentTable1
  * @tc.desc: Nonexistent table or column.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, NonexistentTable1, TestSize.Level1)
@@ -435,7 +435,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, NonexistentTable1, TestSize.Lev
  * @tc.name: PreparedStmtSerialize
  * @tc.desc: Test the serialization and deserialization of PreparedStmt.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, PreparedStmtSerialize, TestSize.Level1)
@@ -478,7 +478,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, PreparedStmtSerialize, TestSize
  * @tc.name: ComplexQuery1
  * @tc.desc: Complex query with join or aggregate func.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, ComplexQuery1, TestSize.Level1)
@@ -519,7 +519,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, ComplexQuery1, TestSize.Level1)
  * @tc.name: LargeAmountOfData1
  * @tc.desc: Large Amount Of Data.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, LargeAmountOfData1, TestSize.Level1)
@@ -572,7 +572,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, LargeAmountOfData1, TestSize.Le
  * @tc.name: OverSize1
  * @tc.desc: Over size.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, OverSize1, TestSize.Level1)
@@ -614,7 +614,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, OverSize1, TestSize.Level1)
  * @tc.name: RemoteQueryForNotDistributedDb
  * @tc.desc: Not create distributed table, exec remote query.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalRemoteQueryTest, RemoteQueryForNotDistributedDb, TestSize.Level1)

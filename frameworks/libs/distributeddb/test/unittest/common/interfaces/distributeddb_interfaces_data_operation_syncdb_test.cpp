@@ -145,7 +145,7 @@ void DistributedDBInterfacesDataOperationSyncDBTest::TearDown(void)
   * @tc.name: Put001
   * @tc.desc: Put a data(non-empty key, non-empty value) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTM AR000CQS3R
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put001, TestSize.Level1)
@@ -172,7 +172,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put001, TestSize.Level1
   * @tc.name: Put002
   * @tc.desc: Put a data(empty key) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put002, TestSize.Level1)
@@ -191,7 +191,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put002, TestSize.Level1
   * @tc.name: Put003
   * @tc.desc: Put a data(non-empty key, empty value) into an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put003, TestSize.Level1)
@@ -211,7 +211,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put003, TestSize.Level1
   * @tc.name: Put004
   * @tc.desc: Put data into the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put004, TestSize.Level1)
@@ -274,7 +274,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Put004, TestSize.Level1
   * @tc.name: Clear001
   * @tc.desc: Clear the data from an exist distributed db
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTM AR000CQS3R
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Clear001, TestSize.Level1)
@@ -306,7 +306,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Clear001, TestSize.Leve
   * @tc.name: PutBatch001
   * @tc.desc: Putbatch data into the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000CQDTM AR000CQS3R
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, PutBatch001, TestSize.Level1)
@@ -349,7 +349,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, PutBatch001, TestSize.L
   * @tc.name: PutBatch002
   * @tc.desc: PutBatch modified data into the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, PutBatch002, TestSize.Level1)
@@ -391,7 +391,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, PutBatch002, TestSize.L
   * @tc.name: Delete001
   * @tc.desc: Delete existed data from the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Delete001, TestSize.Level1)
@@ -422,7 +422,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Delete001, TestSize.Lev
   * @tc.name: Delete002
   * @tc.desc: Delete non-existed data from the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Delete002, TestSize.Level1)
@@ -445,7 +445,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, Delete002, TestSize.Lev
   * @tc.name: DeleteBatch001
   * @tc.desc: Delete the existed batch data from the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, DeleteBatch001, TestSize.Level1)
@@ -488,7 +488,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, DeleteBatch001, TestSiz
   * @tc.name: DeleteBatch002
   * @tc.desc: Delete the non-existed batch data from the multiversion database
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, DeleteBatch002, TestSize.Level1)
@@ -514,7 +514,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, DeleteBatch002, TestSiz
   * @tc.name: GetEntries001
   * @tc.desc: Get the batch data from the non-empty database by the prefix key.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetEntries001, TestSize.Level1)
@@ -553,7 +553,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetEntries001, TestSize
   * @tc.name: GetEntries002
   * @tc.desc: Get all the data(empty prefixkey) from the empty database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetEntries002, TestSize.Level1)
@@ -578,7 +578,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetEntries002, TestSize
   * @tc.name: GetEntries003
   * @tc.desc: Get all the data(empty prefixkey) from the database.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: huangnaigu
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetEntries003, TestSize.Level1)
@@ -640,7 +640,7 @@ static void TestSnapshotCreateAndRelease()
   * @tc.name: GetSnapshot001
   * @tc.desc: Get observer is empty, whether you get the snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshot001, TestSize.Level1)
@@ -657,7 +657,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshot001, TestSiz
   * @tc.name: GetSnapshot002
   * @tc.desc: Get observer is not empty, whether you get the snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshot002, TestSize.Level1)
@@ -691,7 +691,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshot002, TestSiz
   * @tc.name: ReleaseSnapshot001
   * @tc.desc: To test the function of releasing an empty snapshot.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, ReleaseSnapshot001, TestSize.Level1)
@@ -709,7 +709,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, ReleaseSnapshot001, Tes
   * @tc.name: ReleaseSnapshot002
   * @tc.desc: Release the obtained snapshot object that is not empty.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNF AR000CQDTI
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, ReleaseSnapshot002, TestSize.Level1)
@@ -866,7 +866,7 @@ static void TestSnapshotEntryDelete()
   * @tc.desc: Obtain data from the obtained snapshot object and test the impact of the write
   *  database on the snapshot obtained after the snapshot is obtained.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNH AR000CQDTJ
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntry001, TestSize.Level1)
@@ -879,7 +879,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntry001, Te
   * @tc.name: get_snapshot_entry_002
   * @tc.desc: Read the data of the invalid key from the obtained snapshot object.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNH AR000CQDTJ
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntry002, TestSize.Level1)
@@ -1100,7 +1100,7 @@ static void SnapshotTestPreEntriesDelete()
   * @tc.name: GetSnapshotEntries001
   * @tc.desc: To test the function of obtaining full data when keyPrefix is set to null.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNI AR000CQDTK
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries001, TestSize.Level1)
@@ -1237,7 +1237,7 @@ static void SnapshotTestEmptyPreEntriesDelete()
   * @tc.name: GetSnapshotEntries002
   * @tc.desc: To test the function of obtaining the prefix data when keyPrefix is set to a non-empty value.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNI AR000CQDTK
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries002, TestSize.Level1)
@@ -1251,7 +1251,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries002, 
   * @tc.name: GetSnapshotEntries003
   * @tc.desc: To test whether data can be obtained when keyPrefix is set to an ultra-long key.
   * @tc.type: FUNC
-  * @tc.require: AR000BVRNI AR000CQDTK
+  * @tc.require:
   * @tc.author: wangbingquan
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries003, TestSize.Level1)
@@ -1297,7 +1297,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries003, 
   * @tc.name: TestTransactionException001
   * @tc.desc: An exception occurred while the test transaction was executing.
   * @tc.type: FUNC
-  * @tc.require: AR000C0F0F AR000CQDTN or SR000BVRNJ
+  * @tc.require:
   * @tc.author: sunpeng
   */
 HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, TransactionException001, TestSize.Level1)

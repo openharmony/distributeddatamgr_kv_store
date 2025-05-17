@@ -324,7 +324,7 @@ void DistributedDBRelationalGetDataTest::TearDown(void)
  * @tc.name: LogTbl1
  * @tc.desc: When put sync data to relational store, trigger generate log.
  * @tc.type: FUNC
- * @tc.require: AR000GK58G
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, LogTbl1, TestSize.Level1)
@@ -356,7 +356,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, LogTbl1, TestSize.Level1)
  * @tc.name: GetSyncData1
  * @tc.desc: GetSyncData interface
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData1, TestSize.Level1)
@@ -408,7 +408,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData1, TestSize.Level1)
  * @tc.name: GetSyncData2
  * @tc.desc: GetSyncData interface. For overlarge data(over 4M), ignore it.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData2, TestSize.Level1)
@@ -451,7 +451,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData2, TestSize.Level1)
  * @tc.name: GetSyncData3
  * @tc.desc: GetSyncData interface. For deleted data.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData3, TestSize.Level1)
@@ -543,7 +543,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData3, TestSize.Level1)
  * @tc.name: GetQuerySyncData1
  * @tc.desc: GetSyncData interface.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetQuerySyncData1, TestSize.Level1)
@@ -586,7 +586,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetQuerySyncData1, TestSize.Level1)
  * @tc.name: GetQuerySyncData2
  * @tc.desc: GetSyncData interface.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetQuerySyncData2, TestSize.Level1)
@@ -655,7 +655,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetQuerySyncData2, TestSize.Level1)
  * @tc.name: GetIncorrectTypeData1
  * @tc.desc: GetSyncData and PutSyncDataWithQuery interface.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetIncorrectTypeData1, TestSize.Level1)
@@ -745,7 +745,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetIncorrectTypeData1, TestSize.Lev
  * @tc.name: UpdateData1
  * @tc.desc: UpdateData succeed when the table has primary key.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, UpdateData1, TestSize.Level1)
@@ -831,7 +831,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateData1, TestSize.Level1)
  * @tc.name: UpdateDataWithMulDevData1
  * @tc.desc: UpdateData succeed when there is multiple devices data exists.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, UpdateDataWithMulDevData1, TestSize.Level1)
@@ -897,7 +897,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateDataWithMulDevData1, TestSize
  * @tc.name: MissQuery1
  * @tc.desc: Check REMOTE_DEVICE_DATA_MISS_QUERY flag succeed.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, MissQuery1, TestSize.Level1)
@@ -1004,7 +1004,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, MissQuery1, TestSize.Level1)
  * @tc.name: CompatibleData1
  * @tc.desc: Check compatibility.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData1, TestSize.Level1)
@@ -1091,7 +1091,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData1, TestSize.Level1)
  * @tc.name: GetDataSortByTime1
  * @tc.desc: All query get data sort by time asc.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetDataSortByTime1, TestSize.Level1)
@@ -1156,7 +1156,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetDataSortByTime1, TestSize.Level1
  * @tc.name: SameFieldWithLogTable1
  * @tc.desc: Get query data OK when the table has same field with log table.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, SameFieldWithLogTable1, TestSize.Level1)
@@ -1200,7 +1200,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SameFieldWithLogTable1, TestSize.Le
  * @tc.name: CompatibleData2
  * @tc.desc: Check compatibility.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData2, TestSize.Level1)
@@ -1254,7 +1254,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData2, TestSize.Level1)
  * @tc.name: PutSyncDataConflictDataTest001
  * @tc.desc: Check put with conflict sync data.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lianhuix
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, PutSyncDataConflictDataTest001, TestSize.Level1)
@@ -1307,7 +1307,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, PutSyncDataConflictDataTest001, Tes
  * @tc.name: SaveNonexistDevdata1
  * @tc.desc: Save non-exist device data and check errCode.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, SaveNonexistDevdata1, TestSize.Level1)
@@ -1362,7 +1362,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SaveNonexistDevdata1, TestSize.Leve
  * @tc.name: GetMaxTimestamp1
  * @tc.desc: Get max timestamp.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
@@ -1434,7 +1434,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetMaxTimestamp1, TestSize.Level1)
  * @tc.name: NoPkData1
  * @tc.desc: For no pk data.
  * @tc.type: FUNC
- * @tc.require: AR000GK58H
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, NoPkData1, TestSize.Level1)
@@ -1528,7 +1528,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, NoPkData1, TestSize.Level1)
  * @tc.name: GetAfterDropTable1
  * @tc.desc: Get data after drop table.
  * @tc.type: FUNC
- * @tc.require: AR000H2QPN
+ * @tc.require:
  * @tc.author: lidongwei
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1)
@@ -1627,7 +1627,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level
  * @tc.name: CloseStore001
  * @tc.desc: Test Relational Store Close Action.
  * @tc.type: FUNC
- * @tc.require: AR000H2QPN
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
@@ -1739,7 +1739,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, ReleaseContinueTokenTest001, TestSi
  * @tc.name: StopSync001
  * @tc.desc: Test Relational Stop Sync Action.
  * @tc.type: FUNC
- * @tc.require: AR000H2QPN
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
@@ -1780,7 +1780,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
  * @tc.name: EraseDeviceWaterMark001
  * @tc.desc: Test Relational erase water mark.
  * @tc.type: FUNC
- * @tc.require: AR000H2QPN
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBRelationalGetDataTest, EraseDeviceWaterMark001, TestSize.Level1)

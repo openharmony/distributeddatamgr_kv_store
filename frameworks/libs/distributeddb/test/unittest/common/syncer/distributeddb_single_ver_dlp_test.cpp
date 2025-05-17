@@ -191,7 +191,7 @@ void DistributedDBSingleVerDLPTest::TearDown(void)
  * @tc.name: SameDelegateTest001
  * @tc.desc: Test kv delegate open with diff instanceID.
  * @tc.type: FUNC
- * @tc.require: SR000H0JSC
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerDLPTest, SameDelegateTest001, TestSize.Level1)
@@ -230,7 +230,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SameDelegateTest001, TestSize.Level1)
  * @tc.name: SameDelegateTest002
  * @tc.desc: Test rdb delegate open with diff instanceID.
  * @tc.type: FUNC
- * @tc.require: SR000H0JSC
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerDLPTest, SameDelegateTest002, TestSize.Level1)
@@ -253,7 +253,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SameDelegateTest002, TestSize.Level1)
  * @tc.name: DlpDelegateCRUDTest001
  * @tc.desc: Test dlp delegate crud function.
  * @tc.type: FUNC
- * @tc.require: SR000H0JSC
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerDLPTest, DlpDelegateCRUDTest001, TestSize.Level1)
@@ -286,7 +286,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, DlpDelegateCRUDTest001, TestSize.Level1)
  * @tc.name: SandboxDelegateSync001
  * @tc.desc: Test dlp delegate sync function.
  * @tc.type: FUNC
- * @tc.require: SR000H0JSC
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync001, TestSize.Level1)
@@ -432,7 +432,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SingleVerUtilsTest002, TestSize.Level0)
  * @tc.name: SandboxDelegateSync002
  * @tc.desc: Test dlp delegate sync active if callback return true.
  * @tc.type: FUNC
- * @tc.require: SR000H0JSC
+ * @tc.require:
  * @tc.author: zhangqiquan
  */
 HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync002, TestSize.Level1)

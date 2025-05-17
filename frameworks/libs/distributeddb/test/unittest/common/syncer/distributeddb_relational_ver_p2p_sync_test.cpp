@@ -926,7 +926,7 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
 * @tc.name: Normal Sync 001
 * @tc.desc: Test normal push sync for add data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level1)
@@ -943,7 +943,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level1)
 * @tc.name: Normal Sync 002
 * @tc.desc: Test normal pull sync for add data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync002, TestSize.Level1)
@@ -961,7 +961,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync002, TestSize.Level1)
 * @tc.name: Normal Sync 003
 * @tc.desc: Test normal push sync for update data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync003, TestSize.Level1)
@@ -985,7 +985,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync003, TestSize.Level1)
 * @tc.name: Normal Sync 004
 * @tc.desc: Test normal push sync for delete data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync004, TestSize.Level1)
@@ -1014,7 +1014,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync004, TestSize.Level1)
 * @tc.name: Normal Sync 005
 * @tc.desc: Test normal push sync for add data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync005, TestSize.Level1)
@@ -1038,7 +1038,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync005, TestSize.Level1)
 * @tc.name: Normal Sync 006
 * @tc.desc: Test normal pull sync for add data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync006, TestSize.Level1)
@@ -1055,7 +1055,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync006, TestSize.Level1)
 * @tc.name: Normal Sync 007
 * @tc.desc: Test normal sync for miss query data.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync007, TestSize.Level1)
@@ -1088,7 +1088,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync007, TestSize.Level1)
 * @tc.name: Normal Sync 008
 * @tc.desc: Test encry db sync for delete table;
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhuwentao
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level1)
@@ -1123,7 +1123,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level1)
 * @tc.name: Normal Sync 009
 * @tc.desc: Test normal push sync for while create distribute table
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhuwentao
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level1)
@@ -1174,7 +1174,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level1)
 * @tc.name: AutoLaunchSync 001
 * @tc.desc: Test rdb autoLaunch success when callback return true.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Level3)
@@ -1241,7 +1241,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
 * @tc.name: AutoLaunchSync 002
 * @tc.desc: Test rdb autoLaunch failed when callback return false.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync002, TestSize.Level3)
@@ -1289,7 +1289,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync002, TestSize.Leve
 * @tc.name: AutoLaunchSync 003
 * @tc.desc: Test rdb autoLaunch failed when callback is nullptr.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync003, TestSize.Level3)
@@ -1349,7 +1349,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync004, TestSize.Leve
     int currentStatus = 0;
     const AutoLaunchNotifier notifier = [&currentStatus](const std::string &userId,
         const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
-        printf("SET STATUS = %d\n", static_cast<int>(status));
+        LOGD("SET STATUS = %d\n", static_cast<int>(status));
         currentStatus = static_cast<int>(status);
     };
     const AutoLaunchRequestCallback callback = [&notifier](const std::string &identifier, AutoLaunchParam &param) {
@@ -1389,7 +1389,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync004, TestSize.Leve
 * @tc.name: Ability Sync 001
 * @tc.desc: Test ability sync success when has same schema.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync001, TestSize.Level1)
@@ -1408,7 +1408,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync001, TestSize.Level1)
 * @tc.name: Ability Sync 002
 * @tc.desc: Test ability sync failed when has different schema.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync002, TestSize.Level1)
@@ -1442,7 +1442,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync002, TestSize.Level1)
 * @tc.name: Ability Sync 003
 * @tc.desc: Test ability sync failed when has different schema.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync003, TestSize.Level1)
@@ -1494,7 +1494,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync003, TestSize.Level1)
 * @tc.name: Ability Sync 004
 * @tc.desc: Test ability sync failed when one device hasn't distributed table.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync004, TestSize.Level1)
@@ -1534,7 +1534,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync005, TestSize.Level1)
 * @tc.name: WaterMark 001
 * @tc.desc: Test sync success after erase waterMark.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, WaterMark001, TestSize.Level1)
@@ -1557,7 +1557,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, WaterMark001, TestSize.Level1)
 * @tc.name: pressure sync 001
 * @tc.desc: Test rdb sync different table at same time
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, PressureSync001, TestSize.Level1)
@@ -1640,7 +1640,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer001, TestSize.Level1)
 * @tc.name: relation observer 002
 * @tc.desc: Test rdb observer ok in autolauchCallback scene
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhuwentao
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer002, TestSize.Level3)
@@ -2069,7 +2069,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
 * @tc.name: remote query 001
 * @tc.desc: Test rdb remote query
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery001, TestSize.Level1)
@@ -2089,7 +2089,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery001, TestSize.Level1)
 * @tc.name: remote query 002
 * @tc.desc: Test rdb remote query
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery002, TestSize.Level1)
@@ -2109,7 +2109,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery002, TestSize.Level1)
 * @tc.name: remote query 003
 * @tc.desc: Test rdb remote query but query not data
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery003, TestSize.Level1)
@@ -2130,7 +2130,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery003, TestSize.Level1)
 * @tc.name: remote query 004
 * @tc.desc: Test rdb queue size
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery004, TestSize.Level3)
@@ -2169,7 +2169,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery004, TestSize.Level3)
 * @tc.name: remote query 005
 * @tc.desc: Test rdb remote query timeout by invalid message
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery005, TestSize.Level1)
@@ -2193,7 +2193,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery005, TestSize.Level1)
 * @tc.name: remote query 006
 * @tc.desc: Test rdb remote query commfailure by offline
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery006, TestSize.Level1)
@@ -2230,7 +2230,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery006, TestSize.Level1)
 * @tc.name: remote query 007
 * @tc.desc: Test rdb remote query failed by permission check
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery007, TestSize.Level1)
@@ -2258,7 +2258,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery007, TestSize.Level1)
 * @tc.name: remote query 008
 * @tc.desc: Test rdb remote query timeout but not effected by invalid message
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery008, TestSize.Level1)
@@ -2304,7 +2304,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery008, TestSize.Level1)
 * @tc.name: remote query 009
 * @tc.desc: Test rdb remote query busy before timeout
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery009, TestSize.Level1)
@@ -2337,7 +2337,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery009, TestSize.Level1)
 * @tc.name: remote query 010
 * @tc.desc: Test rdb remote query with kv db
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
@@ -2357,7 +2357,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
 * @tc.name: remote query 010
 * @tc.desc: Test rdb remote query with error sql
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery011, TestSize.Level1)
@@ -2377,7 +2377,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery011, TestSize.Level1)
 * @tc.name: remote query 012
 * @tc.desc: Test rdb remote query with invalid dev
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery012, TestSize.Level1)
@@ -2416,7 +2416,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery013, TestSize.Level1)
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest001, TestSize.Level1)
@@ -2461,7 +2461,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest001, Test
 * @tc.name: RelationalPemissionTest002
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PULL_ONLY
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest002, TestSize.Level1)
@@ -2506,7 +2506,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest002, Test
 * @tc.name: RelationalPemissionTest003
 * @tc.desc: deviceB PermissionCheck not pass test, flag CHECK_FLAG_SPONSOR
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest003, TestSize.Level1)
@@ -2551,7 +2551,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest003, Test
 * @tc.name: RelationalPemissionTest004
 * @tc.desc: deviceB PermissionCheck pass test. deviceC not pass, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangshijie
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, TestSize.Level1)
@@ -2607,7 +2607,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
 * @tc.name: SecurityOptionCheck001
 * @tc.desc: Test sync failed when getSecurityOption return error
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize.Level1)
@@ -2641,7 +2641,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize
 * @tc.name: SecurityOptionCheck002
 * @tc.desc: Test remote query failed when getSecurityOption return error
 * @tc.type: FUNC
-* @tc.require: AR000GK58G
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck002, TestSize.Level1)
@@ -2678,7 +2678,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck002, TestSize
 * @tc.name: OrderbyWriteTimeSync001
 * @tc.desc: sync query with order by writeTime
 * @tc.type: FUNC
-* @tc.require: AR000H5VLO
+* @tc.require:
 * @tc.author: zhuwentao
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level1)
@@ -2694,7 +2694,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSiz
 * @tc.name: RDBSecurityOptionCheck001
 * @tc.desc: Test sync with security option.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck001, TestSize.Level3)
@@ -2706,7 +2706,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck001, TestS
 * @tc.name: RDBSecurityOptionCheck002
 * @tc.desc: Test remote query with security option.
 * @tc.type: FUNC
-* @tc.require: AR000GK58N
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestSize.Level1)
@@ -2718,7 +2718,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestS
 * @tc.name: EncryptedAlgoUpgrade001
   * @tc.desc: Test upgrade encrypted db can sync normally
   * @tc.type: FUNC
-  * @tc.require: AR000HI2JS
+  * @tc.require:
   * @tc.author: zhuwentao
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Level1)
@@ -2769,7 +2769,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSiz
 * @tc.name: AutoLaunchSyncAfterRekey_001
 * @tc.desc: Test auto launch sync ok after rekey.
 * @tc.type: FUNC
-* @tc.require: AR000H68LL
+* @tc.require:
 * @tc.author: lidongwei
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, TestSize.Level3)
@@ -2855,7 +2855,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, Te
 * @tc.name: AutoLaunchSyncAfterRekey_002
 * @tc.desc: Test auto launch close check after rekey.
 * @tc.type: FUNC
-* @tc.require: AR000H68LL
+* @tc.require:
 * @tc.author: zhangqiquan
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_002, TestSize.Level3)

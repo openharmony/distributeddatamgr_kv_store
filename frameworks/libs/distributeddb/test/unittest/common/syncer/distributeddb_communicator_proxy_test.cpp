@@ -135,7 +135,7 @@ void DistributedDBCommunicatorProxyTest::TearDown(void)
  * @tc.name: Interface set equal 001
  * @tc.desc: Test set equal identifier from interface.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId001, TestSize.Level1)
@@ -209,7 +209,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, InterfaceSetEqualId002, TestSize.Le
  * @tc.name: Register callback 001
  * @tc.desc: Test register callback from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, RegCallBack001, TestSize.Level1)
@@ -248,7 +248,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, RegCallBack001, TestSize.Level1)
  * @tc.name: Activate 001
  * @tc.desc: Test Activate called from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, Activate001, TestSize.Level1)
@@ -266,7 +266,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, Activate001, TestSize.Level1)
  * @tc.name: Get mtu 001
  * @tc.desc: Test mtu called from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, GetMtu001, TestSize.Level1)
@@ -290,7 +290,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, GetMtu001, TestSize.Level1)
  * @tc.name: Get local identify 001
  * @tc.desc: Test Get local identify from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, GetLocalIdentity001, TestSize.Level1)
@@ -309,7 +309,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, GetLocalIdentity001, TestSize.Level
  * @tc.name: Get remote version 001
  * @tc.desc: Test Get remote version from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, GetRemoteVersion001, TestSize.Level1)
@@ -346,7 +346,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, GetRemoteVersion001, TestSize.Level
  * @tc.name: Send message 001
  * @tc.desc: Test Send message from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, SendMessage001, TestSize.Level1)
@@ -371,7 +371,7 @@ HWTEST_F(DistributedDBCommunicatorProxyTest, SendMessage001, TestSize.Level1)
  * @tc.name: Get timeout time 001
  * @tc.desc: Test get timeout called from CommunicatorProxy.
  * @tc.type: FUNC
- * @tc.require: AR000F4GVG
+ * @tc.require:
  * @tc.author: xushaohua
  */
 HWTEST_F(DistributedDBCommunicatorProxyTest, GetTimeout001, TestSize.Level1)

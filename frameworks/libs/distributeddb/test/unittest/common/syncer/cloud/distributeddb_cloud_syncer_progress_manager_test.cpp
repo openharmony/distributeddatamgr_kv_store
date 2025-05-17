@@ -55,7 +55,7 @@ void DistributedDBCloudSyncerProgressManagerTest::TearDown(void)
  * @tc.name: SyncerMgrCheck001
  * @tc.desc: Test case1 about Synchronization parameter
  * @tc.type: FUNC
- * @tc.require: SR000HPUOS
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSize.Level1)
@@ -115,7 +115,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
  * @tc.name: SyncerMgrCheck002
  * @tc.desc: Test case2 about Synchronization parameter
  * @tc.type: FUNC
- * @tc.require: SR000HPUOS
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSize.Level1)
@@ -173,7 +173,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSiz
  * @tc.name: SyncerMgrCheck003
  * @tc.desc: Test case2 about Synchronization parameter
  * @tc.type: FUNC
- * @tc.require: SR000HPUOS
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSize.Level1)
@@ -222,7 +222,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
  * @tc.desc: Test the number of queues
 
  * @tc.type: FUNC
- * @tc.require: SR000HPUOS
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck004, TestSize.Level1)
@@ -263,7 +263,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck004, TestSiz
  * @tc.name: SyncerMgrCheck005
  * @tc.desc: Test Single-threaded execution of tasks
  * @tc.type: FUNC
- * @tc.require: SR000HPUOS
+ * @tc.require:
  * @tc.author: huangboxin
  */
 HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSize.Level1)

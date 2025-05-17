@@ -201,7 +201,7 @@ static void SetLifeCycleTime(const KvDBProperties &prop)
  * @tc.name: AutoLaunch001
  * @tc.desc: basic enable/disable func
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch001, TestSize.Level3)
@@ -256,7 +256,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch001, TestSize.Level3)
  * @tc.name: AutoLaunch002
  * @tc.desc: online callback
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch002, TestSize.Level3)
@@ -333,7 +333,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch002, TestSize.Level3)
  * @tc.name: AutoLaunch003
  * @tc.desc: CommunicatorLackCallback
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch003, TestSize.Level3)
@@ -410,7 +410,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch003, TestSize.Level3)
  * @tc.name: AutoLaunch004
  * @tc.desc: basic enable/disable func
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch004, TestSize.Level3)
@@ -477,7 +477,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch004, TestSize.Level3)
  * @tc.name: AutoLaunch005
  * @tc.desc: online device before enable
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch005, TestSize.Level3)
@@ -549,7 +549,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch005, TestSize.Level3)
  * @tc.name: AutoLaunch006
  * @tc.desc: online callback
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
@@ -662,7 +662,7 @@ bool AutoLaunchCallBackBadParam(const std::string &identifier, AutoLaunchParam &
  * @tc.name: AutoLaunch007
  * @tc.desc: enhancement callback return true
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
@@ -726,7 +726,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
  * @tc.name: AutoLaunch008
  * @tc.desc: enhancement callback return false
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
@@ -765,7 +765,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
  * @tc.name: AutoLaunch009
  * @tc.desc: enhancement callback return bad param
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
 {
@@ -806,7 +806,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
  * @tc.name: AutoLaunch010
  * @tc.desc: enhancement nullptr callback
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
@@ -846,7 +846,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
  * @tc.name: AutoLaunch011
  * @tc.desc: enhancement GetKvStoreIdentifier
  * @tc.type: FUNC
- * @tc.require: AR000EPARJ
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch011, TestSize.Level3)
@@ -863,7 +863,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch011, TestSize.Level3)
  * @tc.name: AutoLaunch012
  * @tc.desc: CommunicatorLackCallback
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch012, TestSize.Level3)
@@ -937,7 +937,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch012, TestSize.Level3)
  * @tc.name: AutoLaunch013
  * @tc.desc: online callback
  * @tc.type: FUNC
- * @tc.require: AR000E8S2T
+ * @tc.require:
  * @tc.author: wangchuanqing
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
@@ -1023,7 +1023,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
  * @tc.name: AutoLaunch014
  * @tc.desc: enhancement callback and release auto launch connection
  * @tc.type: FUNC
- * @tc.require: AR000I0EKP
+ * @tc.require:
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
 {
@@ -1075,7 +1075,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
  * @tc.name: AutoLaunch015
  * @tc.desc: release auto launch connection when autolaunch execute
  * @tc.type: FUNC
- * @tc.require: AR000I0EKP
+ * @tc.require:
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
 {
