@@ -63,6 +63,7 @@ public:
     void Append(const CJsonObject &object);
     void RemoveMember(const std::string &path);
     void InsertOrReplaceField(const std::string &field, const CJsonObject &value);
+    cJSON *GetObjectItem(const std::string &key) const;
 
     // copy cjson ptr only, not copy content
     static CJsonObject CreateTempCJsonObject(const CJsonObject &object);

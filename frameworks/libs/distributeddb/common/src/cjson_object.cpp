@@ -92,8 +92,23 @@ CJsonObject CJsonObject::operator[](const std::string &key) const
         obj.isOwner_ = false;
         return obj;
     }
-    auto rawCJsonPtr = cJSON_GetObjectItem(cjson_, key.c_str());
+    // default cjson get first item when match
+    // we should keep it same as json cpp which is getting last item
+    auto rawCJsonPtr = GetObjectItem(key);
     return CJsonObject(rawCJsonPtr, false);
+}
+
+cJSON *CJsonObject::GetObjectItem(const std::string &key) const
+{
+    cJSON *res = nullptr;
+    auto current = cjson_->child;
+    while (current != nullptr) {
+        if (current->string != nullptr && strcmp(current->string, key.c_str()) == 0) {
+            res = current;
+        }
+        current = current->next;
+    }
+    return res;
 }
 
 CJsonObject CJsonObject::operator[](int index) const

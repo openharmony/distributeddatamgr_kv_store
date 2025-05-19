@@ -204,4 +204,31 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString003, TestSize.Leve
     int stepTwo = tempObj.Parse(JSON_STRING5);
     EXPECT_TRUE(stepTwo != E_OK);
 }
+
+/**
+ * @tc.name: ParseDuplicativeString001
+ * @tc.desc: The json string has more than one field with same name.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseDuplicativeString001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Parse json.
+     * @tc.expected: step1. return ok.
+     */
+    std::string json = R"({"field1":"123", "field2": true, "field1": 123})";
+    JsonObject object;
+    ASSERT_EQ(object.JsonObject::Parse(json), E_OK);
+    /**
+     * @tc.steps: step2. Check field.
+     * @tc.expected: step2. field1 is 123, field2 is True.
+     */
+    FieldValue value;
+    ASSERT_EQ(object.GetFieldValueByFieldPath({"field1"}, value), E_OK);
+    EXPECT_EQ(value.integerValue, 123);
+    ASSERT_EQ(object.GetFieldValueByFieldPath({"field2"}, value), E_OK);
+    EXPECT_TRUE(value.boolValue);
+}
 #endif
