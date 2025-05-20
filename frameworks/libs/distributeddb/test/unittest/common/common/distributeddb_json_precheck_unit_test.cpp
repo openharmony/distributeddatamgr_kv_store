@@ -231,4 +231,83 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseDuplicativeString001, TestSize.
     ASSERT_EQ(object.GetFieldValueByFieldPath({"field2"}, value), E_OK);
     EXPECT_TRUE(value.boolValue);
 }
+
+/**
+ * @tc.name: ParseString001
+ * @tc.desc: Parse none obj json string.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString001, TestSize.Level0)
+{
+    std::string nonJson = R"("field1":123)";
+    JsonObject object;
+    std::vector<uint8_t> data(nonJson.begin(), nonJson.end());
+    EXPECT_EQ(object.Parse(data), -E_JSON_PARSE_FAIL);
+    EXPECT_TRUE(object.ToString().empty());
+}
+
+/**
+ * @tc.name: ParseString002
+ * @tc.desc: Parse double and long.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString002, TestSize.Level0)
+{
+    std::string json = R"({"field1":429496729500, "field2":11.1})";
+    JsonObject object;
+    std::vector<uint8_t> data(json.begin(), json.end());
+    EXPECT_EQ(object.Parse(data), E_OK);
+    FieldValue value;
+    EXPECT_EQ(object.GetFieldValueByFieldPath({"field1"}, value), E_OK);
+    EXPECT_EQ(value.longValue, 429496729500);
+    EXPECT_EQ(object.GetFieldValueByFieldPath({"field2"}, value), E_OK);
+    EXPECT_NE(value.doubleValue, 0);
+}
+
+/**
+ * @tc.name: ParseString003
+ * @tc.desc: Parse obj.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString003, TestSize.Level0)
+{
+    std::string json = R"({"field1":42949672950, "field2":{"field3":123}})";
+    JsonObject object;
+    std::vector<uint8_t> data(json.begin(), json.end());
+    EXPECT_EQ(object.Parse(data), E_OK);
+    std::set<FieldPath> outSubPath;
+    EXPECT_EQ(object.GetSubFieldPath({"field1"}, outSubPath), -E_NOT_SUPPORT);
+    EXPECT_EQ(object.GetSubFieldPath({"field2"}, outSubPath), E_OK);
+    std::set<FieldPath> actualPath = {{"field2", "field3"}};
+    EXPECT_EQ(outSubPath, actualPath);
+}
+
+/**
+ * @tc.name: ParseString004
+ * @tc.desc: Parse array.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
+{
+    std::string json = R"({"field1":["123"], "field3":"field3"})";
+    JsonObject object;
+    std::vector<uint8_t> data(json.begin(), json.end());
+    EXPECT_EQ(object.Parse(data), E_OK);
+    uint32_t size = 0u;
+    EXPECT_EQ(object.GetArraySize({"field3"}, size), -E_NOT_SUPPORT);
+    EXPECT_EQ(object.GetArraySize({"field1"}, size), E_OK);
+    EXPECT_EQ(size, 1u);
+    std::vector<std::vector<std::string>> content;
+    EXPECT_EQ(object.GetArrayContentOfStringOrStringArray({"field1"}, content), E_OK);
+    std::vector<std::vector<std::string>> actual = {{"123"}};
+    EXPECT_EQ(content, actual);
+}
 #endif

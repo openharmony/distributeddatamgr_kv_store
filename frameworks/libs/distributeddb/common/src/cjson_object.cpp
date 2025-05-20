@@ -170,7 +170,7 @@ int32_t CJsonObject::GetInt32Value() const
     return static_cast<int32_t>(val);
 }
 
-int32_t CJsonObject::GetInt64Value() const
+int64_t CJsonObject::GetInt64Value() const
 {
     if (!IsInt64()) {
         return 0;

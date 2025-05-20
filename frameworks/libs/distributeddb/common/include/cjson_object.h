@@ -43,7 +43,7 @@ public:
     [[nodiscard]] std::string GetStringValue() const;
     [[nodiscard]] bool GetBoolValue() const;
     [[nodiscard]] int32_t GetInt32Value() const;
-    [[nodiscard]] int32_t GetInt64Value() const;
+    [[nodiscard]] int64_t GetInt64Value() const;
     [[nodiscard]] double GetDoubleValue() const;
     [[nodiscard]] std::vector<std::string> GetMemberNames() const;
 
