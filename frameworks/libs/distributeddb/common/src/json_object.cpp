@@ -26,13 +26,6 @@ namespace DistributedDB {
 #ifndef OMIT_JSON
 namespace {
     const uint32_t MAX_NEST_DEPTH = 100;
-#ifdef JSONCPP_USE_BUILDER
-    const int JSON_VALUE_PRECISION = 16;
-    const std::string JSON_CONFIG_INDENTATION = "indentation";
-    const std::string JSON_CONFIG_COLLECT_COMMENTS = "collectComments";
-    const std::string JSON_CONFIG_PRECISION = "precision";
-    const std::string JSON_CONFIG_REJECT_DUP_KEYS = "rejectDupKeys";
-#endif
 }
 uint32_t JsonObject::maxNestDepth_ = MAX_NEST_DEPTH;
 
