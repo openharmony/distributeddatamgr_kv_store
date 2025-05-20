@@ -15,6 +15,7 @@
 
 #include "parseckeck_fuzzer.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "schema_object.h"
 #include "schema_utils.h"
 
@@ -24,12 +25,12 @@ using namespace DistributedDBTest;
 static KvStoreConfig g_config;
 
 namespace OHOS {
-void GetSchmaKvstore(const uint8_t* data, size_t size)
+void GetSchmaKvstore(FuzzedDataProvider &fdp)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
     kvManager.SetKvStoreConfig(g_config);
     KvStoreNbDelegate::Option option = {true, false, false};
-    std::string schemaString(reinterpret_cast<const char *>(data), size);
+    std::string schemaString = fdp.ConsumeRandomLengthString();
     option.schema = schemaString;
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
 
@@ -44,41 +45,41 @@ void GetSchmaKvstore(const uint8_t* data, size_t size)
     kvManager.DeleteKvStore("distributed_nb_get_schemakvstore");
 }
 
-void ParseSchemaString(const uint8_t* data, size_t size)
+void ParseSchemaString(FuzzedDataProvider &fdp)
 {
-    std::string schemaString(reinterpret_cast<const char *>(data), size);
+    std::string schemaString = fdp.ConsumeRandomLengthString();
     SchemaObject schemaOri;
     schemaOri.ParseFromSchemaString(schemaString);
     schemaOri.CompareAgainstSchemaString(schemaString);
 }
 
-void CompareSchemaString(const uint8_t* data, size_t size)
+void CompareSchemaString(FuzzedDataProvider &fdp)
 {
     // beginning half / 2
-    std::string schemaString(data, data + (size / 2));
+    std::string schemaString = fdp.ConsumeRandomLengthString();
     // ending half / 2 ~ end.
-    std::string schemaString2(data + (size / 2), data + size);
+    std::string schemaString2 = fdp.ConsumeRandomLengthString();
     SchemaObject schemaOri;
     schemaOri.ParseFromSchemaString(schemaString);
     schemaOri.ParseFromSchemaString(schemaString2);
 }
 
-void CheckFieldName(const uint8_t* data, size_t size)
+void CheckFieldName(FuzzedDataProvider &fdp)
 {
-    std::string schemaAttrString(reinterpret_cast<const char *>(data), size);
+    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
     SchemaUtils::CheckFieldName(schemaAttrString);
 }
 
-void ParseFieldPath(const uint8_t* data, size_t size)
+void ParseFieldPath(FuzzedDataProvider &fdp)
 {
-    std::string schemaAttrString(reinterpret_cast<const char *>(data), size);
+    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
     FieldPath outPath;
     SchemaUtils::ParseAndCheckFieldPath(schemaAttrString, outPath);
 }
 
-void CheckSchemaAttribute(const uint8_t* data, size_t size)
+void CheckSchemaAttribute(FuzzedDataProvider &fdp)
 {
-    std::string schemaAttrString(reinterpret_cast<const char *>(data), size);
+    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
     SchemaAttribute outAttr;
     SchemaUtils::ParseAndCheckSchemaAttribute(schemaAttrString, outAttr);
     SchemaUtils::ParseAndCheckSchemaAttribute(schemaAttrString, outAttr);
@@ -89,12 +90,13 @@ void CheckSchemaAttribute(const uint8_t* data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     DistributedDBToolsTest::TestDirInit(g_config.dataDir);
-    OHOS::GetSchmaKvstore(data, size);
-    OHOS::ParseSchemaString(data, size);
-    OHOS::CompareSchemaString(data, size);
-    OHOS::CheckFieldName(data, size);
-    OHOS::ParseFieldPath(data, size);
-    OHOS::CheckSchemaAttribute(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::GetSchmaKvstore(fdp);
+    OHOS::ParseSchemaString(fdp);
+    OHOS::CompareSchemaString(fdp);
+    OHOS::CheckFieldName(fdp);
+    OHOS::ParseFieldPath(fdp);
+    OHOS::CheckSchemaAttribute(fdp);
 
     DistributedDBToolsTest::RemoveTestDbFiles(g_config.dataDir);
     return 0;

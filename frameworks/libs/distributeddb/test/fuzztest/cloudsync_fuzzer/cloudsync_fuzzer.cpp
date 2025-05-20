@@ -18,6 +18,7 @@
 #include "cloud/cloud_db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "fuzzer_data.h"
 #include "kv_store_nb_delegate.h"
 #include "log_print.h"
@@ -123,22 +124,22 @@ public:
         delegate->CreateDistributedTable(g_table, CLOUD_COOPERATION);
     }
 
-    static void InitDbData(sqlite3 *&db, const uint8_t *data, size_t size)
+    static void InitDbData(sqlite3 *&db, FuzzedDataProvider &fdp)
     {
         sqlite3_stmt *stmt = nullptr;
         int errCode = SQLiteUtils::GetStatement(db, g_insertLocalDataSql, stmt);
         if (errCode != E_OK) {
             return;
         }
-        FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % MOD;
+        size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
         for (size_t i = 0; i <= size; ++i) {
-            std::string idStr = fuzzerData.GetString(len);
+            std::string idStr = fdp.ConsumeRandomLengthString();
             errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
             if (errCode != E_OK) {
                 break;
             }
-            std::vector<uint8_t> photo = fuzzerData.GetSequence(fuzzerData.GetInt());
+            int photoSize = fdp.ConsumeIntegralInRange<int>(1, MOD);
+            std::vector<uint8_t> photo = fdp.ConsumeBytes<uint8_t>(photoSize);
             errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, photo); // 2 is index of photo
             if (errCode != E_OK) {
                 break;
@@ -160,25 +161,22 @@ public:
         return asset;
     }
 
-    void InitDbAsset(const uint8_t *data, size_t size)
+    void InitDbAsset(FuzzedDataProvider &fdp)
     {
-        if (data == nullptr || size == 0) {
-            return;
-        }
         sqlite3_stmt *stmt = nullptr;
         int errCode = SQLiteUtils::GetStatement(db_, g_insertLocalAssetSql, stmt);
         if (errCode != E_OK) {
             return;
         }
-        FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % MOD;
+        size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
         for (size_t i = 0; i <= size; ++i) {
-            std::string idStr = fuzzerData.GetString(len);
+            std::string idStr = fdp.ConsumeRandomLengthString();
             errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
             if (errCode != E_OK) {
                 break;
             }
-            std::vector<uint8_t> photo = fuzzerData.GetSequence(fuzzerData.GetInt());
+            size_t photoSize = fdp.ConsumeIntegralInRange<size_t>(1, MOD);
+            std::vector<uint8_t> photo = fdp.ConsumeBytes<uint8_t>(photoSize);
             errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, photo); // 2 is index of photo
             if (errCode != E_OK) {
                 break;
@@ -446,79 +444,69 @@ public:
         kvDelegatePtrS2_->Get(key, actualValue);
     }
 
-    void RandomModeSync(const uint8_t *data, size_t size)
+    void RandomModeSync(FuzzedDataProvider &fdp)
     {
-        if (size == 0) {
-            BlockSync();
-            return;
-        }
-        auto mode = static_cast<SyncMode>(data[0]);
+        size_t syncModeLen = sizeof(SyncMode);
+        auto mode = static_cast<SyncMode>(fdp.ConsumeIntegralInRange<uint32_t>(0, syncModeLen));
         LOGI("[RandomModeSync] select mode %d", static_cast<int>(mode));
         BlockSync(mode);
     }
 
-    void DataChangeSync(const uint8_t *data, size_t size)
+    void DataChangeSync(FuzzedDataProvider &fdp)
     {
         SetCloudDbSchema(delegate_);
-        if (size == 0) {
-            return;
-        }
-        InitDbData(db_, data, size);
+        InitDbData(db_, fdp);
         BlockSync();
-        FuzzerData fuzzerData(data, size);
         CloudSyncConfig config;
-        int maxUploadSize = fuzzerData.GetInt();
-        int maxUploadCount = fuzzerData.GetInt();
+        int maxUploadSize = fdp.ConsumeIntegral<int>();
+        int maxUploadCount = fdp.ConsumeIntegral<int>();
         config.maxUploadSize = maxUploadSize;
         config.maxUploadCount = maxUploadCount;
         delegate_->SetCloudSyncConfig(config);
         kvDelegatePtrS1_->SetCloudSyncConfig(config);
-        uint32_t len = fuzzerData.GetUInt32() % MOD;
-        std::string version = fuzzerData.GetString(len);
+        uint32_t len = fdp.ConsumeIntegralInRange<uint32_t>(0, MOD);
+        std::string version = fdp.ConsumeRandomLengthString();
         kvDelegatePtrS1_->SetGenCloudVersionCallback([version](const std::string &origin) {
             return origin + version;
         });
         KvNormalSync();
-        int count = fuzzerData.GetInt();
+        int count = fdp.ConsumeIntegral<int>();
         kvDelegatePtrS1_->GetCount(Query::Select(), count);
-        std::string device = fuzzerData.GetString(len);
+        std::string device = fdp.ConsumeRandomLengthString();
         kvDelegatePtrS1_->GetCloudVersion(device);
-        std::vector<std::string> devices = fuzzerData.GetStringVector(len);
+        std::vector<std::string> devices;
+        for (uint32_t i = 0; i< len; i++) {
+            devices.push_back(fdp.ConsumeRandomLengthString());
+        }
         OptionBlockSync(devices);
     }
 
-    void InitAssets(const uint8_t *data, size_t size)
+    void InitAssets(FuzzedDataProvider &fdp)
     {
-        FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % MOD;
+        size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
         for (size_t i = 0; i <= size; ++i) {
-            std::string nameStr = fuzzerData.GetString(len);
-            localAssets_.push_back(GenAsset(nameStr, std::to_string(data[0])));
+            std::string nameStr = fdp.ConsumeRandomLengthString(MOD);
+            localAssets_.push_back(GenAsset(nameStr, fdp.ConsumeBytesAsString(1)));
         }
     }
 
-    void AssetChangeSync(const uint8_t *data, size_t size)
+    void AssetChangeSync(FuzzedDataProvider &fdp)
     {
         SetCloudDbSchema(delegate_);
-        if (size == 0) {
-            return;
-        }
-        InitAssets(data, size);
-        InitDbAsset(data, size);
+        InitAssets(fdp);
+        InitDbAsset(fdp);
         BlockSync();
     }
 
-    void RandomModeRemoveDeviceData(const uint8_t *data, size_t size)
+    void RandomModeRemoveDeviceData(FuzzedDataProvider &fdp)
     {
-        if (size == 0) {
-            return;
-        }
         SetCloudDbSchema(delegate_);
         int64_t cloudCount = 10;
         int64_t paddingSize = 10;
         InsertCloudTableRecord(0, cloudCount, paddingSize, false);
         BlockSync();
-        auto mode = static_cast<ClearMode>(data[0]);
+        size_t modeLen = sizeof(ClearMode);
+        auto mode = static_cast<ClearMode>(fdp.ConsumeIntegralInRange<uint32_t>(0, modeLen));
         LOGI("[RandomModeRemoveDeviceData] select mode %d", static_cast<int>(mode));
         if (mode == DEFAULT) {
             return;
@@ -564,17 +552,17 @@ void TearDown()
     }
 }
 
-void CombineTest(const uint8_t *data, size_t size)
+void CombineTest(FuzzedDataProvider &fdp)
 {
     if (g_cloudSyncTest == nullptr) {
         return;
     }
     g_cloudSyncTest->NormalSync();
     g_cloudSyncTest->KvNormalSync();
-    g_cloudSyncTest->RandomModeSync(data, size);
-    g_cloudSyncTest->DataChangeSync(data, size);
-    g_cloudSyncTest->AssetChangeSync(data, size);
-    g_cloudSyncTest->RandomModeRemoveDeviceData(data, size);
+    g_cloudSyncTest->RandomModeSync(fdp);
+    g_cloudSyncTest->DataChangeSync(fdp);
+    g_cloudSyncTest->AssetChangeSync(fdp);
+    g_cloudSyncTest->RandomModeRemoveDeviceData(fdp);
 }
 }
 
@@ -582,7 +570,8 @@ void CombineTest(const uint8_t *data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     OHOS::Setup();
-    OHOS::CombineTest(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(fdp);
     OHOS::TearDown();
     return 0;
 }

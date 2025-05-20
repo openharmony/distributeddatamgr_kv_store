@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <vector>
 
+#include "fuzzer/FuzzedDataProvider.h"
 #include "grd_base/grd_db_api.h"
 #include "grd_base/grd_error.h"
 #include "grd_base/grd_resultset_api.h"
@@ -341,14 +342,14 @@ void InsertDocFourFuzz(const std::string &longId, const std::string &documentDat
     GRD_InsertDocInner(g_db, COLLECTION_NAME, document52, 0);
 }
 
-void InsertDocFuzz(const uint8_t *data, size_t size)
+void InsertDocFuzz(FuzzedDataProvider &provider)
 {
-    std::string collectionNameData(reinterpret_cast<const char *>(data), size);
+    std::string collectionNameData = provider.ConsumeRandomLengthString();
     const char *collectionNameVal = collectionNameData.data();
-    std::string optionStrData(reinterpret_cast<const char *>(data), size);
+    std::string optionStrData = provider.ConsumeRandomLengthString();
     const char *optionStrVal = optionStrData.data();
     GRD_CreateCollectionInner(g_db, collectionNameVal, optionStrVal, 0);
-    std::string documentData(reinterpret_cast<const char *>(data), size);
+    std::string documentData = provider.ConsumeRandomLengthString();
     const char *documentVal = documentData.data();
     GRD_InsertDocInner(g_db, collectionNameVal, documentVal, 0);
     GRD_InsertDocInner(g_db, collectionNameVal, documentVal, 0);
@@ -907,10 +908,10 @@ void FindDocFuzzPlus(const std::string &input)
 }
 } // namespace
 
-void FindDocFuzz(const uint8_t *data, size_t size)
+void FindDocFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJson = "{\"field\":\"" + input + "\"}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     Query query = { inputJson.c_str(), inputJson.c_str() };
@@ -920,6 +921,7 @@ void FindDocFuzz(const uint8_t *data, size_t size)
     GRD_FindDocInner(g_db, COLLECTION_NAME, query, 1, &resultSet);
     GRD_FreeResultSetInner(resultSet);
     resultSet = nullptr;
+    size_t size = provider.ConsumeIntegral<size_t>();
     GRD_FindDocInner(g_db, input.c_str(), query, size, &resultSet);
     GRD_FreeResultSetInner(resultSet);
     GRD_FindDocInner(nullptr, input.c_str(), query, 1, &resultSet);
@@ -1076,10 +1078,10 @@ void UpdateDocFilterFuzz()
     GRD_DropCollectionInner(g_db, COLLECTION_NAME, 0);
 }
 
-void UpdateDocFuzz(const uint8_t *data, size_t size)
+void UpdateDocFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJson = "{\"_id\":\"2\", \"field\": \"aaa\", "
                             "\"subject\":\"aaaaaaaaaaa\", \"test1\": true, "
                             "\"test2\": null}";
@@ -1141,10 +1143,10 @@ void UpsertDocNewFuzz(const std::string &input, GRD_DB *db1)
     GRD_UpsertDocInner(db1, "student", R""({"_id":"10002"})"", updateDocNew.c_str(), 1);
 }
 
-void UpsertDocFuzz(const uint8_t *data, size_t size)
+void UpsertDocFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJsonNoId = "{\"name\":\"doc8\", \"c0\" : [\"" + input + "\", 123]}";
     std::string inputJson = "{\"_id\":\"1\", \"field\": " + input + "}";
 
@@ -1238,10 +1240,10 @@ void DeleteDocResultFuzz(const std::string &input)
     GRD_FreeResultSetInner(resultSet);
 }
 
-void DeleteDocFuzz(const uint8_t *data, size_t size)
+void DeleteDocFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJson = "{\"field\":" + input + "}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     GRD_DeleteDocInner(g_db, input.c_str(), "{}", 0);
@@ -1366,10 +1368,10 @@ void FindAndReleaseFuzz(std::string document, std::string filter, Query query, c
     FindAndRelease(query);
 }
 
-void NextFuzz(const uint8_t *data, size_t size)
+void NextFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJson = "{" + input + "}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     Query query = { inputJson.c_str(), "{}" };
@@ -1388,15 +1390,16 @@ void NextFuzz(const uint8_t *data, size_t size)
     query.filter = "{\"field\": [\"field2\", null, \"abc\", 123]}";
     FindAndRelease(query);
     std::string document = "{\"field\": [\"" + input + "\",\"" + input + "\",\"" + input + "\"]}";
+    size_t size = provider.ConsumeIntegral<size_t>();
     std::string filter = "{\"field." + std::to_string(size) + "\":\"" + input + "\"}";
     FindAndReleaseFuzz(document, filter, query, input);
     GRD_DropCollectionInner(g_db, COLLECTION_NAME, 0);
 }
 
-void GetValueFuzz(const uint8_t *data, size_t size)
+void GetValueFuzz(FuzzedDataProvider &provider)
 {
     GRD_CreateCollectionInner(g_db, COLLECTION_NAME, OPTION_STR, 0);
-    std::string input(reinterpret_cast<const char *>(data), size);
+    std::string input = provider.ConsumeRandomLengthString();
     std::string inputJson = "{" + input + "}";
     GRD_InsertDocInner(g_db, COLLECTION_NAME, inputJson.c_str(), 0);
     char *value = nullptr;
@@ -1445,12 +1448,12 @@ void DbOpenOneFuzz(GRD_DB *dbVal)
     DbOpenCloseFuzz(path.c_str(), R""({"redopubbufsize":16385})"", dbVal);
 }
 
-void DbOpenFuzz(const uint8_t *data, size_t size)
+void DbOpenFuzz(FuzzedDataProvider &provider)
 {
-    std::string dbFileData(reinterpret_cast<const char *>(data), size);
+    std::string dbFileData = provider.ConsumeRandomLengthString();
     std::string realDbFileData = DB_DIR_PATH + dbFileData;
     const char *dbFileVal = realDbFileData.data();
-    std::string configStrData(reinterpret_cast<const char *>(data), size);
+    std::string configStrData = provider.ConsumeRandomLengthString();
     const char *configStrVal = configStrData.data();
     GRD_DB *dbVal = nullptr;
 
@@ -1502,12 +1505,12 @@ void DbOpenFuzz(const uint8_t *data, size_t size)
     DbOpenOneFuzz(dbVal);
 }
 
-void DbCloseFuzz(const uint8_t *data, size_t size)
+void DbCloseFuzz(FuzzedDataProvider &provider)
 {
-    std::string dbFileData(reinterpret_cast<const char *>(data), size);
+    std::string dbFileData = provider.ConsumeRandomLengthString();
     std::string realDbFileData = DB_DIR_PATH + dbFileData;
     const char *dbFileVal = realDbFileData.data();
-    std::string configStrData(reinterpret_cast<const char *>(data), size);
+    std::string configStrData = provider.ConsumeRandomLengthString();
     const char *configStrVal = configStrData.data();
     GRD_DB *dbVal = nullptr;
     DbOpenCloseFuzz(dbFileVal, configStrVal, dbVal);
@@ -1536,11 +1539,11 @@ void DbCloseResultSetFuzz()
     }
 }
 
-void CreateCollectionFuzz(const uint8_t *data, size_t size)
+void CreateCollectionFuzz(FuzzedDataProvider &provider)
 {
-    std::string collectionNameData(reinterpret_cast<const char *>(data), size);
+    std::string collectionNameData = provider.ConsumeRandomLengthString();
     const char *collectionNameVal = collectionNameData.data();
-    std::string optionStrData(reinterpret_cast<const char *>(data), size);
+    std::string optionStrData = provider.ConsumeRandomLengthString();
     const char *optionStrVal = optionStrData.data();
     GRD_CreateCollectionInner(nullptr, collectionNameVal, optionStrVal, 0);
     GRD_CreateCollectionInner(g_db, collectionNameVal, optionStrVal, 0);
@@ -1561,25 +1564,22 @@ void CreateCollectionFuzz(const uint8_t *data, size_t size)
     GRD_DropCollectionInner(g_db, collectionNameVal, 0);
 }
 
-void DropCollectionFuzz(const uint8_t *data, size_t size)
+void DropCollectionFuzz(FuzzedDataProvider &provider)
 {
-    std::string collectionNameData(reinterpret_cast<const char *>(data), size);
+    std::string collectionNameData = provider.ConsumeRandomLengthString();
     const char *collectionNameVal = collectionNameData.data();
-    std::string optionStrData(reinterpret_cast<const char *>(data), size);
+    std::string optionStrData = provider.ConsumeRandomLengthString();
     const char *optionStrVal = optionStrData.data();
     GRD_CreateCollectionInner(g_db, collectionNameVal, optionStrVal, 0);
     GRD_DropCollectionInner(nullptr, collectionNameVal, 0);
     GRD_DropCollectionInner(g_db, collectionNameVal, 0);
 }
 
-void DbFlushFuzz(const uint8_t *data, size_t size)
+void DbFlushFuzz(FuzzedDataProvider &provider)
 {
-    if (data == nullptr) {
-        return;
-    }
     GRD_DB *db = nullptr;
     GRD_DB *db2 = nullptr;
-    const uint32_t flags = *data;
+    const uint32_t flags = provider.ConsumeIntegral<uint32_t>();
     int ret = GRD_DBOpenInner(TEST_DB_FILE, CONFIG_STR, GRD_DB_OPEN_CREATE, &db);
     if (ret == GRD_OK) {
         GRD_FlushInner(db, flags);
@@ -1693,23 +1693,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
     OHOS::SetUpTestCase();
-
-    OHOS::DbOpenFuzz(data, size);
-    OHOS::CreateCollectionFuzz(data, size);
-    OHOS::DropCollectionFuzz(data, size);
-    OHOS::InsertDocFuzz(data, size);
-    OHOS::FindDocFuzz(data, size);
-    OHOS::UpdateDocFuzz(data, size);
-    OHOS::UpsertDocFuzz(data, size);
-    OHOS::DeleteDocFuzz(data, size);
-    OHOS::NextFuzz(data, size);
-    OHOS::GetValueFuzz(data, size);
+    FuzzedDataProvider provider(data, size);
+    OHOS::DbOpenFuzz(provider);
+    OHOS::CreateCollectionFuzz(provider);
+    OHOS::DropCollectionFuzz(provider);
+    OHOS::InsertDocFuzz(provider);
+    OHOS::FindDocFuzz(provider);
+    OHOS::UpdateDocFuzz(provider);
+    OHOS::UpsertDocFuzz(provider);
+    OHOS::DeleteDocFuzz(provider);
+    OHOS::NextFuzz(provider);
+    OHOS::GetValueFuzz(provider);
     OHOS::FreeResultSetFuzz();
     OHOS::TestGrdDbApGrdGetItem002Fuzz();
     OHOS::TestGrdKvBatchCoupling003Fuzz();
-    OHOS::DbCloseFuzz(data, size);
+    OHOS::DbCloseFuzz(provider);
     OHOS::DbCloseResultSetFuzz();
-    OHOS::DbFlushFuzz(data, size);
+    OHOS::DbFlushFuzz(provider);
 
     OHOS::TearDownTestCase();
     return 0;

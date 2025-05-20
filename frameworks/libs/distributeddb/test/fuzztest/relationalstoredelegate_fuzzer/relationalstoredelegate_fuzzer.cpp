@@ -33,7 +33,7 @@ namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
 using namespace DistributedDBUnitTest;
-
+static constexpr const int MOD = 3;
 constexpr const char *DB_SUFFIX = ".db";
 constexpr const char *STORE_ID = "Relational_Store_ID";
 const std::string DEVICE_A = "DEVICE_A";
@@ -142,7 +142,7 @@ void TestDistributedSchema(FuzzedDataProvider *fdp)
     g_delegate->SetDistributedSchema(schema);
 }
 
-void CombineTest(const uint8_t *data, size_t size)
+void CombineTest(FuzzedDataProvider &fdp)
 {
     auto observer = new (std::nothrow) DistributedDB::StoreObserver;
     if (observer == nullptr) {
@@ -155,29 +155,25 @@ void CombineTest(const uint8_t *data, size_t size)
         return;
     }
     g_delegate->RegisterObserver(observer);
-    FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32();
-    const int lenMod = 30; // 30 is mod for string vector size
-    std::string tableName = fuzzerData.GetString(len % lenMod);
+    uint32_t len = fdp.ConsumeIntegral<uint32_t>();
+    std::string tableName = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
     g_delegate->CreateDistributedTable(tableName);
 
-    std::vector<std::string> device = fuzzerData.GetStringVector(len % lenMod);
-    Query query = Query::Select();
-    int index = len % 3; // 3 is the mod
-    SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
-    if (index == 1) {
-        mode = SyncMode::SYNC_MODE_PULL_ONLY;
-    } else if (index == 2) { // 2 is the remainder
-        mode = SyncMode::SYNC_MODE_PUSH_PULL;
+    std::vector<std::string> device;
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
+    for (int i = 0; i < size; i++) {
+        device.push_back(fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD)));
     }
+    Query query = Query::Select();
+    SyncMode mode = len % MOD == 1 ? SyncMode::SYNC_MODE_PULL_ONLY : SyncMode::SYNC_MODE_PUSH_PULL;
     SyncStatusCallback callback = nullptr;
     g_delegate->Sync(device, mode, query, callback, len % 2); // 2 is mod num for wait parameter
     g_delegate->GetCloudSyncTaskCount();
-    std::set<std::string> extendColNames = {fuzzerData.GetString(len % lenMod)};
-    std::set<std::string> trackerColNames = fuzzerData.GetStringSet(len % lenMod);
-    bool isLogicDeleted = static_cast<bool>(*data);
-    FuzzedDataProvider fdp(data, size);
-    MultiCombineTest(&fdp, tableName, extendColNames, trackerColNames, isLogicDeleted);
+    std::string extendName = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
+    std::set<std::string> extendColNames = {extendName};
+    std::string trackName = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
+    std::set<std::string> trackerColNames = {trackName};
+    MultiCombineTest(&fdp, tableName, extendColNames, trackerColNames, fdp.ConsumeBool());
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
     g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);
@@ -201,7 +197,8 @@ void CombineTest(const uint8_t *data, size_t size)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     OHOS::Setup();
-    OHOS::CombineTest(data, size);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(fdp);
     OHOS::TearDown();
     return 0;
 }

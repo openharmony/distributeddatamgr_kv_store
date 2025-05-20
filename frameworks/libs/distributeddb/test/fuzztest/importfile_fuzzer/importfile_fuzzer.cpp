@@ -17,6 +17,7 @@
 #include <fstream>
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "platform_specific.h"
 #include "process_communicator_test_stub.h"
 
@@ -27,14 +28,20 @@ using namespace std;
 static KvStoreConfig g_config;
 
 namespace OHOS {
-void SingerVerImport(const uint8_t *data, size_t size, const std::string &importFile)
+static constexpr const int PASSWDLEN = 20; // 20 is passwdlen
+void SingerVerImport(FuzzedDataProvider &provider, const std::string &importFile)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
     kvManager.SetKvStoreConfig(g_config);
     kvManager.SetProcessLabel("FUZZ", "DISTRIBUTEDDB");
     kvManager.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>());
     CipherPassword passwd;
-    passwd.SetValue(data, size);
+    size_t size = provider.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    provider.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
     KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, passwd};
 
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
@@ -53,14 +60,15 @@ void SingerVerImport(const uint8_t *data, size_t size, const std::string &import
     kvManager.DeleteKvStore("distributed_import_single");
 }
 
-bool MakeImportFile(const uint8_t *data, size_t size, const std::string &realPath)
+bool MakeImportFile(FuzzedDataProvider &provider, const std::string &realPath)
 {
     std::ofstream ofs(realPath, std::ofstream::out);
     if (!ofs.is_open()) {
         LOGE("the file open failed");
         return false;
     }
-    ofs.write(reinterpret_cast<const char *>(data), size);
+    std::string rawString = provider.ConsumeRandomLengthString();
+    ofs.write(rawString.c_str(), rawString.length());
     return true;
 }
 }
@@ -68,15 +76,16 @@ bool MakeImportFile(const uint8_t *data, size_t size, const std::string &realPat
 /* Fuzzer entry point */
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
+    FuzzedDataProvider provider(data, size);
     std::string dataDir;
-    std::string testDataDir(data, data + size);
+    std::string testDataDir = provider.ConsumeRandomLengthString();
     DistributedDBToolsTest::TestDirInit(dataDir);
     g_config.dataDir = dataDir;
     std::string path = dataDir + "/fuzz" + testDataDir;
     std::string realPath;
     OS::GetRealPath(path, realPath);
-    if (OHOS::MakeImportFile(data, size, realPath)) {
-        OHOS::SingerVerImport(data, size, realPath);
+    if (OHOS::MakeImportFile(provider, realPath)) {
+        OHOS::SingerVerImport(provider, realPath);
     }
 
     DistributedDBToolsTest::RemoveTestDbFiles(dataDir);

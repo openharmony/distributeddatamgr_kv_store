@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "fuzzer/FuzzedDataProvider.h"
 #include "rekey_fuzzer.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
@@ -22,25 +23,33 @@ using namespace DistributedDBTest;
 
 namespace OHOS {
 static auto g_kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
-std::vector<Entry> CreateEntries(const uint8_t* data, size_t size)
+static constexpr const int MOD = 1024; // 1024 is mod
+
+static constexpr const int PASSWDLEN = 20;
+std::vector<Entry> CreateEntries(FuzzedDataProvider &provider)
 {
     std::vector<Entry> entries;
 
-    auto count = static_cast<int>(std::min(size, size_t(1024)));
+    auto count =provider.ConsumeIntegralInRange<int32_t>(0, MOD);
     for (int i = 1; i < count; i++) {
         Entry entry;
-        entry.key = std::vector<uint8_t> (data, data + i);
-        entry.value = std::vector<uint8_t> (data, data + size);
+        entry.key = provider.ConsumeBytes<uint8_t>(i);
+        entry.value = provider.ConsumeBytes<uint8_t>(provider.ConsumeIntegral<int>());
         entries.push_back(entry);
     }
     return entries;
 }
 
-void SingerVerReKey(const uint8_t* data, size_t size)
+void SingerVerReKey(FuzzedDataProvider &provider)
 {
     CipherPassword passwd;
     // div 2 -> half
-    passwd.SetValue(data, (size / 2));
+    size_t size = provider.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    provider.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
 
     KvStoreNbDelegate::Option nbOption = {true, false, true, CipherType::DEFAULT, passwd};
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
@@ -53,18 +62,28 @@ void SingerVerReKey(const uint8_t* data, size_t size)
         });
 
     if (kvNbDelegatePtr != nullptr) {
-        kvNbDelegatePtr->PutBatch(CreateEntries(data, size));
-        passwd.SetValue(data, size);
+        kvNbDelegatePtr->PutBatch(CreateEntries(provider));
+        size_t size2 = provider.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+        uint8_t* val2 = static_cast<uint8_t*>(new uint8_t[size2]);
+        provider.ConsumeData(val2, size2);
+        passwd.SetValue(val2, size2);
+        delete[] static_cast<uint8_t*>(val2);
+        val2 = nullptr;
         kvNbDelegatePtr->Rekey(passwd);
         g_kvManager.CloseKvStore(kvNbDelegatePtr);
     }
 }
 
-void MultiVerVerReKey(const uint8_t* data, size_t size)
+void MultiVerVerReKey(FuzzedDataProvider &fdp)
 {
     CipherPassword passwd;
     // div 2 -> half
-    passwd.SetValue(data, (size / 2));
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    fdp.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
 
     KvStoreNbDelegate::Option nbOption = {true, false, true, CipherType::DEFAULT, passwd};
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
@@ -77,9 +96,14 @@ void MultiVerVerReKey(const uint8_t* data, size_t size)
         });
 
     if (kvNbDelegatePtr != nullptr) {
-        kvNbDelegatePtr->PutBatch(CreateEntries(data, size));
+        kvNbDelegatePtr->PutBatch(CreateEntries(fdp));
         CipherPassword passwdTwo;
-        passwdTwo.SetValue(data, size);
+        size_t size2 = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+        uint8_t* val2 = static_cast<uint8_t*>(new uint8_t[size2]);
+        fdp.ConsumeData(val2, size2);
+        passwdTwo.SetValue(val2, size2);
+        delete[] static_cast<uint8_t*>(val2);
+        val2 = nullptr;
         kvNbDelegatePtr->Rekey(passwdTwo);
         g_kvManager.CloseKvStore(kvNbDelegatePtr);
     }
@@ -92,8 +116,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     KvStoreConfig config;
     DistributedDBToolsTest::TestDirInit(config.dataDir);
     OHOS::g_kvManager.SetKvStoreConfig(config);
-    OHOS::SingerVerReKey(data, size);
-    OHOS::MultiVerVerReKey(data, size);
+    FuzzedDataProvider provider(data, size);
+    OHOS::SingerVerReKey(provider);
+    OHOS::MultiVerVerReKey(provider);
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
     return 0;
 }
