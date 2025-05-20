@@ -291,12 +291,9 @@ void CJsonObject::Append(const CJsonObject &object)
     if (!IsArray()) {
         return;
     }
-    if (isOwner_) {
-        CJsonObject cpyObject = object;
-        cJSON_AddItemToArray(cjson_, cpyObject.cjson_);
-    } else {
-        cJSON_AddItemToArray(cjson_, object.cjson_);
-    }
+    CJsonObject cpyObject = object;
+    cJSON_AddItemToArray(cjson_, cpyObject.cjson_);
+    cpyObject.cjson_ = nullptr;
 }
 
 void CJsonObject::RemoveMember(const std::string &path)

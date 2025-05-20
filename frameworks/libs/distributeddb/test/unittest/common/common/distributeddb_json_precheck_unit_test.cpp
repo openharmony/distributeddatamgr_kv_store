@@ -310,4 +310,50 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
     std::vector<std::vector<std::string>> actual = {{"123"}};
     EXPECT_EQ(content, actual);
 }
+
+/**
+ * @tc.name: BuildObj001
+ * @tc.desc: Build json obj.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj001, TestSize.Level0)
+{
+    JsonObject obj;
+    FieldValue val;
+    val.boolValue = true;
+    EXPECT_EQ(obj.InsertField({"bool_field"}, FieldType::LEAF_FIELD_BOOL, val), E_OK);
+    val.stringValue = "str";
+    EXPECT_EQ(obj.InsertField({"str_field"}, FieldType::LEAF_FIELD_STRING, val), E_OK);
+    val.integerValue = INT32_MAX;
+    EXPECT_EQ(obj.InsertField({"int_field"}, FieldType::LEAF_FIELD_INTEGER, val), E_OK);
+    val.longValue = INT64_MAX;
+    EXPECT_EQ(obj.InsertField({"long_field"}, FieldType::LEAF_FIELD_LONG, val), E_OK);
+    val.doubleValue = 3.1415;
+    EXPECT_EQ(obj.InsertField({"double_field"}, FieldType::LEAF_FIELD_DOUBLE, val), E_OK);
+    EXPECT_EQ(obj.InsertField({"null_field"}, FieldType::LEAF_FIELD_NULL, val), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_ARRAY, val), -E_INVALID_ARGS);
+    EXPECT_EQ(obj.InsertField({"obj_field"}, FieldType::LEAF_FIELD_OBJECT, val), E_OK);
+    EXPECT_EQ(obj.DeleteField({"obj_field"}), E_OK);
+    LOGI("json is %s", obj.ToString().c_str());
+}
+
+/**
+ * @tc.name: BuildObj002
+ * @tc.desc: Build json obj.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj002, TestSize.Level0)
+{
+    std::string json = R"({"array_field":[]})";
+    JsonObject obj;
+    EXPECT_EQ(obj.Parse(json), E_OK);
+    FieldValue val;
+    val.stringValue = "str";
+    EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_STRING, val, true), E_OK);
+    LOGI("json is %s", obj.ToString().c_str());
+}
 #endif

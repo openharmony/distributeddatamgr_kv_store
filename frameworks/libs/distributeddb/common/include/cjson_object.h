@@ -23,7 +23,7 @@
 #include "db_types.h"
 
 namespace DistributedDB {
-class CJsonObject {
+class CJsonObject final {
 public:
     CJsonObject() = default;
     ~CJsonObject();
