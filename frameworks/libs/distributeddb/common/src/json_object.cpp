@@ -115,13 +115,8 @@ JsonObject::JsonObject(const Json::Value &value) : isValid_(true), value_(value)
 int JsonObject::JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &jsonReader, const char *begin,
     const char *end, JSONCPP_STRING &errs)
 {
-    try {
-        if (!jsonReader->parse(begin, end, &value_, &errs)) {
-            value_ = Json::Value();
-            return -E_JSON_PARSE_FAIL;
-        }
-    } catch (const Json::Exception &exp) {
-        LOGE("[Json][JsonReaderParseInner] Parse string to JsonValue fail, json cpp exception: %s.", exp.what());
+    if (!jsonReader->parse(begin, end, &value_, &errs)) {
+        value_ = Json::Value();
         return -E_JSON_PARSE_FAIL;
     }
     return E_OK;
@@ -129,13 +124,8 @@ int JsonObject::JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &js
 
 int JsonObject::ReaderParseInner(Json::Reader &reader, const std::string &inString, bool collectComments)
 {
-    try {
-        if (!reader.parse(inString, value_, collectComments)) {
-            value_ = Json::Value();
-            return -E_JSON_PARSE_FAIL;
-        }
-    } catch (const Json::Exception &exp) {
-        LOGE("[Json][ReaderParseInner] Parse string to JsonValue fail, json cpp exception: %s.", exp.what());
+    if (!reader.parse(inString, value_, collectComments)) {
+        value_ = Json::Value();
         return -E_JSON_PARSE_FAIL;
     }
     return E_OK;
@@ -202,15 +192,10 @@ bool JsonObject::IsReaderParseValid(const uint8_t *dataBegin, const uint8_t *dat
     auto begin = reinterpret_cast<const std::string::value_type *>(dataBegin);
     auto end = reinterpret_cast<const std::string::value_type *>(dataEnd);
     // The endDoc parameter of reader::parse refer to the byte after the string itself
-    try {
-        if (!reader.parse(begin, end, value_, false)) {
-            value_ = Json::Value();
-            LOGE("[Json][Parse] Parse dataRange to JsonValue by reader fail, reason=%s.",
-                reader.getFormattedErrorMessages().c_str());
-            return false;
-        }
-    } catch (const Json::Exception &exp) {
-        LOGE("[Json][Parse] Parse dataRange to JsonValue fail, json cpp exception: %s.", exp.what());
+    if (!reader.parse(begin, end, value_, false)) {
+        value_ = Json::Value();
+        LOGE("[Json][Parse] Parse dataRange to JsonValue by reader fail, reason=%s.",
+            reader.getFormattedErrorMessages().c_str());
         return false;
     }
     return true;
