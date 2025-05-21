@@ -92,14 +92,15 @@ public:
     // Should be called on an valid JsonObject. Never turn into invalid after call. An empty inPath is not allowed.
     // If inPath not exist, returns -E_JSON_DELETE_PATH_NOT_FOUND. Otherwise, delete field from its parent returns E_OK;
     int DeleteField(const FieldPath &inPath);
-private:
 #ifndef OMIT_JSON
     // Auxiliary Method: If inPath not refer to an array, return error. If not all members are string, return error.
     int GetStringArrayContentByCJsonValue(const CJsonObject &value, std::vector<std::string> &outStringArray) const;
 
     // Common Type Judgement Logic
     int GetFieldTypeByCJsonValue(const CJsonObject &value, FieldType &outType) const;
-
+#endif
+private:
+#ifndef OMIT_JSON
     // Return E_OK if JsonValueNode found at exact the path, otherwise not E_OK
     CJsonObject GetCJsonValueByFieldPath(const FieldPath &inPath, int &errCode) const;
 

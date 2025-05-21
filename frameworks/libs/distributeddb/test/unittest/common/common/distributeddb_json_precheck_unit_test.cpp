@@ -220,15 +220,15 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseDuplicativeString001, TestSize.
      */
     std::string json = R"({"field1":"123", "field2": true, "field1": 123})";
     JsonObject object;
-    ASSERT_EQ(object.JsonObject::Parse(json), E_OK);
+    EXPECT_EQ(object.JsonObject::Parse(json), E_OK);
     /**
      * @tc.steps: step2. Check field.
      * @tc.expected: step2. field1 is 123, field2 is True.
      */
     FieldValue value;
-    ASSERT_EQ(object.GetFieldValueByFieldPath({"field1"}, value), E_OK);
+    EXPECT_EQ(object.GetFieldValueByFieldPath({"field1"}, value), E_OK);
     EXPECT_EQ(value.integerValue, 123);
-    ASSERT_EQ(object.GetFieldValueByFieldPath({"field2"}, value), E_OK);
+    EXPECT_EQ(object.GetFieldValueByFieldPath({"field2"}, value), E_OK);
     EXPECT_TRUE(value.boolValue);
 }
 
@@ -282,10 +282,16 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString003, TestSize.Level0)
     std::vector<uint8_t> data(json.begin(), json.end());
     EXPECT_EQ(object.Parse(data), E_OK);
     std::set<FieldPath> outSubPath;
+    std::map<FieldPath, FieldType> outSubPathType;
     EXPECT_EQ(object.GetSubFieldPath({"field1"}, outSubPath), -E_NOT_SUPPORT);
+    EXPECT_EQ(object.GetSubFieldPathAndType({"field1"}, outSubPathType), -E_NOT_SUPPORT);
     EXPECT_EQ(object.GetSubFieldPath({"field2"}, outSubPath), E_OK);
+    EXPECT_EQ(object.GetSubFieldPathAndType({"field2"}, outSubPathType), E_OK);
     std::set<FieldPath> actualPath = {{"field2", "field3"}};
     EXPECT_EQ(outSubPath, actualPath);
+    FieldPath inPath;
+    EXPECT_EQ(object.GetSubFieldPath(inPath, outSubPath), E_OK);
+    EXPECT_EQ(object.GetSubFieldPathAndType(inPath, outSubPathType), E_OK);
 }
 
 /**
@@ -305,10 +311,35 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
     EXPECT_EQ(object.GetArraySize({"field3"}, size), -E_NOT_SUPPORT);
     EXPECT_EQ(object.GetArraySize({"field1"}, size), E_OK);
     EXPECT_EQ(size, 1u);
+    FieldPath inPath;
+    EXPECT_EQ(object.GetArraySize(inPath, size), -E_NOT_SUPPORT);
     std::vector<std::vector<std::string>> content;
     EXPECT_EQ(object.GetArrayContentOfStringOrStringArray({"field1"}, content), E_OK);
     std::vector<std::vector<std::string>> actual = {{"123"}};
     EXPECT_EQ(content, actual);
+    EXPECT_EQ(object.GetArrayContentOfStringOrStringArray(inPath, content), -E_NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: ParseString005
+ * @tc.desc: Parse array.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString005, TestSize.Level0)
+{
+    std::string json = R"({"field1":["123", null, ["456", 789]], "field3":"field3"})";
+    JsonObject object;
+    EXPECT_EQ(object.Parse(json), E_OK);
+    std::vector<std::vector<std::string>> content;
+    EXPECT_EQ(object.GetArrayContentOfStringOrStringArray({"field1"}, content), -E_NOT_SUPPORT);
+
+    json = R"({"field1":[["456", "789"], []], "field3":"field3"})";
+    object = {};
+    EXPECT_EQ(object.Parse(json), E_OK);
+    EXPECT_EQ(object.GetArrayContentOfStringOrStringArray({"field1"}, content), E_OK);
+    EXPECT_EQ(content.size(), 1u);
 }
 
 /**
@@ -335,6 +366,9 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj001, TestSize.Level0)
     EXPECT_EQ(obj.InsertField({"null_field"}, FieldType::LEAF_FIELD_NULL, val), E_OK);
     EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_ARRAY, val), -E_INVALID_ARGS);
     EXPECT_EQ(obj.InsertField({"obj_field"}, FieldType::LEAF_FIELD_OBJECT, val), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_OBJECT, val), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field", "array_inner"}, FieldType::LEAF_FIELD_OBJECT, val), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field", "array_inner", "inner"}, FieldType::LEAF_FIELD_OBJECT, val), E_OK);
     EXPECT_EQ(obj.DeleteField({"obj_field"}), E_OK);
     LOGI("json is %s", obj.ToString().c_str());
 }
@@ -353,7 +387,36 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj002, TestSize.Level0)
     EXPECT_EQ(obj.Parse(json), E_OK);
     FieldValue val;
     val.stringValue = "str";
+    EXPECT_EQ(obj.InsertField({"array_field1"}, FieldType::LEAF_FIELD_STRING, val, true), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field2"}, FieldType::LEAF_FIELD_STRING, val), E_OK);
     EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_STRING, val, true), E_OK);
+    EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_STRING, val), E_OK);
     LOGI("json is %s", obj.ToString().c_str());
+}
+
+/**
+ * @tc.name: InnerError001
+ * @tc.desc: Inner error in json obj.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, InnerError001, TestSize.Level0)
+{
+    auto obj = CJsonObject::Parse("");
+    std::vector<std::string> outArray;
+    JsonObject jsonObject;
+    EXPECT_EQ(jsonObject.GetStringArrayContentByCJsonValue(obj, outArray), -E_NOT_SUPPORT);
+    std::string json = R"({"array_field":[123]})";
+    obj = CJsonObject::Parse(json);
+    EXPECT_EQ(jsonObject.GetStringArrayContentByCJsonValue(obj, outArray), -E_NOT_SUPPORT);
+
+    FieldType type;
+    EXPECT_EQ(jsonObject.GetFieldTypeByCJsonValue(obj, type), E_OK);
+    EXPECT_EQ(type, FieldType::INTERNAL_FIELD_OBJECT);
+    json = R"({})";
+    obj = CJsonObject::Parse(json);
+    EXPECT_EQ(jsonObject.GetFieldTypeByCJsonValue(obj, type), E_OK);
+    EXPECT_EQ(type, FieldType::LEAF_FIELD_OBJECT);
 }
 #endif
