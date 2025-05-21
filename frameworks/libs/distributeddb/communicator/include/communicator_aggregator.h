@@ -41,6 +41,7 @@ struct TaskConfig {
     bool nonBlock = true;
     uint32_t timeout = 0u;
     Priority prio = Priority::NORMAL;
+    AccessInfos infos;
 };
 
 /*
@@ -104,18 +105,17 @@ private:
     void NotifySendableToAllCommunicator();
 
     // Call from Adapter by register these function
-    void OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-        const DataUserInfoProc &userInfoProc);
+    void OnBytesReceive(const ReceiveBytesInfo &receiveBytesInfo, const DataUserInfoProc &userInfoProc);
     void OnTargetChange(const std::string &target, bool isConnect);
     void OnSendable(const std::string &target);
 
-    void OnFragmentReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-        const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
+    void OnFragmentReceive(const ReceiveBytesInfo &receiveBytesInfo, const ParseResult &inResult,
+        const DataUserInfoProc &userInfoProc);
 
     int OnCommLayerFrameReceive(const std::string &srcTarget, const ParseResult &inResult);
-    int OnAppLayerFrameReceive(const std::string &srcTarget, const uint8_t *bytes,
-        uint32_t length, const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
-    int OnAppLayerFrameReceive(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
+    int OnAppLayerFrameReceive(const ReceiveBytesInfo &receiveBytesInfo, const ParseResult &inResult,
+        const DataUserInfoProc &userInfoProc);
+    int OnAppLayerFrameReceive(const ReceiveBytesInfo &receiveBytesInfo, SerialBuffer *&inFrameBuffer,
         const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
 
     // Function with suffix NoMutex should be called with mutex in the caller
@@ -164,7 +164,7 @@ private:
     uint64_t IncreaseSendSequenceId(const std::string &target);
 
     int GetDataUserId(const ParseResult &inResult, const LabelType &toLabel, const DataUserInfoProc &userInfoProc,
-        std::string &userId);
+        const std::string &device, std::string &userId);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 

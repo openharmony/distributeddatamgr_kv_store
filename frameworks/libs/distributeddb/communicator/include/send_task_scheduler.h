@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include "communicator_type_define.h"
+#include "iprocess_communicator.h"
 #include "macro_utils.h"
 
 namespace DistributedDB {
@@ -39,6 +40,7 @@ struct SendTask {
     OnSendEnd onEnd;
     uint32_t frameId = 0u;
     bool isValid = true;
+    AccessInfos infos;
 };
 
 struct SendTaskInfo {

@@ -326,7 +326,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         sendRecord_[info.frameId] = {};
     }
-    SendTask task{inBuff, dstTarget, onEnd, info.frameId, true};
+    SendTask task{inBuff, dstTarget, onEnd, info.frameId, true, inConfig.infos};
     if (inConfig.nonBlock) {
         errCode = scheduler_.AddSendTaskIntoSchedule(task, inConfig.prio);
     } else {
@@ -384,12 +384,13 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         startIndex = sendRecord_[inTask.frameId].sendIndex;
     }
     uint64_t currentSendSequenceId = IncreaseSendSequenceId(inTask.dstTarget);
+    DeviceInfos deviceInfos = {inTask.dstTarget, inTask.infos};
     for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()) && inTask.isValid; ++index) {
         auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
             ", packetLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
         ProtocolProto::DisplayPacketInformation(entry.first + entry.second.first, entry.second.second);
-        errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second, totalLength);
+        errCode = adapterHandle_->SendBytes(deviceInfos, entry.first, entry.second.second, totalLength);
         {
             std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
             sendRecord_[inTask.frameId].sendIndex = index;
@@ -483,24 +484,26 @@ void CommunicatorAggregator::NotifySendableToAllCommunicator()
     }
 }
 
-void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
+void CommunicatorAggregator::OnBytesReceive(const ReceiveBytesInfo &receiveBytesInfo,
     const DataUserInfoProc &userInfoProc)
 {
-    ProtocolProto::DisplayPacketInformation(bytes, length);
+    ProtocolProto::DisplayPacketInformation(receiveBytesInfo.bytes, receiveBytesInfo.length);
     ParseResult packetResult;
-    int errCode = ProtocolProto::CheckAndParsePacket(srcTarget, bytes, length, packetResult);
+    int errCode = ProtocolProto::CheckAndParsePacket(receiveBytesInfo.srcTarget, receiveBytesInfo.bytes,
+        receiveBytesInfo.length, packetResult);
     if (errCode != E_OK) {
         LOGE("[CommAggr][Receive] Parse packet fail, errCode=%d.", errCode);
         if (errCode == -E_VERSION_NOT_SUPPORT) {
-            TriggerVersionNegotiation(srcTarget);
+            TriggerVersionNegotiation(receiveBytesInfo.srcTarget);
         }
         return;
     }
 
     // Update version of remote target
-    SetRemoteCommunicatorVersion(srcTarget, packetResult.GetDbVersion());
+    SetRemoteCommunicatorVersion(receiveBytesInfo.srcTarget, packetResult.GetDbVersion());
     if (dbStatusAdapter_ != nullptr) {
-        dbStatusAdapter_->SetRemoteOptimizeCommunication(srcTarget, !packetResult.IsSendLabelExchange());
+        dbStatusAdapter_->SetRemoteOptimizeCommunication(receiveBytesInfo.srcTarget,
+            !packetResult.IsSendLabelExchange());
     }
     if (packetResult.GetFrameTypeInfo() == FrameType::EMPTY) { // Empty frame will never be fragmented
         LOGI("[CommAggr][Receive] Empty frame, just ignore in this version of distributeddb.");
@@ -508,14 +511,14 @@ void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const 
     }
 
     if (packetResult.IsFragment()) {
-        OnFragmentReceive(srcTarget, bytes, length, packetResult, userInfoProc);
+        OnFragmentReceive(receiveBytesInfo, packetResult, userInfoProc);
     } else if (packetResult.GetFrameTypeInfo() != FrameType::APPLICATION_MESSAGE) {
-        errCode = OnCommLayerFrameReceive(srcTarget, packetResult);
+        errCode = OnCommLayerFrameReceive(receiveBytesInfo.srcTarget, packetResult);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] CommLayer receive fail, errCode=%d.", errCode);
         }
     } else {
-        errCode = OnAppLayerFrameReceive(srcTarget, bytes, length, packetResult, userInfoProc);
+        errCode = OnAppLayerFrameReceive(receiveBytesInfo, packetResult, userInfoProc);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] AppLayer receive fail, errCode=%d.", errCode);
         }
@@ -570,12 +573,13 @@ void CommunicatorAggregator::OnSendable(const std::string &target)
     TriggerSendData();
 }
 
-void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
+void CommunicatorAggregator::OnFragmentReceive(const ReceiveBytesInfo &receiveBytesInfo,
     const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     int errorNo = E_OK;
     ParseResult frameResult;
-    SerialBuffer *frameBuffer = combiner_.AssembleFrameFragment(bytes, length, inResult, frameResult, errorNo);
+    SerialBuffer *frameBuffer = combiner_.AssembleFrameFragment(receiveBytesInfo.bytes, receiveBytesInfo.length,
+        inResult, frameResult, errorNo);
     if (errorNo != E_OK) {
         LOGE("[CommAggr][Receive] Combine fail, errCode=%d.", errorNo);
         return;
@@ -591,20 +595,20 @@ void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, con
         delete frameBuffer;
         frameBuffer = nullptr;
         if (errCode == -E_VERSION_NOT_SUPPORT) {
-            TriggerVersionNegotiation(srcTarget);
+            TriggerVersionNegotiation(receiveBytesInfo.srcTarget);
         }
         return;
     }
 
     if (frameResult.GetFrameTypeInfo() != FrameType::APPLICATION_MESSAGE) {
-        errCode = OnCommLayerFrameReceive(srcTarget, frameResult);
+        errCode = OnCommLayerFrameReceive(receiveBytesInfo.srcTarget, frameResult);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] CommLayer receive fail after combination, errCode=%d.", errCode);
         }
         delete frameBuffer;
         frameBuffer = nullptr;
     } else {
-        errCode = OnAppLayerFrameReceive(srcTarget, frameBuffer, frameResult, userInfoProc);
+        errCode = OnAppLayerFrameReceive(receiveBytesInfo, frameBuffer, frameResult, userInfoProc);
         if (errCode != E_OK) {
             LOGE("[CommAggr][Receive] AppLayer receive fail after combination, errCode=%d.", errCode);
         }
@@ -633,15 +637,15 @@ int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget
     return E_OK;
 }
 
-int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget, const uint8_t *bytes,
-    uint32_t length, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
+int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &receiveBytesInfo,
+    const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     SerialBuffer *buffer = new (std::nothrow) SerialBuffer();
     if (buffer == nullptr) {
         LOGE("[CommAggr][AppReceive] New SerialBuffer fail.");
         return -E_OUT_OF_MEMORY;
     }
-    int errCode = buffer->SetExternalBuff(bytes, length - inResult.GetPaddingLen(),
+    int errCode = buffer->SetExternalBuff(receiveBytesInfo.bytes, receiveBytesInfo.length - inResult.GetPaddingLen(),
         ProtocolProto::GetAppLayerFrameHeaderLength());
     if (errCode != E_OK) {
         LOGE("[CommAggr][AppReceive] SetExternalBuff fail, errCode=%d.", errCode);
@@ -649,7 +653,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
         buffer = nullptr;
         return -E_INTERNAL_ERROR;
     }
-    return OnAppLayerFrameReceive(srcTarget, buffer, inResult, userInfoProc);
+    return OnAppLayerFrameReceive(receiveBytesInfo, buffer, inResult, userInfoProc);
 }
 
 // In early time, we cover "OnAppLayerFrameReceive" totally by commMapMutex_, then search communicator, if not found,
@@ -670,21 +674,24 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
 // Note: during this period, commMap_ maybe changed, and communicator not found before may exist now.
 // 3:Search communicator under commMapMutex_ again, if found then deliver frame to that communicator and end.
 // 4:If still not found, retain this frame if need or otherwise send CommunicatorNotFound feedback.
-int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-    const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
+int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &receiveBytesInfo,
+    SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     LabelType toLabel = inResult.GetCommLabel();
     std::string userId;
-    int ret = GetDataUserId(inResult, toLabel, userInfoProc, userId);
-    if (ret != E_OK) {
-        LOGE("[CommAggr][AppReceive] get data user id err, ret=%d", ret);
-        delete inFrameBuffer;
-        inFrameBuffer = nullptr;
-        return ret;
+    if (receiveBytesInfo.headLength != 0) {
+        int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userId);;
+        if ((ret != E_OK) || (userId.empty())) {
+            LOGE("[CommAggr][AppReceive] get data user id err, ret=%d", ret);
+            delete inFrameBuffer;
+            inFrameBuffer = nullptr;
+            return ret != E_OK ? ret : -E_NO_TRUSTED_USER;
+        }
     }
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel, userId);
+        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
+            userId);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
         }
@@ -702,26 +709,27 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
     }
     // Here we have to lock commMapMutex_ and search communicator again.
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel, userId);
+    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
+        userId);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
         LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
         return E_OK;
     }
     // Here, communicator is still not found, retain or discard according to the result of onCommLackHandle_
     if (errCode != E_OK) {
-        TryToFeedbackWhenCommunicatorNotFound(srcTarget, toLabel, inFrameBuffer);
+        TryToFeedbackWhenCommunicatorNotFound(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer);
         delete inFrameBuffer;
         inFrameBuffer = nullptr;
         return errCode; // The caller will display errCode in log
     }
     // Do Retention, the retainer is responsible to deal with the frame
-    retainer_.RetainFrame(FrameInfo{inFrameBuffer, srcTarget, toLabel, inResult.GetFrameId()});
+    retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, toLabel, inResult.GetFrameId()});
     inFrameBuffer = nullptr;
     return E_OK;
 }
 
 int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const LabelType &toLabel,
-    const DataUserInfoProc &userInfoProc, std::string &userId)
+    const DataUserInfoProc &userInfoProc, const std::string &device, std::string &userId)
 {
     if (userInfoProc.processCommunicator == nullptr) {
         LOGE("[CommAggr][GetDataUserId] processCommunicator is nullptr");
@@ -729,8 +737,8 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     }
     std::string label(toLabel.begin(), toLabel.end());
     std::vector<UserInfo> userInfos;
-    DBStatus ret = userInfoProc.processCommunicator->GetDataUserInfo(userInfoProc.data, userInfoProc.length, label,
-        userInfos);
+    DataUserInfo dataUserInfo = {userInfoProc.data, userInfoProc.length, label, device};
+    DBStatus ret = userInfoProc.processCommunicator->GetDataUserInfo(dataUserInfo, userInfos);
     LOGI("[CommAggr][GetDataUserId] get data user info, ret=%d", ret);
     if (ret == NO_PERMISSION) {
         LOGE("[CommAggr][GetDataUserId] userId dismatched, drop packet");
@@ -783,9 +791,8 @@ int CommunicatorAggregator::RegCallbackToAdapter()
 {
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     int errCode = adapterHandle_->RegBytesReceiveCallback(
-        [this](const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
-            const DataUserInfoProc &userInfoProc) {
-            OnBytesReceive(srcTarget, bytes, length, userInfoProc);
+        [this](const ReceiveBytesInfo &receiveBytesInfo, const DataUserInfoProc &userInfoProc) {
+            OnBytesReceive(receiveBytesInfo, userInfoProc);
         }, [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed

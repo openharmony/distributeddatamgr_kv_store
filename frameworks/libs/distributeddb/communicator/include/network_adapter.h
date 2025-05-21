@@ -46,6 +46,8 @@ public:
 
     int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length,
         uint32_t totalLength) override;
+    int SendBytes(const DeviceInfos &deviceInfos, const uint8_t *bytes, uint32_t length,
+        uint32_t totalLength) override;
 
     int RegBytesReceiveCallback(const BytesReceiveCallback &onReceive, const Finalizer &inOper) override;
     int RegTargetChangeCallback(const TargetChangeCallback &onChange, const Finalizer &inOper) override;
