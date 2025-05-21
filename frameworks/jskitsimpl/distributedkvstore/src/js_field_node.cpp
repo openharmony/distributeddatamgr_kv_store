@@ -66,13 +66,11 @@ std::string JsFieldNode::GetFieldName()
 cJSON* JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
-        std::string jsonDesc = "";
+        std::string jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) + DEFAULT;
         if (valueType_ == JSUtil::STRING) {
-            jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) +
-                DEFAULT + MARK + ToString(defaultValue_) + MARK;
+            jsonDesc += MARK + ToString(defaultValue_) + MARK;
         } else {
-            jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) +
-                DEFAULT + ToString(defaultValue_);
+            jsonDesc += ToString(defaultValue_);
         }
         return cJSON_CreateString(jsonDesc.c_str());
     }
