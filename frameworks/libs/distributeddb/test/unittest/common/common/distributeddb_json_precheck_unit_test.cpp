@@ -395,6 +395,36 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj002, TestSize.Level0)
 }
 
 /**
+ * @tc.name: BuildObj003
+ * @tc.desc: Build json obj.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj003, TestSize.Level0)
+{
+    std::string json = R"({"field":"field"})";
+    JsonObject obj;
+    EXPECT_EQ(obj.Parse(json), E_OK);
+
+    CJsonObject extract;
+    CJsonObject nearest;
+    EXPECT_EQ(obj.MoveToPath({"field", "field"}, extract, nearest), -E_JSON_INSERT_PATH_CONFLICT);
+    LOGI("json is %s", obj.ToString().c_str());
+
+    CJsonObject nullObj;
+    FieldType outType;
+    EXPECT_EQ(obj.GetFieldTypeByCJsonValue(nullObj, outType), E_OK);
+    auto cjsonPtr = cJSON_CreateRaw(json.c_str());
+    CJsonObject rawObj(cjsonPtr, true);
+    EXPECT_EQ(obj.GetFieldTypeByCJsonValue(rawObj, outType), -E_NOT_SUPPORT);
+
+    cjsonPtr = cJSON_CreateNumber(std::numeric_limits<double>::infinity());
+    CJsonObject doubleObj(cjsonPtr, true);
+    EXPECT_EQ(obj.GetFieldTypeByCJsonValue(doubleObj, outType), -E_NOT_SUPPORT);
+}
+
+/**
  * @tc.name: InnerError001
  * @tc.desc: Inner error in json obj.
  * @tc.type: FUNC

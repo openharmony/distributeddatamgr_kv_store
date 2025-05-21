@@ -92,6 +92,9 @@ public:
     // Should be called on an valid JsonObject. Never turn into invalid after call. An empty inPath is not allowed.
     // If inPath not exist, returns -E_JSON_DELETE_PATH_NOT_FOUND. Otherwise, delete field from its parent returns E_OK;
     int DeleteField(const FieldPath &inPath);
+
+    // create if path not exist, exact contain {field, nearest}
+    int MoveToPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest);
 #ifndef OMIT_JSON
     // Auxiliary Method: If inPath not refer to an array, return error. If not all members are string, return error.
     int GetStringArrayContentByCJsonValue(const CJsonObject &value, std::vector<std::string> &outStringArray) const;
@@ -112,9 +115,6 @@ private:
     // to the depth of this nearest JsonValue, then ret -E_NOT_FOUND;
     int LocateCJsonValueByFieldPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest,
         uint32_t &nearDepth);
-
-    // create if path not exist, exact contain {field, nearest}
-    int MoveToPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest);
 
     static uint32_t maxNestDepth_;
 
