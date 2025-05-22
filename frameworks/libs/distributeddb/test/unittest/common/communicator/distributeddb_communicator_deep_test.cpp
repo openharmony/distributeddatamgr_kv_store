@@ -857,15 +857,15 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
     /**
      * @tc.steps: step2. adapter recv data with no permission
      */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](const uint8_t *, uint32_t, uint32_t &) {
+    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
         return NO_PERMISSION;
     });
     onDataReceive(deviceInfos, data.get(), 1);
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](const uint8_t *, uint32_t, uint32_t &) {
+    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
         return OK;
     });
     EXPECT_CALL(*processCommunicator, GetDataUserInfo).WillRepeatedly(
-        [](const uint8_t *, uint32_t, const std::string &, std::vector<UserInfo> &userInfos) {
+        [](DataUserInfo, std::vector<UserInfo> &userInfos) {
             UserInfo userId = {"1"};
             userInfos.emplace_back(userId);
             return OK;
@@ -874,7 +874,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
      * @tc.steps: step3. adapter recv data with no callback
      */
     onDataReceive(deviceInfos, data.get(), 1);
-    adapter->RegBytesReceiveCallback([](const std::string &, const uint8_t *, uint32_t, const DataUserInfoProc &) {
+    adapter->RegBytesReceiveCallback([](const ReceiveBytesInfo &, const DataUserInfoProc &) {
     }, nullptr);
     onDataReceive(deviceInfos, data.get(), 1);
     RuntimeContext::GetInstance()->StopTaskPool();
@@ -948,7 +948,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
      * @tc.steps: step1. GetDataHeadInfo return invalid headLen
      * @tc.expected: step1. adapter check this len
      */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillOnce([](const uint8_t *, uint32_t, uint32_t &headLen) {
+    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillOnce([](DataHeadInfo, uint32_t &headLen) {
         headLen = UINT32_MAX;
         return OK;
     });
@@ -957,14 +957,16 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
      * @tc.expected: step2. BytesReceive never call
      */
     int callByteReceiveCount = 0;
-    int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const std::string &, const uint8_t *, uint32_t,
+    int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const ReceiveBytesInfo &,
         const DataUserInfoProc &) {
+            printf("callByteReceiveCount++;");
         callByteReceiveCount++;
     }, nullptr);
     EXPECT_EQ(res, E_OK);
     std::vector<uint8_t> data = { 1u };
     DeviceInfos deviceInfos;
     onDataReceive(deviceInfos, data.data(), 1u);
+    printf("callByteReceiveCount++%d;", callByteReceiveCount);
     EXPECT_EQ(callByteReceiveCount, 0);
 }
 

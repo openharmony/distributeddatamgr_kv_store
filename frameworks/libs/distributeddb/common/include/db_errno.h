@@ -189,6 +189,7 @@ constexpr const int E_DISTRIBUTED_SCHEMA_CHANGED = (E_BASE + 203); // Schema has
 constexpr const int E_TABLE_REFERENCE_CHANGED = (E_BASE + 204); // table reference is changed
 constexpr const int E_CLOUD_DISABLED = (E_BASE + 205); // The cloud switch has been turned off
 constexpr const int E_DISTRIBUTED_FIELD_DECREASE = (E_BASE + 206); // Sync fewer specified columns than last time
+constexpr const int E_NO_TRUSTED_USER = (E_BASE + 207); // No trusted found before device sync
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

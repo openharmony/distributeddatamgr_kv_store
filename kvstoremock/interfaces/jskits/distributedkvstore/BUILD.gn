@@ -31,7 +31,6 @@ group("build_module") {
 if (use_platform_win || use_platforn_mac) {
   ohos_shared_library("distributedkvstore") {
     include_dirs = [
-      "//third_party/json/single_include",
       "//third_party/libuv/include",
       "//third_party/node/src",
       "//foundation/distributeddatamgr/kv_store",
@@ -79,6 +78,7 @@ if (use_platform_win || use_platforn_mac) {
     ]
 
     external_deps = [
+      "cJSON:cjson",
       "data_share:datashare_common_lite",
     ]
 

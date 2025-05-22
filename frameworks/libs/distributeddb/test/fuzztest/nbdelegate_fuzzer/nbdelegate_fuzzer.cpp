@@ -17,6 +17,7 @@
 #include <list>
 #include "distributeddb_tools_test.h"
 #include "fuzzer_data.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "kv_store_delegate.h"
 #include "kv_store_delegate_manager.h"
 #include "kv_store_observer.h"
@@ -29,7 +30,9 @@ class KvStoreNbDelegateCURDFuzzer {
 namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
-
+static constexpr const int HUNDRED = 100;
+static constexpr const int MOD = 1024;
+static constexpr const int PASSWDLEN = 20;
 class KvStoreObserverFuzzTest : public DistributedDB::KvStoreObserver {
 public:
     KvStoreObserverFuzzTest();
@@ -105,16 +108,16 @@ bool KvStoreObserverFuzzTest::IsCleared() const
     return isCleared_;
 }
 
-std::vector<Entry> CreateEntries(const uint8_t *data, size_t size, std::vector<Key> &keys)
+std::vector<Entry> CreateEntries(FuzzedDataProvider &fdp, std::vector<Key> &keys)
 {
     std::vector<Entry> entries;
     // key'length is less than 1024.
-    auto count = static_cast<int>(std::min(size, size_t(1024)));
+    auto count = fdp.ConsumeIntegralInRange<int>(0, 1024);
     for (int i = 1; i < count; i++) {
         Entry entry;
-        entry.key = std::vector<uint8_t>(data, data + i);
+        entry.key = fdp.ConsumeBytes<uint8_t>(i);
         keys.push_back(entry.key);
-        entry.value = std::vector<uint8_t>(data, data + size);
+        entry.value = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, HUNDRED));
         entries.push_back(entry);
     }
     return entries;
@@ -181,59 +184,53 @@ void TestCRUD(const Key &key, const Value &value, KvStoreNbDelegate *kvNbDelegat
     kvNbDelegatePtr->Get(key, valueRead);
 }
 
-void GetDeviceEntriesTest(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+void GetDeviceEntriesTest(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
 {
-    FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32();
     const int lenMod = 30; // 30 is mod for string vector size
-    std::string device = fuzzerData.GetString(len % lenMod);
+    std::string device = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, lenMod));
     kvNbDelegatePtr->GetWatermarkInfo(device);
     kvNbDelegatePtr->GetSyncDataSize(device);
     std::vector<Entry> vect;
     kvNbDelegatePtr->GetDeviceEntries(device, vect);
 }
 
-void RemoveDeviceDataByMode(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+void RemoveDeviceDataByMode(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
 {
-    if (size == 0) {
-        return;
-    }
-    auto mode = static_cast<ClearMode>(data[0]);
+    auto mode = static_cast<ClearMode>(fdp.ConsumeIntegral<uint32_t>());
     LOGI("[RemoveDeviceDataByMode] select mode %d", static_cast<int>(mode));
     if (mode == DEFAULT) {
         return;
     }
-    FuzzerData fuzzerData(data, size);
-    uint32_t len = fuzzerData.GetUInt32();
     const int lenMod = 30; // 30 is mod for string vector size
-    std::string device = fuzzerData.GetString(len % lenMod);
-    std::string user = fuzzerData.GetString(len % lenMod);
+    std::string device = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, lenMod));
+    std::string user = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, lenMod));
     kvNbDelegatePtr->RemoveDeviceData();
     kvNbDelegatePtr->RemoveDeviceData(device, mode);
     kvNbDelegatePtr->RemoveDeviceData(device, user, mode);
 }
 
-void FuzzCURD(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+void FuzzCURD(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
 {
     auto observer = new (std::nothrow) KvStoreObserverFuzzTest;
     if ((observer == nullptr) || (kvNbDelegatePtr == nullptr)) {
         return;
     }
-    Key key = std::vector<uint8_t>(data, data + (size % 1024)); /* 1024 is max */
-    Value value = std::vector<uint8_t>(data, data + size);
-    kvNbDelegatePtr->RegisterObserver(key, size, observer);
-    kvNbDelegatePtr->SetConflictNotifier(size, [](const KvStoreNbConflictData &data) {
+
+    Key key = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, MOD));/* 1024 is max */
+    Value value = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
+    kvNbDelegatePtr->RegisterObserver(key, fdp.ConsumeIntegral<size_t>(), observer);
+    kvNbDelegatePtr->SetConflictNotifier(fdp.ConsumeIntegral<size_t>(), [](const KvStoreNbConflictData &data) {
         (void)data.GetType();
     });
     TestCRUD(key, value, kvNbDelegatePtr);
     kvNbDelegatePtr->StartTransaction();
     std::vector<Key> keys;
-    std::vector<Entry> tmp = CreateEntries(data, size, keys);
+    std::vector<Entry> tmp = CreateEntries(fdp, keys);
     kvNbDelegatePtr->PutBatch(tmp);
     if (!keys.empty()) {
         /* random deletePublic updateTimestamp 2 */
-        bool deletePublic = (size > 3u) ? (data[0] > data[1]) : true; // use index 0 and 1
-        bool updateTimestamp = (size > 3u) ? (data[2] > data[1]) : true; // use index 2 and 1
+        bool deletePublic = fdp.ConsumeBool(); // use index 0 and 1
+        bool updateTimestamp = fdp.ConsumeBool(); // use index 2 and 1
         kvNbDelegatePtr->UnpublishToLocal(keys[0], deletePublic, updateTimestamp);
     }
     kvNbDelegatePtr->DeleteBatch(keys);
@@ -250,36 +247,40 @@ void FuzzCURD(const uint8_t *data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->CheckIntegrity();
     FuzzSetInterceptorTest(kvNbDelegatePtr);
     if (!keys.empty()) {
-        bool deleteLocal = (size > 3u) ? (data[0] > data[1]) : true; // use index 0 and 1
-        bool updateTimestamp = (size > 3u) ? (data[2] > data[1]) : true; // use index 2 and 1
+        bool deleteLocal = fdp.ConsumeBool(); // use index 0 and 1
+        bool updateTimestamp = fdp.ConsumeBool(); // use index 2 and 1
         /* random deletePublic updateTimestamp 2 */
         kvNbDelegatePtr->PublishLocal(keys[0], deleteLocal, updateTimestamp, nullptr);
     }
     kvNbDelegatePtr->DeleteBatch(keys);
     kvNbDelegatePtr->GetTaskCount();
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    std::string rawString = fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
     kvNbDelegatePtr->RemoveDeviceData(rawString);
-    RemoveDeviceDataByMode(data, size, kvNbDelegatePtr);
-    GetDeviceEntriesTest(data, size, kvNbDelegatePtr);
+    RemoveDeviceDataByMode(fdp, kvNbDelegatePtr);
+    GetDeviceEntriesTest(fdp, kvNbDelegatePtr);
 }
 
-void EncryptOperation(const uint8_t *data, size_t size, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
+void EncryptOperation(FuzzedDataProvider &fdp, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
 {
     if (kvNbDelegatePtr == nullptr) {
         return;
     }
     CipherPassword passwd;
-    int len = static_cast<int>(std::min(size, size_t(20)));
-    passwd.SetValue(data, len);
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    fdp.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
     kvNbDelegatePtr->Rekey(passwd);
-    len = static_cast<int>(std::min(size, size_t(100))); // set min 100
-    std::string fileName(data, data + len);
+    int len = fdp.ConsumeIntegralInRange<int>(0, 100); // set min 100
+    std::string fileName = fdp.ConsumeRandomLengthString(len);
     std::string mulitExportFileName = DirPath + "/" + fileName + ".db";
     kvNbDelegatePtr->Export(mulitExportFileName, passwd);
     kvNbDelegatePtr->Import(mulitExportFileName, passwd);
 }
 
-void CombineTest(const uint8_t *data, size_t size, KvStoreNbDelegate::Option &option)
+void CombineTest(FuzzedDataProvider &fdp, KvStoreNbDelegate::Option &option)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
     KvStoreConfig config;
@@ -292,9 +293,9 @@ void CombineTest(const uint8_t *data, size_t size, KvStoreNbDelegate::Option &op
                 kvNbDelegatePtr = kvNbDelegate;
             }
         });
-    FuzzCURD(data, size, kvNbDelegatePtr);
+    FuzzCURD(fdp, kvNbDelegatePtr);
     if (option.isEncryptedDb) {
-        EncryptOperation(data, size, config.dataDir, kvNbDelegatePtr);
+        EncryptOperation(fdp, config.dataDir, kvNbDelegatePtr);
     }
     kvManager.CloseKvStore(kvNbDelegatePtr);
     kvManager.DeleteKvStore("distributed_nb_delegate_test");
@@ -306,8 +307,9 @@ void CombineTest(const uint8_t *data, size_t size, KvStoreNbDelegate::Option &op
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     DistributedDB::KvStoreNbDelegate::Option option = {true, false, false};
-    OHOS::CombineTest(data, size, option);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::CombineTest(fdp, option);
     option = {true, true, false};
-    OHOS::CombineTest(data, size, option);
+    OHOS::CombineTest(fdp, option);
     return 0;
 }

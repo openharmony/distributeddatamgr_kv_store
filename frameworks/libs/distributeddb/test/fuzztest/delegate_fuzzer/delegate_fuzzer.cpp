@@ -16,22 +16,24 @@
 #include "delegate_fuzzer.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 
 using namespace DistributedDB;
 using namespace DistributedDBTest;
 
 namespace OHOS {
+static constexpr const int HUNDRED = 100;
 static constexpr const int MOD = 1024; // 1024 is mod
 static constexpr const int PASSWDLEN = 20; // 20 is passwdlen
-std::vector<Entry> CreateEntries(const uint8_t *data, size_t size, std::vector<Key>& keys)
+std::vector<Entry> CreateEntries(FuzzedDataProvider &fdp, std::vector<Key>& keys)
 {
     std::vector<Entry> entries;
     // key'length is less than 1024.
-    auto count = static_cast<int>(std::min(size, size_t(MOD)));
+    auto count =  fdp.ConsumeIntegralInRange<int>(0, size_t(MOD));
     for (int i = 1; i < count; i++) {
         Entry entry;
-        entry.key = std::vector<uint8_t>(data, data + 1);
-        entry.value = std::vector<uint8_t>(data, data + size);
+        entry.key = fdp.ConsumeBytes<uint8_t>(i);
+        entry.value = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
         keys.push_back(entry.key);
         entries.push_back(entry);
     }
@@ -53,21 +55,25 @@ KvStoreDelegate *PrepareKvStore(KvStoreConfig &config, KvStoreDelegate::Option &
     return kvDelegatePtr;
 }
 
-void EncryptOperation(const uint8_t *data, size_t size, KvStoreDelegate *kvDelegatePtr)
+void EncryptOperation(FuzzedDataProvider &fdp, KvStoreDelegate *kvDelegatePtr)
 {
     if (kvDelegatePtr == nullptr) {
         return;
     }
     CipherPassword passwd;
-    int len = static_cast<int>(std::min(size, size_t(PASSWDLEN)));
-    passwd.SetValue(data, len);
+    size_t data_size = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[data_size]);
+    fdp.ConsumeData(val, data_size);
+    passwd.SetValue(val, data_size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
     kvDelegatePtr->Rekey(passwd);
-    bool autoSync = (size == 0) ? true : data[0];
+    bool autoSync = fdp.ConsumeBool();
     PragmaData praData = static_cast<PragmaData>(&autoSync);
     kvDelegatePtr->Pragma(AUTO_SYNC, praData);
 }
 
-void CombineTest(const uint8_t *data, KvStoreDelegate *kvDelegatePtr)
+void CombineTest(FuzzedDataProvider &fdp, KvStoreDelegate *kvDelegatePtr)
 {
     if (kvDelegatePtr == nullptr) {
         return;
@@ -75,11 +81,11 @@ void CombineTest(const uint8_t *data, KvStoreDelegate *kvDelegatePtr)
     kvDelegatePtr->GetStoreId();
     kvDelegatePtr->Rollback();
     kvDelegatePtr->Commit();
-    auto type = static_cast<ResolutionPolicyType>(data[0]);
+    auto type = static_cast<ResolutionPolicyType>(fdp.ConsumeIntegral<int>());
     kvDelegatePtr->SetConflictResolutionPolicy(type, nullptr);
 }
 
-void MultiCombineFuzzer(const uint8_t *data, size_t size, KvStoreDelegate::Option &option)
+void MultiCombineFuzzer(FuzzedDataProvider &fdp, KvStoreDelegate::Option &option)
 {
     KvStoreConfig config;
     KvStoreDelegate *kvDelegatePtr = PrepareKvStore(config, option);
@@ -91,8 +97,8 @@ void MultiCombineFuzzer(const uint8_t *data, size_t size, KvStoreDelegate::Optio
     }
 
     kvDelegatePtr->RegisterObserver(observer);
-    Key key = std::vector<uint8_t>(data, data + (size % 1024)); /* 1024 is max */
-    Value value = std::vector<uint8_t>(data, data + size);
+    Key key = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
+    Value value = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, HUNDRED));
     kvDelegatePtr->Put(key, value);
     kvDelegatePtr->StartTransaction();
     KvStoreSnapshotDelegate *kvStoreSnapshotPtr = nullptr;
@@ -113,17 +119,17 @@ void MultiCombineFuzzer(const uint8_t *data, size_t size, KvStoreDelegate::Optio
     kvDelegatePtr->Delete(key);
     kvStoreSnapshotPtr->Get(key, valueCallback);
     std::vector<Key> keys;
-    kvDelegatePtr->PutBatch(CreateEntries(data, size, keys));
-    Key keyPrefix = std::vector<uint8_t>(data, data + 1);
+    kvDelegatePtr->PutBatch(CreateEntries(fdp, keys));
+    Key keyPrefix = fdp.ConsumeBytes<uint8_t>(1);
     kvStoreSnapshotPtr->GetEntries(keyPrefix, [](DBStatus status, const std::vector<Entry> &entries) {
         (void) entries.size();
     });
     if (option.isEncryptedDb) {
-        EncryptOperation(data, size, kvDelegatePtr);
+        EncryptOperation(fdp, kvDelegatePtr);
     }
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
-    CombineTest(data, kvDelegatePtr);
+    CombineTest(fdp, kvDelegatePtr);
     kvDelegatePtr->UnRegisterObserver(observer);
     delete observer;
     observer = nullptr;
@@ -139,8 +145,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     CipherPassword passwd;
     KvStoreDelegate::Option option = {true, true, false, CipherType::DEFAULT, passwd};
-    OHOS::MultiCombineFuzzer(data, size, option);
+    FuzzedDataProvider fdp(data, size);
+    OHOS::MultiCombineFuzzer(fdp, option);
     option = {true, false, false, CipherType::DEFAULT, passwd};
-    OHOS::MultiCombineFuzzer(data, size, option);
+    OHOS::MultiCombineFuzzer(fdp, option);
     return 0;
 }

@@ -29,8 +29,15 @@ struct DataUserInfoProc {
     uint32_t length = 0;
     std::shared_ptr<IProcessCommunicator> processCommunicator = nullptr;
 };
+struct ReceiveBytesInfo {
+    const uint8_t *bytes = nullptr;
+    const std::string srcTarget;
+    uint32_t length = 0;
+    uint32_t headLength = 0;
+};
+
 // SendableCallback only notify when status changed from unsendable to sendable
-using BytesReceiveCallback = std::function<void(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
+using BytesReceiveCallback = std::function<void(const ReceiveBytesInfo &receiveBytesInfo,
     const DataUserInfoProc &userInfoProc)>;
 using TargetChangeCallback = std::function<void(const std::string &target, bool isConnect)>;
 using SendableCallback = std::function<void(const std::string &target, int deviceCommErrCode)>;
@@ -60,6 +67,8 @@ public:
     // Not assume bytes to be heap memory. Not assume SendBytes to be not blocking
     // Return 0 as success. Return negative as error
     virtual int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length,
+        uint32_t totalLength) = 0;
+    virtual int SendBytes(const DeviceInfos &deviceInfos, const uint8_t *bytes, uint32_t length,
         uint32_t totalLength) = 0;
 
     // Pass nullptr as inHandle to do unReg if need (inDecRef also nullptr)

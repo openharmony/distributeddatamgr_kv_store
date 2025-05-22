@@ -51,7 +51,6 @@
     "deps": {
       "third_party": [
         "bounds_checking_function",
-        "cJSON",
         "jsoncpp",
         "libuv",
         "openssl",
@@ -66,6 +65,7 @@
         "bundle_framework",
         "access_token",
         "common_event_service",
+        "cJSON",
         "c_utils",
         "device_manager",
         "dmsfwk",

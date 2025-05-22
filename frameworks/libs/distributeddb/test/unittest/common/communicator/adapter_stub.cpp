@@ -122,6 +122,12 @@ int AdapterStub::SendBytes(const std::string &dstTarget, const uint8_t *bytes, u
     return E_OK;
 }
 
+int AdapterStub::SendBytes(const DeviceInfos &deviceInfos, const uint8_t *bytes, uint32_t length,
+    uint32_t totalLength)
+{
+    return AdapterStub::SendBytes(deviceInfos.identifier, bytes, length, totalLength);
+}
+
 int AdapterStub::RegBytesReceiveCallback(const BytesReceiveCallback &onReceive, const Finalizer &inOper)
 {
     std::lock_guard<std::mutex> onReceiveLockGuard(onReceiveMutex_);
@@ -214,7 +220,8 @@ void AdapterStub::DeliverBytes(const std::string &srcTarget, const uint8_t *byte
             std::make_shared<ProcessCommunicatorTestStub>();
         processCommunicator->SetDataUserInfo(userInfos);
         DataUserInfoProc userInfoProc = {bytes, length, processCommunicator};
-        onReceiveHandle_(srcTarget, bytes + headLength, length - headLength, userInfoProc);
+        ReceiveBytesInfo receiveBytesInfo = {bytes + headLength, srcTarget, length - headLength, headLength};
+        onReceiveHandle_(receiveBytesInfo, userInfoProc);
     }
 }
 

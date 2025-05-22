@@ -86,8 +86,7 @@ public:
         isCommErr = commErr;
     }
 
-    DBStatus GetDataUserInfo(const uint8_t *data, uint32_t totalLen, const std::string &label,
-        std::vector<UserInfo> &userInfos) override
+    DBStatus GetDataUserInfo(DataUserInfo dataUserInfo, std::vector<UserInfo> &userInfos) override
     {
         userInfos = userInfos_;
         return OK;

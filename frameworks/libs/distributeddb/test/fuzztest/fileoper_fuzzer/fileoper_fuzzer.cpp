@@ -16,27 +16,30 @@
 #include "fileoper_fuzzer.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
+#include "fuzzer/FuzzedDataProvider.h"
 #include "process_communicator_test_stub.h"
 
 using namespace DistributedDB;
 using namespace DistributedDBTest;
 
 namespace OHOS {
+static constexpr const int PASSWDLEN = 20; // 20 is passwdlen
+static constexpr const int MOD = 1024;
 static auto g_kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
-std::vector<Entry> CreateEntries(const uint8_t* data, size_t size)
+std::vector<Entry> CreateEntries(FuzzedDataProvider &fdp)
 {
     std::vector<Entry> entries;
-    auto count = static_cast<int>(std::min(size, size_t(1024)));
+    auto count = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
     for (int i = 1; i < count; i++) {
         Entry entry;
-        entry.key = std::vector<uint8_t> (data, data + i);
-        entry.value = std::vector<uint8_t> (data, data + size);
+        entry.key = fdp.ConsumeBytes<uint8_t>(i);
+        entry.value = fdp.ConsumeBytes<uint8_t>(fdp.ConsumeIntegralInRange<size_t>(0, MOD));
         entries.push_back(entry);
     }
     return entries;
 }
 
-void SingerVerExportAndImport(const uint8_t* data, size_t size, const std::string& testDir)
+void SingerVerExportAndImport(FuzzedDataProvider &fdp, const std::string& testDir)
 {
     KvStoreNbDelegate::Option nbOption = {true, false, true};
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
@@ -50,13 +53,18 @@ void SingerVerExportAndImport(const uint8_t* data, size_t size, const std::strin
     if (kvNbDelegatePtr == nullptr) {
         return;
     }
-    kvNbDelegatePtr->PutBatch(CreateEntries(data, size));
+    kvNbDelegatePtr->PutBatch(CreateEntries(fdp));
 
-    std::string rawString(reinterpret_cast<const char *>(data), size);
-    std::string  singleExportFileName = testDir + "/" + rawString;
+    std::string rawString = fdp.ConsumeRandomLengthString();
+    std::string singleExportFileName = testDir + "/" + rawString;
 
     CipherPassword passwd;
-    passwd.SetValue(data, size);
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    fdp.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
     kvNbDelegatePtr->Export(singleExportFileName, passwd);
     kvNbDelegatePtr->Import(singleExportFileName, passwd);
 
@@ -64,10 +72,15 @@ void SingerVerExportAndImport(const uint8_t* data, size_t size, const std::strin
     g_kvManager.DeleteKvStore("distributed_file_oper_single");
 }
 
-void MultiVerExportAndImport(const uint8_t* data, size_t size, const std::string& testDir)
+void MultiVerExportAndImport(FuzzedDataProvider &fdp, const std::string& testDir)
 {
     CipherPassword passwd;
-    passwd.SetValue(data, size);
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, PASSWDLEN);
+    uint8_t* val = static_cast<uint8_t*>(new uint8_t[size]);
+    fdp.ConsumeData(val, size);
+    passwd.SetValue(val, size);
+    delete[] static_cast<uint8_t*>(val);
+    val = nullptr;
     KvStoreDelegate::Option option = {true, false, true, CipherType::DEFAULT, passwd};
     KvStoreDelegate *kvDelegatePtr = nullptr;
     g_kvManager.GetKvStore("distributed_file_oper_multi", option,
@@ -79,8 +92,9 @@ void MultiVerExportAndImport(const uint8_t* data, size_t size, const std::string
     if (kvDelegatePtr == nullptr) {
         return;
     }
-    kvDelegatePtr->PutBatch(CreateEntries(data, size));
-    std::string rawString(reinterpret_cast<const char *>(data), size);
+    kvDelegatePtr->PutBatch(CreateEntries(fdp));
+    std::string rawString = fdp.ConsumeRandomLengthString();
+
     std::string  multiExportFileName = testDir + "/" + rawString;
     kvDelegatePtr->Export(multiExportFileName, passwd);
     kvDelegatePtr->Import(multiExportFileName, passwd);
@@ -97,8 +111,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::g_kvManager.SetKvStoreConfig(config);
     OHOS::g_kvManager.SetProcessLabel("FUZZ", "DISTRIBUTEDDB");
     OHOS::g_kvManager.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>());
-    OHOS::SingerVerExportAndImport(data, size, config.dataDir);
-    OHOS::MultiVerExportAndImport(data, size, config.dataDir);
+    FuzzedDataProvider provider(data, size);
+    OHOS::SingerVerExportAndImport(provider, config.dataDir);
+    OHOS::MultiVerExportAndImport(provider, config.dataDir);
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
     return 0;
 }
