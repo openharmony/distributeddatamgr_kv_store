@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "JSFieldNode"
+#include "cJSON.h"
 #include "js_field_node.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -22,12 +23,16 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedKVStore {
-static std::string FIELD_NAME = "FIELD_NAME";
-static std::string VALUE_TYPE = "VALUE_TYPE";
-static std::string DEFAULT_VALUE = "DEFAULT_VALUE";
-static std::string IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
-static std::string IS_NULLABLE = "IS_NULLABLE";
-static std::string CHILDREN = "CHILDREN";
+static constexpr const char* FIELD_NAME = "FIELD_NAME";
+static constexpr const char* VALUE_TYPE = "VALUE_TYPE";
+static constexpr const char* DEFAULT_VALUE = "DEFAULT_VALUE";
+static constexpr const char* IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
+static constexpr const char* IS_NULLABLE = "IS_NULLABLE";
+static constexpr const char* CHILDREN = "CHILDREN";
+static constexpr const char* SPLIT = ",";
+static constexpr const char* NOT_NULL = ", NOT NULL,";
+static constexpr const char* DEFAULT = " DEFAULT ";
+static constexpr const char* MARK = "'";
 
 std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::STRING, std::string("STRING") },
@@ -58,20 +63,37 @@ std::string JsFieldNode::GetFieldName()
     return fieldName_;
 }
 
-JsFieldNode::json JsFieldNode::GetValueForJson()
+cJSON* JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
+        std::string jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) + DEFAULT;
         if (valueType_ == JSUtil::STRING) {
-            return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-                " DEFAULT '" + ToString(defaultValue_) + "'";
+            jsonDesc += MARK + ToString(defaultValue_) + MARK;
+        } else {
+            jsonDesc += ToString(defaultValue_);
         }
-        return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-            " DEFAULT " + ToString(defaultValue_);
+        return cJSON_CreateString(jsonDesc.c_str());
     }
 
-    json jsFields;
+    cJSON* jsFields = cJSON_CreateObject();
+    if (jsFields == nullptr) {
+        return nullptr;
+    }
     for (auto fld : fields_) {
-        jsFields[fld->fieldName_] = fld->GetValueForJson();
+        if (fld == nullptr) {
+            continue;
+        }
+        cJSON* childItem = fld->GetValueForJson();
+        if (childItem == nullptr) {
+            cJSON_Delete(jsFields);
+            return nullptr;
+        }
+        auto status = cJSON_AddItemToObject(jsFields, fld->fieldName_.c_str(), childItem);
+        if (!status) {
+            cJSON_Delete(childItem);
+            cJSON_Delete(jsFields);
+            return nullptr;
+        }
     }
     return jsFields;
 }
@@ -285,19 +307,47 @@ std::string JsFieldNode::ToString(uint32_t type)
 
 std::string JsFieldNode::Dump()
 {
-    json jsFields;
-    for (auto fld : fields_) {
-        jsFields.push_back(fld->Dump());
+    cJSON* jsNode = cJSON_CreateObject();
+    if (jsNode == nullptr) {
+        return "";
     }
+    cJSON_AddStringToObject(jsNode, FIELD_NAME, fieldName_.c_str());
+    cJSON_AddStringToObject(jsNode, VALUE_TYPE, ToString(valueType_).c_str());
+    cJSON_AddStringToObject(jsNode, DEFAULT_VALUE, ToString(defaultValue_).c_str());
+    cJSON_AddBoolToObject(jsNode, IS_DEFAULT_VALUE, isWithDefaultValue_);
+    cJSON_AddBoolToObject(jsNode, IS_NULLABLE, isNullable_);
 
-    json jsNode = {
-        { FIELD_NAME, fieldName_ },
-        { VALUE_TYPE, ToString(valueType_) },
-        { DEFAULT_VALUE, ToString(defaultValue_) },
-        { IS_DEFAULT_VALUE, isWithDefaultValue_ },
-        { IS_NULLABLE, isNullable_ },
-        { CHILDREN, jsFields.dump() }
-    };
-    return jsNode.dump();
+    cJSON* jsFields = cJSON_CreateArray();
+    if (jsFields != nullptr) {
+        for (auto fld : fields_) {
+            if (fld == nullptr) {
+                continue;
+            }
+            std::string childDump = fld->Dump();
+            cJSON* childItem = cJSON_CreateString(childDump.c_str());
+            if (childItem == nullptr) {
+                continue;
+            }
+            auto addResult = cJSON_AddItemToArray(jsFields, childItem);
+            if (!addResult) {
+                cJSON_Delete(childItem);
+            }
+        }
+    }
+    char* childrenStr = cJSON_Print(jsFields);
+    cJSON_Delete(jsFields);
+    cJSON_AddStringToObject(jsNode, CHILDREN, childrenStr ? childrenStr : "");
+    if (childrenStr != nullptr) {
+        cJSON_free(childrenStr);
+    }
+    
+    char* jsonPtr = cJSON_Print(jsNode);
+    std::string jsonStr;
+    if (jsonPtr != nullptr) {
+        jsonStr = jsonPtr;
+        cJSON_free(jsonPtr);
+    }
+    cJSON_Delete(jsNode);
+    return jsonStr;
 }
 } // namespace OHOS::DistributedKVStore
