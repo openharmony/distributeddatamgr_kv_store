@@ -128,7 +128,7 @@ ohos_shared_library("distributeddb") {
   ]
 
   public_external_deps = [
-    "cJSON:cjson",
+    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
   ]

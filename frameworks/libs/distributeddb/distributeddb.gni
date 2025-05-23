@@ -20,7 +20,6 @@ declare_args() {
 
 distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
-  "${distributeddb_path}/common/src/cjson_object.cpp",
   "${distributeddb_path}/common/src/cloud/asset_operation_utils.cpp",
   "${distributeddb_path}/common/src/cloud/assets_download_manager.cpp",
   "${distributeddb_path}/common/src/concurrent_adapter.cpp",

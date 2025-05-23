@@ -94,6 +94,7 @@ config("distrdb_config") {
   visibility = [ ":*" ]
   include_dirs = distrdb_Dir
   include_dirs += [
+    "//third_party/jsoncpp/include",
     "//third_party/zlib",
     "//third_party/sqlite/include",
     "//third_party/bounds_checking_function/include",
@@ -122,7 +123,7 @@ ohos_shared_library("distributeddb_mock") {
   ldflags = [ "-v" ]
   deps = [
     "//third_party/bounds_checking_function:libsec_static",
-    "//third_party/cJSON:cjson",
+    "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/openssl:libcrypto_static",
     "//third_party/sqlite:sqlite_sdk",
     "//third_party/zlib:shared_libz",
@@ -136,6 +137,7 @@ ohos_shared_library("distributeddb_mock") {
     deps +=
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
+  configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   cflags = [ "-Wno-c99-designator" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
