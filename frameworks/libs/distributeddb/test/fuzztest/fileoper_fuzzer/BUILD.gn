@@ -56,6 +56,10 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/src",
+    "//third_party/jsoncpp/include/json",
+    "//third_party/skia/third_party/externals/spirv-headers/tools/buildHeaders/jsoncpp/dist/json",
+    "//third_party/skia/third_party/externals/swiftshader/third_party/SPIRV-Headers/tools/buildHeaders/jsoncpp/dist/json",
+    "//third_party/jsoncpp/include/json",
     "//third_party/grpc/src/core/lib/json",
     "//commonlibrary/c_utils/base/include",
     "//third_party/sqlite/include",
@@ -86,6 +90,7 @@ ohos_fuzztest("FileOperFuzzTest") {
 
   deps = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
+    "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
     "//third_party/sqlite:sqlite",
   ]
@@ -112,7 +117,6 @@ ohos_fuzztest("FileOperFuzzTest") {
 
   external_deps = [
     "c_utils:utils",
-    "cJSON:cjson",
     "hilog:libhilog",
     "zlib:shared_libz",
   ]

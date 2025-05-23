@@ -51,6 +51,7 @@
     "deps": {
       "third_party": [
         "bounds_checking_function",
+        "jsoncpp",
         "libuv",
         "openssl",
         "sqlite",

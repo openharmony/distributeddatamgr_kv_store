@@ -104,13 +104,13 @@ ohos_fuzztest("StorageFuzzTest") {
 
   deps = [
     "../../../../distributeddb:distributeddb",
+    "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
     "//third_party/sqlite:sqlite",
   ]
 
   external_deps = [
     "c_utils:utils",
-    "cJSON:cjson",
     "hilog:libhilog",
     "zlib:shared_libz",
   ]
