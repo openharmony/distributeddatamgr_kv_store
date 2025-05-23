@@ -16,7 +16,6 @@
 #include "js_single_kv_store.h"
 #include "js_util.h"
 #include "js_kv_store_resultset.h"
-#include "datashare_predicates.h"
 #include "js_query.h"
 #include "log_print.h"
 #include "napi_queue.h"
@@ -24,7 +23,6 @@
 #include "kv_utils.h"
 
 using namespace OHOS::DistributedKv;
-using namespace OHOS::DataShare;
 namespace OHOS::DistributedData {
 JsSingleKVStore::JsSingleKVStore(const std::string& storeId)
     : JsKVStore(storeId)
