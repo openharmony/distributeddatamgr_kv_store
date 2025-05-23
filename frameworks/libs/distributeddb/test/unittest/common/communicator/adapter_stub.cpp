@@ -249,6 +249,7 @@ void AdapterStub::GetDataUserInfo(const uint8_t *data, std::vector<UserInfo> &us
                 break;
             }
             userInfo.receiveUser.push_back(info->userId[i]);
+            userInfo.sendUser.push_back(info->userId[i]);
         }
         userInfos.push_back(userInfo);
     }

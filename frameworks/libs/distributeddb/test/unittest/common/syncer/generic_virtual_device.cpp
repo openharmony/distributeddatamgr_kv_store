@@ -27,6 +27,7 @@ GenericVirtualDevice::GenericVirtualDevice(std::string deviceId)
       metadata_(nullptr),
       deviceId_(std::move(deviceId)),
       remoteDeviceId_("real_device"),
+      targetUserId_("targetUser"),
       context_(nullptr),
       onRemoteDataChanged_(nullptr),
       subManager_(nullptr),
@@ -110,7 +111,7 @@ int GenericVirtualDevice::Initialize(VirtualCommunicatorAggregator *comAggregato
     }
     communicateHandle_->RegOnMessageCallback(
         std::bind(&GenericVirtualDevice::MessageCallback, this, std::placeholders::_1, std::placeholders::_2), []() {});
-    context_->Initialize(remoteDeviceId_, storage_, metadata_, communicateHandle_);
+    context_->Initialize({remoteDeviceId_, targetUserId_}, storage_, metadata_, communicateHandle_);
     context_->SetRetryStatus(SyncTaskContext::NO_NEED_RETRY);
     context_->RegOnSyncTask(std::bind(&GenericVirtualDevice::StartResponseTask, this));
 

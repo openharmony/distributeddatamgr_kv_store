@@ -39,15 +39,9 @@ protected:
     static std::string GetTestDir();
     static StoreInfo GetStoreInfo1();
     static StoreInfo GetStoreInfo2();
-    struct StoreComparator {
-        bool operator() (const StoreInfo &source, const StoreInfo &target) const
-        {
-            return source.userId < target.userId || source.appId < target.appId || source.storeId < target.storeId;
-        }
-    };
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     mutable std::mutex deviceMutex_;
-    std::map<StoreInfo, std::string, StoreComparator> deviceMap_;
+    std::map<StoreInfo, std::string> deviceMap_;
 };
 }
 #endif // BASIC_UNIT_TEST_H

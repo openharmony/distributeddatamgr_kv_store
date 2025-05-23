@@ -92,10 +92,10 @@ public:
 
     bool IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyncObject &query) override;
 
-    void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    void GetLocalWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue);
 
-    int GetSendQueryWaterMark(const std::string &queryId, const DeviceID &deviceId, bool isAutoLift,
-        uint64_t &outValue);
+    int GetSendQueryWaterMark(const std::string &queryId, const DeviceID &deviceId, const DeviceID &userId,
+        bool isAutoLift, uint64_t &outValue);
 
     void InnerErrorAbort(uint32_t sessionId) override;
 

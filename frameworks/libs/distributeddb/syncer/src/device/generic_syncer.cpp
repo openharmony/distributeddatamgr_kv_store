@@ -1114,7 +1114,7 @@ int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) cons
         syncInterface_->IncRefCount();
         metadata = metadata_;
     }
-    metadata->GetLocalWaterMark(device, localWaterMark);
+    metadata->GetLocalWaterMark(device, "", localWaterMark);
     uint32_t expectedMtuSize = DEFAULT_MTU_SIZE;
     DataSizeSpecInfo syncDataSizeInfo = {expectedMtuSize, static_cast<size_t>(MAX_TIMESTAMP)};
     std::vector<SendDataItem> outData;
@@ -1207,7 +1207,7 @@ int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &in
     } else {
         dev = device;
     }
-    return metadata->GetWaterMarkInfoFromDB(dev, devNeedHash, info);
+    return metadata->GetWaterMarkInfoFromDB(dev, "", devNeedHash, info);
 }
 
 int GenericSyncer::UpgradeSchemaVerInMeta()

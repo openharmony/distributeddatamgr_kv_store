@@ -33,6 +33,9 @@ public:
 
     static int GetExistsDevicesFromMeta(sqlite3 *dbHandle, MetaMode metaMode,
         bool isMemDb, std::set<std::string> &devices);
+
+    static int GetMetaDataByPrefixKey(sqlite3 *dbHandle, bool isMemDb, const std::string &metaTableName,
+        const Key &keyPrefix, std::map<Key, Value> &data);
 private:
     static constexpr const char *SELECT_ATTACH_META_KEYS_BY_PREFIX =
         "SELECT key FROM meta.meta_data where key like ?;";

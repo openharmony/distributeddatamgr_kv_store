@@ -213,6 +213,8 @@ public:
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime);
 
     static int UpdateLocalDataCloudFlag(sqlite3 *db);
+
+    static int ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFinalize, int errCode);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

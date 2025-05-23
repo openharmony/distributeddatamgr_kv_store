@@ -222,8 +222,8 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync001, TestSize.Level1
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
     ASSERT_TRUE(status == OK);
-    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, false);
-    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, false);
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, true);
 
     /**
      * @tc.expected: step2. onComplete should be called, DeviceB,C have {k1,v1}
@@ -383,8 +383,8 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
-    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true, false);
-    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, true, false);
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true, true);
+    CheckWatermark(g_deviceC->GetDeviceId(), g_kvDelegatePtr, info, true, true);
 
     /**
      * @tc.expected: step3. onComplete should be called, DeviceA have {k1, VALUE_1}, {K2. VALUE_2}
@@ -832,10 +832,10 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync011, TestSize.Level1
         EXPECT_TRUE(pair.second == OK);
     }
     WatermarkInfo info;
-    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, false);
+    CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true);
     info = {};
     std::string checkDev = g_deviceB->GetDeviceId() + "test";
-    CheckWatermark(checkDev, g_kvDelegatePtr, info, false);
+    CheckWatermark(checkDev, g_kvDelegatePtr, info, true);
 }
 
 /**

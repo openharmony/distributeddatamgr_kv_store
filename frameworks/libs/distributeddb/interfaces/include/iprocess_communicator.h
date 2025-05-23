@@ -60,6 +60,7 @@ struct DataUserInfo {
 
 struct UserInfo {
     std::string receiveUser;
+    std::string sendUser;
 };
 
 class ExtendHeaderHandle {
@@ -81,6 +82,11 @@ public:
     {
         return OK;
     };
+
+    virtual std::string GetTargetUserId()
+    {
+        return "";
+    }
 };
 
 // In OnDeviceChange, all field of devInfo should be valid, isOnline true for online and false for offline.

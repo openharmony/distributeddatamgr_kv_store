@@ -138,7 +138,8 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
         return -E_OUT_OF_MEMORY;
     }
 
-    errCode = timeSync_->Initialize(communicator, metaData, syncInterface, context->GetDeviceId());
+    errCode = timeSync_->Initialize(communicator, metaData, syncInterface, context->GetDeviceId(),
+        context->GetTargetUserId());
     if (errCode != E_OK) {
         goto ERROR_OUT;
     }
@@ -1244,15 +1245,15 @@ void SingleVerSyncStateMachine::ControlAckRecvErrCodeHandle(int errCode)
     }
 }
 
-void SingleVerSyncStateMachine::GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue)
+void SingleVerSyncStateMachine::GetLocalWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue)
 {
-    metadata_->GetLocalWaterMark(deviceId, outValue);
+    metadata_->GetLocalWaterMark(deviceId, userId, outValue);
 }
 
-int SingleVerSyncStateMachine::GetSendQueryWaterMark(const std::string &queryId,  const DeviceID &deviceId,
-    bool isAutoLift, uint64_t &outValue)
+int SingleVerSyncStateMachine::GetSendQueryWaterMark(const std::string &queryId, const DeviceID &deviceId,
+    const DeviceID &userId, bool isAutoLift, uint64_t &outValue)
 {
-    return metadata_->GetSendQueryWaterMark(queryId, deviceId, outValue, isAutoLift);
+    return metadata_->GetSendQueryWaterMark(queryId, deviceId, userId, outValue, isAutoLift);
 }
 
 void SingleVerSyncStateMachine::ResponsePullError(int errCode, bool ignoreInnerErr)

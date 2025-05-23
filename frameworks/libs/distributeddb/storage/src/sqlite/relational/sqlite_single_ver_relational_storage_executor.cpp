@@ -699,6 +699,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetKvData(const Key &key, Value &v
     return SQLiteRelationalUtils::GetKvData(dbHandle_, isMemDb_, key, value);
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetKvDataByPrefixKey(const Key &keyPrefix,
+    std::map<Key, Value> &data) const
+{
+    std::string metaTableName = std::string(DBConstant::RELATIONAL_PREFIX) + "metadata";
+    return SqliteMetaExecutor::GetMetaDataByPrefixKey(dbHandle_, isMemDb_, metaTableName, keyPrefix, data);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::PutKvData(const Key &key, const Value &value) const
 {
     return SQLiteRelationalUtils::PutKvData(dbHandle_, isMemDb_, key, value);

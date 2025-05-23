@@ -111,4 +111,45 @@ int SqliteMetaExecutor::GetExistsDevicesFromMeta(sqlite3 *dbHandle, MetaMode met
     }
     return errCode;
 }
+
+int SqliteMetaExecutor::GetMetaDataByPrefixKey(sqlite3 *dbHandle, bool isMemDb, const std::string &metaTableName,
+    const Key &keyPrefix, std::map<Key, Value> &data)
+{
+    std::string sql = "SELECT key,value FROM " + metaTableName + " WHERE key >= ? AND key <= ?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("[SqliteMetaExecutor][GetMetaDataByPrefixKey] Get statement failed:%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindPrefixKey(statement, 1, keyPrefix); // 1 is first arg.
+    if (errCode != E_OK) {
+        LOGE("[SqliteMetaExecutor][GetMetaDataByPrefixKey] Bind prefix key failed:%d", errCode);
+        return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+    }
+    do {
+        errCode = SQLiteUtils::StepWithRetry(statement, isMemDb);
+        if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            break;
+        }
+        Key key;
+        errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key); // 0 is key.
+        if (errCode != E_OK) {
+            LOGE("[SqliteMetaExecutor][GetMetaDataByPrefixKey] Get key failed:%d", errCode);
+            return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+        }
+        Value value;
+        errCode = SQLiteUtils::GetColumnBlobValue(statement, 1, value); // 1 is value.
+        if (errCode != E_OK) {
+            LOGE("[SqliteMetaExecutor][GetMetaDataByPrefixKey] Get value failed:%d", errCode);
+            return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+        }
+        data[key] = value;
+    } while (errCode == E_OK);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    }
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+}
 }

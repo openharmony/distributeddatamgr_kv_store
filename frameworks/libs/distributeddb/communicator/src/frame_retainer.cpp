@@ -85,7 +85,7 @@ void FrameRetainer::RetainFrame(const FrameInfo &inFrame)
     if (inFrame.buffer == nullptr) {
         return; // Never gonna happen
     }
-    RetainWork work{inFrame.buffer, inFrame.frameId, MAX_RETAIN_TIME};
+    RetainWork work{inFrame.buffer, inFrame.sendUser, inFrame.frameId, MAX_RETAIN_TIME};
     if (work.buffer->GetSize() > MAX_RETAIN_FRAME_SIZE) {
         LOGE("[Retainer][Retain] Frame size=%u over limit=%u.", work.buffer->GetSize(), MAX_RETAIN_FRAME_SIZE);
         delete work.buffer;
@@ -140,7 +140,7 @@ std::list<FrameInfo> FrameRetainer::FetchFramesForSpecificCommunicator(const Lab
     for (auto &entry : fetchOrder) {
         RetainWork &work = perLabel[entry.second][entry.first];
         LogRetainInfo("[Retainer][Fetch] FETCH-OUT", inCommLabel, entry.second, entry.first, work);
-        outFrameList.emplace_back(FrameInfo{work.buffer, entry.second, inCommLabel, work.frameId});
+        outFrameList.emplace_back(FrameInfo{work.buffer, entry.second, work.sendUser, inCommLabel, work.frameId});
         // Update statistics
         totalSizeByByte_ -= work.buffer->GetSize();
         totalRetainFrames_--;

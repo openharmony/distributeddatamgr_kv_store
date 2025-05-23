@@ -536,7 +536,7 @@ void SingleVerDataSyncUtils::SetDataRequestCommonInfo(const SingleVerSyncTaskCon
     const SyncGenericInterface &storage, DataRequestPacket &packet, std::shared_ptr<Metadata> &metadata)
 {
     packet.SetSenderTimeOffset(metadata->GetLocalTimeOffset());
-    packet.SetSystemTimeOffset(metadata->GetSystemTimeOffset(context.GetDeviceId()));
+    packet.SetSystemTimeOffset(metadata->GetSystemTimeOffset(context.GetDeviceId(), context.GetTargetUserId()));
     if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
         return;
     }
@@ -564,7 +564,7 @@ int SingleVerDataSyncUtils::SchemaVersionMatchCheck(const SingleVerSyncTaskConte
     if (context.GetRemoteSoftwareVersion() < SOFTWARE_VERSION_RELEASE_9_0) {
         return E_OK;
     }
-    auto remoteSchemaVersion = metadata->GetRemoteSchemaVersion(context.GetDeviceId());
+    auto remoteSchemaVersion = metadata->GetRemoteSchemaVersion(context.GetDeviceId(), context.GetTargetUserId());
     if (remoteSchemaVersion != packet.GetSchemaVersion()) {
         LOGE("[DataSync] remote schema version misMatch, need ability sync again, packet %" PRIu64 " cache %" PRIu64,
              packet.GetSchemaVersion(), remoteSchemaVersion);

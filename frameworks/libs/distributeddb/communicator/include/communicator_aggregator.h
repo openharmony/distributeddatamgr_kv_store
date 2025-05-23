@@ -120,7 +120,7 @@ private:
 
     // Function with suffix NoMutex should be called with mutex in the caller
     int TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-        const LabelType &toLabel, const std::string &userId = "");
+        const LabelType &toLabel, const UserInfo &userInfo);
 
     // Auxiliary function for cutting short primary function
     int RegCallbackToAdapter();
@@ -164,7 +164,7 @@ private:
     uint64_t IncreaseSendSequenceId(const std::string &target);
 
     int GetDataUserId(const ParseResult &inResult, const LabelType &toLabel, const DataUserInfoProc &userInfoProc,
-        const std::string &device, std::string &userId);
+        const std::string &device, UserInfo &userInfo);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 

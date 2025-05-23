@@ -17,7 +17,6 @@
 
 #include <algorithm>
 
-#include "cloud/cloud_store_types.h"
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
@@ -238,7 +237,6 @@ int SQLiteSingleVerStorageExecutor::GetKvDataByHashKey(const Key &hashKey, Singl
         result.origDevice = std::string(origDevVect.begin(), origDevVect.end());
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = -E_NOT_FOUND;
-        goto END;
     }
 
 END:

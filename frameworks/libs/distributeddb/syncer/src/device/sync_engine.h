@@ -142,8 +142,8 @@ protected:
     virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;
 
     // Find SyncTaskContext from the map
-    ISyncTaskContext *FindSyncTaskContext(const std::string &deviceId);
-    ISyncTaskContext *GetSyncTaskContextAndInc(const std::string &deviceId);
+    ISyncTaskContext *FindSyncTaskContext(const DeviceSyncTarget &target);
+    std::vector<ISyncTaskContext *> GetSyncTaskContextAndInc(const std::string &deviceId);
     void GetQueryAutoSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
     void GetSubscribeSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
 
@@ -151,12 +151,12 @@ protected:
     ISyncInterface *GetAndIncSyncInterface();
     void SetSyncInterface(ISyncInterface *syncInterface);
 
-    ISyncTaskContext *GetSyncTaskContext(const std::string &deviceId, int &errCode);
+    ISyncTaskContext *GetSyncTaskContext(const DeviceSyncTarget &target, int &errCode);
 
     std::mutex storageMutex_;
     ISyncInterface *syncInterface_;
     // Used to store all send sync task infos (such as pull sync response, and push sync request)
-    std::map<std::string, ISyncTaskContext *> syncTaskContextMap_;
+    std::map<DeviceSyncTarget, ISyncTaskContext *> syncTaskContextMap_;
     std::mutex contextMapLock_;
     std::shared_ptr<SubscribeManager> subManager_;
     std::function<void(const InternalSyncParma &param)> queryAutoSyncCallback_;
@@ -201,7 +201,7 @@ private:
     // Handle message in order.
     int ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg);
 
-    ISyncTaskContext *GetContextForMsg(const std::string &targetDev, int &errCode);
+    ISyncTaskContext *GetContextForMsg(const DeviceSyncTarget &target, int &errCode);
 
     ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode, std::string userId = "");
 
@@ -237,6 +237,7 @@ private:
 
     uint32_t GetTimeout(const std::string &dev);
 
+    std::string GetTargetUserId(const std::string &dev);
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
     std::function<void(const std::string &)> onRemoteDataChanged_;

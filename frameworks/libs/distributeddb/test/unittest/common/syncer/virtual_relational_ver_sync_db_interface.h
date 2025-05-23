@@ -73,6 +73,8 @@ public:
 
     int GetMetaData(const Key &key, Value &value) const override;
 
+    int GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const override;
+
     int PutMetaData(const Key &key, const Value &value, bool isInTransaction) override;
 
     int DeleteMetaData(const std::vector<Key> &keys) override;

@@ -82,7 +82,7 @@ public:
     static int DeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg); // register to communicator
 
     int Initialize(ICommunicator *communicator, const std::shared_ptr<Metadata> &metadata,
-        const ISyncInterface *storage, const DeviceID &deviceId);
+        const ISyncInterface *storage, const DeviceID &deviceId, const DeviceID &userId);
 
     virtual int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0); // send timesync request
 
@@ -121,7 +121,7 @@ protected:
 
     void Finalize();
 
-    int SaveTimeOffset(const DeviceID &deviceID, TimeOffset timeOffset);
+    int SaveTimeOffset(const DeviceID &deviceID, const DeviceID &userId, TimeOffset timeOffset);
 
     int SendPacket(const DeviceID &deviceId, const Message *message, const CommErrHandler &handler = nullptr);
 
@@ -153,6 +153,7 @@ protected:
     std::shared_ptr<Metadata> metadata_;
     std::unique_ptr<TimeHelper> timeHelper_;
     DeviceID deviceId_;
+    DeviceID userId_;
     int retryTime_;
     TimerId driverTimerId_;
     TimerAction driverCallback_;

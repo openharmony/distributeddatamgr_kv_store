@@ -108,7 +108,7 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTask
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
-    (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)syncTaskContext.Initialize({"device", ""}, &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
 }
 
@@ -117,7 +117,7 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTask
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(dbSyncInterface), E_OK);
-    (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
+    (void)syncTaskContext->Initialize({"device", ""}, dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
 }
 
@@ -368,7 +368,7 @@ void TimeSync001()
     const int timeDriverMs = 100;
     for (int i = 0; i < loopCount; ++i) {
         MockTimeSync timeSync;
-        EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A"), E_OK);
+        EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A", ""), E_OK);
         EXPECT_CALL(timeSync, SyncStart).WillRepeatedly(Return(E_OK));
         timeSync.ModifyTimer(timeDriverMs);
         std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
@@ -781,8 +781,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
     message->SetCopiedObject(packet);
     mockSyncTaskContext.SetQuerySync(true);
 
-    EXPECT_CALL(*mockMetadata, GetLastQueryTime(_, _, _)).WillOnce(Return(E_OK));
-    EXPECT_CALL(*mockMetadata, SetLastQueryTime(_, _, _))
+    EXPECT_CALL(*mockMetadata, GetLastQueryTime(_, _, _, _)).WillOnce(Return(E_OK));
+    EXPECT_CALL(*mockMetadata, SetLastQueryTime(_, _, _, _))
         .WillOnce([&dataTimeRange](
                     const std::string &queryIdentify, const std::string &deviceId, const Timestamp &timestamp) {
             EXPECT_EQ(timestamp, dataTimeRange.endTime);
@@ -839,7 +839,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck005, TestSize.Level1)
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
     mockDataSync.Initialize(&storage, &communicator, metadata, "deviceId");
 
-    EXPECT_CALL(*mockMetadata, GetLocalWaterMark(_, _)).WillOnce(Return());
+    EXPECT_CALL(*mockMetadata, GetLocalWaterMark(_, _, _)).WillOnce(Return());
     std::vector<uint64_t> reserved;
     mockDataSync.CallDealRemoveDeviceDataByAck(&mockSyncTaskContext, 1, reserved);
     reserved.push_back(1);
@@ -934,14 +934,14 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync003, TestSize.Level1)
     const std::string deviceId = "deviceId";
     dataSync.Initialize(&storage, &communicator, metadata, deviceId);
     syncTaskContext.SetRemoteSoftwareVersion(SOFTWARE_VERSION_CURRENT);
-    syncTaskContext.Initialize(deviceId, &storage, metadata, &communicator);
+    syncTaskContext.Initialize({deviceId, ""}, &storage, metadata, &communicator);
     syncTaskContext.EnableClearRemoteStaleData(true);
 
     /**
      * @tc.steps: step1. set diff db createtime for rebuild label in meta
      */
-    metadata->SetDbCreateTime(deviceId, 1, true); // 1 is old db createTime
-    metadata->SetDbCreateTime(deviceId, 2, true); // 1 is new db createTime
+    metadata->SetDbCreateTime(deviceId, "", 1, true); // 1 is old db createTime
+    metadata->SetDbCreateTime(deviceId, "", 2, true); // 1 is new db createTime
 
     DistributedDB::Key k1 = {'k', '1'};
     DistributedDB::Value v1 = {'v', '1'};
@@ -1410,7 +1410,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest004, TestSize.Level0)
     auto *enginePtr = new (std::nothrow) MockSyncEngine();
     ASSERT_NE(enginePtr, nullptr);
     int errCode = E_OK;
-    auto *context = enginePtr->CallGetSyncTaskContext("dev", errCode);
+    auto *context = enginePtr->CallGetSyncTaskContext({"dev", "user"}, errCode);
     EXPECT_EQ(context, nullptr);
     EXPECT_EQ(errCode, -E_INVALID_DB);
     RefObject::KillAndDecObjRef(enginePtr);
@@ -1727,7 +1727,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Leve
     MockCommunicator communicator;
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
-    (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)syncTaskContext.Initialize({"device", ""}, &dbSyncInterface, metadata, &communicator);
     syncTaskContext.SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FINISHED_ALL);
     syncTaskContext.CallSetSyncMode(static_cast<int>(SyncModeType::PUSH));
     EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
@@ -1880,7 +1880,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck005, TestSize.Leve
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
-    (void)context->Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)context->Initialize({"device", ""}, &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(context, &dbSyncInterface, metadata, &communicator);
 
     for (int i = 0; i < 100; ++i) { // 100 sync target
@@ -1936,7 +1936,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Leve
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
-    (void)context->Initialize("device", &dbSyncInterface, metadata, communicator);
+    (void)context->Initialize({"device", ""}, &dbSyncInterface, metadata, communicator);
     /**
      * @tc.steps: step2. add sync target into context
      */
@@ -1976,7 +1976,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck007, TestSize.Leve
     VirtualRelationalVerSyncDBInterface dbSyncInterface;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
-    (void)context->Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)context->Initialize({"device", ""}, &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(context, &dbSyncInterface, metadata, &communicator);
     /**
      * @tc.steps: step2. prepare table and query
@@ -2223,7 +2223,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
     MockSingleVerKVSyncer syncer;
     auto mockMeta = std::make_shared<MockMetadata>();
     auto metadata = std::static_pointer_cast<Metadata>(mockMeta);
-    EXPECT_CALL(*mockMeta, GetLocalWaterMark).WillRepeatedly([&syncer](const DeviceID &, uint64_t &) {
+    EXPECT_CALL(*mockMeta, GetLocalWaterMark).WillRepeatedly([&syncer](const DeviceID &, const DeviceID &, uint64_t &) {
         syncer.TestSyncerLock();
     });
     syncer.SetMetadata(metadata);
@@ -2327,7 +2327,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync002, TestSize.Level1)
 
     MockTimeSync timeSync;
     EXPECT_CALL(timeSync, SyncStart).WillRepeatedly(Return(E_OK));
-    EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A"), E_OK);
+    EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A", ""), E_OK);
     const int loopCount = 100;
     const int timeDriverMs = 10;
     for (int i = 0; i < loopCount; ++i) {
@@ -2398,7 +2398,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerDataSyncUtils001, TestSize.Le
     MockCommunicator communicator;
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
-    (void)context.Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)context.Initialize({"device", ""}, &dbSyncInterface, metadata, &communicator);
 
     std::vector<SendDataItem> data;
     for (int i = 0; i < 2; ++i) { // loop 2 times

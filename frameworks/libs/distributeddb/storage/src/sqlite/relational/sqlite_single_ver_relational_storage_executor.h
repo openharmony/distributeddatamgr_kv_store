@@ -80,6 +80,7 @@ public:
 
     // operation of meta data
     int GetKvData(const Key &key, Value &value) const;
+    int GetKvDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const;
     int PutKvData(const Key &key, const Value &value) const;
     int DeleteMetaData(const std::vector<Key> &keys) const;
     int DeleteMetaDataByPrefixKey(const Key &keyPrefix) const;

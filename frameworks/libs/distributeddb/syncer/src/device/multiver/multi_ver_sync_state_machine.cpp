@@ -74,7 +74,8 @@ int MultiVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterfa
     multiVerDataSync_ = std::make_unique<MultiVerDataSync>();
     valueSliceSync_ = std::make_unique<ValueSliceSync>();
 
-    errCode = timeSync_->Initialize(communicator, metadata, syncInterface, context->GetDeviceId());
+    errCode = timeSync_->Initialize(communicator, metadata, syncInterface, context->GetDeviceId(),
+        context->GetTargetUserId());
     if (errCode != E_OK) {
         LOGE("timeSync_->Initialize failed err %d", errCode);
         goto ERROR_OUT;

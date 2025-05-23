@@ -487,4 +487,10 @@ int SQLiteSingleVerStorageExecutor::ClearCloudWatermark()
 {
     return CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
 }
+
+int SQLiteSingleVerStorageExecutor::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    std::string metaTableName = "meta_data";
+    return SqliteMetaExecutor::GetMetaDataByPrefixKey(dbHandle_, isMemDb_, metaTableName, keyPrefix, data);
+}
 } // namespace DistributedDB

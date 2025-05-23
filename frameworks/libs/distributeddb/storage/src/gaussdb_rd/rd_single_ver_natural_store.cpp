@@ -198,6 +198,11 @@ int RdSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     return -E_NOT_SUPPORT;
 }
 
+int RdSingleVerNaturalStore::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    return -E_NOT_SUPPORT;
+}
+
 int RdSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
     return -E_NOT_SUPPORT;
