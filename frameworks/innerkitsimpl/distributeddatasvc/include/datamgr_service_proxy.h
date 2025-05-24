@@ -22,10 +22,12 @@ public:
     ~DataMgrServiceProxy() = default;
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
 
-    Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
+    Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer,
+        const std::string &featureName = "") override;
 
     int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId) override;
 
+    int32_t Exit(const std::string &featureName) override;
 private:
     static inline BrokerDelegator<DataMgrServiceProxy> delegator_;
 };
