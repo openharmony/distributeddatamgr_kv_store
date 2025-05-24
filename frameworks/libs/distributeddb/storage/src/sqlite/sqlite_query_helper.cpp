@@ -15,6 +15,7 @@
 #include "sqlite_query_helper.h"
 
 #include <iomanip>
+#include <sstream>
 
 #include "db_common.h"
 #include "db_constant.h"
