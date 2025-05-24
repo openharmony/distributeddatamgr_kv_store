@@ -225,6 +225,19 @@ int VirtualRelationalVerSyncDBInterface::GetMetaData(const Key &key, Value &valu
     return -E_NOT_FOUND;
 }
 
+int VirtualRelationalVerSyncDBInterface::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    for (const auto &metadata : metadata_) {
+        if (metadata.first.size() < keyPrefix.size()) {
+            continue;
+        }
+        if (std::equal(keyPrefix.begin(), keyPrefix.end(), metadata.first.begin())) {
+            data[metadata.first] = metadata.second;
+        }
+    }
+    return data.empty() ? -E_NOT_FOUND : E_OK;
+}
+
 int VirtualRelationalVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
     (void)isInTransaction;

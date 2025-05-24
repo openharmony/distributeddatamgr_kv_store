@@ -51,7 +51,6 @@
     "deps": {
       "third_party": [
         "bounds_checking_function",
-        "jsoncpp",
         "libuv",
         "openssl",
         "sqlite",
@@ -79,8 +78,7 @@
         "safwk",
         "samgr",
         "file_api",
-        "zlib",
-        "data_share"
+        "zlib"
       ]
     },
     "build": {

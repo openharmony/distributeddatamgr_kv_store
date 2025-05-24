@@ -244,6 +244,16 @@ struct StoreInfo {
     std::string userId;
     std::string appId;
     std::string storeId;
+
+    bool operator<(const StoreInfo &other) const
+    {
+        if (userId == other.userId && appId == other.appId) {
+            return storeId < other.storeId;
+        } else if (userId == other.userId) {
+            return appId < other.appId;
+        }
+        return userId < other.userId;
+    }
 };
 using TranslateToDeviceIdCallback = std::function<std::string (const std::string &oriDevId, const StoreInfo &info)>;
 } // namespace DistributedDB

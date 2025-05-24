@@ -232,9 +232,7 @@ int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) { // LCOV_EXCL_BR_LINE
         return -E_CLOUD_ERROR;
     }
-    std::ostringstream s;
-    s << val;
-    DBCommon::StringToVector(s.str(), value);
+    DBCommon::StringToVector(std::to_string(val), value);
     return E_OK;
 }
 

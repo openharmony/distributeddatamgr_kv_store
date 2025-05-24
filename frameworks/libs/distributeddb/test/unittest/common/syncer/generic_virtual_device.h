@@ -56,6 +56,7 @@ protected:
     std::shared_ptr<Metadata> metadata_;
     std::string deviceId_;
     std::string remoteDeviceId_;
+    std::string targetUserId_;
     SyncTaskContext *context_;
     std::function<void(const std::string &)> onRemoteDataChanged_;
 

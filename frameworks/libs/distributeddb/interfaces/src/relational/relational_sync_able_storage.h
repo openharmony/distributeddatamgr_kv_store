@@ -62,6 +62,8 @@ public:
     // Get meta data associated with the given key.
     int GetMetaData(const Key &key, Value &value) const override;
 
+    int GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const override;
+
     // Put meta data as a key-value entry.
     int PutMetaData(const Key &key, const Value &value) override;
 

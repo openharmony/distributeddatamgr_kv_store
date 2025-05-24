@@ -35,7 +35,7 @@ public:
     enum TASK_EXEC_STATUS { INIT, RUNNING, FAILED, FINISHED };
 
     // Initialize the context
-    virtual int Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
+    virtual int Initialize(const DeviceSyncTarget &target, ISyncInterface *syncInterface,
         const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) = 0;
 
     // Add a sync task target with the operation to the queue
@@ -75,6 +75,10 @@ public:
 
     // Get the current task deviceId.
     virtual std::string GetDeviceId() const = 0;
+
+    virtual std::string GetTargetUserId() const = 0;
+
+    virtual void SetTargetUserId(const std::string &userId) = 0;
 
     virtual void SetTaskExecStatus(int status) = 0;
 

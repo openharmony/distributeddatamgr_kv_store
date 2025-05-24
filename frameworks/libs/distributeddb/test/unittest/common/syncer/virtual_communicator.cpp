@@ -209,7 +209,7 @@ VirtualCommunicator::~VirtualCommunicator()
 
 VirtualCommunicator::VirtualCommunicator(const std::string &deviceId,
     VirtualCommunicatorAggregator *communicatorAggregator)
-    : deviceId_(deviceId), communicatorAggregator_(communicatorAggregator)
+    : deviceId_(deviceId), communicatorAggregator_(communicatorAggregator), targetUserId_(DBConstant::DEFAULT_USER)
 {
 }
 
@@ -235,5 +235,15 @@ void VirtualCommunicator::SetDropMessageTypeByDevice(MessageId msgid, uint32_t d
     if (msgid == UNKNOW_MESSAGE) {
         dropMsgTimes_ = 0;
     }
+}
+
+std::string VirtualCommunicator::GetTargetUserId(const ExtendInfo &paramInfo) const
+{
+    return targetUserId_;
+}
+
+void VirtualCommunicator::SetTargetUserId(const std::string &userId)
+{
+    targetUserId_ = userId;
 }
 } // namespace DistributedDB

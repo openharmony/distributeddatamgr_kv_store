@@ -39,10 +39,10 @@ SingleVerSyncTaskContext::~SingleVerSyncTaskContext()
     subManager_ = nullptr;
 }
 
-int SingleVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
+int SingleVerSyncTaskContext::Initialize(const DeviceSyncTarget &target, ISyncInterface *syncInterface,
     const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
 {
-    if (deviceId.empty() || syncInterface == nullptr || metadata == nullptr ||
+    if (target.device.empty() || syncInterface == nullptr || metadata == nullptr ||
         communicator == nullptr) {
         LOGE("[SingleVerSyncTaskContext] [Initialize] parameter is invalid.");
         return -E_INVALID_ARGS;
@@ -52,7 +52,8 @@ int SingleVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInter
         LOGE("[SingleVerSyncTaskContext] [Initialize] stateMachine_ is nullptr.");
         return -E_OUT_OF_MEMORY;
     }
-    deviceId_ = deviceId;
+    deviceId_ = target.device;
+    targetUserId_ = target.userId;
     std::vector<uint8_t> dbIdentifier = syncInterface->GetIdentifier();
     dbIdentifier.resize(3); // only show 3 bytes
     syncActionName_ = DBDfxAdapter::SYNC_ACTION + "_" +
@@ -518,14 +519,14 @@ int SingleVerSyncTaskContext::GetCorrectedSendWaterMarkForCurrentTask(const Sync
     if (operation != nullptr && operation->IsQuerySync()) {
         LOGD("Is QuerySync");
         int errCode = static_cast<SingleVerSyncStateMachine *>(stateMachine_)->GetSendQueryWaterMark(
-            operation->GetQueryId(), deviceId_,
+            operation->GetQueryId(), deviceId_, targetUserId_,
             lastFullSyncTaskStatus_ == SyncOperation::OP_FINISHED_ALL, waterMark);
         if (errCode != E_OK) {
             return errCode;
         }
     } else {
         LOGD("Not QuerySync");
-        static_cast<SingleVerSyncStateMachine *>(stateMachine_)->GetLocalWaterMark(deviceId_, waterMark);
+        static_cast<SingleVerSyncStateMachine *>(stateMachine_)->GetLocalWaterMark(deviceId_, targetUserId_, waterMark);
     }
     return E_OK;
 }

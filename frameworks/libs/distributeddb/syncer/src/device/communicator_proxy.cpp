@@ -272,4 +272,27 @@ void CommunicatorProxy::Dump(int fd)
         DBDumpHelper::Dump(fd, "\t\ttarget = %s, label = %s\n", target.c_str(), label.c_str());
     }
 }
+
+std::string CommunicatorProxy::GetTargetUserId(const ExtendInfo &paramInfo) const
+{
+    ICommunicator *targetCommunicator = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(devCommMapLock_);
+        if (devCommMap_.count(paramInfo.dstTarget) != 0) {
+            targetCommunicator = devCommMap_.at(paramInfo.dstTarget).second;
+            RefObject::IncObjRef(targetCommunicator);
+        }
+    }
+    if (targetCommunicator != nullptr) {
+        std::string targetUserId = targetCommunicator->GetTargetUserId(paramInfo);
+        RefObject::DecObjRef(targetCommunicator);
+        return targetUserId;
+    }
+
+    if (mainComm_ != nullptr) {
+        return mainComm_->GetTargetUserId(paramInfo);
+    }
+
+    return "";
+}
 } // namespace DistributedDB

@@ -66,7 +66,7 @@ int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNe
         storage = syncInterface_;
         storage->IncRefCount();
     }
-    int errCode = metadata->EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
+    int errCode = metadata->EraseDeviceWaterMark(deviceId, "", isNeedHash, tableName);
     storage->DecRefCount();
     return errCode;
 }

@@ -319,5 +319,18 @@ enum class DataOperator : uint32_t {
     UPDATE_TIME = 0x01,
     RESET_UPLOAD_CLOUD = 0x02
 };
+
+struct DeviceSyncTarget {
+    std::string device;
+    std::string userId;
+    DeviceSyncTarget(std::string device, std::string userId) : device(std::move(device)), userId(std::move(userId)) {}
+    bool operator<(const DeviceSyncTarget& other) const
+    {
+        if (device == other.device) {
+            return userId < other.userId;
+        }
+        return device < other.device;
+    }
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

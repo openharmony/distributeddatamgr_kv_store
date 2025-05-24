@@ -29,12 +29,14 @@ class SerialBuffer; // Forward Declarations
 struct FrameInfo {
     SerialBuffer *buffer = nullptr;
     std::string srcTarget;
+    std::string sendUser;
     LabelType commLabel;
     uint32_t frameId = 0u;
 };
 
 struct RetainWork {
     SerialBuffer *buffer = nullptr;
+    std::string sendUser;
     uint32_t frameId = 0u;
     uint32_t remainTime = 0u; // in second
 };

@@ -787,4 +787,11 @@ int SQLiteUtils::UpdateLocalDataCloudFlag(sqlite3 *db)
     }
     return errCode;
 }
+
+int SQLiteUtils::ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFinalize, int errCode)
+{
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, isNeedFinalize, ret);
+    return errCode != E_OK ? errCode : ret;
+}
 } // namespace DistributedDB

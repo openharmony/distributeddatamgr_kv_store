@@ -337,7 +337,7 @@ namespace {
         std::vector<Key> keys;
         EXPECT_EQ(obj.DeleteMetaData(keys), -E_INVALID_DB);
         EXPECT_EQ(obj.GetAllMetaKeys(keys), -E_INVALID_DB);
-        Key key;
+        Key key = {'k'};
         Value value;
         EXPECT_EQ(obj.GetMetaData(key, value), -E_INVALID_DB);
         EXPECT_EQ(obj.PutMetaData(key, value), -E_INVALID_DB);

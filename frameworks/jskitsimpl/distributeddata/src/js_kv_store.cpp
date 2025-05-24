@@ -19,13 +19,11 @@
 #include "log_print.h"
 #include "napi_queue.h"
 #include "datashare_values_bucket.h"
-#include "datashare_predicates.h"
 #include "single_kvstore.h"
 #include "kv_utils.h"
 #include "kvstore_datashare_bridge.h"
 
 using namespace OHOS::DistributedKv;
-using namespace OHOS::DataShare;
 
 namespace OHOS::DistributedData {
 inline static uint8_t UNVALID_SUBSCRIBE_TYPE = 255;

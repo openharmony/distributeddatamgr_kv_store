@@ -423,7 +423,7 @@ int AbilitySync::AckRecv(const Message *message, ISyncTaskContext *context)
     }
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
     context->SetRemoteSoftwareVersion(remoteSoftwareVersion);
-    metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), remoteSoftwareVersion);
+    metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), context->GetTargetUserId(), remoteSoftwareVersion);
     if (remoteSoftwareVersion > SOFTWARE_VERSION_RELEASE_2_0) {
         errCode = AckRecvWithHighVersion(message, context, packet);
     } else {
@@ -518,7 +518,7 @@ void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished, ISyncTaskConte
     if (syncFinished && !context.IsSchemaCompatible()) { // LCOV_EXCL_BR_LINE
         return;
     }
-    int errCode = metadata_->SetAbilitySyncFinishMark(deviceId_, syncFinished);
+    int errCode = metadata_->SetAbilitySyncFinishMark(deviceId_, context.GetTargetUserId(), syncFinished);
     if (errCode != E_OK) {
         LOGW("[AbilitySync] Set ability sync finish mark failed %d", errCode);
     }
@@ -1155,10 +1155,11 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
         ackCode = -E_SECURITY_OPTION_CHECK_ERROR;
     }
     if (ackCode == E_OK && remoteSoftwareVersion > SOFTWARE_VERSION_RELEASE_3_0) {
-        ackCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
+        ackCode = metadata_->SetDbCreateTime(deviceId_, context->GetTargetUserId(), packet->GetDbCreateTime(), true);
     }
     if (ackCode == E_OK && remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_9_0) {
-        ackCode = metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), packet->GetSchemaVersion());
+        ackCode = metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), context->GetTargetUserId(),
+            packet->GetSchemaVersion());
     }
     AbilitySyncAckPacket ackPacket;
     if (IsSingleRelationalVer()) {
@@ -1334,7 +1335,7 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     std::pair<bool, bool> schemaSyncStatus;
     int errCode = E_OK;
     if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_3_0) {
-        errCode = metadata_->SetDbCreateTime(deviceId_, packet->GetDbCreateTime(), true);
+        errCode = metadata_->SetDbCreateTime(deviceId_, context->GetTargetUserId(), packet->GetDbCreateTime(), true);
         if (errCode != E_OK) {
             LOGE("[AbilitySync][AckRecv] set db create time failed,errCode=%d", errCode);
             context->SetTaskErrCode(errCode);
@@ -1378,7 +1379,7 @@ bool AbilitySync::IsBothKvAndOptAbilitySync(uint32_t remoteVersion, SchemaType l
 
 void AbilitySync::InitAbilitySyncFinishStatus(ISyncTaskContext &context)
 {
-    if (!metadata_->IsAbilitySyncFinish(context.GetDeviceId())) {
+    if (!metadata_->IsAbilitySyncFinish(context.GetDeviceId(), context.GetTargetUserId())) {
         return;
     }
     LOGI("[AbilitySync] Mark ability sync finish from db status");
@@ -1398,7 +1399,8 @@ void AbilitySync::InitRemoteDBAbility(ISyncTaskContext &context)
         return;
     }
     context.SetDbAbility(ability);
-    auto version = static_cast<uint32_t>(metadata_->GetRemoteSoftwareVersion(context.GetDeviceId()));
+    auto version = static_cast<uint32_t>(metadata_->GetRemoteSoftwareVersion(context.GetDeviceId(),
+        context.GetTargetUserId()));
     if (version > 0) {
         context.SetRemoteSoftwareVersion(version);
     }
@@ -1408,7 +1410,8 @@ void AbilitySync::RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTas
 {
     SetAbilitySyncFinishedStatus(true, context);
     if (context.GetRemoteSoftwareVersion() >= SOFTWARE_VERSION_RELEASE_9_0) { // LCOV_EXCL_BR_LINE
-        (void)metadata_->SetRemoteSchemaVersion(deviceId_, remoteSchemaVersion);
+        (void)metadata_->SetRemoteSchemaVersion(deviceId_, context.GetTargetUserId(), remoteSchemaVersion);
     }
+    (void)metadata_->SetRemoteSoftwareVersion(deviceId_, context.GetTargetUserId(), remoteSchemaVersion);
 }
 } // namespace DistributedDB

@@ -54,6 +54,8 @@ public:
     // Get meta data associated with the given key.
     virtual int GetMetaData(const Key &key, Value &value) const = 0;
 
+    virtual int GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const = 0;
+
     // Put meta data as a key-value entry.
     virtual int PutMetaData(const Key &key, const Value &value, bool isInTransaction) = 0;
 

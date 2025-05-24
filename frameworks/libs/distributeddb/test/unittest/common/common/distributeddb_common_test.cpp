@@ -567,7 +567,7 @@ HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest001, TestSize.Level1)
         t1.join();
         t2.join();
     }
-    EXPECT_EQ(count1, count1);
+    EXPECT_EQ(count2, threadCount);
     EXPECT_EQ(count1, threadCount);
 }
 

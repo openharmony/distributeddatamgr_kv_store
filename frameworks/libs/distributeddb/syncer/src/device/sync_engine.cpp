@@ -323,13 +323,18 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
 int SyncEngine::AddSyncOperForContext(const std::string &deviceId, SyncOperation *operation)
 {
     int errCode = E_OK;
+    bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    std::string targetUserId = DBConstant::DEFAULT_USER;
+    if (isSyncDualTupleMode) {
+        targetUserId = GetTargetUserId(deviceId);
+    }
     ISyncTaskContext *context = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        context = FindSyncTaskContext(deviceId);
+        context = FindSyncTaskContext({deviceId, targetUserId});
         if (context == nullptr) {
             if (!IsKilled()) {
-                context = GetSyncTaskContext(deviceId, errCode);
+                context = GetSyncTaskContext({deviceId, targetUserId}, errCode);
             }
             if (context == nullptr) {
                 return errCode;
@@ -417,7 +422,7 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     // it will deal with the first message in queue, we should increase object reference counts and sure that resources
     // could be prevented from destroying by other threads.
     do {
-        ISyncTaskContext *nextContext = GetContextForMsg(inMsg->GetTarget(), errCode);
+        ISyncTaskContext *nextContext = GetContextForMsg({inMsg->GetTarget(), inMsg->GetSenderUserId()}, errCode);
         if (errCode != E_OK) {
             break;
         }
@@ -434,12 +439,12 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     return errCode;
 }
 
-ISyncTaskContext *SyncEngine::GetContextForMsg(const std::string &targetDev, int &errCode)
+ISyncTaskContext *SyncEngine::GetContextForMsg(const DeviceSyncTarget &target, int &errCode)
 {
     ISyncTaskContext *context = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        context = FindSyncTaskContext(targetDev);
+        context = FindSyncTaskContext(target);
         if (context != nullptr) { // LCOV_EXCL_BR_LINE
             if (context->IsKilled()) {
                 errCode = -E_OBJ_IS_KILLED;
@@ -450,7 +455,7 @@ ISyncTaskContext *SyncEngine::GetContextForMsg(const std::string &targetDev, int
                 errCode = -E_OBJ_IS_KILLED;
                 return nullptr;
             }
-            context = GetSyncTaskContext(targetDev, errCode);
+            context = GetSyncTaskContext(target, errCode);
             if (context == nullptr) {
                 return nullptr;
             }
@@ -544,7 +549,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
     }
 
     int errCode = E_OK;
-    ISyncTaskContext *nextContext = GetContextForMsg(targetDev, errCode);
+    ISyncTaskContext *nextContext = GetContextForMsg({targetDev, inMsg->GetSenderUserId()}, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -598,9 +603,9 @@ int SyncEngine::GetMsgSize(const Message *inMsg) const
     }
 }
 
-ISyncTaskContext *SyncEngine::FindSyncTaskContext(const std::string &deviceId)
+ISyncTaskContext *SyncEngine::FindSyncTaskContext(const DeviceSyncTarget &target)
 {
-    auto iter = syncTaskContextMap_.find(deviceId);
+    auto iter = syncTaskContextMap_.find(target);
     if (iter != syncTaskContextMap_.end()) {
         ISyncTaskContext *context = iter->second;
         return context;
@@ -608,24 +613,29 @@ ISyncTaskContext *SyncEngine::FindSyncTaskContext(const std::string &deviceId)
     return nullptr;
 }
 
-ISyncTaskContext *SyncEngine::GetSyncTaskContextAndInc(const std::string &deviceId)
+std::vector<ISyncTaskContext *> SyncEngine::GetSyncTaskContextAndInc(const std::string &deviceId)
 {
-    ISyncTaskContext *context = nullptr;
+    std::vector<ISyncTaskContext *> contexts;
     std::lock_guard<std::mutex> lock(contextMapLock_);
-    context = FindSyncTaskContext(deviceId);
-    if (context == nullptr) {
-        LOGI("[SyncEngine] dev=%s, context is null, no need to clear sync operation", STR_MASK(deviceId));
-        return nullptr;
+    for (const auto &iter : syncTaskContextMap_) {
+        if (iter.first.device != deviceId) {
+            continue;
+        }
+        if (iter.second == nullptr) {
+            LOGI("[SyncEngine] dev=%s, context is null, no need to clear sync operation", STR_MASK(deviceId));
+            return {};
+        }
+        if (iter.second->IsKilled()) { // LCOV_EXCL_BR_LINE
+            LOGI("[SyncEngine] context is killing");
+            return {};
+        }
+        RefObject::IncObjRef(iter.second);
+        contexts.push_back(iter.second);
     }
-    if (context->IsKilled()) { // LCOV_EXCL_BR_LINE
-        LOGI("[SyncEngine] context is killing");
-        return nullptr;
-    }
-    RefObject::IncObjRef(context);
-    return context;
+    return contexts;
 }
 
-ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, int &errCode)
+ISyncTaskContext *SyncEngine::GetSyncTaskContext(const DeviceSyncTarget &target, int &errCode)
 {
     auto storage = GetAndIncSyncInterface();
     if (storage == nullptr) {
@@ -639,19 +649,19 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, in
         LOGE("[SyncEngine] SyncTaskContext alloc failed, may be no memory available!");
         return nullptr;
     }
-    errCode = context->Initialize(deviceId, storage, metadata_, communicatorProxy_);
+    errCode = context->Initialize(target, storage, metadata_, communicatorProxy_);
     if (errCode != E_OK) {
-        LOGE("[SyncEngine] context init failed err %d, dev %s", errCode, STR_MASK(deviceId));
+        LOGE("[SyncEngine] context init failed err %d, dev %s", errCode, STR_MASK(target.device));
         RefObject::DecObjRef(context);
         storage->DecRefCount();
         context = nullptr;
         return nullptr;
     }
-    syncTaskContextMap_.insert(std::pair<std::string, ISyncTaskContext *>(deviceId, context));
+    syncTaskContextMap_.insert(std::pair<DeviceSyncTarget, ISyncTaskContext *>(target, context));
     // IncRef for SyncEngine to make sure SyncEngine is valid when context access
     RefObject::IncObjRef(this);
-    context->OnLastRef([this, deviceId, storage]() {
-        LOGD("[SyncEngine] SyncTaskContext for id %s finalized", STR_MASK(deviceId));
+    context->OnLastRef([this, target, storage]() {
+        LOGD("[SyncEngine] SyncTaskContext for id %s finalized", STR_MASK(target.device));
         RefObject::DecObjRef(this);
         storage->DecRefCount();
     });
@@ -675,6 +685,13 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
         int errCode = context->GetNextTarget(timeout);
         if (errCode != E_OK) {
             // current task execute failed, try next task
+            context->ClearSyncOperation();
+            continue;
+        }
+        if (context->GetTargetUserId().empty()) {
+            LOGE("[SyncEngine] No target user found.");
+            context->SetTaskErrCode(-E_NO_TRUSTED_USER);
+            context->SetOperationStatus(SyncOperation::OP_FAILED);
             context->ClearSyncOperation();
             continue;
         }
@@ -860,33 +877,37 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
     static_cast<SyncGenericInterface *>(storage)->GetDBInfo(dbInfo);
     RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, deviceId);
     // get context and Inc context if context is not nullptr
-    ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
-    {
-        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
-        if (communicatorProxy_ == nullptr) {
-            return;
+    std::vector<ISyncTaskContext *> contexts = GetSyncTaskContextAndInc(deviceId);
+    for (const auto &context : contexts) {
+        {
+            std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+            if (communicatorProxy_ == nullptr) {
+                return;
+            }
+            if (communicatorProxy_->IsDeviceOnline(deviceId)) { // LCOV_EXCL_BR_LINE
+                LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
+                RefObject::DecObjRef(context);
+                return;
+            }
         }
-        if (communicatorProxy_->IsDeviceOnline(deviceId)) { // LCOV_EXCL_BR_LINE
-            LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
+        // means device is offline, clear local subscribe
+        subManager_->ClearLocalSubscribeQuery(deviceId);
+        // clear sync task
+        if (context != nullptr) {
+            context->ClearAllSyncTask();
             RefObject::DecObjRef(context);
-            return;
         }
-    }
-    // means device is offline, clear local subscribe
-    subManager_->ClearLocalSubscribeQuery(deviceId);
-    // clear sync task
-    if (context != nullptr) {
-        context->ClearAllSyncTask();
-        RefObject::DecObjRef(context);
     }
 }
 
 void SyncEngine::ClearAllSyncTaskByDevice(const std::string &deviceId)
 {
-    ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
-    if (context != nullptr) {
-        context->ClearAllSyncTask();
-        RefObject::DecObjRef(context);
+    std::vector<ISyncTaskContext *> contexts = GetSyncTaskContextAndInc(deviceId);
+    for (const auto &context : contexts) {
+        if (context != nullptr) {
+            context->ClearAllSyncTask();
+            RefObject::DecObjRef(context);
+        }
     }
 }
 
@@ -1375,5 +1396,30 @@ uint32_t SyncEngine::GetTimeout(const std::string &dev)
     uint32_t timeout = communicator->GetTimeout(dev);
     RefObject::DecObjRef(communicator);
     return timeout;
+}
+
+std::string SyncEngine::GetTargetUserId(const std::string &dev)
+{
+    std::string targetUserId;
+    ICommunicator *communicator = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(communicatorProxyLock_);
+        if (communicatorProxy_ == nullptr) {
+            LOGW("[SyncEngine] Communicator is null when get target user");
+            return targetUserId;
+        }
+        communicator = communicatorProxy_;
+        RefObject::IncObjRef(communicator);
+    }
+    DBProperties properties = syncInterface_->GetDbProperties();
+    ExtendInfo extendInfo;
+    extendInfo.appId = properties.GetStringProp(DBProperties::APP_ID, "");
+    extendInfo.userId = properties.GetStringProp(DBProperties::USER_ID, "");
+    extendInfo.storeId = properties.GetStringProp(DBProperties::STORE_ID, "");
+    extendInfo.dstTarget = dev;
+    extendInfo.subUserId = properties.GetStringProp(DBProperties::SUB_USER, "");
+    targetUserId = communicator->GetTargetUserId(extendInfo);
+    RefObject::DecObjRef(communicator);
+    return targetUserId;
 }
 } // namespace DistributedDB

@@ -67,17 +67,17 @@ public:
 
     int Initialize(ISyncInterface *storage);
 
-    int SaveTimeOffset(const DeviceID &deviceId, TimeOffset inValue);
+    int SaveTimeOffset(const DeviceID &deviceId, const DeviceID &userId, TimeOffset inValue);
 
-    void GetTimeOffset(const DeviceID &deviceId, TimeOffset &outValue);
+    void GetTimeOffset(const DeviceID &deviceId, const DeviceID &userId, TimeOffset &outValue);
 
-    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    virtual void GetLocalWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue);
 
-    int SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue);
+    int SaveLocalWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t inValue);
 
-    void GetPeerWaterMark(const DeviceID &deviceId, uint64_t &outValue, bool isNeedHash = true);
+    void GetPeerWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue, bool isNeedHash = true);
 
-    int SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool isNeedHash);
+    int SavePeerWaterMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t inValue, bool isNeedHash);
 
     int SaveLocalTimeOffset(TimeOffset timeOffset, bool saveIntoDb = true);
 
@@ -85,52 +85,56 @@ public:
 
     int EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash);
 
-    int EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName);
+    int EraseDeviceWaterMark(const std::string &deviceId, const std::string &userId, bool isNeedHash,
+        const std::string &tableName);
 
     void SetLastLocalTime(Timestamp lastLocalTime);
 
     Timestamp GetLastLocalTime() const;
 
     int SetSendQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, const WaterMark &waterMark);
+        const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
     // the querySync's sendWatermark will increase by the device watermark
     // if the sendWatermark less than device watermark
     int GetSendQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, WaterMark &waterMark, bool isAutoLift = true);
+        const std::string &deviceId, const std::string &userId, WaterMark &waterMark, bool isAutoLift = true);
 
     int SetRecvQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, const WaterMark &waterMark);
+        const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
     // the querySync's recvWatermark will increase by the device watermark
     // if the watermark less than device watermark
     int GetRecvQueryWaterMark(const std::string &queryIdentify,
-        const std::string &deviceId, WaterMark &waterMark);
+        const std::string &deviceId, const std::string &userId, WaterMark &waterMark);
 
     virtual int SetLastQueryTime(const std::string &queryIdentify, const std::string &deviceId,
-        const Timestamp &timestamp);
+        const std::string &userId, const Timestamp &timestamp);
 
-    virtual int GetLastQueryTime(const std::string &queryIdentify, const std::string &deviceId, Timestamp &timestamp);
+    virtual int GetLastQueryTime(const std::string &queryIdentify, const std::string &deviceId,
+        const std::string &userId, Timestamp &timestamp);
 
-    int SetSendDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
+    int SetSendDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, const WaterMark &waterMark);
 
     // the deleteSync's sendWatermark will increase by the device watermark
     // if the sendWatermark less than device watermark
-    int GetSendDeleteSyncWaterMark(const std::string &deviceId, WaterMark &waterMark, bool isAutoLift = true);
+    int GetSendDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, WaterMark &waterMark,
+        bool isAutoLift = true);
 
-    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark, bool isNeedHash = true);
+    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, const WaterMark &waterMark,
+        bool isNeedHash = true);
 
     // the deleteSync's recvWatermark will increase by the device watermark
     // if the recvWatermark less than device watermark
-    int GetRecvDeleteSyncWaterMark(const std::string &deviceId, WaterMark &waterMark);
+    int GetRecvDeleteSyncWaterMark(const std::string &deviceId, const std::string &userId, WaterMark &waterMark);
 
-    void GetDbCreateTime(const DeviceID &deviceId, uint64_t &outValue);
+    void GetDbCreateTime(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue);
 
-    int SetDbCreateTime(const DeviceID &deviceId, uint64_t inValue, bool isNeedHash);
+    int SetDbCreateTime(const DeviceID &deviceId, const DeviceID &userId, uint64_t inValue, bool isNeedHash);
 
-    int ResetMetaDataAfterRemoveData(const DeviceID &deviceId);
+    int ResetMetaDataAfterRemoveData(const DeviceID &deviceId, const DeviceID &userId);
 
-    void GetRemoveDataMark(const DeviceID &deviceId, uint64_t &outValue);
+    void GetRemoveDataMark(const DeviceID &deviceId, const DeviceID &userId, uint64_t &outValue);
 
     // always get value from db, value updated from storage trigger
     uint64_t GetQueryLastTimestamp(const DeviceID &deviceId, const std::string &queryId) const;
@@ -145,51 +149,54 @@ public:
 
     void UnlockWaterMark() const;
 
-    int GetWaterMarkInfoFromDB(const std::string &dev, bool isNeedHash, WatermarkInfo &info);
+    int GetWaterMarkInfoFromDB(const std::string &dev, const std::string &userId, bool isNeedHash, WatermarkInfo &info);
 
     int ClearAllAbilitySyncFinishMark();
 
-    int SetAbilitySyncFinishMark(const std::string &deviceId, bool finish);
+    int SetAbilitySyncFinishMark(const std::string &deviceId, const std::string &userId, bool finish);
 
-    bool IsAbilitySyncFinish(const std::string &deviceId);
+    bool IsAbilitySyncFinish(const std::string &deviceId, const std::string &userId);
 
     int ClearAllTimeSyncFinishMark();
 
-    int SetTimeSyncFinishMark(const std::string &deviceId, bool finish);
+    int SetTimeSyncFinishMark(const std::string &deviceId, const std::string &userId, bool finish);
 
-    int SetTimeChangeMark(const std::string &deviceId, bool change);
+    int SetTimeChangeMark(const std::string &deviceId, const std::string &userId, bool change);
 
-    bool IsTimeSyncFinish(const std::string &deviceId);
+    bool IsTimeSyncFinish(const std::string &deviceId, const std::string &userId);
 
-    bool IsTimeChange(const std::string &deviceId);
+    bool IsTimeChange(const std::string &deviceId, const std::string &userId);
 
-    int SetRemoteSchemaVersion(const std::string &deviceId, uint64_t schemaVersion);
+    int SetRemoteSchemaVersion(const std::string &deviceId, const std::string &userId, uint64_t schemaVersion);
 
-    uint64_t GetRemoteSchemaVersion(const std::string &deviceId);
+    uint64_t GetRemoteSchemaVersion(const std::string &deviceId, const std::string &userId);
 
-    int SetSystemTimeOffset(const std::string &deviceId, int64_t systemTimeOffset);
+    int SetSystemTimeOffset(const std::string &deviceId, const std::string &userId, int64_t systemTimeOffset);
 
-    int64_t GetSystemTimeOffset(const std::string &deviceId);
+    int64_t GetSystemTimeOffset(const std::string &deviceId, const std::string &userId);
 
     std::pair<int, uint64_t> GetLocalSchemaVersion();
 
     int SetLocalSchemaVersion(uint64_t schemaVersion);
 
-    uint64_t GetRemoteSoftwareVersion(const std::string &deviceId);
+    uint64_t GetRemoteSoftwareVersion(const std::string &deviceId, const std::string &userId);
 
-    int SetRemoteSoftwareVersion(const std::string &deviceId, uint64_t version);
+    int SetRemoteSoftwareVersion(const std::string &deviceId, const std::string &userId, uint64_t version);
 private:
 
-    int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
+    int SaveMetaDataValue(const DeviceID &deviceId, const DeviceID &userId, const MetaDataValue &inValue,
+        bool isNeedHash = true);
 
     // sync module need hash devices id
-    int GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
+    int GetMetaDataValue(const DeviceID &deviceId, const DeviceID &userId, MetaDataValue &outValue, bool isNeedHash);
 
     static int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
 
     static int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue);
 
     int GetMetadataFromDb(const std::vector<uint8_t> &key, std::vector<uint8_t> &outValue) const;
+
+    int GetMetadataFromDbByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const;
 
     int SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector<uint8_t> &inValue);
 
@@ -199,14 +206,15 @@ private:
 
     int LoadAllMetadata();
 
-    void GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash);
+    void GetHashDeviceId(const DeviceID &deviceId, const DeviceID &userId, DeviceID &hashDeviceId, bool isNeedHash);
 
     // reset the waterMark to zero
-    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
+    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const DeviceID &userId, const std::string &tableName,
+        bool isNeedHash);
 
-    int SetSyncMark(const std::string &deviceId, SyncMark syncMark, bool finish);
+    int SetSyncMark(const std::string &deviceId, const std::string &userId, SyncMark syncMark, bool finish);
 
-    bool IsContainSyncMark(const std::string &deviceId, SyncMark syncMark);
+    bool IsContainSyncMark(const std::string &deviceId, const std::string &userId, SyncMark syncMark);
 
     int SaveLocalMetaData(const LocalMetaData &localMetaData);
 
@@ -233,9 +241,12 @@ private:
 
     int InitLocalMetaData();
 
-    int GetMetaDataValueFromDB(const std::string &deviceId, bool isNeedHash, MetaDataValue &metaDataValue);
+    int GetMetaDataValueFromDB(const std::string &deviceId, const std::string &userId, bool isNeedHash,
+        MetaDataValue &metaDataValue);
 
     int GetMetaDataValueFromDB(const Key &key, MetaDataValue &metaDataValue);
+    int GetMetaDataFromDBByPrefixKey(const std::string &deviceId, bool isNeedHash,
+        std::map<Key, MetaDataValue> &metaData);
 
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
@@ -246,7 +257,7 @@ private:
     // if changed, it should be locked from save-to-db to change-in-memory.save to db must be first,
     // if save to db fail, it will not be changed in memory.
     mutable std::mutex metadataLock_;
-    std::map<DeviceID, DeviceID> deviceIdToHashDeviceIdMap_;
+    std::map<DeviceSyncTarget, DeviceID> deviceIdToHashDeviceIdMap_;
 
     // store localTimeOffset in ram, used to make timestamp increase
     mutable std::mutex lastLocalTimeLock_;

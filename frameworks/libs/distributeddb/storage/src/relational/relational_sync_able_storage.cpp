@@ -105,7 +105,6 @@ void RelationalSyncAbleStorage::GetMaxTimestamp(Timestamp &timestamp) const
         TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
     }
     ReleaseHandle(handle);
-    return;
 }
 
 int RelationalSyncAbleStorage::GetMaxTimestamp(const std::string &tableName, Timestamp &timestamp) const
@@ -179,9 +178,6 @@ void RelationalSyncAbleStorage::ReleaseHandle(SQLiteSingleVerRelationalStorageEx
 // Get meta data associated with the given key.
 int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
@@ -198,12 +194,27 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
     return errCode;
 }
 
+int RelationalSyncAbleStorage::GetMetaDataByPrefixKey(const Key &keyPrefix, std::map<Key, Value> &data) const
+{
+    if (keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    auto handle = GetHandle(false, errCode, OperatePerm::NORMAL_PERM);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetKvDataByPrefixKey(keyPrefix, data);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
+    }
+    ReleaseHandle(handle);
+    return errCode;
+}
+
 // Put meta data as a key-value entry.
 int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -260,9 +271,6 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, b
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
     for (const auto &key : keys) {
         if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE) {
             return -E_INVALID_ARGS;
@@ -290,9 +298,6 @@ int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 // Delete multiple meta data records with key prefix in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
     if (keyPrefix.empty() || keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
@@ -315,9 +320,6 @@ int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) c
 // Get all meta data keys.
 int RelationalSyncAbleStorage::GetAllMetaKeys(std::vector<Key> &keys) const
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {

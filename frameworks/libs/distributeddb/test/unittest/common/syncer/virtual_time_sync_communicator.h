@@ -72,6 +72,8 @@ public:
 
     void SetRemoteVersion(uint16_t remoteVersion);
 
+    std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
+
 private:
     TimeSync *srcTimeSync_;
     TimeSync *dstTimeSync_;
