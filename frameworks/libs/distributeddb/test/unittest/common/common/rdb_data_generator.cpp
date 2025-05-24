@@ -65,26 +65,6 @@ int RDBDataGenerator::InitTable(const TableSchema &table, bool notNullWithStr, b
     return errCode;
 }
 
-std::string RDBDataGenerator::GetTypeText(int type)
-{
-    switch (type) {
-        case DistributedDB::TYPE_INDEX<int64_t>:
-            return "INTEGER";
-        case DistributedDB::TYPE_INDEX<std::string>:
-            return "TEXT";
-        case DistributedDB::TYPE_INDEX<DistributedDB::Assets>:
-            return "ASSETS";
-        case DistributedDB::TYPE_INDEX<DistributedDB::Asset>:
-            return "ASSET";
-        case DistributedDB::TYPE_INDEX<double>:
-            return "DOUBLE";
-        case DistributedDB::TYPE_INDEX<Bytes>:
-            return "BLOB";
-        default:
-            return "";
-    }
-}
-
 DistributedDB::DBStatus RDBDataGenerator::InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart,
     const DistributedDB::DataBaseSchema &schema,
     const std::shared_ptr<DistributedDB::VirtualCloudDb> &virtualCloudDb)
@@ -491,48 +471,6 @@ DistributedDB::TableSchema RDBDataGenerator::FlipTableSchema(const DistributedDB
         res.fields.insert(res.fields.begin(), item);
     }
     return res;
-}
-
-int RDBDataGenerator::InitDatabaseWithSchemaInfo(const UtDateBaseSchemaInfo &schemaInfo, sqlite3 &db)
-{
-    int errCode = RelationalTestUtils::ExecSql(&db, "PRAGMA journal_mode=WAL;");
-    if (errCode != SQLITE_OK) {
-        LOGE("[RDBDataGenerator] Execute sql failed %d", errCode);
-        return errCode;
-    }
-    for (const auto &tableInfo : schemaInfo.tablesInfo) {
-        errCode = InitTableWithSchemaInfo(tableInfo, db);
-        if (errCode != SQLITE_OK) {
-            LOGE("[RDBDataGenerator] Init table failed %d, %s", errCode, tableInfo.name.c_str());
-            break;
-        }
-    }
-    return errCode;
-}
-
-int RDBDataGenerator::InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo, sqlite3 &db)
-{
-    std::string sql = "CREATE TABLE IF NOT EXISTS " + tableInfo.name + "(";
-    for (const auto &fieldInfo : tableInfo.fieldInfo) {
-        sql += "'" + fieldInfo.field.colName + "' " + GetTypeText(fieldInfo.field.type);
-        if (fieldInfo.field.primary) {
-            sql += " PRIMARY KEY";
-            if (fieldInfo.isAutoIncrement) {
-                sql += " AUTOINCREMENT";
-            }
-        }
-        if (!fieldInfo.field.nullable) {
-            sql += " NOT NULL ON CONFLICT IGNORE";
-        }
-        sql += ",";
-    }
-    sql.pop_back();
-    sql += ");";
-    int errCode = RelationalTestUtils::ExecSql(&db, sql);
-    if (errCode != SQLITE_OK) {
-        LOGE("[RDBDataGenerator] Execute sql failed %d, sql is %s", errCode, sql.c_str());
-    }
-    return errCode;
 }
 
 Bytes RDBDataGenerator::GenerateBytes(int64_t index)

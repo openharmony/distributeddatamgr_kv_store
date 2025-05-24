@@ -91,6 +91,7 @@ group("build_module") {
   deps = [
     ":customtokenizer",
     ":distributeddb",
+    ":distributeddb_client",
   ]
 }
 
@@ -183,6 +184,102 @@ ohos_shared_library("customtokenizer") {
   ]
 
   public_external_deps = [ "sqlite:sqlite" ]
+
+  subsystem_name = "distributeddatamgr"
+  innerapi_tags = [ "platformsdk_indirect" ]
+  part_name = "kv_store"
+}
+
+config("distributeddb_client_public_config") {
+  visibility = [ "*:*" ]
+  include_dirs = [
+    "interfaces/include/relational",
+    "interfaces/include",
+    "include",
+  ]
+}
+
+config("distributeddb_client_config") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "interfaces/src/relational",
+    "common/include/cloud",
+    "common/include",
+    "interfaces/include",
+    "interfaces/include/cloud",
+    "include",
+    "storage/include",
+    "communicator/include",
+    "common/include/relational",
+    "storage/src/sqlite",
+    "storage/src",
+    "storage/src/kv",
+    "syncer/src/device",
+    "storage/src/sqlite/relational",
+    "storage/src/relational",
+  ]
+
+  defines = [
+    "_LARGEFILE64_SOURCE",
+    "_FILE_OFFSET_BITS=64",
+    "SQLITE_HAS_CODEC",
+    "SQLITE_ENABLE_JSON1",
+    "USING_HILOG_LOGGER",
+    "USE_SQLITE_SYMBOLS",
+    "USING_DB_JSON_EXTRACT_AUTOMATICALLY",
+    "JSONCPP_USE_BUILDER",
+    "OMIT_FLATBUFFER",
+    "OMIT_MULTI_VER",
+    "RELATIONAL_STORE",
+    "SQLITE_DISTRIBUTE_RELATIONAL",
+    "USE_DFX_ABILITY",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "OPENSSL_SUPPRESS_DEPRECATED",
+  ]
+  if (is_debug) {
+    defines += [ "TRACE_SQLITE_EXECUTE" ]
+  }
+  if (is_ohos) {
+    defines += [ "USE_FFRT" ]
+    defines += [ "RDB_CLIENT" ]
+  }
+  if (kv_store_cloud) {
+    defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
+  }
+}
+
+ohos_shared_library("distributeddb_client") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  sources = distributeddb_client_src
+  configs = [ ":distributeddb_client_config" ]
+  public_configs = [ ":distributeddb_client_public_config" ]
+
+  cflags_cc = [
+    "-fvisibility=hidden",
+    "-Os",
+    "-D_FORTIFY_SOURCE=2",
+  ]
+  deps = [ "gaussdb_rd:gaussdb_rd" ]
+
+  external_deps = [
+    "cJSON:cjson",
+    "c_utils:utils",
+    "ffrt:libffrt",
+    "hilog:libhilog",
+  ]
+
+  public_external_deps = [
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
+  ]
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]
