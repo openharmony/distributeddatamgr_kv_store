@@ -61,7 +61,8 @@ sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &
     return remoteObject;
 }
 
-Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
+Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer,
+    const std::string &featureName)
 {
     MessageParcel data;
     MessageParcel reply;
@@ -81,6 +82,10 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
     } else {
         ZLOGE("This observer is null");
         return Status::INVALID_ARGUMENT;
+    }
+    if (!data.WriteString(featureName)) {
+        ZLOGW("Failed to write featureName.");
+        return Status::IPC_ERROR;
     }
 
     MessageOption mo { MessageOption::TF_SYNC };
@@ -116,6 +121,11 @@ int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int3
         return Status::IPC_ERROR;
     }
     return static_cast<Status>(reply.ReadInt32());
+}
+
+int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
+{
+    return Status::NOT_SUPPORT;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS
