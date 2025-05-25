@@ -605,6 +605,13 @@ int SyncEngine::GetMsgSize(const Message *inMsg) const
 
 ISyncTaskContext *SyncEngine::FindSyncTaskContext(const DeviceSyncTarget &target)
 {
+    if (target.userId == DBConstant::DEFAULT_USER) {
+        for (auto &[key, value] : syncTaskContextMap_) {
+            if (key.device == target.device) {
+                return value;
+            }
+        }
+    }
     auto iter = syncTaskContextMap_.find(target);
     if (iter != syncTaskContextMap_.end()) {
         ISyncTaskContext *context = iter->second;
