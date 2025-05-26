@@ -46,11 +46,6 @@ namespace {
     const std::string WAL_MODE_SQL = "PRAGMA journal_mode=WAL;";
     const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1;";
     const std::string SHA256_ALGO_REKEY_SQL = "PRAGMA codec_rekey_hmac_algo=SHA256;";
-
-    const constexpr char *CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
-        "type='table' AND (tbl_name=? COLLATE NOCASE));";
-    const constexpr char *CHECK_META_DB_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM meta.sqlite_master WHERE " \
-        "type='table' AND (tbl_name=? COLLATE NOCASE));";
 }
 
 struct ValueParseCache {
@@ -648,38 +643,6 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
     return Rekey(db, passwd);
 }
 
-int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated, bool isCheckMeta)
-{
-    if (db == nullptr) {
-        return -1;
-    }
-
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, isCheckMeta ? CHECK_META_DB_TABLE_CREATED : CHECK_TABLE_CREATED, stmt);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
-        LOGE("Get check table statement failed. err=%d", errCode);
-        return errCode;
-    }
-
-    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, tableName);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
-        LOGE("Bind table name to statement failed. err=%d", errCode);
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        LOGE("Check table exists failed. err=%d", errCode); // should always return a row data
-        goto END;
-    }
-    errCode = E_OK;
-    isCreated = (sqlite3_column_int(stmt, 0) == 1);
-END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
-
 int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
 {
     if (stmt == nullptr) {
@@ -692,29 +655,6 @@ int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
         errCode = E_OK;
     }
     return errCode;
-}
-
-int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int &count)
-{
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteUtils][GetCountBySql] Get stmt failed when get local data count: %d", errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt, false);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        count = static_cast<int>(sqlite3_column_int(stmt, 0));
-        errCode = E_OK;
-    } else {
-        LOGE("[SQLiteUtils][GetCountBySql] Query local data count failed: %d", errCode);
-    }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    if (ret != E_OK) {
-        LOGE("[SQLiteUtils][GetCountBySql] Reset stmt failed when get local data count: %d", ret);
-    }
-    return errCode != E_OK ? errCode : ret;
 }
 
 bool SQLiteUtils::IsStmtReadOnly(sqlite3_stmt *statement)
@@ -786,12 +726,5 @@ int SQLiteUtils::UpdateLocalDataCloudFlag(sqlite3 *db)
         LOGE("[SQLiteUtils] Update cloud flag failed %d", errCode);
     }
     return errCode;
-}
-
-int SQLiteUtils::ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFinalize, int errCode)
-{
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, isNeedFinalize, ret);
-    return errCode != E_OK ? errCode : ret;
 }
 } // namespace DistributedDB

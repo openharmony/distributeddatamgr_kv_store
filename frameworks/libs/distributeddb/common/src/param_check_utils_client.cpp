@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,19 +13,16 @@
  * limitations under the License.
  */
 
-#ifndef DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H
-#define DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H
+#include "param_check_utils.h"
 
-#include <cstdint>
+#include "db_common.h"
 
-/* SAID:1301 */
-namespace OHOS::DistributedKv {
-enum class KvStoreDataServiceInterfaceCode : uint32_t {
-    GET_FEATURE_INTERFACE = 0,
-    REGISTERCLIENTDEATHOBSERVER,
-    CLEAR_APP_STORAGE,
-    FEATURE_EXIT,
-    SERVICE_CMD_LAST
-};
-} // namespace OHOS::DistributedKv
-#endif // DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H
+namespace DistributedDB {
+bool ParamCheckUtils::CheckRelationalTableName(const std::string &tableName)
+{
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
+        return false;
+    }
+    return tableName.compare(0, DBConstant::SYSTEM_TABLE_PREFIX.size(), DBConstant::SYSTEM_TABLE_PREFIX) != 0;
+}
+} // namespace DistributedDB

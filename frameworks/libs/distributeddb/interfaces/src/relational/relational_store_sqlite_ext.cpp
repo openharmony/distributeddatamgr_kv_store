@@ -65,6 +65,7 @@ using namespace DistributedDB::OS;
 using namespace DistributedDB;
 
 namespace {
+const std::string DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
@@ -560,7 +561,7 @@ int GetLocalTimeOffsetFromMeta(sqlite3 *db, TimeOffset &offset)
 
 int GetTableModeFromMeta(sqlite3 *db, DistributedTableMode &mode)
 {
-    std::string keyStr = RelationalDBProperties::DISTRIBUTED_TABLE_MODE;
+    std::string keyStr = DISTRIBUTED_TABLE_MODE;
     int64_t dbVal = 0;
     int errCode = GetNumValueFromMeta(db, keyStr, dbVal);
     if (errCode != E_OK) {
@@ -1674,10 +1675,19 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
         return DistributedDB::DB_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
-    auto it = g_clientObserverMap.find(hashFileName);
-    if (it != g_clientObserverMap.end()) {
-        g_clientObserverMap.erase(it);
+    {
+        std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+        auto it = g_clientObserverMap.find(hashFileName);
+        if (it != g_clientObserverMap.end()) {
+            g_clientObserverMap.erase(it);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(g_clientChangedDataMutex);
+        auto it = g_clientChangedDataMap.find(hashFileName);
+        if (it != g_clientChangedDataMap.end()) {
+            g_clientChangedDataMap[hashFileName].tableData.clear();
+        }
     }
     return DistributedDB::OK;
 }
