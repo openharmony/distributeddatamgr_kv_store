@@ -79,7 +79,7 @@
         "samgr",
         "file_api",
         "zlib",
-        "data_share"
+        "data_share",
         "openssl",
         "sqlite"
       ]
