@@ -125,7 +125,7 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
-          "visibility": [ "datamgr_service" ],
+          "visibility": [ "datamgr_service", "relational_store" ],
           "header": {
             "header_files": [
               "executor.h",
@@ -139,7 +139,7 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
-          "visibility": [ "datamgr_service" ],
+          "visibility": [ "datamgr_service", "relational_store" ],
           "header": {
             "header_files": [
               "concurrent_map.h"
