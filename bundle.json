@@ -125,7 +125,7 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
-          "visibility": [ "datamgr_service", "relational_store" ],
+          "visibility": [ "datamgr_service" ],
           "header": {
             "header_files": [
               "executor.h",
