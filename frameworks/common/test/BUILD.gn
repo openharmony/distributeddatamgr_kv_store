@@ -43,7 +43,6 @@ ohos_unittest("ConcurrentMapTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("ExecutorPoolTest") {
@@ -58,7 +57,6 @@ ohos_unittest("ExecutorPoolTest") {
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("LruBucketTest") {
@@ -73,7 +71,6 @@ ohos_unittest("LruBucketTest") {
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("TaskSchedulerTest") {
@@ -88,7 +85,6 @@ ohos_unittest("TaskSchedulerTest") {
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("TraitsTest") {
@@ -103,7 +99,6 @@ ohos_unittest("TraitsTest") {
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("PoolTest") {
@@ -121,7 +116,6 @@ ohos_unittest("PoolTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("PriorityQueueTest") {
@@ -139,7 +133,6 @@ ohos_unittest("PriorityQueueTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ###############################################################################

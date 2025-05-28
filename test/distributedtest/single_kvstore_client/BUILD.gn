@@ -31,7 +31,6 @@ config("module_private_config") {
 common_deps = [
   "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
   "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
-  "${third_party_path}/googletest:gtest",
 ]
 
 common_external_deps = [
@@ -40,6 +39,7 @@ common_external_deps = [
   "access_token:libtoken_setproc",
   "c_utils:utils",
   "device_manager:devicemanagersdk",
+  "googletest:gtest",
   "hilog:libhilog",
   "hisysevent:libhisysevent",
   "hitrace:hitrace_meter",

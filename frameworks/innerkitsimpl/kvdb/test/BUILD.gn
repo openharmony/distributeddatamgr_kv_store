@@ -143,7 +143,6 @@ ohos_unittest("SingleStoreImplTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -168,7 +167,6 @@ ohos_unittest("StoreUtilTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -193,7 +191,6 @@ ohos_unittest("BackupManagerTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -218,7 +215,6 @@ ohos_unittest("DevManagerTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -245,7 +241,6 @@ ohos_unittest("DevManagerMockTest") {
   deps = [
     ":kvdb_src_file",
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -270,7 +265,6 @@ ohos_unittest("SingleStoreImplGetTopTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -295,7 +289,6 @@ ohos_unittest("StoreFactoryTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -318,7 +311,6 @@ ohos_unittest("SecurityManagerTest") {
   deps = [
     ":kvdb_src_file",
     "../../../libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -343,7 +335,6 @@ ohos_unittest("SingleStorePerfPcTest") {
   deps = [
     ":kvdb_src_file",
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
@@ -368,7 +359,6 @@ ohos_unittest("SingleStorePerfPhoneTest") {
   deps = [
     ":kvdb_src_file",
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
   ]
 }
 
