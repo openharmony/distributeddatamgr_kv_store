@@ -467,21 +467,19 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSiz
     EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
 
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
 
     Key key = {'1'};
     Value value = {'1'};
     g_deviceB->PutData(key, value, 0, 0);
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceB push data
      * @tc.expected: step3. return PERMISSION_CHECK_FORBID_SYNC.
      */
     std::map<std::string, DBStatus> result;
-    status = g_tool.SyncTest(delegatePtr1, devices, SYNC_MODE_PUSH_ONLY, result);
+    DBStatus status = g_tool.SyncTest(delegatePtr1, devices, SYNC_MODE_PUSH_ONLY, result);
     ASSERT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
 

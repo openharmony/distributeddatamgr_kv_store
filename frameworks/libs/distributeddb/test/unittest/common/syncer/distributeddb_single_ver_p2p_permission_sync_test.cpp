@@ -235,7 +235,6 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck002, TestSi
 
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
 
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     devices.push_back(g_deviceC->GetDeviceId());
@@ -253,14 +252,13 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck002, TestSi
     Key key2 = {'2'};
     Value value2 = {'2'};
     g_deviceC->PutData(key2, value2, 0, 0);
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceA call pull sync
      * @tc.expected: step3. sync should return OK.
      */
     std::map<std::string, DBStatus> result;
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
 
     /**
@@ -456,7 +454,6 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck005, TestSi
         };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
 
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     devices.push_back(g_deviceC->GetDeviceId());
@@ -474,14 +471,13 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck005, TestSi
     Key key2 = {'2'};
     Value value2 = {'2'};
     g_deviceC->PutData(key2, value2, 0, 0);
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceA call pull sync
      * @tc.expected: step3. sync should return OK.
      */
     std::map<std::string, DBStatus> result;
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
 
     /**
@@ -650,7 +646,6 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck008, TestSi
             }
         };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     devices.push_back(g_deviceC->GetDeviceId());
@@ -668,14 +663,13 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck008, TestSi
     Key key2 = {'2'};
     Value value2 = {'2'};
     g_deviceC->PutData(key2, value2, 0, 0);
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceA call push sync
      * @tc.expected: step3. sync should return OK.
      */
     std::map<std::string, DBStatus> result;
-    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
 
