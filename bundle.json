@@ -139,10 +139,15 @@
         },
         {
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/common:datamgr_common",
-          "visibility": [ "datamgr_service", "relational_store" ],
+          "visibility": [
+            "datamgr_service",
+            "relational_store"
+          ],
           "header": {
             "header_files": [
-              "concurrent_map.h"
+              "concurrent_map.h",
+              "block_data.h",
+              "itypes_util.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/common"
           }

@@ -1933,7 +1933,6 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
      * @tc.steps: step1. InitSchemaDb
      */
     InitSchemaDb();
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
 
@@ -1946,10 +1945,8 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
     for (int i = 0; i < dataSize; i++) {
         key.push_back(i);
         g_deviceB->PutData(key, value, 10 + i, 0);
-        ASSERT_TRUE(status == OK);
         key.pop_back();
     }
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceA call query sync and wait
@@ -1957,7 +1954,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
      */
     Query query = Query::Select().EqualTo("$.field_name1", 1);
     std::map<std::string, DBStatus> result;
-    status = g_tool.SyncTest(g_schemaKvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, query);
+    DBStatus status = g_tool.SyncTest(g_schemaKvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, query);
     ASSERT_TRUE(status == OK);
 
     /**
