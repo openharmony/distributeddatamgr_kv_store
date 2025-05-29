@@ -37,13 +37,13 @@ ohos_unittest("ConcurrentMapTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("ExecutorPoolTest") {
@@ -55,10 +55,10 @@ ohos_unittest("ExecutorPoolTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("LruBucketTest") {
@@ -70,10 +70,10 @@ ohos_unittest("LruBucketTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("TaskSchedulerTest") {
@@ -85,10 +85,10 @@ ohos_unittest("TaskSchedulerTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("TraitsTest") {
@@ -100,10 +100,10 @@ ohos_unittest("TraitsTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("PoolTest") {
@@ -115,13 +115,13 @@ ohos_unittest("PoolTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ohos_unittest("PriorityQueueTest") {
@@ -134,12 +134,12 @@ ohos_unittest("PriorityQueueTest") {
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
+    "googletest:gtest",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
 
-  deps = [ "//third_party/googletest:gtest" ]
 }
 
 ###############################################################################

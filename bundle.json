@@ -53,8 +53,7 @@
         "bounds_checking_function",
         "libuv",
         "openssl",
-        "sqlite",
-        "googletest"
+        "sqlite"
       ],
       "kernel_special": {},
       "board_special": {},
