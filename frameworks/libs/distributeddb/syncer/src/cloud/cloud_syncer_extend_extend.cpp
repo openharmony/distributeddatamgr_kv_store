@@ -53,4 +53,34 @@ int CloudSyncer::StopTaskBeforeSetReference(std::function<int(void)> &setReferen
     }
     return errCode;
 }
+
+int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
+    DownloadCommitList &commitList, uint32_t &successCount)
+{
+    int errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE, true);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] start transaction Failed before handle async download.");
+        return errCode;
+    }
+    errCode = CommitDownloadAssetsForAsyncDownload(downloadItem, info, commitList, successCount);
+    if (errCode != E_OK) {
+        successCount = 0;
+        int ret = E_OK;
+        if (errCode == -E_REMOVE_ASSETS_FAILED) {
+            // remove assets failed no effect to asset status, just commit
+            ret = storageProxy_->Commit(true);
+            LOGE("[CloudSyncer] commit async download assets failed %d commit ret %d", errCode, ret);
+        } else {
+            ret = storageProxy_->Rollback(true);
+            LOGE("[CloudSyncer] commit async download assets failed %d rollback ret %d", errCode, ret);
+        }
+        return errCode;
+    }
+    errCode = storageProxy_->Commit(true);
+    if (errCode != E_OK) {
+        successCount = 0;
+        LOGE("[CloudSyncer] commit async download assets failed %d", errCode);
+    }
+    return errCode;
+}
 } // namespace DistributedDB

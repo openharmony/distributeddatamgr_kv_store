@@ -139,11 +139,11 @@ public:
     // recycling the write handle
     void SetReusedHandle(StorageExecutor *handle);
 
-    int StartTransaction(TransactType type) override;
+    int StartTransaction(TransactType type, bool isAsyncDownload = false) override;
 
-    int Commit() override;
+    int Commit(bool isAsyncDownload = false) override;
 
-    int Rollback() override;
+    int Rollback(bool isAsyncDownload = false) override;
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) override;
@@ -300,6 +300,8 @@ private:
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
     SQLiteSingleVerRelationalStorageExecutor *GetHandleExpectTransaction(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
+    SQLiteSingleVerRelationalStorageExecutor *GetHandleExpectTransactionForAsyncDownload(bool isWrite, int &errCode,
+        OperatePerm perm = OperatePerm::NORMAL_PERM) const;
     void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
     // get
@@ -342,6 +344,12 @@ private:
 
     void SaveCursorChange(const std::string &tableName, uint64_t currCursor);
 
+    int CommitForAsyncDownload();
+
+    int RollbackForAsyncDownload();
+
+    int StartTransactionForAsyncDownload(TransactType type);
+
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -365,6 +373,7 @@ private:
     mutable bool isCachedOption_;
 
     SQLiteSingleVerRelationalStorageExecutor *transactionHandle_ = nullptr;
+    SQLiteSingleVerRelationalStorageExecutor *asyncDownloadTransactionHandle_ = nullptr;
     mutable std::shared_mutex transactionMutex_; // used for transaction
 
     SchemaMgr schemaMgr_;

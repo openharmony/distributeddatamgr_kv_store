@@ -1036,8 +1036,11 @@ StoreInfo RelationalSyncAbleStorage::GetStoreInfo() const
     return info;
 }
 
-int RelationalSyncAbleStorage::StartTransaction(TransactType type)
+int RelationalSyncAbleStorage::StartTransaction(TransactType type, bool isAsyncDownload)
 {
+    if (isAsyncDownload) {
+        return StartTransactionForAsyncDownload(type);
+    }
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
@@ -1062,8 +1065,11 @@ int RelationalSyncAbleStorage::StartTransaction(TransactType type)
     return errCode;
 }
 
-int RelationalSyncAbleStorage::Commit()
+int RelationalSyncAbleStorage::Commit(bool isAsyncDownload)
 {
+    if (isAsyncDownload) {
+        return CommitForAsyncDownload();
+    }
     std::unique_lock<std::shared_mutex> lock(transactionMutex_);
     if (transactionHandle_ == nullptr) {
         LOGE("relation database is null or the transaction has not been started");
@@ -1076,8 +1082,11 @@ int RelationalSyncAbleStorage::Commit()
     return errCode;
 }
 
-int RelationalSyncAbleStorage::Rollback()
+int RelationalSyncAbleStorage::Rollback(bool isAsyncDownload)
 {
+    if (isAsyncDownload) {
+        return RollbackForAsyncDownload();
+    }
     std::unique_lock<std::shared_mutex> lock(transactionMutex_);
     if (transactionHandle_ == nullptr) {
         LOGE("Invalid handle for rollback or the transaction has not been started.");

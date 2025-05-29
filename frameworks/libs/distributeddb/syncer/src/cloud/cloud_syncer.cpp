@@ -1749,7 +1749,7 @@ int CloudSyncer::CommitDownloadResult(const DownloadItem &downloadItem, InnerPro
     uint32_t successCount = 0u;
     int ret = E_OK;
     if (info.isAsyncDownload) {
-        ret = CommitDownloadAssetsForAsyncDownload(downloadItem, info, commitList, successCount);
+        ret = HandleDownloadResultForAsyncDownload(downloadItem, info, commitList, successCount);
     } else {
         ret = HandleDownloadResult(downloadItem, info, commitList, successCount);
     }

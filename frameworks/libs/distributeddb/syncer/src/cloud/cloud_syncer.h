@@ -283,6 +283,9 @@ protected:
     int HandleDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, uint32_t &successCount);
 
+    int HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
+    DownloadCommitList &commitList, uint32_t &successCount);
+
     int FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
         VBucket &extend);
 

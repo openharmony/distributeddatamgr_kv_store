@@ -116,11 +116,11 @@ public:
 
     virtual int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) = 0;
 
-    virtual int StartTransaction(TransactType type) = 0;
+    virtual int StartTransaction(TransactType type, bool isAsyncDownload = false) = 0;
 
-    virtual int Commit() = 0;
+    virtual int Commit(bool isAsyncDownload = false) = 0;
 
-    virtual int Rollback() = 0;
+    virtual int Rollback(bool isAsyncDownload = false) = 0;
 
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) = 0;

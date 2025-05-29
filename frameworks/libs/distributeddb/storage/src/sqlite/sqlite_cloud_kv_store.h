@@ -37,11 +37,11 @@ public:
 
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 
-    int StartTransaction(TransactType type) override;
+    int StartTransaction(TransactType type, bool isAsyncDownload = false) override;
 
-    int Commit() override;
+    int Commit(bool isAsyncDownload = false) override;
 
-    int Rollback() override;
+    int Rollback(bool isAsyncDownload = false) override;
 
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         bool isCompensatedTask, int64_t &count) override;
@@ -137,6 +137,12 @@ private:
     int OperateDataStatusInner(SQLiteSingleVerStorageExecutor *handle, const std::string &currentVirtualTime,
         const std::string &currentTime, uint32_t dataOperator);
 
+    int CommitForAsyncDownload();
+
+    int RollbackForAsyncDownload();
+
+    int StartTransactionForAsyncDownload(TransactType type);
+
     KvStorageHandle *storageHandle_;
 
     std::mutex schemaMutex_;
@@ -144,6 +150,7 @@ private:
 
     mutable std::mutex transactionMutex_;
     SQLiteSingleVerStorageExecutor *transactionHandle_;
+    SQLiteSingleVerStorageExecutor *asyncDownloadTransactionHandle_ = nullptr;
 
     std::string user_;
 

@@ -181,68 +181,61 @@ int RelationalSyncAbleStorage::FillCloudAssetForAsyncDownload(const std::string 
         LOGE("[RelationalSyncAbleStorage]storage is null when fill asset for async download");
         return -E_INVALID_DB;
     }
-    int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGE("executor is null when fill asset for async download.");
-        return errCode;
+    if (asyncDownloadTransactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started when fill asset for async download.");
+        return -E_INVALID_DB;
     }
     TableSchema tableSchema;
-    errCode = GetCloudTableSchema(tableName, tableSchema);
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
-        ReleaseHandle(handle);
-        LOGE("Get cloud schema failed when fill cloud asset, %d, tableName:%s, length:%zu",
-            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
         return errCode;
     }
     uint64_t currCursor = DBConstant::INVALID_CURSOR;
-    errCode = handle->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess, currCursor);
+    errCode = asyncDownloadTransactionHandle_->FillCloudAssetForDownload(
+        tableSchema, asset, isDownloadSuccess, currCursor);
     if (errCode != E_OK) {
-        LOGE("fill cloud asset for download failed:%d, tableName:%s, length:%zu",
-            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        LOGE("fill cloud asset for async download failed.%d", errCode);
     }
-    SaveCursorChange(tableName, currCursor);
-    ReleaseHandle(handle);
     return errCode;
 }
 
 int RelationalSyncAbleStorage::UpdateRecordFlagForAsyncDownload(const std::string &tableName, bool recordConflict,
     const LogInfo &logInfo)
 {
-    int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGE("executor is null when update flag for async download.");
+    if (asyncDownloadTransactionHandle_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    TableSchema tableSchema;
+    GetCloudTableSchema(tableName, tableSchema);
+    std::vector<VBucket> assets;
+    int errCode = asyncDownloadTransactionHandle_->GetDownloadAssetRecordsByGid(tableSchema, logInfo.cloudGid, assets);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get download asset by gid %s failed %d", logInfo.cloudGid.c_str(), errCode);
         return errCode;
     }
+    bool isInconsistency = !assets.empty();
     UpdateRecordFlagStruct updateRecordFlag = {
         .tableName = tableName,
         .isRecordConflict = recordConflict,
-        .isInconsistency = false
+        .isInconsistency = isInconsistency
     };
     std::string sql = CloudStorageUtils::GetUpdateRecordFlagSql(updateRecordFlag, logInfo);
-    errCode = handle->UpdateRecordFlag(tableName, sql, logInfo);
-    if (errCode != E_OK) {
-        LOGE("update flag for async download failed:%d, tableName:%s, length:%zu",
-            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
-    }
-    ReleaseHandle(handle);
-    return errCode;
+    return asyncDownloadTransactionHandle_->UpdateRecordFlag(tableName, sql, logInfo);
 }
 
 int RelationalSyncAbleStorage::SetLogTriggerStatusForAsyncDownload(bool status)
 {
     int errCode = E_OK;
-    auto *handle = GetHandle(false, errCode);
+    auto *handle = GetHandleExpectTransactionForAsyncDownload(false, errCode);
     if (handle == nullptr) {
-        LOGE("executor is null when set trigger status for async download.");
         return errCode;
     }
     errCode = handle->SetLogTriggerStatus(status);
-    if (errCode != E_OK) {
-        LOGE("set trigger status for async download failed:%d");
+    if (asyncDownloadTransactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
     }
-    ReleaseHandle(handle);
     return errCode;
 }
 
@@ -329,6 +322,80 @@ bool RelationalSyncAbleStorage::IsSetDistributedSchema(const std::string &tableN
         }
     }
     return true;
+}
+
+int RelationalSyncAbleStorage::CommitForAsyncDownload()
+{
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (asyncDownloadTransactionHandle_ == nullptr) {
+        LOGE("relation database is null or the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = asyncDownloadTransactionHandle_->Commit();
+    ReleaseHandle(asyncDownloadTransactionHandle_);
+    asyncDownloadTransactionHandle_ = nullptr;
+    LOGD("connection commit transaction!");
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::RollbackForAsyncDownload()
+{
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (asyncDownloadTransactionHandle_ == nullptr) {
+        LOGE("Invalid handle for rollback or the transaction has not been started.");
+        return -E_INVALID_DB;
+    }
+
+    int errCode = asyncDownloadTransactionHandle_->Rollback();
+    ReleaseHandle(asyncDownloadTransactionHandle_);
+    asyncDownloadTransactionHandle_ = nullptr;
+    LOGI("connection rollback transaction!");
+    return errCode;
+}
+
+SQLiteSingleVerRelationalStorageExecutor *RelationalSyncAbleStorage::GetHandleExpectTransactionForAsyncDownload(
+    bool isWrite, int &errCode, OperatePerm perm) const
+{
+    if (storageEngine_ == nullptr) {
+        errCode = -E_INVALID_DB;
+        return nullptr;
+    }
+    if (asyncDownloadTransactionHandle_ != nullptr) {
+        return asyncDownloadTransactionHandle_;
+    }
+    auto handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(isWrite, perm, errCode));
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        handle = nullptr;
+    }
+    return handle;
+}
+
+int RelationalSyncAbleStorage::StartTransactionForAsyncDownload(TransactType type)
+{
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (asyncDownloadTransactionHandle_ != nullptr) {
+        LOGD("async download transaction started already.");
+        return -E_TRANSACT_STATE;
+    }
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(type == TransactType::IMMEDIATE, OperatePerm::NORMAL_PERM, errCode));
+    if (handle == nullptr) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    errCode = handle->StartTransaction(type);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    asyncDownloadTransactionHandle_ = handle;
+    return errCode;
 }
 }
 #endif

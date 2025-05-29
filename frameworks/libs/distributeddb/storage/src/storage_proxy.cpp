@@ -118,13 +118,13 @@ int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &c
     return cloudMetaData_->SetCloudWaterMark(AppendWithUserIfNeed(tableName), cloudMark);
 }
 
-int StorageProxy::StartTransaction(TransactType type)
+int StorageProxy::StartTransaction(TransactType type, bool isAsyncDownload)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    int errCode = store_->StartTransaction(type);
+    int errCode = store_->StartTransaction(type, isAsyncDownload);
     if (errCode == E_OK) {
         transactionExeFlag_.store(true);
         isWrite_.store(type == TransactType::IMMEDIATE);
@@ -132,26 +132,26 @@ int StorageProxy::StartTransaction(TransactType type)
     return errCode;
 }
 
-int StorageProxy::Commit()
+int StorageProxy::Commit(bool isAsyncDownload)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    int errCode = store_->Commit();
+    int errCode = store_->Commit(isAsyncDownload);
     if (errCode == E_OK) {
         transactionExeFlag_.store(false);
     }
     return errCode;
 }
 
-int StorageProxy::Rollback()
+int StorageProxy::Rollback(bool isAsyncDownload)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    int errCode = store_->Rollback();
+    int errCode = store_->Rollback(isAsyncDownload);
     if (errCode == E_OK) {
         transactionExeFlag_.store(false);
     }
