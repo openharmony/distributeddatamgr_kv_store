@@ -153,6 +153,7 @@ ohos_unittest("DistributedKvDataManagerTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest_main",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
