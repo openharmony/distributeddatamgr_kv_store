@@ -160,7 +160,6 @@ ohos_unittest("DistributedKvDataManagerTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//third_party/googletest:gtest_main",
   ]
 }
 
@@ -176,6 +175,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -198,6 +198,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -220,6 +221,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -242,6 +244,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -264,6 +267,7 @@ ohos_unittest("SingleKvStoreClientTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -286,6 +290,7 @@ ohos_unittest("SingleKvStoreAsyncGetTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -308,6 +313,7 @@ ohos_unittest("DeviceKvStoreTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -334,6 +340,7 @@ ohos_unittest("BlobTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
@@ -355,6 +362,7 @@ ohos_unittest("TypesUtilTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
@@ -376,6 +384,7 @@ ohos_unittest("KvUtilTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
@@ -397,6 +406,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
   ]
@@ -417,6 +427,7 @@ ohos_unittest("DistributedDataMgrTest") {
     "access_token:libnativetoken",
     "access_token:libtoken_setproc",
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -439,6 +450,7 @@ ohos_unittest("EndPointTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",

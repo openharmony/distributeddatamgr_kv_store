@@ -129,6 +129,7 @@ ohos_unittest("SingleStoreImplTest") {
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -158,6 +159,7 @@ ohos_unittest("StoreUtilTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -182,6 +184,7 @@ ohos_unittest("BackupManagerTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -206,6 +209,7 @@ ohos_unittest("DevManagerTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -232,6 +236,7 @@ ohos_unittest("DevManagerMockTest") {
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -256,6 +261,7 @@ ohos_unittest("SingleStoreImplGetTopTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -280,6 +286,7 @@ ohos_unittest("StoreFactoryTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -301,6 +308,7 @@ ohos_unittest("SecurityManagerTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "huks:libhukssdk",
     "ipc:ipc_single",
@@ -326,6 +334,7 @@ ohos_unittest("SingleStorePerfPcTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
@@ -350,6 +359,7 @@ ohos_unittest("SingleStorePerfPhoneTest") {
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
