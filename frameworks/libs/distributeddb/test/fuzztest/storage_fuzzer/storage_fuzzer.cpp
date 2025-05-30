@@ -64,6 +64,7 @@ static bool g_alreadyNotify = false;
 DistributedDB::StoreObserver::StoreChangedInfo g_changedData;
 static constexpr const int MOD = 1000; // 1000 is mod
 static constexpr const int MODNUM = 10;
+static constexpr const int COUNT_MOD = 50000; // 50000 is mod of count
 
 class StorageFuzzer {
 public:
@@ -269,7 +270,7 @@ void CreateTableForStoreObserver(sqlite3 *db, const std::string &tableName)
     RdbTestUtils::ExecSql(db, sql);
 }
 
-void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t num)
+void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint32_t num)
 {
     for (size_t i = 0; i < num; ++i) {
         std::string sql = "insert or replace into " + tableName + " VALUES('" + std::to_string(i) + "', 'zhangsan');";
@@ -279,10 +280,10 @@ void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t nu
     RdbTestUtils::ExecSql(db, sql);
 }
 
-void InitDataStatus(const std::string &tableName, int count, sqlite3 *db)
+void InitDataStatus(const std::string &tableName, uint32_t count, sqlite3 *db)
 {
     int type = 4; // the num of different status
-    for (int i = 1; i <= (type * count) % MODNUM; i++) {
+    for (uint32_t i = 1; i <= (type * count) % MODNUM; i++) {
         std::string sql = "INSERT INTO " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" +
             std::to_string(i) + "');";
         RdbTestUtils::ExecSql(db, sql);
@@ -334,7 +335,7 @@ void StoreObserverFuzz(const std::string &tableName)
     sqlite3_close_v2(db);
 }
 
-void DropLogicDeletedDataFuzz(std::string tableName, uint64_t num)
+void DropLogicDeletedDataFuzz(std::string tableName, uint32_t num)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
     InitLogicDeleteData(db, tableName, num);
@@ -342,7 +343,7 @@ void DropLogicDeletedDataFuzz(std::string tableName, uint64_t num)
     sqlite3_close_v2(db);
 }
 
-void LockAndUnLockFuzz(std::string tableName, int count)
+void LockAndUnLockFuzz(std::string tableName, uint32_t count)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
     InitDataStatus(tableName, count, db);
@@ -359,9 +360,9 @@ void CombineClientFuzzTest(FuzzedDataProvider &fdp)
     std::string tableName = fdp.ConsumeRandomLengthString(len);
     ClientObserverFuzz(tableName);
     StoreObserverFuzz(tableName);
-    uint64_t num = fdp.ConsumeIntegral<uint64_t>();
+    uint32_t num = fdp.ConsumeIntegralInRange<uint32_t>(0, COUNT_MOD);
     DropLogicDeletedDataFuzz(tableName, num);
-    int count = fdp.ConsumeIntegral<int>();
+    uint32_t count = fdp.ConsumeIntegralInRange<uint32_t>(0, COUNT_MOD);
     LockAndUnLockFuzz(tableName, count);
 }
 }
