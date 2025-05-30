@@ -32,28 +32,6 @@
 #include "version.h"
 
 namespace DistributedDB {
-int CloudSyncer::StopTaskBeforeSetReference(std::function<int(void)> &setReferenceFunc)
-{
-    CloudSyncer::TaskId currentTask;
-    {
-        // stop task if exist
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        currentTask = currentContext_.currentTaskId;
-    }
-    if (currentTask != INVALID_TASK_ID) {
-        StopAllTasks(-E_CLOUD_ERROR);
-    }
-    int errCode = E_OK;
-    {
-        std::lock_guard<std::mutex> lock(syncMutex_);
-        errCode = setReferenceFunc();
-    }
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] setReferenceFunc execute failed errCode: %d.", errCode);
-    }
-    return errCode;
-}
-
 int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
