@@ -1047,12 +1047,12 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         errCode = removeFunc();
     } else {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-        errCode = syncer->CleanKvCloudData(removeFunc);
+        errCode = syncer->StopSyncTask(removeFunc);
         DecObjRef(syncer);
 #endif
     }
     if (errCode != E_OK) {
-        LOGE("[SingleVerNStore] CleanKvCloudData with notify failed:%d", errCode);
+        LOGE("[SingleVerNStore] StopSyncTask with notify failed:%d", errCode);
     }
     return errCode;
 }
@@ -1067,12 +1067,12 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         errCode = removeFunc();
     } else {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-        errCode = syncer->CleanKvCloudData(removeFunc);
+        errCode = syncer->StopSyncTask(removeFunc);
         DecObjRef(syncer);
 #endif
     }
     if (errCode != E_OK) {
-        LOGE("[SingleVerNStore] CleanKvCloudData with mode [%d] failed:%d", mode, errCode);
+        LOGE("[SingleVerNStore] StopSyncTask with mode [%d] failed:%d", mode, errCode);
         return errCode;
     }
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -1096,12 +1096,12 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         errCode = removeFunc();
     } else {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-        errCode = syncer->CleanKvCloudData(removeFunc);
+        errCode = syncer->StopSyncTask(removeFunc);
         DecObjRef(syncer);
 #endif
     }
     if (errCode != E_OK) {
-        LOGE("[SingleVerNStore] CleanKvCloudData with user and mode [%d] failed:%d", mode, errCode);
+        LOGE("[SingleVerNStore] StopSyncTask with user and mode [%d] failed:%d", mode, errCode);
         return errCode;
     }
 #ifdef USE_DISTRIBUTEDDB_CLOUD

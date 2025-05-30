@@ -1430,8 +1430,8 @@ int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector
     return sqliteStorageEngine_->ExecuteSql(condition, records);
 }
 
-int SQLiteRelationalStore::CleanWaterMark(SQLiteSingleVerRelationalStorageExecutor *&handle,
-    std::set<std::string> &clearWaterMarkTable)
+int SQLiteRelationalStore::CleanWaterMarkInner(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const std::set<std::string> &clearWaterMarkTable)
 {
     int errCode = E_OK;
     for (const auto &tableName : clearWaterMarkTable) {
@@ -1462,59 +1462,72 @@ int SQLiteRelationalStore::CleanWaterMark(SQLiteSingleVerRelationalStorageExecut
     return errCode;
 }
 
-std::function<int(void)> SQLiteRelationalStore::SetReferenceInner(
-    const std::vector<TableReferenceProperty> &tableReferenceProperty)
+std::function<int(void)> SQLiteRelationalStore::CleanWaterMark(const std::set<std::string> clearWaterMarkTables)
 {
-    return [this, tableReferenceProperty]()->int {
-        SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
-        int errCode = GetHandleAndStartTransaction(handle);
-        if (errCode != E_OK) {
-            LOGE("[SQLiteRelationalStore] SetReference start transaction failed, errCode = %d", errCode);
+    return [this, clearWaterMarkTables]()->int {
+        int errCode = E_OK;
+        auto *handle = GetHandle(true, errCode);
+        if (handle == nullptr) {
+            LOGE("[SQLiteRelationalStore] get handle failed:%d", errCode);
             return errCode;
         }
-        std::set<std::string> clearWaterMarkTables;
-        RelationalSchemaObject schema;
-        errCode = sqliteStorageEngine_->SetReference(tableReferenceProperty, handle, clearWaterMarkTables, schema);
-        if (errCode != E_OK && errCode != -E_TABLE_REFERENCE_CHANGED) {
-            LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", errCode);
-            (void)handle->Rollback();
-            ReleaseHandle(handle);
-            return errCode;
-        }
-
-        if (!clearWaterMarkTables.empty()) {
-            storageEngine_->SetReusedHandle(handle);
-            int ret = CleanWaterMark(handle, clearWaterMarkTables);
-            if (ret != E_OK) {
-                LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", ret);
-                storageEngine_->SetReusedHandle(nullptr);
-                (void)handle->Rollback();
-                ReleaseHandle(handle);
-                return ret;
-            }
-            storageEngine_->SetReusedHandle(nullptr);
-            LOGI("[SQLiteRelationalStore] SetReference clear water mark success");
-        }
-
-        int ret = handle->Commit();
+        storageEngine_->SetReusedHandle(handle);
+        errCode = CleanWaterMarkInner(handle, clearWaterMarkTables);
+        storageEngine_->SetReusedHandle(nullptr);
         ReleaseHandle(handle);
-        if (ret == E_OK) {
-            sqliteStorageEngine_->SetSchema(schema);
-            return errCode;
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRelationalStore] SetReference clear water mark failed, errCode = %d", errCode);
         }
-        LOGE("[SQLiteRelationalStore] SetReference commit transaction failed, errCode = %d", ret);
-        return ret;
+        LOGI("[SQLiteRelationalStore] SetReference clear water mark success");
+        return errCode;
     };
+}
+
+int SQLiteRelationalStore::SetReferenceInner(const std::vector<TableReferenceProperty> &tableReferenceProperty,
+    std::set<std::string> &clearWaterMarkTables)
+{
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    int errCode = GetHandleAndStartTransaction(handle);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore] SetReference start transaction failed, errCode = %d", errCode);
+        return errCode;
+    }
+    RelationalSchemaObject schema;
+    errCode = sqliteStorageEngine_->SetReference(tableReferenceProperty, handle, clearWaterMarkTables, schema);
+    if (errCode != E_OK && errCode != -E_TABLE_REFERENCE_CHANGED) {
+        LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", errCode);
+        (void)handle->Rollback();
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    int ret = handle->Commit();
+    ReleaseHandle(handle);
+    if (ret == E_OK) {
+        sqliteStorageEngine_->SetSchema(schema);
+        return errCode;
+    }
+    LOGE("[SQLiteRelationalStore] SetReference commit transaction failed, errCode = %d", ret);
+    return ret;
 }
 
 int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
 {
-    auto setReferenceFunc = SetReferenceInner(tableReferenceProperty);
+    std::set<std::string> clearWaterMarkTables;
+    int errCode = SetReferenceInner(tableReferenceProperty, clearWaterMarkTables);
+    if (errCode != E_OK && errCode != -E_TABLE_REFERENCE_CHANGED) {
+        LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", errCode);
+        return errCode;
+    }
+    if (!clearWaterMarkTables.empty()) {
+        auto clearWaterMarkFunc = CleanWaterMark(clearWaterMarkTables);
+        int ret = E_OK;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    return cloudSyncer_->StopTaskBeforeSetReference(setReferenceFunc);
-#else
-    return setReferenceFunc();
+        ret = cloudSyncer_->StopSyncTask(clearWaterMarkFunc);
 #endif
+        return ret != E_OK ? ret : errCode;
+    }
+    return errCode;
 }
 
 int SQLiteRelationalStore::InitTrackerSchemaFromMeta()

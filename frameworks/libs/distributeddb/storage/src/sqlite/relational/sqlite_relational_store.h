@@ -91,7 +91,7 @@ public:
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
 
-    std::function<int(void)> SetReferenceInner(const std::vector<TableReferenceProperty> &tableReferenceProperty);
+    std::function<int(void)> CleanWaterMark(const std::set<std::string> clearWaterMarkTables);
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 
@@ -168,7 +168,8 @@ private:
 
     int CheckTableName(const std::vector<std::string> &tableNames);
 
-    int CleanWaterMark(SQLiteSingleVerRelationalStorageExecutor *&handle, std::set<std::string> &clearWaterMarkTable);
+    int CleanWaterMarkInner(SQLiteSingleVerRelationalStorageExecutor *&handle,
+        const std::set<std::string> &clearWaterMarkTable);
 
     int InitTrackerSchemaFromMeta();
 
@@ -193,6 +194,9 @@ private:
 
     int CheckTrackerTable(const TrackerSchema &trackerSchema, TableInfo &table, bool &isNoTableInSchema,
         bool &isFirstCreate);
+
+    int SetReferenceInner(const std::vector<TableReferenceProperty> &tableReferenceProperty,
+        std::set<std::string> &clearWaterMarkTables);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,

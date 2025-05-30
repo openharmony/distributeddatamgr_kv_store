@@ -1405,7 +1405,7 @@ std::string CloudSyncer::GetStoreIdByTask(TaskId taskId)
     return cloudTaskInfos_[taskId].storeId;
 }
 
-int CloudSyncer::CleanKvCloudData(std::function<int(void)> &removeFunc)
+int CloudSyncer::StopSyncTask(std::function<int(void)> &removeFunc)
 {
     hasKvRemoveTask = true;
     CloudSyncer::TaskId currentTask;

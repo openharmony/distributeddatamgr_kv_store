@@ -62,7 +62,7 @@ public:
 
     int ClearCloudWatermark(const std::vector<std::string> &tableNameList);
 
-    int CleanKvCloudData(std::function<int(void)> &removeFunc);
+    int StopSyncTask(std::function<int(void)> &removeFunc);
 
     int StopTaskBeforeSetReference(std::function<int(void)> &setReferenceFunc);
 
