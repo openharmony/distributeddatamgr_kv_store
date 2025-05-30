@@ -63,6 +63,8 @@ protected:
     void CloseDb();
     void DoSkipAssetDownload(SkipAssetTestParamT param);
     void UpdateLocalData(sqlite3 *&db, const std::string &tableName, int32_t begin, int32_t end);
+    void DeleteLocalData(sqlite3 *&db, const std::string &tableName);
+    void CheckLogTable(sqlite3 *&db, const std::string &tableName, int count);
     void UpdateLocalAndCheckUploadCount(const bool &isAsync, const int &dataCount, const int &expectCount);
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -1067,6 +1069,21 @@ void DistributedDBCloudAsyncDownloadAssetsTest::UpdateLocalData(
     LOGW("update local data finished");
 }
 
+void DistributedDBCloudAsyncDownloadAssetsTest::DeleteLocalData(sqlite3 *&db, const std::string &tableName)
+{
+    const string sql = "delete from " + tableName + " where pk >= 0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    LOGW("delete local data finished");
+}
+
+void DistributedDBCloudAsyncDownloadAssetsTest::CheckLogTable(sqlite3 *&db, const std::string &tableName, int count)
+{
+    const string sql = "select COUNT(*) from " + DBCommon::GetLogTableName(tableName) + " where data_key>0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+    LOGW("check log table finished");
+}
+
 void DistributedDBCloudAsyncDownloadAssetsTest::UpdateLocalAndCheckUploadCount(const bool &isAsync,
     const int &dataCount, const int &expectCount)
 {
@@ -1256,7 +1273,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, SkipAssetDownloadTest001, Te
      * @tc.expected: step1. sync return OK, and has 0 inconsistent records
      */
     SkipAssetTestParamT param = {.downloadRes = SKIP_ASSET, .useBatch = true, .useAsync = true,
-        .startIndex = 0, .expectInconsistentCount = 0, .expectSyncRes = OK};
+        .startIndex = 0, .expectInconsistentCount = 1, .expectSyncRes = OK};
     DoSkipAssetDownload(param);
 }
 
@@ -1347,5 +1364,47 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload008, Te
     EXPECT_EQ(status, OK);
     EXPECT_EQ(downloadCount, cloudCount);
     virtualAssetLoader_->ForkBatchDownload(nullptr);
+}
+
+/**
+ * @tc.name: AsyncAbnormalDownload010
+ * @tc.desc: Test assets is async downloading when delete local data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload010, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set max download task 1
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 1;
+    config.maxDownloadAssetsCount = 2;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    /**
+     * @tc.steps: step2. Insert cloud data
+     * @tc.expected: step2. ok
+     */
+    const int cloudCount = 2000;
+    auto schema = GetSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+    /**
+     * @tc.steps: step3. Sync
+     * @tc.expected: step3. ok
+     */
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    RelationalTestUtils::CloudBlockSync(option, delegate_);
+    /**
+     * @tc.steps: step4. Delete local data.
+     * @tc.expected: step4. ok
+     */
+    DeleteLocalData(db_, "AsyncDownloadAssetsTest");
+    /**
+     * @tc.steps: step5. Check log table.
+     * @tc.expected: step5. ok
+     */
+    CheckLogTable(db_, "AsyncDownloadAssetsTest", 0);
 }
 }

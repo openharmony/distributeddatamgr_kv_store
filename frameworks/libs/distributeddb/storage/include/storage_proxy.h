@@ -51,11 +51,11 @@ public:
 
     int SetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
 
-    int StartTransaction(TransactType type = TransactType::DEFERRED);
+    int StartTransaction(TransactType type = TransactType::DEFERRED, bool isAsyncDownload = false);
 
-    int Commit();
+    int Commit(bool isAsyncDownload = false);
 
-    int Rollback();
+    int Rollback(bool isAsyncDownload = false);
 
     int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
         int64_t &count);

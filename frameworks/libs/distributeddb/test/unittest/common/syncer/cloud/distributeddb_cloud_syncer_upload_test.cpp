@@ -43,12 +43,12 @@ const int COUNT = 1000;
 
 static void CommonExpectCall(MockICloudSyncStorageInterface *iCloud)
 {
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
@@ -165,10 +165,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck001, TestSize.Level1
 
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
 
@@ -222,10 +222,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck002, TestSize.Level1
     cloudSyncer->SetMockICloudDB(idb);
     TaskId taskId = 2u;
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
 
@@ -258,10 +258,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck003, TestSize.Level1
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
@@ -296,10 +296,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck004, TestSize.Level1
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(3u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
 
     // 1. Failed to get total data count
@@ -331,10 +331,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck005, TestSize.Level1
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(3u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
@@ -384,12 +384,12 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck006, TestSize.Level1
 
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
         .WillRepeatedly([](const QuerySyncObject &, const std::vector<Timestamp> &, bool, bool, int64_t & count) {
@@ -505,12 +505,12 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1
 
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
         .WillRepeatedly([](const QuerySyncObject &, const std::vector<Timestamp> &, bool, bool, int64_t & count) {
@@ -683,7 +683,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
         cloudDataResult = uploadData;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
@@ -691,8 +691,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
         count = 3000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     PrepareRecord(tmp, assets);
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
@@ -740,8 +740,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
         count = 3000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
@@ -789,7 +789,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
-    EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetAllUploadCount(_, _, _, _, _))
@@ -797,8 +797,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
         count = 3000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));

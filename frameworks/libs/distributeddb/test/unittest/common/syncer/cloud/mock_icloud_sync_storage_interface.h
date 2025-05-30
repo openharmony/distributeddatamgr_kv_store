@@ -27,9 +27,9 @@ public:
     MOCK_METHOD1(SetCloudDbSchema, int(const DataBaseSchema &));
     MOCK_METHOD1(GetCloudDbSchema, int(std::shared_ptr<DataBaseSchema> &));
     MOCK_METHOD2(GetCloudTableSchema, int(const TableName &, TableSchema &));
-    MOCK_METHOD1(StartTransaction, int(TransactType));
-    MOCK_METHOD0(Commit, int(void));
-    MOCK_METHOD0(Rollback, int(void));
+    MOCK_METHOD2(StartTransaction, int(TransactType, bool));
+    MOCK_METHOD1(Commit, int(bool));
+    MOCK_METHOD1(Rollback, int(bool));
     MOCK_METHOD5(GetUploadCount, int(const QuerySyncObject &, const Timestamp &, bool, bool, int64_t &));
     MOCK_METHOD5(GetAllUploadCount, int(const QuerySyncObject &, const std::vector<Timestamp> &, bool,
         bool, int64_t &));
