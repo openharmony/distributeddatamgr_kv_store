@@ -1502,6 +1502,14 @@ DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(con
     return static_cast<ICloudSyncStorageHook *>(engine);
 }
 
+void RelationalTestUtils::CheckIndexCount(sqlite3 *db, const std::string &table, size_t expect)
+{
+    TableInfo info;
+    ASSERT_EQ(SQLiteUtils::AnalysisSchema(db, table, info), E_OK);
+    auto index = info.GetIndexDefine();
+    EXPECT_EQ(index.size(), expect);
+}
+
 bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) const
 {
     auto changeData = savedChangedData_.find(table);
