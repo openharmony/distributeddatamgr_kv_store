@@ -84,12 +84,6 @@ ohos_fuzztest("FileOperFuzzTest") {
     "fileoper_fuzzer.cpp",
   ]
 
-  deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
-  ]
-
   defines = [
     "SQLITE_ENABLE_SNAPSHOT",
     "_LARGEFILE64_SOURCE",
@@ -110,10 +104,14 @@ ohos_fuzztest("FileOperFuzzTest") {
     "USE_DISTRIBUTEDDB_CLOUD",
   ]
 
+  deps = [ "../../../../distributeddb:distributeddb" ]
+
   external_deps = [
-    "c_utils:utils",
     "cJSON:cjson",
+    "c_utils:utils",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
     "zlib:shared_libz",
   ]
 }

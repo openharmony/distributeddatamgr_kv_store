@@ -89,14 +89,15 @@ ohos_moduletest("DistributeddbKvTransactionTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -114,14 +115,15 @@ ohos_moduletest("DistributeddbKvTransactionPerfTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -137,14 +139,15 @@ ohos_moduletest("DistributeddbKvConcurrencyCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -160,14 +163,15 @@ ohos_moduletest("DistributeddbKvBatchCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -183,14 +187,15 @@ ohos_moduletest("DistributeddbKvCreateTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -206,14 +211,15 @@ ohos_moduletest("DistributeddbKvCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -229,14 +235,15 @@ ohos_moduletest("DistributeddbKvObserverTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -252,14 +259,15 @@ ohos_moduletest("DistributeddbKvObserverSnapTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -274,14 +282,15 @@ ohos_moduletest("DistributeddbKvBackupTest") {
   sources += mul_sources
   configs = [ ":module_private_config" ]
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -297,14 +306,15 @@ ohos_moduletest("DistributeddbKvRealdelTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -322,14 +332,15 @@ ohos_moduletest("DistributeddbNbCreateTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -346,14 +357,15 @@ ohos_moduletest("DistributeddbNbCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -370,14 +382,15 @@ ohos_moduletest("DistributeddbNbObserverTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -396,14 +409,15 @@ ohos_moduletest("DistributeddbNbCursorTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -447,14 +461,15 @@ ohos_moduletest("DistributeddbNbBatchCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -472,14 +487,15 @@ ohos_moduletest("DistributeddbNbLocalBatchCrudTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -496,14 +512,15 @@ ohos_moduletest("DistributeddbNbSchemaDbTest") {
   sources += mul_sources
   configs = [ ":module_private_config" ]
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -521,14 +538,15 @@ ohos_moduletest("DistributeddbNbPredicateQueryTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -546,14 +564,15 @@ ohos_moduletest("DistributeddbNbPredicateQueryExpandTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -571,14 +590,15 @@ ohos_moduletest("DistributeddbNbAutolaunchTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -596,14 +616,15 @@ ohos_moduletest("DistributedbNbDbDamageTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -621,14 +642,15 @@ ohos_moduletest("DistributeddbNbCrudPowerTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -646,14 +668,15 @@ ohos_moduletest("DistributeddbNbSchemaTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -671,14 +694,15 @@ ohos_moduletest("DistributeddbNbSchemaUpgradeTest") {
   configs = [ ":module_private_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
+    "../../../distributeddb:distributeddb",
   ]
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }
@@ -686,13 +710,8 @@ ohos_moduletest("DistributeddbNbSchemaUpgradeTest") {
 ###############################################################################
 group("moduletest") {
   testonly = true
-  deps = [
-    "//third_party/googletest:gmock",
-    "//third_party/googletest:gtest_main",
-    "//third_party/sqlite:sqlite",
-  ]
 
-  deps += [
+  deps = [
     ":DistributedbNbDbDamageTest",
     ":DistributeddbKvBackupTest",
     ":DistributeddbKvBatchCrudTest",
