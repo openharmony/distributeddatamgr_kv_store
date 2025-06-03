@@ -56,10 +56,6 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/src",
-    "//third_party/grpc/src/core/lib/json",
-    "//commonlibrary/c_utils/base/include",
-    "//third_party/sqlite/include",
-    "//third_party/googletest/googletest/include/gtest",
   ]
 
   cflags = [

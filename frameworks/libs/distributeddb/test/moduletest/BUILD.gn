@@ -49,13 +49,9 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
 
     # "../adapter/include/communicator",
-    "//developtools/liblog",
     "common/distributeddb/include",
     "include",
-    "//commonlibrary/c_utils/base/include",
-    "//third_party/sqlite/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//third_party/openssl/include/",
   ]
 
   defines = [

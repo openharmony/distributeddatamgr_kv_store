@@ -56,10 +56,7 @@ ohos_fuzztest("IProcessCommunicatorFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/src",
-    "//commonlibrary/c_utils/base/include",
-    "//third_party/sqlite/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
-    "//third_party/grpc/src/core/lib/json",
   ]
 
   cflags = [
