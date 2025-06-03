@@ -39,6 +39,7 @@ public:
 #ifdef USE_FFRT
     static void AdapterAutoLock(ffrt::mutex &mutex);
     static void AdapterAutoUnLock(ffrt::mutex &mutex);
+    static void Stop();
 #else
     static void AdapterAutoLock(std::mutex &mutex);
     static void AdapterAutoUnLock(std::mutex &mutex);

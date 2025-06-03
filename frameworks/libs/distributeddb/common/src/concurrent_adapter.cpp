@@ -62,6 +62,11 @@ void ConcurrentAdapter::AdapterAutoUnLock(ffrt::mutex &mutex)
 {
     mutex.unlock();
 }
+
+void ConcurrentAdapter::Stop()
+{
+    ffrt::wait();
+}
 #else
 void ConcurrentAdapter::AdapterAutoLock(std::mutex &mutex)
 {

@@ -71,4 +71,6 @@ DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,
     const DistributedDB::KnowledgeSourceSchema &schema);
 
 DB_API DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
+
+void Clean(bool isOpenSslClean);
 #endif // RELATIONAL_STORE_CLIENT_H

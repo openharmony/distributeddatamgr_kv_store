@@ -27,6 +27,8 @@
 namespace DistributedDB {
 Logger *Logger::logHandler = nullptr;
 const std::string Logger::PRIVATE_TAG = "s{private}";
+static std::mutex g_logInstanceLock;
+static std::atomic<Logger *> g_logInstance = nullptr;
 
 class HiLogger : public Logger {
 public:
@@ -65,17 +67,26 @@ public:
 
 Logger *Logger::GetInstance()
 {
-    static std::mutex logInstanceLock;
-    static std::atomic<Logger *> logInstance = nullptr;
     // For Double-Checked Locking, we need check logInstance twice
-    if (logInstance == nullptr) {
-        std::lock_guard<std::mutex> lock(logInstanceLock);
-        if (logInstance == nullptr) {
+    if (g_logInstance == nullptr) {
+        std::lock_guard<std::mutex> lock(g_logInstanceLock);
+        if (g_logInstance == nullptr) {
             // Here, we new logInstance to print log, if new failed, we can do nothing.
-            logInstance = new (std::nothrow) HiLogger;
+            g_logInstance = new (std::nothrow) HiLogger;
         }
     }
-    return logInstance;
+    return g_logInstance;
+}
+
+void Logger::DeleteInstance()
+{
+    if (g_logInstance == nullptr) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_logInstanceLock);
+    delete g_logInstance;
+    g_logInstance = nullptr;
+    logHandler = nullptr;
 }
 
 void Logger::RegisterLogger(Logger *logger)

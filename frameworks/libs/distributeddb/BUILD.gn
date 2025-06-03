@@ -267,7 +267,6 @@ ohos_shared_library("distributeddb_client") {
     "-Os",
     "-D_FORTIFY_SOURCE=2",
   ]
-  deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
     "cJSON:cjson",

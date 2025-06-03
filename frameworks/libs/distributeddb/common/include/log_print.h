@@ -36,6 +36,7 @@ public:
 
     virtual ~Logger() {};
     static Logger *GetInstance();
+    static void DeleteInstance();
     static void RegisterLogger(Logger *logger);
     static void Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...);
 
