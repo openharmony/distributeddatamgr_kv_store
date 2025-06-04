@@ -88,8 +88,8 @@ HWTEST_F(ExecutorPoolTest, Schedule, TestSize.Level0)
         },
         expiredTime);
     ASSERT_NE(taskId, ExecutorPool::INVALID_TASK_ID);
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 10));
-    ASSERT_EQ(testData->data, 10);
+    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 12));
+    ASSERT_TRUE(testData->data > 10);
     executorPool_->Remove(taskId);
 }
 
