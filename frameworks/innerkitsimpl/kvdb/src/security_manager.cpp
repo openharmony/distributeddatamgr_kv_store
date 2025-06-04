@@ -456,7 +456,7 @@ SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &
     if (!openFile) {
         return;
     }
-    lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRWXU | S_IRWXG);
+    lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (lockFd_ < 0) {
         ZLOGE("Open failed, errno:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(lockFile_).c_str());
     }
