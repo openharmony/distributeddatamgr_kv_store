@@ -385,6 +385,7 @@ public:
     static bool IsExistEmptyHashAsset(const DistributedDB::Assets &assets);
     static DistributedDB::ICloudSyncStorageHook *GetRDBStorageHook(const std::string &userId,
         const std::string &appId, const std::string &storeId, const std::string &dbPath);
+    static void CheckIndexCount(sqlite3 *db, const std::string &table, size_t expect);
 };
 
 class DBInfoHandleTest : public DistributedDB::DBInfoHandle {

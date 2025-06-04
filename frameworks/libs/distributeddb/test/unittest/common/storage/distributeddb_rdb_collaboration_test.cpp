@@ -1218,6 +1218,34 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema026, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SetSchema027
+ * @tc.desc: Test two table create distributed table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema027, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Prepare db create two table
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::COLLABORATION));
+    std::string createSql = "CREATE TABLE IF NOT EXISTS table1(integer_field INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "int_field INT UNIQUE);";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, createSql), E_OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable("table1", TableSyncType::DEVICE_COOPERATION), OK);
+    createSql = "CREATE TABLE IF NOT EXISTS table2(integer_field INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "int_field INT UNIQUE);";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, createSql), E_OK);
+    EXPECT_EQ(delegate_->CreateDistributedTable("table2", TableSyncType::DEVICE_COOPERATION), OK);
+    auto table1 = std::string(DBConstant::RELATIONAL_PREFIX).append("table1_log");
+    auto table2 = std::string(DBConstant::RELATIONAL_PREFIX).append("table2_log");
+    RelationalTestUtils::CheckIndexCount(db_, table1, 3u); // 3 is index count
+    RelationalTestUtils::CheckIndexCount(db_, table2, 3u); // 3 is index count
+}
+
+/**
  * @tc.name: NormalSync001
  * @tc.desc: Test set distributed schema and sync.
  * @tc.type: FUNC
