@@ -116,7 +116,7 @@ ohos_source_set("distributeddatafwk_src_file") {
     "data_share:datashare_common",
     "data_share:datashare_provider",
   ]
-
+  subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
 

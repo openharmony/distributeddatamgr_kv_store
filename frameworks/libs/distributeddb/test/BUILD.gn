@@ -185,6 +185,7 @@ ohos_source_set("src_file") {
     "sqlite:sqlite",
     "zlib:libz",
   ]
+  subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
 
@@ -1047,6 +1048,7 @@ ohos_source_set("distributeddb_client_src_file") {
     "sqlite:sqlite",
     "zlib:libz",
   ]
+  subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
 
