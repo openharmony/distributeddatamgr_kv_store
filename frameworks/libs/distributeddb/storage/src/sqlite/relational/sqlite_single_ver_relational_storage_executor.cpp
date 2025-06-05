@@ -1689,6 +1689,16 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetFlagIsLocalCount(const std::string &logTableName, int32_t &count)
+{
+    std::string sql = "SELECT count(*) from " + logTableName + " WHERE FLAG&0x02 = 0x02;";
+    int errCode = SQLiteUtils::GetCountBySql(dbHandle_, sql, count);
+    if (errCode != E_OK) {
+        LOGW("[RDBExecutor] get mark local count from log table failed: %d", errCode);
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::ChangeCloudDataFlagOnLogTable(const std::string &logTableName)
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " +

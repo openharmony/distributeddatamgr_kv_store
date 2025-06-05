@@ -524,6 +524,8 @@ private:
     bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
         uint32_t &count);
 
+    int GetFlagIsLocalCount(const std::string &logTableName, int32_t &count);
+
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
