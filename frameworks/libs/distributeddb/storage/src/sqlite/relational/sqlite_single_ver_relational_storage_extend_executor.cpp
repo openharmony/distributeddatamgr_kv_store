@@ -747,8 +747,12 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
 {
     int errCode = E_OK;
     for (const auto &tableName: tableNameList) {
+        int32_t count = 0;
+        std::string logTableName = DBCommon::GetLogTableName(tableName);
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanShareTableDataAndLog]flag is local in table:%s, len:%zu, count:%d, before remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
         if (isLogicDelete_) {
-            std::string logTableName = DBCommon::GetLogTableName(tableName);
             errCode = SetDataOnShareTableWithLogicDelete(tableName, logTableName);
         } else {
             errCode = CleanShareTable(tableName);
@@ -758,6 +762,9 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanShareTableDataAndLog(const 
                 DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), isLogicDelete_ ? 1 : 0, errCode);
             return errCode;
         }
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanShareTableDataAndLog]flag is local in table:%s, len:%zu, count:%d, after remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
     }
     return errCode;
 }

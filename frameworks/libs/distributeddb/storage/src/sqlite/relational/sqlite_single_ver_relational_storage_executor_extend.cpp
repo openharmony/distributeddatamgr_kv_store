@@ -369,11 +369,18 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
             LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
             return errCode;
         }
+        int32_t count = 0;
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanLogs]flag is local in table:%s, len:%zu, count:%d, before remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
         errCode = CleanCloudDataOnLogTable(logTableName, FLAG_ONLY);
         if (errCode != E_OK) {
             LOGE("[Storage Executor] failed to clean cloud data on log table, %d", errCode);
             return errCode;
         }
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanLogs]flag is local in table:%s, len:%zu, count:%d, after remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
         i++;
     }
 
@@ -469,6 +476,10 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             LOGE("[Storage Executor] failed to get cloud assets when clean cloud data, %d", errCode);
             return errCode;
         }
+        int32_t count = 0;
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanLogAndData]flag is local in table:%s, len:%zu, count:%d, before remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
         if (isLogicDelete_) {
             errCode = SetDataOnUserTableWithLogicDelete(tableName, logTableName);
         } else {
@@ -478,6 +489,9 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
             LOGE("[Storage Executor] failed to clean cloud data and log on user table, %d.", errCode);
             return errCode;
         }
+        (void)GetFlagIsLocalCount(logTableName, count);
+        LOGI("[DoCleanLogAndData]flag is local in table:%s, len:%zu, count:%d, after remove device data.",
+            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
     }
     return errCode;
 }

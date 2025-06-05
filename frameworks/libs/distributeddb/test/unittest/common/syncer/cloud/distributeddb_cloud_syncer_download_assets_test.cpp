@@ -2940,5 +2940,29 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CompensatedSyncTest001, Tes
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
 }
+
+/**
+ * @tc.name: FillAssetId026
+ * @tc.desc: Test if assetId is null when removedevicedata in FLAG_AND_DATA
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId026, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 10;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    g_delegate->RemoveDeviceData("", FLAG_AND_DATA);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
 } // namespace
 #endif // RELATIONAL_STORE
