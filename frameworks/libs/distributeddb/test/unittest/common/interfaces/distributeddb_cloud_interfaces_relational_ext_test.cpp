@@ -1947,4 +1947,26 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FuncExceptionTest001, Te
     result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap2, ctMap2);
     EXPECT_TRUE(result.empty());
 }
+
+/**
+ * @tc.name: CleanTest001
+ * @tc.desc: Test the Clean interface
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest001, TestSize.Level0)
+{
+    Logger *loggerInstance = Logger::GetInstance();
+    ASSERT_NE(loggerInstance, nullptr);
+    Clean(true);
+    // New a pointer-sized(8) space after calling Clean
+    // To avoid the address of the next GetInstance being the same as the previous GetInstance.
+    int bytesNumber = 8;
+    char *tempPtr = new (std::nothrow) char[bytesNumber];
+    Logger *newLoggerInstance = Logger::GetInstance();
+    EXPECT_FALSE(loggerInstance == newLoggerInstance);
+    delete []tempPtr;
+    tempPtr = nullptr;
+}
 }

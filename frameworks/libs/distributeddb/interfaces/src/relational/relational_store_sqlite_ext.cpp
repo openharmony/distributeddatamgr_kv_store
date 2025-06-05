@@ -14,6 +14,7 @@
  */
 #include <mutex>
 #include <openssl/sha.h>
+#include <openssl/crypto.h>
 #include <string>
 #include <sys/time.h>
 #include <thread>
@@ -310,8 +311,8 @@ class TimeHelperManager {
 public:
     static TimeHelperManager *GetInstance()
     {
-        static auto instance = new TimeHelperManager();
-        return instance;
+        static TimeHelperManager instance;
+        return &instance;
     }
 
     void AddStore(const std::string &storeId)
@@ -1879,6 +1880,17 @@ DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableNa
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), cursor);
     }
     return TransferDBErrno(errCode);
+}
+
+void Clean(bool isOpenSslClean)
+{
+#ifdef USE_FFRT
+    ConcurrentAdapter::Stop();
+#endif
+    if (isOpenSslClean) {
+        OPENSSL_cleanup();
+    }
+    Logger::DeleteInstance();
 }
 
 // hw export the symbols
