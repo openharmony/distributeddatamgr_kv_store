@@ -170,12 +170,12 @@ bool StoreUtil::InitPath(const std::string &path)
     umask(DEFAULT_UMASK);
 #ifdef IS_WINDOWS
     if (mkdir(path.c_str()) != 0 && errno != EEXIST) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(path).c_str());
         return false;
     }
 #else
     if (mkdir(path.c_str(), MODE) != 0 && errno != EEXIST) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(path).c_str());
         return false;
     }
 #endif
@@ -187,7 +187,7 @@ bool StoreUtil::CreateFile(const std::string &name)
     umask(DEFAULT_UMASK);
     int fp = open(name.c_str(), (O_WRONLY | O_CREAT));
     if (fp < 0) {
-        ZLOGE("The fopen error:%{public}d, path:%{public}s", errno, name.c_str());
+        ZLOGE("The fopen error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(name).c_str());
         return false;
     }
     close(fp);
@@ -199,7 +199,7 @@ std::vector<std::string> StoreUtil::GetSubPath(const std::string &path)
     std::vector<std::string> subPaths;
     DIR *dirp = opendir(path.c_str());
     if (dirp == nullptr) {
-        ZLOGE("The opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("The opendir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(path).c_str());
         return subPaths;
     }
     struct dirent *dp;
@@ -215,7 +215,7 @@ std::vector<StoreUtil::FileInfo> StoreUtil::GetFiles(const std::string &path)
     std::vector<FileInfo> fileInfos;
     DIR *dirp = opendir(path.c_str());
     if (dirp == nullptr) {
-        ZLOGE("The opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("The opendir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(path).c_str());
         return fileInfos;
     }
     struct dirent *dp;
@@ -264,7 +264,7 @@ bool StoreUtil::Remove(const std::string &path)
         return true;
     }
     if (remove(path.c_str()) != 0) {
-        ZLOGE("The remove error:%{public}d, path:%{public}s", errno, path.c_str());
+        ZLOGE("The remove error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(path).c_str());
         return false;
     }
     return true;

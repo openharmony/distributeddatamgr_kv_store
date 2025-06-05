@@ -49,7 +49,7 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
     singleKvStore = nullptr;
     if (options.securityLevel == INVALID_LABEL) {
         ZLOGE("Invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
-            appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType);
         return Status::INVALID_ARGUMENT;
     }
     if (options.dataType == DataType::TYPE_STATICS && options.autoSync) {

@@ -160,8 +160,8 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
 {
     if (eventInfo.appendix.empty() || eventInfo.storeName.empty()) {
-        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", eventInfo.appendix.c_str(),
-            StoreUtil::Anonymous(eventInfo.storeName).c_str());
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
+            StoreUtil::Anonymous(eventInfo.appendix).c_str(), StoreUtil::Anonymous(eventInfo.storeName).c_str());
         return;
     }
     if (IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName, eventInfo.appendix)) {
@@ -291,8 +291,8 @@ bool KVDBFaultHiViewReporter::IsReportedCorruptedFault(const std::string &appId,
 void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, const std::string &storeId)
 {
     if (dbPath.empty() || storeId.empty()) {
-        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
-            StoreUtil::Anonymous(storeId).c_str());
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
+            StoreUtil::Anonymous(dbPath).c_str(), StoreUtil::Anonymous(storeId).c_str());
         return;
     }
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
@@ -309,8 +309,8 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
 void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)
 {
     if (dbPath.empty() || storeId.empty()) {
-        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s", dbPath.c_str(),
-            StoreUtil::Anonymous(storeId).c_str());
+        ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
+            StoreUtil::Anonymous(dbPath).c_str(), StoreUtil::Anonymous(storeId).c_str());
         return;
     }
     std::string flagFilename = dbPath + storeId + DB_CORRUPTED_POSTFIX;
