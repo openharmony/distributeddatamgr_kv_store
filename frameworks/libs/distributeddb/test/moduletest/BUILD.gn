@@ -432,14 +432,15 @@ ohos_moduletest("DistributeddbNbBackupTest") {
 
   deps = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "//third_party/googletest:gtest_main",
-    "//third_party/openssl:libcrypto_shared",
-    "//third_party/sqlite:sqlite",
   ]
 
   external_deps = [
     "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
     "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "sqlite:sqlite",
   ]
   part_name = "datamgr_service"
 }

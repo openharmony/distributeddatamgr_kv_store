@@ -164,9 +164,8 @@ gaussdb_rd_unittest("DocumentDBDeleteTest") {
 ###############################################################################
 group("unittest") {
   testonly = true
-  deps = [ "//third_party/googletest:gmock" ]
 
-  deps += [
+  deps = [
     ":DocumentDBApiTest",
     ":DocumentDBCollectionTest",
     ":DocumentDBDataTest",
