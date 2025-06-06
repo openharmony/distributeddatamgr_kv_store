@@ -1969,4 +1969,27 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest001, TestSize.L
     delete []tempPtr;
     tempPtr = nullptr;
 }
+
+/**
+ * @tc.name: CleanTest002
+ * @tc.desc: Test calling the Clean interface twice
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest002, TestSize.Level0)
+{
+    Logger *loggerInstance1 = Logger::GetInstance();
+    ASSERT_NE(loggerInstance1, nullptr);
+    Clean(true);
+    Clean(false);
+    // New a pointer-sized(8) space after calling Clean
+    // To avoid the address of the next GetInstance being the same as the previous GetInstance.
+    int bytesNumber = 8;
+    char *tempPtr = new (std::nothrow) char[bytesNumber];
+    Logger *loggerInstance2 = Logger::GetInstance();
+    EXPECT_FALSE(loggerInstance1 == loggerInstance2);
+    delete []tempPtr;
+    tempPtr = nullptr;
+}
 }
