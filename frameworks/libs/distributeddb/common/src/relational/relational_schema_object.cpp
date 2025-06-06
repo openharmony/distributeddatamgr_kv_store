@@ -288,7 +288,7 @@ std::set<std::string> RelationalSchemaObject::CompareReferenceProperty(
         std::set<std::string> sharedTables = GetSharedTableForChangeTable(changeTables);
         changeTables.insert(sharedTables.begin(), sharedTables.end());
     }
-    LOGI("[CompareReferenceProperty] changeTables size = %zu", changeTables.size());
+    LOGI("[CompareReferenceProperty] size = %zu", changeTables.size());
     return changeTables;
 }
 

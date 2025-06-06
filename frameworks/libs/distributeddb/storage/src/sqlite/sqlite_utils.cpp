@@ -727,7 +727,7 @@ int SQLiteUtils::GetSchema(sqlite3 *db, std::string &strSchema)
     bool isExists = false;
     int errCode = CheckTableExists(db, "meta_data", isExists);
     if (errCode != E_OK || !isExists) {
-        LOGW("meta table may has not been created, err=%d, isExists=%d", errCode, isExists);
+        LOGW("[GetSchema] err=%d, meta=%d", errCode, isExists);
         return errCode;
     }
 

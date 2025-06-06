@@ -101,13 +101,13 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
     }
     metadata_ = metadata;
     isActive_ = true;
-    LOGI("[SyncEngine] Engine [%s] init ok", label_.c_str());
+    LOGI("[SyncEngine] Engine [%.3s] init ok", label_.c_str());
     return E_OK;
 }
 
 int SyncEngine::Close()
 {
-    LOGI("[SyncEngine] SyncEngine [%s] close enter!", label_.c_str());
+    LOGI("[SyncEngine] [%.3s] close enter!", label_.c_str());
     isActive_ = false;
     UnRegCommunicatorsCallback();
     StopAutoSubscribeTimer();
@@ -152,7 +152,7 @@ int SyncEngine::Close()
         executor = nullptr;
     }
     ClearInnerResource();
-    LOGI("[SyncEngine] SyncEngine [%s] closed!", label_.c_str());
+    LOGI("[SyncEngine] [%.3s] closed!", label_.c_str());
     return E_OK;
 }
 
