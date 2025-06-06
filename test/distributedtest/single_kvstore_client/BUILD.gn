@@ -38,6 +38,7 @@ common_external_deps = [
   "access_token:libnativetoken",
   "access_token:libtoken_setproc",
   "c_utils:utils",
+  "cJSON:cjson",
   "device_manager:devicemanagersdk",
   "googletest:gtest",
   "hilog:libhilog",
