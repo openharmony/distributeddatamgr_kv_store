@@ -103,7 +103,6 @@ ohos_fuzztest("JsonFuzzTest") {
   }
   configs = [ ":module_private_config" ]
   deps += [ ":src_file" ]
-  configs += [ "//third_party/cJSON:cJSON_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   external_deps = [
     "cJSON:cjson",
