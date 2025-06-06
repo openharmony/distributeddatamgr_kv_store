@@ -165,7 +165,7 @@ gaussdb_rd_unittest("DocumentDBDeleteTest") {
 group("unittest") {
   testonly = true
 
-  deps += [
+  deps = [
     ":DocumentDBApiTest",
     ":DocumentDBCollectionTest",
     ":DocumentDBDataTest",
