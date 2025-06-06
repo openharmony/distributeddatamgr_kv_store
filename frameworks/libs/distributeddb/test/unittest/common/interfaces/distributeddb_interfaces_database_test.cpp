@@ -1515,8 +1515,14 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, KvObserver001, TestSize.Level0)
     observer.OnChange(changedData);
     RelationalStoreChangedDataImpl storeChangedData("");
     observer.OnChange(storeChangedData);
+    observer.StoreObserver::OnChange(storeChangedData);
     StoreObserver::StoreChangedInfo info;
     observer.OnChange(std::move(info));
+    StoreObserver::StoreChangedInfo info1;
+    observer.StoreObserver::OnChange(std::move(info1));
     ChangedData simpleData;
     observer.OnChange(Origin::ORIGIN_ALL, "", std::move(simpleData));
+    ChangedData simpleData1;
+    observer.StoreObserver::OnChange(Origin::ORIGIN_ALL, "", std::move(simpleData1));
+    EXPECT_EQ(observer.StoreObserver::GetCallbackDetailsType(), static_cast<uint32_t>(CallbackDetailsType::DEFAULT));
 }
