@@ -99,8 +99,8 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     }
 
     DBDfxAdapter::StartTracing();
-    {
-        // need to check if the transaction started
+    // need to check if the transaction started
+    if (transactionExeFlag_.load()) {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");

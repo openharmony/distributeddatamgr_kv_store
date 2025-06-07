@@ -2487,4 +2487,34 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync053, TestSize.Level1)
     }
     virtualCloudDb_->ForkInsertConflict(nullptr);
 }
+
+/**
+ * @tc.name: NormalSync054
+ * @tc.desc: test get and put interface execute
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBCloudKvTest, NormalSync054, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. deviceA put {k1, v1} and sync to cloud.
+     * @tc.expected: step1. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_A");
+    Key key = {'k', '1'};
+    Value expectValue1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(key, expectValue1), OK);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps:step2. deviceB sync to cloud.
+     * @tc.expected: step2. ok.
+     */
+    communicatorAggregator_->SetLocalDeviceId("DEVICES_B");
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    Value actualValue1;
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+}
 }
