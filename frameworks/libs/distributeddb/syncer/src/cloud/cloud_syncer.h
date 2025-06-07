@@ -550,6 +550,8 @@ protected:
 
     void ChangeProcessStatusAndNotifyIfNeed(UploadParam &uploadParam, InnerProcessInfo &info);
 
+    void ExecuteAsyncDownloadAssets(TaskId taskId);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;
@@ -583,6 +585,7 @@ protected:
     std::condition_variable asyncTaskCv_;
     TaskId asyncTaskId_;
     std::atomic<bool> cancelAsyncTask_;
+    std::atomic<int> scheduleTaskCount_;
     std::mutex listenerMutex_;
     NotificationChain::Listener *waitDownloadListener_;
 

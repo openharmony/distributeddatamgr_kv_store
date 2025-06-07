@@ -23,7 +23,6 @@
 #include "log_print.h"
 
 namespace DistributedDB {
-static constexpr const TaskId INVALID_TASK_ID = 0u;
 int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
     std::vector<Type> &cloudPkVals)
 {
@@ -1049,12 +1048,12 @@ void CloudSyncUtils::EndTransactionIfNeed(
     }
 }
 
-bool CloudSyncUtils::CanStartAsyncDownload(const TaskId &asyncTaskId)
+bool CloudSyncUtils::CanStartAsyncDownload(int scheduleCount)
 {
     if (!RuntimeContext::GetInstance()->GetAssetsDownloadManager()->CanStartNewTask()) {
         LOGW("[CloudSyncer] Too many download tasks");
         return false;
     }
-    return asyncTaskId == INVALID_TASK_ID;
+    return scheduleCount <= 0;
 }
 }

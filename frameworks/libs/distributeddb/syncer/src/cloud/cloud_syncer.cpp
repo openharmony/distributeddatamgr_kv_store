@@ -46,6 +46,7 @@ CloudSyncer::CloudSyncer(
       policy_(policy),
       asyncTaskId_(INVALID_TASK_ID),
       cancelAsyncTask_(false),
+      scheduleTaskCount_(0),
       waitDownloadListener_(nullptr)
 {
     if (storageProxy_ != nullptr) {

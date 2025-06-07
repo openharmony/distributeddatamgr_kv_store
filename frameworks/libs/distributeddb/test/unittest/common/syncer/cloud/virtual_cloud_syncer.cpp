@@ -126,4 +126,14 @@ void VirtualCloudSyncer::PauseCurrentTask()
     cloudTaskInfos_[currentContext_.currentTaskId].pause = true;
     LOGD("[CloudSyncer] Mark taskId %" PRIu64 " paused success", currentContext_.currentTaskId);
 }
+
+void VirtualCloudSyncer::TriggerAsyncTask()
+{
+    CloudSyncer::TriggerAsyncDownloadAssetsIfNeed();
+}
+
+void VirtualCloudSyncer::WaitTaskFinished()
+{
+    CloudSyncer::WaitCurTaskFinished();
+}
 }
