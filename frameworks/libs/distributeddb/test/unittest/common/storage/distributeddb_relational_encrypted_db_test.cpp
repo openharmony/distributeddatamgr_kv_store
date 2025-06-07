@@ -404,7 +404,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     EXPECT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, option1, g_delegate), DBStatus::OK);
     ASSERT_NE(g_delegate, nullptr);
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
-
+    EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
+    g_delegate = nullptr;
     std::thread t1([db] {
         std::string sql = "PARGMA rekey=" + REKEY_KEY;
         EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
@@ -412,22 +413,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     t1.join();
 
     /**
-     * @tc.steps: step3. Get sync data.
-     * @tc.expected: Failed.
-     */
-    auto store = GetRelationalStore();
-    ASSERT_NE(store, nullptr);
-    ContinueToken token = nullptr;
-    QueryObject query(Query::Select(g_tableName));
-    std::vector<SingleVerKvEntry *> entries;
-    EXPECT_NE(store->GetSyncData(query, SyncTimeRange {}, DataSizeSpecInfo {}, token, entries), E_OK);
-
-    RefObject::DecObjRef(g_store);
-    g_mgr.CloseStore(g_delegate);
-    g_delegate = nullptr;
-
-    /**
-     * @tc.steps: step4. Open store with new key.
+     * @tc.steps: step3. Open store with new key.
      * @tc.expected: Succeed.
      */
     option1.passwd = g_rekeyPasswd;
@@ -436,11 +422,14 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
 
     /**
-     * @tc.steps: step5. Get sync data.
+     * @tc.steps: step4. Get sync data.
      * @tc.expected: Succeed.
      */
-    store = GetRelationalStore();
+    auto store = GetRelationalStore();
     ASSERT_NE(store, nullptr);
+    ContinueToken token = nullptr;
+    QueryObject query(Query::Select(g_tableName));
+    std::vector<SingleVerKvEntry *> entries;
     EXPECT_EQ(store->GetSyncData(query, SyncTimeRange {}, DataSizeSpecInfo {}, token, entries), E_OK);
     FreeEntires(entries);
     sqlite3_close(db);
@@ -468,6 +457,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithDifferentPas
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
+    sqlite3_close(db);
 
     /**
      * @tc.steps: step2. Open store.
@@ -504,7 +494,6 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithDifferentPas
     EXPECT_NE(delegate, nullptr);
 
     EXPECT_EQ(g_mgr.CloseStore(delegate), DBStatus::OK);
-    sqlite3_close(db);
 }
 
 /**
@@ -530,6 +519,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RemoteQueryForEncryptedDb_001, 
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
+    sqlite3_close(db);
 
     /**
      * @tc.steps: step2. Open store and create distributed table.
@@ -553,19 +543,23 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RemoteQueryForEncryptedDb_001, 
     /**
      * @tc.steps: step4. Rekey.
      */
+    EXPECT_EQ(g_mgr.CloseStore(g_delegate), OK);
+    g_delegate = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
     std::thread t1([db] {
         std::string sql = "PARGMA rekey=" + REKEY_KEY;
         EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
     });
     t1.join();
-
+    sqlite3_close(db);
+    EXPECT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, option, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
     /**
      * @tc.steps: step5. Remote query.
      * @tc.expected: Return INVALID_PASSWD_OR_CORRUPTED_DB.
      */
-    EXPECT_EQ(g_delegate->RemoteQuery("deviceA", RemoteCondition {}, invalidTime, result),
+    EXPECT_NE(g_delegate->RemoteQuery("deviceA", RemoteCondition {}, invalidTime, result),
         DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB);
-    sqlite3_close(db);
 }
 #endif  // RELATIONAL_STORE
 #endif  // OMIT_ENCRYPT

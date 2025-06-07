@@ -74,6 +74,8 @@ private:
 
     int BackupDatabase(const ImportFileInfo &info) const;
 
+    int RunRekeyLogicInner(CipherType type, sqlite3 *db, const CipherPassword &passwd);
+
     SQLiteSingleVerNaturalStore *singleVerNaturalStore_;
     SQLiteStorageEngine *storageEngine_;
 };

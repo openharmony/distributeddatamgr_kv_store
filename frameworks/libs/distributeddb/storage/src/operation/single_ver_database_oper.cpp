@@ -543,19 +543,27 @@ int SingleVerDatabaseOper::RunRekeyLogic(CipherType type, const CipherPassword &
     int errCode = SQLiteUtils::OpenDatabase(option, db);
     if (errCode != E_OK) {
         LOGE("[RunRekeyLogic] Open database new connect fail!, errCode = [%d]", errCode);
-        goto END;
+        return errCode;
     }
-
-    errCode = SQLiteUtils::Rekey(db, passwd);
-    if (errCode != E_OK) {
-        LOGE("[RunRekeyLogic] Rekey fail!, errCode = [%d]", errCode);
-        goto END;
+    errCode = RunRekeyLogicInner(type, db, passwd);
+    if (db != nullptr) {
+        (void)sqlite3_close_v2(db);
+        db = nullptr;
     }
+    return errCode;
+}
 
+int SingleVerDatabaseOper::RunRekeyLogicInner(CipherType type, sqlite3 *db, const CipherPassword &passwd)
+{
     // Release all the connections, update the passwd and re-initialize the storage engine.
     storageEngine_->Release();
+    int rekeyRet = SQLiteUtils::Rekey(db, passwd);
+    if (rekeyRet != E_OK) {
+        LOGE("[RunRekeyLogic] Rekey fail!, errCode = [%d]", rekeyRet);
+    }
+
     singleVerNaturalStore_->GetDbPropertyForUpdate().SetPassword(type, passwd);
-    errCode = InitStorageEngine();
+    int errCode = InitStorageEngine();
     if (errCode != E_OK) {
         LOGE("Init storage engine while rekey open failed:%d", errCode);
     }
@@ -565,12 +573,6 @@ int SingleVerDatabaseOper::RunRekeyLogic(CipherType type, const CipherPassword &
         LOGI("Rekey successfully, locked state init state successfully, need ignore open file failed!");
         errCode = -E_FORBID_CACHEDB;
     }
-
-END:
-    if (db != nullptr) {
-        (void)sqlite3_close_v2(db);
-        db = nullptr;
-    }
-    return errCode;
+    return rekeyRet == E_OK ? errCode : rekeyRet;
 }
 } // namespace DistributedDB
