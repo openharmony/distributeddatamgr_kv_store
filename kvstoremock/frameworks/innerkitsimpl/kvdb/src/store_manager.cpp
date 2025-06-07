@@ -29,7 +29,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     const Options &options, Status &status)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s type:%{public}d area:%{public}d dir:%{public}s", appId.appId.c_str(),
-        StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area, options.baseDir.c_str());
+        StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area,
+        StoreUtil::Anonymous(options.baseDir).c_str());
     status = ILLEGAL_STATE;
     if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()) {
         status = INVALID_ARGUMENT;
@@ -80,7 +81,7 @@ Status StoreManager::CloseAllKVStore(const AppId &appId, int32_t subUser)
 Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
-        StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
+        StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(path).c_str());
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }
