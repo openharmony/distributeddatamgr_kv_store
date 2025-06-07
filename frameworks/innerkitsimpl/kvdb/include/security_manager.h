@@ -24,6 +24,25 @@
 namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
+    struct SecurityContent {
+        static constexpr size_t MAGIC_NUM = 4;
+        static constexpr uint8_t MAGIC_CHAR = 0x6A;
+        static constexpr uint32_t MAGIC_NUMBER = 0x6A6A6A6A;
+        static constexpr uint8_t INVALID_VERSION = 0x00;
+        static constexpr uint8_t CURRENT_VERSION = 0x01;
+        static constexpr int32_t NONCE_SIZE = 12;
+        static constexpr int32_t KEY_SIZE = 32;
+
+        bool isNewStyle = true;
+        uint32_t magicNum = MAGIC_NUMBER;
+        uint8_t version = INVALID_VERSION;
+        std::vector<uint8_t> time;
+        std::vector<uint8_t> nonceValue;
+        // encryptValue contains version and time and key
+        std::vector<uint8_t> encryptValue;
+        std::vector<uint8_t> fullKeyValue;
+    };
+
     struct DBPassword {
         bool isKeyOutdated = false;
         DistributedDB::CipherPassword password;
@@ -81,27 +100,20 @@ public:
     void DelDBPassword(const std::string &name, const std::string &path);
 
 private:
-    static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
-    static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
-    static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
-    static constexpr const char *SUFFIX_KEY = ".key";
-    static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
-    static constexpr const char *KEY_DIR = "/key";
-    static constexpr const char *SLASH = "/";
-    static constexpr int KEY_SIZE = 32;
-    static constexpr int HOURS_PER_YEAR = (24 * 365);
-
     SecurityManager();
     ~SecurityManager();
-    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path, bool &isOutdated);
+    std::vector<uint8_t> Random(int32_t length);
+    bool LoadContent(SecurityContent &content, const std::string &path, const std::string &tempPath, bool isTemp);
+    SecurityContent LoadKeyFromFile(const std::string &path);
+    void LoadNewKey(const std::vector<char> &content, SecurityContent &securityContent);
+    void LoadOldKey(const std::vector<char> &content, SecurityContent &securityContent);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
-    std::vector<uint8_t> Random(int32_t len);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
     int32_t GenerateRootKey();
     int32_t CheckRootKey();
     bool Retry();
-    std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
-    bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
+    bool Encrypt(const std::vector<uint8_t> &key, SecurityContent &content);
+    bool Decrypt(SecurityContent &content);
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};
