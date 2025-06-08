@@ -158,14 +158,14 @@ ohos_source_set("src_file") {
 
   configs = [ ":module_private_config" ]
 
-#  branch_protector_ret = "pac_ret"
-#  sanitize = {
-#    ubsan = true
-#    boundary_sanitize = true
-#    cfi = true
-#    cfi_cross_dso = true
-#    debug = false
-#  }
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
 
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps = [ "../gaussdb_rd:gaussdb_rd" ]
