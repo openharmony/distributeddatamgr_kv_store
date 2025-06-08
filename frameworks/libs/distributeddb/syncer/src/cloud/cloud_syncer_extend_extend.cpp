@@ -26,6 +26,7 @@
 #include "db_errno.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 #include "store_types.h"
 #include "strategy_factory.h"
@@ -60,5 +61,61 @@ int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downlo
         LOGE("[CloudSyncer] commit async download assets failed %d", errCode);
     }
     return errCode;
+}
+
+void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
+{
+    if (!storageProxy_->IsExistTableContainAssets()) {
+        LOGD("[CloudSyncer] No exist table contain assets, skip async download asset check");
+        return;
+    }
+    TaskId taskId = INVALID_TASK_ID;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (asyncTaskId_ != INVALID_TASK_ID || closed_) {
+            LOGI("[CloudSyncer] No need generate async task now asyncTaskId %" PRIu64 " closed %d",
+                asyncTaskId_, static_cast<int>(closed_));
+            return;
+        }
+        lastTaskId_--;
+        if (lastTaskId_ == INVALID_TASK_ID) {
+            lastTaskId_ = UINT64_MAX;
+        }
+        taskId = lastTaskId_;
+        IncObjRef(this);
+    }
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([taskId, this]() {
+        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " begin", taskId);
+        ExecuteAsyncDownloadAssets(taskId);
+        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " finished", taskId);
+        scheduleTaskCount_--;
+        DecObjRef(this);
+    });
+    if (errCode == E_OK) {
+        LOGI("[CloudSyncer] Schedule asyncTaskId %" PRIu64 " success", taskId);
+        scheduleTaskCount_++;
+    } else {
+        LOGW("[CloudSyncer] Schedule BackgroundDownloadAssetsTask failed %d", errCode);
+        DecObjRef(this);
+    }
+}
+
+void CloudSyncer::ExecuteAsyncDownloadAssets(TaskId taskId)
+{
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (asyncTaskId_ != INVALID_TASK_ID || closed_) {
+            LOGI("[CloudSyncer] No need exec async task now asyncTaskId %" PRIu64 " closed %d",
+                asyncTaskId_, static_cast<int>(closed_));
+            return;
+        }
+        asyncTaskId_ = taskId;
+    }
+    BackgroundDownloadAssetsTask();
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        asyncTaskId_ = INVALID_TASK_ID;
+    }
+    asyncTaskCv_.notify_all();
 }
 } // namespace DistributedDB

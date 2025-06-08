@@ -16,8 +16,10 @@
 
 #include "cloud/assets_download_manager.h"
 #include "cloud/cloud_storage_utils.h"
+#include "cloud/mock_icloud_sync_storage_interface.h"
 #include "cloud/virtual_asset_loader.h"
 #include "cloud/virtual_cloud_data_translate.h"
+#include "cloud/virtual_cloud_syncer.h"
 #include "cloud_db_sync_utils_test.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
@@ -1406,5 +1408,53 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload010, Te
      * @tc.expected: step5. ok
      */
     CheckLogTable(db_, "AsyncDownloadAssetsTest", 0);
+}
+
+/**
+ * @tc.name: TriggerAsyncTask001
+ * @tc.desc: Test trigger async task.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, TriggerAsyncTask001, TestSize.Level1)
+{
+    auto storage = std::make_shared<MockICloudSyncStorageInterface>();
+    ASSERT_NE(storage, nullptr);
+    auto proxy = StorageProxy::GetCloudDb(storage.get());
+    ASSERT_NE(proxy, nullptr);
+    auto syncer = new(std::nothrow) VirtualCloudSyncer(proxy);
+    ASSERT_NE(syncer, nullptr);
+    /**
+     * @tc.steps: step1. Trigger async task with not exist table contain assets.
+     */
+    syncer->TriggerAsyncTask();
+    /**
+     * @tc.steps: step2. Trigger async task with exist table contain assets.
+     */
+    EXPECT_CALL(*storage, IsExistTableContainAssets).WillRepeatedly(testing::Return(true));
+    EXPECT_CALL(*storage, GetDownloadAssetTable).WillRepeatedly([]() {
+        std::pair<int, std::vector<std::string>> res;
+        return res;
+    });
+    syncer->TriggerAsyncTask();
+    syncer->WaitTaskFinished();
+    /**
+     * @tc.steps: step3. Async trigger and wait finished.
+     */
+    std::thread t1([syncer]() {
+        for (int i = 0; i < 1000; ++i) {
+            syncer->TriggerAsyncTask();
+        }
+    });
+    std::thread t2([syncer]() {
+        for (int i = 0; i < 1000; ++i) {
+            syncer->WaitTaskFinished();
+        }
+    });
+    t1.join();
+    t2.join();
+    syncer->Close();
+    RefObject::KillAndDecObjRef(syncer);
 }
 }

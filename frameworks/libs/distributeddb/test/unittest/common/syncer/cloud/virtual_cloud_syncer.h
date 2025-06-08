@@ -48,6 +48,10 @@ public:
         OpType &strategyOpResult);
 
     void PauseCurrentTask();
+
+    void TriggerAsyncTask();
+
+    void WaitTaskFinished();
 private:
     std::function<int (void)> downloadFunc_;
     std::function<int (void)> downloadInNeedFunc_;

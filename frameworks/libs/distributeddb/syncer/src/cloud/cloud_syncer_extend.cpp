@@ -603,7 +603,7 @@ void CloudSyncer::GenerateCompensatedSync(CloudTaskInfo &taskInfo)
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
     int errCode = CloudSyncUtils::GetQueryAndUsersForCompensatedSync(
-        CloudSyncUtils::CanStartAsyncDownload(asyncTaskId_), storageProxy_, users, syncQuery);
+        CloudSyncUtils::CanStartAsyncDownload(scheduleTaskCount_), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         return;
@@ -1680,47 +1680,6 @@ void CloudSyncer::TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload)
     TriggerAsyncDownloadAssetsIfNeed();
 }
 
-void CloudSyncer::TriggerAsyncDownloadAssetsIfNeed()
-{
-    if (!storageProxy_->IsExistTableContainAssets()) {
-        LOGD("[CloudSyncer] No exist table contain assets, skip async download asset check");
-        return;
-    }
-    TaskId taskId = INVALID_TASK_ID;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (asyncTaskId_ != INVALID_TASK_ID || closed_) {
-            LOGI("[CloudSyncer] No need generate async task now asyncTaskId %" PRIu64 " closed %d",
-                static_cast<int>(asyncTaskId_), static_cast<int>(closed_));
-            return;
-        }
-        lastTaskId_--;
-        if (lastTaskId_ == INVALID_TASK_ID) {
-            lastTaskId_ = UINT64_MAX;
-        }
-        asyncTaskId_ = lastTaskId_;
-        taskId = asyncTaskId_;
-        IncObjRef(this);
-    }
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([taskId, this]() {
-        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " begin", taskId);
-        BackgroundDownloadAssetsTask();
-        LOGI("[CloudSyncer] Exec asyncTaskId %" PRIu64 " finished", taskId);
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            asyncTaskId_ = INVALID_TASK_ID;
-        }
-        asyncTaskCv_.notify_all();
-        DecObjRef(this);
-    });
-    if (errCode == E_OK) {
-        LOGI("[CloudSyncer] Schedule asyncTaskId %" PRIu64 " success", taskId);
-    } else {
-        LOGW("[CloudSyncer] Schedule BackgroundDownloadAssetsTask failed %d", errCode);
-        DecObjRef(this);
-    }
-}
-
 void CloudSyncer::BackgroundDownloadAssetsTask()
 {
     // remove listener first
@@ -2148,7 +2107,7 @@ bool CloudSyncer::TryToInitQueryAndUserListForCompensatedSync(TaskId triggerTask
     std::vector<QuerySyncObject> syncQuery;
     std::vector<std::string> users;
     int errCode = CloudSyncUtils::GetQueryAndUsersForCompensatedSync(
-        CloudSyncUtils::CanStartAsyncDownload(asyncTaskId_), storageProxy_, users, syncQuery);
+        CloudSyncUtils::CanStartAsyncDownload(scheduleTaskCount_), storageProxy_, users, syncQuery);
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] get query for compensated sync failed! errCode = %d", errCode);
         // if failed, finshed the task directly.
