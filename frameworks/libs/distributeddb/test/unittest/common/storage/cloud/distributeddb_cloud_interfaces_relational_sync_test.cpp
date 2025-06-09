@@ -2463,5 +2463,107 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudCursorTest001, Tes
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     CloseDb();
 }
+
+/*
+ * @tc.name: RDBSupportEncryptTest001
+ * @tc.desc: Test sync when security label is not set and different encryption para is set
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, RDBSupportEncryptTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. sync when security label is not set and encryption is not supported
+     * @tc.expected: step1. return ok.
+     */
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+    Query query = Query::Select().FromTable({g_tableName3});
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), OK);
+
+    /**
+     * @tc.steps: step2. sync when security label is not set and encryption is supported
+     * @tc.expected: step2. return ok.
+     */
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    g_delegate->SetCloudSyncConfig(config);
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), OK);
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+    CloseDb();
+}
+
+/*
+ * @tc.name: RDBSupportEncryptTest002
+ * @tc.desc: Test sync when security label is S4 and different encryption para is set
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, RDBSupportEncryptTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. sync when security label is S4 and encryption is not supported
+     * @tc.expected: step1. return SECURITY_OPTION_CHECK_ERROR.
+     */
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+    Query query = Query::Select().FromTable({g_tableName3});
+    adapter->ForkGetSecurityOption([](const std::string&, SecurityOption &option) {
+        option.securityLabel = S4;
+        return OK;
+    });
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime),
+        SECURITY_OPTION_CHECK_ERROR);
+
+    /**
+     * @tc.steps: step2. sync when security label is S4 and encryption is supported
+     * @tc.expected: step2. return OK.
+     */
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    g_delegate->SetCloudSyncConfig(config);
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), OK);
+
+    /**
+     * @tc.steps: step3. sync when isSupportEncrypt is set to false for the second time
+     * @tc.expected: step3. return SECURITY_OPTION_CHECK_ERROR.
+     */
+    config.isSupportEncrypt = false;
+    g_delegate->SetCloudSyncConfig(config);
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime),
+        SECURITY_OPTION_CHECK_ERROR);
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+    CloseDb();
+}
+
+/*
+ * @tc.name: RDBSupportEncryptTest003
+ * @tc.desc: Test sync when SecurityOption is not supported and different encryption para is set
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, RDBSupportEncryptTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. sync when unable to get security options
+     * @tc.expected: step1. return OK whether or not encryption is supported.
+     */
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+    Query query = Query::Select().FromTable({g_tableName3});
+    adapter->ForkGetSecurityOption([](const std::string&, SecurityOption &option) {
+        return NOT_SUPPORT;
+    });
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), OK);
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    g_delegate->SetCloudSyncConfig(config);
+    EXPECT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), OK);
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE

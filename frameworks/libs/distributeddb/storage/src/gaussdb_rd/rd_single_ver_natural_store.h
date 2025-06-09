@@ -146,6 +146,8 @@ public:
     void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data) override;
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
+
+    CloudSyncConfig GetCloudSyncConfig() const override;
 private:
     int PreCheckRdImport(std::string &storePath);
 

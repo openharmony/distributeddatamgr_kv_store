@@ -231,6 +231,8 @@ public:
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
+    CloudSyncConfig GetCloudSyncConfig() const override;
+
     uint64_t GetTimestampFromDB() override;
 
     // for test mock

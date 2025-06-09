@@ -218,6 +218,7 @@ struct CloudSyncConfig {
     int32_t maxUploadCount = 30;             // default max upload 30 records
     int32_t maxUploadSize  = 1024 * 512 * 3; // default max upload 1024 * 512 * 3 = 1.5m
     int32_t maxRetryConflictTimes = -1;      // default max retry -1 is unlimited retry times
+    bool isSupportEncrypt = false;           // default encryption is not supported
 };
 
 struct AsyncDownloadAssetsConfig {

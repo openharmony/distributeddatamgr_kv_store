@@ -109,6 +109,8 @@ public:
 
     int32_t GetTaskCount();
 
+    virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
