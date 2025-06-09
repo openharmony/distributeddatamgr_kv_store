@@ -29,19 +29,29 @@ static napi_value Init(napi_env env, napi_value exports)
         DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager)
     };
     napi_status status = napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
-    ZLOGI("Init createKVManager %{public}d", status);
+    if (status != napi_ok) {
+        ZLOGE("Init createKVManager failed:%{public}d", status);
+    }
 
     status = napi_set_named_property(env, exports, "FieldNode", JsFieldNode::Constructor(env));
-    ZLOGI("Init FieldNode %{public}d", status);
+    if (status != napi_ok) {
+        ZLOGE("Init FieldNode failed:%{public}d", status);
+    }
 
     status = napi_set_named_property(env, exports, "Schema", JsSchema::Constructor(env));
-    ZLOGI("Init Schema %{public}d", status);
+    if (status != napi_ok) {
+        ZLOGE("Init Schema failed:%{public}d", status);
+    }
 
     status = napi_set_named_property(env, exports, "Query", JsQuery::Constructor(env));
-    ZLOGI("Init Query %{public}d", status);
+    if (status != napi_ok) {
+        ZLOGE("Init Query failed:%{public}d", status);
+    }
 
     status = InitConstProperties(env, exports);
-    ZLOGI("Init Enumerate Constants %{public}d", status);
+    if (status != napi_ok) {
+        ZLOGE("Init Enumerate Constants failed:%{public}d", status);
+    }
     return exports;
 }
 

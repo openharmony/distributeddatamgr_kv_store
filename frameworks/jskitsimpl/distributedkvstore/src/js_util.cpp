@@ -199,7 +199,7 @@ JSUtil::KvStoreVariant JSUtil::Blob2VariantValue(const DistributedKv::Blob& blob
     auto& data = blob.Data();
     // number 2 means: valid Blob must have more than 2 bytes.
     if (data.size() < 1) {
-        ZLOGE("Blob have no data!");
+        ZLOGD("Blob have no data!");
         return JSUtil::KvStoreVariant();
     }
     // number 1 means: skip the first byte, byte[0] is real data type.
