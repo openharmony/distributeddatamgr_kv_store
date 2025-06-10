@@ -333,8 +333,8 @@ public:
             return KvStoreTypes::make_singleKVStore(nativeKVStore);
         }
         auto nativeKVStore = make_holder<DeviceKVStoreImpl, DeviceKVStore>();
-        (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->getDevInner()))->SetKvStorePtr(kvStore);
-        (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->getDevInner()))->SetContextParam(param_);
+        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getDevInner()))->SetKvStorePtr(kvStore);
+        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getDevInner()))->SetContextParam(param_);
         return KvStoreTypes::make_deviceKVStore(nativeKVStore);
     }
 private:
