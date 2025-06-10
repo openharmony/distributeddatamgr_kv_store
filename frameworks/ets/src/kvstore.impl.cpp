@@ -225,7 +225,7 @@ DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
         }
         case ::kvstore::DataTypes::tag_t::booleanType: {
             bool val = bool(value.get_booleanType_ref());
-            data.push_back(DistributedKv::KvUtils::BOOLEAN);
+            data.push_back(ValueType::BOOLEAN);
             data.push_back(static_cast<uint8_t>(val));
             break;
         }
@@ -290,6 +290,8 @@ public:
         kvStore_->Get(s_key, value);
         return KVValueToDataTypes(value);
     }
+private:
+    const int DEVICEID_WIDTH = 4;
 };
 
 class KVManagerImpl {
