@@ -109,11 +109,6 @@ int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const Knowl
     if (errCode != E_OK) {
         return errCode;
     }
-    RelationalSchemaObject rdbSchema;
-    std::tie(errCode, rdbSchema) = GetRDBSchema(db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     TableInfo tableInfo;
     errCode = SQLiteUtils::AnalysisSchema(db, schema.tableName, tableInfo);
     if (errCode != E_OK) {
@@ -121,7 +116,7 @@ int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const Knowl
     }
     tableInfo.SetTrackerTable(GetTrackerTable(schema));
     bool isChanged = false;
-    std::tie(errCode, isChanged) = CheckSchemaValidAndChangeStatus(knowledgeSchema, rdbSchema, schema, tableInfo);
+    std::tie(errCode, isChanged) = CheckSchemaValidAndChangeStatus(db, knowledgeSchema, schema, tableInfo);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -150,8 +145,8 @@ int KnowledgeSourceUtils::InitMeta(sqlite3 *db, const std::string &table)
     return SQLiteRelationalUtils::InitCursorToMeta(db, false, table);
 }
 
-std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(
-    const RelationalSchemaObject &knowledgeSchema, const RelationalSchemaObject &rdbSchema,
+std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(sqlite3 *db,
+    const RelationalSchemaObject &knowledgeSchema,
     const KnowledgeSourceSchema &schema, const TableInfo &tableInfo)
 {
     std::pair<int, bool> res = {E_OK, false};
@@ -160,7 +155,20 @@ std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(
         errCode = -E_INVALID_ARGS;
         return res;
     }
-    if (IsTableInRDBSchema(schema.tableName, rdbSchema)) {
+    RelationalSchemaObject rdbSchema;
+    std::tie(errCode, rdbSchema) = GetRDBSchema(db, false);
+    if (errCode != E_OK) {
+        return res;
+    }
+    if (IsTableInRDBSchema(schema.tableName, rdbSchema, false)) {
+        errCode = -E_INVALID_ARGS;
+        return res;
+    }
+    std::tie(errCode, rdbSchema) = GetRDBSchema(db, true);
+    if (errCode != E_OK) {
+        return res;
+    }
+    if (IsTableInRDBSchema(schema.tableName, rdbSchema, true)) {
         errCode = -E_INVALID_ARGS;
         return res;
     }
@@ -190,8 +198,17 @@ bool KnowledgeSourceUtils::IsSchemaValid(const KnowledgeSourceSchema &schema, co
     return true;
 }
 
-bool KnowledgeSourceUtils::IsTableInRDBSchema(const std::string &table, const RelationalSchemaObject &rdbSchema)
+bool KnowledgeSourceUtils::IsTableInRDBSchema(const std::string &table, const RelationalSchemaObject &rdbSchema,
+    bool isTracker)
 {
+    if (isTracker) {
+        auto trackerTable = rdbSchema.GetTrackerTable(table);
+        if (!trackerTable.GetTableName().empty()) {
+            LOGE("Table %s len %zu was tracker table", DBCommon::StringMiddleMasking(table).c_str(), table.size());
+            return true;
+        }
+        return false;
+    }
     auto tableInfo = rdbSchema.GetTable(table);
     if (!tableInfo.GetTableName().empty()) {
         LOGE("Table %s len %zu was distributed table, type %d", DBCommon::StringMiddleMasking(table).c_str(),
@@ -264,14 +281,14 @@ std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetKnowledgeSourceS
     return res;
 }
 
-std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetRDBSchema(sqlite3 *db)
+std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetRDBSchema(sqlite3 *db, bool isTracker)
 {
     std::pair<int, RelationalSchemaObject> res;
     auto &[errCode, rdbSchema] = res;
-    const std::string knowledgeKey(DBConstant::RELATIONAL_SCHEMA_KEY);
-    const Key schemaKey(knowledgeKey.begin(), knowledgeKey.end());
+    std::string schemaKey = isTracker ? DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY : DBConstant::RELATIONAL_SCHEMA_KEY;
+    const Key schema(schemaKey.begin(), schemaKey.end());
     Value schemaVal;
-    errCode = SQLiteRelationalUtils::GetKvData(db, false, schemaKey, schemaVal); // save schema to meta_data
+    errCode = SQLiteRelationalUtils::GetKvData(db, false, schema, schemaVal); // save schema to meta_data
     if (errCode == -E_NOT_FOUND) {
         LOGD("Not found rdb schema in db");
         errCode = E_OK;
@@ -282,7 +299,11 @@ std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetRDBSchema(sqlite
         return res;
     }
     std::string schemaJson(schemaVal.begin(), schemaVal.end());
-    errCode = rdbSchema.ParseFromSchemaString(schemaJson);
+    if (isTracker) {
+        errCode = rdbSchema.ParseFromTrackerSchemaString(schemaJson);
+    } else {
+        errCode = rdbSchema.ParseFromSchemaString(schemaJson);
+    }
     return res;
 }
 

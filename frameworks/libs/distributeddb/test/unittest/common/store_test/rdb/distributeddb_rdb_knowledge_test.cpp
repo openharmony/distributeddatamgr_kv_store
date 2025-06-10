@@ -27,6 +27,7 @@ public:
 protected:
     static UtDateBaseSchemaInfo GetDefaultSchema();
     static UtTableSchemaInfo GetTableSchema(const std::string &table);
+    static KnowledgeSourceSchema GetKnowledgeSchema();
     static constexpr const char *KNOWLEDGE_TABLE = "KNOWLEDGE_TABLE";
     static constexpr const char *SYNC_TABLE = "SYNC_TABLE";
     StoreInfo info1_ = {USER_ID, APP_ID, STORE_ID_1};
@@ -63,6 +64,16 @@ UtTableSchemaInfo DistributedDBRDBKnowledgeTest::GetTableSchema(const std::strin
     field.field.colName = "int_field3";
     tableSchema.fieldInfo.push_back(field);
     return tableSchema;
+}
+
+KnowledgeSourceSchema DistributedDBRDBKnowledgeTest::GetKnowledgeSchema()
+{
+    KnowledgeSourceSchema schema;
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    schema.tableName = SYNC_TABLE;
+    return schema;
 }
 
 /**
@@ -158,12 +169,34 @@ HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge003, TestSize.Level0)
      */
     auto db = GetSqliteHandle(info1_);
     ASSERT_NE(db, nullptr);
-    KnowledgeSourceSchema schema;
-    schema.tableName = KNOWLEDGE_TABLE;
-    schema.extendColNames.insert("id");
-    schema.knowledgeColNames.insert("int_field1");
-    schema.knowledgeColNames.insert("int_field2");
-    schema.tableName = SYNC_TABLE;
-    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, GetKnowledgeSchema()), INVALID_ARGS);
+}
+
+/**
+ * @tc.name: SetKnowledge004
+ * @tc.desc: Test set knowledge schema after create tracker table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create tracker table.
+     * @tc.expected: step1. Ok
+     */
+    UtDateBaseSchemaInfo info;
+    info.tablesInfo.push_back(GetTableSchema(SYNC_TABLE));
+    info.tablesInfo.push_back(GetTableSchema(KNOWLEDGE_TABLE));
+    SetSchemaInfo(info1_, info);
+    ASSERT_EQ(DistributedDB::RDBGeneralUt::InitDelegate(info1_), E_OK);
+    ASSERT_EQ(DistributedDB::RDBGeneralUt::SetTrackerTables(info1_, {SYNC_TABLE}), E_OK);
+    /**
+     * @tc.steps: step2. Set knowledge source schema.
+     * @tc.expected: step2. INVALID_ARGS
+     */
+    auto db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, GetKnowledgeSchema()), INVALID_ARGS);
 }
 }
