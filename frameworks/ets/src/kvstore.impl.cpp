@@ -268,7 +268,8 @@ public:
         param_ = param;
     }
 
-    int64_t GetInner() {
+    int64_t GetInner()
+    {
         return reinterpret_cast<int64_t>(this);
     }
 
@@ -296,7 +297,8 @@ public:
         return KVValueToDataTypes(value);
     }
 
-    int64_t GetDevInner() {
+    int64_t GetDevInner()
+    {
         return reinterpret_cast<int64_t>(this);
     }
 private:
