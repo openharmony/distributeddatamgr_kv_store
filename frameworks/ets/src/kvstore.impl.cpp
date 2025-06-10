@@ -267,6 +267,11 @@ public:
     {
         param_ = param;
     }
+
+    int64_t getInner() {
+        return reinterpret_cast<int64_t>(this);
+    }
+
     std::shared_ptr<OHOS::DistributedKv::SingleKvStore> kvStore_;
     std::shared_ptr<ContextParam> param_;
 };
@@ -289,6 +294,10 @@ public:
         OHOS::DistributedKv::Value value;
         kvStore_->Get(s_key, value);
         return KVValueToDataTypes(value);
+    }
+
+    int64_t getDevInner() {
+        return reinterpret_cast<int64_t>(this);
     }
 private:
     const int deviceidWidth = 4;
