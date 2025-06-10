@@ -268,7 +268,7 @@ public:
         param_ = param;
     }
 
-    int64_t getInner() {
+    int64_t GetInner() {
         return reinterpret_cast<int64_t>(this);
     }
 
@@ -296,7 +296,7 @@ public:
         return KVValueToDataTypes(value);
     }
 
-    int64_t getDevInner() {
+    int64_t GetDevInner() {
         return reinterpret_cast<int64_t>(this);
     }
 private:
@@ -336,14 +336,13 @@ public:
         }
         if (options.kvStoreType.has_value() && options.kvStoreType.value() == 1) {
             auto nativeKVStore = make_holder<SingleKVStoreImpl, SingleKVStore>();
-            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getInner()))->SetKvStorePtr(kvStore);
-            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getInner()))->SetContextParam(param_);
-            nativeKVStore->SetContextParam(param_);
+            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetInner()))->SetKvStorePtr(kvStore);
+            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetInner()))->SetContextParam(param_);
             return KvStoreTypes::make_singleKVStore(nativeKVStore);
         }
         auto nativeKVStore = make_holder<DeviceKVStoreImpl, DeviceKVStore>();
-        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getDevInner()))->SetKvStorePtr(kvStore);
-        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getDevInner()))->SetContextParam(param_);
+        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetDevInner()))->SetKvStorePtr(kvStore);
+        (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetDevInner()))->SetContextParam(param_);
         return KvStoreTypes::make_deviceKVStore(nativeKVStore);
     }
 private:
