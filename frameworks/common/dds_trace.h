@@ -56,7 +56,7 @@ private:
     void Start(const std::string &value)
     {
         if ((traceSwitch_ & BYTRACE_ON) == BYTRACE_ON) {
-            StartTrace(HITRACE_TAG_DISTRIBUTEDDATA, value);
+            StartTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_TAG_DISTRIBUTEDDATA, value.c_str());
         }
         if ((traceSwitch_ & TRACE_CHAIN_ON) == TRACE_CHAIN_ON) {
             traceId_ = OHOS::HiviewDFX::HiTraceChain::Begin(value, HITRACE_FLAG_DEFAULT);
@@ -68,7 +68,7 @@ private:
     void Finish(const std::string &value)
     {
         if ((traceSwitch_ & BYTRACE_ON) == BYTRACE_ON) {
-            FinishTrace(HITRACE_TAG_DISTRIBUTEDDATA);
+            FinishTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_TAG_DISTRIBUTEDDATA);
         }
         if ((traceSwitch_ & TRACE_CHAIN_ON) == TRACE_CHAIN_ON) {
             OHOS::HiviewDFX::HiTraceChain::End(traceId_);
