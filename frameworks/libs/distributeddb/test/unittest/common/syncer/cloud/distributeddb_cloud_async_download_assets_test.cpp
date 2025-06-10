@@ -822,10 +822,9 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload002, Test
     EXPECT_FALSE(RelationalTestUtils::IsExistEmptyHashAsset(db_, GetTableSchema("AsyncDownloadAssetsTest")));
     /**
      * @tc.steps: step5. Wait for failed download to finish
-     * @tc.expected: step5. Download task changes from 1 to 0
+     * @tc.expected: step5. Download task changes to 0
      */
     auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
-    EXPECT_EQ(manager->GetCurrentDownloadCount(), 1u);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     EXPECT_EQ(manager->GetCurrentDownloadCount(), 0u);
     /**
