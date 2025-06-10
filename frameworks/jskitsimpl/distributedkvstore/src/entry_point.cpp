@@ -29,7 +29,7 @@ static napi_value Init(napi_env env, napi_value exports)
         DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager)
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
-    napi_set_named_property(env, exports, "FieldNode", JsFieldNode::Constructor(env))
+    napi_set_named_property(env, exports, "FieldNode", JsFieldNode::Constructor(env));
     napi_set_named_property(env, exports, "Schema", JsSchema::Constructor(env));
     napi_set_named_property(env, exports, "Query", JsQuery::Constructor(env));
     InitConstProperties(env, exports);
