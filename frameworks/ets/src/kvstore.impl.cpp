@@ -281,7 +281,7 @@ public:
     {
         std::ostringstream oss;
         if (!deviceId.empty()) {
-            oss << std::setfill('0') << std::setw(DEVICEID_WIDTH) << deviceId.size() << deviceId;
+            oss << std::setfill('0') << std::setw(deviceidWidth) << deviceId.size() << deviceId;
         }
         oss << key;
         std::string deviceKey = std::string(oss.str());
@@ -291,7 +291,7 @@ public:
         return KVValueToDataTypes(value);
     }
 private:
-    const int DEVICEID_WIDTH = 4;
+    const int deviceidWidth = 4;
 };
 
 class KVManagerImpl {
@@ -327,13 +327,14 @@ public:
         }
         if (options.kvStoreType.has_value() && options.kvStoreType.value() == 1) {
             auto nativeKVStore = make_holder<SingleKVStoreImpl, SingleKVStore>();
-            nativeKVStore->SetKvStorePtr(kvStore);
+            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getInner()))->SetKvStorePtr(kvStore);
+            (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->getInner()))->SetContextParam(param_);
             nativeKVStore->SetContextParam(param_);
             return KvStoreTypes::make_singleKVStore(nativeKVStore);
         }
         auto nativeKVStore = make_holder<DeviceKVStoreImpl, DeviceKVStore>();
-        nativeKVStore->SetKvStorePtr(kvStore);
-        nativeKVStore->SetContextParam(param_);
+        (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->getDevInner()))->SetKvStorePtr(kvStore);
+        (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->getDevInner()))->SetContextParam(param_);
         return KvStoreTypes::make_deviceKVStore(nativeKVStore);
     }
 private:

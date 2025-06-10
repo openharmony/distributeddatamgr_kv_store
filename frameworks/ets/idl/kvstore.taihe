@@ -97,6 +97,7 @@ interface SingleKVStore {
   @gen_async("put")
   @gen_promise("put")
   PutSync(key: String, value: DataTypes);
+  getInner(): i64;
 }
 
 interface DeviceKVStore : SingleKVStore {
@@ -104,6 +105,7 @@ interface DeviceKVStore : SingleKVStore {
   @gen_promise("get")
   @overload("getSync")
   GetByDevIdSync(deviceId: String, key: String): DataTypes;
+  getDevInner(): i64;
 }
 
 struct KVManagerConfig {
