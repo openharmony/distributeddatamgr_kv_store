@@ -1918,7 +1918,7 @@ void SQLiteSingleVerNaturalStore::AsyncDataMigration(SQLiteSingleVerStorageEngin
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_DELEGATE_CALLBACK_TIME));
     bool isLocked = RuntimeContext::GetInstance()->IsAccessControlled();
     if (!isLocked) {
-        LOGI("Begin to migrate cache data to manDb asynchronously!");
+        LOGI("[AsyncDataMigration] Begin");
         // we can't use engineMutex_ here, because ExecuteMigration will call GetHandle, it will lead to crash at
         // engineMutex_.lock_shared
         (void)StorageEngineManager::ExecuteMigration(storageEngine);

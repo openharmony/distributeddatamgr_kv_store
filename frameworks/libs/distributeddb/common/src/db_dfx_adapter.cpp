@@ -126,25 +126,25 @@ void DBDfxAdapter::ReportBehavior(const ReportTask &reportTask)
 
 void DBDfxAdapter::StartTrace(const std::string &action)
 {
-    ::StartTrace(HITRACE_LABEL, action);
+    ::StartTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_LABEL, action.c_str());
 }
 
 void DBDfxAdapter::FinishTrace()
 {
-    ::FinishTrace(HITRACE_LABEL);
+    ::FinishTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_LABEL);
 }
 
 void DBDfxAdapter::StartTracing()
 {
 #ifdef TRACE_SQLITE_EXECUTE
-    ::StartTrace(HITRACE_LABEL, SQLITE_EXECUTE);
+    ::StartTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_LABEL, SQLITE_EXECUTE.c_str());
 #endif
 }
 
 void DBDfxAdapter::FinishTracing()
 {
 #ifdef TRACE_SQLITE_EXECUTE
-    ::FinishTrace(HITRACE_LABEL);
+    ::FinishTraceEx(HiTraceOutputLevel::HITRACE_LEVEL_INFO, HITRACE_LABEL);
 #endif
 }
 

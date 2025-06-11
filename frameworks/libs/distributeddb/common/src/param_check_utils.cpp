@@ -220,7 +220,7 @@ uint8_t ParamCheckUtils::GetValidCompressionRate(uint8_t compressionRate)
 bool ParamCheckUtils::CheckTableReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
 {
     if (tableReferenceProperty.empty()) {
-        LOGI("[CheckTableReference] tableReferenceProperty is empty");
+        LOGI("[CheckTableReference] empty");
         return true;
     }
 

@@ -813,9 +813,9 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption 
     }
     errCode = SqliteLogTableManager::CreateKvSyncLogTable(db);
     if (errCode != E_OK) {
-        LOGE("[SQLiteSingleVerStorageEngine] create cloud log table failed, errCode = [%d]", errCode);
+        LOGE("[SqlSinEngine] create cloud log table failed, errCode = [%d]", errCode);
     } else {
-        LOGI("[SQLiteSingleVerStorageEngine] create cloud log table success");
+        LOGI("[SqlSinEngine] create cloud log table success");
     }
     return errCode;
 }
@@ -1063,7 +1063,9 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
 
 void SQLiteSingleVerStorageEngine::SetMaxValueSize(uint32_t maxValueSize)
 {
-    LOGI("Set the max value size to %" PRIu32, maxValueSize);
+    if (maxValueSize_ != maxValueSize) {
+        LOGI("Set the max value size to %" PRIu32, maxValueSize);
+    }
     maxValueSize_ = maxValueSize;
 }
 

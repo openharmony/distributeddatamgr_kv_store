@@ -1481,7 +1481,7 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             dataChangeCallbackMap_.erase(it);
-            LOGI("erase all observer for this delegate.");
+            LOGI("erase all observer, %" PRIu64, connectionId);
         }
     }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);

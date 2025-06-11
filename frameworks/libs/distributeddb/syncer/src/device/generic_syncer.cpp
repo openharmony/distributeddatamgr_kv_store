@@ -246,8 +246,8 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
         InitSyncOperation(operation, param);
-        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %s, devices = %s", syncId, param.mode,
-            param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str());
+        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s", syncId,
+            param.mode, param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str());
         engine = syncEngine_;
         RefObject::IncObjRef(engine);
     }
@@ -1073,7 +1073,7 @@ int GenericSyncer::CloseInner(bool isClosedOperation)
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (!initialized_) {
-            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
+            LOGW("[Syncer] CloseInner[%.3s] don't close", label_.c_str());
             return -E_NOT_INIT;
         }
         initialized_ = false;
@@ -1245,7 +1245,7 @@ void GenericSyncer::ResetTimeSyncMarkByTimeChange(std::shared_ptr<Metadata> &met
     }
     int errCode = metadata->ClearAllTimeSyncFinishMark();
     if (errCode != E_OK) {
-        LOGW("[GenericSyncer] %s clear time sync finish mark failed %d", label_.c_str(), errCode);
+        LOGW("[GenericSyncer] %.3s clear time sync finish mark failed %d", label_.c_str(), errCode);
     } else {
         LOGD("[GenericSyncer] ClearAllTimeSyncFinishMark finish");
         RuntimeContext::GetInstance()->ResetDBTimeChangeStatus(storage.GetIdentifier());

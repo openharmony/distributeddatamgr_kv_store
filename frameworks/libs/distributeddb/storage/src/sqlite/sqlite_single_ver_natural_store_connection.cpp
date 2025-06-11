@@ -1076,8 +1076,8 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntryNormally(DataItem &dataItem)
         if (maxTimestamp > currentMaxTimestamp_) {
             currentMaxTimestamp_ = maxTimestamp;
         }
-    } else {
-        LOGE("Save entry failed, err:%d", errCode);
+    } else if (errCode != -E_NOT_FOUND) {
+        LOGE("[Normal] Save err:%d", errCode);
     }
     return errCode;
 }
@@ -1098,8 +1098,8 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntryInCacheMode(DataItem &dataIt
         if (maxTimestamp > currentMaxTimestamp_) {
             currentMaxTimestamp_ = maxTimestamp;
         }
-    } else {
-        LOGE("Save entry failed, err:%d", errCode);
+    } else if (errCode != -E_NOT_FOUND) {
+        LOGE("[Cache] Save err:%d", errCode);
     }
     return errCode;
 }

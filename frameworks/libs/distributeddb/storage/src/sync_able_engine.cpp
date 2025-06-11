@@ -121,13 +121,13 @@ int SyncAbleEngine::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedAct
         // active to non_active
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             [this](void *) { ChangeUserListener(); }, UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
-        LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener", label.c_str());
+        LOGI("[StartSyncerWithNoLock] [%.3s]", label.c_str());
     } else if (isSyncDualTupleMode && (userChangeListener_ == nullptr)) {
         EventType event = isNeedActive ?
             UserChangeMonitor::USER_ACTIVE_EVENT : UserChangeMonitor::USER_NON_ACTIVE_EVENT;
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             [this](void *) { UserChangeHandle(); }, event);
-        LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener event=%d", label.c_str(), event);
+        LOGI("[StartSyncerWithNoLock] [%.3s] event=%d", label.c_str(), event);
     }
     return errCode;
 }

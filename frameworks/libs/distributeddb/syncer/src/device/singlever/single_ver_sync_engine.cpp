@@ -63,7 +63,7 @@ void SingleVerSyncEngine::EnableClearRemoteStaleData(bool enable)
 int SingleVerSyncEngine::StartAutoSubscribeTimer(const ISyncInterface &syncInterface)
 {
     if (syncInterface.IsSupportSubscribe() == -E_NOT_SUPPORT) {
-        LOGI("[StartAutoSubscribeTimer] no need to start subscribe timer");
+        LOGI("[StartAutoSubscribeTimer] no need start");
         return E_OK;
     }
 
