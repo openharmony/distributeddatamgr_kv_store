@@ -1399,7 +1399,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.L
     input = static_cast<PragmaData>(&maxValueSize);
     status = g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input);
     EXPECT_TRUE(status == OK);
-    EXPECT_TRUE(g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input) == OK);
     /**
      * @tc.steps: step3. PutBatch/PutLocalBatch/PublishLocal operates on three sets of data.
      * @tc.expected: step3. Three operations return OK or INVALID_ARGS.
