@@ -1432,3 +1432,27 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject005, TestSize.Level1)
     EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(g_store, vector{data1}, REMOTE_DEVICE_ID), -1);
     storageEngine->Release();
 }
+
+/**
+  * @tc.name: AbnormalPut001
+  * @tc.desc: Insert data when the test table does not exist
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, AbnormalPut001, TestSize.Level1)
+{
+    std::string path = g_testDir + "/TestQuerySync/" + DBConstant::SINGLE_SUB_DIR + "/main/gen_natural_store.db";
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr), SQLITE_OK);
+    char *errMsg = nullptr;
+    EXPECT_EQ(sqlite3_exec(db, "DROP TABLE sync_data", nullptr, nullptr, &errMsg), 0);
+    IOption option;
+    option.dataType = IOption::SYNC_DATA;
+    Key key;
+    Value value;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(key);
+    DistributedDBToolsUnitTest::GetRandomKeyValue(value);
+    EXPECT_NE(g_connection->Put(option, key, value), E_OK);
+    sqlite3_close(db);
+}

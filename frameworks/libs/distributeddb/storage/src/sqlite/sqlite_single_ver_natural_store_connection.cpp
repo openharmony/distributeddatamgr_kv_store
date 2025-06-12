@@ -1098,8 +1098,8 @@ int SQLiteSingleVerNaturalStoreConnection::SaveEntryInCacheMode(DataItem &dataIt
         if (maxTimestamp > currentMaxTimestamp_) {
             currentMaxTimestamp_ = maxTimestamp;
         }
-    } else if (errCode != -E_NOT_FOUND) {
-        LOGE("[Cache] Save err:%d", errCode);
+    } else {
+        LOGE("Save entry failed, err:%d", errCode);
     }
     return errCode;
 }

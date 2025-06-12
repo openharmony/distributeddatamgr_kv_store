@@ -629,6 +629,18 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest005, TestSize.Level
     ASSERT_NE(storageEngine, nullptr);
     EXPECT_EQ(storageEngine->CheckEngineOption(g_property), E_OK);
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+    /**
+     * @tc.steps: step1. set max value size
+     * @tc.expected: step1. Expect return OK
+     */
+    uint32_t valSize = 64 * 1024 * 1024;
+    PragmaData input = static_cast<PragmaData>(&valSize);
+    EXPECT_TRUE(g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input) == OK);
+    /**
+     * @tc.steps: step2. set max value size again
+     * @tc.expected: step2. Expect return OK
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(SET_MAX_VALUE_SIZE, input), OK);
 }
 
 /**
