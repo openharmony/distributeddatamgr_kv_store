@@ -714,6 +714,12 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, QueryCursorTest002, TestSize.Level1)
         index++;
     });
     CallSync(option);
+    /**
+     * @tc.steps:step3. sync again and check cursor
+     * @tc.expected: step3. return ok.
+     */
+    index = 0;
+    CallSync(option);
 }
 
 /**

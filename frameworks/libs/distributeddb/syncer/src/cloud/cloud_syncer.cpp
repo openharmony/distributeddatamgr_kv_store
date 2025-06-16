@@ -877,7 +877,7 @@ int CloudSyncer::SaveData(CloudSyncer::TaskId taskId, SyncParam &param)
     param.info.downLoadInfo.successCount += param.downloadData.data.size();
     // Get latest cloudWaterMark
     VBucket &lastData = param.downloadData.data.back();
-    if (!IsQueryListEmpty(taskId) && param.isLastBatch) {
+    if (!IsNeedProcessCloudCursor(taskId) && param.isLastBatch) {
         // the last batch of cursor in the conditional query is useless
         param.cloudWaterMark = {};
     } else {
@@ -1247,7 +1247,7 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     storageProxy_->ReleaseUploadRecord(tableName, uploadParam.mode, uploadParam.localMark);
     // if we use local cover cloud strategy, it won't update local water mark also.
     if (IsModeForcePush(uploadParam.taskId) || (IsPriorityTask(uploadParam.taskId) &&
-        !IsQueryListEmpty(uploadParam.taskId))) {
+        !IsNeedProcessCloudCursor(uploadParam.taskId))) {
         return E_OK;
     }
     errCode = storageProxy_->PutWaterMarkByMode(tableName, uploadParam.mode, uploadParam.localMark);
@@ -1344,7 +1344,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId tas
         cloudWaterMark = currentContext_.cloudWaterMarks[currentContext_.currentUserIndex][tableName];
         isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
     }
-    isUpdateCloudCursor = isUpdateCloudCursor && !(IsPriorityTask(taskId) && !IsQueryListEmpty(taskId));
+    isUpdateCloudCursor = isUpdateCloudCursor && !(IsPriorityTask(taskId) && !IsNeedProcessCloudCursor(taskId));
     if (isUpdateCloudCursor) {
         int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
         if (errCode != E_OK) {
@@ -2087,7 +2087,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         currentContext_.assetFields[currentContext_.tableName] = assetFields;
     }
     param.isSinglePrimaryKey = CloudSyncUtils::IsSinglePrimaryKey(param.pkColNames);
-    if (!IsModeForcePull(taskId) && (!IsPriorityTask(taskId) || IsQueryListEmpty(taskId))) {
+    if (!IsModeForcePull(taskId) && (!IsPriorityTask(taskId) || IsNeedProcessCloudCursor(taskId))) {
         ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);

@@ -421,6 +421,8 @@ protected:
 
     bool IsNeedGetLocalWater(TaskId taskId);
 
+    bool IsNeedProcessCloudCursor(TaskId taskId);
+
     void SetProxyUser(const std::string &user);
 
     void MergeTaskInfo(const std::shared_ptr<DataBaseSchema> &cloudSchema, TaskId taskId);
