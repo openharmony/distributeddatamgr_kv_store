@@ -1080,6 +1080,11 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
             return errCode;
         }
     }
+
+    // Try clear historical mismatched log, which usually do not occur and apply to tracker table only.
+    if (GetSchema().GetTable(schema.tableName).Empty()) {
+        handle->ClearLogOfMismatchedData(schema.tableName);
+    }
     return handle->Commit();
 }
 

@@ -265,6 +265,8 @@ public:
     int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
 
     void SetTableMode(DistributedTableMode mode);
+
+    void ClearLogOfMismatchedData(const std::string &tableName);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
