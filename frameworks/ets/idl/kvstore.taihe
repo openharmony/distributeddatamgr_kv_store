@@ -58,13 +58,13 @@ enum SecurityLevel: i32 {
 }
 
 struct Options {
-  @readonly createIfMissing: Optional<bool>;
-  @readonly encrypt: Optional<bool>;
-  @readonly backup: Optional<bool>;
-  @readonly autoSync: Optional<bool>;
-  @readonly kvStoreType: Optional<KVStoreType>;
-  @readonly securityLevel: SecurityLevel;
-  @readonly schema: Optional<Schema>;
+  createIfMissing: Optional<bool>;
+  encrypt: Optional<bool>;
+  backup: Optional<bool>;
+  autoSync: Optional<bool>;
+  kvStoreType: Optional<KVStoreType>;
+  securityLevel: SecurityLevel;
+  schema: Optional<Schema>;
 }
 
 union KvStoreTypes{
@@ -109,8 +109,8 @@ interface DeviceKVStore : SingleKVStore {
 }
 
 struct KVManagerConfig {
-  @readonly bundleName: String;
-  @readonly context: @sts_type("BaseContext") Opaque;
+  bundleName: String;
+  context: @sts_type("BaseContext") Opaque;
 }
 
 function CreateKVManager(config: KVManagerConfig): KVManager;
