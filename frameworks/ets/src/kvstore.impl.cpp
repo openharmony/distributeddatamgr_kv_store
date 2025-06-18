@@ -287,7 +287,7 @@ public:
     {
         std::ostringstream oss;
         if (!deviceId.empty()) {
-            oss << std::setfill('0') << std::setw(deviceidWidth) << deviceId.size() << deviceId;
+            oss << std::setfill(zeroStr) << std::setw(deviceidWidth) << deviceId.size() << deviceId;
         }
         oss << key;
         std::string deviceKey = std::string(oss.str());
@@ -303,6 +303,7 @@ public:
     }
 private:
     const int deviceidWidth = 4;
+    const std::string zeroStr = '0';
 };
 
 class KVManagerImpl {
