@@ -14,6 +14,7 @@
 import("//build/config/components/ets_frontend/ets2abc_config.gni")
 import("//build/ohos.gni")
 import("//build/ohos/taihe_idl/taihe.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 copy_taihe_idl("kvstore_framework") {
   sources = [
               "idl/kvstore.taihe",
