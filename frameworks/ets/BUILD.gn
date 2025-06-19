@@ -17,9 +17,9 @@ import("//build/ohos/taihe_idl/taihe.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 copy_taihe_idl("kvstore_framework") {
   sources = [
-              "idl/kvstore.taihe",
-              "idl/kvstoreImport.taihe",
-            ]
+    "idl/kvstore.taihe",
+    "idl/kvstoreImport.taihe",
+  ]
 }
 subsystem_name = "distributeddatamgr"
 part_name = "kv_store"
