@@ -22,6 +22,9 @@
 
 #include "backup_manager.h"
 #include "file_ex.h"
+#include "hks_api.h"
+#include "hks_param.h"
+#include "security_manager.h"
 #include "store_manager.h"
 #include "store_util.h"
 #include "sys/stat.h"
@@ -39,6 +42,8 @@ static Options options = {
     .kvStoreType = SINGLE_VERSION,
     .baseDir = "/data/service/el1/public/database/rekey",
 };
+static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
+static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
 
 class StoreFactoryTest : public testing::Test {
 public:
@@ -57,15 +62,25 @@ public:
     void TearDown();
 
     std::chrono::system_clock::time_point GetDate(const std::string &name, const std::string &path);
-    bool ChangeKeyDate(const std::string &name, const std::string &path, int duration);
+    bool ChangeKeyDate(const std::string &name, const std::string &path, int duration, const std::vector<uint8_t> &key);
     bool MoveToRekeyPath(Options options, StoreId storeId);
     std::shared_ptr<StoreFactoryTest::DBManager> GetDBManager(const std::string &path, const AppId &appId);
     DBOption GetOption(const Options &options, const DBPassword &dbPassword);
     DBStatus ChangeKVStoreDate(const std::string &storeId, std::shared_ptr<DBManager> dbManager, const Options &options,
         DBPassword &dbPassword, int time);
     bool ModifyDate(int time);
+    bool Encrypt(const std::vector<uint8_t> &key, SecurityManager::SecurityContent &content);
+    bool Decrypt(const SecurityManager::SecurityContent &content, std::vector<uint8_t> &key);
     static void DeleteKVStore();
+
+    static std::vector<uint8_t> vecRootKeyAlias_;
+    static std::vector<uint8_t> vecAad_;
 };
+
+std::vector<uint8_t> StoreFactoryTest::vecRootKeyAlias_ =
+    std::vector<uint8_t>(ROOT_KEY_ALIAS, ROOT_KEY_ALIAS + strlen(ROOT_KEY_ALIAS));
+std::vector<uint8_t> StoreFactoryTest::vecAad_ =
+    std::vector<uint8_t>(HKS_BLOB_TYPE_AAD, HKS_BLOB_TYPE_AAD + strlen(HKS_BLOB_TYPE_AAD));
 
 void StoreFactoryTest::SetUpTestCase(void) { }
 
@@ -88,6 +103,110 @@ void StoreFactoryTest::DeleteKVStore()
     StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
 }
 
+bool StoreFactoryTest::Encrypt(const std::vector<uint8_t> &key, SecurityManager::SecurityContent &content)
+{
+    struct HksParamSet *params = nullptr;
+    int32_t ret = HksInitParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        return false;
+    }
+
+    uint8_t nonceValue[SecurityManager::SecurityContent::NONCE_SIZE] = {0};
+    struct HksBlob blobNonce = { .size = SecurityManager::SecurityContent::NONCE_SIZE, .data = nonceValue };
+    ret = HksGenerateRandom(nullptr, &blobNonce);
+    if (ret != HKS_SUCCESS) {
+        return false;
+    }
+
+    struct HksBlob blobAad = { uint32_t(vecAad_.size()), vecAad_.data() };
+    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
+    struct HksBlob plainKey = { uint32_t(key.size()), const_cast<uint8_t *>(key.data()) };
+    struct HksParam hksParam[] = {
+        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
+        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_ENCRYPT },
+        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
+        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
+        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
+        { .tag = HKS_TAG_NONCE, .blob = blobNonce },
+        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
+    };
+    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
+    if (ret != HKS_SUCCESS) {
+        HksFreeParamSet(&params);
+        return false;
+    }
+
+    ret = HksBuildParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        HksFreeParamSet(&params);
+        return false;
+    }
+
+    uint8_t cipherBuf[256] = { 0 };
+    struct HksBlob cipherText = { sizeof(cipherBuf), cipherBuf };
+    ret = HksEncrypt(&rootKeyName, params, &plainKey, &cipherText);
+    (void)HksFreeParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        return false;
+    }
+    std::vector<uint8_t> nonceContent(blobNonce.data, blobNonce.data + blobNonce.size);
+    content.nonceValue = nonceContent;
+    std::vector<uint8_t> encryptValue(cipherText.data, cipherText.data + cipherText.size);
+    content.encryptValue = encryptValue;
+    std::fill(cipherBuf, cipherBuf + sizeof(cipherBuf), 0);
+    return true;
+}
+
+bool StoreFactoryTest::Decrypt(const SecurityManager::SecurityContent &content, std::vector<uint8_t> &key)
+{
+    struct HksParamSet *params = nullptr;
+    int32_t ret = HksInitParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        return false;
+    }
+
+    struct HksBlob blobNonce = { .size = uint32_t(content.nonceValue.size()),
+        .data = const_cast<uint8_t*>(&(content.nonceValue[0])) };
+    struct HksBlob blobAad = { uint32_t(vecAad_.size()), &(vecAad_[0]) };
+    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), &(vecRootKeyAlias_[0]) };
+    struct HksBlob encryptedKeyBlob = { uint32_t(content.encryptValue.size()),
+        const_cast<uint8_t *>(content.encryptValue.data()) };
+    struct HksParam hksParam[] = {
+        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
+        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_DECRYPT },
+        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
+        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
+        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
+        { .tag = HKS_TAG_NONCE, .blob = blobNonce },
+        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
+    };
+    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
+    if (ret != HKS_SUCCESS) {
+        HksFreeParamSet(&params);
+        return false;
+    }
+
+    ret = HksBuildParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        HksFreeParamSet(&params);
+        return false;
+    }
+
+    uint8_t plainBuf[256] = { 0 };
+    struct HksBlob plainKeyBlob = { sizeof(plainBuf), plainBuf };
+    ret = HksDecrypt(&rootKeyName, params, &encryptedKeyBlob, &plainKeyBlob);
+    (void)HksFreeParamSet(&params);
+    if (ret != HKS_SUCCESS) {
+        return false;
+    }
+
+    key.assign(plainKeyBlob.data, plainKeyBlob.data + plainKeyBlob.size);
+    std::fill(plainBuf, plainBuf + sizeof(plainBuf), 0);
+    return true;
+}
+
 std::chrono::system_clock::time_point StoreFactoryTest::GetDate(const std::string &name, const std::string &path)
 {
     std::chrono::system_clock::time_point timePoint;
@@ -95,39 +214,56 @@ std::chrono::system_clock::time_point StoreFactoryTest::GetDate(const std::strin
     if (!OHOS::FileExists(keyPath)) {
         return timePoint;
     }
-
     std::vector<char> content;
     auto loaded = OHOS::LoadBufferFromFile(keyPath, content);
     if (!loaded) {
         return timePoint;
     }
-    constexpr uint32_t DATE_FILE_OFFSET = 1;
-    constexpr uint32_t DATE_FILE_LENGTH = sizeof(time_t) / sizeof(uint8_t);
-    std::vector<uint8_t> date;
-    date.assign(content.begin() + DATE_FILE_OFFSET, content.begin() + DATE_FILE_LENGTH + DATE_FILE_OFFSET);
-    timePoint = std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    SecurityManager::SecurityContent securityContent;
+    size_t offset = SecurityManager::SecurityContent::MAGIC_NUM;
+    securityContent.nonceValue.assign(content.begin() + offset,
+        content.begin() + offset + SecurityManager::SecurityContent::NONCE_SIZE);
+    offset += SecurityManager::SecurityContent::NONCE_SIZE;
+    securityContent.encryptValue.assign(content.begin() + offset, content.end());
+    std::vector<uint8_t> fullKey;
+    if (!Decrypt(securityContent, fullKey)) {
+        return timePoint;
+    }
+    offset = 0;
+    securityContent.version = fullKey[offset++];
+    securityContent.time.assign(fullKey.begin() + offset,
+        fullKey.begin() + offset + (sizeof(time_t) / sizeof(uint8_t)));
+    timePoint = std::chrono::system_clock::from_time_t(
+        *reinterpret_cast<time_t *>(const_cast<uint8_t *>(securityContent.time.data())));
     return timePoint;
 }
 
-bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, int duration)
+bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, int duration,
+    const std::vector<uint8_t> &key)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!OHOS::FileExists(keyPath)) {
         return false;
     }
-
-    std::vector<char> content;
-    auto loaded = OHOS::LoadBufferFromFile(keyPath, content);
-    if (!loaded) {
-        return false;
-    }
+    SecurityManager::SecurityContent securityContent;
+    securityContent.version = SecurityManager::SecurityContent::CURRENT_VERSION;
     auto time = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::system_clock::now() - std::chrono::hours(duration));
-    std::vector<char> date(reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time));
-    std::copy(date.begin(), date.end(), ++content.begin());
-
-    auto saved = OHOS::SaveBufferToFile(keyPath, content);
-    return saved;
+    securityContent.time = { reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time) };
+    std::vector<uint8_t> keyContent;
+    keyContent.push_back(securityContent.version);
+    keyContent.insert(keyContent.end(), securityContent.time.begin(), securityContent.time.end());
+    keyContent.insert(keyContent.end(), key.begin(), key.end());
+    if (!Encrypt(keyContent, securityContent)) {
+        return false;
+    }
+    std::vector<char> content;
+    for (size_t index = 0; index < SecurityManager::SecurityContent::MAGIC_NUM; ++index) {
+        content.push_back(char(SecurityManager::SecurityContent::MAGIC_CHAR));
+    }
+    content.insert(content.end(), securityContent.nonceValue.begin(), securityContent.nonceValue.end());
+    content.insert(content.end(), securityContent.encryptValue.begin(), securityContent.encryptValue.end());
+    return OHOS::SaveBufferToFile(keyPath, content);
 }
 
 bool StoreFactoryTest::MoveToRekeyPath(Options options, StoreId storeId)
@@ -185,7 +321,9 @@ StoreFactoryTest::DBStatus StoreFactoryTest::ChangeKVStoreDate(const std::string
         status = dbStatus;
         store = dbStore;
     });
-    if (!ChangeKeyDate(storeId, options.baseDir, time)) {
+    dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, options.baseDir, false);
+    std::vector<uint8_t> key(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
+    if (!ChangeKeyDate(storeId, options.baseDir, time, key)) {
         std::cout << "failed" << std::endl;
     }
     dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, options.baseDir, false);

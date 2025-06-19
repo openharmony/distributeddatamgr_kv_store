@@ -12,13 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "SECURITYMANAGER"
+#define LOG_TAG "SecurityManager"
+
 #include "security_manager.h"
 
 #include <chrono>
 #include <fcntl.h>
 #include <limits>
-#include <random>
 #include <sys/file.h>
 #include <unistd.h>
 
@@ -30,7 +30,18 @@
 #include "store_types.h"
 #include "store_util.h"
 #include "task_executor.h"
+
 namespace OHOS::DistributedKv {
+static constexpr int HOURS_PER_YEAR = (24 * 365);
+static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
+static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
+static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
+static constexpr const char *SUFFIX_KEY = ".key";
+static constexpr const char *SUFFIX_TMP_KEY = ".key_bk";
+static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
+static constexpr const char *KEY_DIR = "/key";
+static constexpr const char *SLASH = "/";
+
 SecurityManager::SecurityManager()
 {
     vecRootKeyAlias_ = std::vector<uint8_t>(ROOT_KEY_ALIAS, ROOT_KEY_ALIAS + strlen(ROOT_KEY_ALIAS));
@@ -69,29 +80,82 @@ bool SecurityManager::Retry()
     return false;
 }
 
-SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path, bool needCreate)
+std::vector<uint8_t> SecurityManager::Random(int32_t length)
 {
-    DBPassword dbPassword;
+    std::vector<uint8_t> value(length, 0);
+    struct HksBlob blobValue = { .size = length, .data = &(value[0]) };
+    auto ret = HksGenerateRandom(nullptr, &blobValue);
+    if (ret != HKS_SUCCESS) {
+        ZLOGE("HksGenerateRandom failed, status: %{public}d", ret);
+        return {};
+    }
+    return value;
+}
+
+bool SecurityManager::LoadContent(SecurityManager::SecurityContent &content, const std::string &path,
+    const std::string &tempPath, bool isTemp)
+{
+    std::string realPath = isTemp ? tempPath : path;
+    if (!FileExists(realPath)) {
+        return false;
+    }
+    content = LoadKeyFromFile(realPath);
+    if (content.encryptValue.empty() || !Decrypt(content)) {
+        return false;
+    }
+    if (isTemp) {
+        StoreUtil::Rename(tempPath, path);
+    } else {
+        StoreUtil::Remove(tempPath);
+    }
+    return true;
+}
+
+SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
+    bool needCreate)
+{
     KeyFiles keyFiles(name, path);
     KeyFilesAutoLock fileLock(keyFiles);
-    auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
-    std::vector<uint8_t> key{};
-
-    if (secKey.empty() && needCreate) {
-        key = Random(KEY_SIZE);
-        if (!SaveKeyToFile(name, path, key)) {
-            secKey.assign(secKey.size(), 0);
+    DBPassword dbPassword;
+    auto keyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
+    auto tempKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_TMP_KEY;
+    SecurityContent content;
+    auto result = LoadContent(content, keyPath, tempKeyPath, false);
+    if (!result) {
+        result = LoadContent(content, keyPath, tempKeyPath, true);
+    }
+    content.encryptValue.assign(content.encryptValue.size(), 0);
+    std::vector<uint8_t> key;
+    if (result) {
+        size_t offset = 0;
+        if (content.isNewStyle && content.fullKeyValue.size() > (sizeof(time_t) / sizeof(uint8_t)) + 1) {
+            content.version = content.fullKeyValue[offset++];
+            content.time.assign(content.fullKeyValue.begin() + offset,
+                content.fullKeyValue.begin() + offset + (sizeof(time_t) / sizeof(uint8_t)));
+        }
+        offset = content.isNewStyle ? (sizeof(time_t) / sizeof(uint8_t)) + 1 : 0;
+        if (content.fullKeyValue.size() > offset) {
+            key.assign(content.fullKeyValue.begin() + offset, content.fullKeyValue.end());
+        }
+        // old security key file and update key file
+        if (content.nonceValue.empty() && !key.empty()) {
+            SaveKeyToFile(name, path, key);
+        }
+        content.fullKeyValue.assign(content.fullKeyValue.size(), 0);
+    }
+    if (!result && needCreate) {
+        StoreUtil::Remove(keyPath);
+        StoreUtil::Remove(tempKeyPath);
+        key = Random(SecurityContent::KEY_SIZE);
+        if (key.empty() || !SaveKeyToFile(name, path, key)) {
             key.assign(key.size(), 0);
             return dbPassword;
         }
     }
-
-    if ((!secKey.empty() && Decrypt(secKey, key)) || !key.empty()) {
-        dbPassword.SetValue(key.data(), key.size());
+    if (!content.time.empty()) {
+        dbPassword.isKeyOutdated = IsKeyOutdated(content.time);
     }
-
-    secKey.assign(secKey.size(), 0);
+    dbPassword.SetValue(key.data(), key.size());
     key.assign(key.size(), 0);
     return dbPassword;
 }
@@ -116,94 +180,111 @@ void SecurityManager::DelDBPassword(const std::string &name, const std::string &
     fileLock.UnLockAndDestroy();
 }
 
-std::vector<uint8_t> SecurityManager::Random(int32_t len)
+SecurityManager::SecurityContent SecurityManager::LoadKeyFromFile(const std::string &path)
 {
-    std::random_device randomDevice;
-    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<uint8_t>::max());
-    std::vector<uint8_t> key(len);
-    for (int32_t i = 0; i < len; i++) {
-        key[i] = static_cast<uint8_t>(distribution(randomDevice));
-    }
-    return key;
-}
-
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
-    bool &isOutdated)
-{
-    auto keyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
-    if (!FileExists(keyPath)) {
-        return {};
-    }
-    StoreUtil::RemoveRWXForOthers(path + KEY_DIR);
-
+    SecurityContent securityContent;
     std::vector<char> content;
-    auto loaded = LoadBufferFromFile(keyPath, content);
+    auto loaded = LoadBufferFromFile(path, content);
     if (!loaded) {
-        return {};
+        return securityContent;
     }
-
-    if (content.size() < (sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE + 1) {
-        return {};
+    if (content.size() < SecurityContent::MAGIC_NUM) {
+        return securityContent;
     }
-
-    size_t offset = 0;
-    if (content[offset] != char((sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE)) {
-        return {};
+    for (size_t index = 0; index < SecurityContent::MAGIC_NUM; ++index) {
+        if (content[index] != char(SecurityContent::MAGIC_CHAR)) {
+            securityContent.isNewStyle = false;
+        }
     }
-
-    offset++;
-    std::vector<uint8_t> date;
-    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
-    isOutdated = IsKeyOutdated(date);
-    offset += (sizeof(time_t) / sizeof(uint8_t));
-    std::vector<uint8_t> key{ content.begin() + offset, content.end() };
+    if (securityContent.isNewStyle) {
+        LoadNewKey(content, securityContent);
+    } else {
+        LoadOldKey(content, securityContent);
+    }
     content.assign(content.size(), 0);
-    return key;
+    return securityContent;
 }
 
-bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
+void SecurityManager::LoadNewKey(const std::vector<char> &content, SecurityManager::SecurityContent &securityContent)
+{
+    if (content.size() < SecurityContent::MAGIC_NUM + SecurityContent::NONCE_SIZE + 1) {
+        return;
+    }
+    size_t offset = SecurityContent::MAGIC_NUM;
+    securityContent.nonceValue.assign(content.begin() + offset, content.begin() + offset + SecurityContent::NONCE_SIZE);
+    offset += SecurityContent::NONCE_SIZE;
+    securityContent.encryptValue.assign(content.begin() + offset, content.end());
+}
+
+void SecurityManager::LoadOldKey(const std::vector<char> &content, SecurityManager::SecurityContent &securityContent)
+{
+    size_t offset = 0;
+    if (content.size() < (sizeof(time_t) / sizeof(uint8_t)) + SecurityContent::KEY_SIZE + 1) {
+        return;
+    }
+    if (content[offset] != char((sizeof(time_t) / sizeof(uint8_t)) + SecurityContent::KEY_SIZE)) {
+        return;
+    }
+    ++offset;
+    securityContent.time.assign(content.begin() + offset, content.begin() +
+        (sizeof(time_t) / sizeof(uint8_t)) + offset);
+    offset += (sizeof(time_t) / sizeof(uint8_t));
+    securityContent.encryptValue.assign(content.begin() + offset, content.end());
+}
+
+bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path,
+    std::vector<uint8_t> &key)
 {
     if (!hasRootKey_ && !Retry()) {
         ZLOGE("Failed! no root key and generation failed");
         return false;
     }
-    auto secretKey = Encrypt(key);
-    if (secretKey.empty()) {
-        ZLOGE("Failed! encrypt failed");
+    SecurityContent securityContent;
+    securityContent.version = SecurityContent::CURRENT_VERSION;
+    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    securityContent.time = { reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time) };
+    std::vector<uint8_t> keyContent;
+    keyContent.push_back(securityContent.version);
+    keyContent.insert(keyContent.end(), securityContent.time.begin(), securityContent.time.end());
+    keyContent.insert(keyContent.end(), key.begin(), key.end());
+    if (!Encrypt(keyContent, securityContent)) {
+        keyContent.assign(keyContent.size(), 0);
         return false;
     }
+    keyContent.assign(keyContent.size(), 0);
     auto keyPath = path + KEY_DIR;
     StoreUtil::InitPath(keyPath);
     std::vector<char> content;
-    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::system_clock::now());
-    std::vector<uint8_t> date(reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time));
-    content.push_back(char((sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE));
-    content.insert(content.end(), date.begin(), date.end());
-    content.insert(content.end(), secretKey.begin(), secretKey.end());
-    auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY;
-    auto ret = SaveBufferToFile(keyFullPath, content);
-    if (access(keyFullPath.c_str(), F_OK) == 0) {
-        StoreUtil::RemoveRWXForOthers(keyFullPath);
+    for (size_t index = 0; index < SecurityContent::MAGIC_NUM; ++index) {
+        content.push_back(char(SecurityContent::MAGIC_CHAR));
     }
+    content.insert(content.end(), securityContent.nonceValue.begin(), securityContent.nonceValue.end());
+    content.insert(content.end(), securityContent.encryptValue.begin(), securityContent.encryptValue.end());
+    auto keyTempPath = keyPath + SLASH + name + SUFFIX_TMP_KEY;
+    auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY;
+    auto ret = SaveBufferToFile(keyTempPath, content);
     content.assign(content.size(), 0);
     if (!ret) {
-        ZLOGE("Client SaveSecretKey failed!");
+        ZLOGE("Save key to file fail, ret:%{public}d", ret);
         return false;
+    }
+    if (StoreUtil::Rename(keyTempPath, keyFullPath)) {
+        StoreUtil::RemoveRWXForOthers(keyFullPath);
     }
     return ret;
 }
 
-std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
+bool SecurityManager::Encrypt(const std::vector<uint8_t> &key, SecurityManager::SecurityContent &content)
 {
-    struct HksBlob blobAad = { uint32_t(vecAad_.size()), vecAad_.data() };
-    struct HksBlob blobNonce = { uint32_t(vecNonce_.size()), vecNonce_.data() };
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
-    struct HksBlob plainKey = { uint32_t(key.size()), const_cast<uint8_t *>(key.data()) };
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return {};
+        return false;
+    }
+    content.nonceValue = Random(SecurityContent::NONCE_SIZE);
+    if (content.nonceValue.empty()) {
+        return false;
     }
     struct HksParam hksParam[] = {
         { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
@@ -211,49 +292,49 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
         { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
         { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
-        { .tag = HKS_TAG_NONCE, .blob = blobNonce },
-        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_NONCE, .blob = { SecurityContent::NONCE_SIZE, &(content.nonceValue[0]) } },
+        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = { uint32_t(vecAad_.size()), &(vecAad_[0]) } },
         { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return {};
+        return false;
     }
-
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return {};
+        return false;
     }
-
     uint8_t cipherBuf[256] = { 0 };
     struct HksBlob cipherText = { sizeof(cipherBuf), cipherBuf };
+    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
+    struct HksBlob plainKey = { uint32_t(key.size()), const_cast<uint8_t *>(key.data()) };
     ret = HksEncrypt(&rootKeyName, params, &plainKey, &cipherText);
     (void)HksFreeParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksEncrypt failed, status: %{public}d", ret);
-        return {};
+        return false;
     }
-    std::vector<uint8_t> encryptedKey(cipherText.data, cipherText.data + cipherText.size);
+    content.encryptValue = std::vector<uint8_t>(cipherText.data, cipherText.data + cipherText.size);
     std::fill(cipherBuf, cipherBuf + sizeof(cipherBuf), 0);
-    return encryptedKey;
+    return true;
 }
 
-bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key)
+bool SecurityManager::Decrypt(SecurityManager::SecurityContent &content)
 {
-    struct HksBlob blobAad = { uint32_t(vecAad_.size()), &(vecAad_[0]) };
-    struct HksBlob blobNonce = { uint32_t(vecNonce_.size()), &(vecNonce_[0]) };
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), &(vecRootKeyAlias_[0]) };
-    struct HksBlob encryptedKeyBlob = { uint32_t(source.size()), source.data() };
-
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
         return false;
+    }
+    struct HksBlob blobNonce = { .size = uint32_t(vecNonce_.size()), .data = &(vecNonce_[0]) };
+    if (!(content.nonceValue.empty())) {
+        blobNonce.size = uint32_t(content.nonceValue.size());
+        blobNonce.data = const_cast<uint8_t*>(&(content.nonceValue[0]));
     }
     struct HksParam hksParam[] = {
         { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
@@ -262,7 +343,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
         { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_NONCE, .blob = blobNonce },
-        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = { uint32_t(vecAad_.size()), &(vecAad_[0]) } },
         { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
@@ -271,24 +352,24 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
         HksFreeParamSet(&params);
         return false;
     }
-
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return false;
     }
-
     uint8_t plainBuf[256] = { 0 };
     struct HksBlob plainKeyBlob = { sizeof(plainBuf), plainBuf };
+    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), &(vecRootKeyAlias_[0]) };
+    struct HksBlob encryptedKeyBlob = { uint32_t(content.encryptValue.size()),
+        const_cast<uint8_t *>(content.encryptValue.data()) };
     ret = HksDecrypt(&rootKeyName, params, &encryptedKeyBlob, &plainKeyBlob);
     (void)HksFreeParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksDecrypt, status: %{public}d", ret);
         return false;
     }
-
-    key.assign(plainKeyBlob.data, plainKeyBlob.data + plainKeyBlob.size);
+    content.fullKeyValue.assign(plainKeyBlob.data, plainKeyBlob.data + plainKeyBlob.size);
     std::fill(plainBuf, plainBuf + sizeof(plainBuf), 0);
     return true;
 }
@@ -454,6 +535,7 @@ SecurityManager::KeyFilesAutoLock::~KeyFilesAutoLock()
 {
     keyFiles_.UnLock();
 }
+
 int32_t SecurityManager::KeyFilesAutoLock::UnLockAndDestroy()
 {
     keyFiles_.UnLock();
