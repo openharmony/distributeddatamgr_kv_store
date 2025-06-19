@@ -235,7 +235,8 @@ bool StoreUtil::Rename(const std::string &oldName, const std::string &newName)
         return false;
     }
     if (rename(oldName.c_str(), newName.c_str()) != 0) {
-        ZLOGE("The rename error:%{public}d, file:%{public}s->%{public}s", errno, Anonymous(oldName).c_str(), Anonymous(newName).c_str());
+        ZLOGE("The rename error:%{public}d, file:%{public}s->%{public}s", errno,
+            Anonymous(oldName).c_str(), Anonymous(newName).c_str());
         return false;
     }
     return true;

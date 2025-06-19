@@ -1130,8 +1130,8 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
     }
 #endif
     param.hapName = "com.example.myapplication";
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, StoreUtil::Anonymous(param.hapName).c_str(),
-        param.baseDir.c_str());
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
+        StoreUtil::Anonymous(param.baseDir).c_str());
     return napi_ok;
 }
 

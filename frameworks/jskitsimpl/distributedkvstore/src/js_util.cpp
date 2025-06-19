@@ -1249,8 +1249,8 @@ JSUtil::StatusMsg JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &par
     if (hapInfo != nullptr) {
         param.hapName = hapInfo->moduleName;
     }
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, DistributedKv::StoreUtil::Anonymous(param.hapName).c_str(),
-        param.baseDir.c_str());
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
+        DistributedKv::StoreUtil::Anonymous(param.baseDir).c_str());
 
     return napi_ok;
 }
