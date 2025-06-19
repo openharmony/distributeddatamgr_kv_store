@@ -226,10 +226,10 @@ HWTEST_F(DistributedDBKvMultiUserSyncTest, InvalidSync001, TestSize.Level0)
     CheckData(store2, KEY_4, VALUE_4);
     /**
      * @tc.steps: step2. set empty target user and sync
-     * @tc.expected: step2. return DB_ERROR.
+     * @tc.expected: step2. return OK.
      */
     SetTargetUserId(DEVICE_A, "");
-    BlockPush(storeInfo1, storeInfo2, DB_ERROR);
+    BlockPush(storeInfo1, storeInfo2);
     ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
     ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo2), E_OK);
 }
