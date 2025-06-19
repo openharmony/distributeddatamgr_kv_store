@@ -22,6 +22,7 @@
 #include "kv_utils.h"
 #include "log_print.h"
 #include "napi_queue.h"
+#include "store_util.h"
 #include "types.h"
 
 namespace OHOS::DistributedKVStore {
@@ -1248,7 +1249,7 @@ JSUtil::StatusMsg JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &par
     if (hapInfo != nullptr) {
         param.hapName = hapInfo->moduleName;
     }
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, DistributedKv::StoreUtil::Anonymous(param.hapName).c_str(),
         param.baseDir.c_str());
 
     return napi_ok;

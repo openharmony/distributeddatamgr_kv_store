@@ -1115,7 +1115,7 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
     param.area = DistributedKv::Area::EL1;
     param.baseDir = baseDir + "\\HuaweiDevEcoStudioDatabases";
     if (mkdir(param.baseDir.c_str()) != 0) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, param.baseDir.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(param.baseDir).c_str());
     }
 #else
     std::string baseDir = getenv("LOGNAME");
@@ -1126,11 +1126,11 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
     param.area = DistributedKv::Area::EL1;
     param.baseDir = baseDir + "/HuaweiDevEcoStudioDatabases";
     if (mkdir(param.baseDir.c_str(), MODE) != 0) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, param.baseDir.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(param.baseDir).c_str());
     }
 #endif
     param.hapName = "com.example.myapplication";
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, StoreUtil::Anonymous(param.hapName).c_str(),
         param.baseDir.c_str());
     return napi_ok;
 }

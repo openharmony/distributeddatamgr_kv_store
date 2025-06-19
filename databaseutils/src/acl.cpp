@@ -33,6 +33,11 @@
 namespace OHOS {
 namespace DATABASE_UTILS {
 using namespace DistributedKv;
+static constexpr int32_t HEAD_SIZE = 3;
+static constexpr int32_t END_SIZE = 3;
+static constexpr int32_t MIN_SIZE = 9;
+static constexpr const char *REPLACE_CHAIN = "***";
+static constexpr const char *DEFAULT_ANONYMOUS = "******";
 Acl::Acl(const std::string &path) : path_(path), hasError_(false)
 {
     /* init acl from file's defaule or mode*/
@@ -156,7 +161,7 @@ void Acl::AclFromDefault()
         AclFromMode();
     } else {
         hasError_ = true;
-        ZLOGW("The getxattr failed. error %{public}s path %{public}s", std::strerror(errno), path_.c_str());
+        ZLOGW("The getxattr failed. error %{public}s path %{public}s", std::strerror(errno), Anonymous(path_).c_str());
     }
 }
 
@@ -216,6 +221,19 @@ Acl::~Acl()
 bool Acl::HasEntry(const AclXattrEntry &Acl)
 {
     return entries_.find(Acl) != entries_.end();
+}
+
+std::string Acl::Anonymous(const std::string &name)
+{
+    if (name.length() <= HEAD_SIZE) {
+        return DEFAULT_ANONYMOUS;
+    }
+
+    if (name.length() < MIN_SIZE) {
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+    }
+
+    return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 }
 }

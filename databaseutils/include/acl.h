@@ -151,6 +151,7 @@ private:
     std::unique_ptr<char[]> Serialize(uint32_t &bufSize);
     int DeSerialize(const char *p, int32_t bufSize);
     int InsertEntry(const AclXattrEntry &entry);
+    std::string Anonymous(const std::string &name);
     AclXattrHeader header_;
     /*
     * Only one entry should exist for the following types:
