@@ -418,7 +418,8 @@ int SyncAbleKvDBConnection::Sync(const CloudSyncOption &option, const SyncProces
     int securityLabel = INVALID_SEC_LABEL;
     int securityFlag = INVALID_SEC_FLAG;
     GetSecurityOption(securityLabel, securityFlag);
-    if (securityLabel == S4) {
+    CloudSyncConfig config = kvDB->GetCloudSyncConfig();
+    if ((securityLabel == S4) && (!config.isSupportEncrypt)) {
         LOGE("The current data does not support synchronization.");
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }

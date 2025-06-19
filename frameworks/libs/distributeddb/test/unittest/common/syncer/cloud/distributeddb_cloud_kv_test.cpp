@@ -2517,4 +2517,162 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync054, TestSize.Level1)
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
     EXPECT_EQ(actualValue1, expectValue1);
 }
+
+/**
+ * @tc.name: KvSupportEncryptTest001
+ * @tc.desc: Test sync when different security label and encryption para is set
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. sync when security label is S4 and encryption is not supported
+     * @tc.expected: step1. return SECURITY_OPTION_CHECK_ERROR.
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = S4;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, SECURITY_OPTION_CHECK_ERROR);
+
+    /**
+     * @tc.steps: step2. sync when security label is S4 and encryption is supported
+     * @tc.expected: step2. return OK.
+     */
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+
+    /**
+     * @tc.steps: step3. sync when security label is not set and encryption is supported
+     * @tc.expected: step3. return ok.
+     */
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps: step4. sync when security label is not set and encryption is not supported
+     * @tc.expected: step4. return ok.
+     */
+    config.isSupportEncrypt = false;
+    kvDelegatePtrS1_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
+
+/**
+ * @tc.name: KvSupportEncryptTest002
+ * @tc.desc: Test sync when encryption para is set multiple times
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. sync when isSupportEncrypt is set to true for the first time
+     * @tc.expected: step1. return OK.
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = S4;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+
+    /**
+     * @tc.steps: step2. sync when isSupportEncrypt is set to false for the second time
+     * @tc.expected: step2. return SECURITY_OPTION_CHECK_ERROR.
+     */
+    config.isSupportEncrypt = false;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, SECURITY_OPTION_CHECK_ERROR);
+
+    /**
+     * @tc.steps: step3. sync when isSupportEncrypt is set to true for the third time
+     * @tc.expected: step3. return OK.
+     */
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
+
+/**
+ * @tc.name: KvSupportEncryptTest003
+ * @tc.desc: Test GetCloudSyncConfig when GetCloudKvStore is nullptr
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest003, TestSize.Level1)
+{
+    SQLiteSingleVerNaturalStore store;
+    EXPECT_EQ(store.GetCloudKvStore(), nullptr);
+    CloudSyncConfig config = store.GetCloudSyncConfig();
+    EXPECT_EQ(config.isSupportEncrypt, false);
+}
+
+/**
+ * @tc.name: KvSupportEncryptTest004
+ * @tc.desc: Test sync when security label change and different encryption para is set
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. sync when security label is S2 and different encryption para is set
+     * @tc.expected: step1. return OK.
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    KvStoreNbDelegate* kvDelegatePtrS3_ = nullptr;
+    KvStoreNbDelegate::Option option;
+    option.secOption.securityLabel = S2;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloudSyncConfig config;
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+
+    /**
+     * @tc.steps: step2. sync when security label is S4 and different encryption para is set
+     * @tc.expected: step2. support encrypt return OK, not support encrypt return SECURITY_OPTION_CHECK_ERROR.
+     */
+    option.secOption.securityLabel = S4;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, SECURITY_OPTION_CHECK_ERROR);
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+
+    /**
+     * @tc.steps: step3. sync when security label is S1 and different encryption para is set
+     * @tc.expected: step3. return OK.
+     */
+    option.secOption.securityLabel = S1;
+    EXPECT_EQ(GetKvStore(kvDelegatePtrS3_, STORE_ID_3, option), OK);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    config.isSupportEncrypt = true;
+    kvDelegatePtrS3_->SetCloudSyncConfig(config);
+    BlockSync(kvDelegatePtrS3_, OK, g_CloudSyncoption, OK);
+    CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
 }

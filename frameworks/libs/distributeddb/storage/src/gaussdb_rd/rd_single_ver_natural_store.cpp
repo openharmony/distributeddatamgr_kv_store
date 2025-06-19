@@ -590,4 +590,10 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
 void RdSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
 {
 }
+
+CloudSyncConfig RdSingleVerNaturalStore::GetCloudSyncConfig() const
+{
+    CloudSyncConfig config;
+    return config;
+}
 } // namespace DistributedDB

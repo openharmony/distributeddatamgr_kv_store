@@ -1192,7 +1192,9 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
-    if (errCode == E_OK && securityOption.securityLabel == S4) {
+    CloudSyncConfig config = storageEngine_->GetCloudSyncConfig();
+    if ((errCode == E_OK) && (securityOption.securityLabel == S4) && (!config.isSupportEncrypt)) {
+        LOGE("[RelationalStore] The current data does not support synchronization.");
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
     return E_OK;

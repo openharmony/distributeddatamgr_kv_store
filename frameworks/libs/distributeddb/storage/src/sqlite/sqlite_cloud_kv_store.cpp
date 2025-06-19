@@ -633,6 +633,8 @@ void SqliteCloudKvStore::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     std::lock_guard<std::mutex> autoLock(configMutex_);
     config_ = config;
+    LOGI("[SqliteCloudKvStore] SetCloudSyncConfig value:[%" PRId32 ", %" PRId32 ", %" PRId32 ", %d]",
+        config_.maxUploadCount, config_.maxUploadSize, config_.maxRetryConflictTimes, config_.isSupportEncrypt);
 }
 
 CloudSyncConfig SqliteCloudKvStore::GetCloudSyncConfig() const
