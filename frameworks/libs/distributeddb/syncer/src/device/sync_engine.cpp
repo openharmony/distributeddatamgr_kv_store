@@ -695,13 +695,6 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
             context->ClearSyncOperation();
             continue;
         }
-        if (context->GetTargetUserId().empty()) {
-            LOGE("[SyncEngine] No target user found.");
-            context->SetTaskErrCode(-E_NO_TRUSTED_USER);
-            context->SetOperationStatus(SyncOperation::OP_FAILED);
-            context->ClearSyncOperation();
-            continue;
-        }
         if (context->IsCurrentSyncTaskCanBeSkipped()) { // LCOV_EXCL_BR_LINE
             context->SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
             context->ClearSyncOperation();
