@@ -546,13 +546,6 @@ group("unittest") {
     ":StoreUtilTest",
   ]
 
-  if (false) {
-    deps += [
-      ":SingleStorePerfPcTest",
-      ":SingleStorePerfPhoneTest",
-    ]
-  }
-
   if (!use_libfuzzer) {
     deps += [ ":SecurityManagerTest" ]
   }
