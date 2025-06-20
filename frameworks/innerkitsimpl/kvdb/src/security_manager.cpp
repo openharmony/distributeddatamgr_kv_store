@@ -284,6 +284,7 @@ bool SecurityManager::Encrypt(const std::vector<uint8_t> &key, SecurityManager::
     }
     content.nonceValue = Random(SecurityContent::NONCE_SIZE);
     if (content.nonceValue.empty()) {
+        HksFreeParamSet(&params);
         return false;
     }
     struct HksParam hksParam[] = {
