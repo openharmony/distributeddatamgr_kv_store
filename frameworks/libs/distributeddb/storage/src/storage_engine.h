@@ -138,6 +138,8 @@ private:
     StorageExecutor *FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
     StorageExecutor *FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
 
+    StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal = false);
+
     virtual void ClearCorruptedFlag();
 
     void PrintDbFileMsg(bool isOpen);
@@ -168,6 +170,9 @@ private:
 
     std::mutex idleMutex_;
     std::condition_variable idleCondition_;
+
+    std::atomic<int> readPendingCount_;
+    std::atomic<int> externalReadPendingCount_;
 
     EngineState engineState_;
 };

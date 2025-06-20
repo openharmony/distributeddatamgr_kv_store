@@ -38,6 +38,8 @@ StorageEngine::StorageEngine()
       perm_(OperatePerm::NORMAL_PERM),
       operateAbort_(false),
       isExistConnection_(false),
+      readPendingCount_(0),
+      externalReadPendingCount_(0),
       engineState_(EngineState::INVALID)
 {}
 
@@ -202,42 +204,88 @@ StorageExecutor *StorageEngine::FindWriteExecutor(OperatePerm perm, int &errCode
 
 StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal)
 {
-    std::unique_lock<std::mutex> lock(readMutex_);
-    errCode = -E_BUSY;
-    if (perm_ == OperatePerm::DISABLE_PERM || perm_ != perm) {
-        LOGI("Not permitted to get the executor[%u]", static_cast<unsigned>(perm_));
-        return nullptr;
-    }
-
-    std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
-    std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
-    if (waitTime <= 0) { // non-blocking.
-        if (readIdleList.empty() &&
-            readIdleList.size() + readUsingList.size() == engineAttr_.maxReadNum) {
+    auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
+    {
+        std::unique_lock<std::mutex> lock(readMutex_);
+        errCode = -E_BUSY;
+        if (perm_ == OperatePerm::DISABLE_PERM || perm_ != perm) {
+            LOGI("Not permitted to get the executor[%u]", static_cast<unsigned>(perm_));
             return nullptr;
         }
-        return FetchStorageExecutor(false, readIdleList, readUsingList, errCode, isExternal);
+        std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
+        std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
+        if (waitTime <= 0) { // non-blocking.
+            if (readIdleList.empty() &&
+                readIdleList.size() + readUsingList.size() + pendingCount == engineAttr_.maxReadNum) {
+                return nullptr;
+            }
+        } else {
+            // Not prohibited and there is an available handle
+            uint32_t maxReadHandleNum = isExternal ? 1 : engineAttr_.maxReadNum;
+            bool result = readCondition_.wait_for(lock, std::chrono::seconds(waitTime),
+                [this, &perm, &readUsingList, &readIdleList, &maxReadHandleNum, &pendingCount]() {
+                    return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) &&
+                         (!readIdleList.empty() ||
+                         (readIdleList.size() + readUsingList.size() + pendingCount < maxReadHandleNum) ||
+                         operateAbort_);
+                });
+            if (operateAbort_) {
+                LOGI("Abort find read executor and busy for operate!");
+                return nullptr;
+            }
+            if (!result) {
+                LOGI("Get read handle result[%d], permissType[%u], operType[%u], read[%zu-%zu-%" PRIu32 "]"
+                    "pending count[%d]", result, static_cast<unsigned>(perm_), static_cast<unsigned>(perm),
+                    readIdleList.size(), readUsingList.size(), engineAttr_.maxReadNum, pendingCount.load());
+                return nullptr;
+            }
+        }
+        pendingCount++;
     }
+    auto executor = FetchReadStorageExecutor(errCode, isExternal);
+    pendingCount--;
+    readCondition_.notify_all();
+    return executor;
+}
 
-    // Not prohibited and there is an available handle
-    uint32_t maxReadHandleNum = isExternal ? 1 : engineAttr_.maxReadNum;
-    bool result = readCondition_.wait_for(lock, std::chrono::seconds(waitTime),
-        [this, &perm, &readUsingList, &readIdleList, &maxReadHandleNum]() {
-            return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) &&
-                (!readIdleList.empty() || (readIdleList.size() + readUsingList.size() < maxReadHandleNum) ||
-                operateAbort_);
-        });
-    if (operateAbort_) {
-        LOGI("Abort find read executor and busy for operate!");
-        return nullptr;
+StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isExternal)
+{
+    bool isNeedCreate;
+    {
+        std::unique_lock<std::mutex> lock(readMutex_);
+        auto &idleList = isExternal ? externalReadIdleList_ : readIdleList_;
+        isNeedCreate = idleList.empty();
     }
-    if (!result) {
-        LOGI("Get read handle result[%d], permissType[%u], operType[%u], read[%zu-%zu-%" PRIu32 "]", result,
-            static_cast<unsigned>(perm_), static_cast<unsigned>(perm), readIdleList.size(), readUsingList.size(),
-            engineAttr_.maxReadNum);
-        return nullptr;
+    StorageExecutor *handle = nullptr;
+    if (isNeedCreate) {
+        errCode = CreateNewExecutor(false, handle);
     }
-    return FetchStorageExecutor(false, readIdleList, readUsingList, errCode, isExternal);
+    std::unique_lock<std::mutex> lock(readMutex_);
+    if (isNeedCreate) {
+        auto &usingList = isExternal ? externalReadUsingList_ : readUsingList_;
+        if ((errCode != E_OK) || (handle == nullptr)) {
+            if (errCode != -E_EKEYREVOKED) {
+                return nullptr;
+            }
+            LOGE("Key revoked status, couldn't create the new executor");
+            if (!usingList.empty()) {
+                LOGE("Can't create new executor for revoked");
+                errCode = -E_BUSY;
+            }
+            return nullptr;
+        }
+        AddStorageExecutor(handle, isExternal);
+    }
+    auto &usingList = isExternal ? externalReadUsingList_ : readUsingList_;
+    auto &idleList = isExternal ?  externalReadIdleList_ : readIdleList_;
+    auto item = idleList.front();
+    usingList.push_back(item);
+    idleList.remove(item);
+    if (!isEnhance_) {
+        LOGD("Get executor[%d] from [%.3s]", false, hashIdentifier_.c_str());
+    }
+    errCode = E_OK;
+    return item;
 }
 
 void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
@@ -266,21 +314,25 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
             idleCondition_.notify_all();
         }
     } else {
-        std::unique_lock<std::mutex> lock(readMutex_);
-        std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
-        std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
-        auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
-        if (iter != readUsingList.end()) {
-            readUsingList.remove(handle);
-            if (!readIdleList.empty()) {
-                delete handle;
-                handle = nullptr;
-                return;
+        StorageExecutor *releaseHandle = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(readMutex_);
+            std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
+            std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
+            auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
+            if (iter != readUsingList.end()) {
+                readUsingList.remove(handle);
+                if (!readIdleList.empty()) {
+                    releaseHandle = handle;
+                    handle = nullptr;
+                } else {
+                    handle->Reset();
+                    readIdleList.push_back(handle);
+                    readCondition_.notify_one();
+                }
             }
-            handle->Reset();
-            readIdleList.push_back(handle);
-            readCondition_.notify_one();
         }
+        delete releaseHandle;
     }
     handle = nullptr;
 }

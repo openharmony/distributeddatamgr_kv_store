@@ -2058,4 +2058,60 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, StoreId001, TestSize.Level0)
     EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, USER_ID, APP_ID, STORE_ID_1, true), "");
     EXPECT_NE(RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, USER_ID, APP_ID, storeIdWithDot, true), "");
 }
+
+/**
+  * @tc.name: GetDbHandleConcurrentlyTest001
+  * @tc.desc: Test get db handle concurrently
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, GetDbHandleConcurrentlyTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    /**
+     * @tc.steps:step2. open relational store
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    /**
+     * @tc.steps:step3. open relational store
+     * @tc.expected: step3. Return OK.
+     */
+    std::string tableName = "sync_data";
+    int executeTime = 100;
+    std::thread thread1([&, this]() {
+        for (int i = 0; i < executeTime; i++) {
+            DistributedDB::SqlCondition sqlCondition;
+            std::vector<VBucket> records = {};
+            sqlCondition.sql = "BEGIN;";
+            EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
+            sqlCondition.sql = "DROP TABLE IF EXISTS " + DBCommon::GetLogTableName(tableName);
+            EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
+            sqlCondition.sql = "COMMIT;";
+            EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
+        }
+    });
+    std::thread thread2([&, this]() {
+        for (int i = 0; i < executeTime; i++) {
+            status = delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION);
+            EXPECT_EQ(status, OK);
+        }
+    });
+    thread1.join();
+    thread2.join();
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+}
 }
