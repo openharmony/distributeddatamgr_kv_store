@@ -184,7 +184,7 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
+HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level1)
 {
     AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
     AclXattrEntry entryB(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
@@ -201,7 +201,7 @@ HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level0)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level0)
+HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level1)
 {
     AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
     auto result = entryA.IsValid();
@@ -223,7 +223,7 @@ HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level0)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, ACL_PERM001, TestSize.Level0)
+HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1)
 {
     ACL_PERM perm1;
     perm1.SetR();
@@ -235,5 +235,23 @@ HWTEST_F(AclTest, ACL_PERM001, TestSize.Level0)
     EXPECT_TRUE(perm1.IsReadable());
     EXPECT_TRUE(perm1.IsWritable());
     EXPECT_TRUE(perm1.IsExecutable());
+}
+
+/**
+ * @tc.name: Anonymous001
+ * @tc.desc: Test Anonymous.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: SQL
+ */
+HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
+{
+    Acl aclNew(PATH_ABC);
+    std::string name = "";
+    EXPECT_EQ(aclNew.Anonymous(name), "******");
+    name = "12345678";
+    EXPECT_EQ(aclNew.Anonymous(name), "123***");
+    name = "123456789";
+    EXPECT_EQ(aclNew.Anonymous(name), "123***789");
 }
 } // namespace OHOS::Test

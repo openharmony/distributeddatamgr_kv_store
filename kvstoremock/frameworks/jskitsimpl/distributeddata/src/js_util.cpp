@@ -28,6 +28,11 @@ namespace OHOS::DistributedData {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
 constexpr mode_t MODE = 0755;
+static constexpr int32_t HEAD_SIZE = 3;
+static constexpr int32_t END_SIZE = 3;
+static constexpr int32_t MIN_SIZE = 9;
+static constexpr const char *REPLACE_CHAIN = "***";
+static constexpr const char *DEFAULT_ANONYMOUS = "******";
 struct PredicatesProxy {
     std::shared_ptr<DataShareAbsPredicates> predicates_;
 };
@@ -1115,7 +1120,7 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
     param.area = DistributedKv::Area::EL1;
     param.baseDir = baseDir + "\\HuaweiDevEcoStudioDatabases";
     if (mkdir(param.baseDir.c_str()) != 0) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, param.baseDir.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, Anonymous(param.baseDir).c_str());
     }
 #else
     std::string baseDir = getenv("LOGNAME");
@@ -1126,12 +1131,12 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
     param.area = DistributedKv::Area::EL1;
     param.baseDir = baseDir + "/HuaweiDevEcoStudioDatabases";
     if (mkdir(param.baseDir.c_str(), MODE) != 0) {
-        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, param.baseDir.c_str());
+        ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, Anonymous(param.baseDir).c_str());
     }
 #endif
     param.hapName = "com.example.myapplication";
     ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
-        param.baseDir.c_str());
+        Anonymous(param.baseDir).c_str());
     return napi_ok;
 }
 
@@ -1203,5 +1208,18 @@ std::pair<napi_status, napi_value> JSUtil::GetInnerValue(
         return std::make_pair(napi_ok, nullptr);
     }
     return std::make_pair(napi_ok, inner);
+}
+
+std::string JSUtil::Anonymous(const std::string &name)
+{
+    if (name.length() <= HEAD_SIZE) {
+        return DEFAULT_ANONYMOUS;
+    }
+
+    if (name.length() < MIN_SIZE) {
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+    }
+
+    return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 } // namespace OHOS::DistributedData

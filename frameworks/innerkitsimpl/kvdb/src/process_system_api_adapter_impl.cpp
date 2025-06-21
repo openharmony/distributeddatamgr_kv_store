@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include "log_print.h"
 #include "security_label.h"
+#include "store_util.h"
 
 namespace OHOS::DistributedKv {
 using Label = DistributedDB::SecurityLabel;
@@ -73,7 +74,8 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOp
     if (!result) {
         auto fPath = filePath.substr(0, HEAD_SIZE) + REPLACE_CHAIN +
             filePath.substr(filePath.length() - END_SIZE, END_SIZE);
-        ZLOGE("Set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(), fPath.c_str());
+        ZLOGE("Set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(),
+            StoreUtil::Anonymous(fPath).c_str());
         return DBStatus::DB_ERROR;
     }
     return DBStatus::OK;

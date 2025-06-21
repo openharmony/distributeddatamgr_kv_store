@@ -134,7 +134,8 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->options.baseDir = kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
-        ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area, ctxt->options.baseDir.c_str());
+        ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area,
+            JSUtil::Anonymous(ctxt->options.baseDir).c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
         Status status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
         if (status == CRYPT_ERROR) {
@@ -231,7 +232,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
         CHECK_ARGS_RETURN_VOID(ctxt, kvm != nullptr, "KVManager is null, failed!");
         std::string databaseDir = kvm->param_->baseDir;
-        ZLOGD("DeleteKVStore databaseDir is: %{public}s", databaseDir.c_str());
+        ZLOGD("DeleteKVStore databaseDir is: %{public}s", JSUtil::Anonymous(databaseDir).c_str());
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, databaseDir);
         ZLOGD("DeleteKvStore status:%{public}d", status);
         ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;

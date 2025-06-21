@@ -30,7 +30,7 @@ ohos_unittest("DataBaseUtilsTest") {
   sources += [ "../src/acl.cpp" ]
 
   configs = [ ":database_utils_config" ]
-
+  cflags = [ "-Dprivate=public" ]
   external_deps = [ "hilog:libhilog" ]
   public_external_deps = [
     "bounds_checking_function:libsec_shared",

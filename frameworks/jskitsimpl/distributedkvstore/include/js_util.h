@@ -220,6 +220,7 @@ public:
 
     static int32_t GetApiVersion(napi_env, napi_value value);
 
+    static std::string Anonymous(const std::string &name);
 private:
     enum {
         /* std::map<key, value> to js::tuple<key, value> */
