@@ -72,14 +72,12 @@ public:
     public:
         KeyFiles(const std::string &name, const std::string &path, bool openFile = true);
         ~KeyFiles();
-        const std::string &GetKeyFilePath();
         int32_t Lock();
         int32_t UnLock();
         int32_t DestroyLock();
     private:
         int32_t FileLock(int32_t lockType);
         int32_t lockFd_ = -1;
-        std::string keyPath_;
         std::string lockFile_;
     };
 
@@ -103,8 +101,8 @@ private:
     SecurityManager();
     ~SecurityManager();
     std::vector<uint8_t> Random(int32_t length);
-    bool LoadContent(SecurityContent &content, const std::string &path, const std::string &tempPath, bool isTemp);
-    SecurityContent LoadKeyFromFile(const std::string &path);
+    bool LoadContent(SecurityContent &content, const std::string &path);
+    void LoadKeyFromFile(const std::string &path, SecurityContent &securityContent);
     void LoadNewKey(const std::vector<char> &content, SecurityContent &securityContent);
     void LoadOldKey(const std::vector<char> &content, SecurityContent &securityContent);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);

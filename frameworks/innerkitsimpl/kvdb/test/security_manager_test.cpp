@@ -36,8 +36,8 @@ static constexpr const char *STORE_NAME = "test_store";
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/SecurityManagerTest";
 static constexpr const char *KEY_DIR = "/data/service/el1/public/database/SecurityManagerTest/key";
 static constexpr const char *KEY_FULL_PATH = "/data/service/el1/public/database/SecurityManagerTest/key/test_store.key";
-static constexpr const char *KEY_FULL_TEMP_PATH =
-    "/data/service/el1/public/database/SecurityManagerTest/key/test_store.key_bk";
+static constexpr const char *KEY_FULL_PATH_V1 =
+    "/data/service/el1/public/database/SecurityManagerTest/key/test_store.key_v1";
 static constexpr const char *LOCK_FULL_PATH =
     "/data/service/el1/public/database/SecurityManagerTest/key/test_store.key_lock";
 static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
@@ -54,7 +54,6 @@ public:
     static std::vector<uint8_t> Random(int32_t length);
     static std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &nonce);
     static bool SaveKeyToOldFile(const std::vector<uint8_t> &key);
-    static bool SaveKeyToTempFile(const std::vector<uint8_t> &key, const std::vector<uint8_t> &nonce);
     static void GenerateRootKey();
     static void DeleteRootKey();
 
@@ -90,8 +89,8 @@ void SecurityManagerTest::SetUp()
 void SecurityManagerTest::TearDown()
 {
     (void)remove(LOCK_FULL_PATH);
-    (void)remove(KEY_FULL_TEMP_PATH);
     (void)remove(KEY_FULL_PATH);
+    (void)remove(KEY_FULL_PATH_V1);
     (void)remove(KEY_DIR);
 }
 
@@ -162,27 +161,6 @@ bool SecurityManagerTest::SaveKeyToOldFile(const std::vector<uint8_t> &key)
     content.insert(content.end(), date.begin(), date.end());
     content.insert(content.end(), encryptKey.begin(), encryptKey.end());
     return SaveBufferToFile(KEY_FULL_PATH, content);
-}
-
-bool SecurityManagerTest::SaveKeyToTempFile(const std::vector<uint8_t> &key, const std::vector<uint8_t> &nonce)
-{
-    auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::system_clock::now());
-    std::vector<uint8_t> date(reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time));
-    std::vector<uint8_t> keyContent;
-    keyContent.push_back(SecurityManager::SecurityContent::CURRENT_VERSION);
-    keyContent.insert(keyContent.end(), date.begin(), date.end());
-    keyContent.insert(keyContent.end(), key.begin(), key.end());
-    auto encryptKey = Encrypt(keyContent, nonce);
-    if (encryptKey.empty()) {
-        return false;
-    }
-    std::vector<char> content;
-    for (size_t index = 0; index < SecurityManager::SecurityContent::MAGIC_NUM; ++index) {
-        content.push_back(char(SecurityManager::SecurityContent::MAGIC_CHAR));
-    }
-    content.insert(content.end(), nonce.begin(), nonce.end());
-    content.insert(content.end(), encryptKey.begin(), encryptKey.end());
-    return SaveBufferToFile(KEY_FULL_TEMP_PATH, content);
 }
 
 void SecurityManagerTest::GenerateRootKey()
@@ -273,6 +251,14 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest002, TestSize.Level0)
 
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
+    result = SaveBufferToFile(KEY_FULL_PATH_V1, content);
+    ASSERT_TRUE(result);
+
+    dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
+    ASSERT_FALSE(dbPassword.IsValid());
+
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -314,6 +300,8 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest003, TestSize.Level0)
     ASSERT_TRUE(result);
     dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -324,37 +312,42 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest003, TestSize.Level0)
 HWTEST_F(SecurityManagerTest, GetDBPasswordTest004, TestSize.Level0)
 {
     std::vector<char> content;
+
     // 1.the size of content is invalid
     content.push_back(char(SecurityManager::SecurityContent::MAGIC_CHAR));
-    auto result = SaveBufferToFile(KEY_FULL_PATH, content);
+    auto result = SaveBufferToFile(KEY_FULL_PATH_V1, content);
     ASSERT_TRUE(result);
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
     // 2.the size of content is invalid
     for (size_t index = 0; index < SecurityManager::SecurityContent::MAGIC_NUM - 1; ++index) {
         content.push_back(char(SecurityManager::SecurityContent::MAGIC_CHAR));
     }
-    result = SaveBufferToFile(KEY_FULL_PATH, content);
+    result = SaveBufferToFile(KEY_FULL_PATH_V1, content);
     ASSERT_TRUE(result);
     dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
     // 3.the size of content is invalid
     auto nonce = Random(NONCE_SIZE);
     ASSERT_FALSE(nonce.empty());
     content.insert(content.end(), nonce.begin(), nonce.end());
-    result = SaveBufferToFile(KEY_FULL_PATH, content);
+    result = SaveBufferToFile(KEY_FULL_PATH_V1, content);
     ASSERT_TRUE(result);
     dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
     // 4.the content decrypt fail
     auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::system_clock::now());
     std::vector<uint8_t> date(reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time));
     std::vector<char> invalidContent = content;
     invalidContent.insert(invalidContent.end(), date.begin(), date.end());
-    result = SaveBufferToFile(KEY_FULL_PATH, invalidContent);
+    result = SaveBufferToFile(KEY_FULL_PATH_V1, invalidContent);
     ASSERT_TRUE(result);
     dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
     // 5.the content decrypt success and key is empty
     std::vector<uint8_t> keyContent;
     keyContent.push_back(SecurityManager::SecurityContent::CURRENT_VERSION);
@@ -363,10 +356,12 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest004, TestSize.Level0)
     ASSERT_FALSE(encryptValue.empty());
     invalidContent = content;
     invalidContent.insert(invalidContent.end(), encryptValue.begin(), encryptValue.end());
-    result = SaveBufferToFile(KEY_FULL_PATH, invalidContent);
+    result = SaveBufferToFile(KEY_FULL_PATH_V1, invalidContent);
     ASSERT_TRUE(result);
     dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
     ASSERT_FALSE(dbPassword.IsValid());
+
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -396,6 +391,7 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest005, TestSize.Level0)
     key2.assign(key2.size(), 0);
     dbPassword1.Clear();
     dbPassword2.Clear();
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -424,36 +420,7 @@ HWTEST_F(SecurityManagerTest, GetDBPasswordTest006, TestSize.Level0)
     }
 
     key.assign(key.size(), 0);
-}
-
-/**
- * @tc.name: GetDBPasswordTest007
- * @tc.desc: get password with temp key file exist and key file not exist
- * @tc.type: FUNC
- */
-HWTEST_F(SecurityManagerTest, GetDBPasswordTest007, TestSize.Level0)
-{
-    auto key = Random(KEY_SIZE);
-    ASSERT_FALSE(key.empty());
-    auto nonce = Random(NONCE_SIZE);
-    ASSERT_FALSE(nonce.empty());
-    auto result = SaveKeyToTempFile(key, nonce);
-    ASSERT_TRUE(result);
-
-    for (auto loop = 0; loop < LOOP_NUM; ++loop) {
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(STORE_NAME, BASE_DIR, false);
-        ASSERT_TRUE(dbPassword.IsValid());
-        ASSERT_EQ(dbPassword.GetSize(), key.size());
-        std::vector<uint8_t> password(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
-        ASSERT_EQ(password.size(), key.size());
-        for (auto index = 0; index < key.size(); ++index) {
-            ASSERT_EQ(password[index], key[index]);
-        }
-        password.assign(password.size(), 0);
-        dbPassword.Clear();
-    }
-
-    key.assign(key.size(), 0);
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -484,6 +451,7 @@ HWTEST_F(SecurityManagerTest, SaveDBPasswordTest001, TestSize.Level0)
     password.assign(password.size(), 0);
     dbPassword2.Clear();
     key.assign(key.size(), 0);
+    SecurityManager::GetInstance().DelDBPassword(STORE_NAME, BASE_DIR);
 }
 
 /**
@@ -514,8 +482,6 @@ HWTEST_F(SecurityManagerTest, KeyFilesMultiLockTest, TestSize.Level1)
     std::string dbName = "test1";
     StoreUtil::InitPath(dbPath);
     SecurityManager::KeyFiles keyFiles(dbName, dbPath);
-    auto keyPath = keyFiles.GetKeyFilePath();
-    EXPECT_EQ(keyPath, "/data/service/el1/public/database/SecurityManagerTest/key/test1.key");
     auto ret = keyFiles.Lock();
     EXPECT_EQ(ret, Status::SUCCESS);
     ret = keyFiles.Lock();
@@ -537,8 +503,6 @@ HWTEST_F(SecurityManagerTest, KeyFilesTest, TestSize.Level1)
     std::string dbName = "test2";
     StoreUtil::InitPath(dbPath);
     SecurityManager::KeyFiles keyFiles(dbName, dbPath);
-    auto keyPath = keyFiles.GetKeyFilePath();
-    EXPECT_EQ(keyPath, "/data/service/el1/public/database/SecurityManagerTest/key/test2.key");
     keyFiles.Lock();
     auto blockResult = std::make_shared<OHOS::BlockData<bool>>(1, false);
     std::thread thread([dbPath, dbName, blockResult]() {

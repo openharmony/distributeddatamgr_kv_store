@@ -37,7 +37,7 @@ static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
 static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
 static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
 static constexpr const char *SUFFIX_KEY = ".key";
-static constexpr const char *SUFFIX_TMP_KEY = ".key_bk";
+static constexpr const char *SUFFIX_KEY_V1 = ".key_v1";
 static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
 static constexpr const char *KEY_DIR = "/key";
 static constexpr const char *SLASH = "/";
@@ -92,21 +92,14 @@ std::vector<uint8_t> SecurityManager::Random(int32_t length)
     return value;
 }
 
-bool SecurityManager::LoadContent(SecurityManager::SecurityContent &content, const std::string &path,
-    const std::string &tempPath, bool isTemp)
+bool SecurityManager::LoadContent(SecurityManager::SecurityContent &content, const std::string &path)
 {
-    std::string realPath = isTemp ? tempPath : path;
-    if (!FileExists(realPath)) {
+    if (!FileExists(path)) {
         return false;
     }
-    content = LoadKeyFromFile(realPath);
+    LoadKeyFromFile(path, content);
     if (content.encryptValue.empty() || !Decrypt(content)) {
         return false;
-    }
-    if (isTemp) {
-        StoreUtil::Rename(tempPath, path);
-    } else {
-        StoreUtil::Remove(tempPath);
     }
     return true;
 }
@@ -117,12 +110,13 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
     KeyFiles keyFiles(name, path);
     KeyFilesAutoLock fileLock(keyFiles);
     DBPassword dbPassword;
-    auto keyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
-    auto tempKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_TMP_KEY;
+    auto oldKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
+    auto newKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY_V1;
     SecurityContent content;
-    auto result = LoadContent(content, keyPath, tempKeyPath, false);
+    auto result = LoadContent(content, newKeyPath);
     if (!result) {
-        result = LoadContent(content, keyPath, tempKeyPath, true);
+        content.isNewStyle = false;
+        result = LoadContent(content, oldKeyPath);
     }
     content.encryptValue.assign(content.encryptValue.size(), 0);
     std::vector<uint8_t> key;
@@ -138,19 +132,18 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
             key.assign(content.fullKeyValue.begin() + offset, content.fullKeyValue.end());
         }
         // old security key file and update key file
-        if (content.nonceValue.empty() && !key.empty()) {
-            SaveKeyToFile(name, path, key);
+        if (!content.isNewStyle && !key.empty() && SaveKeyToFile(name, path, key)) {
+            StoreUtil::Remove(oldKeyPath);
         }
         content.fullKeyValue.assign(content.fullKeyValue.size(), 0);
     }
     if (!result && needCreate) {
-        StoreUtil::Remove(keyPath);
-        StoreUtil::Remove(tempKeyPath);
         key = Random(SecurityContent::KEY_SIZE);
         if (key.empty() || !SaveKeyToFile(name, path, key)) {
             key.assign(key.size(), 0);
             return dbPassword;
         }
+        StoreUtil::Remove(oldKeyPath);
     }
     if (!content.time.empty()) {
         dbPassword.isKeyOutdated = IsKeyOutdated(content.time);
@@ -175,26 +168,19 @@ void SecurityManager::DelDBPassword(const std::string &name, const std::string &
 {
     KeyFiles keyFiles(name, path);
     KeyFilesAutoLock fileLock(keyFiles);
-    auto keyPath = keyFiles.GetKeyFilePath();
-    StoreUtil::Remove(keyPath);
+    auto oldKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
+    auto newKeyPath = path + KEY_DIR + SLASH + name + SUFFIX_KEY_V1;
+    StoreUtil::Remove(oldKeyPath);
+    StoreUtil::Remove(newKeyPath);
     fileLock.UnLockAndDestroy();
 }
 
-SecurityManager::SecurityContent SecurityManager::LoadKeyFromFile(const std::string &path)
+void SecurityManager::LoadKeyFromFile(const std::string &path, SecurityManager::SecurityContent &securityContent)
 {
-    SecurityContent securityContent;
     std::vector<char> content;
     auto loaded = LoadBufferFromFile(path, content);
     if (!loaded) {
-        return securityContent;
-    }
-    if (content.size() < SecurityContent::MAGIC_NUM) {
-        return securityContent;
-    }
-    for (size_t index = 0; index < SecurityContent::MAGIC_NUM; ++index) {
-        if (content[index] != char(SecurityContent::MAGIC_CHAR)) {
-            securityContent.isNewStyle = false;
-        }
+        return;
     }
     if (securityContent.isNewStyle) {
         LoadNewKey(content, securityContent);
@@ -202,13 +188,17 @@ SecurityManager::SecurityContent SecurityManager::LoadKeyFromFile(const std::str
         LoadOldKey(content, securityContent);
     }
     content.assign(content.size(), 0);
-    return securityContent;
 }
 
 void SecurityManager::LoadNewKey(const std::vector<char> &content, SecurityManager::SecurityContent &securityContent)
 {
     if (content.size() < SecurityContent::MAGIC_NUM + SecurityContent::NONCE_SIZE + 1) {
         return;
+    }
+    for (size_t index = 0; index < SecurityContent::MAGIC_NUM; ++index) {
+        if (content[index] != char(SecurityContent::MAGIC_CHAR)) {
+            return;
+        }
     }
     size_t offset = SecurityContent::MAGIC_NUM;
     securityContent.nonceValue.assign(content.begin() + offset, content.begin() + offset + SecurityContent::NONCE_SIZE);
@@ -260,17 +250,14 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     }
     content.insert(content.end(), securityContent.nonceValue.begin(), securityContent.nonceValue.end());
     content.insert(content.end(), securityContent.encryptValue.begin(), securityContent.encryptValue.end());
-    auto keyTempPath = keyPath + SLASH + name + SUFFIX_TMP_KEY;
-    auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY;
-    auto ret = SaveBufferToFile(keyTempPath, content);
+    auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY_V1;
+    auto ret = SaveBufferToFile(keyFullPath, content);
     content.assign(content.size(), 0);
     if (!ret) {
         ZLOGE("Save key to file fail, ret:%{public}d", ret);
         return false;
     }
-    if (StoreUtil::Rename(keyTempPath, keyFullPath)) {
-        StoreUtil::RemoveRWXForOthers(keyFullPath);
-    }
+    StoreUtil::RemoveRWXForOthers(keyFullPath);
     return ret;
 }
 
@@ -464,7 +451,6 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 
 SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &path, bool openFile)
 {
-    keyPath_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY;
     lockFile_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY_LOCK;
     StoreUtil::InitPath(path + KEY_DIR);
     if (!openFile) {
@@ -483,11 +469,6 @@ SecurityManager::KeyFiles::~KeyFiles()
     }
     close(lockFd_);
     lockFd_ = -1;
-}
-
-const std::string &SecurityManager::KeyFiles::GetKeyFilePath()
-{
-    return keyPath_;
 }
 
 int32_t SecurityManager::KeyFiles::Lock()

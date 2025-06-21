@@ -252,9 +252,9 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     std::shared_ptr<DBManager> dbManager, const Options &options)
 {
     auto rekeyPath = path + "/rekey";
-    auto keyName = path + "/key/" + storeId + ".key";
+    auto keyName = path + "/key/" + storeId + ".key_v1";
     auto reKeyFile = storeId + REKEY_NEW;
-    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
+    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key_v1";
     Status pwdValid = DB_ERROR;
     if (StoreUtil::IsFileExist(keyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
@@ -296,7 +296,7 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     DBStore *dbStore)
 {
     std::string rekeyPath = path + "/rekey";
-    std::string rekeyName = rekeyPath + "/key/" + storeId + REKEY_NEW + ".key";
+    std::string rekeyName = rekeyPath + "/key/" + storeId + REKEY_NEW + ".key_v1";
     (void)StoreUtil::InitPath(rekeyPath);
 
     auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
