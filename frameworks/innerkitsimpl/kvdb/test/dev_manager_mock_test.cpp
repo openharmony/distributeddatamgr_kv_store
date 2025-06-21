@@ -104,7 +104,7 @@ HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
  * @tc.desc: test GetRemoteDevices get trusted device no remote device
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: SQL
+ * @tc.author: suoqilong
  */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices002, TestSize.Level1)
 {
