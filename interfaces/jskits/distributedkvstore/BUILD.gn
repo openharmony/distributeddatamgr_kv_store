@@ -55,7 +55,6 @@ ohos_shared_library("distributedkvstore") {
   sources = [
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
@@ -72,11 +71,7 @@ ohos_shared_library("distributedkvstore") {
     "../../../frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
   ]
 
-  deps = [
-    "${kv_store_base_path}/databaseutils:database_utils",
-    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
-    "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
-  ]
+  deps = [ "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner" ]
 
   external_deps = [
     "ability_base:want",

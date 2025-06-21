@@ -22,12 +22,16 @@
 #include "kv_utils.h"
 #include "log_print.h"
 #include "napi_queue.h"
-#include "store_util.h"
 #include "types.h"
 
 namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
+static constexpr int32_t HEAD_SIZE = 3;
+static constexpr int32_t END_SIZE = 3;
+static constexpr int32_t MIN_SIZE = 9;
+static constexpr const char *REPLACE_CHAIN = "***";
+static constexpr const char *DEFAULT_ANONYMOUS = "******";
 static constexpr JSUtil::JsFeatureSpace FEATURE_NAME_SPACES[] = {
     { "ohos.data.cloudData", "ZGF0YS5jbG91ZERhdGE=", false },
     { "ohos.data.dataAbility", "ZGF0YS5kYXRhQWJpbGl0eQ==", false },
@@ -1249,8 +1253,8 @@ JSUtil::StatusMsg JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &par
     if (hapInfo != nullptr) {
         param.hapName = hapInfo->moduleName;
     }
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
-        DistributedKv::StoreUtil::Anonymous(param.baseDir).c_str());
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, Anonymous(param.hapName).c_str(),
+        param.baseDir.c_str());
 
     return napi_ok;
 }
@@ -1342,5 +1346,18 @@ std::pair<napi_status, napi_value> JSUtil::GetInnerValue(
         return std::make_pair(napi_ok, nullptr);
     }
     return std::make_pair(napi_ok, inner);
+}
+
+std::string JSUtil::Anonymous(const std::string &name)
+{
+    if (name.length() <= HEAD_SIZE) {
+        return DEFAULT_ANONYMOUS;
+    }
+
+    if (name.length() < MIN_SIZE) {
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+    }
+
+    return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 } // namespace OHOS::DistributedKVStore

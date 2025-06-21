@@ -21,7 +21,6 @@
 #include "log_print.h"
 #include "napi_queue.h"
 #include "js_error_utils.h"
-#include "store_util.h"
 
 using namespace OHOS::DistributedKv;
 
@@ -146,7 +145,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->options.hapName = kvm->param_->hapName;
         ctxt->options.apiVersion = kvm->param_->apiVersion;
         ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area,
-            StoreUtil::Anonymous(ctxt->options.baseDir).c_str());
+            JSUtil::Anonymous(ctxt->options.baseDir).c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
         Status status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
         if (status == DATA_CORRUPTED) {
@@ -244,7 +243,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
         ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         std::string databaseDir = kvm->param_->baseDir;
-        ZLOGD("DeleteKVStore databaseDir is: %{public}s", StoreUtil::Anonymous(databaseDir).c_str());
+        ZLOGD("DeleteKVStore databaseDir is: %{public}s", JSUtil::Anonymous(databaseDir).c_str());
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, databaseDir);
         ZLOGD("DeleteKvStore status:%{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
